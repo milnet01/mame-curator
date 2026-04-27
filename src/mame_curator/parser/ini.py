@@ -15,13 +15,23 @@ from mame_curator.parser.errors import INIError
 
 logger = logging.getLogger(__name__)
 
+# progettoSnaps INI files ship configuration metadata under these section headers.
+# Any key=value pairs underneath are tool-config, not catver/series/etc. data;
+# excluding them prevents `RootFolderIcon` and friends from being treated as machines.
+_META_SECTIONS = frozenset({"FOLDER_SETTINGS", "ROOT_FOLDER"})
+
 
 def parse_catver(path: Path) -> dict[str, str]:
     """Return {shortname: category} from progettoSnaps catver.ini.
 
-    Section headers are ignored; only `name=value` lines are kept.
+    Section headers are ignored; only `name=value` lines under non-metadata sections
+    are kept.
     """
-    return {key: value for _section, key, value in _parse_simple_ini(path)}
+    return {
+        key: value
+        for section, key, value in _parse_simple_ini(path)
+        if section not in _META_SECTIONS
+    }
 
 
 def parse_languages(path: Path) -> dict[str, list[str]]:
@@ -58,10 +68,11 @@ def parse_series(path: Path) -> dict[str, str]:
     """Return {shortname: series_name} from series.ini.
 
     Each section header is the series name; the keys are member shortnames.
+    Excludes progettoSnaps configuration-metadata sections.
     """
     out: dict[str, str] = {}
     for section, key, _v in _parse_simple_ini(path):
-        if section:
+        if section and section not in _META_SECTIONS:
             out[key] = section
     return out
 

@@ -78,6 +78,34 @@ def test_parse_skips_lines_with_no_separator(tmp_path: Path) -> None:
     assert parse_catver(f) == {"pacman": "Maze"}
 
 
+def test_parse_series_excludes_progettosnaps_metadata_sections(tmp_path: Path) -> None:
+    """progettoSnaps series.ini ships [FOLDER_SETTINGS] and [ROOT_FOLDER] metadata.
+
+    Per parser/spec.md parse_series: "Each section header is the series name; the keys
+    are member shortnames" — implicitly excluding configuration metadata. Without this
+    guard, every metadata-key-value pair becomes a fake series.
+    """
+    f = tmp_path / "series.ini"
+    f.write_text(
+        "[FOLDER_SETTINGS]\nRootFolderIcon=foo\nSubFolderIcon=bar\n\n"
+        "[ROOT_FOLDER]\n\n"
+        "[Pac-Man]\npacman=\npacmanf=\n"
+    )
+    result = parse_series(f)
+    assert result == {"pacman": "Pac-Man", "pacmanf": "Pac-Man"}
+    assert "RootFolderIcon" not in result
+    assert "SubFolderIcon" not in result
+
+
+def test_parse_catver_excludes_progettosnaps_metadata_sections(tmp_path: Path) -> None:
+    """catver.ini sometimes ships the same metadata sections — must not pollute categories."""
+    f = tmp_path / "catver.ini"
+    f.write_text("[FOLDER_SETTINGS]\nRootFolderIcon=foo\n\n[Category]\npacman=Maze / Collect\n")
+    result = parse_catver(f)
+    assert result == {"pacman": "Maze / Collect"}
+    assert "RootFolderIcon" not in result
+
+
 def test_parse_skips_hash_comments(tmp_path: Path) -> None:
     """`#` comments are skipped along with `;` ones."""
     f = tmp_path / "hash.ini"
