@@ -18,7 +18,7 @@ class Overrides(BaseModel):
     Single winner per parent (multi-winner is a post-v1 enhancement).
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", populate_by_name=True)
 
     entries: dict[str, str] = Field(default_factory=dict, alias="overrides")
 
