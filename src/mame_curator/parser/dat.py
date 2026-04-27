@@ -58,9 +58,10 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
 
 def _stream_machines(xml_path: Path) -> dict[str, Machine]:
     machines: dict[str, Machine] = {}
+    seen_unknown_statuses: set[str] = set()
     try:
         for _event, elem in etree.iterparse(str(xml_path), events=("end",), tag="machine"):
-            machine = _machine_from_element(elem)
+            machine = _machine_from_element(elem, seen_unknown_statuses)
             if machine.name in machines:
                 raise DATError(f"duplicate machine name: {machine.name}", path=xml_path)
             machines[machine.name] = machine
@@ -81,7 +82,7 @@ def _stream_machines(xml_path: Path) -> dict[str, Machine]:
     return machines
 
 
-def _machine_from_element(elem: Any) -> Machine:
+def _machine_from_element(elem: Any, seen_unknown_statuses: set[str]) -> Machine:
     name = elem.get("name")
     if not name:
         raise DATError("machine element missing required 'name' attribute")
@@ -107,7 +108,7 @@ def _machine_from_element(elem: Any) -> Machine:
         runnable=elem.get("runnable") != "no",
         roms=tuple(_rom_from_element(r) for r in elem.findall("rom")),
         biossets=tuple(_biosset_from_element(b) for b in elem.findall("biosset")),
-        driver_status=_driver_status_from_element(elem.find("driver")),
+        driver_status=_driver_status_from_element(elem.find("driver"), seen_unknown_statuses),
         sample_of=elem.get("sampleof"),
     )
 
@@ -171,7 +172,15 @@ def _biosset_from_element(elem: Any) -> BiosSet:
         raise DATError(f"<biosset> validation failed: {exc.errors(include_url=False)}") from exc
 
 
-def _driver_status_from_element(elem: Any) -> DriverStatus | None:
+def _driver_status_from_element(elem: Any, seen_unknown_statuses: set[str]) -> DriverStatus | None:
+    """Parse <driver status="...">; unknown values log once per status string.
+
+    Per parser/spec.md G3: DriverStatus is open-membership. Future MAME schema
+    additions log a warning and return None — they do NOT raise DATError.
+    The `seen_unknown_statuses` set carries across the whole DAT parse to
+    avoid log floods on a 43k-machine input where one unknown status would
+    otherwise produce ~3% of all log lines.
+    """
     if elem is None:
         return None
     status = elem.get("status")
@@ -180,5 +189,7 @@ def _driver_status_from_element(elem: Any) -> DriverStatus | None:
     try:
         return DriverStatus(status)
     except ValueError:
-        logger.warning("unknown driver status: %s", status)
+        if status not in seen_unknown_statuses:
+            logger.warning("unknown driver status %r — logging once per status string", status)
+            seen_unknown_statuses.add(status)
         return None

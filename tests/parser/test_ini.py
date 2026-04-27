@@ -121,6 +121,22 @@ def test_duplicate_ini_key_emits_warning(tmp_path: Path, caplog: pytest.LogCaptu
     assert any("pacman" in m for m in caplog.messages), "duplicate key must emit a warning"
 
 
+def test_invalid_utf8_falls_back_to_latin1_with_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Per parser/spec.md G4: bad UTF-8 bytes warn and fall back to latin-1.
+
+    Never silent U+FFFD substitution; never strict-fail on real-world files.
+    """
+    f = tmp_path / "latin1.ini"
+    # 0xE9 is é in latin-1 but invalid as a UTF-8 lead byte standalone.
+    f.write_bytes(b"[Cat]\npacman=Maze caf\xe9\n")
+    with caplog.at_level(logging.WARNING, logger="mame_curator.parser.ini"):
+        result = parse_catver(f)
+    assert result == {"pacman": "Maze café"}, "latin-1 fallback must decode é correctly"
+    assert any("UTF-8" in m and "latin-1" in m for m in caplog.messages)
+
+
 def test_parse_skips_hash_comments(tmp_path: Path) -> None:
     """`#` comments are skipped along with `;` ones."""
     f = tmp_path / "hash.ini"

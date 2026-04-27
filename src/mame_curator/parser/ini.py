@@ -87,6 +87,25 @@ def parse_series(path: Path) -> dict[str, str]:
     return out
 
 
+def _read_ini_text(path: Path) -> str:
+    """Read an INI file as text. UTF-8 strict first; latin-1 fallback with warning.
+
+    Per parser/spec.md G4: progettoSnaps INI files are UTF-8 in practice, but
+    older versions and user-edited files may be latin-1. We never silently
+    substitute U+FFFD (which `errors="replace"` does); instead we surface the
+    encoding fall-back via a single warning per file.
+    """
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        raise INIError(f"failed to read INI: {exc}", path=path) from exc
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        logger.warning("invalid UTF-8 in %s; falling back to latin-1", path)
+        return raw.decode("latin-1")
+
+
 def _parse_simple_ini(path: Path) -> Iterator[tuple[str, str, str]]:
     """Yield (section, key, value) for every `key=value` line.
 
@@ -96,22 +115,19 @@ def _parse_simple_ini(path: Path) -> Iterator[tuple[str, str, str]]:
     if not path.exists():
         raise INIError("INI path does not exist", path=path)
     section = ""
-    try:
-        with path.open("r", encoding="utf-8", errors="replace") as f:
-            for raw_line in f:
-                line = raw_line.strip()
-                if not line or line.startswith((";", "#")):
-                    continue
-                if line.startswith("[") and line.endswith("]"):
-                    section = line[1:-1].strip()
-                    continue
-                if "=" not in line:
-                    continue
-                key, _, value = line.partition("=")
-                key = key.strip()
-                value = value.strip()
-                if not key:
-                    continue
-                yield (section, key, value)
-    except OSError as exc:
-        raise INIError(f"failed to read INI: {exc}", path=path) from exc
+    text = _read_ini_text(path)
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith((";", "#")):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            section = line[1:-1].strip()
+            continue
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            continue
+        yield (section, key, value)

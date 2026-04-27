@@ -250,3 +250,31 @@ def test_unknown_driver_status_becomes_none(tmp_path: Path) -> None:
     )
     machines = parse_dat(src)
     assert machines["z"].driver_status is None
+
+
+def test_unknown_driver_status_warning_logged_once_per_status(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Per parser/spec.md G3: unknown status warnings rate-limit per unique string.
+
+    With a 43k-machine DAT, one unknown status value would otherwise produce
+    tens of thousands of identical warnings. The walker maintains a set of
+    seen-unknowns and only emits one log line per distinct status string.
+    """
+    src = tmp_path / "many-bogus.xml"
+    src.write_text(
+        "<datafile>"
+        '<machine name="a"><description>A</description><driver status="protection"/></machine>'
+        '<machine name="b"><description>B</description><driver status="protection"/></machine>'
+        '<machine name="c"><description>C</description><driver status="protection"/></machine>'
+        '<machine name="d"><description>D</description><driver status="palette"/></machine>'
+        "</datafile>"
+    )
+    import logging as _logging
+
+    with caplog.at_level(_logging.WARNING, logger="mame_curator.parser.dat"):
+        parse_dat(src)
+    protection_warnings = [m for m in caplog.messages if "protection" in m]
+    palette_warnings = [m for m in caplog.messages if "palette" in m]
+    assert len(protection_warnings) == 1, "duplicate status string must warn at most once"
+    assert len(palette_warnings) == 1
