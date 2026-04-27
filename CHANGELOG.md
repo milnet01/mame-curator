@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Pre-Phase-2 independent-review sweep — pass 2 (2026-04-27)
+
+Second multi-agent sweep after Tier 1 fixes landed. Reframed around spec
+accuracy: "where is the spec unclear, not the code wrong?" Every finding
+classified as (a) code-not-following-spec → fix code, (b) spec gap → tighten
+spec, or (c) code-quality → backlog. Closed nine spec gaps (G1–G10) and
+created `cli/spec.md` (C1) so the CLI surface has a contract per standards §7.
+
+#### Spec edits
+- **`parser/spec.md`** — pinned: empty `<rom>`/`<biosset>` `name` → DATError;
+  `<year>` outside `[1970, 2100]` → None; DriverStatus is open-membership
+  (warn + None on unknown, never DATError); INI encoding policy (strict
+  UTF-8 with latin-1 fallback warning, never silent U+FFFD); zip-slip
+  protection on `.zip` wrappers; `Rom.size` non-negative; `_META_SECTIONS`
+  filter applies to all five INI parsers.
+- **`coding-standards.md`** — §9 now mandates errors → stderr, success/summary
+  → stdout, and that errors at trust boundaries MUST include the offending
+  input identifier (path, URL, key, line). §8 adds phase-staged dependency
+  declaration: phase-N runtime deps live in `[project.optional-dependencies]`
+  until the importing code ships.
+- **`cli/spec.md` (new)** — pins subcommand inventory, exit codes (1 runtime,
+  2 reserved for argparse), output routing, error-message contract, logging
+  configuration discipline, and the `set_defaults(func=...)` migration plan
+  for Phase 2/3.
+
+#### Code fixes (one commit per gap)
+- 🛡️ **G1+G6** — empty `<rom>`/`<biosset>` `name` and negative `Rom.size`
+  raise DATError via Pydantic Field constraints.
+- 🛡️ **G2** — `<year>` outside `[1970, 2100]` → None.
+- 🛡️ **G3** — unknown `<driver status>` warning rate-limited to once per
+  unique status string (avoids 43k log lines on a single MAME schema bump).
+- 🛡️ **G4** — INI encoding: try strict UTF-8, fall back to latin-1 with a
+  warning. Never silent corruption.
+- 🛡️ **G5** — zip-slip protection: `.zip` member with absolute path or `..`
+  component → DATError.
+- 🛡️ **G7** — `_META_SECTIONS` filter applied to `parse_languages`,
+  `parse_bestgames`, `parse_mature` (was: only catver + series).
+- 🛡️ **G8+G9** — CLI errors route to stderr with the input path prefixed.
+- 📦 **G10** — `fastapi` / `uvicorn` / `httpx` / `sse-starlette` moved from
+  `[project.dependencies]` to `[project.optional-dependencies].api`. Phase 1
+  end users no longer pull the web stack.
+
 ### Pre-Phase-2 independent-review sweep (2026-04-27)
 
 Three-lane multi-agent review (parser / CLI / filter spec). 6 actionable Tier 1
