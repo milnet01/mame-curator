@@ -93,6 +93,12 @@ The enum is **open-membership**: `<driver status="...">` values not in this set 
 
 - Returns the set of machine shortnames that have at least one `<disk>` child.
 
+### `parse_listxml_cloneof(path: Path) -> dict[str, str]`
+
+- Returns `{clone_short_name: parent_short_name}` for every machine with a non-empty `cloneof` attribute. Parents and standalone machines are absent from the map.
+- Used by `filter/` to reconstruct parent/clone relationships that the Pleasuredome DAT strips.
+- Same `lxml.iterparse` streaming pattern as `parse_listxml_disks` (clear element + detach previous siblings to keep memory bounded across the 43k-machine listxml).
+
 ### `split_manufacturer(raw: str | None) -> tuple[str | None, str | None]`
 
 - Returns `(publisher, developer)`.

@@ -35,3 +35,29 @@ def parse_listxml_disks(path: Path) -> set[str]:
     except etree.XMLSyntaxError as exc:
         raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
     return chd_required
+
+
+def parse_listxml_cloneof(path: Path) -> dict[str, str]:
+    """Return {clone_short_name: parent_short_name} from MAME `-listxml`.
+
+    Pleasuredome ROM-set DATs strip the `cloneof` attribute, so Phase 2 of the
+    filter sources parent/clone relationships from the official MAME XML. Only
+    machines with a non-empty `cloneof` attribute are included; parents and
+    standalone machines are absent from the returned map.
+    """
+    if not path.exists():
+        raise ListxmlError("listxml path does not exist", path=path)
+
+    cloneof: dict[str, str] = {}
+    try:
+        for _event, elem in etree.iterparse(str(path), events=("end",), tag="machine"):
+            name = elem.get("name")
+            parent = elem.get("cloneof")
+            if name and parent:
+                cloneof[name] = parent
+            elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+    except etree.XMLSyntaxError as exc:
+        raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
+    return cloneof

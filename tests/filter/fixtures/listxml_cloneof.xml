@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mame build="0.284-fixture">
+    <machine name="sf2"><description>Street Fighter II: World Warrior</description></machine>
+    <machine name="sf2ce" cloneof="sf2" romof="sf2"><description>SF II: Champion Edition</description></machine>
+    <machine name="sf2t" cloneof="sf2" romof="sf2"><description>SF II: Hyper Fighting</description></machine>
+    <machine name="pacman"><description>Pac-Man</description></machine>
+    <machine name="pacmanf" cloneof="pacman"><description>Pac-Man (speedup)</description></machine>
+    <machine name="standalone"><description>Standalone</description></machine>
+</mame>
