@@ -1,0 +1,15 @@
+# Named session focuses for continuation mode. Activate one to slice the
+# library to a working set, e.g. "today: shoot-em-ups, tomorrow: fighters".
+# Set `active: null` to show the full library.
+
+active: null
+
+sessions:
+  # shoot_em_ups:
+  #   include_genres: ["Shooter*", "Shoot 'em Up*"]
+  # capcom_fighters_early_90s:
+  #   include_publishers: ["Capcom*"]
+  #   include_genres: ["Fighter*"]
+  #   include_year_range: [1991, 1995]
+  # todo_after_shooters:
+  #   include_genres: ["Fighter*", "Beat'em Up*", "Platformer*"]

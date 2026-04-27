@@ -1,0 +1,96 @@
+"""Parsers for the five progettoSnaps reference INI files.
+
+All five share section + key=value structure with `;` or `#` comments.
+A shared `_parse_simple_ini` walker emits (section, key, value) triples;
+each public parser interprets them differently.
+"""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Iterator
+from pathlib import Path
+
+from mame_curator.parser.errors import INIError
+
+logger = logging.getLogger(__name__)
+
+
+def parse_catver(path: Path) -> dict[str, str]:
+    """Return {shortname: category} from progettoSnaps catver.ini.
+
+    Section headers are ignored; only `name=value` lines are kept.
+    """
+    return {key: value for _section, key, value in _parse_simple_ini(path)}
+
+
+def parse_languages(path: Path) -> dict[str, list[str]]:
+    """Return {shortname: [lang, ...]} from languages.ini.
+
+    Comma-separated values are split and stripped.
+    """
+    out: dict[str, list[str]] = {}
+    for _section, key, value in _parse_simple_ini(path):
+        out[key] = [part.strip() for part in value.split(",") if part.strip()]
+    return out
+
+
+def parse_bestgames(path: Path) -> dict[str, str]:
+    """Return {shortname: tier} from bestgames.ini.
+
+    The bestgames format uses tier *sections* (`[Best]`, `[Great]`, ...) with
+    shortname keys whose values are empty. We map each shortname to its section.
+    """
+    valid_tiers = {"Best", "Great", "Good", "Average", "Bad", "Awful"}
+    out: dict[str, str] = {}
+    for section, key, _value in _parse_simple_ini(path):
+        if section in valid_tiers:
+            out[key] = section
+    return out
+
+
+def parse_mature(path: Path) -> set[str]:
+    """Return the set of shortnames listed under [Mature]."""
+    return {key for section, key, _v in _parse_simple_ini(path) if section == "Mature"}
+
+
+def parse_series(path: Path) -> dict[str, str]:
+    """Return {shortname: series_name} from series.ini.
+
+    Each section header is the series name; the keys are member shortnames.
+    """
+    out: dict[str, str] = {}
+    for section, key, _v in _parse_simple_ini(path):
+        if section:
+            out[key] = section
+    return out
+
+
+def _parse_simple_ini(path: Path) -> Iterator[tuple[str, str, str]]:
+    """Yield (section, key, value) for every `key=value` line.
+
+    Section is "" when no header has been seen. Comments (`;`, `#`) and
+    blank lines are skipped. Lines without `=` are skipped silently.
+    """
+    if not path.exists():
+        raise INIError("INI path does not exist", path=path)
+    section = ""
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line or line.startswith((";", "#")):
+                    continue
+                if line.startswith("[") and line.endswith("]"):
+                    section = line[1:-1].strip()
+                    continue
+                if "=" not in line:
+                    continue
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip()
+                if not key:
+                    continue
+                yield (section, key, value)
+    except OSError as exc:
+        raise INIError(f"failed to read INI: {exc}", path=path) from exc

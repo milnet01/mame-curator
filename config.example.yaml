@@ -1,0 +1,64 @@
+# MAME Curator configuration.
+# Copy this file to config.yaml and edit the values for your environment.
+# All paths use forward slashes; the app normalizes them on Windows.
+
+paths:
+  source_roms: /path/to/MAME ROMs (non-merged)
+  source_dat:  /path/to/MAME ROMs (non-merged).zip   # DAT zip is auto-extracted
+  dest_roms:   /path/to/ROMS/mame
+  retroarch_playlist: /path/to/ROMS/mame/mame.lpl
+
+server:
+  port: 8080                # auto-incremented up to 8090 if busy at start
+  open_browser_on_start: true
+
+filters:
+  drop_bios_devices_mechanical: true
+  drop_categories:
+    - "Casino*"
+    - "Slot Machine*"
+    - "Mahjong*"
+    - "Quiz / Japanese*"
+    - "Mature*"
+    - "Console*"            # NES/SNES system BIOSes; not console games
+    - "Computer*"
+    - "Calculator*"
+    - "Handheld*"
+    - "Utilities*"
+    - "Tabletop*"
+  drop_genres: []
+  drop_publishers: []
+  drop_developers: []
+  drop_year_before: null     # e.g. 1978
+  drop_year_after: null      # e.g. 2015
+  drop_japanese_only_text: true
+  drop_preliminary_emulation: true
+  drop_chd_required: true
+
+picker:
+  region_priority: [World, USA, Europe, Japan, Asia, Brazil]
+  preferred_genres: []
+  preferred_publishers: []
+  preferred_developers: []
+  prefer_parent_over_clone: true
+  prefer_good_driver: true
+
+media:
+  fetch_videos: false
+  cache_dir: ./data/media-cache
+
+ui:
+  theme: dark                 # dark | light | double_dragon | pacman | sf2 | neogeo
+  layout: masonry             # masonry | list | covers | grouped
+  default_sort: name          # name | year | manufacturer | rating
+  show_alternatives_indicator: true
+  cards_per_row_hint: auto    # auto | 4 | 5 | 6 | 8
+
+updates:
+  channel: stable             # stable | dev
+  check_on_startup: true
+  ini_check_on_startup: true
+
+# Note: there is no `privacy:` section. Telemetry is a hard non-goal of this project
+# — there are no analytics endpoints in the codebase. A configurable opt-out would
+# imply telemetry exists; it doesn't. See design spec §3.

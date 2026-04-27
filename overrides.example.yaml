@@ -1,0 +1,8 @@
+# Manual winner picks. The GUI edits this file on your behalf, but you can
+# also edit it directly. Keys are parent short names; values are the chosen
+# winner's short name (must exist in the DAT).
+
+overrides:
+  # sf2: sf2ce          # uncomment to prefer Champion Edition over vanilla
+  # mslug: mslug        # explicit pin against future rule changes
+  # pacman: pacmanf     # speedup hack

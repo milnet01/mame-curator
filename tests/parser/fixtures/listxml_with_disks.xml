@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mame build="0.284-fixture">
+    <machine name="kinst">
+        <description>Killer Instinct</description>
+        <rom name="ki-l13.u98" size="524288" crc="65f7ea31" sha1="00000000000000000000000000000000000000ab"/>
+        <disk name="kinst" sha1="00000000000000000000000000000000000000aa"/>
+    </machine>
+    <machine name="pacman">
+        <description>Pac-Man</description>
+        <rom name="pacman.6e" size="4096" crc="c1e6ab10" sha1="00000000000000000000000000000000000000ac"/>
+    </machine>
+    <machine name="kinst2">
+        <description>Killer Instinct 2</description>
+        <disk name="kinst2" sha1="00000000000000000000000000000000000000ad"/>
+    </machine>
+</mame>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<datafile>
+    <header>
+        <name>MAME mini fixture</name>
+        <version>0.284-fixture</version>
+    </header>
+    <machine name="pacman">
+        <description>Pac-Man (Midway)</description>
+        <year>1980</year>
+        <manufacturer>Namco (Midway license)</manufacturer>
+        <rom name="pacman.6e" size="4096" crc="c1e6ab10" sha1="e87e059c5be45753f7e9f33dff851f16d6751181"/>
+    </machine>
+    <machine name="pacmanf" cloneof="pacman" romof="pacman">
+        <description>Pac-Man (speedup hack)</description>
+        <year>1981</year>
+        <manufacturer>hack</manufacturer>
+        <rom name="pacmanf.6e" size="4096" crc="aaaaaaaa" sha1="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"/>
+        <driver status="imperfect"/>
+    </machine>
+    <machine name="neogeo" isbios="yes">
+        <description>Neo-Geo</description>
+        <year>1990</year>
+        <manufacturer>SNK</manufacturer>
+        <rom name="neo-epo.bin" size="131072" crc="11111111" sha1="0000000000000000000000000000000000000001"/>
+    </machine>
+    <machine name="z80" isdevice="yes" runnable="no">
+        <description>Z80 CPU device</description>
+        <manufacturer>Zilog</manufacturer>
+    </machine>
+    <machine name="3bagfull" ismechanical="yes">
+        <description>3 Bags Full</description>
+        <year>1996</year>
+        <manufacturer>Aristocrat</manufacturer>
+        <rom name="3bagfull.u86" size="32768" crc="22222222" sha1="0000000000000000000000000000000000000002"/>
+    </machine>
+    <machine name="brokensim">
+        <description>Broken Simulation (preliminary)</description>
+        <year>????</year>
+        <manufacturer>Unknown</manufacturer>
+        <rom name="broken.bin" size="1024" crc="33333333" sha1="0000000000000000000000000000000000000003"/>
+        <driver status="preliminary"/>
+    </machine>
+</datafile>

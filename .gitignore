@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+/dist/                       # top-level Python build artifact only — frontend/dist/ is committed
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Frontend: source-build artifacts ignored, pre-built bundle committed
+frontend/node_modules/
+# (frontend/dist/ is intentionally NOT ignored — see design §11)
+
+# Virtual envs and tooling
+.venv/
+.env
+.envrc
+.python-version
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+
+# Project-specific (never committed)
+/data/
+/wheels/
+/config.yaml
+/overrides.yaml
+/sessions.yaml
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

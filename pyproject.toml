@@ -1,0 +1,156 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mame-curator"
+version = "0.0.1"
+description = "Curate the best playable arcade games from a MAME ROM set with a modern web UI."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Ants Schemel" }]
+requires-python = ">=3.12"
+keywords = ["mame", "retroarch", "rom", "arcade", "curation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Games/Entertainment",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "lxml>=5.3",
+    "httpx>=0.28",
+    "pydantic>=2.10",
+    "pyyaml>=6.0",
+    "sse-starlette>=2.1",
+    "rich>=13.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "pytest-asyncio>=0.25",
+    "hypothesis>=6.122",
+    "respx>=0.22",
+    "ruff>=0.9",
+    "mypy>=1.13",
+    "bandit>=1.8",
+    "pre-commit>=4.0",
+    "types-PyYAML>=6.0",
+]
+
+[project.scripts]
+mame-curator = "mame_curator.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mame_curator"]
+
+# ---------------------------------------------------------------------------
+# Ruff: linter + formatter (replaces black/flake8/isort/pyupgrade)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific rules
+    "S",    # flake8-bandit (security)
+    "D",    # pydocstyle
+]
+ignore = [
+    "D100", # missing docstring in public module
+    "D104", # missing docstring in public package
+    "D203", # conflicts with D211
+    "D213", # conflicts with D212
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ---------------------------------------------------------------------------
+# mypy: strict type checking
+# (Pinned to mypy initially; switch to Astral's Ty when 1.0 stable.)
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+no_implicit_optional = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+files = ["src", "tests"]
+
+# lxml ships partial stubs that conflict more often than they help; we treat its
+# return types as Any at module boundaries and rely on test coverage instead.
+[[tool.mypy.overrides]]
+module = "lxml.*"
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=mame_curator",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    "--cov-fail-under=85",  # backend overall — per-module floors enforced via per-phase acceptance (see standards §6)
+]
+asyncio_mode = "auto"
+
+# ---------------------------------------------------------------------------
+# coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["src/mame_curator"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+show_missing = true
+
+# ---------------------------------------------------------------------------
+# bandit: security linting
+# ---------------------------------------------------------------------------
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
