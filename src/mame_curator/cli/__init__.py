@@ -3,7 +3,6 @@
 Subcommands (added incrementally as phases land):
     parse <dat-path>   — parse the DAT and print summary stats (Phase 1)
     filter <args>      — run the filter pipeline and write a report (Phase 2)
-    copy ...           — Phase 3
 """
 
 from __future__ import annotations
@@ -36,39 +35,53 @@ logger = logging.getLogger(__name__)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Construct the top-level argument parser with all subcommands."""
+    """Construct the top-level argument parser with all subcommands.
+
+    Each subparser registers its handler via `set_defaults(func=...)` per
+    cli/spec.md §"Dispatch pattern" — `run()` then dispatches with
+    `args.func(args)` instead of an if/elif chain.
+    """
     parser = argparse.ArgumentParser(prog="mame-curator", description=__doc__)
     parser.add_argument("-v", "--verbose", action="store_true", help="enable DEBUG-level logging")
     sub = parser.add_subparsers(dest="command", required=True)
 
     parse_cmd = sub.add_parser("parse", help="Parse a DAT and print summary stats")
     parse_cmd.add_argument("dat", type=Path, help="Path to DAT XML or .zip")
+    parse_cmd.set_defaults(func=_cmd_parse)
 
     filt = sub.add_parser("filter", help="Run the filter pipeline and write a JSON report")
-    filt.add_argument("--dat", type=Path, required=True)
+    filt.add_argument("--dat", type=Path, required=True, help="Path to DAT XML or .zip")
     filt.add_argument("--listxml", type=Path, required=True, help="Official MAME -listxml output")
-    filt.add_argument("--catver", type=Path, required=True)
-    filt.add_argument("--languages", type=Path, required=True)
-    filt.add_argument("--bestgames", type=Path, required=True)
+    filt.add_argument("--catver", type=Path, required=True, help="progettoSnaps catver.ini")
+    filt.add_argument("--languages", type=Path, required=True, help="progettoSnaps languages.ini")
+    filt.add_argument("--bestgames", type=Path, required=True, help="progettoSnaps bestgames.ini")
     filt.add_argument("--mature", type=Path, default=None, help="progettoSnaps mature.ini")
-    filt.add_argument("--overrides", type=Path, default=None)
-    filt.add_argument("--sessions", type=Path, default=None)
+    filt.add_argument(
+        "--overrides", type=Path, default=None, help="overrides.yaml (parent → winner pinning)"
+    )
+    filt.add_argument(
+        "--sessions", type=Path, default=None, help="sessions.yaml (continuation-mode focus)"
+    )
     filt.add_argument("--out", type=Path, required=True, help="Path to write report JSON")
+    filt.set_defaults(func=_cmd_filter)
 
     return parser
 
 
 def run(args: argparse.Namespace) -> int:
-    """Dispatch to the chosen subcommand. Returns process exit code."""
-    if args.command == "parse":
-        return _cmd_parse(args)
-    if args.command == "filter":
-        return _cmd_filter(args)
-    # Per cli/spec.md "Dispatch pattern": argparse `required=True` makes
-    # this branch unreachable from any real argv. Reaching it means the
-    # dispatch table here is out of sync with build_parser() — a developer
-    # bug.
-    raise AssertionError(f"unhandled subcommand in run(): {args.command!r}")
+    """Dispatch to the chosen subcommand. Returns process exit code.
+
+    Per cli/spec.md §"Dispatch pattern": argparse's `set_defaults(func=...)`
+    on each subparser populates `args.func` with the handler; this `run()`
+    is a one-line dispatcher. A missing `func` means the developer added a
+    subparser without the `set_defaults` call.
+    """
+    if not hasattr(args, "func"):
+        raise AssertionError(
+            f"subcommand {args.command!r} did not register a func via set_defaults(); "
+            f"check build_parser()"
+        )
+    return int(args.func(args))
 
 
 def _cmd_parse(args: argparse.Namespace) -> int:

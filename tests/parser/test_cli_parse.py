@@ -101,3 +101,22 @@ def test_run_with_unknown_command_raises_assertion() -> None:
     forged = _argparse.Namespace(command="nonexistent", verbose=False)
     with pytest.raises(AssertionError, match="nonexistent"):
         run(forged)
+
+
+def test_dispatch_uses_set_defaults_func_pattern() -> None:
+    """Per cli/spec.md "Dispatch pattern": when the second subcommand lands,
+    `run()` MUST migrate from `if/elif` to `set_defaults(func=_cmd_x)` +
+    `args.func(args)`. Phase 2's `filter` subcommand is the second; the
+    migration is now mandatory.
+
+    Verifies the contract by checking that every registered subparser sets
+    a `func` attribute (the dispatch hook) and that parsing a subcommand
+    populates `args.func`.
+    """
+    parser = build_parser()
+    args = parser.parse_args(["parse", "placeholder.xml"])
+    assert hasattr(args, "func"), (
+        "build_parser must use parse_cmd.set_defaults(func=...) so run() can "
+        "dispatch via args.func(args), not via an if/elif chain on args.command"
+    )
+    assert callable(args.func)

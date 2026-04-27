@@ -57,11 +57,27 @@ Example (bad — bare exception, no path prefix at CLI layer): `error: invalid X
 
 `logging.basicConfig(...)` is called **inside `main()`** — never at module import. Importing `mame_curator.cli` from tests, the FastAPI application factory, or a Python REPL must not mutate the global root logger. The level is set from `args.verbose`: `DEBUG` if set, else `INFO`. The format string is `"%(asctime)s %(levelname)s %(name)s: %(message)s"`.
 
-## Dispatch pattern (forward-compatibility)
+## Dispatch pattern
 
-Today's `if args.command == "parse"` chain is acceptable for one subcommand but doesn't scale. When the second subcommand lands (Phase 2 `filter`), `run()` MUST migrate to the `parse_cmd.set_defaults(func=_cmd_parse)` + `return args.func(args)` pattern so adding a third / fourth subcommand is a one-line registration. Tracked as a Phase 2 prerequisite in `phase-2-filter.md`.
+Each subparser registers its handler via `set_defaults(func=_cmd_<name>)` at
+the time it is added in `build_parser()`. `run()` then dispatches with a
+single `return int(args.func(args))`. Adding a new subcommand is a two-line
+registration in `build_parser()` (the `add_parser()` + the `set_defaults()`)
+plus the new `_cmd_<name>` function — no edit to `run()` required.
 
-**Unreachable fall-through discipline.** `run()` is only reached after argparse has accepted a known subcommand (`required=True` rejects anything else with exit code 2 *before* `run()` is called). A code path where `args.command` is unknown is therefore a developer bug — the dispatch table is out of sync with `build_parser()`. The fall-through MUST be `raise AssertionError(f"unhandled subcommand: {args.command!r}")`, not `return 1`. Returning a runtime-error exit code would silently hide the missing handler from CI and make the bug visible only when a user happens to typo a command (which they cannot, because argparse blocks it). The assertion makes the bug surface loudly in tests instead.
+This pattern is mandatory; the prior `if args.command == "parse"` chain was
+acceptable for one subcommand but does not scale and was migrated in
+indie-review pass 3 (Tier 1 C1). New subcommands MUST follow the
+`set_defaults(func=...)` form.
+
+**Missing-`func` discipline.** `run()` is only reached after argparse has
+accepted a known subcommand (`required=True` rejects anything else with
+exit code 2 *before* `run()` is called). A code path where `args.func` is
+absent therefore means a subparser was added without the matching
+`set_defaults(func=...)` call — a developer bug, not a user error. `run()`
+MUST raise `AssertionError(...)` in that case rather than returning a
+runtime-error exit code; the assertion surfaces the bug loudly in tests
+and CI instead of masking it as a silent runtime failure.
 
 ## Errors the CLI catches but never raises
 
