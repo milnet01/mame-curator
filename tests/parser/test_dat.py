@@ -151,6 +151,22 @@ def test_biosset_parsed_when_present(tmp_path: Path) -> None:
     assert asia.default is True
 
 
+def test_year_out_of_range_becomes_none(tmp_path: Path) -> None:
+    """Per parser/spec.md G2: <year> outside [1970, 2100] → None (not DATError)."""
+    src = tmp_path / "year-bounds.xml"
+    src.write_text(
+        "<datafile>"
+        '<machine name="too_early"><description>X</description><year>1</year></machine>'
+        '<machine name="too_late"><description>Y</description><year>9999</year></machine>'
+        '<machine name="just_right"><description>Z</description><year>1980</year></machine>'
+        "</datafile>"
+    )
+    machines = parse_dat(src)
+    assert machines["too_early"].year is None
+    assert machines["too_late"].year is None
+    assert machines["just_right"].year == 1980
+
+
 def test_empty_rom_name_raises_DATError(tmp_path: Path) -> None:
     """Per parser/spec.md G1: <rom>/<biosset> with empty name → DATError."""
     bad = tmp_path / "empty-rom-name.xml"

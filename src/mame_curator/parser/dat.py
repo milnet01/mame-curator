@@ -119,13 +119,27 @@ def _text(elem: Any, child: str) -> str | None:
     return str(found.text)
 
 
+_MIN_PLAUSIBLE_YEAR = 1970
+_MAX_PLAUSIBLE_YEAR = 2100
+
+
 def _year_or_none(raw: str | None) -> int | None:
+    """Per parser/spec.md G2: <year> values outside [1970, 2100] → None.
+
+    MAME's earliest video output (Computer Space) is 1971; values like 1 or
+    9999 are DAT typos, not legitimate dates. Out-of-range silently → None
+    rather than DATError so a single typo in a 43k-machine DAT doesn't fail
+    the whole parse.
+    """
     if not raw:
         return None
     try:
-        return int(raw)
+        year = int(raw)
     except ValueError:
         return None
+    if year < _MIN_PLAUSIBLE_YEAR or year > _MAX_PLAUSIBLE_YEAR:
+        return None
+    return year
 
 
 def _rom_from_element(elem: Any) -> Rom:
