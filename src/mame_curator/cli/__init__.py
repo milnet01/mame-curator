@@ -2,7 +2,7 @@
 
 Subcommands (added incrementally as phases land):
     parse <dat-path>   — parse the DAT and print summary stats (Phase 1)
-    filter <config>    — Phase 2
+    filter <args>      — run the filter pipeline and write a report (Phase 2)
     copy ...           — Phase 3
 """
 
@@ -14,7 +14,23 @@ from pathlib import Path
 
 from rich.console import Console
 
-from mame_curator.parser import ParserError, parse_dat
+from mame_curator.filter import (
+    FilterConfig,
+    FilterContext,
+    FilterError,
+    load_overrides,
+    load_sessions,
+    run_filter,
+)
+from mame_curator.parser import (
+    ParserError,
+    parse_bestgames,
+    parse_catver,
+    parse_dat,
+    parse_languages,
+    parse_mature,
+)
+from mame_curator.parser.listxml import parse_listxml_cloneof, parse_listxml_disks
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +44,17 @@ def build_parser() -> argparse.ArgumentParser:
     parse_cmd = sub.add_parser("parse", help="Parse a DAT and print summary stats")
     parse_cmd.add_argument("dat", type=Path, help="Path to DAT XML or .zip")
 
+    filt = sub.add_parser("filter", help="Run the filter pipeline and write a JSON report")
+    filt.add_argument("--dat", type=Path, required=True)
+    filt.add_argument("--listxml", type=Path, required=True, help="Official MAME -listxml output")
+    filt.add_argument("--catver", type=Path, required=True)
+    filt.add_argument("--languages", type=Path, required=True)
+    filt.add_argument("--bestgames", type=Path, required=True)
+    filt.add_argument("--mature", type=Path, default=None, help="progettoSnaps mature.ini")
+    filt.add_argument("--overrides", type=Path, default=None)
+    filt.add_argument("--sessions", type=Path, default=None)
+    filt.add_argument("--out", type=Path, required=True, help="Path to write report JSON")
+
     return parser
 
 
@@ -35,25 +62,23 @@ def run(args: argparse.Namespace) -> int:
     """Dispatch to the chosen subcommand. Returns process exit code."""
     if args.command == "parse":
         return _cmd_parse(args)
+    if args.command == "filter":
+        return _cmd_filter(args)
     # Per cli/spec.md "Dispatch pattern": argparse `required=True` makes
     # this branch unreachable from any real argv. Reaching it means the
     # dispatch table here is out of sync with build_parser() — a developer
-    # bug. Surface it loudly instead of returning a silent runtime-error
-    # exit code that masks the missing handler.
+    # bug.
     raise AssertionError(f"unhandled subcommand in run(): {args.command!r}")
 
 
 def _cmd_parse(args: argparse.Namespace) -> int:
     console = Console()
-    err_console = Console(
-        stderr=True, soft_wrap=True
-    )  # §9: errors → stderr; soft_wrap keeps paths intact
+    err_console = Console(stderr=True, soft_wrap=True)
     try:
         machines = parse_dat(args.dat)
     except ParserError as exc:
-        # standards §9: errors at trust boundaries MUST include the offending input
         err_console.print(f"[red]error:[/red] failed to parse {args.dat}: {exc}")
-        return 1  # POSIX runtime error; argparse reserves 2 for usage errors
+        return 1
 
     parents = sum(1 for m in machines.values() if m.cloneof is None)
     clones = sum(1 for m in machines.values() if m.cloneof is not None)
@@ -68,4 +93,46 @@ def _cmd_parse(args: argparse.Namespace) -> int:
     console.print(f"  bios: {bios}")
     console.print(f"  devices: {devices}")
     console.print(f"  mechanical: {mechanical}")
+    return 0
+
+
+def _cmd_filter(args: argparse.Namespace) -> int:
+    console = Console()
+    err_console = Console(stderr=True, soft_wrap=True)
+    try:
+        machines = parse_dat(args.dat)
+        mature = frozenset(parse_mature(args.mature)) if args.mature else frozenset()
+        ctx = FilterContext(
+            category=parse_catver(args.catver),
+            languages={k: tuple(v) for k, v in parse_languages(args.languages).items()},
+            bestgames_tier=parse_bestgames(args.bestgames),
+            cloneof_map=parse_listxml_cloneof(args.listxml),
+            chd_required=frozenset(parse_listxml_disks(args.listxml)),
+            mature=mature,
+        )
+        # load_overrides / load_sessions return empty objects for missing files,
+        # so an unset --overrides / --sessions resolves to the same neutral state.
+        overrides = (
+            load_overrides(args.overrides)
+            if args.overrides
+            else load_overrides(Path("/nonexistent/overrides.yaml"))
+        )
+        sessions = (
+            load_sessions(args.sessions)
+            if args.sessions
+            else load_sessions(Path("/nonexistent/sessions.yaml"))
+        )
+    except (ParserError, FilterError) as exc:
+        err_console.print(f"[red]error:[/red] failed to load inputs: {exc}")
+        return 1
+
+    result = run_filter(machines, ctx, FilterConfig(), overrides, sessions)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(result.model_dump_json(indent=2) + "\n")
+
+    console.print(f"  winners: {len(result.winners)}")
+    console.print(f"  dropped: {len(result.dropped)}")
+    console.print(f"  contested groups: {len(result.contested_groups)}")
+    console.print(f"  warnings: {len(result.warnings)}")
+    console.print(f"  report: {args.out}")
     return 0
