@@ -7,6 +7,102 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Pre-Phase-3 independent-review sweep — pass 3 (2026-04-27)
+
+Third multi-agent sweep, dispatched after Phase 2 shipped. Four lanes
+(filter rule chain / filter YAML I/O / CLI surface / parser deltas).
+Two CRITICAL spec violations and one HIGH zombie field surfaced — folded
+into the roadmap as Phase 2 → Phase 3 gate criteria (see roadmap §Phase 2
+"Pre-Phase-3 indie-review findings"). Tier 2 hardening + Tier 3 structural
+findings tracked here per the project's CHANGELOG-as-sweep-log convention.
+
+#### Tier 2 — hardening (deferred until Tier 1 ships)
+
+- 🔒 **filter rule chain** — `_score_preferred` uses substring `in` match where
+  spec implies `fnmatch` (drops + sessions both use fnmatch).
+  (`filter/picker.py:40-52`)
+- 🔒 **filter rule chain** — `explain_pick` reports any non-uniform tiebreaker;
+  spec says "tiebreakers that actually decided the winner." The strict reading
+  is "would removing this tiebreaker change the winner?" — implementation
+  over-reports. (`filter/picker.py:121-126`)
+- 🔒 **filter rule chain** — `Sessions(active=...)` model construction bypasses
+  validation; only `load_sessions` enforces `active in sessions`. Programmatic
+  callers crash with `KeyError` at `runner.py:100` instead of `SessionsError`.
+  Move into a Pydantic `model_validator`.
+- 🔒 **filter rule chain** — `_score_region` returns `-1` for both `Region.UNKNOWN`
+  and the second-priority region (USA at index 1). Spec says UNKNOWN ranks last.
+  (`filter/picker.py:67-74`)
+- 🔒 **filter rule chain** — `FilterResult.dropped` is `dict[str, DroppedReason]`
+  (mutable in-place despite `frozen=True`). All other fields are tuples.
+  (`filter/types.py:51-59`)
+- 🛡️ **filter YAML I/O** — `yaml.safe_load` defends against CWE-502 deserialization
+  but not against alias-bombs; loaders also read entire file into memory before
+  parse. Threat is low for self-authored configs but escalates when Phase 7's
+  `setup/` ships preset downloads. Cap file size now (1 MB suggested).
+  (`filter/overrides.py:31`, `filter/sessions.py:59`)
+- 🛡️ **filter YAML I/O** — `sessions: null` (and `[]`, `0`, `""`) silently coerced
+  to empty by `raw.get("sessions") or {}`. Same falsy-coalesce bug at
+  `body or {}` for individual session bodies. Replace with explicit `None`
+  + `isinstance` checks. (`filter/sessions.py:66,71`)
+- 🛡️ **filter YAML I/O** — TOCTOU between `path.exists()` fast-path and
+  `path.read_text()` lets `OSError` (file deleted, NFS hiccup) escape as
+  untyped exception. Wrap `read_text` in `try/except OSError`.
+  (`filter/overrides.py:28-31`, `filter/sessions.py:56-59`)
+- 🛡️ **filter YAML I/O** — non-string YAML keys silently coerced to strings by
+  Pydantic (`overrides: { 123: foo }` → `{"123": "foo"}`); empty key (`: x`)
+  becomes `{"None": "x"}`. Spec says "non-empty strings"; no `min_length=1`
+  constraint enforces it. (`filter/overrides.py:23`)
+- 🛡️ **CLI** — `_cmd_filter` doesn't catch `OSError` from `--catver`/`--listxml`/etc.
+  pointing at a directory or unreadable file; raw Python traceback reaches the
+  user, violating cli/spec.md §"Errors the CLI catches but never raises."
+  (`cli/__init__.py:126`)
+- 🛡️ **CLI** — non-atomic write of report JSON. `args.out.write_text(...)` left
+  half-written on Ctrl-C / OOM. Phase 3's `copy/` will consume this report;
+  use tmp-file + `Path.replace` for atomicity. (`cli/__init__.py:131`)
+- 🛡️ **CLI** — sentinel-path antipattern: when `--overrides` / `--sessions` are
+  unset, the loader is called with `Path("/nonexistent/overrides.yaml")` to
+  trigger the missing-file fast path. Brittle (someone creates the path,
+  loaded silently); fails six-month test. Replace with direct `Overrides()` /
+  `Sessions()` construction. (`cli/__init__.py:115-124`)
+- 🛡️ **parser deltas** — `_resolve_xml` doesn't catch `OSError` from
+  `zipfile.ZipFile(...)` (perm-denied, EIO, broken symlink). Same root cause
+  as the CLI finding; spec line 138 says every CLI-visible error path stays
+  inside `ParserError`. Tier-2 BadZipFile fix scoped narrowly; this completes
+  the hardening. (`parser/dat.py:48-50`)
+- 🛡️ **parser deltas** — fd leak window in `_resolve_xml`: `zip_ctx = zipfile.ZipFile(path)`
+  binds before the `with` block, so a future `__enter__` failure leaks the fd.
+  Theoretical (CPython `__enter__` is `return self`) but the idiomatic fix is
+  one-line: move `ZipFile(path)` inside the `with` and the `try` around it.
+  (`parser/dat.py:49-56`)
+
+#### Tier 3 — structural / spec-tightening
+
+- 🧹 **filter rule chain** — `contested_groups` and `warnings` ordering depends
+  on Python dict iteration order; sort by `parent` / canonical key before
+  tupling for byte-identical determinism. (`filter/runner.py:43-46,64`)
+- 🧹 **filter rule chain** — `_cmd_filter` is 39 lines, conflates four concerns
+  (build context, overrides, sessions, run + report). Extract `_build_context`.
+  (`cli/__init__.py:99-138`)
+- 🧹 **CLI** — module docstring (used as `--help` description) lists `copy` as a
+  shipped subcommand; only `parse` and `filter` are. (`cli/__init__.py:1-7`)
+- 🧹 **CLI** — `--catver`, `--dat`, `--languages`, `--bestgames`, `--overrides`,
+  `--sessions` lack `help=` strings. (`cli/__init__.py:48-54`)
+- 🧹 **CLI** — `args.out.parent.mkdir(parents=True, exist_ok=True)` silently
+  materializes arbitrary directory trees from a typo. Document or constrain.
+  (`cli/__init__.py:130`)
+- 🧹 **CLI** — no INFO log lines for milestones; `-v / --verbose` flips the
+  level but the CLI itself emits nothing. Add `logger.info()` at parse and
+  load steps for slow-DAT visibility.
+- 📝 **spec — filter** — pin: `preferred_*` is `fnmatch` (or `in`); session
+  None-value behavior on year/publisher/developer; `lo == hi` is single-year-OK;
+  listxml-vs-DAT `<machine>`-name strictness asymmetry is intentional.
+- 📝 **spec — filter** — `populate_by_name=True` on `Overrides` is dead weight
+  given the loader doesn't accept the alternate key; remove or document the
+  alternate YAML key.
+- 📝 **spec — parser** — listxml-vs-DAT strictness asymmetry: DAT raises
+  `DATError` on missing `<machine name>`; listxml silently skips. Defensible
+  but spec is silent.
+
 ### Phase 2 complete — filter rule chain (2026-04-27)
 
 Implemented the four-phase filter pipeline: drop (Phase A) → pick
