@@ -41,10 +41,12 @@ def parse_languages(path: Path) -> dict[str, list[str]]:
     """Return {shortname: [lang, ...]} from languages.ini.
 
     Comma-separated values are split and stripped. Duplicate shortnames overwrite
-    (last write wins) and emit a warning.
+    (last write wins) and emit a warning. Excludes progettoSnaps metadata sections.
     """
     out: dict[str, list[str]] = {}
-    for _section, key, value in _parse_simple_ini(path):
+    for section, key, value in _parse_simple_ini(path):
+        if section in _META_SECTIONS:
+            continue
         if key in out:
             logger.warning("duplicate languages key %r in %s; overwriting", key, path)
         out[key] = [part.strip() for part in value.split(",") if part.strip()]
@@ -60,6 +62,8 @@ def parse_bestgames(path: Path) -> dict[str, str]:
     valid_tiers = {"Best", "Great", "Good", "Average", "Bad", "Awful"}
     out: dict[str, str] = {}
     for section, key, _value in _parse_simple_ini(path):
+        if section in _META_SECTIONS:
+            continue
         if section in valid_tiers:
             if key in out:
                 logger.warning("duplicate bestgames key %r in %s; overwriting", key, path)
@@ -68,8 +72,18 @@ def parse_bestgames(path: Path) -> dict[str, str]:
 
 
 def parse_mature(path: Path) -> set[str]:
-    """Return the set of shortnames listed under [Mature]."""
-    return {key for section, key, _v in _parse_simple_ini(path) if section == "Mature"}
+    """Return the set of shortnames listed under [Mature].
+
+    Metadata sections are excluded by virtue of the explicit "Mature" filter,
+    but the `_META_SECTIONS` check is added for consistency with the other
+    INI parsers — should progettoSnaps ever rename the [Mature] section, the
+    filter still defends against metadata leaking through.
+    """
+    return {
+        key
+        for section, key, _v in _parse_simple_ini(path)
+        if section == "Mature" and section not in _META_SECTIONS
+    }
 
 
 def parse_series(path: Path) -> dict[str, str]:

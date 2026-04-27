@@ -40,10 +40,14 @@ def run(args: argparse.Namespace) -> int:
 
 def _cmd_parse(args: argparse.Namespace) -> int:
     console = Console()
+    err_console = Console(
+        stderr=True, soft_wrap=True
+    )  # §9: errors → stderr; soft_wrap keeps paths intact
     try:
         machines = parse_dat(args.dat)
     except ParserError as exc:
-        console.print(f"[red]error:[/red] {exc}")
+        # standards §9: errors at trust boundaries MUST include the offending input
+        err_console.print(f"[red]error:[/red] failed to parse {args.dat}: {exc}")
         return 1  # POSIX runtime error; argparse reserves 2 for usage errors
 
     parents = sum(1 for m in machines.values() if m.cloneof is None)

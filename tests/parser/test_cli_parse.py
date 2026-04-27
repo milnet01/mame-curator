@@ -59,6 +59,21 @@ def test_main_module_import_does_not_configure_logging() -> None:
     assert before_handlers == after_handlers
 
 
+def test_error_routes_to_stderr_with_path_prefix(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Per standards §9 (G8/G9): errors → stderr, message includes input path."""
+    bad_path = tmp_path / "definitely-does-not-exist.xml"
+    parser = build_parser()
+    args = parser.parse_args(["parse", str(bad_path)])
+    exit_code = run(args)
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert "error:" not in captured.out, "errors must NOT go to stdout (G8)"
+    assert str(bad_path) in captured.err, "error message must include the path (G9)"
+    assert "error:" in captured.err
+
+
 def test_runtime_error_returns_exit_code_1_not_2(tmp_path: Path) -> None:
     """Argparse reserves exit code 2 for usage errors; runtime/data errors return 1.
 

@@ -98,6 +98,24 @@ def test_parse_series_excludes_progettosnaps_metadata_sections(tmp_path: Path) -
     assert "SubFolderIcon" not in result
 
 
+def test_parse_languages_excludes_progettosnaps_metadata_sections(tmp_path: Path) -> None:
+    """Per parser/spec.md G7: _META_SECTIONS filter applies to all five INI parsers."""
+    f = tmp_path / "languages.ini"
+    f.write_text("[FOLDER_SETTINGS]\nRootFolderIcon=foo\n\n[Languages]\npacman=English\n")
+    result = parse_languages(f)
+    assert result == {"pacman": ["English"]}
+    assert "RootFolderIcon" not in result
+
+
+def test_parse_bestgames_excludes_progettosnaps_metadata_sections(tmp_path: Path) -> None:
+    """Per parser/spec.md G7: _META_SECTIONS filter applies to all five INI parsers."""
+    f = tmp_path / "bestgames.ini"
+    f.write_text("[FOLDER_SETTINGS]\nRootFolderIcon=foo\n\n[Best]\npacman=\n")
+    result = parse_bestgames(f)
+    assert result == {"pacman": "Best"}
+    assert "RootFolderIcon" not in result
+
+
 def test_parse_catver_excludes_progettosnaps_metadata_sections(tmp_path: Path) -> None:
     """catver.ini sometimes ships the same metadata sections — must not pollute categories."""
     f = tmp_path / "catver.ini"
