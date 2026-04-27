@@ -43,7 +43,7 @@ def _cmd_parse(args: argparse.Namespace) -> int:
         machines = parse_dat(args.dat)
     except ParserError as exc:
         console.print(f"[red]error:[/red] {exc}")
-        return 2
+        return 1  # POSIX runtime error; argparse reserves 2 for usage errors
 
     parents = sum(1 for m in machines.values() if m.cloneof is None)
     clones = sum(1 for m in machines.values() if m.cloneof is not None)
