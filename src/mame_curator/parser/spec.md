@@ -16,7 +16,7 @@
 |---|---|---|
 | `name` | `str` | DAT `<machine name="...">` (the short name) |
 | `description` | `str` | DAT `<description>` |
-| `year` | `int \| None` | DAT `<year>` (parsed; `"????"` and unparseable → `None`) |
+| `year` | `int \| None` | DAT `<year>` (parsed; `"????"`, unparseable, and out-of-range values → `None`; see "Edge cases handled") |
 | `manufacturer_raw` | `str \| None` | DAT `<manufacturer>` verbatim |
 | `publisher` | `str \| None` | derived via `split_manufacturer` |
 | `developer` | `str \| None` | derived via `split_manufacturer` (may equal publisher when no `(... license)` suffix) |
@@ -35,32 +35,34 @@
 
 ### `class Rom` (frozen)
 
-| Field | Type |
-|---|---|
-| `name` | `str` |
-| `size` | `int \| None` |
-| `crc` | `str \| None` |
-| `sha1` | `str \| None` |
+| Field | Type | Notes |
+|---|---|---|
+| `name` | `str` | non-empty (`min_length=1`); a `<rom>` with missing or empty `name` is corruption → `DATError` |
+| `size` | `int \| None` | non-negative (`ge=0`); negative sizes are nonsense and rejected by the model |
+| `crc` | `str \| None` | |
+| `sha1` | `str \| None` | |
 
 ### `class BiosSet` (frozen)
 
-| Field | Type |
-|---|---|
-| `name` | `str` |
-| `description` | `str \| None` |
-| `default` | `bool` |
+| Field | Type | Notes |
+|---|---|---|
+| `name` | `str` | non-empty (`min_length=1`); same discipline as `Rom.name` |
+| `description` | `str \| None` | |
+| `default` | `bool` | |
 
 ### `class DriverStatus` (str enum)
 
 Values: `GOOD`, `IMPERFECT`, `PRELIMINARY`. String representation matches the DAT attribute exactly.
+
+The enum is **open-membership**: `<driver status="...">` values not in this set log a `logger.warning` and produce `Machine.driver_status = None`. They do *not* raise `DATError`. Rationale: MAME's schema has historically extended the set (`protection`, `palette`-style attributes); a closed enum would break parsing on every future MAME version. The warning is rate-limited to one log line per unique status string seen in a parse run (avoids log floods on a 43k-machine DAT).
 
 ## Public functions
 
 ### `parse_dat(path: Path) -> dict[str, Machine]`
 
 - Accepts `.xml` or `.zip`. For `.zip`, extracts to a temp file (single XML inside) and parses that.
-- Streams via `lxml.iterparse(events=("end",), tag="machine")` — never loads the full tree.
-- Calls `Element.clear()` after each `<machine>` to free memory.
+- Streams via `lxml.iterparse(events=("end",), tag="machine")` — never loads the full tree. Uses the canonical fast-iter idiom (`Element.clear()` plus `getprevious()` + `del parent[0]`) so the spine of empty siblings does not accumulate across the parse.
+- **Zip-slip protection**: rejects any `.zip` member whose path is absolute or contains `..` components → `DATError`. Defense in depth even when the threat model nominally trusts the source, because Phase 4's API will expose `parse_dat` to network-controlled inputs.
 - Returns a dict keyed by `Machine.name`. Two machines with the same name is a `ParserError`.
 - Raises `ParserError` on malformed XML, missing root element, missing required attributes, or duplicate `name`.
 
@@ -68,6 +70,7 @@ Values: `GOOD`, `IMPERFECT`, `PRELIMINARY`. String representation matches the DA
 
 - Returns `{shortname: category}`.
 - Tolerates blank lines, lines starting with `;` or `#`, and section headers in `[brackets]`.
+- Excludes progettoSnaps configuration-metadata sections (see "Metadata-section handling" below).
 
 ### `parse_languages(path: Path) -> dict[str, list[str]]`
 
@@ -98,6 +101,14 @@ Values: `GOOD`, `IMPERFECT`, `PRELIMINARY`. String representation matches the DA
 - `"Capcom (Sega license)"` → `("Capcom", "Sega")` — last `( ... license)` parenthetical is the developer.
 - `"Bally / Midway"` → `("Bally / Midway", "Bally / Midway")` — slashes are kept verbatim; we do not attempt to split co-publisher cases.
 
+## Metadata-section handling (all five INI parsers)
+
+progettoSnaps INI files ship under section headers `[FOLDER_SETTINGS]` and `[ROOT_FOLDER]` containing tool configuration (icons, sort orders, UI hints). These keys are not machine shortnames and must not pollute the parsed output. **All five INI parsers** filter these section names from their input via the shared `_META_SECTIONS = frozenset({"FOLDER_SETTINGS", "ROOT_FOLDER"})` deny-list. New metadata sections introduced by future progettoSnaps versions should be added to `_META_SECTIONS`, not handled per-parser.
+
+## Encoding policy (all five INI parsers)
+
+INI files are read as UTF-8. Files containing bytes that aren't valid UTF-8 trigger a `logger.warning("invalid UTF-8 in <path>; falling back to latin-1")` and are then re-decoded with `errors="replace"`. The parser never silently substitutes U+FFFD without surfacing the warning, and never refuses to load a real-world progettoSnaps file just because some character was mojibake.
+
 ## Errors
 
 - `ParserError(Exception)` — raised on malformed input. Sub-classes: `DATError`, `INIError`, `ListxmlError`. All carry the source path and a one-sentence cause.
@@ -108,10 +119,15 @@ Values: `GOOD`, `IMPERFECT`, `PRELIMINARY`. String representation matches the DA
 - DAT `<year>` is `"????"` or `"19??"` → `Machine.year = None`.
 - DAT `<machine>` with no `<description>` → `DATError` (description is required).
 - DAT containing zero `<machine>` elements (valid XML but wrong root, or genuinely empty) → `DATError("DAT contained no <machine> elements")`. Without this, the user gets a confusing silent `{}` instead of a clear "wrong file?" signal.
+- DAT `<rom>` or `<biosset>` with missing or empty `name` attribute → `DATError`. Empty names are corruption (downstream dedup-by-name would silently collide). Mirrors the `<machine>` discipline.
+- DAT `<year>` outside `[1970, 2100]` → `Machine.year = None`. MAME's earliest video output (Computer Space) is 1971; values like `<year>1</year>` or `<year>9999</year>` are typos in the DAT, not legitimate dates. Bound is conservative on both ends to leave room for re-released or compilation entries.
 - DAT attribute combinations: `isbios + isdevice` is allowed (some entries have both); we record both.
 - **Pleasuredome DATs strip `cloneof` and `romof`.** Verified empirically: both the merged and non-merged Pleasuredome 0.284 DATs contain zero `cloneof=` / `romof=` attributes. As a consequence, parsing the Pleasuredome DAT alone yields `cloneof=None` for every machine. Parent/clone relationships come from the official MAME `-listxml` (downloaded separately for CHD detection — see §6.7 update channel) and are joined onto Pleasuredome machines by short name in Phase 2's filter. The parser itself is faithful to the DAT and does not synthesize relationships.
 - INI shortname appearing twice → last write wins; warn via `logger.warning`.
 - INI line with no `=` separator → skipped silently (matches progettoSnaps' own tolerance).
+- INI keys before the first `[Section]` header → skipped (their section name is `""`, not in any parser's allow-list).
+- INI file with non-UTF-8 bytes → see "Encoding policy" above (warn + fall back to latin-1, never silent).
+- DAT zip member with absolute path or `..` component → `DATError` ("zip-slip"). The threat model nominally trusts the source, but Phase 4 will expose `parse_dat` to network-controlled paths; defense in depth.
 
 ## Out of scope
 

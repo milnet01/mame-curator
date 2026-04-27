@@ -145,6 +145,7 @@ Spec template (kept short — it is documentation, not prose):
 ## 8. Dependencies and tooling
 
 - **Pinned and locked.** `uv.lock` (Python) and `package-lock.json` (frontend) are committed. CI fails if they drift.
+- **Phase-staged dependency declaration.** Runtime deps for not-yet-implemented phases live in `[project.optional-dependencies].<feature>` (e.g. `api = ["fastapi", ...]`) until the importing code ships. Promote to `[project.dependencies]` in the same commit as the first `import` of the package. Rationale: declaring deps before any `import` confuses dependency-audit tools, surfaces deprecation warnings against unused code, and inflates fresh-install footprint for users who only need an early-phase subcommand. The exception is anything imported by Phase 0 tooling itself (test/lint/type/security), which lives in `[project.optional-dependencies].dev`.
 - **No deprecated APIs.** Pre-commit + CI run a deprecation scanner. If a dep announces deprecation, file an issue tagged `deprecation` with the migration deadline.
 - **Weekly automated dep audit.** `pip-audit` + `npm audit` + Dependabot.
 - **Tooling stack (locked):**
@@ -160,6 +161,8 @@ Spec template (kept short — it is documentation, not prose):
 ## 9. Errors, logging, observability
 
 - **Error messages are actionable.** Bad: `"Could not load file"`. Good: `"Could not load DAT XML at /mnt/Games/MAME/MAME 0.284 ROMs (non-merged).zip — file is corrupt or not a zip. Re-download from <link> or set paths.source_dat in config.yaml."`
+- **Errors at trust boundaries (CLI, API, file I/O) MUST include the offending input identifier** — the path, URL, key, or line number that failed. The "actionable" criterion above isn't optional once a trust boundary is crossed; users debugging at 3am can't act on a message that doesn't name what broke.
+- **Errors go to stderr, success / summary output goes to stdout.** Standard UNIX convention; lets `2>err.log` and pipe-to-`jq` patterns work as users expect. Library code logs via `logger.error()` (which the application configures to route appropriately); CLI code that prints user-facing errors must construct a stderr-attached `rich.Console(stderr=True)` or use `print(..., file=sys.stderr)`. **Never** print errors to stdout.
 - **Typed exceptions per module.** `parser/` raises `parser.ParserError`; `filter/` raises `filter.FilterError`. Never raise a bare `Exception`.
 - **Logging:** stdlib `logging` configured once in `main.py`. Modules use `logger = logging.getLogger(__name__)`. Levels respected: `DEBUG` for trace, `INFO` for milestones, `WARNING` for recoverable, `ERROR` for non-recoverable, `CRITICAL` for "the app is going down."
 - **No `print()` in library code.** Only the CLI entrypoints print.
