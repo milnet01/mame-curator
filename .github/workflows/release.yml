@@ -60,9 +60,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      # Direct binary invocation rather than gitleaks/gitleaks-action@v2 — see
+      # ci.yml for rationale (diff-range action breaks on first-push history).
+      - name: Install gitleaks
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: "8.24.3"
+        run: |
+          curl -sSfL "https://github.com/zricethezav/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+      - name: Run gitleaks
+        run: gitleaks detect --verbose --redact --no-banner --exit-code 1
 
   # Stage 2 — build the artifact. Only runs if every verify-ci matrix job passed.
   build:
