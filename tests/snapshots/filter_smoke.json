@@ -1,0 +1,242 @@
+{
+  "contested_groups": [
+    {
+      "candidates": [
+        "pacman",
+        "pacmanf"
+      ],
+      "chain": [
+        {
+          "detail": "pacman=6",
+          "name": "tier"
+        },
+        {
+          "detail": "pacman=1",
+          "name": "parent_over_clone"
+        },
+        {
+          "detail": "pacman=0",
+          "name": "driver"
+        },
+        {
+          "detail": "pacman=(-112, -97, -99, -109, -97, -110)",
+          "name": "alpha"
+        }
+      ],
+      "parent": "pacman",
+      "winner": "pacman"
+    },
+    {
+      "candidates": [
+        "sf2",
+        "sf2ce",
+        "sf2t"
+      ],
+      "chain": [
+        {
+          "detail": "sf2=6",
+          "name": "tier"
+        },
+        {
+          "detail": "sf2=1",
+          "name": "parent_over_clone"
+        },
+        {
+          "detail": "sf2=(-115, -102, -50)",
+          "name": "alpha"
+        }
+      ],
+      "parent": "sf2",
+      "winner": "sf2"
+    },
+    {
+      "candidates": [
+        "galaxian",
+        "galaxianm"
+      ],
+      "chain": [
+        {
+          "detail": "galaxian=1",
+          "name": "parent_over_clone"
+        },
+        {
+          "detail": "galaxian=0",
+          "name": "region"
+        },
+        {
+          "detail": "galaxian=(-103, -97, -108, -97, -120, -105, -97, -110)",
+          "name": "alpha"
+        }
+      ],
+      "parent": "galaxian",
+      "winner": "galaxian"
+    },
+    {
+      "candidates": [
+        "dkong",
+        "dkongj"
+      ],
+      "chain": [
+        {
+          "detail": "dkong=1",
+          "name": "parent_over_clone"
+        },
+        {
+          "detail": "dkong=-1",
+          "name": "region"
+        },
+        {
+          "detail": "dkong=(-100, -107, -111, -110, -103)",
+          "name": "alpha"
+        }
+      ],
+      "parent": "dkong",
+      "winner": "dkong"
+    },
+    {
+      "candidates": [
+        "mslug",
+        "mslugu"
+      ],
+      "chain": [
+        {
+          "detail": "mslug=6",
+          "name": "tier"
+        },
+        {
+          "detail": "mslug=1",
+          "name": "parent_over_clone"
+        },
+        {
+          "detail": "mslug=0",
+          "name": "region"
+        },
+        {
+          "detail": "mslug=(0,)",
+          "name": "revision"
+        },
+        {
+          "detail": "mslug=(-109, -115, -108, -117, -103)",
+          "name": "alpha"
+        }
+      ],
+      "parent": "mslug",
+      "winner": "mslug"
+    },
+    {
+      "candidates": [
+        "ddragon",
+        "ddragonb"
+      ],
+      "chain": [
+        {
+          "detail": "ddragon=5",
+          "name": "tier"
+        },
+        {
+          "detail": "ddragon=1",
+          "name": "parent_over_clone"
+        },
+        {
+          "detail": "ddragon=(-100, -100, -114, -97, -103, -111, -110)",
+          "name": "alpha"
+        }
+      ],
+      "parent": "ddragon",
+      "winner": "ddragon"
+    },
+    {
+      "candidates": [
+        "rtype",
+        "rtypeu"
+      ],
+      "chain": [
+        {
+          "detail": "rtype=4",
+          "name": "tier"
+        },
+        {
+          "detail": "rtype=1",
+          "name": "parent_over_clone"
+        },
+        {
+          "detail": "rtype=0",
+          "name": "region"
+        },
+        {
+          "detail": "rtype=(-114, -116, -121, -112, -101)",
+          "name": "alpha"
+        }
+      ],
+      "parent": "rtype",
+      "winner": "rtype"
+    },
+    {
+      "candidates": [
+        "bublbobl",
+        "bublboblj"
+      ],
+      "chain": [
+        {
+          "detail": "bublbobl=1",
+          "name": "parent_over_clone"
+        },
+        {
+          "detail": "bublbobl=0",
+          "name": "region"
+        },
+        {
+          "detail": "bublbobl=(-98, -117, -98, -108, -98, -111, -98, -108)",
+          "name": "alpha"
+        }
+      ],
+      "parent": "bublbobl",
+      "winner": "bublbobl"
+    },
+    {
+      "candidates": [
+        "contra",
+        "contrau"
+      ],
+      "chain": [
+        {
+          "detail": "contra=6",
+          "name": "tier"
+        },
+        {
+          "detail": "contra=1",
+          "name": "parent_over_clone"
+        },
+        {
+          "detail": "contra=0",
+          "name": "region"
+        },
+        {
+          "detail": "contra=(-99, -111, -110, -116, -114, -97)",
+          "name": "alpha"
+        }
+      ],
+      "parent": "contra",
+      "winner": "contra"
+    }
+  ],
+  "dropped": {
+    "3bagfull": "mechanical",
+    "aristoslot": "category",
+    "brokensim": "preliminary_driver",
+    "jpgame": "japanese_only",
+    "kinst": "chd_required",
+    "mahjong1": "category",
+    "neogeo": "bios",
+    "newgame": "year_after",
+    "oldgame": "year_before",
+    "z80dev": "device"
+  },
+  "warnings": [],
+  "winners": [
+    "contra",
+    "galaxian",
+    "mslug",
+    "rtype"
+  ]
+}

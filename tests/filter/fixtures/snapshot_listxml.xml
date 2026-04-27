@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mame build="0.284-fixture">
+    <machine name="pacman"><description>Pac-Man</description></machine>
+    <machine name="pacmanf" cloneof="pacman"><description>Pac-Man speedup</description></machine>
+    <machine name="sf2"><description>SF II</description></machine>
+    <machine name="sf2ce" cloneof="sf2"><description>SF II CE</description></machine>
+    <machine name="sf2t" cloneof="sf2"><description>SF II HF</description></machine>
+    <machine name="galaxian"><description>Galaxian</description></machine>
+    <machine name="galaxianm" cloneof="galaxian"><description>Galaxian Midway</description></machine>
+    <machine name="dkong"><description>Donkey Kong</description></machine>
+    <machine name="dkongj" cloneof="dkong"><description>Donkey Kong J</description></machine>
+    <machine name="mslug"><description>Metal Slug</description></machine>
+    <machine name="mslugu" cloneof="mslug"><description>Metal Slug US</description></machine>
+    <machine name="ddragon"><description>Double Dragon</description></machine>
+    <machine name="ddragonb" cloneof="ddragon"><description>Double Dragon revB</description></machine>
+    <machine name="rtype"><description>R-Type</description></machine>
+    <machine name="rtypeu" cloneof="rtype"><description>R-Type US</description></machine>
+    <machine name="bublbobl"><description>Bubble Bobble</description></machine>
+    <machine name="bublboblj" cloneof="bublbobl"><description>Bubble Bobble J</description></machine>
+    <machine name="contra"><description>Contra</description></machine>
+    <machine name="contrau" cloneof="contra"><description>Contra US</description></machine>
+    <machine name="kinst">
+        <description>Killer Instinct</description>
+        <disk name="kinst" sha1="00000000000000000000000000000000000000aa"/>
+    </machine>
+</mame>

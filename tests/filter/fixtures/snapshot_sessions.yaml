@@ -1,0 +1,4 @@
+active: shooters
+sessions:
+  shooters:
+    include_genres: ["Shooter*"]

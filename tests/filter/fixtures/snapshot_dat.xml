@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<datafile>
+    <header><name>filter snapshot</name><version>0.284-fixture</version></header>
+
+    <!-- Phase A drops -->
+    <machine name="neogeo" isbios="yes"><description>Neo-Geo BIOS</description><manufacturer>SNK</manufacturer></machine>
+    <machine name="z80dev" isdevice="yes" runnable="no"><description>Z80 device</description><manufacturer>Zilog</manufacturer></machine>
+    <machine name="3bagfull" ismechanical="yes"><description>3 Bags Full</description><manufacturer>Aristocrat</manufacturer><year>1996</year></machine>
+    <machine name="aristoslot"><description>Slot (Aristocrat)</description><manufacturer>Aristocrat</manufacturer><year>2000</year></machine>
+    <machine name="mahjong1"><description>Mahjong Variant</description><manufacturer>Nichibutsu</manufacturer><year>1990</year></machine>
+    <machine name="jpgame"><description>Japan Only Game</description><manufacturer>Hudson</manufacturer><year>1988</year></machine>
+    <machine name="brokensim"><description>Broken (preliminary)</description><manufacturer>?</manufacturer><year>1992</year><driver status="preliminary"/></machine>
+    <machine name="kinst"><description>Killer Instinct (USA)</description><manufacturer>Rare</manufacturer><year>1994</year></machine>
+    <machine name="oldgame"><description>Old Game (1975)</description><manufacturer>Atari</manufacturer><year>1975</year></machine>
+    <machine name="newgame"><description>New Game (2020)</description><manufacturer>Modern</manufacturer><year>2020</year></machine>
+
+    <!-- Phase B groups -->
+    <machine name="pacman"><description>Pac-Man (USA)</description><manufacturer>Namco (Midway license)</manufacturer><year>1980</year></machine>
+    <machine name="pacmanf" cloneof="pacman" romof="pacman"><description>Pac-Man speedup (USA)</description><manufacturer>hack</manufacturer><year>1981</year><driver status="imperfect"/></machine>
+
+    <machine name="sf2"><description>Street Fighter II: World Warrior (World 910411)</description><manufacturer>Capcom</manufacturer><year>1991</year></machine>
+    <machine name="sf2ce" cloneof="sf2" romof="sf2"><description>SF II: Champion Edition (World 920313)</description><manufacturer>Capcom</manufacturer><year>1992</year></machine>
+    <machine name="sf2t" cloneof="sf2" romof="sf2"><description>SF II: Hyper Fighting (World 921209)</description><manufacturer>Capcom</manufacturer><year>1992</year></machine>
+
+    <machine name="galaxian"><description>Galaxian (Namco set 1) (World)</description><manufacturer>Namco</manufacturer><year>1979</year></machine>
+    <machine name="galaxianm" cloneof="galaxian"><description>Galaxian (Midway set 2) (USA)</description><manufacturer>Midway</manufacturer><year>1979</year></machine>
+
+    <machine name="dkong"><description>Donkey Kong (US set 1)</description><manufacturer>Nintendo</manufacturer><year>1981</year></machine>
+    <machine name="dkongj" cloneof="dkong"><description>Donkey Kong (Japan)</description><manufacturer>Nintendo</manufacturer><year>1981</year></machine>
+
+    <machine name="mslug"><description>Metal Slug (World)</description><manufacturer>Nazca</manufacturer><year>1996</year></machine>
+    <machine name="mslugu" cloneof="mslug"><description>Metal Slug (USA, set 2) v1.5</description><manufacturer>Nazca</manufacturer><year>1996</year></machine>
+
+    <machine name="ddragon"><description>Double Dragon (World rev A)</description><manufacturer>Technos Japan</manufacturer><year>1987</year></machine>
+    <machine name="ddragonb" cloneof="ddragon"><description>Double Dragon (World rev B)</description><manufacturer>Technos Japan</manufacturer><year>1987</year></machine>
+
+    <machine name="rtype"><description>R-Type (World)</description><manufacturer>Irem</manufacturer><year>1987</year></machine>
+    <machine name="rtypeu" cloneof="rtype"><description>R-Type (USA)</description><manufacturer>Irem</manufacturer><year>1987</year></machine>
+
+    <machine name="qbert"><description>Q*bert's Qubes (USA)</description><manufacturer>Mylstar</manufacturer><year>1983</year></machine>
+
+    <machine name="bublbobl"><description>Bubble Bobble (World)</description><manufacturer>Taito</manufacturer><year>1986</year></machine>
+    <machine name="bublboblj" cloneof="bublbobl"><description>Bubble Bobble (Japan)</description><manufacturer>Taito</manufacturer><year>1986</year></machine>
+
+    <machine name="contra"><description>Contra (World)</description><manufacturer>Konami</manufacturer><year>1987</year></machine>
+    <machine name="contrau" cloneof="contra"><description>Contra (USA)</description><manufacturer>Konami</manufacturer><year>1987</year></machine>
+</datafile>

@@ -1,0 +1,3 @@
+overrides:
+  pacman: pacmanf       # explicit user pin against best-tier auto-pick
+  sf2: sf2ce            # CE preferred over vanilla
