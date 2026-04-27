@@ -51,8 +51,19 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
             raise DATError("DAT zip contains zero .xml files", path=path)
         if len(xml_members) > 1:
             raise DATError(f"DAT zip contains multiple .xml files: {xml_members}", path=path)
+        member = xml_members[0]
+        # Per parser/spec.md G5: defend against zip-slip even when the threat
+        # model nominally trusts the source — Phase 4 will expose parse_dat
+        # via API where the path is network-controlled. Reject absolute paths
+        # and any `..` traversal component before extraction.
+        member_path = Path(member)
+        if member_path.is_absolute() or ".." in member_path.parts:
+            raise DATError(
+                f"DAT zip member {member!r} would escape the extraction tempdir",
+                path=path,
+            )
         with tempfile.TemporaryDirectory() as tmp:
-            extracted = zf.extract(xml_members[0], path=tmp)
+            extracted = zf.extract(member, path=tmp)
             yield Path(extracted)
 
 

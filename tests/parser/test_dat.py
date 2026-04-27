@@ -151,6 +151,19 @@ def test_biosset_parsed_when_present(tmp_path: Path) -> None:
     assert asia.default is True
 
 
+def test_zip_slip_traversal_member_raises(tmp_path: Path, mini_dat: Path) -> None:
+    """Per parser/spec.md G5: a .zip with a `..`-path member must raise DATError.
+
+    Defense in depth — Python's zipfile.extract sanitizes leading slashes and
+    drives, but allows nested `..` components which can escape the tempdir.
+    """
+    bad = tmp_path / "evil.zip"
+    with zipfile.ZipFile(bad, "w") as zf:
+        zf.write(mini_dat, arcname="../evil.xml")
+    with pytest.raises(DATError, match="escape the extraction"):
+        parse_dat(bad)
+
+
 def test_year_out_of_range_becomes_none(tmp_path: Path) -> None:
     """Per parser/spec.md G2: <year> outside [1970, 2100] → None (not DATError)."""
     src = tmp_path / "year-bounds.xml"
