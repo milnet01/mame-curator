@@ -25,22 +25,28 @@ def parse_catver(path: Path) -> dict[str, str]:
     """Return {shortname: category} from progettoSnaps catver.ini.
 
     Section headers are ignored; only `name=value` lines under non-metadata sections
-    are kept.
+    are kept. Duplicate shortnames overwrite (last write wins) and emit a warning.
     """
-    return {
-        key: value
-        for section, key, value in _parse_simple_ini(path)
-        if section not in _META_SECTIONS
-    }
+    out: dict[str, str] = {}
+    for section, key, value in _parse_simple_ini(path):
+        if section in _META_SECTIONS:
+            continue
+        if key in out:
+            logger.warning("duplicate catver key %r in %s; overwriting", key, path)
+        out[key] = value
+    return out
 
 
 def parse_languages(path: Path) -> dict[str, list[str]]:
     """Return {shortname: [lang, ...]} from languages.ini.
 
-    Comma-separated values are split and stripped.
+    Comma-separated values are split and stripped. Duplicate shortnames overwrite
+    (last write wins) and emit a warning.
     """
     out: dict[str, list[str]] = {}
     for _section, key, value in _parse_simple_ini(path):
+        if key in out:
+            logger.warning("duplicate languages key %r in %s; overwriting", key, path)
         out[key] = [part.strip() for part in value.split(",") if part.strip()]
     return out
 
@@ -55,6 +61,8 @@ def parse_bestgames(path: Path) -> dict[str, str]:
     out: dict[str, str] = {}
     for section, key, _value in _parse_simple_ini(path):
         if section in valid_tiers:
+            if key in out:
+                logger.warning("duplicate bestgames key %r in %s; overwriting", key, path)
             out[key] = section
     return out
 
@@ -73,6 +81,8 @@ def parse_series(path: Path) -> dict[str, str]:
     out: dict[str, str] = {}
     for section, key, _v in _parse_simple_ini(path):
         if section and section not in _META_SECTIONS:
+            if key in out:
+                logger.warning("duplicate series key %r in %s; overwriting", key, path)
             out[key] = section
     return out
 

@@ -1,5 +1,6 @@
 """Tests for INI parsers."""
 
+import logging
 from pathlib import Path
 
 import pytest
@@ -104,6 +105,20 @@ def test_parse_catver_excludes_progettosnaps_metadata_sections(tmp_path: Path) -
     result = parse_catver(f)
     assert result == {"pacman": "Maze / Collect"}
     assert "RootFolderIcon" not in result
+
+
+def test_duplicate_ini_key_emits_warning(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """Duplicate INI shortname → last write wins; warn via logger.warning (parser/spec.md).
+
+    The implementation previously silently overwrote without warning, breaking the
+    spec's documented contract.
+    """
+    f = tmp_path / "dup.ini"
+    f.write_text("[Cat]\npacman=Maze\npacman=Shooter\n")
+    with caplog.at_level(logging.WARNING, logger="mame_curator.parser.ini"):
+        result = parse_catver(f)
+    assert result == {"pacman": "Shooter"}, "last write must win per spec"
+    assert any("pacman" in m for m in caplog.messages), "duplicate key must emit a warning"
 
 
 def test_parse_skips_hash_comments(tmp_path: Path) -> None:
