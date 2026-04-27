@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 def build_parser() -> argparse.ArgumentParser:
     """Construct the top-level argument parser with all subcommands."""
     parser = argparse.ArgumentParser(prog="mame-curator", description=__doc__)
+    parser.add_argument("-v", "--verbose", action="store_true", help="enable DEBUG-level logging")
     sub = parser.add_subparsers(dest="command", required=True)
 
     parse_cmd = sub.add_parser("parse", help="Parse a DAT and print summary stats")
