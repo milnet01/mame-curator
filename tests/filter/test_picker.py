@@ -11,7 +11,7 @@ from mame_curator.parser.models import DriverStatus, Machine
 def m(**kw: object) -> Machine:
     name = str(kw.pop("name", "x"))
     description = str(kw.pop("description", name))
-    return Machine(name=name, description=description, **kw)  # type: ignore[arg-type]
+    return Machine(name=name, description=description, **kw)  # type: ignore[arg-type, unused-ignore]
 
 
 def test_tier_tiebreaker_wins() -> None:
@@ -68,6 +68,30 @@ def test_alphabetical_fallback() -> None:
     a = m(name="abc", description="X (World)")
     b = m(name="xyz", description="X (World)")
     assert pick_winner([b, a], parent="abc", ctx=FilterContext(), cfg=FilterConfig()).name == "abc"
+
+
+def test_preferred_publisher_and_developer_boost() -> None:
+    """preferred_publishers / preferred_developers each add to the score.
+
+    Covers the publisher/developer branches of _score_preferred that the
+    genre-only test doesn't reach.
+    """
+    a = m(name="a", description="A (World)", publisher="Capcom", developer="Capcom")
+    b = m(name="b", description="B (World)", publisher="Sega", developer="Sega")
+    cfg = FilterConfig(preferred_publishers=("Capcom",), preferred_developers=("Capcom",))
+    assert pick_winner([a, b], parent="a", ctx=FilterContext(), cfg=cfg).name == "a"
+
+
+def test_region_outside_priority_list_ranks_low() -> None:
+    """A region that exists in Region enum but isn't in cfg.region_priority
+    falls below every listed region. Covers the picker's `except ValueError`
+    branch in _score_region.
+    """
+    listed = m(name="listed", description="Foo (USA)")
+    unlisted = m(name="unlisted", description="Foo (Spain)")
+    cfg = FilterConfig(region_priority=("USA",))
+    winner = pick_winner([listed, unlisted], parent="absent", ctx=FilterContext(), cfg=cfg)
+    assert winner.name == "listed"
 
 
 def test_explain_records_decisive_steps_only() -> None:

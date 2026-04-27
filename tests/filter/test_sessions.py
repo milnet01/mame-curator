@@ -39,6 +39,35 @@ def test_missing_file_returns_empty_sessions(tmp_path: Path) -> None:
     assert s.sessions == {}
 
 
+def test_yaml_syntax_error_raises(tmp_path: Path) -> None:
+    f = tmp_path / "bad.yaml"
+    f.write_text("active: [unclosed\n")
+    with pytest.raises(SessionsError, match="failed to parse"):
+        load_sessions(f)
+
+
+def test_top_level_not_a_mapping_raises(tmp_path: Path) -> None:
+    f = tmp_path / "list.yaml"
+    f.write_text("- not\n- a\n- mapping\n")
+    with pytest.raises(SessionsError, match="not a YAML mapping"):
+        load_sessions(f)
+
+
+def test_sessions_field_not_a_mapping_raises(tmp_path: Path) -> None:
+    f = tmp_path / "wrong-sessions.yaml"
+    f.write_text("active: null\nsessions:\n  - not_a_mapping\n")
+    with pytest.raises(SessionsError, match="must be a mapping"):
+        load_sessions(f)
+
+
+def test_session_with_invalid_field_type_raises(tmp_path: Path) -> None:
+    """Pydantic ValidationError on a field is wrapped as SessionsError."""
+    f = tmp_path / "bad-types.yaml"
+    f.write_text("active: null\nsessions:\n  bad:\n    include_year_range: not-a-list\n")
+    with pytest.raises(SessionsError):
+        load_sessions(f)
+
+
 def test_full_session_with_all_includes(tmp_path: Path) -> None:
     f = tmp_path / "sessions.yaml"
     f.write_text(

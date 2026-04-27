@@ -15,7 +15,7 @@ from mame_curator.parser.models import DriverStatus, Machine
 def m(**kw: object) -> Machine:
     name = str(kw.pop("name", "x"))
     description = str(kw.pop("description", name))
-    return Machine(name=name, description=description, **kw)  # type: ignore[arg-type]
+    return Machine(name=name, description=description, **kw)  # type: ignore[arg-type, unused-ignore]
 
 
 @pytest.fixture
@@ -97,7 +97,7 @@ def test_overrides_replace_pick(sample: tuple[dict[str, Machine], FilterContext]
         ctx,
         FilterConfig(),
         # mypy doesn't see through Pydantic's populate_by_name=True; works at runtime.
-        Overrides(entries={"pacman": "pacmanf"}),  # type: ignore[call-arg]
+        Overrides(entries={"pacman": "pacmanf"}),  # type: ignore[call-arg, unused-ignore]
         Sessions(),
     )
     assert result.winners == ("pacmanf",)
@@ -111,7 +111,7 @@ def test_unknown_override_warns_doesnt_crash(
         machines,
         ctx,
         FilterConfig(),
-        Overrides(entries={"pacman": "no_such_machine"}),  # type: ignore[call-arg]
+        Overrides(entries={"pacman": "no_such_machine"}),  # type: ignore[call-arg, unused-ignore]
         Sessions(),
     )
     assert any("no_such_machine" in w for w in result.warnings)
@@ -125,3 +125,79 @@ def test_session_slices_winners(sample: tuple[dict[str, Machine], FilterContext]
     result = run_filter(machines, ctx, FilterConfig(), Overrides(), sessions)
     # pacman is a maze game, not a fighter — sliced out by the session.
     assert result.winners == ()
+
+
+def test_override_with_unknown_parent_warns(
+    sample: tuple[dict[str, Machine], FilterContext],
+) -> None:
+    machines, ctx = sample
+    result = run_filter(
+        machines,
+        ctx,
+        FilterConfig(),
+        Overrides(entries={"no_such_parent": "pacman"}),  # type: ignore[call-arg, unused-ignore]
+        Sessions(),
+    )
+    assert any("no_such_parent" in w and "not a known parent" in w for w in result.warnings)
+
+
+def test_override_with_cross_group_target_warns(
+    sample: tuple[dict[str, Machine], FilterContext],
+) -> None:
+    """The override target must belong to the same parent/clone group as the key."""
+    machines = {
+        "a": Machine(name="a", description="A (USA)"),
+        "b": Machine(name="b", description="B (USA)", cloneof="a"),
+        "c": Machine(name="c", description="C (USA)"),  # different group
+    }
+    ctx = FilterContext(cloneof_map={"b": "a"})
+    result = run_filter(
+        machines,
+        ctx,
+        FilterConfig(),
+        Overrides(entries={"a": "c"}),  # type: ignore[call-arg, unused-ignore]
+        Sessions(),
+    )
+    assert any("different group" in w for w in result.warnings)
+
+
+def test_session_publisher_developer_year_filter() -> None:
+    """Phase D include_publishers / include_developers / include_year_range branches."""
+    machines = {
+        "match_all": Machine(
+            name="match_all",
+            description="Match (USA)",
+            publisher="Capcom",
+            developer="Capcom",
+            year=1992,
+        ),
+        "wrong_pub": Machine(
+            name="wrong_pub",
+            description="WP (USA)",
+            publisher="Sega",
+            developer="Capcom",
+            year=1992,
+        ),
+        "wrong_year": Machine(
+            name="wrong_year",
+            description="WY (USA)",
+            publisher="Capcom",
+            developer="Capcom",
+            year=1985,
+        ),
+        "wrong_dev": Machine(
+            name="wrong_dev",
+            description="WD (USA)",
+            publisher="Capcom",
+            developer="Konami",
+            year=1992,
+        ),
+    }
+    capcom_only = Session(
+        include_publishers=("Capcom",),
+        include_developers=("Capcom",),
+        include_year_range=(1990, 1995),
+    )
+    sessions = Sessions(active="capcom", sessions={"capcom": capcom_only})
+    result = run_filter(machines, FilterContext(), FilterConfig(), Overrides(), sessions)
+    assert result.winners == ("match_all",)

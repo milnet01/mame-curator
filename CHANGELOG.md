@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 2 complete — filter rule chain (2026-04-27)
+
+Implemented the four-phase filter pipeline: drop (Phase A) → pick
+(Phase B) → override (Phase C) → session-slice (Phase D). 154 tests
+pass at 97.4% overall coverage; every `filter/` submodule sits at
+≥97% (per-phase floor 95% met). All five CI gates green.
+
+#### Added
+- **`filter/spec.md`** — full audit-surface contract: 13 typed
+  drop reasons, 7-step tiebreaker chain, override + session
+  semantics, YAML schemas for `overrides.yaml` / `sessions.yaml`,
+  region + revision-key heuristic regexes.
+- **`filter/config.py`** — `FilterConfig` (frozen Pydantic, defaults
+  match design spec §6.2).
+- **`filter/overrides.py`** — `Overrides` model + `load_overrides`
+  with `populate_by_name=True` so callers can use either the
+  in-memory `entries=` form or the YAML `overrides:` alias.
+- **`filter/sessions.py`** — `Session` / `Sessions` models +
+  `load_sessions` with empty-session and reversed-year-range guards.
+- **`filter/heuristics.py`** — `region_of` (15 region tags + UNKNOWN)
+  and `revision_key_of` (family ranks: v-version > rev-letter >
+  set-number > unmarked).
+- **`filter/types.py`** — `DroppedReason` (StrEnum), `TiebreakerHit`,
+  `ContestedGroup`, `FilterResult`, `FilterContext` (all frozen
+  Pydantic models with `extra="forbid"`).
+- **`filter/drops.py`** — 13 Phase A predicates evaluated in spec
+  order; `drop_reason()` returns the first matching reason.
+- **`filter/picker.py`** — 7-step Phase B tiebreaker chain composed
+  via tuple sort key; `pick_winner()` + `explain_pick()`.
+- **`filter/runner.py`** — `run_filter()` orchestrator composing
+  Phases A → B → C → D. Override warnings (unknown parent / target /
+  cross-group) surface in `FilterResult.warnings` rather than
+  crashing.
+- **`parser/listxml.py`** — added `parse_listxml_cloneof()` to
+  reconstruct parent/clone relationships that Pleasuredome DATs
+  strip. Same lxml fast-iter streaming pattern as the existing
+  `parse_listxml_disks`.
+- **`cli/__init__.py`** — `mame-curator filter` subcommand reads
+  DAT + listxml + 5 INIs + overrides + sessions, runs the pipeline,
+  writes a JSON `report.json`, prints a one-line summary per result
+  group. Honors the cli/spec.md error-routing + exit-code-1 contract.
+- **`tests/filter/`** — 90 new tests covering: config schema (4),
+  overrides (7), sessions (10), heuristics (17), listxml-cloneof (4),
+  drop predicates (16), picker tiebreakers (10), runner end-to-end
+  (10), Hypothesis property determinism + idempotency (2),
+  30-machine snapshot regression (1), CLI filter (2). Snapshot
+  fixture exercises every drop reason, every tiebreaker, the
+  override path, and the session slicer.
+
 ### Pre-Phase-2 Tier 2 hardening (2026-04-27)
 
 Closed the three Tier 2 items deferred from the first indie-review sweep, plus

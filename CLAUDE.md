@@ -7,9 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Pre-alpha, phase-based development on `main`. Currently shipped:
 
 - **Phase 0 complete** — `uv`/ruff/mypy/pytest/bandit configured; `.gitignore`, `.gitleaksignore`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`, `.github/workflows/release.yml` all in place; pre-commit hooks installed locally; coverage gate at 85% enforced.
-- **Phase 1 complete** — `parser/` (DAT + 5 INIs + listxml CHD detector + manufacturer split). 51 tests pass; backend coverage 93%+.
+- **Phase 1 complete** — `parser/` (DAT + 5 INIs + listxml CHD detector + cloneof map + manufacturer split).
+- **Phase 2 complete** — `filter/` (drop/pick/override/session-slice rule chain). `mame-curator filter` CLI subcommand writes a JSON report. 154 tests pass; backend coverage 97%+.
 
-Everything else (`filter/`, `copy/`, `api/`, `media/`, frontend, `updates/`, `help/`, `setup/`) is unimplemented.
+Everything else (`copy/`, `api/`, `media/`, frontend, `updates/`, `help/`, `setup/`) is unimplemented.
 
 ## Authoritative docs — read before writing code
 
@@ -42,9 +43,21 @@ Run a single test:
 uv run pytest tests/parser/test_dat.py::test_parse_dat_minimal -xvs
 ```
 
-CLI smoke (Phase 1):
+CLI smoke:
 ```bash
+# Phase 1 — parse a DAT and print summary stats
 uv run mame-curator parse <path-to-DAT.xml-or-.zip>
+
+# Phase 2 — run the filter pipeline against a fixture set
+uv run mame-curator filter \
+    --dat tests/filter/fixtures/snapshot_dat.xml \
+    --listxml tests/filter/fixtures/snapshot_listxml.xml \
+    --catver tests/filter/fixtures/snapshot_catver.ini \
+    --languages tests/filter/fixtures/snapshot_languages.ini \
+    --bestgames tests/filter/fixtures/snapshot_bestgames.ini \
+    --overrides tests/filter/fixtures/snapshot_overrides.yaml \
+    --sessions tests/filter/fixtures/snapshot_sessions.yaml \
+    --out /tmp/report.json
 ```
 
 ## Architecture

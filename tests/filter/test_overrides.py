@@ -37,3 +37,17 @@ def test_unknown_top_level_key_raises(tmp_path: Path) -> None:
     f.write_text("garbage: true\n")
     with pytest.raises(OverridesError):
         load_overrides(f)
+
+
+def test_yaml_syntax_error_raises(tmp_path: Path) -> None:
+    f = tmp_path / "broken.yaml"
+    f.write_text("overrides:\n  unbalanced: [\n")
+    with pytest.raises(OverridesError, match="failed to parse"):
+        load_overrides(f)
+
+
+def test_top_level_not_a_mapping_raises(tmp_path: Path) -> None:
+    f = tmp_path / "list.yaml"
+    f.write_text("- entry1\n- entry2\n")
+    with pytest.raises(OverridesError, match="not a YAML mapping"):
+        load_overrides(f)
