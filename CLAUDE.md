@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Pre-alpha, phase-based development. Currently shipped:
+Pre-alpha, phase-based development on `main`. Currently shipped:
 
-- **Phase 0 (partial)** — local Python tooling (`uv`, `pyproject.toml`, ruff/mypy/pytest/bandit configured). **Pending:** `.gitignore`, `.gitleaksignore`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`. The repo is **not yet a git project** (no `.git/`). Per the roadmap's anti-jump rules these gaps must be closed before Phase 2 begins.
-- **Phase 1 (complete)** — `parser/` (DAT + 5 INIs + listxml CHD detector + manufacturer split). 51 tests pass; coverage on `parser/` ≥ 95%.
+- **Phase 0 complete** — `uv`/ruff/mypy/pytest/bandit configured; `.gitignore`, `.gitleaksignore`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`, `.github/workflows/release.yml` all in place; pre-commit hooks installed locally; coverage gate at 85% enforced.
+- **Phase 1 complete** — `parser/` (DAT + 5 INIs + listxml CHD detector + manufacturer split). 51 tests pass; backend coverage 93%+.
 
 Everything else (`filter/`, `copy/`, `api/`, `media/`, frontend, `updates/`, `help/`, `setup/`) is unimplemented.
 
