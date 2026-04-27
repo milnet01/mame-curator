@@ -1,0 +1,39 @@
+"""Tests for the Overrides schema and loader."""
+
+from pathlib import Path
+
+import pytest
+
+from mame_curator.filter.errors import OverridesError
+from mame_curator.filter.overrides import Overrides, load_overrides
+
+
+def test_empty_overrides_is_valid() -> None:
+    o = Overrides()
+    assert o.entries == {}
+
+
+def test_overrides_round_trips_via_yaml(tmp_path: Path) -> None:
+    f = tmp_path / "overrides.yaml"
+    f.write_text("overrides:\n  sf2: sf2ce\n  pacman: pacmanf\n")
+    o = load_overrides(f)
+    assert o.entries == {"sf2": "sf2ce", "pacman": "pacmanf"}
+
+
+def test_missing_file_returns_empty_overrides(tmp_path: Path) -> None:
+    o = load_overrides(tmp_path / "nope.yaml")
+    assert o.entries == {}
+
+
+def test_malformed_yaml_raises(tmp_path: Path) -> None:
+    f = tmp_path / "bad.yaml"
+    f.write_text("overrides: [this, is, not, a, mapping]")
+    with pytest.raises(OverridesError):
+        load_overrides(f)
+
+
+def test_unknown_top_level_key_raises(tmp_path: Path) -> None:
+    f = tmp_path / "wrong.yaml"
+    f.write_text("garbage: true\n")
+    with pytest.raises(OverridesError):
+        load_overrides(f)
