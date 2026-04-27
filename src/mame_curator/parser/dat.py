@@ -18,6 +18,7 @@ from typing import Any
 # untrusted network sources, only user-supplied DAT files from trusted ROM aggregators.
 # defusedxml.lxml is deprecated upstream, so this is the supported approach.
 from lxml import etree  # nosec B410
+from pydantic import ValidationError
 
 from mame_curator.parser.errors import DATError
 from mame_curator.parser.manufacturer import split_manufacturer
@@ -134,20 +135,26 @@ def _rom_from_element(elem: Any) -> Rom:
     except ValueError as exc:
         rom_name = elem.get("name", "<unnamed>")
         raise DATError(f"rom '{rom_name}' has non-integer size {raw_size!r}") from exc
-    return Rom(
-        name=elem.get("name", ""),
-        size=size,
-        crc=elem.get("crc"),
-        sha1=elem.get("sha1"),
-    )
+    try:
+        return Rom(
+            name=elem.get("name", ""),
+            size=size,
+            crc=elem.get("crc"),
+            sha1=elem.get("sha1"),
+        )
+    except ValidationError as exc:
+        raise DATError(f"<rom> validation failed: {exc.errors(include_url=False)}") from exc
 
 
 def _biosset_from_element(elem: Any) -> BiosSet:
-    return BiosSet(
-        name=elem.get("name", ""),
-        description=elem.get("description"),
-        default=elem.get("default") == "yes",
-    )
+    try:
+        return BiosSet(
+            name=elem.get("name", ""),
+            description=elem.get("description"),
+            default=elem.get("default") == "yes",
+        )
+    except ValidationError as exc:
+        raise DATError(f"<biosset> validation failed: {exc.errors(include_url=False)}") from exc
 
 
 def _driver_status_from_element(elem: Any) -> DriverStatus | None:

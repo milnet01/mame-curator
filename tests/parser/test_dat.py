@@ -151,6 +151,45 @@ def test_biosset_parsed_when_present(tmp_path: Path) -> None:
     assert asia.default is True
 
 
+def test_empty_rom_name_raises_DATError(tmp_path: Path) -> None:
+    """Per parser/spec.md G1: <rom>/<biosset> with empty name → DATError."""
+    bad = tmp_path / "empty-rom-name.xml"
+    bad.write_text(
+        "<datafile>"
+        '<machine name="x"><description>X</description>'
+        '<rom name="" size="1024" crc="aaaaaaaa"/>'
+        "</machine></datafile>"
+    )
+    with pytest.raises(DATError, match="rom"):
+        parse_dat(bad)
+
+
+def test_empty_biosset_name_raises_DATError(tmp_path: Path) -> None:
+    """Per parser/spec.md G1: <biosset> with empty name → DATError."""
+    bad = tmp_path / "empty-bios-name.xml"
+    bad.write_text(
+        "<datafile>"
+        '<machine name="x"><description>X</description>'
+        '<biosset name="" description="A"/>'
+        "</machine></datafile>"
+    )
+    with pytest.raises(DATError, match="biosset"):
+        parse_dat(bad)
+
+
+def test_negative_rom_size_raises_DATError(tmp_path: Path) -> None:
+    """Per parser/spec.md G6: Rom.size is non-negative; negative → DATError."""
+    bad = tmp_path / "neg-size.xml"
+    bad.write_text(
+        "<datafile>"
+        '<machine name="x"><description>X</description>'
+        '<rom name="a.bin" size="-5" crc="aaaaaaaa"/>'
+        "</machine></datafile>"
+    )
+    with pytest.raises(DATError, match="rom"):
+        parse_dat(bad)
+
+
 def test_non_integer_rom_size_raises_DATError(tmp_path: Path) -> None:
     """Per parser/spec.md Errors clause: malformed inputs raise ParserError, never bare ValueError.
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DriverStatus(StrEnum):
@@ -20,8 +20,8 @@ class Rom(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    name: str
-    size: int | None = None
+    name: str = Field(min_length=1)
+    size: int | None = Field(default=None, ge=0)
     crc: str | None = None
     sha1: str | None = None
 
@@ -31,7 +31,7 @@ class BiosSet(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    name: str
+    name: str = Field(min_length=1)
     description: str | None = None
     default: bool = False
 
