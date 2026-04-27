@@ -20,9 +20,9 @@ Each rule is a small predicate `(machine, ctx, config) -> bool`. Predicates are 
 
 | # | Reason | Trigger |
 |---|---|---|
-| 1 | `BIOS` | `machine.is_bios` |
-| 2 | `DEVICE` | `machine.is_device` or `machine.runnable is False` |
-| 3 | `MECHANICAL` | `machine.is_mechanical` |
+| 1 | `BIOS` | `machine.is_bios` and `config.drop_bios_devices_mechanical` |
+| 2 | `DEVICE` | (`machine.is_device` or `machine.runnable is False`) and `config.drop_bios_devices_mechanical` |
+| 3 | `MECHANICAL` | `machine.is_mechanical` and `config.drop_bios_devices_mechanical` |
 | 4 | `CATEGORY` | `ctx.category[name]` matches any pattern in `config.drop_categories` (fnmatch, case-sensitive) |
 | 5 | `MATURE` | `name in ctx.mature` and `config.drop_mature` (default `True`; bound to `Mature*` category fallback) |
 | 6 | `JAPANESE_ONLY` | `ctx.languages[name] == ["Japanese"]` and `config.drop_japanese_only_text` |

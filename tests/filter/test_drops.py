@@ -120,6 +120,31 @@ def test_year_after_dropped() -> None:
     assert drop_reason(m(name="x", year=2011), FilterContext(), cfg) is DroppedReason.YEAR_AFTER
 
 
+def test_drop_bios_devices_mechanical_false_keeps_them() -> None:
+    """Per filter/spec.md FilterConfig: `drop_bios_devices_mechanical: bool = True`
+    is a togglable filter. When set to False, BIOS / device / mechanical machines
+    must survive Phase A.
+
+    Was a zombie field (declared, never read) until indie-review pass 3 Tier 1.
+    """
+    cfg = FilterConfig(drop_bios_devices_mechanical=False)
+    assert drop_reason(m(name="ng", is_bios=True), FilterContext(), cfg) is None
+    assert drop_reason(m(name="z80", is_device=True), FilterContext(), cfg) is None
+    assert drop_reason(m(name="z80", runnable=False), FilterContext(), cfg) is None
+    assert drop_reason(m(name="x", is_mechanical=True), FilterContext(), cfg) is None
+
+
+def test_drop_bios_devices_mechanical_default_true_drops_them() -> None:
+    """Default is True; baseline behavior must keep dropping these."""
+    cfg = FilterConfig()  # default
+    assert drop_reason(m(name="ng", is_bios=True), FilterContext(), cfg) is DroppedReason.BIOS
+    assert drop_reason(m(name="z80", is_device=True), FilterContext(), cfg) is DroppedReason.DEVICE
+    assert (
+        drop_reason(m(name="x", is_mechanical=True), FilterContext(), cfg)
+        is DroppedReason.MECHANICAL
+    )
+
+
 def test_clean_machine_not_dropped() -> None:
     assert (
         drop_reason(

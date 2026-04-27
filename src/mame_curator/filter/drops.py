@@ -26,15 +26,21 @@ def _genre_of(category: str | None) -> str | None:
     return category.rsplit("/", 1)[-1].strip()
 
 
-def _bios(m: Machine, _c: FilterContext, _f: FilterConfig) -> DroppedReason | None:
+def _bios(m: Machine, _c: FilterContext, cfg: FilterConfig) -> DroppedReason | None:
+    if not cfg.drop_bios_devices_mechanical:
+        return None
     return DroppedReason.BIOS if m.is_bios else None
 
 
-def _device(m: Machine, _c: FilterContext, _f: FilterConfig) -> DroppedReason | None:
+def _device(m: Machine, _c: FilterContext, cfg: FilterConfig) -> DroppedReason | None:
+    if not cfg.drop_bios_devices_mechanical:
+        return None
     return DroppedReason.DEVICE if (m.is_device or not m.runnable) else None
 
 
-def _mechanical(m: Machine, _c: FilterContext, _f: FilterConfig) -> DroppedReason | None:
+def _mechanical(m: Machine, _c: FilterContext, cfg: FilterConfig) -> DroppedReason | None:
+    if not cfg.drop_bios_devices_mechanical:
+        return None
     return DroppedReason.MECHANICAL if m.is_mechanical else None
 
 
