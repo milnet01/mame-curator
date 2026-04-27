@@ -27,7 +27,11 @@ def parse_listxml_disks(path: Path) -> set[str]:
                 name = elem.get("name")
                 if name:
                     chd_required.add(name)
+            # See dat.py:_stream_machines — clear() alone leaves empty siblings on the
+            # parent's child list; the lxml fast-iter idiom detaches them.
             elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
     except etree.XMLSyntaxError as exc:
         raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
     return chd_required

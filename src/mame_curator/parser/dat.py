@@ -63,7 +63,13 @@ def _stream_machines(xml_path: Path) -> dict[str, Machine]:
             if machine.name in machines:
                 raise DATError(f"duplicate machine name: {machine.name}", path=xml_path)
             machines[machine.name] = machine
+            # Canonical lxml fast-iter cleanup: clear() empties the element's children
+            # but doesn't detach it from the parent <datafile>, so the spine accumulates
+            # empty <machine> siblings throughout the parse — defeating streaming on a
+            # 43k-machine DAT. Detaching previous siblings keeps memory bounded to ~1.
             elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
     except etree.XMLSyntaxError as exc:
         raise DATError(f"XML parse failed: {exc}", path=xml_path) from exc
     if not machines:
