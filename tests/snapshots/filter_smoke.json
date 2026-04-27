@@ -7,19 +7,15 @@
       ],
       "chain": [
         {
-          "detail": "pacman=6",
+          "detail": "pacman wins via tier",
           "name": "tier"
         },
         {
-          "detail": "pacman=1",
+          "detail": "pacman wins via parent_over_clone",
           "name": "parent_over_clone"
         },
         {
-          "detail": "pacman=0",
-          "name": "driver"
-        },
-        {
-          "detail": "pacman=(-112, -97, -99, -109, -97, -110)",
+          "detail": "pacman wins via alpha",
           "name": "alpha"
         }
       ],
@@ -34,15 +30,15 @@
       ],
       "chain": [
         {
-          "detail": "sf2=6",
+          "detail": "sf2 wins via tier",
           "name": "tier"
         },
         {
-          "detail": "sf2=1",
+          "detail": "sf2 wins via parent_over_clone",
           "name": "parent_over_clone"
         },
         {
-          "detail": "sf2=(-115, -102, -50)",
+          "detail": "sf2 wins via alpha",
           "name": "alpha"
         }
       ],
@@ -56,15 +52,15 @@
       ],
       "chain": [
         {
-          "detail": "galaxian=1",
+          "detail": "galaxian wins via parent_over_clone",
           "name": "parent_over_clone"
         },
         {
-          "detail": "galaxian=0",
+          "detail": "galaxian wins via region",
           "name": "region"
         },
         {
-          "detail": "galaxian=(-103, -97, -108, -97, -120, -105, -97, -110)",
+          "detail": "galaxian wins via alpha",
           "name": "alpha"
         }
       ],
@@ -78,15 +74,11 @@
       ],
       "chain": [
         {
-          "detail": "dkong=1",
+          "detail": "dkong wins via parent_over_clone",
           "name": "parent_over_clone"
         },
         {
-          "detail": "dkong=-1",
-          "name": "region"
-        },
-        {
-          "detail": "dkong=(-100, -107, -111, -110, -103)",
+          "detail": "dkong wins via alpha",
           "name": "alpha"
         }
       ],
@@ -100,23 +92,19 @@
       ],
       "chain": [
         {
-          "detail": "mslug=6",
+          "detail": "mslug wins via tier",
           "name": "tier"
         },
         {
-          "detail": "mslug=1",
+          "detail": "mslug wins via parent_over_clone",
           "name": "parent_over_clone"
         },
         {
-          "detail": "mslug=0",
+          "detail": "mslug wins via region",
           "name": "region"
         },
         {
-          "detail": "mslug=(0,)",
-          "name": "revision"
-        },
-        {
-          "detail": "mslug=(-109, -115, -108, -117, -103)",
+          "detail": "mslug wins via alpha",
           "name": "alpha"
         }
       ],
@@ -130,15 +118,15 @@
       ],
       "chain": [
         {
-          "detail": "ddragon=5",
+          "detail": "ddragon wins via tier",
           "name": "tier"
         },
         {
-          "detail": "ddragon=1",
+          "detail": "ddragon wins via parent_over_clone",
           "name": "parent_over_clone"
         },
         {
-          "detail": "ddragon=(-100, -100, -114, -97, -103, -111, -110)",
+          "detail": "ddragon wins via alpha",
           "name": "alpha"
         }
       ],
@@ -152,19 +140,19 @@
       ],
       "chain": [
         {
-          "detail": "rtype=4",
+          "detail": "rtype wins via tier",
           "name": "tier"
         },
         {
-          "detail": "rtype=1",
+          "detail": "rtype wins via parent_over_clone",
           "name": "parent_over_clone"
         },
         {
-          "detail": "rtype=0",
+          "detail": "rtype wins via region",
           "name": "region"
         },
         {
-          "detail": "rtype=(-114, -116, -121, -112, -101)",
+          "detail": "rtype wins via alpha",
           "name": "alpha"
         }
       ],
@@ -178,15 +166,15 @@
       ],
       "chain": [
         {
-          "detail": "bublbobl=1",
+          "detail": "bublbobl wins via parent_over_clone",
           "name": "parent_over_clone"
         },
         {
-          "detail": "bublbobl=0",
+          "detail": "bublbobl wins via region",
           "name": "region"
         },
         {
-          "detail": "bublbobl=(-98, -117, -98, -108, -98, -111, -98, -108)",
+          "detail": "bublbobl wins via alpha",
           "name": "alpha"
         }
       ],
@@ -200,19 +188,19 @@
       ],
       "chain": [
         {
-          "detail": "contra=6",
+          "detail": "contra wins via tier",
           "name": "tier"
         },
         {
-          "detail": "contra=1",
+          "detail": "contra wins via parent_over_clone",
           "name": "parent_over_clone"
         },
         {
-          "detail": "contra=0",
+          "detail": "contra wins via region",
           "name": "region"
         },
         {
-          "detail": "contra=(-99, -111, -110, -116, -114, -97)",
+          "detail": "contra wins via alpha",
           "name": "alpha"
         }
       ],

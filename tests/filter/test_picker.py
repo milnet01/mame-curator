@@ -70,6 +70,22 @@ def test_alphabetical_fallback() -> None:
     assert pick_winner([b, a], parent="abc", ctx=FilterContext(), cfg=FilterConfig()).name == "abc"
 
 
+def test_alphabetical_fallback_spec_lower_wins_with_prefix_collision() -> None:
+    """Per filter/spec.md line 53: 'alphabetical short name | lower wins'.
+
+    The score-tuple-with-max() implementation was length-sensitive:
+    `("sf2",)` vs `("sf2ce",)` after byte-negation made max() pick the
+    longer tuple — `sf2ce` won despite spec saying `sf2` should win.
+    Pinning this so future picker rewrites don't regress.
+    """
+    short = m(name="sf2", description="X (World)")
+    long_prefix = m(name="sf2ce", description="X (World)")
+    winner = pick_winner(
+        [long_prefix, short], parent="parent_absent", ctx=FilterContext(), cfg=FilterConfig()
+    )
+    assert winner.name == "sf2", "alphabetically lower must win even on prefix collision"
+
+
 def test_preferred_publisher_and_developer_boost() -> None:
     """preferred_publishers / preferred_developers each add to the score.
 
