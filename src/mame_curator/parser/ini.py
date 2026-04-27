@@ -134,8 +134,17 @@ def _parse_simple_ini(path: Path) -> Iterator[tuple[str, str, str]]:
         line = raw_line.strip()
         if not line or line.startswith((";", "#")):
             continue
-        if line.startswith("[") and line.endswith("]"):
-            section = line[1:-1].strip()
+        if line.startswith("["):
+            # Per parser/spec.md "INI section header tolerance": tolerate
+            # `[Section] ; trailing comment` and `[Section]# trailing comment`
+            # by truncating at the first `]` rather than requiring it as the
+            # last character. Without this, an inline-commented META header
+            # (`[FOLDER_SETTINGS] ; tool config`) silently fails to filter
+            # and its keys leak into the parsed output.
+            end = line.find("]")
+            if end == -1:
+                continue  # malformed `[…` with no closing bracket — skip
+            section = line[1:end].strip()
             continue
         if "=" not in line:
             continue

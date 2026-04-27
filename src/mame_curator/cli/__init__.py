@@ -35,7 +35,12 @@ def run(args: argparse.Namespace) -> int:
     """Dispatch to the chosen subcommand. Returns process exit code."""
     if args.command == "parse":
         return _cmd_parse(args)
-    return 1  # unreachable: argparse `required=True` enforces a subcommand
+    # Per cli/spec.md "Dispatch pattern": argparse `required=True` makes
+    # this branch unreachable from any real argv. Reaching it means the
+    # dispatch table here is out of sync with build_parser() — a developer
+    # bug. Surface it loudly instead of returning a silent runtime-error
+    # exit code that masks the missing handler.
+    raise AssertionError(f"unhandled subcommand in run(): {args.command!r}")
 
 
 def _cmd_parse(args: argparse.Namespace) -> int:

@@ -45,7 +45,15 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
     if path.suffix.lower() != ".zip":
         yield path
         return
-    with zipfile.ZipFile(path) as zf:
+    try:
+        zip_ctx = zipfile.ZipFile(path)
+    except zipfile.BadZipFile as exc:
+        # Per parser/spec.md "Edge cases": corrupt/truncated zips raise
+        # DATError with the path, not a bare BadZipFile. The CLI's
+        # ParserError catch then converts this to a user-facing stderr
+        # message instead of a raw Python traceback.
+        raise DATError(f"DAT zip is corrupt or truncated: {exc}", path=path) from exc
+    with zip_ctx as zf:
         xml_members = [n for n in zf.namelist() if n.lower().endswith(".xml")]
         if len(xml_members) == 0:
             raise DATError("DAT zip contains zero .xml files", path=path)

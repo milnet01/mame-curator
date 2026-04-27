@@ -160,3 +160,34 @@ def test_parse_skips_hash_comments(tmp_path: Path) -> None:
     f = tmp_path / "hash.ini"
     f.write_text("# top comment\n[Cat]\n# inside comment\npacman=Maze\n")
     assert parse_catver(f) == {"pacman": "Maze"}
+
+
+def test_section_header_with_inline_comment_filters_meta_correctly(tmp_path: Path) -> None:
+    """Per parser/spec.md "INI section header tolerance":
+    `[Section] ; trailing comment` must be parsed as `Section`, including for
+    META filtering. Previously `line.endswith(']')` was required, so
+    `[FOLDER_SETTINGS] ; tool config` fell through and its keys leaked into
+    the categories output.
+    """
+    f = tmp_path / "inline.ini"
+    f.write_text(
+        "[FOLDER_SETTINGS] ; progettoSnaps tool config\n"
+        "RootFolderIcon=foo\n"
+        "[Category]\n"
+        "pacman=Maze / Collect\n"
+    )
+    result = parse_catver(f)
+    assert result == {"pacman": "Maze / Collect"}
+    assert "RootFolderIcon" not in result, "META filter must work even with inline comment"
+
+
+def test_bestgames_section_header_with_inline_comment_classifies_correctly(
+    tmp_path: Path,
+) -> None:
+    """Bestgames is the case where inline comments on section headers actually
+    matter for correctness — the section name *is* the value (the tier).
+    """
+    f = tmp_path / "best.ini"
+    f.write_text("[Best] ; the cream of the crop\npacman=\n[Great]# also strong\nneogeo=\n")
+    result = parse_bestgames(f)
+    assert result == {"pacman": "Best", "neogeo": "Great"}

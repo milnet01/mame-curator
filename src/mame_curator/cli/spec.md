@@ -61,6 +61,8 @@ Example (bad — bare exception, no path prefix at CLI layer): `error: invalid X
 
 Today's `if args.command == "parse"` chain is acceptable for one subcommand but doesn't scale. When the second subcommand lands (Phase 2 `filter`), `run()` MUST migrate to the `parse_cmd.set_defaults(func=_cmd_parse)` + `return args.func(args)` pattern so adding a third / fourth subcommand is a one-line registration. Tracked as a Phase 2 prerequisite in `phase-2-filter.md`.
 
+**Unreachable fall-through discipline.** `run()` is only reached after argparse has accepted a known subcommand (`required=True` rejects anything else with exit code 2 *before* `run()` is called). A code path where `args.command` is unknown is therefore a developer bug — the dispatch table is out of sync with `build_parser()`. The fall-through MUST be `raise AssertionError(f"unhandled subcommand: {args.command!r}")`, not `return 1`. Returning a runtime-error exit code would silently hide the missing handler from CI and make the bug visible only when a user happens to typo a command (which they cannot, because argparse blocks it). The assertion makes the bug surface loudly in tests instead.
+
 ## Errors the CLI catches but never raises
 
 The CLI is the outermost user-facing layer. It catches typed library errors (`ParserError` and its subclasses; future `FilterError`, `CopyError`) and converts them into `(stderr message, exit code 1)` tuples. It **never** lets a Python traceback reach the user — a traceback in the user's terminal is a CLI bug, not an acceptable failure mode.

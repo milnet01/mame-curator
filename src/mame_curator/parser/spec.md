@@ -126,8 +126,10 @@ INI files are read as UTF-8. Files containing bytes that aren't valid UTF-8 trig
 - INI shortname appearing twice → last write wins; warn via `logger.warning`.
 - INI line with no `=` separator → skipped silently (matches progettoSnaps' own tolerance).
 - INI keys before the first `[Section]` header → skipped (their section name is `""`, not in any parser's allow-list).
+- INI section header with an inline trailing comment (`[Mature] ; old format`, `[Best]# tier`) → recognized as `Mature` / `Best`. The walker truncates at the first `]` rather than requiring it as the last character. Without this tolerance, an inline-commented `[FOLDER_SETTINGS]` header silently fails to filter and its keys leak into the parsed output. A `[…` line with no closing bracket is malformed and skipped.
 - INI file with non-UTF-8 bytes → see "Encoding policy" above (warn + fall back to latin-1, never silent).
 - DAT zip member with absolute path or `..` component → `DATError` ("zip-slip"). The threat model nominally trusts the source, but Phase 4 will expose `parse_dat` to network-controlled paths; defense in depth.
+- DAT `.zip` that is corrupt or truncated (the file is not a valid zip archive) → `DATError("DAT zip is corrupt or truncated: ..."`, path attached). The parser MUST NOT propagate `zipfile.BadZipFile` to the caller — every CLI-visible error path stays inside `ParserError` so the CLI's catch boundary holds and the user sees a structured message rather than a Python traceback.
 
 ## Out of scope
 

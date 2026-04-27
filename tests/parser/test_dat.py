@@ -151,6 +151,22 @@ def test_biosset_parsed_when_present(tmp_path: Path) -> None:
     assert asia.default is True
 
 
+def test_corrupt_zip_raises_DATError_not_BadZipFile(tmp_path: Path) -> None:
+    """Per parser/spec.md "Edge cases": a `.zip` that is corrupt or truncated
+    must raise `DATError` with the file path — never propagate `zipfile.BadZipFile`.
+
+    The CLI catches `ParserError` (DATError's base) and converts to a
+    user-facing stderr message. A bare `BadZipFile` would slip past the
+    catch and crash with a Python traceback in the user's terminal —
+    a CLI-spec violation (see cli/spec.md "Errors the CLI catches but
+    never raises").
+    """
+    bad = tmp_path / "corrupt.zip"
+    bad.write_bytes(b"this is not a zip file, just some bytes")
+    with pytest.raises(DATError, match="zip"):
+        parse_dat(bad)
+
+
 def test_zip_slip_traversal_member_raises(tmp_path: Path, mini_dat: Path) -> None:
     """Per parser/spec.md G5: a .zip with a `..`-path member must raise DATError.
 

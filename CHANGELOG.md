@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Pre-Phase-2 Tier 2 hardening (2026-04-27)
+
+Closed the three Tier 2 items deferred from the first indie-review sweep, plus
+their associated spec gaps. 72 tests pass at 95% coverage; all five CI gates
+green.
+
+#### Code fixes
+- 🐛 **H2** — `_parse_simple_ini` required `]` to be the last character, so
+  `[Section] ; trailing comment` and `[Section]# comment` were silently dropped.
+  A real-world consequence: an inline-commented `[FOLDER_SETTINGS]` header would
+  fail to filter and its keys (`RootFolderIcon=...`) would leak into the parsed
+  output as fake machines. Switched to truncating at the first `]`.
+  (`parser/ini.py:_parse_simple_ini`)
+- 🐛 **M2** — `_resolve_xml` opened `zipfile.ZipFile` without catching
+  `zipfile.BadZipFile`. A corrupt or truncated `.zip` would propagate that
+  exception out of the parser, slip past the CLI's `ParserError` catch, and
+  surface as a Python traceback in the user's terminal — a `cli/spec.md`
+  contract violation. Wrapped to `DATError` with the path attached.
+  (`parser/dat.py:_resolve_xml`)
+- 🛡️ **M3** — `run()` had `return 1` as an "unreachable" fall-through after
+  the dispatch chain. Argparse's `required=True` makes that branch unreachable
+  from any real argv, so reaching it would mean the dispatch table is out of
+  sync with `build_parser()`. Returning `1` would silently hide the bug
+  (looks like a runtime error); raising `AssertionError` surfaces it loudly in
+  tests. (`cli/__init__.py:run`)
+
+#### Spec edits
+- **`parser/spec.md`** — pinned: INI section headers with inline comments
+  (`[Mature] ; old format`) are tolerated by truncating at the first `]`;
+  corrupt/truncated DAT zips raise `DATError`, never propagate `BadZipFile`.
+- **`cli/spec.md`** — added the "unreachable fall-through discipline" clause
+  to the dispatch-pattern section: `run()`'s default branch MUST raise
+  `AssertionError`, not return a runtime-error exit code.
+
 ### Pre-Phase-2 independent-review sweep — pass 2 (2026-04-27)
 
 Second multi-agent sweep after Tier 1 fixes landed. Reframed around spec

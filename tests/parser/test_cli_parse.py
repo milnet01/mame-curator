@@ -83,3 +83,21 @@ def test_runtime_error_returns_exit_code_1_not_2(tmp_path: Path) -> None:
     parser = build_parser()
     args = parser.parse_args(["parse", str(tmp_path / "nope.xml")])
     assert run(args) == 1, "runtime errors must return 1, not collide with argparse's 2"
+
+
+def test_run_with_unknown_command_raises_assertion() -> None:
+    """Per cli/spec.md "Dispatch pattern": `run()` is reached only after argparse
+    has accepted a known subcommand (`required=True` enforces this). A code path
+    where `args.command` is anything else is a developer bug — the dispatch
+    table is out of sync with `build_parser()`.
+
+    Surfacing this as a silent `return 1` would make the bug invisible in the
+    CLI's exit code (looks like a runtime error) and untestable in CI. The
+    contract is: the only way to exit `run()` is via a registered handler;
+    falling through is a programmer error and MUST raise `AssertionError`.
+    """
+    import argparse as _argparse
+
+    forged = _argparse.Namespace(command="nonexistent", verbose=False)
+    with pytest.raises(AssertionError, match="nonexistent"):
+        run(forged)
