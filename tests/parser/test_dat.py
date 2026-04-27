@@ -151,6 +151,23 @@ def test_biosset_parsed_when_present(tmp_path: Path) -> None:
     assert asia.default is True
 
 
+def test_non_integer_rom_size_raises_DATError(tmp_path: Path) -> None:
+    """Per parser/spec.md Errors clause: malformed inputs raise ParserError, never bare ValueError.
+
+    A `<rom size>` attribute that isn't parseable as int previously propagated a bare
+    ValueError out of _rom_from_element, breaking the typed-exception contract.
+    """
+    bad = tmp_path / "bad-size.xml"
+    bad.write_text(
+        "<datafile>"
+        '<machine name="x"><description>X</description>'
+        '<rom name="a.bin" size="not-a-number" crc="aaaaaaaa"/>'
+        "</machine></datafile>"
+    )
+    with pytest.raises(DATError, match="size"):
+        parse_dat(bad)
+
+
 def test_empty_dat_raises(tmp_path: Path) -> None:
     """A valid-XML DAT with zero <machine> elements is treated as wrong-file-type."""
     empty = tmp_path / "empty.xml"

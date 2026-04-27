@@ -122,9 +122,15 @@ def _year_or_none(raw: str | None) -> int | None:
 
 
 def _rom_from_element(elem: Any) -> Rom:
+    raw_size = elem.get("size")
+    try:
+        size = int(raw_size) if raw_size else None
+    except ValueError as exc:
+        rom_name = elem.get("name", "<unnamed>")
+        raise DATError(f"rom '{rom_name}' has non-integer size {raw_size!r}") from exc
     return Rom(
         name=elem.get("name", ""),
-        size=int(elem.get("size")) if elem.get("size") else None,
+        size=size,
         crc=elem.get("crc"),
         sha1=elem.get("sha1"),
     )
