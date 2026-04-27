@@ -124,6 +124,13 @@ files = ["src", "tests"]
 module = "lxml.*"
 ignore_missing_imports = true
 
+# hypothesis decorators (@given, @settings) read as untyped under strict mode;
+# the decorators are type-erased on purpose. Tests that use them are still
+# checked for body-level typing.
+[[tool.mypy.overrides]]
+module = "tests.filter.test_property"
+disallow_untyped_decorators = false
+
 # ---------------------------------------------------------------------------
 # pytest
 # ---------------------------------------------------------------------------
