@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DroppedReason(StrEnum):
@@ -57,3 +57,16 @@ class FilterResult(BaseModel):
     dropped: dict[str, DroppedReason]
     contested_groups: tuple[ContestedGroup, ...]
     warnings: tuple[str, ...] = ()
+
+
+class FilterContext(BaseModel):
+    """INI-augmented per-machine context consumed by Phase A predicates."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    category: dict[str, str] = Field(default_factory=dict)
+    languages: dict[str, tuple[str, ...]] = Field(default_factory=dict)
+    mature: frozenset[str] = Field(default_factory=frozenset)
+    chd_required: frozenset[str] = Field(default_factory=frozenset)
+    cloneof_map: dict[str, str] = Field(default_factory=dict)
+    bestgames_tier: dict[str, str] = Field(default_factory=dict)
