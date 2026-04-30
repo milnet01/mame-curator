@@ -78,7 +78,7 @@ Algorithm:
 3. `shutil.copy2(src, tmp)` — preserves mtime + permissions.
 4. `os.replace(tmp, dst)` — atomic rename. The destination is either the old file or the new file; never a half-written file.
 5. On any exception during steps 3–4: `tmp.unlink(missing_ok=True)`; re-raise as `CopyError(message, src=src, dst=dst)` with the underlying OSError chained (`raise CopyError(...) from exc`).
-6. On `KeyboardInterrupt` mid-copy3: same cleanup, re-raise the `KeyboardInterrupt` (do not swallow signals).
+6. On `KeyboardInterrupt` mid-copy: same cleanup, re-raise the `KeyboardInterrupt` (do not swallow signals).
 7. Return `CopyOutcome(status=SUCCEEDED, src=src, dst=dst, bytes=src.stat().st_size)`.
 
 `progress` callback is invoked once per ~1 MiB chunk via a chunked copy (not `shutil.copyfileobj`'s default block; tune for large `.zip` files). If `None`, no callback. Callback signature: `(bytes_done: int, bytes_total: int) -> None`.
@@ -148,6 +148,20 @@ Constraints (these are testable assertions; `test_lpl_format_matches_retroarch_s
 
 The writer itself uses the **`copy_one` atomic pattern** — write to `mame.lpl.tmp`, `os.replace` to `mame.lpl`. A half-written playlist breaks RetroArch on next launch.
 
+### Which winners become entries
+
+`run_copy` includes a winner in `mame.lpl` only when the `.zip` is **definitely present at the destination** after the run:
+
+| `CopyOutcome.status` | In `mame.lpl`? | Why |
+|---|---|---|
+| `SUCCEEDED` | Yes | Just-written; dst exists. |
+| `SKIPPED_IDEMPOTENT` | Yes | Already at dst with matching size+mtime. |
+| `SKIPPED_EXISTING_VERSION` | No | KEEP_EXISTING was chosen; the **existing** entry stays in the playlist (carried over from `existing_items`); the new winner's `dst` was never written. |
+| `SKIPPED_MISSING_SOURCE` | No | Source `.zip` was missing; nothing copied; `dst` does not exist. |
+| `FAILED` | No | Copy raised; `dst` does not exist. |
+
+(Pre-FP02, `SKIPPED_MISSING_SOURCE` outcomes were included by accident — their `dst` was the would-be path, never created. Filtering to the two "present at dst" statuses is the v1 contract.)
+
 ### `read_lpl` input scope
 
 `read_lpl(playlist_path) -> list[dict[str, str]]` reads existing playlists during `APPEND` conflict resolution. **Only RetroArch v1.5+ JSON-format playlists are supported.** The legacy 6-line format (deprecated since RetroArch 1.7.5; see libretro/RetroArch#7959 / #8439) is **out of scope for v1** — a pre-1.7.5 playlist at the destination raises `PlaylistError("failed to parse playlist")`. Users on legacy installs should run RetroArch's built-in conversion (Settings → Playlists → Refresh Playlist) before using this tool. (Post-v1: a legacy-format reader could ship as a feature flag.)
@@ -168,44 +182,71 @@ For `APPEND`, each new winner is checked against the existing entries (matched b
 |---|---|---|
 | No | n/a | Add new entry |
 | Yes | Yes (e.g. `sf2.zip` already present, winner is `sf2.zip`) | Skip (idempotent — `copy_one` returns `SKIPPED_IDEMPOTENT`); count in report `already_present` |
-| Yes | No (existing is `sf2.zip`, winner is `sf2ce.zip` — different short-name within same parent group) | Look up `plan.append_decisions[winner_short]`. Required values: `KEEP_EXISTING`, `REPLACE`, `REPLACE_AND_RECYCLE` |
+| Yes | No (existing is `sf2.zip`, winner is `sf2ce.zip` — different short-name within same parent group) | Look up `plan.append_decisions[winner_short]`. The decision carries a `kind` (`KEEP_EXISTING` / `REPLACE` / `REPLACE_AND_RECYCLE`) and, for the two replace kinds, the short-name being replaced. |
 
-`AppendDecision` semantics:
+`AppendDecision` shape (FP02 widened from a `StrEnum` to a Pydantic model so the caller specifies *which* existing entry is replaced — the prior heuristic broke on multi-conflict sessions):
 
-- `KEEP_EXISTING` — winner is recorded in `CopyReport.skipped_existing_version`; not copied; existing playlist entry untouched.
-- `REPLACE` — winner is copied (atomic); old playlist entry is replaced with new; **old `.zip` stays on disk untouched** (per design § 6.4 — explicit confirmation is required to delete).
-- `REPLACE_AND_RECYCLE` — winner is copied (atomic); old playlist entry replaced; old `.zip` is moved to `data/recycle/<ISO-timestamp>/<old-short>.zip`; recycled file recorded in `CopyReport.recycled` and one `file_recycled` activity event is emitted.
+```python
+class AppendDecisionKind(StrEnum):
+    KEEP_EXISTING = "KEEP_EXISTING"
+    REPLACE = "REPLACE"
+    REPLACE_AND_RECYCLE = "REPLACE_AND_RECYCLE"
+
+class AppendDecision(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    kind: AppendDecisionKind
+    replaces: str | None = None        # short-name of replaced entry; required for REPLACE / REPLACE_AND_RECYCLE
+```
+
+Semantics:
+
+- `KEEP_EXISTING` — winner is recorded in `CopyReport.skipped_existing_version`; not copied; existing playlist entry untouched. `replaces` is ignored.
+- `REPLACE` — winner is copied (atomic); old playlist entry (matched by `replaces`) is replaced with new; **old `.zip` stays on disk untouched** (per design § 6.4 — explicit confirmation is required to delete). `replaces` is required.
+- `REPLACE_AND_RECYCLE` — winner is copied (atomic); old playlist entry (matched by `replaces`) replaced; old `.zip` (`<replaces>.zip`) is moved to `data/recycle/<session_id>/<old-short>.zip`; recycled file recorded in `CopyReport.recycled` and one `file_recycled` activity event is emitted. `replaces` is required.
 
 **Caller responsibility for conflict detection.** Same-parent-group cross-version conflict detection requires the cloneof map (P02 produces it; the runner does not carry it). The CLI / API caller is responsible for:
 
 1. Reading the existing playlist and the cloneof map.
 2. For each new winner, looking up whether any existing entry is a same-parent-group sibling.
-3. Adding one entry to `plan.append_decisions` per conflict, choosing `KEEP_EXISTING`, `REPLACE`, or `REPLACE_AND_RECYCLE` (typically via user prompt or via a CLI flag like `--auto-keep`).
+3. Adding one entry to `plan.append_decisions` per conflict — `AppendDecision(kind=..., replaces=<existing_short>)` — typically via user prompt or via a CLI flag like `--auto-keep`.
 
-The runner trusts presence-in-`append_decisions` as the conflict signal: when `short` is a key in the map, the runner applies the chosen decision. When `short` is absent, the runner treats the winner as non-conflicting and adds it alongside existing entries. (Pre-FP01 wording mandated `PlaylistError` on a missing decision; that imposed an invariant the runner can't verify without cloneof_map. See `docs/journal/FP01.md` for the design fix.)
+The runner trusts presence-in-`append_decisions` as the conflict signal: when `short` is a key in the map, the runner applies the chosen decision (using `replaces` to identify the old entry; no heuristic search). When `short` is absent, the runner treats the winner as non-conflicting and adds it alongside existing entries. (Pre-FP01 wording mandated `PlaylistError` on a missing decision; that imposed an invariant the runner can't verify without cloneof_map. See `docs/journal/FP01.md` for the design fix.)
 
 ## Recycle bin
 
 Project-internal recycle bin at `data/recycle/`. **Not** the OS recycle bin (no `send2trash` dependency — keeps the cross-platform footprint zero, and the design's 30-day retention contract is project-owned, not OS-owned).
 
-Layout:
+Layout — one subdirectory per **copy session**, keyed by the session_id (which embeds the timestamp + a random suffix). Different sessions never collide; multiple files recycled in the same session share the directory:
 
 ```
 data/recycle/
-├── 2026-04-30T14-23-05Z/
+├── 20260430T142305Z-deadbeef/
 │   ├── sf2.zip
+│   ├── kof94.zip
 │   └── manifest.json    # {"recycled_at": "...", "reason": "REPLACE_AND_RECYCLE", "session_id": "..."}
-└── 2026-05-01T09-12-44Z/
+└── 20260501T091244Z-cafef00d/
     └── ...
 ```
+
+(Pre-FP02, dirnames were the timestamp alone. Two sessions recycling within the same second collided on the directory and the second session's `manifest.json` overwrote the first's. Session-keyed dirnames make cross-session collisions impossible — see ROADMAP § FP02.)
 
 Public functions:
 
 ```python
-def recycle_file(path: Path, reason: str, session_id: str) -> Path:
-    """Move `path` into data/recycle/<timestamp>/, return the new location."""
+def recycle_file(
+    path: Path,
+    *,
+    reason: str,
+    session_id: str,
+    recycle_root: Path = Path("data/recycle"),
+) -> Path:
+    """Move `path` into data/recycle/<session_id>/, return the new location."""
 
-def purge_recycle(older_than: timedelta = timedelta(days=30)) -> tuple[int, int]:
+def purge_recycle(
+    *,
+    older_than: timedelta = timedelta(days=30),
+    recycle_root: Path = Path("data/recycle"),
+) -> tuple[int, int]:
     """Delete recycle subdirectories older than the threshold. Return (dirs_purged, bytes_freed)."""
 ```
 
@@ -349,17 +390,9 @@ class CopyReport(BaseModel):
 
 The input to `run_copy`:
 
+`ConflictStrategy` and `AppendDecision` are defined under § "Playlist conflict resolution" above. `CopyPlan` references both:
+
 ```python
-class ConflictStrategy(StrEnum):
-    APPEND = "APPEND"
-    OVERWRITE = "OVERWRITE"
-    CANCEL = "CANCEL"
-
-class AppendDecision(StrEnum):
-    KEEP_EXISTING = "KEEP_EXISTING"
-    REPLACE = "REPLACE"
-    REPLACE_AND_RECYCLE = "REPLACE_AND_RECYCLE"
-
 class CopyPlan(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     winners: tuple[str, ...]                          # from FilterResult.winners (post-session-slice)
@@ -369,10 +402,12 @@ class CopyPlan(BaseModel):
     source_dir: Path
     dest_dir: Path
     conflict_strategy: ConflictStrategy
-    append_decisions: dict[str, AppendDecision]       # required for APPEND with cross-version conflicts
+    append_decisions: dict[str, AppendDecision]       # one entry per cross-version conflict; key = winner short, value = (kind, replaces)
     delete_existing_zips: bool = False                # only meaningful with OVERWRITE
     dry_run: bool = False
 ```
+
+**Multiple winners targeting the same `replaces` is undefined.** The runner records one `OverwriteRecord` per decision (so duplicates surface in the report), but only the first `recycle_file` call moves the file; subsequent calls find the source missing. The caller-responsibility contract (§ "Playlist conflict resolution") requires each `replaces` short to be unique within `append_decisions`.
 
 A `CopyPlan` is constructed by the CLI from parsed config + a `FilterResult`, or by the API from a request body. `run_copy` validates the plan via `preflight()` before doing any work.
 

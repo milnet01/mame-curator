@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | P04 — HTTP API (next); FP02 follow-on queued |
-| **Active item ID** | (none — P03 + FP01 closed 2026-04-30; FP02 queued before P04 starts) |
-| **Active step** | (resets to all ⬜ when P03 becomes active) |
+| **Project phase** | P04 — HTTP API (next) |
+| **Active item ID** | (none — FP02 closed 2026-04-30) |
+| **Active step** | (resets to all ⬜ when P04 becomes active) |
 | **Blocked on** | — |
-| **Last update** | 2026-04-30 (DOC01 documentation audit fold-in) |
-| **Next gate** | User says "let's start P03" (or equivalent) |
+| **Last update** | 2026-04-30 (FP02 closed) |
+| **Next gate** | User says "let's start P04" (or equivalent) |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | (none yet) |
@@ -33,11 +33,11 @@ becomes active.
 
 ### Active item details
 
-(filled in once P03 becomes active)
+(filled in once P04 becomes active)
 
 ```
-Item: P03 — Copy, BIOS resolution, RetroArch playlist
-Spec: src/mame_curator/copy/spec.md (to be written at Step 1)
+Item: P04 — HTTP API (`api/`)
+Spec: docs/specs/P04.md (to be written at Step 1)
 Branch: main (no feature branch yet — solo development)
 Sub-findings: (none)
 Tests: (none yet — Step 3 writes them)
@@ -64,7 +64,7 @@ nominal. Both tags point at `56449c6`.
 | DOC01 | — | ✅ | 2026-04-30 | 2026-04-30 | Documentation audit fold-in (Phase D) — 4 review rounds, 30 findings closed |
 | P03 | Phase 3 | ✅ | 2026-04-30 | 2026-04-30 | Copy + BIOS + `.lpl` (`copy/`) |
 | FP01 | — | ✅ | 2026-04-30 | 2026-04-30 | P03 indie-review fold-in (round-1 + round-2) |
-| FP02 | — | 📋 next | — | — | FP01 round-2 deferrals (15 items) |
+| FP02 | — | ✅ | 2026-04-30 | 2026-04-30 | FP01 round-2 fold-in (9 items) + FP02 round-2 spec drift |
 | P04 | Phase 4 | 📋 | — | — | HTTP API (`api/`) |
 | P05 | Phase 5 | 📋 | — | — | Media subsystem (`media/`) |
 | P06 | Phase 6 | 📋 | — | — | Frontend MVP |
@@ -102,6 +102,16 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-04-30 — FP02 closed
+
+FP02 closed all 9 round-2 deferrals from FP01: 3 Tier-2 (`OverwriteRecord.parent` dropped; `AppendDecision` widened from `StrEnum` to a Pydantic model with `kind` + `replaces` so multi-conflict sessions steer to the right entry; recycle dirname keyed on `session_id` so cross-session same-second collisions are impossible) + 6 Tier-3 (spec typo `mid-copy3`; `_chd_missing` helper; `functools.partial` over `make_cb`; playlist filter to `SUCCEEDED` + `SKIPPED_IDEMPOTENT`; KI test extended to `progress=cb` branch; recycle 3+ collision test). 9 new tests in `tests/copy/test_fp02_fixes.py`; 241 tests pass project-wide; coverage 94.79%.
+
+Closing `/audit` + `/indie-review` on the FP02 patches surfaced FP02's own spec drift: duplicate `AppendDecision` definition in `copy/spec.md` § CopyPlan; stale `recycle_file` docstring (`<timestamp>`); `test_recyclebin.py` docstring also stale; missing note about duplicate `replaces` being undefined behaviour. All folded into FP02 (DOC01 round-2 precedent — round-2 in same fix-pass when findings are spec-drift caused by the patches themselves). Pre-existing `except Exception` without `logger.exception()` deferred to a future debt-sweep, not in FP02 scope.
+
+Lesson saved: every fix-pass needs a closing review on its own patches, not just on surrounding code. FP01 round-2 caught FP01-shipped Tier-2; FP02 closing review caught FP02-introduced spec drift. Both were caught by /audit + /indie-review running on the latest patches; the iteration converges quickly when the round-2 findings are documentation-only.
+
+Architecture note: FP02 #2 (`AppendDecision.replaces`) compounds the FP01 #4 caller-side architecture. Runner is now strictly a "trusts the caller" layer — no heuristics, no `cloneof_map` reach-around. The CLI / API layer (P04+) is the natural home for cloneof-aware decision logic.
 
 ### 2026-04-30 — P03 + FP01 closed
 

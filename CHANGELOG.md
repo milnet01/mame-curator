@@ -17,7 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### FP01 — P03 indie-review fold-in (2026-04-30, in progress)
+### FP02 — FP01 round-2 fold-in (2026-04-30)
+
+Round-2 indie-review on FP01-patched code surfaced 3 fresh-eyes Tier-2 + 6 Tier-3 findings on the surrounding `copy/` code (not regressions on FP01 fixes themselves). Folded into FP02; closing audit + indie-review pass on FP02 itself surfaced spec drift introduced by the FP02 changes (duplicate `AppendDecision` definition in `copy/spec.md`; stale `recycle_file` docstring), folded into the same FP02 round and closed. Highlights:
+
+- **Tier 2** — `OverwriteRecord.parent` field dropped (always equalled `old_short`; the runner has no `cloneof_map` to compute the actual parent — FP01 #4 design contract); `AppendDecision` widened from a `StrEnum` to a Pydantic model `(kind: AppendDecisionKind, replaces: str | None)` so multi-conflict sessions steer to the right existing entry instead of relying on a brittle "first existing-but-not-winner" heuristic; recycle directories now keyed on `session_id` (`data/recycle/<session_id>/`) instead of just the timestamp, so two sessions recycling within the same second can no longer collide on the directory and overwrite each other's `manifest.json`.
+- **Tier 3** — spec typo `mid-copy3` → `mid-copy`; `_chd_missing(plan)` helper extracted (was duplicated across `run_copy` and `_finalize`); `make_cb` closure factory replaced by `functools.partial`; playlist entries filtered to `SUCCEEDED` + `SKIPPED_IDEMPOTENT` (pre-FP02 the builder included `SKIPPED_MISSING_SOURCE` outcomes whose `dst` was never written, producing `mame.lpl` entries pointing at non-existent files); `KeyboardInterrupt` test extended to cover the `progress=callback` branch (previously only `progress=None`); recycle 3+ same-name same-session collision test added.
+
+### FP01 — P03 indie-review fold-in (2026-04-30, closed)
 
 Indie-review pass against fresh P03 surfaced 6 Tier-1 spec/code drift + atomicity bugs that `/audit` (ruff/mypy/bandit/pytest-cov/grep) missed. P03 stays open until FP01 closes; tag `P03-complete` will land after FP01 close. Findings folded into ROADMAP under `## FP01`. Highlights:
 

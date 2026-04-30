@@ -15,10 +15,6 @@ from pathlib import Path
 from mame_curator.copy.errors import RecycleError
 
 
-def _ts_dir_name(now: datetime) -> str:
-    return now.strftime("%Y-%m-%dT%H-%M-%SZ")
-
-
 def recycle_file(
     path: Path,
     *,
@@ -26,17 +22,16 @@ def recycle_file(
     session_id: str,
     recycle_root: Path = Path("data/recycle"),
 ) -> Path:
-    """Move `path` into `recycle_root/<ISO-timestamp>/`; write manifest."""
+    """Move `path` into `recycle_root/<session_id>/`; write manifest."""
     if not path.exists():
         raise RecycleError("source path does not exist", path=path)
 
     now = datetime.now(UTC)
-    base = recycle_root / _ts_dir_name(now)
-    # Avoid clobbering when two recycles of the SAME filename land in the
-    # same second. Different filenames in the same second share the same
-    # timestamp directory; same filename gets a `-1`, `-2`, ... suffix on the
-    # parent directory. Counter is bounded by the number of same-second
-    # same-name recycles (in practice: one or two during pathological tests).
+    base = recycle_root / session_id
+    # Same session, same filename (pathological — recycling identical paths
+    # twice in one session): walk a `-1`, `-2`, ... counter on the parent
+    # directory. Different sessions never share a directory because
+    # session_id is unique per copy run (timestamp + random suffix).
     target_dir = base
     counter = 0
     while (target_dir / path.name).exists():

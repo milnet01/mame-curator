@@ -23,6 +23,7 @@ from mame_curator.copy import (
 from mame_curator.copy.errors import CopyError, CopyExecutionError, RecycleError
 from mame_curator.copy.types import (
     AppendDecision,
+    AppendDecisionKind,
     ConflictStrategy,
     CopyOutcomeStatus,
     CopyPlan,
@@ -112,7 +113,9 @@ def test_overwrite_record_populated_on_replace(
         source_dir=source_dir,
         dest_dir=dest_dir,
         conflict_strategy=ConflictStrategy.APPEND,
-        append_decisions={"sf2ce": AppendDecision.REPLACE_AND_RECYCLE},
+        append_decisions={
+            "sf2ce": AppendDecision(kind=AppendDecisionKind.REPLACE_AND_RECYCLE, replaces="sf2")
+        },
     )
     report = run_copy(plan)
     assert report.status is CopyReportStatus.OK
@@ -157,7 +160,7 @@ def test_overwrite_record_populated_on_plain_replace_no_recycle(
         source_dir=source_dir,
         dest_dir=dest_dir,
         conflict_strategy=ConflictStrategy.APPEND,
-        append_decisions={"sf2ce": AppendDecision.REPLACE},
+        append_decisions={"sf2ce": AppendDecision(kind=AppendDecisionKind.REPLACE, replaces="sf2")},
     )
     report = run_copy(plan)
     assert report.status is CopyReportStatus.OK
@@ -221,7 +224,7 @@ def test_replace_keep_existing_skips_winner(
         source_dir=source_dir,
         dest_dir=dest_dir,
         conflict_strategy=ConflictStrategy.APPEND,
-        append_decisions={"sf2ce": AppendDecision.KEEP_EXISTING},
+        append_decisions={"sf2ce": AppendDecision(kind=AppendDecisionKind.KEEP_EXISTING)},
     )
     report = run_copy(plan)
     assert report.status is CopyReportStatus.OK

@@ -10,7 +10,7 @@ from mame_curator.copy import purge_recycle, recycle_file
 
 
 def test_recycle_moves_file_into_timestamped_dir(tmp_path: Path) -> None:
-    """Recycled file lands in `<recycle_root>/<ISO-timestamp>/<original-name>`."""
+    """Recycled file lands in `<recycle_root>/<session_id>/<original-name>`."""
     src = tmp_path / "sf2.zip"
     src.write_bytes(b"some content")
     recycle_root = tmp_path / "recycle"

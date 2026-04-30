@@ -27,12 +27,28 @@ class ConflictStrategy(StrEnum):
     CANCEL = "CANCEL"
 
 
-class AppendDecision(StrEnum):
-    """Per-game decision when APPEND mode hits a cross-version conflict."""
+class AppendDecisionKind(StrEnum):
+    """Variant of `AppendDecision` (the enum half of the tagged union)."""
 
     KEEP_EXISTING = "KEEP_EXISTING"
     REPLACE = "REPLACE"
     REPLACE_AND_RECYCLE = "REPLACE_AND_RECYCLE"
+
+
+class AppendDecision(BaseModel):
+    """Per-game decision when APPEND mode hits a cross-version conflict.
+
+    `replaces` is the short-name of the existing playlist entry that this
+    decision targets — required for `REPLACE` / `REPLACE_AND_RECYCLE`,
+    ignored for `KEEP_EXISTING`. Caller-supplied so the runner does not
+    have to heuristic-match (the prior heuristic broke on multi-conflict
+    sessions; FP02 widened the API per `copy/spec.md` § Playlist conflict
+    resolution).
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    kind: AppendDecisionKind
+    replaces: str | None = None
 
 
 class CopyOutcomeStatus(StrEnum):
@@ -76,10 +92,15 @@ class CopyOutcome(BaseModel):
 
 
 class OverwriteRecord(BaseModel):
-    """Record of an APPEND replace event (cross-version winner swap)."""
+    """Record of an APPEND replace event (cross-version winner swap).
+
+    `(old_short, new_short)` only — the runner has no `cloneof_map` and so
+    cannot reliably name the parent. Pre-FP02 the model carried a `parent`
+    field that always equalled `old_short`; that was misleading and was
+    dropped per ROADMAP § FP02 Tier 2 #1.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
-    parent: str
     old_short: str
     new_short: str
 

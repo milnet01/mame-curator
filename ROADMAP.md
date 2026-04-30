@@ -395,24 +395,30 @@ Dependencies: P03 ✅.
 
 ---
 
-## FP02 — FP01 round-2 fold-in (planned)
+## FP02 — FP01 round-2 fold-in (closed 2026-04-30)
 
-**Theme:** FP01 round-2 indie-review surfaced 3 fresh-eyes Tier-2 findings on the surrounding `copy/` code (not regressions on FP01 fixes themselves). The user-data-risk one (corrupt-playlist silent overwrite) closed in FP01 round-2; the rest deferred to FP02 to keep the FP01 + P03 close from sprawling. Source: indie-review-2026-04-30 round-2.
+**Theme:** FP01 round-2 indie-review surfaced 3 fresh-eyes Tier-2 + 6 Tier-3 findings on the surrounding `copy/` code (not regressions on FP01 fixes themselves). Closing `/audit` + `/indie-review` on the FP02 patches surfaced spec drift introduced by FP02 itself (duplicate `AppendDecision` in `copy/spec.md`; stale `recycle_file` docstring); folded into the same fix-pass per the DOC01 round-2 precedent.
 
-### 🔍 Tier 2 — should-fix
+### What closed in FP02
 
-- 📋 **`OverwriteRecord.parent` always equals `old_short`.** The runner deliberately doesn't carry `cloneof_map` (FP01 #4 design fix), so it can't compute the actual parent. Either drop the `parent` field, rename it to `replaced`, or document the limitation in `types.py`. Kind: review-fix. Lanes: copy.
-- 📋 **Replaced-short heuristic brittle on multi-conflict sessions.** `runner.py` picks the first existing-but-not-winner playlist entry as "replaced," which is wrong when multiple unrelated entries exist. Either extend `AppendDecision` to a small dataclass with `replaces: str` (caller specifies), or document the limitation. Kind: review-fix. Lanes: copy.
-- 📋 **Recycle dirname collides across sessions in the same second.** `recyclebin._ts_dir_name` rounds to whole seconds; two sessions recycling within the same second share the dir, and the second's `manifest.json` overwrites the first's. Add session_id (or microseconds) to the dirname. Kind: review-fix. Lanes: copy.
+- ✅ **`OverwriteRecord.parent` dropped.** Field always equalled `old_short` (the runner has no `cloneof_map` to compute the actual parent — FP01 #4 design contract). Removed from the model; runner instantiation updated; types.py docstring captures the rationale. Kind: review-fix. Lanes: copy.
+- ✅ **`AppendDecision` widened to a Pydantic model.** Was a `StrEnum`; is now `BaseModel(kind: AppendDecisionKind, replaces: str | None)` so multi-conflict sessions steer to the right existing entry. Pre-FP02 heuristic ("first existing-but-not-winner") would have recycled the wrong file with two simultaneous REPLACE_AND_RECYCLE decisions. Caller now specifies `replaces` explicitly. Spec § "Playlist conflict resolution" updated; spec also notes that duplicate `replaces` across decisions is undefined behaviour (caller responsibility). Kind: review-fix. Lanes: copy.
+- ✅ **Recycle dirname keyed on `session_id`.** Layout changed from `data/recycle/<ISO-timestamp>/` to `data/recycle/<session_id>/`; two sessions recycling within the same second can no longer collide. Same-session same-name collisions still walk a `-1`, `-2`, ... counter loop (covered by test_recycle_three_same_name_same_session_collisions). Kind: review-fix. Lanes: copy.
+- ✅ **Spec typo `mid-copy3` → `mid-copy`** (`copy/spec.md` step 6 of Atomic copy primitive). Kind: doc-fix.
+- ✅ **`_chd_missing(plan)` helper extracted.** Was duplicated across `run_copy` and `_finalize`. Single canonical computation. Kind: refactor.
+- ✅ **`functools.partial` over `make_cb` closure factory** for per-file progress callbacks. Kind: refactor.
+- ✅ **Playlist entries filtered to `SUCCEEDED` + `SKIPPED_IDEMPOTENT`.** Pre-FP02 the builder included `SKIPPED_MISSING_SOURCE` outcomes (winners whose source was missing — `dst` never written) and `SKIPPED_EXISTING_VERSION` (KEEP_EXISTING — `dst` never written; existing entry covers it). Both produced `mame.lpl` entries pointing at non-existent files. New "Which winners become entries" subsection in `copy/spec.md` documents the contract. Kind: review-fix.
+- ✅ **`KeyboardInterrupt` cleanup test extended to `progress=cb` branch.** The pre-FP02 test only exercised the `progress=None` (shutil.copy2) path; the chunked-progress branch was untested. Both share the try/finally, but the test was the only signal. Kind: test.
+- ✅ **Recycle 3+ same-name same-session collision test added.** Pre-FP02 the test only iterated counter=1; the new test forces counter=2 to exercise the loop bound. Kind: test.
 
-### 🔍 Tier 3 — nits
+### Round-2 findings (closed in same FP02)
 
-- 📋 Spec typo `mid-copy3` (should be `mid-copy`) at `copy/spec.md` step 6. Kind: doc-fix.
-- 📋 `runner._finalize` recomputes `chd_missing` from `plan` directly while the main path derives once at line 374 — light duplication. Kind: refactor.
-- 📋 `runner.py` per-file progress callback uses a closure factory `make_cb`; `functools.partial` is shorter and idiomatic. Kind: refactor.
-- 📋 Playlist entries built from `(*succeeded, *skipped)` include `SKIPPED_MISSING_SOURCE` outcomes — those entries point at a `dst` that was never written. Filter to `SKIPPED_IDEMPOTENT` and `SKIPPED_EXISTING_VERSION`. Kind: review-fix.
-- 📋 `test_copy_one_cleans_tmp_on_keyboard_interrupt` only exercises the `progress=None` branch; add a `progress=cb` variant. Kind: test.
-- 📋 `test_recycle_same_name_same_second_does_not_clobber` only iterates counter=1; a 3+ collision iteration would harden the loop bound. Kind: test.
+- ✅ **Spec self-contradiction: duplicate `AppendDecision` definition.** `copy/spec.md` § CopyPlan still had the pre-FP02 `StrEnum` definition while the upstream § "Playlist conflict resolution" had the new model. Removed the duplicate; CopyPlan section now references the upstream definition. Kind: doc-fix. Source: indie-review-2026-04-30 round-2.
+- ✅ **`recycle_file` spec docstring still said `<timestamp>`.** Updated to `<session_id>`; signature updated to match the actual `*, reason, session_id, recycle_root` keyword-only marker. Kind: doc-fix. Source: audit-2026-04-30 / indie-review-2026-04-30 round-2.
+- ✅ **`test_recyclebin.py:13` docstring still mentioned `<ISO-timestamp>`.** Updated to `<session_id>`. Kind: doc-fix.
+- ✅ **Duplicate `replaces` in `append_decisions` — caller-responsibility note added** to spec (spec.md § CopyPlan).
+
+9 new tests in `tests/copy/test_fp02_fixes.py`; 241 tests pass project-wide; coverage 94.79% (gate 85%); mypy strict + ruff + bandit + pre-commit all green.
 
 Dependencies: P03 ✅, FP01 ✅.
 

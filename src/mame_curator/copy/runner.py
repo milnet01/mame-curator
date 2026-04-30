@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 import secrets
 from collections.abc import Callable
@@ -20,7 +21,7 @@ from mame_curator.copy.recyclebin import recycle_file
 from mame_curator.copy.types import (
     ActivityEvent,
     ActivityEventType,
-    AppendDecision,
+    AppendDecisionKind,
     ConflictStrategy,
     CopyAbortedDetails,
     CopyFinishedDetails,
@@ -54,13 +55,8 @@ def _make_plan_summary(plan: CopyPlan, bios_count: int) -> PlanSummary:
     )
 
 
-def _existing_basenames(items: list[dict[str, str]]) -> set[str]:
-    out = set()
-    for it in items:
-        path = it.get("path", "")
-        if path:
-            out.add(Path(path).name)
-    return out
+def _chd_missing(plan: CopyPlan) -> tuple[str, ...]:
+    return tuple(sorted(short for short in plan.winners if short in plan.chd_required))
 
 
 def run_copy(
@@ -144,7 +140,15 @@ def run_copy(
             warnings.append(f"existing playlist could not be parsed (will be overwritten): {exc}")
             logger.warning("playlist parse failed; existing entries discarded: %s", exc)
 
-    existing_basenames = _existing_basenames(existing_items)
+    # Names being replaced — from caller-supplied AppendDecision.replaces.
+    # Used both to drive the recycle path and to prune the existing-entry
+    # carry-over when building mame.lpl.
+    replaced_shorts: set[str] = {
+        d.replaces
+        for d in plan.append_decisions.values()
+        if d.kind in (AppendDecisionKind.REPLACE, AppendDecisionKind.REPLACE_AND_RECYCLE)
+        and d.replaces is not None
+    }
 
     # Cancellation check before any work.
     if ctl.should_cancel():
@@ -182,10 +186,9 @@ def run_copy(
 
         # APPEND + cross-version conflict handling.
         # The caller (CLI / API) pre-detects same-parent-group conflicts using
-        # its cloneof_map and supplies one entry per conflict in
-        # plan.append_decisions. Presence of `short` in the map IS the
-        # conflict signal here — the runner does not re-derive it (no
-        # cloneof_map at this layer; see spec § "Playlist conflict resolution").
+        # its cloneof_map and supplies `AppendDecision(kind=..., replaces=...)`
+        # in plan.append_decisions. Presence of `short` in the map IS the
+        # conflict signal; `replaces` names which existing entry is targeted.
         # Absent: the winner is added alongside existing entries.
         if (
             role == "winner"
@@ -193,7 +196,7 @@ def run_copy(
             and short in plan.append_decisions
         ):
             decision = plan.append_decisions[short]
-            if decision is AppendDecision.KEEP_EXISTING:
+            if decision.kind is AppendDecisionKind.KEEP_EXISTING:
                 skipped.append(
                     CopyOutcome(
                         short_name=short,
@@ -204,30 +207,13 @@ def run_copy(
                     )
                 )
                 continue
-            # REPLACE / REPLACE_AND_RECYCLE: identify which existing winner zip
-            # this replaces (any same-parent existing entry — for the simple
-            # case the playlist has one entry per parent group). Record an
-            # OverwriteRecord so the report is complete.
-            replaced_short: str | None = None
-            for it in existing_items:
-                ipath = Path(it.get("path", ""))
-                # We don't have the cloneof_map here, so the only signal of
-                # "same parent" is sharing a filename root: existing_basenames
-                # contains every existing zip; treat any one whose stem isn't
-                # also a winner as the replaced entry. This is a heuristic that
-                # works for the v1 design (single winner per parent group).
-                if ipath.stem not in plan.winners and ipath.name in existing_basenames:
-                    replaced_short = ipath.stem
-                    break
-            if replaced_short is not None:
-                overwritten.append(
-                    OverwriteRecord(
-                        parent=replaced_short,
-                        old_short=replaced_short,
-                        new_short=short,
-                    )
-                )
-                if decision is AppendDecision.REPLACE_AND_RECYCLE:
+            # REPLACE / REPLACE_AND_RECYCLE: caller specifies which existing
+            # entry is replaced via `replaces`. Without it, no record is
+            # emitted (the winner still copies normally below).
+            if decision.replaces is not None:
+                replaced_short = decision.replaces
+                overwritten.append(OverwriteRecord(old_short=replaced_short, new_short=short))
+                if decision.kind is AppendDecisionKind.REPLACE_AND_RECYCLE:
                     old_zip = plan.dest_dir / f"{replaced_short}.zip"
                     if old_zip.exists():
                         try:
@@ -263,16 +249,9 @@ def run_copy(
                 on_progress(short, src.stat().st_size, src.stat().st_size)
             continue
 
-        per_file_progress: Callable[[int, int], None] | None = None
-        if on_progress is not None:
-
-            def make_cb(name: str) -> Callable[[int, int], None]:
-                def cb(done: int, total: int) -> None:
-                    on_progress(name, done, total)
-
-                return cb
-
-            per_file_progress = make_cb(short)
+        per_file_progress: Callable[[int, int], None] | None = (
+            functools.partial(on_progress, short) if on_progress is not None else None
+        )
 
         try:
             outcome = copy_one(src, dst, short_name=short, role=role, progress=per_file_progress)
@@ -292,9 +271,6 @@ def run_copy(
         if outcome.status is CopyOutcomeStatus.SUCCEEDED:
             succeeded.append(outcome)
             bytes_copied += outcome.bytes
-            if on_progress is not None and per_file_progress is None:
-                # Emit a single completion event when no chunk callback was used.
-                on_progress(short, outcome.bytes, outcome.bytes)
         elif outcome.status is CopyOutcomeStatus.SKIPPED_IDEMPOTENT:
             skipped.append(outcome)
             if on_progress is not None:
@@ -327,13 +303,21 @@ def run_copy(
     # Write playlist (skip when dry-run or cancelled-mid-flight).
     cancelled_mid = ctl.should_cancel()
     if not plan.dry_run and not cancelled_mid:
-        # Build entries: every successfully-present winner gets an entry.
+        # Build entries: only winners that are *definitely present at dst*
+        # (SUCCEEDED or SKIPPED_IDEMPOTENT) — see spec § "Which winners
+        # become entries". SKIPPED_MISSING_SOURCE / SKIPPED_EXISTING_VERSION
+        # / FAILED outcomes have no file at `dst` and must not get an entry.
         entries: list[PlaylistEntry] = []
         winner_set = set(plan.winners)
-        # Entries from this run.
         present_basenames: set[str] = set()
+        present_statuses = {
+            CopyOutcomeStatus.SUCCEEDED,
+            CopyOutcomeStatus.SKIPPED_IDEMPOTENT,
+        }
         for o in (*succeeded, *skipped):
             if o.role != "winner":
+                continue
+            if o.status not in present_statuses:
                 continue
             machine = plan.machines.get(o.short_name)
             if machine is None:
@@ -347,24 +331,27 @@ def run_copy(
             )
             present_basenames.add(o.dst.name)
 
-        # APPEND: also keep existing entries that aren't being replaced.
+        # APPEND: keep existing entries that aren't being replaced and aren't
+        # already-written winners.
         if plan.conflict_strategy is ConflictStrategy.APPEND and existing_items:
+            replaced_basenames = {f"{s}.zip" for s in replaced_shorts}
+            winner_basenames = {f"{w}.zip" for w in winner_set}
             for it in existing_items:
                 ipath = Path(it.get("path", ""))
                 if ipath.name in present_basenames:
-                    # Already in our entries.
                     continue
-                # Same-short-name overlap → keep existing entry as-is.
-                # Different-short-name in same group → overwrite handled by
-                # the existing-replaced logic; here we simply append.
-                if ipath.name not in {f"{w}.zip" for w in winner_set}:
-                    entries.append(
-                        PlaylistEntry(
-                            short_name=ipath.stem,
-                            description=str(it.get("label", ipath.stem)),
-                            abs_path=ipath,
-                        )
+                if ipath.name in replaced_basenames:
+                    continue
+                if ipath.name in winner_basenames:
+                    # Same-short overlap covered by the winner outcome above.
+                    continue
+                entries.append(
+                    PlaylistEntry(
+                        short_name=ipath.stem,
+                        description=str(it.get("label", ipath.stem)),
+                        abs_path=ipath,
                     )
+                )
 
         write_lpl(plan.dest_dir / "mame.lpl", entries)
 
@@ -375,8 +362,6 @@ def run_copy(
         status = CopyReportStatus.PARTIAL_FAILURE
     else:
         status = CopyReportStatus.OK
-
-    chd_missing = tuple(sorted(short for short in plan.winners if short in plan.chd_required))
 
     report = CopyReport(
         session_id=session_id,
@@ -390,7 +375,7 @@ def run_copy(
         overwritten=tuple(overwritten),
         recycled=tuple(recycled),
         bios_included=tuple(sorted(bios_set)),
-        chd_missing=chd_missing,
+        chd_missing=_chd_missing(plan),
         bytes_copied=bytes_copied,
         warnings=tuple(warnings),
     )
@@ -447,7 +432,6 @@ def _finalize(
     recycled: tuple[RecycleRecord, ...] = (),
 ) -> CopyReport:
     finished_at = datetime.now(UTC)
-    chd_missing = tuple(sorted(short for short in plan.winners if short in plan.chd_required))
     report = CopyReport(
         session_id=session_id,
         started_at=started_at,
@@ -455,7 +439,7 @@ def _finalize(
         status=status,
         plan_summary=plan_summary,
         bios_included=tuple(sorted(bios_set)),
-        chd_missing=chd_missing,
+        chd_missing=_chd_missing(plan),
         recycled=recycled,
         warnings=tuple(warnings),
     )
