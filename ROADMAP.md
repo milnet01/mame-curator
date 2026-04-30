@@ -351,7 +351,7 @@ threshold not reached).
 
 ---
 
-## P03 — Copy + BIOS resolution + RetroArch playlist (next)
+## P03 — Copy + BIOS resolution + RetroArch playlist (shipped 2026-04-30)
 
 **Theme:** given a winner list from P02, copy each winner's `.zip`
 plus all transitively-required BIOS `.zip`s to the destination,
@@ -362,7 +362,7 @@ write a RetroArch `mame.lpl` playlist, and emit a copy report.
 
 ### 🎨 Features
 
-- 📋 **P03 — `copy/` module.** Implements: BIOS chain resolution
+- ✅ **P03 — `copy/` module.** Implements: BIOS chain resolution
   (transitive `romof` + `<biosset>` walk, dedup), atomic copy
   (`.tmp` + `os.replace`, `shutil.copy2` mtime preservation), `.lpl`
   RetroArch v6+ JSON writer, playlist conflict resolution
@@ -375,6 +375,46 @@ write a RetroArch `mame.lpl` playlist, and emit a copy report.
   Kind: implement.
   Lanes: copy, tests.
   Dependencies: P02 ✅.
+
+---
+
+## FP01 — P03 indie-review fold-in (closed 2026-04-30)
+
+**Theme:** indie-review pass on the freshly-shipped P03 surfaced 6 Tier-1 spec/code drift + atomicity bugs that the standard `/audit` tools missed, plus 10 Tier-2 + 7 Tier-3. Folded per the "every audit finding is tracked" hard rule. P03 stays open until FP01 closes.
+
+### What closed in FP01
+
+- ✅ All 6 Tier-1 fixed: `copy_one` signature drift (spec widened), `KeyboardInterrupt` cleanup (try/finally), `OverwriteRecord` populated in REPLACE / REPLACE_AND_RECYCLE branches, append-decision design (caller-side conflict detection — spec updated, runner trusts presence-in-`append_decisions`), recycle collision logic (clean counter loop), `read_lpl` scope narrowed to v1.5+ JSON.
+- ✅ Tier-2 closed: six `# type: ignore[arg-type]` removed by typing work-list as `Literal["winner","bios"]`; FAILED-branch + PARTIAL_FAILURE coverage; OVERWRITE + `delete_existing_zips` coverage; round-2 follow-on — corrupt-playlist surfaces warning instead of silent-overwrite (B-T2-3 user-data risk); plain `REPLACE` (no recycle) test added.
+- ✅ Tier-3 closed: `errors.py` `__str__` test; `playlist.py` PlaylistError branch tests; `recycle_file` missing-source test.
+- ⏭️ **Deferred to FP02** (round-2 indie-review surfaced fresh-eyes findings): `OverwriteRecord.parent` cosmetic rename; multi-conflict replaced-short heuristic; cross-session recycle dirname collision; spec typo `mid-copy3`; `_finalize` chd_missing duplication; `make_cb` → `functools.partial` refactor; SKIPPED_MISSING_SOURCE accidentally entering `mame.lpl`; chunked-path failure test; cancel-keeps-partial test strengthening; recycle same-name 3+ collision test; `self_reference` warning enum arm; `wait_if_paused` race comment; O_APPEND 4 KiB comment; hypothesis property tests; `session_id` ULID claim narrowed; `data/copy-history` persistence dropped; macOS/Windows path separator known-issue; `source_dir` fixture scope; `test_lpl_no_bom` strengthening.
+
+74 tests pass; copy/ aggregate ~89% coverage; mypy strict + ruff + bandit + pre-commit all green.
+
+Dependencies: P03 ✅.
+
+---
+
+## FP02 — FP01 round-2 fold-in (planned)
+
+**Theme:** FP01 round-2 indie-review surfaced 3 fresh-eyes Tier-2 findings on the surrounding `copy/` code (not regressions on FP01 fixes themselves). The user-data-risk one (corrupt-playlist silent overwrite) closed in FP01 round-2; the rest deferred to FP02 to keep the FP01 + P03 close from sprawling. Source: indie-review-2026-04-30 round-2.
+
+### 🔍 Tier 2 — should-fix
+
+- 📋 **`OverwriteRecord.parent` always equals `old_short`.** The runner deliberately doesn't carry `cloneof_map` (FP01 #4 design fix), so it can't compute the actual parent. Either drop the `parent` field, rename it to `replaced`, or document the limitation in `types.py`. Kind: review-fix. Lanes: copy.
+- 📋 **Replaced-short heuristic brittle on multi-conflict sessions.** `runner.py` picks the first existing-but-not-winner playlist entry as "replaced," which is wrong when multiple unrelated entries exist. Either extend `AppendDecision` to a small dataclass with `replaces: str` (caller specifies), or document the limitation. Kind: review-fix. Lanes: copy.
+- 📋 **Recycle dirname collides across sessions in the same second.** `recyclebin._ts_dir_name` rounds to whole seconds; two sessions recycling within the same second share the dir, and the second's `manifest.json` overwrites the first's. Add session_id (or microseconds) to the dirname. Kind: review-fix. Lanes: copy.
+
+### 🔍 Tier 3 — nits
+
+- 📋 Spec typo `mid-copy3` (should be `mid-copy`) at `copy/spec.md` step 6. Kind: doc-fix.
+- 📋 `runner._finalize` recomputes `chd_missing` from `plan` directly while the main path derives once at line 374 — light duplication. Kind: refactor.
+- 📋 `runner.py` per-file progress callback uses a closure factory `make_cb`; `functools.partial` is shorter and idiomatic. Kind: refactor.
+- 📋 Playlist entries built from `(*succeeded, *skipped)` include `SKIPPED_MISSING_SOURCE` outcomes — those entries point at a `dst` that was never written. Filter to `SKIPPED_IDEMPOTENT` and `SKIPPED_EXISTING_VERSION`. Kind: review-fix.
+- 📋 `test_copy_one_cleans_tmp_on_keyboard_interrupt` only exercises the `progress=None` branch; add a `progress=cb` variant. Kind: test.
+- 📋 `test_recycle_same_name_same_second_does_not_clobber` only iterates counter=1; a 3+ collision iteration would harden the loop bound. Kind: test.
+
+Dependencies: P03 ✅, FP01 ✅.
 
 ---
 

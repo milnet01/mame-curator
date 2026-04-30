@@ -4,8 +4,8 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | P03 — Copy, BIOS resolution, RetroArch playlist (next) |
-| **Active item ID** | (none — DOC01 closed 2026-04-30 with all four review rounds clean; P03 not yet started) |
+| **Project phase** | P04 — HTTP API (next); FP02 follow-on queued |
+| **Active item ID** | (none — P03 + FP01 closed 2026-04-30; FP02 queued before P04 starts) |
 | **Active step** | (resets to all ⬜ when P03 becomes active) |
 | **Blocked on** | — |
 | **Last update** | 2026-04-30 (DOC01 documentation audit fold-in) |
@@ -62,7 +62,9 @@ nominal. Both tags point at `56449c6`.
 | P01 | Phase 1 | ✅ | 2026-04-27 | 2026-04-30 (retro) | DAT + INI parsers (`parser/`) (combined ship with P00) |
 | P02 | Phase 2 | ✅ | 2026-04-27 | 2026-04-30 (retro) | Filter rule chain (`filter/`) |
 | DOC01 | — | ✅ | 2026-04-30 | 2026-04-30 | Documentation audit fold-in (Phase D) — 4 review rounds, 30 findings closed |
-| P03 | Phase 3 | 📋 | — | — | Copy + BIOS + `.lpl` (`copy/`) |
+| P03 | Phase 3 | ✅ | 2026-04-30 | 2026-04-30 | Copy + BIOS + `.lpl` (`copy/`) |
+| FP01 | — | ✅ | 2026-04-30 | 2026-04-30 | P03 indie-review fold-in (round-1 + round-2) |
+| FP02 | — | 📋 next | — | — | FP01 round-2 deferrals (15 items) |
 | P04 | Phase 4 | 📋 | — | — | HTTP API (`api/`) |
 | P05 | Phase 5 | 📋 | — | — | Media subsystem (`media/`) |
 | P06 | Phase 6 | 📋 | — | — | Frontend MVP |
@@ -100,6 +102,14 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-04-30 — P03 + FP01 closed
+
+P03 (`copy/` module) shipped: BIOS chain resolution, atomic copy primitive, RetroArch v6+ JSON playlist writer, project-internal recycle bin (no `send2trash` dep), pause/resume/cancel `CopyController`, `data/activity.jsonl` append-only log with discriminated-union event schema, `CopyReport` Pydantic model, CLI `mame-curator copy --dry-run / --apply / --purge-recycle`. 74 tests in `tests/copy/`, copy/ aggregate ~89%, project-wide 92.95%. All five CI gates green.
+
+FP01 closed paired: indie-review on freshly-shipped P03 surfaced 6 Tier-1 real bugs that `/audit` missed (signature drift, `KeyboardInterrupt` cleanup, `OverwriteRecord` allocated-but-never-appended, `PlaylistError` design contradiction, broken recycle collision logic, `read_lpl` legacy claim without code). Round-1 closed all 6 Tier-1 + most Tier-2/3. Round-2 surfaced 5 fresh Tier-2 + 4 Tier-3; user-data-risk (B-T2-3 corrupt-playlist silent overwrite) closed in FP01; 15 remaining items deferred to FP02. Per App-Build's "every finding tracked" hard rule, deferred items live in ROADMAP § FP02.
+
+Notable lesson: `/audit` and `/indie-review` are complementary. Auto tools catch the grammar; indie-review catches semantics. Both necessary; neither sufficient. Saved as a reference for future phase closes.
 
 ### 2026-04-30 — DOC01 closed (Phase D documentation audit)
 

@@ -61,10 +61,15 @@ Algorithm:
 def copy_one(
     src: Path,
     dst: Path,
+    *,
+    short_name: str,
+    role: Literal["winner", "bios"],
     progress: Callable[[int, int], None] | None = None,
 ) -> CopyOutcome:
     """Atomically copy `src` to `dst`, preserving mtime and reporting per-chunk progress."""
 ```
+
+`short_name` and `role` are required keyword arguments; they're carried into the returned `CopyOutcome` so the runner can build the `CopyReport` without re-deriving them. Both arguments are part of the public API surface — changing them is a breaking change.
 
 Algorithm:
 
@@ -143,6 +148,10 @@ Constraints (these are testable assertions; `test_lpl_format_matches_retroarch_s
 
 The writer itself uses the **`copy_one` atomic pattern** — write to `mame.lpl.tmp`, `os.replace` to `mame.lpl`. A half-written playlist breaks RetroArch on next launch.
 
+### `read_lpl` input scope
+
+`read_lpl(playlist_path) -> list[dict[str, str]]` reads existing playlists during `APPEND` conflict resolution. **Only RetroArch v1.5+ JSON-format playlists are supported.** The legacy 6-line format (deprecated since RetroArch 1.7.5; see libretro/RetroArch#7959 / #8439) is **out of scope for v1** — a pre-1.7.5 playlist at the destination raises `PlaylistError("failed to parse playlist")`. Users on legacy installs should run RetroArch's built-in conversion (Settings → Playlists → Refresh Playlist) before using this tool. (Post-v1: a legacy-format reader could ship as a feature flag.)
+
 ## Playlist conflict resolution
 
 When `plan.dest_dir / "mame.lpl"` exists at preflight time, the caller (CLI or API) chooses one of three modes via `plan.conflict_strategy: ConflictStrategy`:
@@ -167,7 +176,13 @@ For `APPEND`, each new winner is checked against the existing entries (matched b
 - `REPLACE` — winner is copied (atomic); old playlist entry is replaced with new; **old `.zip` stays on disk untouched** (per design § 6.4 — explicit confirmation is required to delete).
 - `REPLACE_AND_RECYCLE` — winner is copied (atomic); old playlist entry replaced; old `.zip` is moved to `data/recycle/<ISO-timestamp>/<old-short>.zip`; recycled file recorded in `CopyReport.recycled` and one `file_recycled` activity event is emitted.
 
-If `plan.append_decisions` does not contain a key for a conflicting winner, `run_copy` raises `PlaylistError(f"append decision required for {short}")`. The CLI's `--apply` requires either `--decisions <yaml-or-json-file>` or `--auto-keep` (apply `KEEP_EXISTING` to every conflict); the API receives decisions in the request body.
+**Caller responsibility for conflict detection.** Same-parent-group cross-version conflict detection requires the cloneof map (P02 produces it; the runner does not carry it). The CLI / API caller is responsible for:
+
+1. Reading the existing playlist and the cloneof map.
+2. For each new winner, looking up whether any existing entry is a same-parent-group sibling.
+3. Adding one entry to `plan.append_decisions` per conflict, choosing `KEEP_EXISTING`, `REPLACE`, or `REPLACE_AND_RECYCLE` (typically via user prompt or via a CLI flag like `--auto-keep`).
+
+The runner trusts presence-in-`append_decisions` as the conflict signal: when `short` is a key in the map, the runner applies the chosen decision. When `short` is absent, the runner treats the winner as non-conflicting and adds it alongside existing entries. (Pre-FP01 wording mandated `PlaylistError` on a missing decision; that imposed an invariant the runner can't verify without cloneof_map. See `docs/journal/FP01.md` for the design fix.)
 
 ## Recycle bin
 

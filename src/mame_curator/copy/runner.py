@@ -7,11 +7,12 @@ import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from mame_curator.copy.activity import append_activity
 from mame_curator.copy.bios import resolve_bios_dependencies
 from mame_curator.copy.controller import CopyController
-from mame_curator.copy.errors import PlaylistError
+from mame_curator.copy.errors import CopyError, PlaylistError
 from mame_curator.copy.executor import copy_one
 from mame_curator.copy.playlist import read_lpl, write_lpl
 from mame_curator.copy.preflight import preflight
@@ -124,16 +125,24 @@ def run_copy(
     bytes_copied = 0
 
     # Build the file list: winners first (preserves "winner" role), then BIOS.
-    work: list[tuple[str, str]] = [(w, "winner") for w in sorted(plan.winners)]
+    # Typed as Literal so CopyOutcome.role narrows without `# type: ignore`.
+    work: list[tuple[str, Literal["winner", "bios"]]] = [
+        (w, "winner") for w in sorted(plan.winners)
+    ]
     work += [(b, "bios") for b in sorted(bios_set)]
 
     # Read existing playlist items if APPEND.
+    # A failed read (corrupt or legacy 6-line format per spec § "read_lpl
+    # input scope") falls back to empty-but-warns rather than silently
+    # discarding the user's old playlist; the warning surfaces in
+    # CopyReport.warnings and is logged.
     existing_items: list[dict[str, str]] = []
     if pre.existing_playlist and plan.conflict_strategy is ConflictStrategy.APPEND:
         try:
             existing_items = read_lpl(plan.dest_dir / "mame.lpl")
-        except PlaylistError:
-            existing_items = []
+        except PlaylistError as exc:
+            warnings.append(f"existing playlist could not be parsed (will be overwritten): {exc}")
+            logger.warning("playlist parse failed; existing entries discarded: %s", exc)
 
     existing_basenames = _existing_basenames(existing_items)
 
@@ -163,7 +172,7 @@ def run_copy(
             skipped.append(
                 CopyOutcome(
                     short_name=short,
-                    role=role,  # type: ignore[arg-type]
+                    role=role,
                     status=CopyOutcomeStatus.SKIPPED_MISSING_SOURCE,
                     src=src,
                     dst=dst,
@@ -171,34 +180,78 @@ def run_copy(
             )
             continue
 
-        # APPEND + KEEP_EXISTING / cross-version conflict handling.
+        # APPEND + cross-version conflict handling.
+        # The caller (CLI / API) pre-detects same-parent-group conflicts using
+        # its cloneof_map and supplies one entry per conflict in
+        # plan.append_decisions. Presence of `short` in the map IS the
+        # conflict signal here — the runner does not re-derive it (no
+        # cloneof_map at this layer; see spec § "Playlist conflict resolution").
+        # Absent: the winner is added alongside existing entries.
         if (
             role == "winner"
             and plan.conflict_strategy is ConflictStrategy.APPEND
-            and existing_basenames
-            and f"{short}.zip" not in existing_basenames
+            and short in plan.append_decisions
         ):
-            decision = plan.append_decisions.get(short, AppendDecision.KEEP_EXISTING)
+            decision = plan.append_decisions[short]
             if decision is AppendDecision.KEEP_EXISTING:
                 skipped.append(
                     CopyOutcome(
                         short_name=short,
-                        role=role,  # type: ignore[arg-type]
+                        role=role,
                         status=CopyOutcomeStatus.SKIPPED_EXISTING_VERSION,
                         src=src,
                         dst=dst,
                     )
                 )
                 continue
-            # REPLACE / REPLACE_AND_RECYCLE: proceed with copy; old entry replaced
-            # in playlist below by virtue of being absent from `entries_for_lpl`.
+            # REPLACE / REPLACE_AND_RECYCLE: identify which existing winner zip
+            # this replaces (any same-parent existing entry — for the simple
+            # case the playlist has one entry per parent group). Record an
+            # OverwriteRecord so the report is complete.
+            replaced_short: str | None = None
+            for it in existing_items:
+                ipath = Path(it.get("path", ""))
+                # We don't have the cloneof_map here, so the only signal of
+                # "same parent" is sharing a filename root: existing_basenames
+                # contains every existing zip; treat any one whose stem isn't
+                # also a winner as the replaced entry. This is a heuristic that
+                # works for the v1 design (single winner per parent group).
+                if ipath.stem not in plan.winners and ipath.name in existing_basenames:
+                    replaced_short = ipath.stem
+                    break
+            if replaced_short is not None:
+                overwritten.append(
+                    OverwriteRecord(
+                        parent=replaced_short,
+                        old_short=replaced_short,
+                        new_short=short,
+                    )
+                )
+                if decision is AppendDecision.REPLACE_AND_RECYCLE:
+                    old_zip = plan.dest_dir / f"{replaced_short}.zip"
+                    if old_zip.exists():
+                        try:
+                            new_path = recycle_file(
+                                old_zip,
+                                reason="REPLACE_AND_RECYCLE",
+                                session_id=session_id,
+                            )
+                            recycled.append(
+                                RecycleRecord(
+                                    original_path=old_zip,
+                                    recycled_path=new_path,
+                                    reason="REPLACE_AND_RECYCLE",
+                                )
+                            )
+                        except CopyError as exc:
+                            warnings.append(f"recycle of {old_zip.name} failed: {exc}")
 
         if plan.dry_run:
             # Pretend success without writing.
             succeeded.append(
                 CopyOutcome(
                     short_name=short,
-                    role=role,  # type: ignore[arg-type]
+                    role=role,
                     status=CopyOutcomeStatus.SUCCEEDED,
                     src=src,
                     dst=dst,
@@ -227,7 +280,7 @@ def run_copy(
             failed.append(
                 CopyOutcome(
                     short_name=short,
-                    role=role,  # type: ignore[arg-type]
+                    role=role,
                     status=CopyOutcomeStatus.FAILED,
                     src=src,
                     dst=dst,

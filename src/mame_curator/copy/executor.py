@@ -7,6 +7,7 @@ import os
 import shutil
 from collections.abc import Callable
 from pathlib import Path
+from typing import Literal
 
 from mame_curator.copy.errors import CopyExecutionError
 from mame_curator.copy.types import CopyOutcome, CopyOutcomeStatus
@@ -41,14 +42,14 @@ def copy_one(
     dst: Path,
     *,
     short_name: str,
-    role: str,
+    role: Literal["winner", "bios"],
     progress: Callable[[int, int], None] | None = None,
 ) -> CopyOutcome:
     """Atomically copy `src` to `dst`; idempotent on size+mtime; chunked progress."""
     if _is_idempotent(src, dst):
         return CopyOutcome(
             short_name=short_name,
-            role=role,  # type: ignore[arg-type]
+            role=role,
             status=CopyOutcomeStatus.SKIPPED_IDEMPOTENT,
             src=src,
             dst=dst,
@@ -58,20 +59,28 @@ def copy_one(
     dst.parent.mkdir(parents=True, exist_ok=True)
     tmp = dst.with_suffix(dst.suffix + ".tmp")
     total = src.stat().st_size
+    # try/finally over try/except so KeyboardInterrupt, MemoryError, and any
+    # other BaseException also trigger tmp cleanup. The OSError branch wraps
+    # into CopyExecutionError; everything else propagates with the .tmp gone.
+    completed = False
     try:
-        if progress is not None:
-            _chunked_copy(src, tmp, total, progress)
-        else:
-            shutil.copy2(src, tmp)
-        os.replace(tmp, dst)
-    except OSError as exc:
-        with contextlib.suppress(OSError):
-            tmp.unlink(missing_ok=True)
-        raise CopyExecutionError(f"copy failed: {exc}", path=src) from exc
+        try:
+            if progress is not None:
+                _chunked_copy(src, tmp, total, progress)
+            else:
+                shutil.copy2(src, tmp)
+            os.replace(tmp, dst)
+            completed = True
+        except OSError as exc:
+            raise CopyExecutionError(f"copy failed: {exc}", path=src) from exc
+    finally:
+        if not completed:
+            with contextlib.suppress(OSError):
+                tmp.unlink(missing_ok=True)
 
     return CopyOutcome(
         short_name=short_name,
-        role=role,  # type: ignore[arg-type]
+        role=role,
         status=CopyOutcomeStatus.SUCCEEDED,
         src=src,
         dst=dst,

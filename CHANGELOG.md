@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP01 — P03 indie-review fold-in (2026-04-30, in progress)
+
+Indie-review pass against fresh P03 surfaced 6 Tier-1 spec/code drift + atomicity bugs that `/audit` (ruff/mypy/bandit/pytest-cov/grep) missed. P03 stays open until FP01 closes; tag `P03-complete` will land after FP01 close. Findings folded into ROADMAP under `## FP01`. Highlights:
+
+- Tier 1 — `copy_one` signature drift (spec lists `progress=None` only; code requires `short_name`/`role` kwargs); missing `KeyboardInterrupt` cleanup in `copy_one`; `OverwriteRecord` allocated but never appended; `PlaylistError` not raised on missing append decision (spec mandates); broken `recycle_file` collision logic (`for _ in [None]` is a 1-shot generator); `read_lpl` doesn't tolerate the legacy 6-line format spec promised — narrowing spec to v1.5+ JSON only.
+- Tier 2 — six `# type: ignore[arg-type]` without rationale (root-cause fix: type the work list as `tuple[str, Literal["winner","bios"]]`); FAILED-branch + OVERWRITE+delete coverage gaps; `self_reference` warning enum arm unused; `wait_if_paused` race comment; `O_APPEND` 4 KiB atomicity comment; chunked-path failure test; cancel-keeps-partial test strengthening; hypothesis property tests for `resolve_bios_dependencies`.
+- Tier 3 — `errors.py` `__str__` test; `playlist.py` error-branch tests; `session_id` ULID claim narrowed; `data/copy-history` persistence claim dropped (out of v1 scope); known-issues note for cross-platform path separators; `test_lpl_no_bom` strengthened.
+
 ### DOC01 — Phase D documentation audit fold-in (2026-04-30)
 
 Five-lane cold-eyes documentation review across standards consistency, workflow integration, spec ↔ architecture alignment, phase-history accuracy, and discoverability/onboarding. Round 1 batched 3 Tier-1 / 17 Tier-2 / 7 Tier-3 actionable findings (after deduplicating cross-lane overlaps and one Tier-1 demoted to Tier-3 on re-read). Round 2 surfaced 2 Tier-1 / 7 Tier-2 / 4 Tier-3 follow-on findings — round-1 patches that did not propagate fully to sibling files (long-form roadmap step 7/8, `pick_winner` / `explain_pick` signatures in spec, layer-diagram order between README and CLAUDE.md, `DOC##` glossary gap). Both rounds folded into the same `DOC01` fix-pass; loop closes when one re-review pass returns zero actionable findings. Highlights:

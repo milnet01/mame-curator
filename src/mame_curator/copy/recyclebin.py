@@ -32,15 +32,16 @@ def recycle_file(
 
     now = datetime.now(UTC)
     base = recycle_root / _ts_dir_name(now)
-    # Avoid clobbering when two recycles land in the same second.
-    suffix = ""
+    # Avoid clobbering when two recycles of the SAME filename land in the
+    # same second. Different filenames in the same second share the same
+    # timestamp directory; same filename gets a `-1`, `-2`, ... suffix on the
+    # parent directory. Counter is bounded by the number of same-second
+    # same-name recycles (in practice: one or two during pathological tests).
+    target_dir = base
     counter = 0
-    while (base.with_name(base.name + suffix)).exists() and any(
-        (base.with_name(base.name + suffix) / path.name).exists() for _ in [None]
-    ):
+    while (target_dir / path.name).exists():
         counter += 1
-        suffix = f"-{counter}"
-    target_dir = base.with_name(base.name + suffix)
+        target_dir = base.with_name(f"{base.name}-{counter}")
     target_dir.mkdir(parents=True, exist_ok=True)
 
     target = target_dir / path.name
