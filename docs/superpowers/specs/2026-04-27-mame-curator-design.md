@@ -702,7 +702,7 @@ High-level summary of those phases (full detail in the roadmap):
 - **Phase 1** — DAT + INI parsers (`parser/`).
 - **Phase 2** — Filter rule chain (`filter/`) — Phase A drops, Phase B picks, Phase C overrides, Phase D session focus.
 - **Phase 3** — Copy + BIOS + `.lpl` writer (`copy/`) — including playlist conflict resolution + recycle bin + pause/resume/cancel.
-- **Phase 4** — FastAPI HTTP surface (`api/`) — including filesystem-browser routes for the wizard's Browse buttons.
+- **Phase 4** — FastAPI HTTP surface (`api/`) — including filesystem-browser routes (consumed by the Phase 8 setup wizard's Browse buttons; the routes ship in Phase 4 because the API surface is cohesive there, even though the wizard itself does not arrive until Phase 8).
 - **Phase 5** — Media subsystem (`media/`) — libretro-thumbnails escape rules + lazy-fetch cache.
 - **Phase 6** — Frontend MVP — grid, themes, layouts, sessions, activity, stats, settings, switches everywhere.
 - **Phase 7** — Self-update + in-app help (`updates/` + `help/`).

@@ -4,9 +4,10 @@
 
 Given parsed Phase-1 data (`dict[str, Machine]`), an INI-augmented context (catver / languages / bestgames / mature / chd_required / cloneof_map), a `FilterConfig`, an `Overrides` map, and an active `Session` (or none), produce a deterministic `FilterResult`:
 
-- `winners: list[str]` — short names of machines that survived all four phases, alphabetically sorted.
-- `dropped: dict[str, DroppedReason]` — one entry per dropped machine, with the typed reason it was dropped.
-- `contested_groups: list[ContestedGroup]` — one entry per parent/clone group where Phase B had to choose between ≥2 candidates; records the winner, the candidates, and the tiebreaker chain that produced the result. Used by `/api/games/{name}/explanation` (Phase 4).
+- `winners: tuple[str, ...]` — short names of machines that survived all four phases, alphabetically sorted.
+- `dropped: dict[str, DroppedReason]` — one entry per dropped machine, with the typed reason it was dropped. (Mutable in shape but always treated as a fresh dict per `run_filter` call; see Tier-2 hardening note in CHANGELOG.)
+- `contested_groups: tuple[ContestedGroup, ...]` — one entry per parent/clone group where Phase B had to choose between ≥2 candidates; records the winner, the candidates, and the tiebreaker chain that produced the result. Used by `/api/games/{name}/explanation` (Phase 4).
+- `warnings: tuple[str, ...]` — non-fatal advisories from Phase C overrides (unknown parent, target outside its parent's group, target machine not in the parsed DAT). Never empty by validation; sorted in canonical order.
 
 Re-running the filter on the same input produces byte-identical output (verified by `test_idempotency` and a hypothesis property test).
 
@@ -24,7 +25,7 @@ Each rule is a small predicate `(machine, ctx, config) -> bool`. Predicates are 
 | 2 | `DEVICE` | (`machine.is_device` or `machine.runnable is False`) and `config.drop_bios_devices_mechanical` |
 | 3 | `MECHANICAL` | `machine.is_mechanical` and `config.drop_bios_devices_mechanical` |
 | 4 | `CATEGORY` | `ctx.category[name]` matches any pattern in `config.drop_categories` (fnmatch, case-sensitive) |
-| 5 | `MATURE` | `name in ctx.mature` and `config.drop_mature` (default `True`; bound to `Mature*` category fallback) |
+| 5 | `MATURE` | `name in ctx.mature` and `config.drop_mature` (default `True`). Membership is the sole signal — `mature.ini` is the authoritative list. The `Mature*` category prefix is independent and reaches Phase A rule 4 via `drop_categories` (which by default includes `"Mature*"` per `config.example.yaml`). |
 | 6 | `JAPANESE_ONLY` | `ctx.languages[name] == ["Japanese"]` and `config.drop_japanese_only_text` |
 | 7 | `PRELIMINARY_DRIVER` | `machine.driver_status is DriverStatus.PRELIMINARY` and `config.drop_preliminary_emulation` |
 | 8 | `CHD_REQUIRED` | `name in ctx.chd_required` and `config.drop_chd_required` |
@@ -52,20 +53,27 @@ Tiebreakers in order; later rules only run when earlier rules tie:
 | 6 | revision key: `revision_key_of(description)` produces a tuple, lexicographic order | higher wins (later revision) |
 | 7 | alphabetical short name | lower wins (deterministic fallback) |
 
-Composed via `functools.cmp_to_key`. Each comparator returns `-1`, `0`, or `+1`. The final winner is the maximum element.
+Composed via `functools.cmp_to_key`. Each comparator returns `-1`, `0`, or `+1` where `cmp(a, b) < 0` means **`a` outranks `b`**. The winner is `sorted(candidates, key=cmp_to_key(chain))[0]` — the highest-ranked candidate (i.e. the first element after the rank-sort, NOT Python `max()`; the cmp polarity puts the winner at index 0).
 
-`explain_pick(group, config) -> list[TiebreakerHit]` runs the same comparators in order and records which one(s) actually decided the winner. A tiebreaker that returned 0 across the entire candidate set is omitted.
+`preferred_genres` / `preferred_publishers` / `preferred_developers` use Python `in` substring containment (case-sensitive), not `fnmatch`. This is intentional: drops + sessions use fnmatch because the user is naming categories with wildcards (`Shooter*`); preferred-* lists are typically exact terms (`Capcom`) where substring matching is the more useful default. Confirmed by the indie-review pass-3 Tier 2 finding logged in CHANGELOG `[Unreleased]`.
+
+### Public API
+
+- `pick_winner(candidates, parent, ctx, config) -> Machine` — runs the comparator chain over the Phase-A-survivor set for a single parent/clone group and returns the winner. Empty groups are filtered out by `run_filter` before the call, so `pick_winner` never sees zero candidates and never returns `None`.
+- `explain_pick(candidates, parent, ctx, config) -> tuple[TiebreakerHit, ...]` — runs the same comparators in order and records which one(s) actually decided the winner. A tiebreaker that returned 0 across the entire candidate set is omitted.
+
+Both are exported from `mame_curator.filter`. `pick_winner` is also called internally by `run_filter` for every parent/clone group.
 
 ## Phase C — overrides
 
-`apply_overrides(decisions, overrides)` replaces the Phase B winner of any group whose **parent short name** is a key in `overrides.entries`. Validation:
+Phase C is an internal phase of `run_filter`, not a standalone callable. It iterates `overrides.entries` and replaces the Phase B winner of any group whose **parent short name** is a key in the overrides map. Validation:
 
-- The override value must exist in the parsed DAT and must belong to the same parent/clone group (i.e. either is the parent or has `cloneof_map[value] == parent`). If not: log a warning, skip the override, and surface in `FilterResult.warnings`. **Never crash.**
+- The override value must exist in the parsed DAT and must belong to the same parent/clone group (i.e. either is the parent or has `cloneof_map[value] == parent`). If not: log a warning, skip the override, and append the message to `FilterResult.warnings`. **Never crash.**
 - Override-target machines that were dropped in Phase A are still allowed as winners (per design — user choice trumps community filters). The dropped reason is removed from `dropped` for that machine.
 
 ## Phase D — session focus
 
-When `sessions.active` is non-null and points at a defined session, the winner set is filtered to machines matching **all** non-empty include rules:
+Phase D is also an internal phase of `run_filter`, applied at the end of the orchestrator (private helper `_apply_session` in `filter/runner.py`). When `sessions.active` is non-null and points at a defined session, the winner set is filtered to machines matching **all** non-empty include rules:
 
 - `include_genres: list[str]` — fnmatch against derived genre.
 - `include_publishers: list[str]` — fnmatch against `machine.publisher`.
@@ -74,7 +82,7 @@ When `sessions.active` is non-null and points at a defined session, the winner s
 
 Empty session (no include rules and no active key) is **not** the same as "no session" — an empty session validation-errors at load time. `sessions.active = null` means "no session, return full winner set."
 
-Sessions slice; they do **not** drop. A session-excluded winner remains a winner in the underlying `FilterResult` but is filtered from the visible set returned by `apply_session()`. This preserves "yesterday's session, today's different session" workflows (design §6.2 Phase D).
+Sessions slice; they do **not** drop. The slice is applied inside `run_filter` *before* `FilterResult` is constructed: `winners` is the post-slice set, alphabetically sorted. The pre-slice winner set is not retained on the result — switching session re-runs `run_filter` (the inputs are deterministic and re-running is cheap). This preserves "yesterday's session, today's different session" workflows (design §6.2 Phase D) without inflating the result type with a duplicate visible/underlying split.
 
 ## YAML schemas
 

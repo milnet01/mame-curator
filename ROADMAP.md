@@ -107,6 +107,250 @@ CHANGELOG-as-sweep-log convention.
 
 ---
 
+## DOC01 — Phase D documentation audit fold-in (closed 2026-04-30)
+
+**Theme:** five-lane cold-eyes documentation review (standards consistency / workflow integration / spec ↔ architecture alignment / phase-history accuracy / discoverability + onboarding). Round 1 batched 3 Tier-1 + 17 Tier-2 + 7 Tier-3 actionable findings (after deduplicating cross-lane overlaps and one Tier-1 demoted to Tier-3 on re-read). Round 2 surfaced 2 Tier-1 + 7 Tier-2 + 4 Tier-3 follow-on findings (mostly round-1 patches that did not propagate fully to sibling files). Fold-into-roadmap pattern per the [app-workflow skill](~/.claude/skills/app-workflow/SKILL.md). Closes when one re-review pass returns zero actionable findings.
+
+### 🔍 Findings fold-in
+
+#### Tier 1 — blockers
+
+- ✅ **Long-form roadmap acceptance checkboxes for shipped
+  phases left unticked.** Phase 0 (lines 72-80) and Phase 1
+  (lines 129-133) of `docs/superpowers/specs/2026-04-27-roadmap.md`
+  show every `[ ]` despite both phases shipping; Phase 2 is
+  already ticked (the pattern). Tick all boxes citing the
+  journal entries; reword Phase 0's mypy-vs-Ty box to match
+  what actually shipped (`coding-standards.md` § 8 documents
+  the Ty deferral).
+  Kind: doc-fix.
+  Lanes: docs.
+  Source: indie-review-2026-04-30 lane 3.
+- ✅ **Journal closing-commit citations are fabricated.** All
+  three of `docs/journal/{P00,P01,P02}.md` cite commit subjects
+  that do not exist in `git log`. P00 + P01 actually shipped
+  in a single combined commit `56449c6 chore(scaffold):
+  phase-0 tooling and CI baseline + phase-1 parser`. P02's
+  closing landmark is `ee80a55 docs(roadmap): tick Phase 2
+  acceptance — pass-3 Tier 1 findings closed`. Replace with
+  real subjects + 7-char SHA prefixes; acknowledge P00 + P01
+  shared a commit.
+  Kind: doc-fix.
+  Lanes: docs.
+  Source: indie-review-2026-04-30 lane 4.
+- ✅ **README front page misrepresents project status.**
+  "What works today" table shows `2 — Filter` as `🔜 next`,
+  but P02 shipped 2026-04-27. Flip P02 to `✅ done` with the
+  filter-pipeline summary; advance the next-up indicator to
+  `3 — Copy`.
+  Kind: doc-fix.
+  Lanes: docs, onboarding.
+  Source: indie-review-2026-04-30 lane 5.
+
+#### Tier 2 — should-fix
+
+- ✅ **Standards slot `coding.md` omits §8 Dependencies and
+  tooling.** No slot file claims §8, breaking the README slot
+  index's coverage promise. Add §8 to the `coding.md` redirect
+  table and to `docs/standards/README.md` slot index.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **`docs/standards/roadmap-format.md` numbering jumps to
+  §3 with no §1/§2.** File header also calls itself "verbatim"
+  while body uses MAME-Curator-customised examples. Reword to
+  "structure verbatim, examples customised" and add a one-line
+  note about the upstream §§1-2.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **Workflow.md phase-history closure dates are commit-author
+  dates (2026-04-27); `<ID>-complete` tags are dated
+  2026-04-30.** Clarify "shipped 2026-04-27, retroactively
+  tagged 2026-04-30 at App-Build alignment commit."
+  Kind: doc-fix. Lanes: docs.
+- ✅ **CHANGELOG `[Unreleased]` policy unstated.** Project has
+  shipped P00–P02 work but never tagged a `v0.0.X` release;
+  current state is consistent with "stay on `[Unreleased]`
+  until v1.0.0 (P09)" — but that policy isn't documented.
+  Add an explanatory note at the top of `CHANGELOG.md`.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **`filter/spec.md` says `winners: list[str]` and
+  `contested_groups: list[ContestedGroup]`.** Code declares
+  both as `tuple[...]` (frozen-by-default convention). Update
+  the spec to match.
+  Kind: doc-fix. Lanes: docs, filter.
+- ✅ **`filter/spec.md` advertises `apply_overrides()` and
+  `apply_session()` as standalone callables.** Both are
+  inlined into `run_filter` (`apply_session` exists as
+  `_apply_session`, private). Reword to describe Phase C / D
+  as internal phases of `run_filter`.
+  Kind: doc-fix. Lanes: docs, filter.
+- ✅ **`filter/spec.md` Phase A rule 5 parenthetical claims
+  "bound to Mature* category fallback".** No fallback exists
+  in `_mature` (`drops.py:52`). Drop the parenthetical.
+  Kind: doc-fix. Lanes: docs, filter.
+- ✅ **`pick_winner` exported from `filter/__init__.py` but
+  not in `filter/spec.md`'s public API surface.** Add it to
+  Phase B (alongside `explain_pick`).
+  Kind: doc-fix. Lanes: docs, filter.
+- ✅ **`parser/spec.md` cross-reference says §6.7 update
+  channel for listxml acquisition.** §6.7 is `updates/`; the
+  acquisition flow is at design §6.1. Fix the reference.
+  Kind: doc-fix. Lanes: docs, parser.
+- ✅ **`cli/spec.md` subcommand inventory shows `filter` as
+  `planned`.** P02 shipped; flip to `shipped`.
+  Kind: doc-fix. Lanes: docs, cli.
+- ✅ **P00 journal omits `CHANGELOG.md` skeleton and example
+  yaml configs from "What shipped".** The combined initial
+  commit landed those too. Add bullets.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **P00 journal has no Spec line in the header (P01/P02
+  both have one).** Add `**Spec:** none (scaffold phase has
+  no module spec)` for template consistency.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **`docs/glossary.md` missing entry for "non-merged ROM
+  set".** Term appears in README × 2 and in parser/design
+  specs as a hard requirement. Add an entry explaining the
+  three MAME ship styles (merged / split / non-merged) and
+  why this project requires non-merged.
+  Kind: doc-fix. Lanes: docs, onboarding.
+- ✅ **README has no link path to authoritative docs.**
+  Coding-standards, ROADMAP, CHANGELOG, glossary, ADRs are
+  unreachable from the front page. Add a "Project docs" /
+  "Contributing" section.
+  Kind: doc-fix. Lanes: docs, onboarding.
+- ✅ **README does not mention the project's Conventional
+  Commits format.** First-time PR authors will guess wrong.
+  One-line addition under Contributing.
+  Kind: doc-fix. Lanes: docs, onboarding.
+- ✅ **README "Project structure" section is a one-line stub
+  pointing at design § 11.** Inline the parser → filter →
+  copy → … layer diagram from CLAUDE.md so newcomers get the
+  mental model on the front page.
+  Kind: doc-fix. Lanes: docs, onboarding.
+- ✅ **`README.md:45` shows `git clone <repo>` placeholder.**
+  Replace with the real public URL.
+  Kind: doc-fix. Lanes: docs, onboarding.
+
+#### Tier 3 — nits
+
+- ✅ **`coding-standards.md` §15 precedence rule is silent
+  about §16 Amendments.** Add a one-line scope note ("applies
+  to coding rules §§1-14; §16 governs how this document
+  itself changes").
+  Kind: doc-fix. Lanes: docs.
+- ✅ **`commits.md` example "phase A drop predicates" doesn't
+  match git log convention** (real commits use `phase-2 / P02`).
+  Replace with a real example.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **CLAUDE.md filter CLI smoke example silently drops the
+  optional `--mature` flag.** Add a `# --mature optional`
+  comment to the block.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **CLAUDE.md is silent on PR-vs-direct-push policy for
+  feature work.** Direct-push is the established habit;
+  state it explicitly.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **Design spec §12 Phase 4 mentions filesystem-browser
+  routes "for the wizard's Browse buttons".** The wizard is
+  Phase 8; add `(consumed by the Phase 8 wizard)` parenthetical.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **P02 journal truncates fix-commit subjects.** Quote
+  full subjects so `git log --grep` finds them.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **Closing-commit citations in journals lack 7-char SHA
+  prefixes for grep-ability.** Add them.
+  Kind: doc-fix. Lanes: docs.
+
+### 🔍 Round-2 follow-on findings (2026-04-30)
+
+Round-2 cold-eyes review revealed that round-1 patches were
+applied to spec files but not propagated to the long-form roadmap
+or to a few cross-document references. All landed in this same
+DOC01 fix-pass before close.
+
+#### Tier 1 — blockers
+
+- ✅ **`.claude/workflow.md` § Phase history table malformed.**
+  P03–P09 rows have 4 columns vs the 6-column header (introduced
+  by the round-1 "Shipped / Tagged" split). Fix by adding `| — |
+  — |` placeholders to those rows so each renders correctly.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **DOC01 finding-count drift between prose and bullets.**
+  Round-1 prose advertised "5 Tier-1, 17 Tier-2, 12 Tier-3" but
+  the actual sub-bullets are 3/17/7 (after deduplication and
+  re-read demotion). Reword the DOC01 prose AND the CHANGELOG
+  highlight to the actual count and explain the dedupe rule.
+  Kind: doc-fix. Lanes: docs.
+
+#### Tier 2 — should-fix
+
+- ✅ **Long-form roadmap Phase 2 step 7 still describes
+  `apply_overrides(decisions, overrides_yaml) -> decisions` as a
+  public callable.** Round-1 patched `filter/spec.md` to describe
+  Phase C as an internal phase of `run_filter`; the long-form
+  roadmap missed the same patch. Reword step 7 in
+  `docs/superpowers/specs/2026-04-27-roadmap.md`.
+  Kind: doc-fix. Lanes: docs, filter.
+- ✅ **Long-form roadmap Phase 2 step 8 still says `winners:
+  list[str]` and `contested_groups: list[ContestedGroup]`.**
+  Round-1 patched the per-module spec to `tuple[..., ...]`;
+  long-form roadmap missed the same patch. Update; add the
+  `warnings: tuple[str, ...]` field.
+  Kind: doc-fix. Lanes: docs, filter.
+- ✅ **`filter/spec.md` `pick_winner` signature wrong in the
+  Public-API block** (round-1's own addition). Spec shows
+  `(candidates, ctx, config) -> Machine | None`; code is
+  `(candidates, parent, ctx, cfg) -> Machine` (4 args; never
+  returns None — empty groups filtered before the call). Update.
+  Kind: doc-fix. Lanes: docs, filter.
+- ✅ **`filter/spec.md` `explain_pick` signature wrong.** Spec
+  shows `(group, config) -> list[TiebreakerHit]`; code is
+  `(candidates, parent, ctx, cfg) -> tuple[TiebreakerHit, ...]`.
+  Update.
+  Kind: doc-fix. Lanes: docs, filter.
+- ✅ **`filter/spec.md` "session-excluded winner remains a winner
+  in the underlying `FilterResult`" promises a data shape that
+  doesn't exist.** `FilterResult.winners` is the post-session-slice
+  set; there is no separate "underlying winners" field. Reword.
+  Kind: doc-fix. Lanes: docs, filter.
+- ✅ **README and CLAUDE.md layer-diagram order disagree.** README
+  orders `parser → filter → copy → media → api → updates → help →
+  setup`; CLAUDE.md orders `parser → filter → media → copy →
+  updates → help → api → setup`. Pick one canonical order
+  (README's groups by phase number, more onboarding-friendly) and
+  align both.
+  Kind: doc-fix. Lanes: docs, onboarding.
+- ✅ **Glossary missing `DOC##` entry.** Workflow ID family has
+  `FP##` and `DS##` defined; `DOC##` was introduced this pass and
+  is now used in 3 docs without a definition.
+  Kind: doc-fix. Lanes: docs, onboarding.
+
+#### Tier 3 — nits
+
+- ✅ **`docs/standards/README.md` `coding.md` slot row omits §15.**
+  Round-1 added §8 to that row but `coding.md`'s own redirect line
+  and table both list §15. Add §15 to the README slot row for
+  parity.
+  Kind: doc-fix. Lanes: docs.
+- ✅ **"Phase D" terminology collides** between App-Build's Phase D
+  (documentation audit; used in DOC01 title) and the filter
+  pipeline's Phase D (session-slice; used throughout `filter/`
+  spec and CHANGELOG). Add a glossary disambiguation.
+  Kind: doc-fix. Lanes: docs, onboarding.
+- ✅ **Glossary missing `App-Build alignment commit` entry.**
+  Term appears in `.claude/workflow.md` § 3 journal and ROADMAP
+  Tier-2 fix bullet; needs a one-liner.
+  Kind: doc-fix. Lanes: docs, onboarding.
+- ✅ **README "Project docs" section omits housekeeping doc
+  pointers** (`docs/known-issues.md`, `docs/ideas.md`,
+  `docs/audit-allowlist.md`). Add a single bullet.
+  Kind: doc-fix. Lanes: docs, onboarding.
+
+Dependencies: P02 ✅.
+Convergence-checkpoint counts this as fix-pass #1 since the last
+clean review (rounds 1–2 within the same fix-pass; convergence
+threshold not reached).
+
+---
+
 ## P03 — Copy + BIOS resolution + RetroArch playlist (next)
 
 **Theme:** given a winner list from P02, copy each winner's `.zip`

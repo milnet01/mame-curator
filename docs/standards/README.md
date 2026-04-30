@@ -33,20 +33,23 @@ without breaking that ordering.
 
 | Slot file | Redirects to (sections in `coding-standards.md`) | Governs |
 |-----------|--------------------------------------------------|---------|
-| [`coding.md`](coding.md) | §0 Principles, §1 Security, §2 Project structure, §3 Python, §4 Frontend, §5 Comments, §9 Errors, §10 Performance, §11 Ordering, §13 Frontend quality, §14 Anti-patterns | `Kind: implement / fix / refactor / audit-fix / review-fix` |
+| [`coding.md`](coding.md) | §0 Principles, §1 Security, §2 Project structure, §3 Python, §4 Frontend, §5 Comments, §8 Dependencies and tooling, §9 Errors, §10 Performance, §11 Ordering, §13 Frontend quality, §14 Anti-patterns, §15 Conflict precedence | `Kind: implement / fix / refactor / audit-fix / review-fix` |
 | [`testing.md`](testing.md) | §6 Testing, §7 Specs and feature audits | `Kind: test`; regression-test follow-through for fixes |
 | [`commits.md`](commits.md) | §12 Git, commits, and CI | Every commit |
 | [`documentation.md`](documentation.md) | §5 Comments and documentation, §7 Specs | `Kind: doc / doc-fix` |
-| [`roadmap-format.md`](roadmap-format.md) | App-Build's standard `roadmap-format.md` v1, copied verbatim | `ROADMAP.md` and `CHANGELOG.md` authoring |
+| [`roadmap-format.md`](roadmap-format.md) | App-Build's standard `roadmap-format.md` v1 (structure verbatim; examples customised for MAME Curator) | `ROADMAP.md` and `CHANGELOG.md` authoring |
 
 ## Editing rules
 
 - **Edit `coding-standards.md`**, not the slot files. The slots
   are pointers; editing them creates drift.
-- **Exception:** `roadmap-format.md` is shipped as a verbatim
-  copy of the App-Build template (the format spec is
-  cross-project shared, not MAME-Curator-specific). Edits to
-  it should track upstream template revisions.
+- **Exception:** `roadmap-format.md` ships with **structure
+  verbatim from the App-Build template** (the format spec is
+  cross-project shared, not MAME-Curator-specific) and
+  **examples customised to MAME Curator's `mame-curator-NNNN`
+  ID prefix**. Edits to it should track upstream template
+  revisions; project-specific tweaks live only in the example
+  blocks.
 - **Adding a new section to `coding-standards.md`?** If it falls
   under a new governance domain (e.g. localisation), update the
   slot index above so the relevant slot file's redirect covers

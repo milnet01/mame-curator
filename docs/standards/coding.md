@@ -4,7 +4,7 @@
 This file is a **redirect pointer** for the
 [`app-workflow` skill](~/.claude/skills/app-workflow/SKILL.md).
 The canonical rules live in the consolidated
-[`coding-standards.md`](coding-standards.md), §§ 0-5, 9-11, 13-15.
+[`coding-standards.md`](coding-standards.md), §§ 0-5, 8-11, 13-15.
 
 Read the consolidated file directly — its rule precedence
 (§15: lower-numbered section wins) depends on its single-file
@@ -25,6 +25,7 @@ should read these sections of `coding-standards.md`:
 | §3 | Python language & style (3.12+, type hints, mypy strict, no globals) |
 | §4 | Frontend (React 19 + Tailwind v4 + shadcn/ui, accessibility) |
 | §5 | Comments and documentation (default no comments) |
+| §8 | Dependencies and tooling (phase-staged optional-deps, `uv` lockfile, tool stack) |
 | §9 | Errors, logging, observability (actionable messages, typed exceptions) |
 | §10 | Performance (profile first, streaming, lazy-load) |
 | §11 | Code ordering & flow (layer order, no cycles) |

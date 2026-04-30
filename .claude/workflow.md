@@ -5,10 +5,10 @@
 | Field | Value |
 |-------|-------|
 | **Project phase** | P03 — Copy, BIOS resolution, RetroArch playlist (next) |
-| **Active item ID** | (none — P02 closed; P03 not yet started) |
+| **Active item ID** | (none — DOC01 closed 2026-04-30 with all four review rounds clean; P03 not yet started) |
 | **Active step** | (resets to all ⬜ when P03 becomes active) |
 | **Blocked on** | — |
-| **Last update** | 2026-04-30 (App-Build alignment) |
+| **Last update** | 2026-04-30 (DOC01 documentation audit fold-in) |
 | **Next gate** | User says "let's start P03" (or equivalent) |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
@@ -48,18 +48,27 @@ Tests: (none yet — Step 3 writes them)
 The project predates App-Build conventions. Existing phases map
 1:1 to App-Build P## IDs:
 
-| App-Build ID | Original label | Status | Theme |
-|--------------|---------------|--------|-------|
-| P00 | Phase 0 | ✅ closed 2026-04-27 | Scaffold + tooling + CI |
-| P01 | Phase 1 | ✅ closed 2026-04-27 | DAT + INI parsers (`parser/`) |
-| P02 | Phase 2 | ✅ closed 2026-04-27 | Filter rule chain (`filter/`) |
-| P03 | Phase 3 | 📋 next | Copy + BIOS + `.lpl` (`copy/`) |
-| P04 | Phase 4 | 📋 | HTTP API (`api/`) |
-| P05 | Phase 5 | 📋 | Media subsystem (`media/`) |
-| P06 | Phase 6 | 📋 | Frontend MVP |
-| P07 | Phase 7 | 📋 | Self-update + help (`updates/`, `help/`) |
-| P08 | Phase 8 | 📋 | Setup wizard (`setup/`) |
-| P09 | Phase 9 | 📋 | Polish + v1.0.0 release |
+Closure dates below are **commit-author dates** (when the work
+shipped); `<ID>-complete` annotated tags are dated 2026-04-30
+because the App-Build `<ID>-complete` tag convention was adopted
+*at* the alignment commit and applied retroactively. P00 and P01
+shared a single combined initial commit (`56449c6`) — there is no
+separate "P01 closing commit"; the tag boundary between them is
+nominal. Both tags point at `56449c6`.
+
+| App-Build ID | Original label | Status | Shipped | Tagged | Theme |
+|--------------|---------------|--------|---------|--------|-------|
+| P00 | Phase 0 | ✅ | 2026-04-27 | 2026-04-30 (retro) | Scaffold + tooling + CI (combined ship with P01) |
+| P01 | Phase 1 | ✅ | 2026-04-27 | 2026-04-30 (retro) | DAT + INI parsers (`parser/`) (combined ship with P00) |
+| P02 | Phase 2 | ✅ | 2026-04-27 | 2026-04-30 (retro) | Filter rule chain (`filter/`) |
+| DOC01 | — | ✅ | 2026-04-30 | 2026-04-30 | Documentation audit fold-in (Phase D) — 4 review rounds, 30 findings closed |
+| P03 | Phase 3 | 📋 | — | — | Copy + BIOS + `.lpl` (`copy/`) |
+| P04 | Phase 4 | 📋 | — | — | HTTP API (`api/`) |
+| P05 | Phase 5 | 📋 | — | — | Media subsystem (`media/`) |
+| P06 | Phase 6 | 📋 | — | — | Frontend MVP |
+| P07 | Phase 7 | 📋 | — | — | Self-update + help (`updates/`, `help/`) |
+| P08 | Phase 8 | 📋 | — | — | Setup wizard (`setup/`) |
+| P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
 
 The detailed per-phase contract for every phase still lives at
 `docs/superpowers/specs/2026-04-27-roadmap.md` — that file is the
@@ -91,6 +100,10 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-04-30 — DOC01 closed (Phase D documentation audit)
+
+Five-lane cold-eyes documentation review (standards consistency / workflow integration / spec ↔ architecture alignment / phase-history accuracy / discoverability). Four review rounds total: round 1 surfaced 27 findings (3 Tier-1 / 17 Tier-2 / 7 Tier-3), round 2 added 13 follow-on (2/7/4) catching round-1 patches that didn't propagate to sibling files, round 3 added 7 (1/3/3), round 4 came back clean across all touched lanes. 30+ documents updated; CLAUDE.md trimmed 232 → 102 lines via reflow + redundancy cull (per user feedback re: long lines in context-loaded docs — saved as feedback memory). All Tier-1 / Tier-2 / Tier-3 findings closed; allowlist remains empty (no false positives surfaced). Journal: `docs/journal/DOC01.md`.
 
 ### 2026-04-30 — App-Build alignment
 

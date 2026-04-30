@@ -11,7 +11,7 @@ The set of subcommands grows phase-by-phase. Each subcommand's behavioral contra
 | Phase | Subcommand | Status | Host module spec |
 |---|---|---|---|
 | 1 | `parse <DAT>` | shipped | `parser/spec.md` |
-| 2 | `filter ...` | planned | `filter/spec.md` |
+| 2 | `filter ...` | shipped | `filter/spec.md` |
 | 3 | `copy ...` | planned | `copy/spec.md` |
 | 4 | `serve` (or invoked via `uvicorn`) | planned | `api/spec.md` |
 

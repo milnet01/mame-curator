@@ -231,6 +231,8 @@ Spec template (kept short — it is documentation, not prose):
 
 If two standards in this document appear to conflict for a real piece of code, **the one earlier in this document wins** (lower-numbered section is more fundamental). If the conflict is real and persistent, fix the document — do not work around it silently in code.
 
+This precedence rule scopes to the coding rules §§ 0–14. § 16 governs how this document itself changes and is process meta — it is not subject to the precedence rule, nor does it sit in the precedence chain alongside the coding rules.
+
 ## 16. Amendments
 
 This document changes by PR like any other code, with two extra rules:

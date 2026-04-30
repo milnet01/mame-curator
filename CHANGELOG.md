@@ -5,7 +5,40 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Versioning policy.** This project is pre-alpha. **All shipped
+> work stays under `[Unreleased]` until the v1.0.0 cut at P09.**
+> No intermediate `v0.0.X` / `v0.Y.0` tags are produced — the
+> first git release tag will be `v1.0.0`. Phase-closing
+> `<ID>-complete` annotated tags (`P00-complete`, `P01-complete`,
+> `P02-complete`, …) mark per-phase ship landmarks but are
+> distinct from semver-versioned releases. The CHANGELOG is the
+> authoritative record of what shipped per phase; consult
+> `git tag --list 'P*-complete'` to map phases to commits.
+
 ## [Unreleased]
+
+### DOC01 — Phase D documentation audit fold-in (2026-04-30)
+
+Five-lane cold-eyes documentation review across standards consistency, workflow integration, spec ↔ architecture alignment, phase-history accuracy, and discoverability/onboarding. Round 1 batched 3 Tier-1 / 17 Tier-2 / 7 Tier-3 actionable findings (after deduplicating cross-lane overlaps and one Tier-1 demoted to Tier-3 on re-read). Round 2 surfaced 2 Tier-1 / 7 Tier-2 / 4 Tier-3 follow-on findings — round-1 patches that did not propagate fully to sibling files (long-form roadmap step 7/8, `pick_winner` / `explain_pick` signatures in spec, layer-diagram order between README and CLAUDE.md, `DOC##` glossary gap). Both rounds folded into the same `DOC01` fix-pass; loop closes when one re-review pass returns zero actionable findings. Highlights:
+
+- **Tier 1** — long-form roadmap acceptance checkboxes for shipped
+  phases (P00/P01) ticked; fabricated closing-commit citations in
+  `docs/journal/{P00,P01,P02}.md` corrected against `git log`
+  (P00 + P01 shipped together in `56449c6`); README front-page
+  status flipped (P02 ✅, advance "next" indicator to P03).
+- **Tier 2** — standards slot `coding.md` adds §8; spec ↔ code
+  drift fixes in `filter/spec.md` (`tuple` not `list`, no
+  `apply_overrides()` standalone, no Mature-category fallback,
+  `pick_winner` documented); `parser/spec.md` listxml-acquisition
+  cross-reference fixed; `cli/spec.md` `filter` flipped to
+  shipped; README adds links to authoritative docs, Conventional
+  Commits note, inline layer diagram, real clone URL; glossary
+  adds "non-merged ROM set"; `[Unreleased]`-until-v1.0.0 policy
+  documented.
+- **Tier 3** — §15 scope note added; CLAUDE.md PR-vs-direct-push
+  policy stated; design § 12 wizard parenthetical; P02 journal
+  fix-commit subjects un-truncated; SHA prefixes added to
+  closing-commit citations.
 
 ### Pre-Phase-3 independent-review sweep — pass 3 (2026-04-27)
 

@@ -2,12 +2,21 @@
 # ROADMAP.md & CHANGELOG.md format spec (v1)
 
 > Detailed format spec for the two files the Ants Terminal Roadmap
-> dialog parses deterministically. Verbatim copy of the App-Build
-> template (the format spec is cross-project shared, not
-> MAME-Curator-specific). Edits should track upstream revisions.
+> dialog parses deterministically. **Structure verbatim from the
+> App-Build template (the format spec is cross-project shared, not
+> MAME-Curator-specific); examples customised to MAME Curator's
+> ID prefix (`mame-curator-NNNN`).** Edits should track upstream
+> template revisions.
 >
 > Read this file when authoring a `ROADMAP.md` bullet, a `CHANGELOG.md`
 > entry, or any tooling that consumes either format. Skip otherwise.
+>
+> **About the missing §§1-2.** The upstream App-Build template
+> ships §§1-2 covering the broader workflow context that the
+> top-level [`app-workflow` skill](~/.claude/skills/app-workflow/SKILL.md)
+> documents directly. This file ships only §§3-4 (ROADMAP.md
+> and CHANGELOG.md sub-specs) so it does not duplicate the skill.
+> Numbering preserved for cross-template consistency.
 
 ## 3. ROADMAP.md format spec
 

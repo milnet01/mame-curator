@@ -10,8 +10,8 @@
 |---|---|---|
 | 0 — Scaffold | ✅ done | `uv sync --extra dev` produces a green project; lint/type/test/security gates pass |
 | 1 — Parser | ✅ done | `mame-curator parse <DAT>` streams a 43,579-machine DAT in ~5 s and prints summary stats; the five progettoSnaps INI files and the official MAME `-listxml` (for CHD detection) are also parsed |
-| 2 — Filter | 🔜 next | Drop rules (categories / language / driver status / CHD / genre / publisher / developer / year), winner-pick tiebreaker chain, manual overrides, session focus |
-| 3 — Copy | ⏳ planned | Atomic copy + BIOS resolution + RetroArch `.lpl` writer + playlist conflict handling |
+| 2 — Filter | ✅ done | `mame-curator filter` runs the four-phase rule chain (drop → pick → override → session-slice) and emits a deterministic JSON report. 158 tests; `filter/` coverage 96%+ |
+| 3 — Copy | 🔜 next | Atomic copy + BIOS resolution + RetroArch `.lpl` writer + playlist conflict handling |
 | 4 — API | ⏳ planned | FastAPI surface + SSE for live progress |
 | 5 — Media | ⏳ planned | libretro-thumbnails URL builder + lazy-fetch cache |
 | 6 — Frontend | ⏳ planned | React 19 + Tailwind v4 + shadcn/ui — grid, alternatives drawer, themes, layouts |
@@ -42,13 +42,15 @@ See the [design spec](docs/superpowers/specs/2026-04-27-mame-curator-design.md) 
 ## Dev environment setup
 
 ```bash
-git clone <repo>
+git clone https://github.com/milnet01/mame-curator.git
 cd mame-curator
 uv sync --extra dev
 uv run pre-commit install
 ```
 
-## Run the test suite
+## Run the full CI gate locally
+
+All five must pass on `main`:
 
 ```bash
 uv run pytest
@@ -58,11 +60,56 @@ uv run mypy
 uv run bandit -c pyproject.toml -r src
 ```
 
-All five must pass on `main`.
-
 ## Project structure
 
-See [the design spec §11](docs/superpowers/specs/2026-04-27-mame-curator-design.md) for the canonical layout.
+Layered, acyclic dependency graph (lower layers have no
+dependencies on higher ones; enforced by review):
+
+```
+parser/    ← pure, no internal deps           (P01 ✅)
+filter/    ← depends on parser/               (P02 ✅)
+copy/      ← depends on parser/ + filter/     (P03 — next)
+media/     ← depends on parser/               (P05)
+api/       ← depends on all of the above      (P04)
+updates/   ← parser/ + downloads.py           (P07)
+help/      ← filesystem only (bundled MD)     (P07)
+setup/     ← parser/ + downloads.py           (P08)
+main.py    ← wires everything together
+```
+
+`mame_curator.main:main` is the CLI entry; subcommands live in
+`cli/__init__.py` and dispatch via `argparse.set_defaults(func=...)`.
+The full layout is in the [design spec §11](docs/superpowers/specs/2026-04-27-mame-curator-design.md).
+
+## Project docs
+
+- [`ROADMAP.md`](ROADMAP.md) — queue summary, links to long-form
+  per-phase plan.
+- [`CHANGELOG.md`](CHANGELOG.md) — what shipped (Keep-a-Changelog
+  format).
+- [`CLAUDE.md`](CLAUDE.md) — project rules and Claude Code
+  resumption protocol.
+- [`docs/standards/coding-standards.md`](docs/standards/coding-standards.md)
+  — enforceable code rules; supersedes anything inferred from
+  existing code.
+- [`docs/glossary.md`](docs/glossary.md) — domain terms (MAME,
+  Pleasuredome, listxml, BIOS chain, etc.).
+- [`docs/decisions/`](docs/decisions/) — ADRs for non-obvious
+  architectural choices.
+- [`docs/journal/`](docs/journal/) — phase-closing journals
+  (P00 / P01 / P02 closed).
+- [`docs/superpowers/specs/2026-04-27-roadmap.md`](docs/superpowers/specs/2026-04-27-roadmap.md)
+  — long-form authoritative phase plan.
+- [`docs/superpowers/specs/2026-04-27-mame-curator-design.md`](docs/superpowers/specs/2026-04-27-mame-curator-design.md)
+  — full design spec (flow, routes, data shapes).
+- **Workflow housekeeping:**
+  [`docs/known-issues.md`](docs/known-issues.md) (deferrals
+  blocked by missing dependencies),
+  [`docs/ideas.md`](docs/ideas.md) (post-v1 ideas captured during
+  development),
+  [`docs/audit-allowlist.md`](docs/audit-allowlist.md)
+  (confirmed-false-positive memory for `/audit` and
+  `/indie-review`).
 
 ## License
 
@@ -70,4 +117,15 @@ See [the design spec §11](docs/superpowers/specs/2026-04-27-mame-curator-design
 
 ## Contributing
 
-This project is in active development. See the [implementation roadmap](docs/superpowers/specs/2026-04-27-roadmap.md) for the planned phases. Issues and PRs welcome.
+This project is in active development. See the [implementation
+roadmap](docs/superpowers/specs/2026-04-27-roadmap.md) for the
+planned phases. Issues and PRs welcome.
+
+**Commit format.** This project uses [Conventional
+Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`,
+`docs:`, `chore:`, `test:`, `refactor:`, `ci:` …). The
+deliberate deviation from App-Build's `<ID>: <description>`
+mandate is documented in
+[`docs/standards/commits.md`](docs/standards/commits.md). Cite
+roadmap IDs (`P03`, `DOC01`) in the commit body when relevant,
+not the subject.
