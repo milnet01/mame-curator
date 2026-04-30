@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<mame build="0.284 (mame0284)">
+  <machine name="neogeo" isbios="yes">
+    <description>Neo-Geo</description>
+  </machine>
+  <machine name="kof94" romof="neogeo">
+    <description>The King of Fighters '94 (Set 1)</description>
+    <biosset name="euro" description="Europe MVS (Ver. 2)" default="yes"/>
+    <biosset name="us" description="USA MVS (Ver. 2)"/>
+  </machine>
+  <machine name="kof94a" cloneof="kof94" romof="kof94">
+    <description>The King of Fighters '94 (Set 2)</description>
+    <biosset name="euro" description="Europe MVS (Ver. 2)" default="yes"/>
+  </machine>
+  <machine name="cps1bios" isbios="yes">
+    <description>CPS-1 BIOS</description>
+  </machine>
+  <machine name="sf2" romof="cps1bios">
+    <description>Street Fighter II - The World Warrior (World 910522)</description>
+  </machine>
+  <machine name="sf2ce" cloneof="sf2" romof="sf2">
+    <description>Street Fighter II' - Champion Edition (World 920313)</description>
+  </machine>
+  <machine name="orphan">
+    <description>Orphan with no romof or biosset</description>
+  </machine>
+  <machine name="selfref" romof="selfref">
+    <description>Self-referencing romof (cycle)</description>
+  </machine>
+</mame>

@@ -11,8 +11,21 @@ from pathlib import Path
 # bandit B410: lxml's iterparse defaults to no_network=True; we never parse XML from
 # untrusted network sources, only user-supplied listxml files from trusted MAME builds.
 from lxml import etree  # nosec B410
+from pydantic import BaseModel, ConfigDict
 
 from mame_curator.parser.errors import ListxmlError
+
+
+class BIOSChainEntry(BaseModel):
+    """One machine's BIOS-chain references from `-listxml`.
+
+    `romof` is the parent ROM-of relation (often equal to `cloneof` but not
+    always). `biossets` is the tuple of `<biosset name="...">` children.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    romof: str | None = None
+    biossets: tuple[str, ...] = ()
 
 
 def parse_listxml_disks(path: Path) -> set[str]:
@@ -61,3 +74,35 @@ def parse_listxml_cloneof(path: Path) -> dict[str, str]:
     except etree.XMLSyntaxError as exc:
         raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
     return cloneof
+
+
+def parse_listxml_bios_chain(path: Path) -> dict[str, BIOSChainEntry]:
+    """Return `{short_name: BIOSChainEntry}` from MAME `-listxml`.
+
+    Captures both `romof` (parent ROM-of relation) and the set of
+    `<biosset name="...">` children. Phase 3's `copy/` module walks
+    these to compute the transitive BIOS dependency closure for a
+    winner set.
+    """
+    if not path.exists():
+        raise ListxmlError("listxml path does not exist", path=path)
+
+    chain: dict[str, BIOSChainEntry] = {}
+    try:
+        for _event, elem in etree.iterparse(str(path), events=("end",), tag="machine"):
+            name = elem.get("name")
+            if not name:
+                elem.clear()
+                while elem.getprevious() is not None:
+                    del elem.getparent()[0]
+                continue
+            romof = elem.get("romof") or None
+            biossets = tuple(bs.get("name", "") for bs in elem.findall("biosset") if bs.get("name"))
+            if romof or biossets:
+                chain[name] = BIOSChainEntry(romof=romof, biossets=biossets)
+            elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+    except etree.XMLSyntaxError as exc:
+        raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
+    return chain

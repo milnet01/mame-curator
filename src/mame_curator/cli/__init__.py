@@ -3,16 +3,26 @@
 Subcommands (added incrementally as phases land):
     parse <dat-path>   — parse the DAT and print summary stats (Phase 1)
     filter <args>      — run the filter pipeline and write a report (Phase 2)
+    copy <args>        — copy winners + BIOS deps and write mame.lpl (Phase 3)
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 from pathlib import Path
 
 from rich.console import Console
 
+from mame_curator.copy import (
+    ConflictStrategy,
+    CopyError,
+    CopyPlan,
+    CopyReportStatus,
+    purge_recycle,
+    run_copy,
+)
 from mame_curator.filter import (
     FilterConfig,
     FilterContext,
@@ -29,7 +39,11 @@ from mame_curator.parser import (
     parse_languages,
     parse_mature,
 )
-from mame_curator.parser.listxml import parse_listxml_cloneof, parse_listxml_disks
+from mame_curator.parser.listxml import (
+    parse_listxml_bios_chain,
+    parse_listxml_cloneof,
+    parse_listxml_disks,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +78,35 @@ def build_parser() -> argparse.ArgumentParser:
     )
     filt.add_argument("--out", type=Path, required=True, help="Path to write report JSON")
     filt.set_defaults(func=_cmd_filter)
+
+    cp = sub.add_parser("copy", help="Copy winners + BIOS deps and write mame.lpl")
+    cp_mode = cp.add_mutually_exclusive_group(required=True)
+    cp_mode.add_argument("--dry-run", action="store_true", help="Preview without writing")
+    cp_mode.add_argument("--apply", action="store_true", help="Execute the copy")
+    cp.add_argument("--dat", type=Path, required=True, help="Path to DAT XML or .zip")
+    cp.add_argument("--listxml", type=Path, required=True, help="Official MAME -listxml output")
+    cp.add_argument(
+        "--filter-report", type=Path, required=True, help="Path to a Phase-2 filter JSON report"
+    )
+    cp.add_argument("--source", type=Path, required=True, help="Source ROM directory")
+    cp.add_argument("--dest", type=Path, required=True, help="Destination ROM directory")
+    cp.add_argument(
+        "--conflict",
+        choices=("append", "overwrite", "cancel"),
+        default="cancel",
+        help="Strategy when mame.lpl already exists",
+    )
+    cp.add_argument(
+        "--delete-existing-zips",
+        action="store_true",
+        help="With --conflict overwrite, recycle existing dest zips",
+    )
+    cp.add_argument(
+        "--purge-recycle",
+        action="store_true",
+        help="One-shot: delete recycle entries older than 30 days; exits without copying",
+    )
+    cp.set_defaults(func=_cmd_copy)
 
     return parser
 
@@ -149,3 +192,63 @@ def _cmd_filter(args: argparse.Namespace) -> int:
     console.print(f"  warnings: {len(result.warnings)}")
     console.print(f"  report: {args.out}")
     return 0
+
+
+def _cmd_copy(args: argparse.Namespace) -> int:
+    console = Console()
+    err_console = Console(stderr=True, soft_wrap=True)
+
+    if args.purge_recycle:
+        dirs, freed = purge_recycle()
+        console.print(f"  recycle purged: {dirs} directories, {freed} bytes freed")
+        return 0
+
+    try:
+        machines = parse_dat(args.dat)
+        bios_chain = parse_listxml_bios_chain(args.listxml)
+        chd_required = frozenset(parse_listxml_disks(args.listxml))
+    except ParserError as exc:
+        err_console.print(f"[red]error:[/red] failed to load inputs: {exc}")
+        return 1
+
+    try:
+        report_data = json.loads(args.filter_report.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        err_console.print(
+            f"[red]error:[/red] failed to read filter report {args.filter_report}: {exc}"
+        )
+        return 1
+
+    winners = tuple(report_data.get("winners", ()))
+    plan = CopyPlan(
+        winners=winners,
+        machines={short: machines[short] for short in winners if short in machines},
+        bios_chain=bios_chain,
+        chd_required=chd_required,
+        source_dir=args.source,
+        dest_dir=args.dest,
+        conflict_strategy=ConflictStrategy(args.conflict.upper()),
+        delete_existing_zips=args.delete_existing_zips,
+        dry_run=args.dry_run,
+    )
+
+    try:
+        report = run_copy(plan)
+    except CopyError as exc:
+        err_console.print(f"[red]error:[/red] copy failed: {exc}")
+        return 1
+
+    console.print(f"  status: {report.status.value}")
+    console.print(f"  winners: {report.plan_summary.winners_count}")
+    console.print(f"  bios deps: {len(report.bios_included)}")
+    console.print(f"  succeeded: {len(report.succeeded)}")
+    console.print(f"  skipped: {len(report.skipped)}")
+    console.print(f"  failed: {len(report.failed)}")
+    console.print(f"  recycled: {len(report.recycled)}")
+    console.print(f"  bytes copied: {report.bytes_copied}")
+    if args.dry_run:
+        console.print("  [yellow](dry-run — no files written)[/yellow]")
+
+    if report.status in (CopyReportStatus.OK,):
+        return 0
+    return 1
