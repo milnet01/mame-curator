@@ -329,8 +329,9 @@ def test_overwrite_with_delete_existing_zips_recycles_old_zips(
 
 
 def test_copy_error_str_renders_path_suffix() -> None:
-    err = CopyError("simulated", path=Path("/x/y.zip"))
-    assert str(err) == "simulated (path=/x/y.zip)"
+    p = Path("/x/y.zip")
+    err = CopyError("simulated", path=p)
+    assert str(err) == f"simulated (path={p})"
 
 
 def test_copy_error_str_without_path() -> None:

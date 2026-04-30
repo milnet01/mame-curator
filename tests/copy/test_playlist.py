@@ -42,7 +42,7 @@ def test_lpl_format_matches_retroarch_spec(tmp_path: Path) -> None:
 
     # Per-item fields.
     item = parsed["items"][0]
-    assert item["path"].endswith("/kof94.zip")
+    assert Path(item["path"]).name == "kof94.zip"
     assert Path(item["path"]).is_absolute()
     assert item["label"] == "The King of Fighters '94"
     assert item["core_path"] == "DETECT"
@@ -132,5 +132,5 @@ def test_read_lpl_roundtrip(tmp_path: Path) -> None:
     write_lpl(out, entries)
     items = read_lpl(out)
     assert len(items) == 2
-    assert items[0]["path"].endswith("/kof94.zip")
+    assert Path(items[0]["path"]).name == "kof94.zip"
     assert items[1]["label"] == "Street Fighter II' - Champion Edition"
