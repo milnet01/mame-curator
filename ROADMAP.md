@@ -755,7 +755,7 @@ specific grep gates; all 13 actionable items came from
 
 ---
 
-## P05 — Media subsystem (planned)
+## P05 — Media subsystem (in flight)
 
 **Theme:** libretro-thumbnails URL builder + lazy fetch + sha256-
 keyed disk cache through the API proxy.
@@ -765,13 +765,66 @@ keyed disk cache through the API proxy.
 
 ### 🎨 Features
 
-- 📋 **P05 — `media/` module.** URL escape rules
+- 🚧 **P05 — `media/` module.** URL escape rules
   (`&*/:\<>?\|"` → `_`); `urls_for(machine)`; async
   `fetch_with_cache(url, cache_dir)`; cache key = `sha256(url)`.
-  Coverage target: ≥90%.
+  Coverage target: ≥90%. Implementation shipped 2026-05-02
+  (commit `44e33ef`); close BLOCKED by FP10 fold-in.
   Kind: implement.
   Lanes: media, api, tests.
   Dependencies: P04.
+
+---
+
+## FP10 — P05 indie-review fold-in (in flight)
+
+**Theme:** the closing `/audit` + `/indie-review` pass on P05's
+ship surfaced 5 actionable findings in `media/` + the R39 wiring.
+`/audit` clean across ruff / bandit / gitleaks; all 5 actionable
+items came from `/indie-review` against the cold-eyes brief.
+
+### 🔍 Findings fold-in
+
+- 🚧 **FP10** [mame-curator-1002] **Fix-pass after P05 (media subsystem).**
+  Lanes: media, api, tests.
+  - **A1** (Tier 1) — `httpx.AsyncClient(timeout=10.0)` at
+    `api/app.py:43` is missing `follow_redirects=True`. httpx
+    defaults to `False`; any libretro 301/302 (rare today, but
+    possible if upstream switches CDN or rename-redirects a thumb)
+    surfaces as `MediaFetchError("upstream 301 ...")` → 502 to
+    client. Add `follow_redirects=True` (one-line); regression
+    test via `respx` returning 301 → final 200 must transit.
+  - **A2** (Tier 2) — Empty 200 body silently caches as a zero-byte
+    file at `media/cache.py:68-70`. `raw.githubusercontent.com`
+    rate-limit interstitials and CDN edge cases occasionally
+    return `200 + Content-Length: 0`. Subsequent requests hit the
+    poisoned cache forever. Three-line guard:
+    `if resp.status_code == 200 and not resp.content:
+        raise MediaFetchError(f"empty body for {url!r}")`.
+    Test via `respx` returning `httpx.Response(200, content=b"")`.
+  - **A3** (Tier 3) — `routes/media.py:50` double-wraps the error
+    detail: `MediaUpstreamError(f"upstream error: {exc!r}")` over
+    a `MediaFetchError("upstream 500 for 'https://…'")` produces
+    the user-facing message `upstream error: MediaFetchError("upstream
+    500 for 'https://…'")`. Drop the prefix: `MediaUpstreamError(str(exc))`
+    or `MediaUpstreamError(f"{exc}")` — chain `from exc` already
+    preserves the typed cause for logs.
+  - **A4** (Tier 3) — `media/cache.py:60-71` `path.exists()` race
+    is benign today (`atomic_write_bytes` keeps the rename target
+    intact across concurrent writes; POSIX read-after-rename is
+    safe), but a future "verify checksum" or "delete corrupt
+    entry" path would reintroduce TOCTOU. One-line comment next
+    to the existence check naming the assumption ("cache writes
+    are append-only via atomic_write_bytes; reads after a rename
+    return the new inode's bytes — POSIX-safe").
+  - **A5** (Tier 3) — `media/cache.py:65` interpolates both `{url!r}`
+    and `{exc!r}` into the network-error message; the chained
+    `__cause__` already carries the typed detail. Drop the second
+    `!r`: `f"network error for {url!r}: {exc}"`.
+
+  Kind: review-fix.
+  Source: indie-review-2026-05-02.
+  Dependencies: P05.
 
 ---
 
