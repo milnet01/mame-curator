@@ -477,7 +477,7 @@ Dependencies: P03 ✅, FP01 ✅, FP02 ✅.
 
 **Theme:** the closing `/audit` + `/indie-review` pass on DS01's patches surfaced 14+ findings in the surrounding `copy/`, `filter/`, `cli/` code (not introduced by DS01 itself — DS01-introduced drift was closed inside DS01 as Cluster R per the FP02 precedent). Findings batched into one fix-pass per the App-Build "every audit finding is tracked" rule. **Source:** `/indie-review` 2026-05-01, three lanes: copy/, filter/, cli/.
 
-**Long-form contract:** to be written at Step 1 of FP05's loop (`docs/specs/FP05.md`), per the App-Build "specs just-in-time" anti-pattern guard.
+**Long-form contract:** [`docs/specs/FP05.md`](docs/specs/FP05.md) (signed off 2026-05-01 after 3-round cold-eyes review; closed 2026-05-01).
 
 ### 🔍 Findings fold-in
 
@@ -508,7 +508,9 @@ Dependencies: P03 ✅, FP01 ✅, FP02 ✅.
 
 Plus 8-10 minor LOW findings (unit drift in error messages, `with_suffix` corner cases, redundant validation paths, etc.) — folded into FP05 spec at Step 1 with full file:line citations.
 
-Dependencies: DS01 ✅. Tracked here as 📋 (planned); spec written at Step 1 of FP05's own 9-step loop.
+**275 tests pass project-wide; coverage 94.67%; all five gates green.**
+
+Dependencies: DS01 ✅.
 
 ---
 
@@ -543,15 +545,6 @@ Dependencies: DS01 ✅. Tracked here as 📋 (planned); spec written at Step 1 o
 **284 tests pass project-wide; coverage 94.63%; all five gates green.**
 
 Dependencies: FP05 ✅.
-
-### 🔍 Findings to fold
-
-- 📋 **A1 — `purge_recycle()` OSError leak in `_cmd_copy`.** The `--purge-recycle` short-circuit at `cli/__init__.py:209-212` calls `purge_recycle()` *before* the FP05 B9 `except OSError` block. A user with unreadable recycle directory gets a Python traceback. Wrap or surface via typed `CopyError`. Kind: review-fix. Lanes: cli, copy. Source: indie-review-2026-05-01 lane cli H1.
-- 📋 **B1 — verify SessionsError-via-ValidationError shape with explicit test.** `Sessions._active_must_reference_a_defined_session` raises `SessionsError` from a Pydantic `model_validator(mode="after")`. Pydantic v2 wraps ValueError/AssertionError in ValidationError but tolerates other exceptions; the loader's `try/except ValidationError → SessionsError` wrap may not cover this path consistently. 5-line regression test, no code change. Kind: test. Lanes: filter, tests. Source: indie-review-2026-05-01 lane filter M3.
-- 📋 **B2 — validator-raise-style asymmetry.** `Session._validate_session` raises `ValueError`; `Sessions._active_must_reference_a_defined_session` raises `SessionsError`. Pick one convention. Both work but the six-month test fails. Kind: refactor. Lanes: filter. Source: indie-review-2026-05-01 lane filter M4.
-- 📋 **B3 — error-message path quoting.** `read_capped_text` uses `f"failed to read {path}: {exc}"`; a path with newlines or control chars breaks the single-line error contract. Use `repr(path)`. Kind: review-fix. Lanes: filter. Source: indie-review-2026-05-01 lane filter M2.
-
-Dependencies: FP05 ✅. (FP04 — parser hardening — unchanged.)
 
 ---
 

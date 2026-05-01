@@ -9,7 +9,7 @@ Guidance for Claude Code working in this repo. Project follows the [**Ants App-B
 3. When the active item's `Kind` is known, read the matching `docs/standards/<which>.md` (one read).
 4. Before invoking `/audit` or `/indie-review`, additionally read `docs/audit-allowlist.md`.
 
-For status of shipped phases and what's next, see [`ROADMAP.md`](ROADMAP.md) (queue summary) and [`CHANGELOG.md`](CHANGELOG.md) (what shipped). Per-phase journals live in [`docs/journal/`](docs/journal/). Currently shipped: P00, P01, P02; **next: P03 (`copy/`)**.
+For status of shipped phases and what's next, see [`ROADMAP.md`](ROADMAP.md) (queue summary) and [`CHANGELOG.md`](CHANGELOG.md) (what shipped). Per-phase journals live in [`docs/journal/`](docs/journal/). Currently shipped: P00, P01, P02, P03 + DOC01 + FP01 + FP02 + DS01 + FP05 + FP06 + FP07 + FP08 + FP04; **next: P04 (`api/` — HTTP API)**.
 
 ## Authoritative docs (supersede anything inferred from code)
 
@@ -54,9 +54,9 @@ Layered, acyclic dependency graph (enforced by review; `import-linter` planned).
 ```
 parser/    ← pure, no internal deps           (P01 ✅)
 filter/    ← parser/                          (P02 ✅)
-copy/      ← parser/ + filter/                (P03 — next)
+copy/      ← parser/ + filter/                (P03 ✅)
+api/       ← all of the above                 (P04 — next)
 media/     ← parser/                          (P05)
-api/       ← all of the above                 (P04)
 updates/   ← parser/ + downloads.py           (P07)
 help/      ← filesystem only (bundled MD)     (P07)
 setup/     ← parser/ + downloads.py           (P08)

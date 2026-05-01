@@ -11,8 +11,8 @@
 | 0 — Scaffold | ✅ done | `uv sync --extra dev` produces a green project; lint/type/test/security gates pass |
 | 1 — Parser | ✅ done | `mame-curator parse <DAT>` streams a 43,579-machine DAT in ~5 s and prints summary stats; the five progettoSnaps INI files and the official MAME `-listxml` (for CHD detection) are also parsed |
 | 2 — Filter | ✅ done | `mame-curator filter` runs the four-phase rule chain (drop → pick → override → session-slice) and emits a deterministic JSON report. 158 tests; `filter/` coverage 96%+ |
-| 3 — Copy | 🔜 next | Atomic copy + BIOS resolution + RetroArch `.lpl` writer + playlist conflict handling |
-| 4 — API | ⏳ planned | FastAPI surface + SSE for live progress |
+| 3 — Copy | ✅ done | `mame-curator copy` ships atomic copy + BIOS resolution + RetroArch `.lpl` writer + playlist conflict handling. 5 fix-passes + 1 debt-sweep folded in (FP01, FP02, DS01, FP05, FP06, FP07, FP08, FP04); 300 tests; `copy/` coverage 95%+ |
+| 4 — API | 🔜 next | FastAPI surface + SSE for live progress |
 | 5 — Media | ⏳ planned | libretro-thumbnails URL builder + lazy-fetch cache |
 | 6 — Frontend | ⏳ planned | React 19 + Tailwind v4 + shadcn/ui — grid, alternatives drawer, themes, layouts |
 | 7 — Updates + Help | ⏳ planned | Self-update, INI-refresh-with-diff, in-app help |
@@ -68,9 +68,9 @@ dependencies on higher ones; enforced by review):
 ```
 parser/    ← pure, no internal deps           (P01 ✅)
 filter/    ← depends on parser/               (P02 ✅)
-copy/      ← depends on parser/ + filter/     (P03 — next)
+copy/      ← depends on parser/ + filter/     (P03 ✅)
+api/       ← depends on all of the above      (P04 — next)
 media/     ← depends on parser/               (P05)
-api/       ← depends on all of the above      (P04)
 updates/   ← parser/ + downloads.py           (P07)
 help/      ← filesystem only (bundled MD)     (P07)
 setup/     ← parser/ + downloads.py           (P08)
