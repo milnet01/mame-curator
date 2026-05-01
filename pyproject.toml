@@ -26,24 +26,21 @@ classifiers = [
 ]
 
 dependencies = [
-    "lxml>=5.3",       # parser/ — DAT XML + listxml streaming
-    "pydantic>=2.10",  # parser/ + filter/ + future api/ — validated models
-    "pyyaml>=6.0",     # filter/ — overrides.yaml + sessions.yaml + config.yaml
-    "rich>=13.9",      # cli/ — styled console output
+    "lxml>=5.3",                # parser/ — DAT XML + listxml streaming
+    "pydantic>=2.10",           # parser/ + filter/ + api/ — validated models
+    "pyyaml>=6.0",              # filter/ — overrides/sessions/config YAML
+    "rich>=13.9",               # cli/ — styled console output
+    "fastapi>=0.115",           # api/ — HTTP surface (P04)
+    "uvicorn[standard]>=0.32",  # api/ — ASGI server, `mame-curator serve`
+    "httpx>=0.28",              # api/ — shared async client (media proxy)
+    "sse-starlette>=2.1",       # api/ — SSE event streaming for copy progress
 ]
 
 # Per coding standards §8 "Phase-staged dependency declaration": runtime deps
 # for not-yet-implemented phases live here until the importing code ships.
 # Promote a dep into [project.dependencies] in the same commit as its first
-# `import`. Until Phase 4 lands, end users running `mame-curator parse` should
-# not pull the entire web stack just to count machines in a DAT.
+# `import`.
 [project.optional-dependencies]
-api = [             # Phase 4 — FastAPI surface + SSE for live progress
-    "fastapi>=0.115",
-    "uvicorn[standard]>=0.32",
-    "httpx>=0.28",
-    "sse-starlette>=2.1",
-]
 dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
