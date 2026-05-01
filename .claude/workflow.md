@@ -8,7 +8,7 @@
 | **Active item ID** | P05 |
 | **Active step** | 1 — verify spec |
 | **Blocked on** | — |
-| **Last update** | 2026-05-01 (P04 + FP09 closed — 376 tests pass / coverage 88.56% / all five gates green; tagged `P04-complete` and `FP09-complete`. P04 shipped: 14 source files in `src/mame_curator/api/` (~2200 LoC), 40 routes, SSE for copy progress, sandboxed `/api/fs/*` + grant API, `serve` CLI subcommand. FP09 folded 13 indie-review findings + 5 Cluster-R items.) |
+| **Last update** | 2026-05-02 (P05 step 1 spec drafted + signed off — 222 lines covering escape rules, urls_for, fetch_with_cache, cache layout, R39 wiring; 2 cold-eyes rounds clean. Step 2 P04-dep trivially ✅. Moving to step 3 — failing tests.) |
 | **Next gate** | P05 Step 1 → spec for sign-off (`docs/specs/P05.md`) |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
@@ -23,9 +23,9 @@ becomes active.
 
 P05 active — step progress (reset by /close-phase 2026-05-01 on P04 + FP09 close):
 
-1. ⬜ Verify spec — draft `docs/specs/P05.md` for cold-eyes review + user sign-off.
-2. ⬜ Verify dependencies — P04 ✅ (only dep per long-form roadmap Phase 5 pre-conditions).
-3. ⬜ Write failing tests
+1. ✅ Verify spec — drafted `docs/specs/P05.md`; 2 cold-eyes rounds clean (3 T1 + 5 T2 + 4 T3 round-1 fixes; 1 T2 + 1 T3 round-2 fixes); user sign-off 2026-05-02.
+2. ✅ Verify dependencies — P04 ✅ (only dep per long-form roadmap Phase 5 pre-conditions).
+3. 🚧 Write failing tests
 4. ⬜ Implement until tests pass
 5. ⬜ Run `/audit`
 6. ⬜ Run `/indie-review`
