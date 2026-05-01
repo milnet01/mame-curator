@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<mame build="0.284 (mame0284)">
+  <machine name="pacman">
+    <description>Pac-Man (Midway)</description>
+  </machine>
+  <machine name="pacmanf" cloneof="pacman" romof="pacman">
+    <description>Pac-Man (speedup hack)</description>
+  </machine>
+  <machine name="neogeo" isbios="yes">
+    <description>Neo-Geo</description>
+  </machine>
+  <machine name="kof94" romof="neogeo">
+    <description>The King of Fighters '94 (Set 1)</description>
+    <biosset name="euro" description="Europe MVS (Ver. 2)" default="yes"/>
+  </machine>
+</mame>

@@ -21,6 +21,34 @@ import tempfile
 from pathlib import Path
 
 
+def atomic_write_bytes(path: Path, data: bytes) -> None:
+    """Atomically write `data` to `path`. Same protocol as `atomic_write_text`."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_handle = tempfile.NamedTemporaryFile(  # noqa: SIM115
+        mode="wb",
+        dir=path.parent,
+        prefix=path.name + ".",
+        suffix=".tmp",
+        delete=False,
+    )
+    tmp_path = Path(tmp_handle.name)
+    completed = False
+    try:
+        try:
+            tmp_handle.write(data)
+            tmp_handle.flush()
+            with contextlib.suppress(OSError):
+                os.fsync(tmp_handle.fileno())
+        finally:
+            tmp_handle.close()
+        os.replace(tmp_path, path)
+        completed = True
+    finally:
+        if not completed:
+            with contextlib.suppress(OSError):
+                tmp_path.unlink(missing_ok=True)
+
+
 def atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8") -> None:
     """Atomically write `text` to `path`.
 

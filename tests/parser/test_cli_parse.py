@@ -62,7 +62,13 @@ def test_main_module_import_does_not_configure_logging() -> None:
 def test_error_routes_to_stderr_with_path_prefix(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Per standards §9 (G8/G9): errors → stderr, message includes input path."""
+    """Per standards §9 (G8/G9): errors → stderr, message includes input path.
+
+    On Windows, ``Path.__repr__`` (used by FP08's repr-quote pattern) renders
+    the path in POSIX form (forward slashes) — so the assertion accepts either
+    the native form or the as_posix form. The G9 contract is "the path
+    appears in the error", not "in a specific separator style".
+    """
     bad_path = tmp_path / "definitely-does-not-exist.xml"
     parser = build_parser()
     args = parser.parse_args(["parse", str(bad_path)])
@@ -70,7 +76,9 @@ def test_error_routes_to_stderr_with_path_prefix(
     assert exit_code == 1
     captured = capsys.readouterr()
     assert "error:" not in captured.out, "errors must NOT go to stdout (G8)"
-    assert str(bad_path) in captured.err, "error message must include the path (G9)"
+    assert str(bad_path) in captured.err or bad_path.as_posix() in captured.err, (
+        "error message must include the path (G9)"
+    )
     assert "error:" in captured.err
 
 

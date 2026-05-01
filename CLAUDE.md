@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Layered on top of the global rules at `~/.claude/CLAUDE.md` (rules 1–12, including the Karpathy clarity / surgical-edit rules 8–12). Both apply; project rules below extend, never contradict.
+Layered on `~/.claude/CLAUDE.md` (global rules 1–12, with Karpathy clarity / surgical-edit at 8–12). Both apply; project rules below extend, never contradict.
 
 This project follows the [**Ants App-Build** workflow](~/.claude/skills/app-workflow/SKILL.md); the skill auto-loads when `.claude/workflow.md` is present.
 
@@ -34,10 +34,10 @@ uv run pytest && uv run ruff check && uv run ruff format --check \
 # Single test
 uv run pytest tests/parser/test_dat.py::test_parse_dat_minimal -xvs
 
-# CLI smoke (full P02 invocation lives in tests/filter/fixtures/)
+# CLI smoke
 uv run mame-curator parse <DAT.xml-or-.zip>
 uv run mame-curator filter --help
-uv run mame-curator copy   --help
+uv run mame-curator copy --help
 ```
 
 ## Architecture
@@ -70,7 +70,6 @@ CLI entry: `mame_curator.main:main`; subcommands dispatch in `cli/__init__.py` v
 
 - Each module defines a typed exception hierarchy (`parser.ParserError` → `DATError` / `INIError` / `ListxmlError`). Never raise bare `Exception`.
 - Library code uses `logging.getLogger(__name__)`. **`print()` is forbidden outside `cli/`** — CLI surfaces use `rich.Console`.
-- Error messages must be actionable: file, cause, next step (see `coding-standards.md` § 9).
 
 ## Project-specific overrides
 
@@ -82,6 +81,15 @@ CLI entry: `mame_curator.main:main`; subcommands dispatch in `cli/__init__.py` v
 - **Conventional Commits** (`feat:`, `fix:`, `chore:`, etc.) per `coding-standards.md` § 12. App-Build's `<ID>: <description>` mandate is **deliberately not adopted**; cite phase IDs in body or scope. See `docs/standards/commits.md`.
 - **Phase-closing commits** name the phase and tag with `<ID>-complete` (annotated). E.g. `feat(parser): close FP04 — typed-error OSError catches`.
 - **Direct push to `main`** — solo development; no PR-workflow opt-in signals (no `CODEOWNERS`, no branch protection, no `Merge pull request` history). Repo is **PUBLIC** (cached in `.claude/workflow.md`), so push freely per global rule 6.
+
+## Karpathy clarity (global 8–12) — where they land here
+
+The 9-step App-Build loop is itself the verify-step plan global 12 mandates. Beyond that:
+
+- **(8) surface ambiguity** → cold-eyes spec review on every `P##` Step 1, before user sign-off — independent reviewer dispatched to catch author bias up front.
+- **(9) push back on complexity** → Step 1 again: name the simpler alternative *before* writing tests, defer to user on the call.
+- **(10) reproduce-before-fix** → Step 3 on every `FP##` / `DS##`: failing test lands first, proves the diagnosis, locks in regression coverage.
+- **(11) stay in your lane** → Steps 4 & 7: every changed line traces to the active item; no drive-by reformat or preferred-idiom rewrite of working code; pre-existing dead code is surfaced in the reply, not deleted.
 
 ## Closing a phase
 

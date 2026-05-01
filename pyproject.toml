@@ -92,7 +92,17 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "D"]
+"tests/**/*.py" = ["S101", "D", "RUF002", "RUF003"]
+# FastAPI's canonical handler signature uses `param: T = Depends(...)` and
+# `param: T = Body(...)` / `Query(...)` — calls in default args are the public
+# idiom (see https://fastapi.tiangolo.com/tutorial/dependencies/), so B008 is
+# silenced for the API routes only. Other modules still flag B008.
+# D-class lints are also relaxed inside `api/`: the Pydantic-schema classes in
+# `schemas.py` are pure type definitions whose names already convey intent,
+# and route-handler functions are documented at the spec level
+# (`docs/specs/P04.md` § Routes).
+"src/mame_curator/api/routes/*.py" = ["B008", "D102", "D103"]
+"src/mame_curator/api/schemas.py" = ["D101", "D106"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -128,7 +138,21 @@ ignore_missing_imports = true
 # the decorators are type-erased on purpose. Tests that use them are still
 # checked for body-level typing.
 [[tool.mypy.overrides]]
-module = ["tests.filter.test_property", "tests.copy.test_bios_properties"]
+module = [
+    "tests.filter.test_property",
+    "tests.copy.test_bios_properties",
+    "tests.api.test_routes_config",
+]
+disallow_untyped_decorators = false
+
+# FastAPI's @router.get / .post / .put / .patch / .delete decorators read as
+# untyped under strict mode; they're the canonical idiom for declaring API
+# routes. The decorators are type-erased on purpose (FastAPI introspects the
+# handler signature itself); strict-mode `untyped-decorator` would force every
+# handler to be silenced individually. Per-module override is the cleanest
+# escape hatch.
+[[tool.mypy.overrides]]
+module = "mame_curator.api.routes.*"
 disallow_untyped_decorators = false
 
 # ---------------------------------------------------------------------------

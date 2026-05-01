@@ -4,6 +4,7 @@ Subcommands (added incrementally as phases land):
     parse <dat-path>   — parse the DAT and print summary stats (Phase 1)
     filter <args>      — run the filter pipeline and write a report (Phase 2)
     copy <args>        — copy winners + BIOS deps and write mame.lpl (Phase 3)
+    serve <args>       — run the HTTP API server (Phase 4)
 """
 
 from __future__ import annotations
@@ -110,6 +111,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="One-shot: delete recycle entries older than 30 days; exits without copying",
     )
     cp.set_defaults(func=_cmd_copy)
+
+    sub_serve = sub.add_parser("serve", help="Run the HTTP API server.")
+    sub_serve.add_argument("--host", default=None, help="Bind address (overrides config).")
+    sub_serve.add_argument("--port", type=int, default=None, help="Bind port (overrides config).")
+    sub_serve.add_argument(
+        "--config", type=Path, default=Path("config.yaml"), help="Config file path."
+    )
+    sub_serve.add_argument(
+        "--no-open-browser", action="store_true", help="Skip auto-opening the browser."
+    )
+    sub_serve.set_defaults(func=_cmd_serve)
 
     return parser
 
@@ -298,3 +310,39 @@ def _cmd_copy(args: argparse.Namespace) -> int:
     if report.status is CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT:
         return 3
     return 1
+
+
+def _cmd_serve(args: argparse.Namespace) -> int:
+    err_console = Console(stderr=True, soft_wrap=True)
+    if not args.config.exists():
+        err_console.print(
+            f"[red]error:[/red] config file not found: {args.config!r} — "
+            "run `mame-curator setup` first"
+        )
+        return 1
+
+    try:
+        import uvicorn
+
+        from mame_curator.api import create_app
+    except ImportError as exc:
+        err_console.print(
+            f"[red]error:[/red] API extras not installed ({exc}); "
+            "install with `pip install mame-curator[api]`"
+        )
+        return 1
+
+    try:
+        app = create_app(args.config)
+    except Exception as exc:
+        err_console.print(f"[red]error:[/red] failed to create app: {exc}")
+        return 1
+
+    host = args.host or "127.0.0.1"
+    port = args.port or 8080
+    try:
+        uvicorn.run(app, host=host, port=port, log_level="info")
+    except OSError as exc:
+        err_console.print(f"[red]error:[/red] failed to bind {host}:{port}: {exc}")
+        return 1
+    return 0

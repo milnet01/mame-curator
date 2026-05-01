@@ -613,7 +613,7 @@ Dependencies: FP08 ✅. 5 regression tests added; 300 tests pass; coverage 95.11
 
 ---
 
-## P04 — HTTP API (planned)
+## P04 — HTTP API (in progress 2026-05-01; blocked on FP09)
 
 **Theme:** FastAPI server exposing P01-P03 over HTTP + SSE for
 copy progress.
@@ -623,12 +623,137 @@ copy progress.
 
 ### 🎨 Features
 
-- 📋 **P04 — `api/` module.** All routes from design spec § 6.5;
+- 🚧 **P04 — `api/` module.** All routes from design spec § 6.5;
   Pydantic schemas; SSE for copy progress; sandboxed `/api/fs/*`
   browser routes. Coverage target: ≥80%.
+  Implementation shipped 2026-05-01 (363 tests pass, 88.49% coverage,
+  all five gates green); close attempted; indie-review folded 13
+  findings into FP09. Closes when FP09 closes.
   Kind: implement.
   Lanes: api, tests.
   Dependencies: P03.
+
+---
+
+## FP09 — P04 indie-review fold-in (in progress 2026-05-01)
+
+**Theme:** the closing `/audit` + `/indie-review` pass on P04's
+ship surfaced 13 actionable findings in the just-shipped `api/`
+surface. `/audit` clean across ruff / mypy / bandit / gitleaks /
+semgrep (p/security-audit + p/python + p/fastapi) + 9 project-
+specific grep gates; all 13 actionable items came from
+`/indie-review` against the cold-eyes brief.
+
+### 🔍 Findings fold-in
+
+- 🚧 **FP09** [mame-curator-1001] **Fix-pass after P04 (HTTP API).**
+  Lanes: api, cli, tests, docs.
+  - **A1** (Tier 1) — `{exc}` interpolated without `repr()` at
+    `state.py:75`, `state.py:77` (`yaml.YAMLError`, `ConfigError`),
+    `routes/fs.py:59` (`OSError`), `routes/media.py:42`
+    (`httpx.HTTPError`), and `jobs.py:_on_worker_error` (`Exception`
+    str). Multi-line exception messages break the FP06–FP08 single-
+    line `detail` invariant — re-validate with a `\n`-bearing
+    `OSError` synthesized via monkeypatch. Wrap each `{exc}` site
+    with `f"{exc!r}"` or build the detail without exception text.
+  - **A2** (Tier 1) — R27 (`GET /api/copy/history/{job_id}/report`)
+    returns `json.loads(...)` raw dict at `routes/copy.py:155-158`;
+    spec demands `response_model=CopyReport`. Wire through
+    `CopyReport.model_validate_json(path.read_text(...))`; on
+    `ValidationError` raise a typed `JobReportCorruptError(502)`.
+  - **A3** (Tier 1) — R19 (`POST /api/config/import`) accepts
+    sessions whose names violate `_SESSION_NAME_RE` (R11's regex);
+    a malicious bundle could write a session named `_deactivate`
+    that then collides with the static R13b control route
+    semantically. Re-apply the regex per session-name on import,
+    raising `SessionNameInvalidError` consistent with R11.
+  - **B1** (Tier 2) — Config export uses `model_dump(mode="json",
+    exclude_defaults=True)` per session value at
+    `routes/config.py:170-176`; import re-validates without
+    re-populating defaults. L09 (`test_config_export_import_round_
+    trip`) currently passes because the mini fixture has no
+    populated-but-default Session fields; widen the test to a
+    Session whose `include_year_range` equals the default and
+    confirm round-trip survives, OR drop `exclude_defaults=True`.
+  - **B2** (Tier 2) — `state.py:106-113` calls
+    `parse_listxml_cloneof`, `parse_listxml_bios_chain`, and
+    `parse_listxml_disks` sequentially (three `lxml.iterparse`
+    streams over the same ~370 MB file). Combine into one streamed
+    pass that yields all three outputs (preferred — one
+    `parser/listxml.py` helper that accepts a callback per concern),
+    OR document the deviation in `state.py` with the trade-off
+    rationale and the realistic-listxml startup-time budget.
+  - **B3** (Tier 2) — `Job.history` at `jobs.py:67` is an unbounded
+    list; a 10k-file copy at ~50 ticks/file × ~80 bytes/event ≈
+    40 MB resident. Cap with a `collections.deque(maxlen=N)` (N
+    sized for one full job's events plus safety margin), OR
+    document the unbounded growth in `jobs.py` with a note that
+    history retention only matters for active subscribers.
+  - **B4** (Tier 2) — `routes/media.py:39-41` opens a fresh
+    `httpx.AsyncClient` per request; rendering 50 thumbnails
+    triggers 50 TLS handshakes against `raw.githubusercontent.com`.
+    Stash a single `httpx.AsyncClient` on `app.state.media_client`
+    in lifespan startup, close in shutdown; reuse from R39.
+    P05's caching layer can swap in transparently.
+  - **B5** (Tier 2) — `JobManager.{pause,resume,abort}` call
+    `await asyncio.sleep(0.05)` to wait for the controller flag
+    to take effect; spec line 338 says "wait up to 250 ms".
+    Pick one: either lengthen the sleep to 250 ms (matches spec)
+    or update spec to 50 ms (matches impl, faster API response).
+  - **B6** (Tier 2) — `state.py:replace_world` always recomputes
+    `allowed_roots = compose_allowlist(new_config)`, even when
+    `config` was not passed (notes-only / sessions-only swaps).
+    Conditional: `allowed_roots = compose_allowlist(new_config)
+    if config is not None else base.allowed_roots`. Lets the
+    P01 property test ("no-op PATCH preserves identity") finally
+    flip from xfail to xpass.
+  - **B7** (Tier 2) — `routes/fs.py:fs_list` parent-resolution at
+    lines 62-69 has a dead `parent = None; break` branch; simplify
+    to `is_root = any(...); parent = ... if not is_root else None`.
+    Also: when `requested.parent` is outside the allowlist, the
+    current code returns it anyway and the next click 403s — either
+    filter `parent` against the allowlist or document the click-
+    then-403 pattern as intended.
+  - **B8** (Tier 2) — `routes/help.py:_help_dir()` at line 26 uses
+    `Path(__file__).resolve().parents[3].parent / "docs" / "help"`
+    which evaluates to one directory above the repo root. Either
+    the arithmetic is `parents[3]` (without the trailing `.parent`)
+    for repo-root, or `parents[2]` for package-root. The env-var
+    override saves tests but the production default points at the
+    wrong directory. P07 will need `importlib.resources` for
+    installed-wheel discovery; for P04 just fix the arithmetic so
+    the empty-directory fallback (spec line 763) is genuinely
+    empty rather than wrongly-pointed.
+  - **B9** (Tier 2) — `_atomic.atomic_write_bytes` at
+    `_atomic.py:24-49` does not `os.fsync` the parent directory
+    after the rename; spec § Atomic-write protocol step 4 demands
+    parent-dir fsync for power-loss durability. Add the parent-
+    dir fsync (best-effort `contextlib.suppress(OSError)` pattern
+    consistent with the existing file fsync). Same change to
+    `atomic_write_text` for symmetry.
+  - **C1** (Cluster R — test only) — Loop-capture race test for
+    JobManager: assert that an SSE subscriber connecting AFTER
+    `start()` returns observably sees the `job_started` event via
+    history replay, not just live events. The cold-eyes reviewer
+    flagged this as "looks correct on close read; explicit test
+    missing." Pin the subscribe-after-start contract.
+  - **C2** (Cluster R — comment) — `routes/media.py:38` URL
+    builder uses `quote(machine.description)` which doesn't
+    handle `:` (libretro-thumbnails uses `:` literally). Spec
+    line 781 explicitly defers this to P05; add a one-line
+    `# P04 minimal proxy — P05 swaps in proper escape rules`
+    comment so future readers don't "fix" it ahead of P05.
+  - **C3** (Cluster R — spec clarification) — R20 (`POST
+    /api/copy/dry-run`) is silent on whether existing-playlist
+    conflict surfaces (spec § Routes table just says "preflight
+    + simulated plan; no job created"). Current implementation
+    surfaces it via `pre.existing_playlist` in the `summary`
+    field. Document the contract in the per-module spec at FP09
+    close.
+
+  Kind: review-fix.
+  Source: indie-review-2026-05-01.
+  Dependencies: P04.
 
 ---
 
