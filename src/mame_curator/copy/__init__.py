@@ -7,7 +7,6 @@ from mame_curator.copy.activity import append_activity, read_activity
 from mame_curator.copy.bios import resolve_bios_dependencies
 from mame_curator.copy.controller import CopyController, CopyControlState
 from mame_curator.copy.errors import (
-    BIOSResolutionError,
     CopyError,
     CopyExecutionError,
     PlaylistError,
@@ -44,7 +43,6 @@ __all__ = [
     "ActivityEventType",
     "AppendDecision",
     "AppendDecisionKind",
-    "BIOSResolutionError",
     "BIOSResolutionWarning",
     "ConflictStrategy",
     "CopyControlState",

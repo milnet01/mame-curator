@@ -51,7 +51,7 @@ Algorithm:
    4. If `entry.romof and entry.romof != name`: add `entry.romof` to `bios` and push to `to_visit`.
 3. Return `frozenset(bios)`, sorted-tuple of warnings (canonical order: by name).
 
-**Cycle safety** is provided by `seen`. Self-references (`romof = self.name`, which appears in some MAME entries for slot-machine bios markers) are filtered by the `entry.romof != name` guard in step 2.4.
+**Cycle safety** is provided by the `seen` set checked at pop time. Self-references (`romof = self.name`, which appears in some MAME entries for slot-machine bios markers) are caught on the second pop without further enqueue — no separate `entry.romof != name` guard is needed; the same `seen` check handles every cycle shape uniformly.
 
 **The winner set itself is NOT included in the BIOS set** — this function returns only the *additional* dependencies. `run_copy` constructs the full copy plan as `winners | bios`.
 
@@ -415,7 +415,6 @@ A `CopyPlan` is constructed by the CLI from parsed config + a `FilterResult`, or
 
 `CopyError(Exception)` base. Subclasses:
 
-- `BIOSResolutionError` — fatal failure during chain walk (rare; only on malformed `bios_chain` map structure).
 - `PreflightError` — destination not writable, free-space shortfall, source dir missing entirely.
 - `PlaylistError` — `append_decisions` missing for a conflicting winner; existing playlist file is corrupt JSON; write failure.
 - `RecycleError` — recycle move failed (filesystem readonly, permission denied).

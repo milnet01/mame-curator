@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from mame_curator.cli import build_parser, run
+from mame_curator.copy.types import ConflictStrategy
 
 PARSER_FIXTURES = Path(__file__).parent.parent / "parser" / "fixtures"
 COPY_FIXTURES = Path(__file__).parent / "fixtures"
@@ -80,3 +84,134 @@ def test_copy_cli_purge_recycle_short_circuits(tmp_path: Path) -> None:
     )
     # Doesn't crash even though the inputs would otherwise be invalid.
     assert run(args) == 0
+
+
+# FP05 — B9 + B10a + B10b tests below
+
+
+def _copy_args(
+    *, dat: Path, listxml: Path, filter_report: Path, source: Path, dest: Path
+) -> list[str]:
+    return [
+        "copy",
+        "--dry-run",
+        "--dat",
+        str(dat),
+        "--listxml",
+        str(listxml),
+        "--filter-report",
+        str(filter_report),
+        "--source",
+        str(source),
+        "--dest",
+        str(dest),
+    ]
+
+
+def _fake_report(tmp_path: Path, status: object) -> object:
+    """Build a minimal CopyReport with the given status for B10 tests."""
+    from mame_curator.copy.types import CopyReport, PlanSummary
+
+    return CopyReport(
+        session_id="test-fixture",
+        started_at=datetime.now(UTC),
+        finished_at=datetime.now(UTC),
+        status=status,  # type: ignore[arg-type]
+        plan_summary=PlanSummary(
+            winners_count=0,
+            bios_count=0,
+            conflict_strategy=ConflictStrategy.CANCEL,
+            source_dir=tmp_path,
+            dest_dir=tmp_path,
+        ),
+        succeeded=(),
+        skipped=(),
+        failed=(),
+        overwritten=(),
+        recycled=(),
+        bios_included=(),
+        chd_missing=(),
+        bytes_copied=0,
+        warnings=(),
+    )
+
+
+def _stub_inputs(tmp_path: Path) -> tuple[Path, Path, Path]:
+    """Build minimal-but-parseable DAT + listxml + filter-report files."""
+    dat = tmp_path / "tiny.xml"
+    dat.write_text(
+        '<?xml version="1.0"?>'
+        '<mame><machine name="x"><description>X</description></machine></mame>',
+        encoding="utf-8",
+    )
+    listxml = tmp_path / "listxml.xml"
+    listxml.write_text(
+        '<?xml version="1.0"?>'
+        '<mame><machine name="x"><description>X</description></machine></mame>',
+        encoding="utf-8",
+    )
+    fr = tmp_path / "filter-report.json"
+    fr.write_text(
+        json.dumps({"winners": [], "dropped": [], "contested_groups": [], "warnings": []}),
+        encoding="utf-8",
+    )
+    return dat, listxml, fr
+
+
+def test_cmd_copy_oserror_on_directory_input(tmp_path: Path) -> None:
+    """B9 — pointing `--filter-report` at a directory must produce a
+    labelled exit-1 line, not a raw `IsADirectoryError` traceback. Mirrors
+    DS01 C6's coverage on `_cmd_filter`."""
+    a_directory = tmp_path / "i_am_a_dir"
+    a_directory.mkdir()
+    parser = build_parser()
+    args = parser.parse_args(
+        _copy_args(
+            dat=tmp_path / "x.xml",
+            listxml=tmp_path / "x.xml",
+            filter_report=a_directory,
+            source=tmp_path,
+            dest=tmp_path,
+        )
+    )
+    # Currently: raw IsADirectoryError leaks. Post-fix: exit 1.
+    assert run(args) == 1
+
+
+def test_cmd_copy_exit_130_on_cancelled(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """B10a — `CopyReportStatus.CANCELLED` (SIGINT-family user-stop) → 130."""
+    import mame_curator.cli as cli_module
+    from mame_curator.copy.types import CopyReportStatus
+
+    monkeypatch.setattr(
+        cli_module,
+        "run_copy",
+        lambda *_a, **_k: _fake_report(tmp_path, CopyReportStatus.CANCELLED),
+    )
+    dat, listxml, fr = _stub_inputs(tmp_path)
+    parser = build_parser()
+    args = parser.parse_args(
+        _copy_args(dat=dat, listxml=listxml, filter_report=fr, source=tmp_path, dest=tmp_path)
+    )
+    assert run(args) == 130
+
+
+def test_cmd_copy_exit_3_on_cancelled_playlist_conflict(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B10b — `CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT` (deliberate
+    user-prompt-cancel, distinct from SIGINT) → 3."""
+    import mame_curator.cli as cli_module
+    from mame_curator.copy.types import CopyReportStatus
+
+    monkeypatch.setattr(
+        cli_module,
+        "run_copy",
+        lambda *_a, **_k: _fake_report(tmp_path, CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT),
+    )
+    dat, listxml, fr = _stub_inputs(tmp_path)
+    parser = build_parser()
+    args = parser.parse_args(
+        _copy_args(dat=dat, listxml=listxml, filter_report=fr, source=tmp_path, dest=tmp_path)
+    )
+    assert run(args) == 3

@@ -394,8 +394,11 @@ def test_runner_logs_exception_on_copy_one_failure(
 
     from mame_curator.copy import executor
 
+    # Use OSError (typed family) so the FP05 A3-narrowed except clause
+    # `except (OSError, CopyError)` catches it. RuntimeError post-A3
+    # propagates by design (e.g. MemoryError must not be swallowed).
     def _boom(*_args: object, **_kwargs: object) -> None:
-        raise RuntimeError("synthetic failure for A5 test")
+        raise OSError("synthetic failure for A5 test")
 
     monkeypatch.setattr(executor, "copy_one", _boom)
     # The runner imports `copy_one` at module level via `from .executor import
@@ -433,3 +436,93 @@ def test_runner_logs_exception_on_copy_one_failure(
         rec.exc_info is not None and "synthetic failure" in str(rec.exc_info[1])
         for rec in runner_records
     )
+
+
+# FP05 — cluster A1 + A3 tests below
+
+
+def test_cancel_recycle_partial_recycles_winner_and_bios(
+    tmp_path: Path,
+    bios_chain: dict[str, BIOSChainEntry],
+) -> None:
+    """A1 — `controller.cancel(recycle_partial=True)` after a winner *and*
+    its BIOS file have completed must move BOTH to `data/recycle/<session_id>/`.
+
+    Spec: `copy/spec.md` § Pause/Resume/Cancel — "every successfully-copied
+    file from the current session is moved to recycle". This test pins the
+    "every file" wording: winner and bios both, not just winner.
+    """
+    src = tmp_path / "src"
+    src.mkdir()
+    payload = b"X" * (2 * 1024 * 1024)  # 2 MiB > _CHUNK so progress fires
+    # kof94's chain is neogeo (romof) + euro + us (biossets).
+    for name in ("kof94", "neogeo", "euro", "us"):
+        (src / f"{name}.zip").write_bytes(payload)
+    dest = tmp_path / "dest"
+    dest.mkdir()
+
+    plan = _plan(
+        winners=("kof94",),
+        machines={"kof94": _machine("kof94")},
+        bios_chain=bios_chain,
+        source_dir=src,
+        dest_dir=dest,
+    )
+    controller = CopyController()
+    triggered: list[bool] = []
+
+    def on_progress(short: str, done: int, total: int) -> None:
+        # Cancel only after at least the winner + first BIOS have completed.
+        if (
+            not triggered
+            and done == total
+            and short in ("euro", "us")  # second-or-later BIOS finished
+        ):
+            triggered.append(True)
+            controller.cancel(recycle_partial=True)
+
+    report = run_copy(plan, controller=controller, on_progress=on_progress)
+    assert report.status is CopyReportStatus.CANCELLED
+
+    # Both winner and at least one bios should be in the recycled set.
+    # `RecycleRecord` carries `original_path`; the short-name is the
+    # filename stem.
+    recycled_shorts = {r.original_path.stem for r in report.recycled}
+    assert "kof94" in recycled_shorts, "winner must be recycled per 'every file' contract"
+    assert recycled_shorts & {"neogeo", "euro", "us"}, (
+        "at least one BIOS file must be recycled per 'every file' contract"
+    )
+    # Originals at dst no longer exist (move, not copy).
+    assert not (dest / "kof94.zip").exists()
+    # Recycled files land in the project-default recycle root (matches
+    # other recycle call sites). Verify via the report's RecycleRecord
+    # paths — they're absolute and point at the actual on-disk locations.
+    for r in report.recycled:
+        assert r.recycled_path.exists(), f"recycled file missing: {r.recycled_path}"
+
+
+def test_runner_propagates_memoryerror(
+    source_dir: Path,
+    dest_dir: Path,
+    bios_chain: dict[str, BIOSChainEntry],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A3 — `MemoryError` raised from `copy_one` must propagate, not land
+    in `report.failed`. Continuing the loop after OOM is exactly wrong;
+    the bare `except Exception` swallows MemoryError today."""
+    from mame_curator.copy import runner as runner_module
+
+    def _oom(*_args: object, **_kwargs: object) -> None:
+        raise MemoryError("synthetic OOM")
+
+    monkeypatch.setattr(runner_module, "copy_one", _oom)
+    plan = _plan(
+        winners=("kof94",),
+        machines={"kof94": _machine("kof94")},
+        bios_chain=bios_chain,
+        source_dir=source_dir,
+        dest_dir=dest_dir,
+    )
+
+    with pytest.raises(MemoryError):
+        run_copy(plan)

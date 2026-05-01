@@ -114,3 +114,30 @@ def test_copy_outcome_records_short_name_and_role(source_dir: Path, dest_dir: Pa
     outcome = copy_one(src, dst, short_name="neogeo", role="bios")
     assert outcome.short_name == "neogeo"
     assert outcome.role == "bios"
+
+
+# FP05 — C3 test below
+
+
+def test_copy_one_exdev_raises_typed_error(
+    source_dir: Path, dest_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """C3 — `os.replace` raising EXDEV (cross-filesystem rename) inside
+    `copy_one` must surface as `CopyExecutionError` so the runner can
+    catch it via the typed-error contract. The existing `except OSError`
+    branch in `copy_one` already wraps OSError → CopyExecutionError;
+    this test pins that EXDEV stays inside the typed family across the
+    FP05 C3 changes (which add an explicit EXDEV-aware error path)."""
+    import errno
+    import os
+
+    src = source_dir / "kof94.zip"
+    dst = dest_dir / "kof94.zip"
+
+    def _exdev(*_args: object, **_kwargs: object) -> None:
+        raise OSError(errno.EXDEV, "Invalid cross-device link")
+
+    monkeypatch.setattr(os, "replace", _exdev)
+
+    with pytest.raises(CopyExecutionError):
+        copy_one(src, dst, short_name="kof94", role="winner")

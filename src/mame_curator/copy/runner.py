@@ -13,7 +13,7 @@ from typing import Literal
 from mame_curator.copy.activity import append_activity
 from mame_curator.copy.bios import resolve_bios_dependencies
 from mame_curator.copy.controller import CopyController
-from mame_curator.copy.errors import CopyError, PlaylistError
+from mame_curator.copy.errors import CopyError, PlaylistError, RecycleError
 from mame_curator.copy.executor import copy_one
 from mame_curator.copy.playlist import read_lpl, write_lpl
 from mame_curator.copy.preflight import preflight
@@ -255,7 +255,13 @@ def run_copy(
 
         try:
             outcome = copy_one(src, dst, short_name=short, role=role, progress=per_file_progress)
-        except Exception as exc:
+        except (OSError, CopyError) as exc:
+            # FP05 A3: narrowed from `except Exception`. CopyError is the
+            # project's typed failure mode (`copy/spec.md` § Errors); OSError
+            # is defense-in-depth for any path that doesn't transit
+            # CopyExecutionError. MemoryError, RecursionError, and other
+            # non-OSError Exceptions propagate — continuing the loop after
+            # OOM is exactly wrong.
             logger.exception("copy_one(short=%s, role=%s) failed", short, role)
             failed.append(
                 CopyOutcome(
@@ -301,8 +307,46 @@ def run_copy(
                 )
             )
 
-    # Write playlist (skip when dry-run or cancelled-mid-flight).
+    # FP05 A1: cancel(recycle_partial=True) recycles every successfully-copied
+    # file from the current session. Spec § Pause/Resume/Cancel: "every
+    # successfully-copied file from the current session is moved to recycle
+    # … one `copy_aborted` activity event with `details.recycled_count = N`."
+    # Both winner and bios outcomes are session-owned (recycle is keyed on
+    # session_id; the user can restore a partial run end-to-end).
     cancelled_mid = ctl.should_cancel()
+    if cancelled_mid and ctl.recycle_partial and not plan.dry_run:
+        # Closing-review R1: use the project-default `data/recycle/` root,
+        # matching the OVERWRITE_DELETE_EXISTING and REPLACE_AND_RECYCLE call
+        # sites elsewhere in this runner. The earlier dest-local recycle path
+        # would split recycle entries across two roots (project-local from
+        # other branches; dest-local from cancel-partial) — `purge_recycle`
+        # only knows the project default.
+        for outcome in tuple(succeeded):
+            try:
+                new_path = recycle_file(
+                    outcome.dst,
+                    reason="CANCELLED_RECYCLE_PARTIAL",
+                    session_id=session_id,
+                )
+            except (OSError, RecycleError):
+                logger.exception(
+                    "recycle_file(short=%s) failed during cancel-with-partial",
+                    outcome.short_name,
+                )
+                continue
+            recycled.append(
+                RecycleRecord(
+                    original_path=outcome.dst,
+                    recycled_path=new_path,
+                    reason="CANCELLED_RECYCLE_PARTIAL",
+                )
+            )
+        # Files have been moved out of dst; drop them from `succeeded` so
+        # the report doesn't claim files that no longer exist at the
+        # destination.
+        succeeded = []
+
+    # Write playlist (skip when dry-run or cancelled-mid-flight).
     if not plan.dry_run and not cancelled_mid:
         # Build entries: only winners that are *definitely present at dst*
         # (SUCCEEDED or SKIPPED_IDEMPOTENT) — see spec § "Which winners
@@ -338,7 +382,13 @@ def run_copy(
             replaced_basenames = {f"{s}.zip" for s in replaced_shorts}
             winner_basenames = {f"{w}.zip" for w in winner_set}
             for it in existing_items:
-                ipath = Path(it.get("path", ""))
+                # FP05 L5: skip entries with empty/missing path; otherwise
+                # `Path("")` resolves to `Path(".")` and gets carried into
+                # `mame.lpl` as an entry pointing at the dest dir itself.
+                raw_path = it.get("path", "")
+                if not raw_path:
+                    continue
+                ipath = Path(raw_path)
                 if ipath.name in present_basenames:
                     continue
                 if ipath.name in replaced_basenames:

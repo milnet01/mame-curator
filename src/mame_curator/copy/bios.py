@@ -13,7 +13,19 @@ def resolve_bios_dependencies(
     winners: Iterable[str],
     bios_chain: dict[str, BIOSChainEntry],
 ) -> tuple[frozenset[str], tuple[BIOSResolutionWarning, ...]]:
-    """Walk romof + biosset chains transitively; return (bios set, sorted warnings)."""
+    """Walk romof + biosset chains transitively; return (bios set, sorted warnings).
+
+    Cycle safety is provided by the `seen` set checked at pop time;
+    self-referencing romof entries (an unusual but possible MAME shape)
+    are dropped on their second pop without further enqueue.
+
+    Only top-level winners absent from `bios_chain` produce a warning
+    (`kind="missing_from_listxml"`). Transitive descendants absent from
+    `bios_chain` are silently treated as leaf BIOS files — the real
+    "missing BIOS" failure mode is surfaced later as
+    `SKIPPED_MISSING_SOURCE` during the copy phase if the `.zip` is
+    absent from the source directory.
+    """
     winners_list = list(winners)
     winner_set = set(winners_list)
     bios: set[str] = set()
@@ -38,7 +50,10 @@ def resolve_bios_dependencies(
                 bios.add(b)
             queue.append((b, False))
 
-        if entry.romof and entry.romof != name:
+        # Closing-review R2: no `entry.romof != name` guard — a self-
+        # referencing romof is caught on its second pop by the `seen`
+        # check (matches `copy/spec.md` § Cycle safety wording).
+        if entry.romof:
             if entry.romof not in winner_set:
                 bios.add(entry.romof)
             queue.append((entry.romof, False))

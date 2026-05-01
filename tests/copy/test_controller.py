@@ -85,3 +85,43 @@ def test_controller_wait_if_paused_unblocks_on_cancel() -> None:
     c.cancel()
     assert released.wait(timeout=2.0)
     t.join(timeout=2.0)
+
+
+# FP05 — B4 test below
+
+
+def test_pause_after_cancel_does_not_deadlock_waiter() -> None:
+    """B4 — race window: `pause()` always clears the resume event, even
+    when `cancel()` has already been called (sticky). A subsequent
+    `wait_if_paused()` then blocks forever because nothing will set the
+    event again.
+
+    Sequence: cancel() (sets event + cancel_flag), then pause() (clears
+    event despite cancel being sticky). A waiter entering wait_if_paused
+    after this sequence must wake — `cancel_flag` is set, the runner
+    will check `should_cancel()` and exit, but only if it can leave
+    `wait_if_paused()` first.
+
+    Fix: `pause()` should treat post-cancel calls as no-ops, OR re-set
+    the event after clear if `_cancel_flag` is set.
+    """
+    c = CopyController()
+    woke = threading.Event()
+
+    # Cancel first; event is set, cancel_flag is True.
+    c.cancel(recycle_partial=False)
+    # Now pause: under the bug, this clears the event even though cancel
+    # was sticky. The fix preserves the event-set state.
+    c.pause()
+
+    def waiter() -> None:
+        c.wait_if_paused()
+        woke.set()
+
+    t = threading.Thread(target=waiter, daemon=True)
+    t.start()
+    assert woke.wait(timeout=2.0), (
+        "waiter did not wake within 2s — pause() after cancel() left "
+        "the resume event cleared, deadlocking the runner"
+    )
+    t.join(timeout=2.0)

@@ -71,7 +71,20 @@ class CopyReportStatus(StrEnum):
 
 
 class BIOSResolutionWarning(BaseModel):
-    """Non-fatal advisory from the BIOS chain walk."""
+    """Non-fatal advisory from the BIOS chain walk.
+
+    `kind="missing_from_listxml"` — the named entry is itself a winner that's
+    absent from `bios_chain` (top-level miss). The user almost certainly has
+    stale listxml data; the BIOS chain for this winner is unknowable.
+
+    Transitive misses (a winner's romof/biosset chain reaches a name absent
+    from `bios_chain`) are NOT surfaced as warnings — they conflate with
+    leaf-BIOS machines that simply have no upstream chain entries. The real
+    "missing BIOS file" failure mode is already surfaced as
+    `CopyOutcomeStatus.SKIPPED_MISSING_SOURCE` during the copy phase when
+    the BIOS `.zip` is absent from the source directory. FP05 B1
+    (transitive warning) was reclassified after empirical investigation.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
     name: str

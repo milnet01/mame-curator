@@ -9,14 +9,13 @@ Subcommands (added incrementally as phases land):
 from __future__ import annotations
 
 import argparse
-import contextlib
 import json
 import logging
-import os
 from pathlib import Path
 
 from rich.console import Console
 
+from mame_curator._atomic import atomic_write_text
 from mame_curator.copy import (
     ConflictStrategy,
     CopyError,
@@ -180,30 +179,26 @@ def _cmd_filter(args: argparse.Namespace) -> int:
         err_console.print(f"[red]error:[/red] failed to load inputs: {exc}")
         return 1
     except OSError as exc:
-        # CLI input paths can point at directories, dangling symlinks, EIO,
-        # perm-denied — all OSError. cli/spec.md § "Errors the CLI catches but
-        # never raises" requires exit-1 with a labelled error line, not a raw
-        # traceback (DS01 C6).
+        # FP05 B8: defense-in-depth. The loaders above already wrap OSError
+        # into typed errors (ParserError / FilterError); the residual surface
+        # for raw OSError reaching this scope is narrow (TOCTOU between
+        # `path.exists()` and read). Spec § "Errors the CLI catches but
+        # never raises" requires exit-1 with a labelled error line.
         err_console.print(f"[red]error:[/red] cannot read input: {exc}")
         return 1
 
     result = run_filter(machines, ctx, FilterConfig(), overrides, sessions)
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    # Atomic write: prevents half-written report.json on Ctrl-C / OOM
-    # mid-write (DS01 C7). Mirrors copy/executor.py:60-72's `.tmp` + `os.replace`
-    # pattern, including the try/finally cleanup so a failed `write_text`
-    # doesn't leave a stale `.tmp` for the next run to overwrite or carry
-    # forward (DS01 closing-review fix).
-    tmp = args.out.with_suffix(args.out.suffix + ".tmp")
-    completed = False
+    # FP05 C2: atomic write via shared `atomic_write_text` helper (was an
+    # inline tmp + os.replace block; the helper handles `try/finally`,
+    # unique tmp-name via `tempfile.NamedTemporaryFile`, and OSError
+    # propagation including EXDEV). FP05 closing-review R5: catch the
+    # OSError surface so a cross-FS rename / perm-denied / disk-full
+    # doesn't leak a traceback to the user.
     try:
-        tmp.write_text(result.model_dump_json(indent=2) + "\n")
-        os.replace(tmp, args.out)
-        completed = True
-    finally:
-        if not completed:
-            with contextlib.suppress(OSError):
-                tmp.unlink(missing_ok=True)
+        atomic_write_text(args.out, result.model_dump_json(indent=2) + "\n")
+    except OSError as exc:
+        err_console.print(f"[red]error:[/red] failed to write {args.out}: {exc}")
+        return 1
 
     console.print(f"  winners: {len(result.winners)}")
     console.print(f"  dropped: {len(result.dropped)}")
@@ -228,6 +223,14 @@ def _cmd_copy(args: argparse.Namespace) -> int:
         chd_required = frozenset(parse_listxml_disks(args.listxml))
     except ParserError as exc:
         err_console.print(f"[red]error:[/red] failed to load inputs: {exc}")
+        return 1
+    except OSError as exc:
+        # FP05 B9: mirror DS01 C6 / FP05 B8 into _cmd_copy. Defense-in-depth
+        # against bare OSError surfacing from `--dat` / `--listxml` paths
+        # that point at directories or unreadable files. The parsers wrap
+        # most OSError cases, but the TOCTOU between `.exists()` and read
+        # can still surface a bare exception.
+        err_console.print(f"[red]error:[/red] cannot read input: {exc}")
         return 1
 
     try:
@@ -268,6 +271,17 @@ def _cmd_copy(args: argparse.Namespace) -> int:
     if args.dry_run:
         console.print("  [yellow](dry-run — no files written)[/yellow]")
 
-    if report.status in (CopyReportStatus.OK,):
+    # FP05 B10: distinct exit codes per CopyReportStatus.
+    # OK: 0 (clean run).
+    # CANCELLED (SIGINT family — user-initiated stop): 130 = 128 + signal 2.
+    # CANCELLED_PLAYLIST_CONFLICT (deliberate user-prompt-cancel — distinct
+    #   from signal-driven, so shell scripts that special-case 130 don't
+    #   mis-attribute prompt-cancels): 3.
+    # PARTIAL_FAILURE / FAILED: 1 (generic runtime error, per cli/spec.md).
+    if report.status is CopyReportStatus.OK:
         return 0
+    if report.status is CopyReportStatus.CANCELLED:
+        return 130
+    if report.status is CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT:
+        return 3
     return 1

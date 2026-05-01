@@ -31,8 +31,10 @@ Subcommand-specific flags live on their respective subparsers, not here.
 | Code | Meaning | Source |
 |---|---|---|
 | `0` | Success. | Library calls returned without raising. |
-| `1` | Runtime / data error — DAT corrupt, listxml unreadable, override target missing, etc. | A `ParserError` / `FilterError` / `CopyError` was caught at the CLI boundary. |
+| `1` | Runtime / data error — DAT corrupt, listxml unreadable, override target missing, copy `PARTIAL_FAILURE` / `FAILED`, etc. | A `ParserError` / `FilterError` / `CopyError` was caught at the CLI boundary, or `_cmd_copy`'s report status was non-OK and not a cancel-family. |
 | `2` | Usage error — unknown subcommand, missing required argument, malformed flag, etc. | argparse exits with this BEFORE `run()` is ever called. The CLI MUST NOT use `2` for runtime errors (collides with argparse's reserved meaning; breaks shell-scripting around the tool). |
+| `3` | User-prompt cancel — `mame-curator copy` was cancelled via the playlist-conflict prompt (`CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT`). Distinct from SIGINT-driven cancel so shell scripts that special-case 130 don't mis-attribute prompt-cancels (FP05 B10). | `_cmd_copy` |
+| `130` | SIGINT-family cancel — `mame-curator copy` was cancelled by Ctrl-C / signal-driven stop (`CopyReportStatus.CANCELLED`). Conventional POSIX exit code (128 + signal 2 = 130). | `_cmd_copy` |
 
 ## Output routing (per coding standards §9)
 

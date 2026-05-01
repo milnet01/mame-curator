@@ -101,3 +101,26 @@ def test_resolve_bios_chain_orphan_machine(bios_chain: dict[str, BIOSChainEntry]
     bios, warnings = resolve_bios_dependencies(["orphan"], bios_chain)
     assert bios == frozenset()
     assert any(w.name == "orphan" for w in warnings)
+
+
+# FP05 — B1 test below
+
+
+def test_resolve_silently_handles_transitive_missing_intermediary() -> None:
+    """B1 (reclassified) — a winner whose chain transitively reaches a name
+    absent from `bios_chain` emits NO warning. Transitive misses conflate
+    with leaf-BIOS machines that simply have no upstream chain entry; the
+    real "missing BIOS file" failure mode is surfaced later as
+    `SKIPPED_MISSING_SOURCE` during the copy phase. This test pins the
+    silent-handling contract so future fix-passes don't accidentally
+    re-introduce a noisy transitive warning."""
+    chain: dict[str, BIOSChainEntry] = {
+        "winnerW": BIOSChainEntry(romof="bridgeX", biossets=()),
+        "bridgeX": BIOSChainEntry(romof="missingY", biossets=()),
+        # missingY absent from the chain — treated as a leaf BIOS, no warning.
+    }
+    bios, warnings = resolve_bios_dependencies(["winnerW"], chain)
+    # missingY is in the bios set (added during the chain walk before lookup).
+    assert "missingY" in bios
+    # No warning — transitive misses don't surface here.
+    assert warnings == ()

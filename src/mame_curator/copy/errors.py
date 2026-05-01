@@ -27,10 +27,6 @@ class CopyError(Exception):
         return base
 
 
-class BIOSResolutionError(CopyError):
-    """Raised on a malformed `bios_chain` map structure."""
-
-
 class PreflightError(CopyError):
     """Destination not writable, free-space shortfall, source missing."""
 

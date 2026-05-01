@@ -60,13 +60,29 @@ class FilterResult(BaseModel):
 
 
 class FilterContext(BaseModel):
-    """INI-augmented per-machine context consumed by Phase A predicates."""
+    """INI-augmented per-machine context consumed by Phase A predicates.
+
+    The dict-shaped fields below (`category`, `languages`, `cloneof_map`,
+    `bestgames_tier`) are owner-mutable Python dicts: Pydantic's
+    `frozen=True` freezes field rebinding on the model, NOT the contained
+    dicts' internal state. By convention, every `filter/` consumer treats
+    these fields as read-only — no `result.category["x"] = "y"` mutations
+    anywhere in the codebase. A future fix-pass may migrate to
+    `MappingProxyType` views for runtime enforcement; the migration was
+    deferred from FP05 because Pydantic v2 round-trip serialisation
+    (`model_dump_json` → `model_validate`) needs an explicit `BeforeValidator`
+    *and* `PlainSerializer` pair to round-trip MappingProxyType cleanly.
+    Until that lands, callers honour the convention.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    # FP05 B6: convention is read-only despite dict type. See class docstring.
     category: dict[str, str] = Field(default_factory=dict)
     languages: dict[str, tuple[str, ...]] = Field(default_factory=dict)
     mature: frozenset[str] = Field(default_factory=frozenset)
     chd_required: frozenset[str] = Field(default_factory=frozenset)
+    # FP05 B6: convention is read-only despite dict type. See class docstring.
     cloneof_map: dict[str, str] = Field(default_factory=dict)
+    # FP05 B6: convention is read-only despite dict type. See class docstring.
     bestgames_tier: dict[str, str] = Field(default_factory=dict)

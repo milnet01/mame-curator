@@ -146,3 +146,56 @@ def test_sessions_oserror_wrapped(tmp_path: Path) -> None:
     d.mkdir()
     with pytest.raises(SessionsError):
         load_sessions(d)
+
+
+# FP05 — cluster A2 + B7 tests below
+
+
+def test_sessions_rejects_empty_string_active() -> None:
+    """A2a — `Sessions(active="", sessions={"": Session(...)})` should raise.
+
+    Empty-string keys are valid Python dict keys; the membership test in
+    `Sessions._active_must_reference_a_defined_session` would pass. The
+    `_apply_session` runner.py:100 would then silently activate the
+    empty-name session — bypassing the user's intent.
+    """
+    from mame_curator.filter.sessions import Sessions
+
+    valid_session = Session(include_genres=("Fighter*",))
+    with pytest.raises((SessionsError, ValueError)):
+        Sessions(active="", sessions={"": valid_session})
+
+
+def test_sessions_loader_rejects_empty_string_session_key(tmp_path: Path) -> None:
+    """A2b — `sessions.yaml` with an empty-string key in `sessions:` mapping
+    must raise. Loader-path counterpart to A2a's model-validator-path."""
+    f = tmp_path / "empty_key.yaml"
+    f.write_text(
+        "active: null\nsessions:\n  '':\n    include_genres: ['Fighter*']\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(SessionsError):
+        load_sessions(f)
+
+
+def test_session_year_range_validator_rejects_reversed() -> None:
+    """B7 — `Session(include_year_range=(1995, 1990))` should raise.
+
+    Currently only `Session.from_raw` enforces `lo <= hi`. Direct construction
+    bypasses the check (same bug class C1 closed for `Sessions.active`)."""
+    from mame_curator.filter.sessions import Session
+
+    with pytest.raises((SessionsError, ValueError)):
+        Session(include_genres=("X*",), include_year_range=(1995, 1990))
+
+
+def test_session_validator_rejects_no_include_rules() -> None:
+    """B7 — programmatic `Session()` with no include rules must also raise.
+
+    `from_raw` enforces this via the "session 'X' has no include rules" path;
+    the model_validator should enforce the same invariant on direct
+    construction."""
+    from mame_curator.filter.sessions import Session
+
+    with pytest.raises((SessionsError, ValueError)):
+        Session()

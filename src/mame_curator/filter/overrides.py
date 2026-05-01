@@ -8,11 +8,8 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from mame_curator.filter._io import read_capped_text
 from mame_curator.filter.errors import OverridesError
-
-# Defends against YAML alias-bomb DoS when P07's `setup/` ships preset
-# downloads. Self-authored configs are nowhere near this size.
-_MAX_YAML_BYTES = 1 * 1024 * 1024  # 1 MiB
 
 
 class Overrides(BaseModel):
@@ -27,33 +24,11 @@ class Overrides(BaseModel):
     entries: dict[str, str] = Field(default_factory=dict, alias="overrides")
 
 
-def _read_yaml_text(path: Path) -> str:
-    """Read `path` as UTF-8 text, enforcing the 1 MiB cap and wrapping `OSError`.
-
-    OSError is raised by `read_text` on directories, EIO, perm-denied, NFS
-    hiccups; the bare-OSError escape was a TOCTOU finding from the pre-P03
-    indie-review (DS01 C5). The size cap (DS01 C3) defends against alias-bombs.
-    """
-    try:
-        size = path.stat().st_size
-    except OSError as exc:
-        raise OverridesError(f"failed to stat {path}: {exc}") from exc
-    if size > _MAX_YAML_BYTES:
-        raise OverridesError(
-            f"{path} exceeds {_MAX_YAML_BYTES}-byte cap "
-            f"(actual: {size}); refusing to parse to defend against YAML alias bombs"
-        )
-    try:
-        return path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise OverridesError(f"failed to read {path}: {exc}") from exc
-
-
 def load_overrides(path: Path) -> Overrides:
     """Read and validate `overrides.yaml`. Missing file → empty Overrides."""
     if not path.exists():
         return Overrides()
-    text = _read_yaml_text(path)
+    text = read_capped_text(path, exc_cls=OverridesError)
     try:
         raw: Any = yaml.safe_load(text)
     except yaml.YAMLError as exc:

@@ -8,11 +8,8 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
+from mame_curator.filter._io import read_capped_text
 from mame_curator.filter.errors import SessionsError
-
-# Defends against YAML alias-bomb DoS when P07's `setup/` ships preset
-# downloads. Self-authored configs are nowhere near this size.
-_MAX_YAML_BYTES = 1 * 1024 * 1024  # 1 MiB
 
 
 class Session(BaseModel):
@@ -25,25 +22,32 @@ class Session(BaseModel):
     include_developers: tuple[str, ...] = ()
     include_year_range: tuple[int, int] | None = None
 
+    @model_validator(mode="after")
+    def _validate_session(self) -> Session:
+        # Direct-construction invariants (FP05 B7). `from_raw` wraps the
+        # raised `ValueError`/`ValidationError` into `SessionsError`; direct
+        # callers see Pydantic's `ValidationError` with this `ValueError`
+        # as `__cause__`.
+        if (
+            not self.include_genres
+            and not self.include_publishers
+            and not self.include_developers
+            and self.include_year_range is None
+        ):
+            raise ValueError("session has no include rules")
+        if self.include_year_range is not None:
+            lo, hi = self.include_year_range
+            if lo > hi:
+                raise ValueError(f"year range {lo}..{hi} is reversed")
+        return self
+
     @classmethod
     def from_raw(cls, name: str, raw: dict[str, Any]) -> Session:
         """Validate one session block from the YAML and reject empty ones."""
         try:
-            session = cls.model_validate(raw)
+            return cls.model_validate(raw)
         except ValidationError as exc:
             raise SessionsError(f"session '{name}': {exc}") from exc
-        if (
-            not session.include_genres
-            and not session.include_publishers
-            and not session.include_developers
-            and session.include_year_range is None
-        ):
-            raise SessionsError(f"session '{name}' has no include rules")
-        if session.include_year_range is not None:
-            lo, hi = session.include_year_range
-            if lo > hi:
-                raise SessionsError(f"session '{name}' year range {lo}..{hi} is reversed")
-        return session
 
 
 class Sessions(BaseModel):
@@ -56,41 +60,26 @@ class Sessions(BaseModel):
 
     @model_validator(mode="after")
     def _active_must_reference_a_defined_session(self) -> Sessions:
-        # Programmatic construction must respect the same invariant the YAML
-        # loader enforces — `active` referencing a non-existent session is a
-        # bug, not a runtime-discoverable surprise (DS01 C1).
+        # Programmatic construction must respect the same invariants the YAML
+        # loader enforces (DS01 C1, FP05 A2):
+        #   - `active` is None or a real session key.
+        #   - empty-string `active` is rejected (would silently match a `""`
+        #     session key).
+        #   - empty-string session keys are rejected at load time (FP05 A2b).
         if self.active is not None and self.active not in self.sessions:
             raise SessionsError(f"active session '{self.active}' is not defined in 'sessions'")
+        if self.active == "":
+            raise SessionsError("active session name must be non-empty")
+        if "" in self.sessions:
+            raise SessionsError("session keys must be non-empty strings")
         return self
-
-
-def _read_yaml_text(path: Path) -> str:
-    """Read `path` as UTF-8 text, enforcing the 1 MiB cap and wrapping `OSError`.
-
-    OSError is raised by `read_text` on directories, EIO, perm-denied, NFS
-    hiccups; the bare-OSError escape was a TOCTOU finding from the pre-P03
-    indie-review (DS01 C5). The size cap (DS01 C3) defends against alias-bombs.
-    """
-    try:
-        size = path.stat().st_size
-    except OSError as exc:
-        raise SessionsError(f"failed to stat {path}: {exc}") from exc
-    if size > _MAX_YAML_BYTES:
-        raise SessionsError(
-            f"{path} exceeds {_MAX_YAML_BYTES}-byte cap "
-            f"(actual: {size}); refusing to parse to defend against YAML alias bombs"
-        )
-    try:
-        return path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise SessionsError(f"failed to read {path}: {exc}") from exc
 
 
 def load_sessions(path: Path) -> Sessions:
     """Read and validate `sessions.yaml`. Missing file → empty Sessions."""
     if not path.exists():
         return Sessions()
-    text = _read_yaml_text(path)
+    text = read_capped_text(path, exc_cls=SessionsError)
     try:
         raw_obj: Any = yaml.safe_load(text)
     except yaml.YAMLError as exc:
@@ -120,6 +109,10 @@ def load_sessions(path: Path) -> Sessions:
 
     validated: dict[str, Session] = {}
     for name, body in sessions_dict.items():
+        # Reject empty-string session keys at load time (FP05 A2b) — they
+        # are valid Python dict keys and would silently match an `active: ""`.
+        if name == "":
+            raise SessionsError("session keys must be non-empty strings")
         # Same explicit-None semantics for per-session bodies — `null` means
         # "no fields set" (caught by `from_raw`'s no-include-rules check),
         # but a stray `[]` / `""` / `0` is malformed.
@@ -132,6 +125,11 @@ def load_sessions(path: Path) -> Sessions:
                 f"session '{name}' body must be a mapping or null (got {type(body).__name__})"
             )
         validated[name] = Session.from_raw(name, body_dict)
-    if active is not None and active not in validated:
-        raise SessionsError(f"active session '{active}' is not defined in 'sessions'")
-    return Sessions(active=active, sessions=validated)
+    # Build via `Sessions(...)` so the `_active_must_reference_a_defined_session`
+    # model_validator runs (catches active-not-in-sessions, empty-active,
+    # empty-key residuals — FP05 L4 removes the duplicate explicit check
+    # this used to do).
+    try:
+        return Sessions(active=active, sessions=validated)
+    except ValidationError as exc:
+        raise SessionsError(f"{path}: {exc}") from exc
