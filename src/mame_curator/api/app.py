@@ -40,7 +40,9 @@ def create_app(config_path: Path) -> FastAPI:
         # P05: 10s timeout moves from per-call (was inline in routes/media.py)
         # to client construction so fetch_with_cache(...) inherits it without
         # a per-call timeout= argument.
-        app.state.media_client = httpx.AsyncClient(timeout=10.0)
+        # FP10 A1: follow_redirects=True so a libretro CDN 301/302 transits
+        # transparently instead of surfacing as MediaFetchError("upstream 301").
+        app.state.media_client = httpx.AsyncClient(timeout=10.0, follow_redirects=True)
         try:
             yield
         finally:

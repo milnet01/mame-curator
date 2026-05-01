@@ -57,15 +57,23 @@ async def fetch_with_cache(
     The wasted second download is acceptable at single-user scale.
     """
     path = cache_path_for(url, cache_dir)
+    # FP10 A4: TOCTOU-safe — cache writes are append-only via atomic_write_bytes
+    # (no delete path); a concurrent rename produces a new inode whose bytes
+    # any reader after this exists() check sees correctly under POSIX.
     if path.exists():
         return path
     try:
         resp = await client.get(url)
     except httpx.HTTPError as exc:
-        raise MediaFetchError(f"network error for {url!r}: {exc!r}") from exc
+        raise MediaFetchError(f"network error for {url!r}: {exc}") from exc
     if resp.status_code == 404:
         return None
     if resp.status_code != 200:
         raise MediaFetchError(f"upstream {resp.status_code} for {url!r}")
+    if not resp.content:
+        # FP10 A2: raw.githubusercontent.com rate-limit interstitials and CDN
+        # edge cases occasionally return 200 + Content-Length: 0. Caching that
+        # poisons the slot; treat as a fetch error instead.
+        raise MediaFetchError(f"empty body for {url!r}")
     atomic_write_bytes(path, resp.content)
     return path

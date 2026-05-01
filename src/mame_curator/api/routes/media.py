@@ -47,7 +47,10 @@ async def media_proxy(
     try:
         path = await fetch_with_cache(url, cache_dir, client=client)
     except MediaFetchError as exc:
-        raise MediaUpstreamError(f"upstream error: {exc!r}") from exc
+        # FP10 A3: pass the inner message through verbatim — the typed cause is
+        # on __cause__ for logs; the user-facing detail shouldn't leak the
+        # class name or double-prefix "upstream error:".
+        raise MediaUpstreamError(str(exc)) from exc
     if path is None:
         raise MediaUpstreamNotFoundError(f"upstream 404 for {url!r}")
     return Response(content=path.read_bytes(), media_type="image/png")

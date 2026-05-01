@@ -146,6 +146,27 @@ async def test_fetch_with_cache_raises_on_500(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_fetch_with_cache_raises_on_empty_200(tmp_path: Path) -> None:
+    """FP10 A2: 200 + empty body → ``MediaFetchError``; cache must NOT be poisoned.
+
+    ``raw.githubusercontent.com`` rate-limit interstitials and CDN edge cases
+    occasionally return ``200 + Content-Length: 0``. Without the guard, a
+    zero-byte file is cached and every subsequent request serves nothing.
+    """
+    from mame_curator.media import MediaFetchError, cache_path_for, fetch_with_cache
+
+    expected_path = cache_path_for(_URL, tmp_path)
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(_URL).mock(return_value=httpx.Response(200, content=b""))
+            with pytest.raises(MediaFetchError) as exc_info:
+                await fetch_with_cache(_URL, tmp_path, client=client)
+
+    assert "empty" in str(exc_info.value).lower()
+    assert not expected_path.exists(), "empty body must not be cached"
+
+
+@pytest.mark.asyncio
 async def test_fetch_with_cache_raises_on_network_error(tmp_path: Path) -> None:
     """``httpx.HTTPError`` → ``MediaFetchError`` chained via ``__cause__``."""
     from mame_curator.media import MediaFetchError, fetch_with_cache
@@ -157,6 +178,27 @@ async def test_fetch_with_cache_raises_on_network_error(tmp_path: Path) -> None:
                 await fetch_with_cache(_URL, tmp_path, client=client)
 
     assert isinstance(exc_info.value.__cause__, httpx.HTTPError)
+
+
+@pytest.mark.asyncio
+async def test_fetch_with_cache_network_error_message_no_double_repr(tmp_path: Path) -> None:
+    """FP10 A5: network-error message uses ``{url!r}: {exc}`` — no second ``!r``.
+
+    The chained ``__cause__`` already carries the typed exception for logs;
+    repeating the class name in the user-facing message (``ConnectTimeout(...)``)
+    is noise.
+    """
+    from mame_curator.media import MediaFetchError, fetch_with_cache
+
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(_URL).mock(side_effect=httpx.ConnectTimeout("connection timeout"))
+            with pytest.raises(MediaFetchError) as exc_info:
+                await fetch_with_cache(_URL, tmp_path, client=client)
+
+    msg = str(exc_info.value)
+    assert repr(_URL) in msg, "url should be repr-quoted (single !r)"
+    assert "ConnectTimeout(" not in msg, "exc class name should not leak (drop second !r)"
 
 
 @pytest.mark.asyncio

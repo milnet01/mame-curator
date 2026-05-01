@@ -15,6 +15,7 @@ import respx
 _BASE = "https://raw.githubusercontent.com/libretro-thumbnails/MAME/master"
 # Mini-DAT fixture: <machine name="pacman"><description>Pac-Man (Midway)</description>
 _PACMAN_BOXART_URL = f"{_BASE}/Named_Boxarts/Pac-Man%20%28Midway%29.png"
+_REDIRECT_TARGET = f"{_BASE}/Named_Boxarts/Pac-Man-relocated.png"
 
 
 def test_route_r39_shape_media_unknown_kind(client: Any) -> None:
@@ -82,3 +83,43 @@ def test_proxy_route_propagates_upstream_500(client: Any) -> None:
 
     assert response.status_code == 502
     assert response.json()["code"] == "media_upstream_error"
+
+
+def test_proxy_route_follows_redirect(client: Any) -> None:
+    """FP10 A1: 301 from upstream must transit (httpx ``follow_redirects=True``).
+
+    Without that flag, httpx returns the 301 to the route, which surfaces as
+    ``MediaFetchError("upstream 301 ...")`` → 502 to the client. After the
+    fix, httpx follows the redirect transparently and the proxied 200 lands.
+    """
+    body = b"\x89PNG\r\n\x1a\n" + b"after-redirect"
+    with respx.mock() as mock:
+        route1 = mock.get(_PACMAN_BOXART_URL).mock(
+            return_value=httpx.Response(301, headers={"Location": _REDIRECT_TARGET})
+        )
+        route2 = mock.get(_REDIRECT_TARGET).mock(return_value=httpx.Response(200, content=body))
+        response = client.get("/media/pacman/boxart")
+
+    assert response.status_code == 200
+    assert response.content == body
+    assert route1.called
+    assert route2.called, "redirect target must be fetched (follow_redirects=True)"
+
+
+def test_proxy_route_500_detail_no_double_wrap(client: Any) -> None:
+    """FP10 A3: 500 user-facing ``detail`` must not double-wrap the inner cause.
+
+    Pre-fix: ``MediaUpstreamError(f"upstream error: {exc!r}")`` produces
+    ``upstream error: MediaFetchError("upstream 500 ...")`` — class name leaks
+    into the wire body. Post-fix: ``MediaUpstreamError(str(exc))`` exposes only
+    the inner message; the typed cause is still on ``__cause__`` for logs.
+    """
+    with respx.mock(assert_all_called=True) as mock:
+        mock.get(_PACMAN_BOXART_URL).mock(return_value=httpx.Response(500))
+        response = client.get("/media/pacman/boxart")
+
+    assert response.status_code == 502
+    detail = response.json()["detail"]
+    assert "MediaFetchError" not in detail, "class name should not leak to user"
+    assert "upstream error:" not in detail, "redundant prefix"
+    assert "500" in detail, "inner cause's status code should still be present"
