@@ -113,6 +113,13 @@ class JobNotFoundError(ApiException):
     status_code = 404
 
 
+class CopyReportCorruptError(ApiException):
+    """502 — copy-history report exists but cannot be parsed as CopyReport."""
+
+    code = "copy_report_corrupt"
+    status_code = 502
+
+
 class PlaylistConflictCancelledError(ApiException):
     """409 — CANCEL strategy aborted the start because a playlist exists."""
 

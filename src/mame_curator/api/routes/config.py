@@ -107,6 +107,12 @@ def patch_config(
     if path_errs:
         raise ConfigError("config validation failed", fields=path_errs)
 
+    # FP09 B6: short-circuit no-op PATCH so the world (and its
+    # filter_result / allowed_roots) preserves identity. Spec § "What does
+    # NOT trigger a re-run" plus the P01 hypothesis property.
+    if new_config == world.config:
+        return _to_response(world.config, restart_required=False)
+
     snapshots_dir = world.data_dir / "snapshots"
     if world.config_path.exists():
         snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
@@ -212,6 +218,17 @@ def import_config(
             "config import: invalid sessions",
             fields=field_errors_from_pydantic(exc.errors()),
         ) from exc
+
+    # FP09 A3: R11 (POST /api/sessions) enforces `_SESSION_NAME_RE`; R19's
+    # import path was bypassing it, so a malicious bundle could write a
+    # session named `_deactivate` (or any reserved control name) into
+    # sessions.yaml. Re-apply the regex per session-name on import.
+    from mame_curator.api.errors import SessionNameInvalidError
+    from mame_curator.api.routes.curate import _SESSION_NAME_RE
+
+    for name in new_sessions.sessions:
+        if not _SESSION_NAME_RE.match(name):
+            raise SessionNameInvalidError(f"session name invalid in import: {name!r}")
 
     snapshots_dir = world.data_dir / "snapshots"
     snapshot_files(

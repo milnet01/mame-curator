@@ -10,6 +10,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI
 
 from mame_curator.api.errors import install_handlers
@@ -29,9 +30,18 @@ def create_app(config_path: Path) -> FastAPI:
         world = build_world(config_path)
         app.state.world = world
         app.state.job = JobManager(history_dir=world.data_dir / "copy-history")
+        # FP09 B4: shared httpx.AsyncClient for the media proxy. Per-request
+        # AsyncClient creation triggers a fresh TLS handshake on every R39
+        # request — 50 thumbnails per browse view → 50 handshakes against
+        # `raw.githubusercontent.com`. One client, reused, amortizes TLS
+        # negotiation across the connection-pool lifetime (the default httpx
+        # client is HTTP/1.1 with keep-alive; HTTP/2 multiplexing requires
+        # `httpx[http2]` extras + `http2=True` and is a P05 concern).
+        app.state.media_client = httpx.AsyncClient()
         try:
             yield
         finally:
+            await app.state.media_client.aclose()
             jm: JobManager = app.state.job
             current = jm.current
             if current is not None:

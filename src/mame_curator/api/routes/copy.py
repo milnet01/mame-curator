@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from sse_starlette.sse import EventSourceResponse
 
-from mame_curator.api.errors import JobNotFoundError
+from mame_curator.api.errors import CopyReportCorruptError, JobNotFoundError
 from mame_curator.api.jobs import JobManager, check_playlist_conflict
 from mame_curator.api.routes._deps import get_jobs, get_world
 from mame_curator.api.schemas import (
@@ -148,9 +147,22 @@ def list_history(
     )
 
 
-@router.get("/api/copy/history/{job_id}/report")
-def get_history_report(job_id: str, world: WorldState = Depends(get_world)) -> dict[str, Any]:
+@router.get("/api/copy/history/{job_id}/report", response_model=CopyReport)
+def get_history_report(job_id: str, world: WorldState = Depends(get_world)) -> CopyReport:
     path = world.data_dir / "copy-history" / job_id / "report.json"
     if not path.exists():
         raise JobNotFoundError(f"history report not found: {job_id!r}")
-    return json.loads(path.read_text(encoding="utf-8"))  # type: ignore[no-any-return]
+    # FP09 A2: validate against the CopyReport schema on egress so a corrupt
+    # or truncated report.json (manual edit, partial write) doesn't leak
+    # malformed JSON to clients. Spec line 167 requires the typed response.
+    # FP09 Cluster R M1: distinct error code for corrupt-but-existing reports
+    # ("filesystem rot" signal) vs unknown id (404) — operators debugging at
+    # 3 AM need to tell those failure modes apart.
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise CopyReportCorruptError(f"history report unreadable: {job_id!r}: {exc!r}") from exc
+    try:
+        return CopyReport.model_validate_json(text)
+    except ValueError as exc:
+        raise CopyReportCorruptError(f"history report corrupt: {job_id!r}: {exc!r}") from exc

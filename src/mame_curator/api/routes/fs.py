@@ -57,16 +57,20 @@ def fs_list(path: str, world: WorldState = Depends(get_world)) -> FsListing:
                 )
             )
     except OSError as exc:
-        raise FsPathInvalidError(f"failed to list {str(requested)!r}: {exc}") from exc
+        # FP09 A1: repr-quote `exc` so a multi-line OSError str can't break
+        # the FP06-FP08 single-line `detail` invariant.
+        raise FsPathInvalidError(f"failed to list {str(requested)!r}: {exc!r}") from exc
 
+    # FP09 B7: simplified from a dead-branch for-else. `parent` is the next
+    # navigable ancestor — None when at an allowlist root, or when going up
+    # would leave the sandbox (the Browse UI mustn't offer a click that
+    # immediately 403s).
     parent: str | None = None
-    for root in world.allowed_roots:
-        if str(requested) == root.path:
-            parent = None
-            break
-    else:
-        if requested.parent != requested:
-            parent = str(requested.parent)
+    is_root = any(str(requested) == r.path for r in world.allowed_roots)
+    if not is_root and requested.parent != requested:
+        candidate = requested.parent
+        if any(candidate.is_relative_to(Path(r.path)) for r in world.allowed_roots):
+            parent = str(candidate)
     return FsListing(path=str(requested), entries=tuple(entries), parent=parent)
 
 

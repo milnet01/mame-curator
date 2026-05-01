@@ -42,11 +42,29 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
         finally:
             tmp_handle.close()
         os.replace(tmp_path, path)
+        # FP09 B9: spec § Atomic-write protocol step 4 — parent-dir fsync
+        # so the rename is durable on power loss. Best-effort: tmpfs and
+        # some networked filesystems reject parent-dir fsync.
+        _fsync_parent_dir(path)
         completed = True
     finally:
         if not completed:
             with contextlib.suppress(OSError):
                 tmp_path.unlink(missing_ok=True)
+
+
+def _fsync_parent_dir(path: Path) -> None:
+    """Best-effort fsync of `path`'s parent directory."""
+    try:
+        fd = os.open(path.parent, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        with contextlib.suppress(OSError):
+            os.fsync(fd)
+    finally:
+        with contextlib.suppress(OSError):
+            os.close(fd)
 
 
 def atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8") -> None:
@@ -91,6 +109,10 @@ def atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8") -> None
         # disk-full) propagates with errno preserved; the `finally` cleans
         # the tmp.
         os.replace(tmp_path, path)
+        # FP09 B9: spec § Atomic-write protocol step 4 — parent-dir fsync
+        # so the rename is durable on power loss. Mirrors the new
+        # atomic_write_bytes pattern for symmetry.
+        _fsync_parent_dir(path)
         completed = True
     finally:
         if not completed:

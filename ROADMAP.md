@@ -613,7 +613,7 @@ Dependencies: FP08 ✅. 5 regression tests added; 300 tests pass; coverage 95.11
 
 ---
 
-## P04 — HTTP API (in progress 2026-05-01; blocked on FP09)
+## P04 — HTTP API (shipped 2026-05-01)
 
 **Theme:** FastAPI server exposing P01-P03 over HTTP + SSE for
 copy progress.
@@ -623,19 +623,17 @@ copy progress.
 
 ### 🎨 Features
 
-- 🚧 **P04 — `api/` module.** All routes from design spec § 6.5;
+- ✅ **P04 — `api/` module.** All routes from design spec § 6.5;
   Pydantic schemas; SSE for copy progress; sandboxed `/api/fs/*`
-  browser routes. Coverage target: ≥80%.
-  Implementation shipped 2026-05-01 (363 tests pass, 88.49% coverage,
-  all five gates green); close attempted; indie-review folded 13
-  findings into FP09. Closes when FP09 closes.
+  browser routes. Coverage target: ≥80% (achieved ~86%).
+  Shipped 2026-05-01 across one P04 commit + FP09 fix-pass.
   Kind: implement.
   Lanes: api, tests.
-  Dependencies: P03.
+  Dependencies: P03 ✅.
 
 ---
 
-## FP09 — P04 indie-review fold-in (in progress 2026-05-01)
+## FP09 — P04 indie-review fold-in (closed 2026-05-01)
 
 **Theme:** the closing `/audit` + `/indie-review` pass on P04's
 ship surfaced 13 actionable findings in the just-shipped `api/`
@@ -646,7 +644,7 @@ specific grep gates; all 13 actionable items came from
 
 ### 🔍 Findings fold-in
 
-- 🚧 **FP09** [mame-curator-1001] **Fix-pass after P04 (HTTP API).**
+- ✅ **FP09** [mame-curator-1001] **Fix-pass after P04 (HTTP API).**
   Lanes: api, cli, tests, docs.
   - **A1** (Tier 1) — `{exc}` interpolated without `repr()` at
     `state.py:75`, `state.py:77` (`yaml.YAMLError`, `ConfigError`),

@@ -7,8 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
-from hypothesis import given, settings
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 # ---- Per-route shape tests --------------------------------------------------
@@ -125,8 +124,11 @@ def test_config_export_import_round_trip(client: Any) -> None:
 
 
 @given(st.fixed_dictionaries({}))
-@settings(max_examples=5, deadline=None)
-@pytest.mark.xfail(reason="P04 — not yet implemented", strict=False)
+@settings(
+    max_examples=5,
+    deadline=None,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
 def test_filter_recompute_idempotent_under_no_op_patch(client: Any, _: dict[str, Any]) -> None:
     """P01 — PATCH with no fields → 200 + filter result unchanged.
 

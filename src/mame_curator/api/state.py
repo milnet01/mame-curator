@@ -72,7 +72,9 @@ def load_app_config(config_path: Path) -> AppConfig:
     try:
         raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
-        raise ConfigError(f"failed to parse {str(config_path)!r}: {exc}") from exc
+        # FP09 A1: repr-quote `exc` so a multi-line YAML error message can't
+        # break the FP06-FP08 single-line `detail` invariant.
+        raise ConfigError(f"failed to parse {str(config_path)!r}: {exc!r}") from exc
     if not isinstance(raw, dict):
         raise ConfigError(f"{str(config_path)!r} must be a YAML mapping")
     try:
@@ -80,8 +82,9 @@ def load_app_config(config_path: Path) -> AppConfig:
     except ValidationError as exc:
         from mame_curator.api.errors import field_errors_from_pydantic
 
+        # FP09 A1: repr-quote `exc` (Pydantic ValidationError str is multi-line).
         raise ConfigError(
-            f"config validation failed: {exc}",
+            f"config validation failed: {exc!r}",
             fields=field_errors_from_pydantic(exc.errors()),
         ) from exc
 
@@ -187,7 +190,16 @@ def replace_world(
     else:
         filter_result = base.filter_result
 
-    allowed_roots = compose_allowlist(new_config)
+    # FP09 B6: re-resolve allowlist only when config (the one input) changed.
+    # Notes-only / sessions-only swaps preserve the prior tuple identity so
+    # the no-op-PATCH idempotency contract (P01) holds end-to-end.
+    #
+    # FP09 Cluster R H2 — load-bearing invariant: `compose_allowlist` is a
+    # PURE FUNCTION of `config.paths` + `config.fs.granted_roots`. If a
+    # future refactor lets sessions / notes / overrides affect allowlist
+    # composition (e.g. session-scoped path grants), DROP THIS SHORT-CIRCUIT
+    # — silently eliding the recompute would break sandbox correctness.
+    allowed_roots = compose_allowlist(new_config) if config is not None else base.allowed_roots
 
     return WorldState(
         config_path=base.config_path,

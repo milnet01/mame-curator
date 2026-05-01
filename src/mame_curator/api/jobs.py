@@ -14,6 +14,7 @@ import logging
 import secrets
 import threading
 from asyncio import AbstractEventLoop
+from collections import deque
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -45,6 +46,13 @@ logger = logging.getLogger(__name__)
 
 _QUEUE_SIZE = 4096
 _TERMINAL_EVENTS = ("job_finished", "job_aborted")
+# FP09 B3 + Cluster R H1: history is split across two stores so that
+# subscriber replay never loses a lifecycle event (job_started, file_started,
+# file_finished, paused, resumed, bios_warning, terminal). file_progress
+# events are bounded; lifecycle events are unbounded but small (~3N+5 for an
+# N-file copy ≈ 30k events / 2 MB on a 10k-file run). Replay merges the two
+# stores by timestamp.
+_PROGRESS_CAP = 200_000
 
 
 def _new_job_id() -> str:
@@ -65,7 +73,11 @@ class Job:
     files_done: int = 0
     bytes_done: int = 0
     state: str = "running"
-    history: list[JobEvent] = field(default_factory=list)
+    # FP09 Cluster R H1: split lifecycle vs progress storage. Lifecycle is
+    # unbounded but small; progress is bounded with drop-oldest. See
+    # `_replay_history()` for the merge.
+    lifecycle_history: list[JobEvent] = field(default_factory=list)
+    progress_history: deque[JobEvent] = field(default_factory=lambda: deque(maxlen=_PROGRESS_CAP))
     subscribers: list[asyncio.Queue[JobEvent | None]] = field(default_factory=list)
 
 
@@ -267,14 +279,20 @@ class JobManager:
         """Loop-thread: append to history, fan out to subscribers."""
         if self._current is None:
             return
-        self._current.history.append(event)
+        # FP09 Cluster R H1: lifecycle goes to the unbounded list so a
+        # subscriber that connects late always sees `job_started` etc.;
+        # `file_progress` goes to the bounded deque (drop-oldest under
+        # pressure).
         if event.event == "file_progress":
+            self._current.progress_history.append(event)
             payload = event.payload
             self._current.bytes_done = max(
                 self._current.bytes_done, int(payload.get("bytes_done", 0))
             )
-        elif event.event == "file_finished":
-            self._current.files_done += 1
+        else:
+            self._current.lifecycle_history.append(event)
+            if event.event == "file_finished":
+                self._current.files_done += 1
         for q in list(self._current.subscribers):
             try:
                 q.put_nowait(event)
@@ -338,9 +356,13 @@ class JobManager:
         if job is None:
             return
         job.state = "aborted"
+        # FP09 A1: `message` flows from `str(exc)` of the worker exception;
+        # repr-quote so a control byte in the exception message can't break
+        # the FP06-FP08 single-line `detail` invariant when the SSE consumer
+        # ultimately renders this payload.
         ev = JobEvent(
             event="job_aborted",
-            payload={"job_id": job.id, "reason": message, "recycled_count": 0},
+            payload={"job_id": job.id, "reason": repr(message), "recycled_count": 0},
             ts=datetime.now(UTC),
         )
         self._emit(ev)
@@ -359,8 +381,13 @@ class JobManager:
             raise JobNotFoundError("no active copy job")
         job = self._current
         q: asyncio.Queue[JobEvent | None] = asyncio.Queue(maxsize=_QUEUE_SIZE)
-        # Replay history, then register so live events queue afterwards.
-        for ev in job.history:
+        # Replay history (lifecycle + progress merged by ts), then register so
+        # live events queue afterwards. Cluster R H1: lifecycle is unbounded;
+        # progress is bounded and may have evicted oldest ticks under pressure.
+        import heapq
+
+        merged = heapq.merge(job.lifecycle_history, job.progress_history, key=lambda ev: ev.ts)
+        for ev in merged:
             await q.put(ev)
         # If the job already terminated while we were replaying, push sentinel.
         if job.state in ("finished", "aborted"):
