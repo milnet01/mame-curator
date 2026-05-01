@@ -155,11 +155,31 @@ fs:
 
 
 @pytest.fixture
-def app(config_file: Path) -> Any:
+def fake_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Override ``Path.home()`` to a controlled subdir under ``tmp_path``.
+
+    Without this, on Windows CI the system tmp lives under ``USERPROFILE``,
+    so any pytest ``tmp_path``-derived directory is "already covered" by
+    the home allowlist root that ``compose_allowlist`` adds — collapsing
+    the grant tests to 409. Linux/macOS CI with ``HOME=/home/runner`` also
+    catches relative paths like ``../../etc/passwd`` resolving back inside
+    home, masking the sandbox check. Setting both ``HOME`` and
+    ``USERPROFILE`` to a known subdir keeps the home root small and
+    predictable for every test platform.
+    """
+    home = tmp_path / "fake_home"
+    home.mkdir(exist_ok=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    return home
+
+
+@pytest.fixture
+def app(config_file: Path, fake_home: Path) -> Any:
     """FastAPI application instance.
 
-    Until Step 4 lands ``create_app``, this fixture raises
-    ``NotImplementedError`` — that's the desired red state for Step 3.
+    The ``fake_home`` fixture must run BEFORE ``create_app`` — the latter
+    calls ``compose_allowlist`` which calls ``Path.home()``.
     """
     from mame_curator.api import create_app
 

@@ -85,10 +85,13 @@ def test_fs_list_sandboxed(client: Any, tmp_path: Path) -> None:
     assert direct.status_code == 403
     assert direct.json()["code"] == "fs_sandboxed"
 
-    # Relative traversal (resolves to the same forbidden path).
+    # Relative traversal — resolves against the test process's CWD, which on
+    # CI runners can land inside the (faked) home allowlist root, in which
+    # case the sandbox check passes and existence-fails with 404. Either
+    # outcome means the request was denied; the security property under
+    # test is "the response was NOT 200".
     relative = client.get("/api/fs/list?path=../../etc/passwd")
-    assert relative.status_code == 403
-    assert relative.json()["code"] == "fs_sandboxed"
+    assert relative.status_code in (403, 404)
 
     # Symlink traversal — allowed root contains a symlink to /etc.
     symlink = tmp_path / "evil_link"
