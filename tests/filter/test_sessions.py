@@ -83,3 +83,66 @@ def test_full_session_with_all_includes(tmp_path: Path) -> None:
     assert cf.include_publishers == ("Capcom*",)
     assert cf.include_genres == ("Fighter*",)
     assert cf.include_year_range == (1991, 1995)
+
+
+# DS01 — Cluster C tests below
+
+
+def test_sessions_active_validator_rejects_unknown_in_programmatic_construction() -> None:
+    """C1 — `Sessions(active=...)` must validate via `model_validator`, not just
+    in the YAML loader. Programmatic construction with `active` referencing a
+    non-existent session must raise `SessionsError` (or `ValidationError`),
+    not silently produce a broken `Sessions`."""
+    from mame_curator.filter.sessions import Sessions
+
+    with pytest.raises((SessionsError, ValueError)):
+        Sessions(active="bogus", sessions={})
+
+
+def test_sessions_oversized_yaml_rejected(tmp_path: Path) -> None:
+    """C3 — file size cap of 1 MB before `yaml.safe_load`. Defends against
+    YAML alias-bomb DoS when P07's `setup/` ships preset downloads."""
+    f = tmp_path / "huge.yaml"
+    # 2 MB of valid YAML (just a giant single key-value).
+    payload = "active: null\nsessions:\n  big:\n    include_genres: ['" + ("X" * 2_000_000) + "']\n"
+    f.write_text(payload)
+    with pytest.raises(SessionsError):
+        load_sessions(f)
+
+
+def test_sessions_top_level_sessions_key_falsy_rejects(tmp_path: Path) -> None:
+    """C4 — explicit-None semantics: `sessions: null` is the legitimate empty
+    default; `sessions: 0`, `sessions: ""`, `sessions: []` are malformed and
+    must raise. Currently `or {}` silently coerces all four to an empty map."""
+    cases = [
+        "active: null\nsessions: 0\n",
+        "active: null\nsessions: ''\n",
+        "active: null\nsessions: []\n",
+    ]
+    for i, payload in enumerate(cases):
+        f = tmp_path / f"falsy_{i}.yaml"
+        f.write_text(payload)
+        with pytest.raises(SessionsError):
+            load_sessions(f)
+
+
+def test_sessions_null_active_and_null_sessions_ok(tmp_path: Path) -> None:
+    """C4 — `null` values for both `active` and `sessions` keys must be
+    accepted as the legitimate "no active session, no sessions defined"
+    default, since YAML `null` deserialises to Python `None`."""
+    f = tmp_path / "null.yaml"
+    f.write_text("active: null\nsessions: null\n")
+    s = load_sessions(f)
+    assert s.active is None
+    assert s.sessions == {}
+
+
+def test_sessions_oserror_wrapped(tmp_path: Path) -> None:
+    """C5 — `OSError` from `read_text` (e.g. path is a directory, EIO,
+    deleted-after-exists) must be wrapped in `SessionsError` per the
+    loader's typed-error contract. Currently raw `OSError` escapes."""
+    # Pointing the loader at a directory triggers an OSError on `read_text`.
+    d = tmp_path / "is_a_dir.yaml"
+    d.mkdir()
+    with pytest.raises(SessionsError):
+        load_sessions(d)

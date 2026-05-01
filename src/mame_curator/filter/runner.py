@@ -82,7 +82,7 @@ def run_filter(
 
     return FilterResult(
         winners=tuple(sorted(visible)),
-        dropped=dict(dropped),
+        dropped=tuple(sorted(dropped.items())),
         contested_groups=tuple(contested),
         warnings=tuple(warnings),
     )

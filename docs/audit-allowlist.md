@@ -67,8 +67,24 @@ Do not delete revoked entries — the history is the value.
 
 ## Entries
 
-(none yet — numbered sequentially as added; numbers never
-reused, including for revoked entries)
+
+## allowlist-001 — indie-review:`_preferred_score` substring vs fnmatch
+
+- **Status:** active
+- **Tool / rule:** indie-review (pre-P03 sweep round 3, 2026-04-27); also flaggable by readers comparing against `drop_*` rules.
+- **Location:** `src/mame_curator/filter/picker.py:61-67` (`_preferred_score`).
+- **Why this is a false positive:** the picker's `_preferred_score`
+  intentionally uses substring (`patterns in name.lower()`) rather than
+  `fnmatch`. The project's filter spec pins this as an intentional
+  asymmetry against `drop_*` rules (which do use `fnmatch`): preferred
+  scoring is a soft, descriptive boost ("does the name *contain* the
+  preferred token") whereas drop predicates are strict pattern matches
+  ("does the name match this glob"). The intent comment lives at
+  `picker.py:64-65`. Future audits should pre-discard this finding.
+- **Suppression applied:** none (no inline marker; this allowlist entry
+  IS the suppression mechanism for design-intent false positives).
+- **Logged:** 2026-05-01
+- **Confirmed by phase:** DS01.
 
 
 ## What does NOT belong here

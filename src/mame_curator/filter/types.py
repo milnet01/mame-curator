@@ -54,7 +54,7 @@ class FilterResult(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     winners: tuple[str, ...]
-    dropped: dict[str, DroppedReason]
+    dropped: tuple[tuple[str, DroppedReason], ...]
     contested_groups: tuple[ContestedGroup, ...]
     warnings: tuple[str, ...] = ()
 

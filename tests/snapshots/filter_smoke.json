@@ -208,18 +208,48 @@
       "winner": "contra"
     }
   ],
-  "dropped": {
-    "3bagfull": "mechanical",
-    "aristoslot": "category",
-    "brokensim": "preliminary_driver",
-    "jpgame": "japanese_only",
-    "kinst": "chd_required",
-    "mahjong1": "category",
-    "neogeo": "bios",
-    "newgame": "year_after",
-    "oldgame": "year_before",
-    "z80dev": "device"
-  },
+  "dropped": [
+    [
+      "3bagfull",
+      "mechanical"
+    ],
+    [
+      "aristoslot",
+      "category"
+    ],
+    [
+      "brokensim",
+      "preliminary_driver"
+    ],
+    [
+      "jpgame",
+      "japanese_only"
+    ],
+    [
+      "kinst",
+      "chd_required"
+    ],
+    [
+      "mahjong1",
+      "category"
+    ],
+    [
+      "neogeo",
+      "bios"
+    ],
+    [
+      "newgame",
+      "year_after"
+    ],
+    [
+      "oldgame",
+      "year_before"
+    ],
+    [
+      "z80dev",
+      "device"
+    ]
+  ],
   "warnings": [],
   "winners": [
     "contra",

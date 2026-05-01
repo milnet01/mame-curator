@@ -424,6 +424,109 @@ Dependencies: P03 ✅, FP01 ✅.
 
 ---
 
+## DS01 — Pre-P04 debt sweep fold-in (closed 2026-05-01)
+
+**Theme:** `/debt-sweep` 2026-05-01 surfaced findings across `P02-complete..HEAD` (DOC01 + P03 + FP01 + FP02 + 179325a); four rounds of cold-eyes spec review converged on **20 actionable sub-bullets** (C9 retained as a footnoted stale entry — `--help` strings were already present at HEAD; D3 added during review to prune two stale `[Unreleased]` Tier-3 entries that shipped silently in DOC01/P03). Captures the FP01 stragglers that did not actually close in FP02, the pre-P03 sweep `[Unreleased]` Tier-2/3 hardening items (deferred "until Tier 1 ships" — Tier 1 has shipped), the pre-existing `runner.py:258` swallow that FP02 deferred forward, and record drift on commit `179325a`. One clean fix-pass before P04 opens, so the API surface lands on a debt-free foundation. **Prefix is `DS##`** (debt-sweep) per the App-Build ID scheme — sourced from `/debt-sweep`, even though many sub-bullets are recovered FP-shaped findings.
+
+**Long-form contract:** [`docs/specs/DS01.md`](docs/specs/DS01.md).
+
+### 🔍 Findings fold-in
+
+#### Cluster A — `copy/` spec drift (record-keeping liars)
+
+- ✅ **A1 — drop `data/copy-history/<id>/report.json` persistence claim** from `copy/spec.md:12, 341`. No code writes this path; CHANGELOG `[Unreleased]` FP01 already credits the drop as shipped. Kind: doc-fix. Lanes: docs, copy.
+- ✅ **A2 — narrow `session_id` ULID claim** in `copy/spec.md:303, 369`. Actual generator at `runner.py:45` is `strftime + token_hex(4)`, not a Crockford-base32 ULID. Kind: doc-fix. Lanes: docs, copy.
+- ✅ **A3 — drop unused `self_reference` enum arm** from `copy/types.py:78`. Decision: drop (no constructor in `src/`); if a real case surfaces later, add the arm with the test that motivates it. Kind: refactor. Lanes: copy.
+- ✅ **A4 — `wait_if_paused` race-safety comment** at `copy/controller.py:72-74`. One-line note: `Event.set()` atomicity is why the unlocked wait is safe. Kind: review-fix. Lanes: copy.
+- ✅ **A5 — `logger.exception()` on bare `except Exception` at `copy/runner.py:258`.** Traceback is currently swallowed; only `str(exc)` makes it into `CopyOutcome.error`. FP02's closing review explicitly deferred this to "a future debt-sweep" (`docs/journal/FP02.md:137-141`). Kind: review-fix. Lanes: copy.
+
+#### Cluster B — Test gaps (FP01-deferred)
+
+- ✅ **B1 — Hypothesis property tests for `resolve_bios_dependencies`.** Idempotence, subset closure, no self-loops, order independence. Kind: test. Lanes: copy, tests.
+- ✅ **B2 — `test_cancel_with_keep_partial` strengthened to mid-session cancel.** Current test only exercises cancel-before-start. Kind: test. Lanes: copy, tests.
+- ✅ **B3 — `test_lpl_no_bom` strengthened to UTF-8 round-trip.** Currently a single negative assertion. Kind: test. Lanes: copy, tests.
+- ✅ **B4 — `source_dir` fixture scope review** (`tests/copy/conftest.py:62`). Widen to `module` if no test mutates; otherwise document the function-scope as deliberate. Kind: test. Lanes: copy, tests.
+
+#### Cluster C — `filter/` + `cli/` hardening (pre-P03 sweep `[Unreleased]`)
+
+- ✅ **C1 — `Sessions(active=...)` `model_validator(mode="after")`** in `filter/sessions.py`. Programmatic construction currently bypasses validation. Kind: review-fix. Lanes: filter.
+- ✅ **C2 — `FilterResult.dropped` to `tuple[tuple[str, DroppedReason], ...]`** in `filter/types.py:57`. Mutable `dict` despite `frozen=True`; all peers are tuples. Kind: refactor. Lanes: filter.
+- ✅ **C3 — YAML alias-bomb cap (1 MB)** in `filter/overrides.py:31`, `filter/sessions.py:59`. Future-proofs P07 preset downloads. Kind: review-fix. Lanes: filter.
+- ✅ **C4 — explicit `None` checks** replace `raw.get("sessions") or {}` and `body or {}` in `filter/sessions.py:65, 71`. Kind: review-fix. Lanes: filter.
+- ✅ **C5 — wrap `read_text` in `try/except OSError`** in `filter/overrides.py:28-31`, `filter/sessions.py:56-59`. TOCTOU between `.exists()` and `.read_text()`. Kind: review-fix. Lanes: filter.
+- ✅ **C6 — `_cmd_filter` wraps `OSError`** from `--catver`/`--listxml`/`--dat`/`--languages`/`--bestgames` pointing at a directory or unreadable file. `cli/spec.md` § "Errors the CLI catches but never raises." Kind: review-fix. Lanes: cli.
+- ✅ **C7 — atomic report write** (`cli/__init__.py` `_cmd_filter`). Tmp + `Path.replace`. P03's `copy/` consumes this report. Kind: review-fix. Lanes: cli.
+- ✅ **C8 — replace sentinel-path antipattern** in `cli/__init__.py` `_cmd_filter` with direct empty `Overrides()` / `Sessions()` construction. Kind: refactor. Lanes: cli.
+- ~~**C9 — `help=` strings** on argparse args in `cli/__init__.py:48-54`.~~ **Removed 2026-05-01 — finding was stale; all flags already have `help=` strings at HEAD (verified during DS01 cold-eyes review). Replaced by D3.** Kind: doc-fix (closed-as-stale).
+
+#### Cluster D — Allowlist + record
+
+- ✅ **D1 — add `_preferred_score` substring-vs-fnmatch** to `docs/audit-allowlist.md`. Spec already documents the intent; audits should pre-discard. Kind: doc-fix. Lanes: docs.
+- ✅ **D2 — credit `179325a` in CHANGELOG.** Cross-platform path fix landed after FP02 closed; commit is uncredited. Closes the FP01 macOS/Windows-path deferral on the record. Kind: doc-fix. Lanes: docs.
+- ✅ **D3 — prune stale `[Unreleased]` Tier-3 entries** at `CHANGELOG.md` lines ~134-137 (CLI module docstring `copy`-as-shipped misclaim; `--catver` etc. lacking `help=`). Both shipped silently in DOC01/P03 work. Strikethrough + dated footnote per the spec. Kind: doc-fix. Lanes: docs.
+
+### Out of scope (deferred to FP04)
+
+- `parser/dat.py` `_resolve_xml` `OSError` non-catch + theoretical fd-leak. Originally surfaced in pre-P03 indie-review sweep (CHANGELOG `[Unreleased]` Tier-2 lines ~115-124). Tracked as FP04 below — not as CHANGELOG-only prose.
+
+Dependencies: P03 ✅, FP01 ✅, FP02 ✅.
+
+---
+
+## FP05 — DS01 closing-review fold-in (planned)
+
+**Theme:** the closing `/audit` + `/indie-review` pass on DS01's patches surfaced 14+ findings in the surrounding `copy/`, `filter/`, `cli/` code (not introduced by DS01 itself — DS01-introduced drift was closed inside DS01 as Cluster R per the FP02 precedent). Findings batched into one fix-pass per the App-Build "every audit finding is tracked" rule. **Source:** `/indie-review` 2026-05-01, three lanes: copy/, filter/, cli/.
+
+**Long-form contract:** to be written at Step 1 of FP05's loop (`docs/specs/FP05.md`), per the App-Build "specs just-in-time" anti-pattern guard.
+
+### 🔍 Findings fold-in
+
+#### Tier 1 — real bugs (close-this-week)
+
+- 📋 **A1 — `recycle_partial=True` cancellation specced but unimplemented.** `copy/spec.md:288-289` contracts: cancel with `recycle_partial=True` recycles every successfully-copied file from the current session and emits one `copy_aborted` activity event with `details.recycled_count = N`. `copy/runner.py:305` reads `cancelled_mid = ctl.should_cancel()` and skips the playlist write but never inspects `controller.recycle_partial` and never recycles `succeeded` outcomes. `_recycle_partial` flag at `controller.py:33-45,64-68` is write-only state from the runner's POV. Silent contract violation. Kind: review-fix. Lanes: copy. Source: indie-review-2026-05-01 lane copy M2.
+- 📋 **A2 — empty-string `active` footgun in `Sessions._active_must_reference_a_defined_session`.** `Sessions(active="", sessions={"": Session(...)})` succeeds — empty-string keys are valid Python dict keys, the validator's membership test passes, and `_apply_session` (`runner.py:100`) silently activates the empty-name session. Reject `active == ""` and reject empty session keys at `from_raw` / `load_sessions` time. Kind: review-fix. Lanes: filter. Source: indie-review-2026-05-01 lane filter H2.
+- 📋 **A3 — bare `except Exception` at `copy/runner.py:258` is wider than spec.** Catches `MemoryError` (which derives from `Exception`, not `BaseException`) and continues the loop after OOM — exactly wrong. Spec § Errors lists `CopyExecutionError` as the failure mode. Narrow to `except (OSError, CopyExecutionError)`. Kind: review-fix. Lanes: copy. Source: indie-review-2026-05-01 lane copy M3.
+
+#### Tier 2 — hardening sweep
+
+- 📋 **B1 — `BIOSResolutionWarning.kind` is now a one-arm `Literal["missing_from_listxml"]`** after DS01 A3 dropped `self_reference`. Either restore a real second variant (e.g. winner whose chain transitively reaches a name absent from `bios_chain`) or collapse `BIOSResolutionWarning` to `name: str` and let `kind` come back when a second variant is genuinely needed. Kind: refactor. Lanes: copy. Source: indie-review-2026-05-01 lane copy H1.
+- 📋 **B2 — cycle-safety claim in `copy/spec.md:54` doesn't match `copy/bios.py:22-44`.** Spec says cycles broken by `seen` plus `entry.romof != name` self-reference guard. Code: `seen` is checked at pop time (not enqueue), and the self-reference guard is absent (line 41 only checks `if entry.romof:`). Functionally correct; contractually drifted. Tighten spec wording or restore the guard. Kind: doc-fix or refactor. Lanes: copy. Source: indie-review-2026-05-01 lane copy H2.
+- 📋 **B3 — `BIOSResolutionError` is a zombie** (`copy/errors.py:30`, exported in `__init__.py:10,47`, no `raise` site). Either delete the class + export + spec line, or actually raise it on a real failure mode (e.g. malformed transitive chain). Kind: refactor. Lanes: copy. Source: indie-review-2026-05-01 lane copy M1.
+- 📋 **B4 — pause/cancel race window in `CopyController.pause()`.** `pause()` clears the resume event under the lock; `cancel()` sets it under the lock; but a `cancel()` that runs *between* `pause()`'s release and the next `wait_if_paused()` enqueue can leave the event cleared with `_cancel_flag=True`, never waking. Close: re-check `_cancel_flag` immediately after `_resume_event.clear()` in `pause()`, set the event back if cancel won. Kind: review-fix. Lanes: copy. Source: indie-review-2026-05-01 lane copy M4.
+- 📋 **B5 — TOCTOU between `path.stat()` and `path.read_text()`** in `filter/sessions.py:67-86` and `filter/overrides.py:30-49`. Open-then-stat-then-read via `path.open("rb")` + `os.fstat(f.fileno())` + `f.read()` closes the swap window. Threat is theoretical for self-authored configs but escalates with P07's preset downloads. Kind: review-fix. Lanes: filter. Source: indie-review-2026-05-01 lane filter M2.
+- 📋 **B6 — `FilterContext` has the same `frozen=True`-but-mutable-dict problem C2 fixed for `FilterResult`.** `category: dict[str, str]`, `languages: dict[str, tuple[str, ...]]`, `cloneof_map: dict[str, str]`, `bestgames_tier: dict[str, str]` — all in-place-mutable on a frozen-claim model. Hot-path so the perf consideration matters; pragmatic fix is documenting owner-mutable-but-treated-read-only or migrating to `MappingProxyType`. Kind: refactor. Lanes: filter. Source: indie-review-2026-05-01 lane filter M3.
+- 📋 **B7 — `Session.from_raw` validation should be a `Session.model_validator(mode="after")`** matching the C1 pattern for `Sessions.active`. Currently `Session(include_year_range=(1995, 1990))` succeeds programmatically — exact same bug class C1 closed for `Sessions`. Kind: review-fix. Lanes: filter. Source: indie-review-2026-05-01 lane filter M4.
+- 📋 **B8 — `_cmd_filter` C6 OSError catch comment overstates the threat surface.** Loaders already wrap `OSError` into typed errors; the residual surface is narrow (TOCTOU between `.exists()` and read). Reword the inline comment to "Defense-in-depth: loaders wrap OSError into typed errors, but a TOCTOU between `.exists()` and read can still surface bare OSError" so a future reader doesn't hunt for a non-existent escape path. Kind: doc-fix. Lanes: cli. Source: indie-review-2026-05-01 lane cli H1.
+- 📋 **B9 — `_cmd_copy` lacks C6-equivalent OSError wrap.** DS01 explicitly out-of-scoped this; the asymmetry is itself a six-month-test smell. Add the same `except OSError` clause, or document why `_cmd_copy`'s parser-only inputs make it unnecessary. Kind: review-fix. Lanes: cli. Source: indie-review-2026-05-01 lane cli M3.
+- 📋 **B10 — exit code for `CopyReportStatus.CANCELLED` collides with runtime-error 1.** A user-initiated SIGINT cancel returns exit 1, same as a corrupt DAT — UX wart per `cli/spec.md` § "Exit codes." Pin a distinct exit code (130 for SIGINT-cancel, e.g.) or document explicitly. Kind: review-fix. Lanes: cli. Source: indie-review-2026-05-01 lane cli M4.
+
+#### Tier 3 — structural / nits
+
+- 📋 **C1 — extract `_read_yaml_text` helper.** Currently duplicated across `filter/sessions.py` and `filter/overrides.py`. Two divergent inline copies of a size-cap + OSError-wrap idiom risks skew (someone bumps the cap in one file, forgets the other). Extract to `filter/_io.py` with `exc_cls` parameter. Kind: refactor. Lanes: filter. Source: indie-review-2026-05-01 lane filter M1.
+- 📋 **C2 — extract `atomic_write_text` helper now that DS01 R2 forced divergence from `executor.py`.** The CLI's atomic-write is now near-identical to `executor.py:60-79` (try/finally cleanup of `.tmp`). Two correct copies that have to handle the same cleanup is the threshold where Rule of Three flips. Use `tempfile.NamedTemporaryFile` for a unique tmp name to defend against concurrent invocations and stale `.tmp` from prior crashes. Kind: refactor. Lanes: cli, copy. Source: indie-review-2026-05-01 lane cli H2 follow-up.
+- 📋 **C3 — `os.replace` cross-filesystem hazard.** If `args.out` resolves through a symlink across mounts, `os.replace` raises `OSError(EXDEV)`. Theoretical risk. Document or accept. Kind: review-fix. Lanes: cli. Source: indie-review-2026-05-01 lane cli M2.
+
+Plus 8-10 minor LOW findings (unit drift in error messages, `with_suffix` corner cases, redundant validation paths, etc.) — folded into FP05 spec at Step 1 with full file:line citations.
+
+Dependencies: DS01 ✅. Tracked here as 📋 (planned); spec written at Step 1 of FP05's own 9-step loop.
+
+---
+
+## FP04 — Parser hardening sweep (planned)
+
+**Theme:** items deferred from DS01 cold-eyes review (2026-05-01). Scope is `parser/dat.py` only. Opens after DS01 closes. May absorb new parser findings if `/audit` or `/indie-review` surfaces them during DS01's closing review.
+
+**Source:** pre-P03 indie-review sweep 2026-04-27 (CHANGELOG `[Unreleased]` Tier-2 entries at lines ~115-124, originally tagged "deferred until Tier 1 ships"). DS01 explicitly leaves these out of scope to keep its audit surface coherent on `copy/` + `filter/` + `cli/`.
+
+### 🔍 Findings to fold
+
+- 📋 **`_resolve_xml` `OSError` non-catch** (`parser/dat.py:48-50`). Doesn't catch `OSError` from `zipfile.ZipFile(...)` (perm-denied, EIO, broken symlink). `parser/spec.md` line 138 says every CLI-visible error path stays inside `ParserError`. Kind: review-fix. Lanes: parser.
+- 📋 **`_resolve_xml` fd-leak window** (`parser/dat.py:49-56`). `zip_ctx = zipfile.ZipFile(path)` binds before the `with` block, so a future `__enter__` failure leaks the fd. Theoretical (CPython `__enter__` is `return self`) but the idiomatic fix is one-line: move `ZipFile(path)` inside the `with` and the `try` around it. Kind: review-fix. Lanes: parser.
+
+Dependencies: DS01 (sequenced for cognitive coherence — surfaces don't overlap (`parser/dat.py` only) so technically parallelisable, but the project's per-phase loop is single-active-item by convention; running FP04 after DS01 closes keeps the convention intact).
+
+---
+
 ## P04 — HTTP API (planned)
 
 **Theme:** FastAPI server exposing P01-P03 over HTTP + SSE for

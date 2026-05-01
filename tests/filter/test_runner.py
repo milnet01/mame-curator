@@ -68,11 +68,14 @@ def sample() -> tuple[dict[str, Machine], FilterContext]:
 def test_phase_a_drops(sample: tuple[dict[str, Machine], FilterContext]) -> None:
     machines, ctx = sample
     result = run_filter(machines, ctx, FilterConfig(), Overrides(), Sessions())
-    assert result.dropped["neogeo"] is DroppedReason.BIOS
-    assert result.dropped["z80"] is DroppedReason.DEVICE
-    assert result.dropped["3bagfull"] is DroppedReason.MECHANICAL
-    assert result.dropped["kinst"] is DroppedReason.CHD_REQUIRED
-    assert result.dropped["brokensim"] is DroppedReason.PRELIMINARY_DRIVER
+    # `result.dropped` is `tuple[tuple[str, DroppedReason], ...]` (DS01 C2);
+    # `dict()` re-conversion preserves the original lookup-by-short-name API.
+    dropped = dict(result.dropped)
+    assert dropped["neogeo"] is DroppedReason.BIOS
+    assert dropped["z80"] is DroppedReason.DEVICE
+    assert dropped["3bagfull"] is DroppedReason.MECHANICAL
+    assert dropped["kinst"] is DroppedReason.CHD_REQUIRED
+    assert dropped["brokensim"] is DroppedReason.PRELIMINARY_DRIVER
 
 
 def test_winners_are_alphabetically_sorted_and_one_per_group(

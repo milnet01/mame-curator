@@ -134,3 +134,36 @@ def test_read_lpl_roundtrip(tmp_path: Path) -> None:
     assert len(items) == 2
     assert Path(items[0]["path"]).name == "kof94.zip"
     assert items[1]["label"] == "Street Fighter II' - Champion Edition"
+
+
+# DS01 — Cluster B3 test below
+
+
+def test_lpl_utf8_round_trip_strict(tmp_path: Path) -> None:
+    """B3 — strengthens `test_lpl_no_bom`. Reads the file as raw bytes,
+    decodes as strict UTF-8 (no BOM, no surrogates), runs `json.loads`, and
+    asserts the round-tripped payload contains the exact label string we
+    asked `write_lpl` to write. Catches BOM emission, encoding regression,
+    and any non-canonical JSON shape that survives `read_lpl` but breaks
+    third-party RetroArch parsers.
+    """
+    dest = tmp_path / "mame"
+    dest.mkdir()
+    out = dest / "mame.lpl"
+    label = "ストリートファイターII' - Champion Edition"  # contains Japanese + ASCII apostrophe
+    write_lpl(out, [_entry("sf2ce", label, dest)])
+
+    raw = out.read_bytes()
+    # Strict UTF-8 decode: rejects BOM (BOM-prefixed text decodes successfully
+    # but starts with U+FEFF which the assertion below rejects).
+    assert not raw.startswith(b"\xef\xbb\xbf"), "no UTF-8 BOM"
+    text = raw.decode("utf-8")
+    assert not text.startswith("﻿"), "no leading BOM character after decode"
+
+    payload = json.loads(text)
+    assert isinstance(payload, dict)
+    assert "items" in payload
+    assert len(payload["items"]) == 1
+    assert payload["items"][0]["label"] == label, (
+        f"label round-trip mismatch: wrote {label!r}, read {payload['items'][0]['label']!r}"
+    )

@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### DS01 — Pre-P04 debt-sweep fold-in (in progress 2026-05-01)
+
+`/debt-sweep` 2026-05-01 (scope `P02-complete..HEAD`) surfaced findings; four rounds of cold-eyes spec review converged on **20 actionable sub-bullets** (with C9 retained in the spec body as a footnoted stale-finding entry — flags already had `help=` strings at HEAD; shipped silently in DOC01/P03). D3 was added during cold-eyes review to prune two stale Tier-3 entries from this same `[Unreleased]` block. Folded into one fix-pass per the App-Build "every audit finding is tracked" hard rule. Prefix is `DS##` (debt-sweep) per the App-Build ID scheme — sourced from `/debt-sweep`, even though many sub-bullets are recovered FP-shaped findings (FP01 deferrals that did not actually close in FP02; pre-P03 sweep `[Unreleased]` Tier-2/3 hardening items; the `runner.py:258` swallow that FP02 deferred forward; record drift on commit `179325a`). Long-form contract: [`docs/specs/DS01.md`](docs/specs/DS01.md). Roadmap: [`ROADMAP.md` § DS01](ROADMAP.md). 20 sub-bullets across four clusters:
+
+- **Cluster A — `copy/` spec+code drift (5):** `data/copy-history` persistence claim drop (3 sites: per-module spec + long-form roadmap); `session_id` ULID claim narrow; unused `self_reference` enum arm drop; `wait_if_paused` race-safety comment; `logger.exception()` on `runner.py:258` bare `except`.
+- **Cluster B — Test gaps (4):** Hypothesis property tests for `resolve_bios_dependencies`; `test_cancel_with_keep_partial` strengthened to mid-session cancel; `test_lpl_no_bom` strengthened to UTF-8 round-trip; `source_dir` fixture widened to `scope="module"`.
+- **Cluster C — `filter/` + `cli/` hardening (8):** `Sessions(active=...)` `model_validator`; `FilterResult.dropped` to tuple (with enumerated test rewrites at `tests/filter/test_runner.py:71-75`); YAML 1 MB cap; explicit `None` checks over `or {}` falsy-coalesce; `try/except OSError` around `read_text`; CLI `_cmd_filter` `OSError` wrap; atomic report write; sentinel-path antipattern removal.
+- **Cluster D — Allowlist + record (3):** `_preferred_score` substring-vs-fnmatch allowlisted (see `docs/audit-allowlist.md` allowlist-001); commit `179325a` (2026-04-30) credited as a body bullet (below) — closes the FP01-deferred macOS/Windows path-separator entry; stale Tier-3 entries struck through with dated footnote.
+
+**Body bullets — DS01 record-keeping closures**
+
+- **`179325a` (2026-04-30)** — cross-platform path-separator fix in `tests/copy/test_fp01_fixes.py` and `tests/copy/test_playlist.py`. The FP01 deferred-list entry for the macOS/Windows path-separator known-issues note was uncredited until DS01.
+
+**Out of scope (deferred to FP04):** `parser/dat.py` `_resolve_xml` `OSError` non-catch + theoretical fd-leak. Tracked as `FP04 — Parser hardening sweep` in ROADMAP, opened by DS01 cold-eyes review so the items are tracked as a roadmap entry rather than CHANGELOG-only prose.
+
 ### FP02 — FP01 round-2 fold-in (2026-04-30)
 
 Round-2 indie-review on FP01-patched code surfaced 3 fresh-eyes Tier-2 + 6 Tier-3 findings on the surrounding `copy/` code (not regressions on FP01 fixes themselves). Folded into FP02; closing audit + indie-review pass on FP02 itself surfaced spec drift introduced by the FP02 changes (duplicate `AppendDecision` definition in `copy/spec.md`; stale `recycle_file` docstring), folded into the same FP02 round and closed. Highlights:
@@ -131,10 +146,12 @@ findings tracked here per the project's CHANGELOG-as-sweep-log convention.
 - 🧹 **filter rule chain** — `_cmd_filter` is 39 lines, conflates four concerns
   (build context, overrides, sessions, run + report). Extract `_build_context`.
   (`cli/__init__.py:99-138`)
-- 🧹 **CLI** — module docstring (used as `--help` description) lists `copy` as a
-  shipped subcommand; only `parse` and `filter` are. (`cli/__init__.py:1-7`)
-- 🧹 **CLI** — `--catver`, `--dat`, `--languages`, `--bestgames`, `--overrides`,
-  `--sessions` lack `help=` strings. (`cli/__init__.py:48-54`)
+- <del>🧹 **CLI** — module docstring (used as `--help` description) lists `copy` as a
+  shipped subcommand; only `parse` and `filter` are. (`cli/__init__.py:1-7`)</del>
+  — *closed silently in DOC01/P03 (2026-04-30); confirmed stale in DS01 cold-eyes review 2026-05-01*
+- <del>🧹 **CLI** — `--catver`, `--dat`, `--languages`, `--bestgames`, `--overrides`,
+  `--sessions` lack `help=` strings. (`cli/__init__.py:48-54`)</del>
+  — *closed silently in DOC01/P03 (2026-04-30); confirmed stale in DS01 cold-eyes review 2026-05-01*
 - 🧹 **CLI** — `args.out.parent.mkdir(parents=True, exist_ok=True)` silently
   materializes arbitrary directory trees from a typo. Document or constrain.
   (`cli/__init__.py:130`)

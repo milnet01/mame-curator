@@ -51,3 +51,27 @@ def test_top_level_not_a_mapping_raises(tmp_path: Path) -> None:
     f.write_text("- entry1\n- entry2\n")
     with pytest.raises(OverridesError, match="not a YAML mapping"):
         load_overrides(f)
+
+
+# DS01 — Cluster C tests below
+
+
+def test_overrides_oversized_yaml_rejected(tmp_path: Path) -> None:
+    """C3 — file size cap of 1 MB before `yaml.safe_load`. Defends against
+    YAML alias-bomb DoS when P07's `setup/` ships preset downloads."""
+    f = tmp_path / "huge.yaml"
+    # 2 MB of valid YAML.
+    payload = "overrides:\n  parent: '" + ("X" * 2_000_000) + "'\n"
+    f.write_text(payload)
+    with pytest.raises(OverridesError):
+        load_overrides(f)
+
+
+def test_overrides_oserror_wrapped(tmp_path: Path) -> None:
+    """C5 — `OSError` from `read_text` (e.g. path is a directory, EIO,
+    deleted-after-exists) must be wrapped in `OverridesError` per the
+    loader's typed-error contract. Currently raw `OSError` escapes."""
+    d = tmp_path / "is_a_dir.yaml"
+    d.mkdir()
+    with pytest.raises(OverridesError):
+        load_overrides(d)

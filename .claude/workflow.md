@@ -4,15 +4,15 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | P04 — HTTP API (next) |
-| **Active item ID** | (none — FP02 closed 2026-04-30) |
-| **Active step** | (resets to all ⬜ when P04 becomes active) |
+| **Project phase** | FP05 — DS01 closing-review fold-in (next; planned) |
+| **Active item ID** | (none — DS01 closed 2026-05-01) |
+| **Active step** | (resets to all ⬜ when FP05 becomes active) |
 | **Blocked on** | — |
-| **Last update** | 2026-04-30 (FP02 closed) |
-| **Next gate** | User says "let's start P04" (or equivalent) |
+| **Last update** | 2026-05-01 (DS01 closed; FP05 + FP04 queued) |
+| **Next gate** | User says "let's start FP05" (or equivalent) |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
-| **Last debt sweep** | (none yet) |
+| **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
 | **Repo visibility** | PUBLIC (cached 2026-04-30 via `gh repo view --json visibility`) |
 
 ### Step progress
@@ -21,26 +21,24 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-1. ⬜ Verify spec (research first if non-trivial)
-2. ⬜ Verify dependencies on the roadmap DAG
-3. ⬜ Write failing tests
-4. ⬜ Implement until tests pass
-5. ⬜ Run `/audit` (read `docs/audit-allowlist.md` first)
-6. ⬜ Run `/indie-review` (same allowlist read)
-7. ⬜ Fold actionable findings → new FP## roadmap item
-8. ⬜ Update CHANGELOG / ROADMAP / journal
-9. ⬜ Commit, tag `<ID>-complete`, ask user about push
+1. ✅ Verify spec — `docs/specs/DS01.md` drafted 2026-05-01; converged clean after 5 cold-eyes review rounds
+2. ✅ Verify dependencies on the roadmap DAG — P02 ✅, P03 ✅, FP01 ✅, FP02 ✅
+3. ✅ Write failing tests — 17 new test functions across 7 files; 11 red, 6 green-on-arrival
+4. ✅ Implement until tests pass — all 20 sub-bullets shipped; 260 tests pass; coverage 94.67%
+5. ✅ Run `/audit` — clean (5 gates green; ruff, ruff format, mypy, bandit deep, pytest 260)
+6. ✅ Run `/indie-review` — 3 lanes (copy/, filter/, cli/); 14+ surrounding-code findings + 2 DS01-introduced (closed inside DS01 as Cluster R per FP02 precedent)
+7. ✅ Fold actionable findings → new FP## roadmap item — FP05 opened with 14+ findings (Tier 1: recycle_partial unimplemented, empty-string active footgun, MemoryError swallow); plus 2 DS01-internal R1/R2 closed in same fix-pass
+8. ✅ Update CHANGELOG / ROADMAP / journal — DS01 ROADMAP flipped to ✅; CHANGELOG `[Unreleased]` updated with body bullet for `179325a` and stale-Tier-3 strikethroughs; journal at `docs/journal/DS01.md`
+9. 🚧 Commit, tag `DS01-complete`, ask user about push
 
 ### Active item details
 
-(filled in once P04 becomes active)
+(filled in once FP05 becomes active)
 
 ```
-Item: P04 — HTTP API (`api/`)
-Spec: docs/specs/P04.md (to be written at Step 1)
-Branch: main (no feature branch yet — solo development)
-Sub-findings: (none)
-Tests: (none yet — Step 3 writes them)
+Next: FP05 — DS01 closing-review fold-in (14+ findings)
+Spec: to be written at Step 1 of FP05's loop (docs/specs/FP05.md)
+Then: FP04 — Parser hardening sweep (parser/dat.py _resolve_xml)
 ```
 
 ### Phase history (App-Build mapping)
@@ -65,6 +63,9 @@ nominal. Both tags point at `56449c6`.
 | P03 | Phase 3 | ✅ | 2026-04-30 | 2026-04-30 | Copy + BIOS + `.lpl` (`copy/`) |
 | FP01 | — | ✅ | 2026-04-30 | 2026-04-30 | P03 indie-review fold-in (round-1 + round-2) |
 | FP02 | — | ✅ | 2026-04-30 | 2026-04-30 | FP01 round-2 fold-in (9 items) + FP02 round-2 spec drift |
+| DS01 | — | ✅ | 2026-05-01 | 2026-05-01 | Pre-P04 debt-sweep fold-in (20 actionable + 2 round-2 R1/R2; cold-eyes review pattern adopted at Step 1) |
+| FP05 | — | 📋 | — | — | DS01 closing-review fold-in (14+ findings: recycle_partial unimplemented, empty-active footgun, MemoryError swallow, FilterContext mutability, etc.) |
+| FP04 | — | 📋 | — | — | Parser hardening sweep (`parser/dat.py` `_resolve_xml` OSError + fd-leak; deferred from DS01) |
 | P04 | Phase 4 | 📋 | — | — | HTTP API (`api/`) |
 | P05 | Phase 5 | 📋 | — | — | Media subsystem (`media/`) |
 | P06 | Phase 6 | 📋 | — | — | Frontend MVP |
@@ -102,6 +103,18 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-01 — DS01 closed
+
+DS01 (pre-P04 debt-sweep fold-in) closed: 20 actionable sub-bullets across 4 clusters (A: 5 copy/ spec+code drift; B: 4 test gaps; C: 8 filter+cli hardening; D: 3 record/allowlist) + 2 round-2 fix-pass-internal R1/R2 (filter/spec.md tuple-shape update; CLI atomic-write try/finally cleanup) closed inside DS01 per the FP02 precedent. 260 tests pass; coverage 94.67%; all five gates green.
+
+**Major workflow addition**: cold-eyes spec review at Step 1, looped until clean. Round 1 → 4 substantive findings (C9 fully false; C2 read-sites incomplete; A1 third site missed; FP04 needed). Round 4 → 2 (count drift 22→20; FP## allocation deferred). Round 5 → clean. Saved as `feedback_cold_eyes_spec_review_at_step_1.md` for future projects. Without these rounds the implementation would have shipped a partly-fictional plan (C9 was a no-op finding; the count was wrong).
+
+**Closing /audit + /indie-review**: tools clean; indie-review across 3 lanes returned 14+ findings in surrounding code → folded into FP05 (recycle_partial unimplemented, empty-string active footgun, MemoryError swallow narrowing, FilterContext mutability parallel to C2, BIOSResolutionWarning one-arm Literal, pause/cancel race window, TOCTOU stat/read, _cmd_copy asymmetry, etc.). DS01-internal drift (filter/spec.md not updated by C2; CLI atomic-write missed try/finally) closed in same fix-pass per FP02 precedent.
+
+**Lesson saved**: every fix-pass's closing review on its own patches surfaces patch-introduced drift, not just leftover round-1 findings. FP02 caught FP02-shipped Tier-2 spec drift; DS01 caught DS01-shipped R1/R2 drift. Pattern holds; closing review is non-skippable.
+
+**FP05 opened** with 14+ findings, **FP04 still queued** (parser hardening — 2 items deferred from DS01 cold-eyes review). Numerically FP04 < FP05 but FP05 has Tier-1 bugs and runs first in the queue. Numbers reflect creation-order; queue-position reflects priority.
 
 ### 2026-04-30 — FP02 closed
 

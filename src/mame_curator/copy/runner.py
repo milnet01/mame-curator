@@ -256,6 +256,7 @@ def run_copy(
         try:
             outcome = copy_one(src, dst, short_name=short, role=role, progress=per_file_progress)
         except Exception as exc:
+            logger.exception("copy_one(short=%s, role=%s) failed", short, role)
             failed.append(
                 CopyOutcome(
                     short_name=short,

@@ -59,11 +59,17 @@ def make_zip(tmp_path: Path) -> Callable[..., Path]:
     return _make
 
 
-@pytest.fixture
-def source_dir(tmp_path: Path, make_zip: Callable[..., Path]) -> Path:
-    """Source directory with kof94, kof94a, sf2, sf2ce, neogeo, cps1bios zips."""
-    src = tmp_path / "source"
-    src.mkdir()
+@pytest.fixture(scope="module")
+def source_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Source directory with kof94, kof94a, sf2, sf2ce, neogeo, cps1bios zips.
+
+    Module-scoped: every consumer (`test_executor`, `test_fp02_fixes`, etc.)
+    reads the fixture, never mutates its contents (writes target their own
+    `dest_dir` or `monkeypatch.setattr(shutil, ...)`). Module scope avoids
+    rebuilding eight zip files per test (verified via grep across
+    `tests/copy/` 2026-05-01).
+    """
+    src = tmp_path_factory.mktemp("source_dir_shared")
     for name in (
         "kof94",
         "kof94a",
@@ -74,7 +80,7 @@ def source_dir(tmp_path: Path, make_zip: Callable[..., Path]) -> Path:
         "euro",
         "us",
     ):
-        make_zip(f"{name}.zip", content=name.encode() * 100, in_dir=src)
+        (src / f"{name}.zip").write_bytes(name.encode() * 100)
     return src
 
 

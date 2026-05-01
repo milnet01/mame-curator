@@ -71,6 +71,7 @@ class CopyController:
 
     def wait_if_paused(self) -> None:
         """Block until resume or cancel; called between files by `run_copy`."""
+        # Safe-without-lock: Event.set() is atomic; we only need the wakeup edge.
         self._resume_event.wait()
 
     def should_cancel(self) -> bool:

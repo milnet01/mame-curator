@@ -5,7 +5,7 @@
 Given parsed Phase-1 data (`dict[str, Machine]`), an INI-augmented context (catver / languages / bestgames / mature / chd_required / cloneof_map), a `FilterConfig`, an `Overrides` map, and an active `Session` (or none), produce a deterministic `FilterResult`:
 
 - `winners: tuple[str, ...]` — short names of machines that survived all four phases, alphabetically sorted.
-- `dropped: dict[str, DroppedReason]` — one entry per dropped machine, with the typed reason it was dropped. (Mutable in shape but always treated as a fresh dict per `run_filter` call; see Tier-2 hardening note in CHANGELOG.)
+- `dropped: tuple[tuple[str, DroppedReason], ...]` — one entry per dropped machine, with the typed reason it was dropped; sorted alphabetically by short name for deterministic output. Immutable: tuple-of-tuples on a `frozen=True` model (DS01 C2 closed the prior `dict[str, DroppedReason]` shape that was mutable in-place despite the model's `frozen=True`). Read sites use `dict(result.dropped)["short"]` for O(1) lookup or `len(result.dropped)` for the count.
 - `contested_groups: tuple[ContestedGroup, ...]` — one entry per parent/clone group where Phase B had to choose between ≥2 candidates; records the winner, the candidates, and the tiebreaker chain that produced the result. Used by `/api/games/{name}/explanation` (Phase 4).
 - `warnings: tuple[str, ...]` — non-fatal advisories from Phase C overrides (unknown parent, target outside its parent's group, target machine not in the parsed DAT). Never empty by validation; sorted in canonical order.
 

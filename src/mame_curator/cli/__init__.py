@@ -9,8 +9,10 @@ Subcommands (added incrementally as phases land):
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import logging
+import os
 from pathlib import Path
 
 from rich.console import Console
@@ -27,6 +29,8 @@ from mame_curator.filter import (
     FilterConfig,
     FilterContext,
     FilterError,
+    Overrides,
+    Sessions,
     load_overrides,
     load_sessions,
     run_filter,
@@ -166,25 +170,40 @@ def _cmd_filter(args: argparse.Namespace) -> int:
             chd_required=frozenset(parse_listxml_disks(args.listxml)),
             mature=mature,
         )
-        # load_overrides / load_sessions return empty objects for missing files,
-        # so an unset --overrides / --sessions resolves to the same neutral state.
-        overrides = (
-            load_overrides(args.overrides)
-            if args.overrides
-            else load_overrides(Path("/nonexistent/overrides.yaml"))
-        )
-        sessions = (
-            load_sessions(args.sessions)
-            if args.sessions
-            else load_sessions(Path("/nonexistent/sessions.yaml"))
-        )
+        # Unset --overrides / --sessions → empty in-memory model. The pre-DS01
+        # sentinel-path antipattern (`Path("/nonexistent/overrides.yaml")`)
+        # was brittle (someone could `mkdir /nonexistent`) and failed the
+        # six-month test. Direct construction is the contract (DS01 C8).
+        overrides = load_overrides(args.overrides) if args.overrides else Overrides()
+        sessions = load_sessions(args.sessions) if args.sessions else Sessions()
     except (ParserError, FilterError) as exc:
         err_console.print(f"[red]error:[/red] failed to load inputs: {exc}")
+        return 1
+    except OSError as exc:
+        # CLI input paths can point at directories, dangling symlinks, EIO,
+        # perm-denied — all OSError. cli/spec.md § "Errors the CLI catches but
+        # never raises" requires exit-1 with a labelled error line, not a raw
+        # traceback (DS01 C6).
+        err_console.print(f"[red]error:[/red] cannot read input: {exc}")
         return 1
 
     result = run_filter(machines, ctx, FilterConfig(), overrides, sessions)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(result.model_dump_json(indent=2) + "\n")
+    # Atomic write: prevents half-written report.json on Ctrl-C / OOM
+    # mid-write (DS01 C7). Mirrors copy/executor.py:60-72's `.tmp` + `os.replace`
+    # pattern, including the try/finally cleanup so a failed `write_text`
+    # doesn't leave a stale `.tmp` for the next run to overwrite or carry
+    # forward (DS01 closing-review fix).
+    tmp = args.out.with_suffix(args.out.suffix + ".tmp")
+    completed = False
+    try:
+        tmp.write_text(result.model_dump_json(indent=2) + "\n")
+        os.replace(tmp, args.out)
+        completed = True
+    finally:
+        if not completed:
+            with contextlib.suppress(OSError):
+                tmp.unlink(missing_ok=True)
 
     console.print(f"  winners: {len(result.winners)}")
     console.print(f"  dropped: {len(result.dropped)}")

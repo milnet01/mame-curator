@@ -9,7 +9,7 @@ Given a Phase-2 `FilterResult` (winner short names), a source ROM directory, and
 3. **Atomically copies** every winner's `.zip` plus the deduplicated BIOS-set `.zip`s from source to destination. Already-copied files (size + mtime match) are skipped (idempotency).
 4. Writes a **RetroArch v6+ JSON `mame.lpl` playlist** with one entry per winner.
 5. Resolves **playlist conflicts** (append vs overwrite vs cancel; per-game version replace; project-internal recycle-bin retention).
-6. Emits a **frozen `CopyReport`** Pydantic model (also persisted to `data/copy-history/<id>/report.json`) and **appends one or more `ActivityEvent` lines** to `data/activity.jsonl`.
+6. Emits a **frozen `CopyReport`** Pydantic model and **appends one or more `ActivityEvent` lines** to `data/activity.jsonl`. (In-memory only; persistence to disk is Phase 4 scope.)
 7. Streams progress via callback at file boundaries; supports **pause / resume / cancel** between files.
 
 The CLI surface is `mame-curator copy --dry-run` (preview, no writes) and `mame-curator copy --apply` (execute).
@@ -300,7 +300,7 @@ class ActivityEvent(BaseModel):
     timestamp: datetime                            # ISO-8601 UTC, microsecond precision; serialized with `.isoformat()`
     event_type: ActivityEventType                  # see enum below
     summary: str                                   # one-line human-readable
-    session_id: str                                # ULID (sortable, monotonic); shared across events from one copy run
+    session_id: str                                # timestamp-prefixed random suffix; second-resolution sortable; shared across events from one copy run
     details: ActivityDetails                       # tagged-union by event_type
 ```
 
@@ -338,7 +338,7 @@ def read_activity(log_path: Path = Path("data/activity.jsonl")) -> Iterator[Acti
 
 ## CopyReport
 
-Returned from `run_copy(plan, controller=None) -> CopyReport`. Persisted to `data/copy-history/<session_id>/report.json` for later replay via Phase 4's `/api/copy/history/{id}/report`.
+Returned from `run_copy(plan, controller=None) -> CopyReport`; in-memory only (persistence is Phase 4 scope — the API will own session-history endpoints).
 
 ```python
 class CopyOutcomeStatus(StrEnum):
@@ -366,7 +366,7 @@ class CopyReportStatus(StrEnum):
 
 class CopyReport(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
-    session_id: str                                   # ULID; matches the activity log's session_id
+    session_id: str                                   # timestamp-prefixed random suffix; second-resolution sortable; matches the activity log's session_id
     started_at: datetime
     finished_at: datetime
     status: CopyReportStatus

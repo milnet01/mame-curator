@@ -6,6 +6,8 @@ import json
 import threading
 from pathlib import Path
 
+import pytest
+
 from mame_curator.copy import (
     CopyController,
     run_copy,
@@ -324,3 +326,110 @@ def test_cancel_with_keep_partial(
     # Anything already copied stays put — but with cancel-before-start there
     # may be nothing copied. The contract: not deleted.
     assert report.recycled == ()
+
+
+# DS01 — Cluster A and B tests below
+
+
+def test_cancel_after_first_winner_keeps_partial(
+    tmp_path: Path,
+    bios_chain: dict[str, BIOSChainEntry],
+) -> None:
+    """B2 — strengthens `test_cancel_with_keep_partial` to exercise mid-session
+    cancel rather than cancel-before-start. Two winners; cancel fires from the
+    progress callback the moment the first winner finishes copying. Assertion:
+    first winner's dst survives intact; second winner's dst was never written.
+
+    Uses a per-test source dir with ≥1 MiB zips so `_chunked_copy` actually
+    fires (the shared `source_dir` fixture writes ~600 B zips that go through
+    `shutil.copy2` instead, bypassing the chunk-progress path entirely).
+    """
+    src = tmp_path / "src"
+    src.mkdir()
+    payload = b"X" * (2 * 1024 * 1024)  # 2 MiB > _CHUNK (1 MiB)
+    (src / "kof94.zip").write_bytes(payload)
+    (src / "sf2ce.zip").write_bytes(payload)
+    # BIOS deps: kof94's chain (neogeo + biossets) + sf2ce's chain (sf2 + cps1bios).
+    for name in ("neogeo", "euro", "us", "sf2", "cps1bios"):
+        (src / f"{name}.zip").write_bytes(payload)
+    dest = tmp_path / "dest"
+    dest.mkdir()
+
+    plan = _plan(
+        winners=("kof94", "sf2ce"),
+        machines={"kof94": _machine("kof94"), "sf2ce": _machine("sf2ce")},
+        bios_chain=bios_chain,
+        source_dir=src,
+        dest_dir=dest,
+    )
+    controller = CopyController()
+    cancelled: list[bool] = []
+
+    def on_progress(short: str, done: int, total: int) -> None:
+        if not cancelled and short == "kof94" and done == total:
+            cancelled.append(True)
+            controller.cancel(recycle_partial=False)
+
+    report = run_copy(plan, controller=controller, on_progress=on_progress)
+
+    assert report.status is CopyReportStatus.CANCELLED
+    assert (dest / "kof94.zip").exists(), "first winner dst must survive cancel"
+    assert (dest / "kof94.zip").stat().st_size == len(payload)
+    assert not (dest / "sf2ce.zip").exists(), "second winner must not have been started"
+
+
+def test_runner_logs_exception_on_copy_one_failure(
+    source_dir: Path,
+    dest_dir: Path,
+    bios_chain: dict[str, BIOSChainEntry],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A5 — when `copy_one` raises, the runner currently swallows the
+    traceback and only `str(exc)` reaches `CopyOutcome.error`. The fix is
+    `logger.exception(...)` immediately inside the `except Exception` block
+    at `runner.py:258`, so the full stack frame survives in logs.
+    """
+    import logging
+
+    from mame_curator.copy import executor
+
+    def _boom(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("synthetic failure for A5 test")
+
+    monkeypatch.setattr(executor, "copy_one", _boom)
+    # The runner imports `copy_one` at module level via `from .executor import
+    # copy_one`; patching the executor module also requires patching the
+    # runner's own binding.
+    from mame_curator.copy import runner as runner_module
+
+    monkeypatch.setattr(runner_module, "copy_one", _boom)
+
+    plan = _plan(
+        winners=("kof94",),
+        machines={"kof94": _machine("kof94")},
+        bios_chain=bios_chain,
+        source_dir=source_dir,
+        dest_dir=dest_dir,
+    )
+
+    with caplog.at_level(logging.ERROR, logger="mame_curator.copy.runner"):
+        report = run_copy(plan)
+
+    # Outcome is recorded as FAILED with the exception string.
+    assert any(
+        o.error is not None and "synthetic failure" in (o.error or "") for o in report.failed
+    )
+    # `logger.exception` always attaches `exc_info`; `logger.error` does not.
+    # This pins the call as `.exception(...)` rather than `.error(...)` —
+    # without it the traceback is silently swallowed (the bug DS01 A5 fixed).
+    runner_records = [rec for rec in caplog.records if rec.name == "mame_curator.copy.runner"]
+    assert runner_records, "runner did not log the exception"
+    assert all(rec.exc_info is not None for rec in runner_records), (
+        "logger must use .exception() so traceback survives in logs"
+    )
+    # The exception's class + message are reachable via exc_info.
+    assert any(
+        rec.exc_info is not None and "synthetic failure" in str(rec.exc_info[1])
+        for rec in runner_records
+    )

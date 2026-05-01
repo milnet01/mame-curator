@@ -75,7 +75,7 @@ class BIOSResolutionWarning(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
     name: str
-    kind: Literal["missing_from_listxml", "self_reference"]
+    kind: Literal["missing_from_listxml"]
 
 
 class CopyOutcome(BaseModel):
