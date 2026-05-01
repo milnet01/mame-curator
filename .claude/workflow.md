@@ -25,8 +25,8 @@ P05 active — step progress (reset by /close-phase 2026-05-01 on P04 + FP09 clo
 
 1. ✅ Verify spec — drafted `docs/specs/P05.md`; 2 cold-eyes rounds clean (3 T1 + 5 T2 + 4 T3 round-1 fixes; 1 T2 + 1 T3 round-2 fixes); user sign-off 2026-05-02.
 2. ✅ Verify dependencies — P04 ✅ (only dep per long-form roadmap Phase 5 pre-conditions).
-3. 🚧 Write failing tests
-4. ⬜ Implement until tests pass
+3. ✅ Write failing tests — 23 escape + 6 urls + 10 cache + 5 routes-media (43 net new); fail with `ModuleNotFoundError: 'mame_curator.media'`.
+4. ✅ Implement until tests pass — `media/{__init__,urls,cache}.py` (47 LoC + 49 + 47); R39 wired; `api/app.py` `AsyncClient(timeout=10.0)`; conftest `media_cache_dir` fixture for test isolation. 419 tests pass; project 89.11%; `media/` 100%; all five gates green.
 5. ⬜ Run `/audit`
 6. ⬜ Run `/indie-review`
 7. ⬜ Fold actionable findings → new FP## roadmap item

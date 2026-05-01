@@ -1,8 +1,10 @@
-"""R39 — minimal media proxy (P05 wires the cache + escape rules)."""
+"""R39 — media proxy with libretro-thumbnails URL builder + sha256 disk cache.
+
+P04 shipped a minimal pass-through proxy; P05 swaps in the real escape rules
+and lazy-fetch cache via ``mame_curator.media``. URL surface unchanged.
+"""
 
 from __future__ import annotations
-
-from urllib.parse import quote
 
 import httpx
 from fastapi import APIRouter, Depends, Request
@@ -16,41 +18,36 @@ from mame_curator.api.errors import (
 )
 from mame_curator.api.routes._deps import get_world
 from mame_curator.api.state import WorldState
+from mame_curator.media import MediaFetchError, fetch_with_cache, urls_for
 
 router = APIRouter()
 
-_KIND_FOLDER = {
-    "boxart": "Named_Boxarts",
-    "title": "Named_Titles",
-    "snap": "Named_Snaps",
-    "video": "Named_Videos",
-}
-_BASE_URL = "https://raw.githubusercontent.com/libretro-thumbnails/MAME/master"
+_VALID_KINDS = {"boxart", "title", "snap", "video"}
 
 
 @router.get("/media/{name}/{kind}")
 async def media_proxy(
     name: str, kind: str, request: Request, world: WorldState = Depends(get_world)
 ) -> Response:
-    if kind not in _KIND_FOLDER:
+    if kind not in _VALID_KINDS:
         raise MediaKindInvalidError(f"unknown media kind: {kind!r}")
     machine = world.machines.get(name)
     if machine is None:
         raise GameNotFoundError(f"game not found: {name!r}")
-    # FP09 C2: P05 swaps in proper libretro escape rules (`&*/:\<>?\|"` → `_`)
-    # plus sha256-keyed disk cache. P04 ships a minimal pass-through proxy.
-    url = f"{_BASE_URL}/{_KIND_FOLDER[kind]}/{quote(machine.description)}.png"
-    # FP09 B4: reuse the lifespan-managed shared client; per-request
-    # AsyncClient creates a fresh TLS handshake on every request which
-    # blows up on the 50-thumbnail browse view.
+    if kind == "video":
+        # Load-bearing short-circuit: MediaUrls has no `video` field, so
+        # `getattr(urls, kind)` below would raise AttributeError. Also reflects
+        # design §6.3 — video thumbnails route through progettoSnaps (P06+),
+        # not libretro-thumbnails.
+        raise MediaUpstreamNotFoundError(f"video upstream not configured for {name!r}")
+    urls = urls_for(machine)
+    url: str = getattr(urls, kind)
+    cache_dir = world.config.media.cache_dir
     client: httpx.AsyncClient = request.app.state.media_client
     try:
-        resp = await client.get(url, timeout=10.0)
-    except httpx.HTTPError as exc:
-        # FP09 A1: repr-quote `exc` (multi-line httpx error messages exist).
+        path = await fetch_with_cache(url, cache_dir, client=client)
+    except MediaFetchError as exc:
         raise MediaUpstreamError(f"upstream error: {exc!r}") from exc
-    if resp.status_code == 404:
+    if path is None:
         raise MediaUpstreamNotFoundError(f"upstream 404 for {url!r}")
-    if resp.status_code != 200:
-        raise MediaUpstreamError(f"upstream returned {resp.status_code} for {url!r}")
-    return Response(content=resp.content, media_type="image/png")
+    return Response(content=path.read_bytes(), media_type="image/png")

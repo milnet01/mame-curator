@@ -84,6 +84,20 @@ def dest_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
+def media_cache_dir(tmp_path: Path) -> Path:
+    """Per-test media cache dir.
+
+    P05's media subsystem caches fetched thumbnails to ``config.media.cache_dir``.
+    Without overriding the default (``./data/media-cache`` relative to CWD),
+    tests would share the cache and cross-pollute. ``tmp_path`` isolation
+    keeps each test's cache fresh.
+    """
+    d = tmp_path / "media-cache"
+    d.mkdir()
+    return d
+
+
+@pytest.fixture
 def config_file(
     tmp_path: Path,
     mini_dat: Path,
@@ -95,6 +109,7 @@ def config_file(
     series_ini: Path,
     source_dir: Path,
     dest_dir: Path,
+    media_cache_dir: Path,
 ) -> Path:
     """Write a config.yaml under tmp_path that points at all reference files.
 
@@ -136,6 +151,10 @@ filters:
   preferred_developers: []
   prefer_parent_over_clone: true
   prefer_good_driver: true
+
+media:
+  fetch_videos: false
+  cache_dir: {media_cache_dir}
 
 ui:
   theme: dark

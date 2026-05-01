@@ -37,7 +37,10 @@ def create_app(config_path: Path) -> FastAPI:
         # negotiation across the connection-pool lifetime (the default httpx
         # client is HTTP/1.1 with keep-alive; HTTP/2 multiplexing requires
         # `httpx[http2]` extras + `http2=True` and is a P05 concern).
-        app.state.media_client = httpx.AsyncClient()
+        # P05: 10s timeout moves from per-call (was inline in routes/media.py)
+        # to client construction so fetch_with_cache(...) inherits it without
+        # a per-call timeout= argument.
+        app.state.media_client = httpx.AsyncClient(timeout=10.0)
         try:
             yield
         finally:
