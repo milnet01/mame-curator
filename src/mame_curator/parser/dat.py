@@ -45,15 +45,25 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
     if path.suffix.lower() != ".zip":
         yield path
         return
+    # Open + cleanup are split so the consumer's `with _resolve_xml(...)`
+    # body can raise without that exception being captured by the open's
+    # `except` clauses. The `try/finally` after a successful open binds
+    # `zf.close()` to the next bytecode boundary, eliminating the fd-leak
+    # window the prior `zip_ctx = ZipFile(path); with zip_ctx as zf:` pattern
+    # had between assignment and `__enter__` (FP04 A2).
     try:
-        zip_ctx = zipfile.ZipFile(path)
+        zf = zipfile.ZipFile(path)
     except zipfile.BadZipFile as exc:
         # Per parser/spec.md "Edge cases": corrupt/truncated zips raise
         # DATError with the path, not a bare BadZipFile. The CLI's
         # ParserError catch then converts this to a user-facing stderr
         # message instead of a raw Python traceback.
         raise DATError(f"DAT zip is corrupt or truncated: {exc}", path=path) from exc
-    with zip_ctx as zf:
+    except OSError as exc:
+        # FP04 A1: PermissionError, IsADirectoryError, EIO etc. are disjoint
+        # from BadZipFile. Same CLI-spec contract — typed error, not raw OSError.
+        raise DATError(f"failed to open DAT zip: {exc}", path=path) from exc
+    try:
         xml_members = [n for n in zf.namelist() if n.lower().endswith(".xml")]
         if len(xml_members) == 0:
             raise DATError("DAT zip contains zero .xml files", path=path)
@@ -73,6 +83,8 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
         with tempfile.TemporaryDirectory() as tmp:
             extracted = zf.extract(member, path=tmp)
             yield Path(extracted)
+    finally:
+        zf.close()
 
 
 def _stream_machines(xml_path: Path) -> dict[str, Machine]:
@@ -93,6 +105,11 @@ def _stream_machines(xml_path: Path) -> dict[str, Machine]:
                 del elem.getparent()[0]
     except etree.XMLSyntaxError as exc:
         raise DATError(f"XML parse failed: {exc}", path=xml_path) from exc
+    except OSError as exc:
+        # FP04 A3: iterparse opens the file lazily on first __next__ — OSError
+        # (file disappeared race, EIO, perms revoked between exists() and read)
+        # would otherwise propagate raw past the CLI's ParserError catch.
+        raise DATError(f"failed to read DAT XML: {exc}", path=xml_path) from exc
     if not machines:
         raise DATError(
             "DAT contained no <machine> elements; check that this file is actually a MAME DAT",

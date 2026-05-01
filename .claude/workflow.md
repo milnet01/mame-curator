@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | FP04 — Parser hardening sweep (next; planned) |
-| **Active item ID** | (none — FP08 closed 2026-05-01, tag `FP08-complete` pushed) |
-| **Active step** | (resets to all ⬜ when FP04 becomes active) |
+| **Project phase** | P04 — HTTP API (next; planned) |
+| **Active item ID** | (none — FP04 closed 2026-05-01, tag `FP04-complete` pushed) |
+| **Active step** | (resets to all ⬜ when P04 becomes active) |
 | **Blocked on** | — |
-| **Last update** | 2026-05-01 (FP08 closed; path-quoting chain FP06→FP07→FP08 complete; FP04 + P04 queued) |
-| **Next gate** | User says "let's start FP04" or "let's start P04" (or equivalent) |
+| **Last update** | 2026-05-01 (FP04 closed; parser hardening sweep — 6 OSError gaps + fd-leak window in `parser/dat.py` + `parser/listxml.py`; all queued fix-passes done; P04 next) |
+| **Next gate** | User says "let's start P04" (or equivalent) |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,32 +21,21 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-1. ✅ Verify spec — `docs/specs/FP05.md` (105 lines, 22 sub-bullets); cold-eyes loop converged in 3 rounds (round 1: 8 issues; round 2: 5 + 2 contradictions; round 3: clean with 2 minor ⚠ folded inline)
-2. ✅ Verify dependencies on the roadmap DAG — DS01 ✅ (only dependency)
-3. 🚧 Write failing tests
+All steps reset to ⬜ until P04 becomes active.
+
+1. ⬜ Verify spec — write `docs/specs/P04.md` (P## items get fresh specs; FP##/DS## items don't, per the specs-for-features rule)
+2. ⬜ Verify dependencies on the roadmap DAG
+3. ⬜ Write failing tests
 4. ⬜ Implement until tests pass
-5. ⬜ Run `/audit` (read `docs/audit-allowlist.md` first — allowlist-001 active for `_preferred_score`)
-6. ⬜ Run `/indie-review` (same allowlist read)
+5. ⬜ Run `/audit`
+6. ⬜ Run `/indie-review`
 7. ⬜ Fold actionable findings → new FP## roadmap item
 8. ⬜ Update CHANGELOG / ROADMAP / journal
 9. ⬜ Commit, tag `<ID>-complete`, ask user about push
 
 ### Active item details
 
-```
-Item: FP05 — DS01 closing-review fold-in
-Spec: docs/specs/FP05.md (Step 1 in progress)
-Branch: main (no feature branch — solo development)
-Sub-findings: 14+ from /indie-review 2026-05-01 across copy/ + filter/ + cli/ lanes
-Tier 1 — real bugs: A1 recycle_partial unimplemented (copy);
-  A2 empty-string active footgun (filter); A3 MemoryError swallow (copy)
-Tier 2 — hardening: 10 items (BIOSResolutionWarning one-arm Literal,
-  cycle-safety spec drift, BIOSResolutionError zombie, pause/cancel race,
-  TOCTOU stat/read, FilterContext mutability, Session.from_raw validator,
-  CLI C6 comment overstatement, _cmd_copy asymmetry, CANCELLED exit code)
-Tier 3 — refactors: 3+ (extract _read_yaml_text, extract atomic_write_text,
-  os.replace cross-fs hazard) + 8-10 minor LOW items
-```
+(none — between phases. Five-fix-pass run DS01→FP05→FP06→FP07→FP08→FP04 closed all queued review-fix work; P04 is the next planned phase.)
 
 ### Phase history (App-Build mapping)
 
@@ -72,8 +61,10 @@ nominal. Both tags point at `56449c6`.
 | FP02 | — | ✅ | 2026-04-30 | 2026-04-30 | FP01 round-2 fold-in (9 items) + FP02 round-2 spec drift |
 | DS01 | — | ✅ | 2026-05-01 | 2026-05-01 | Pre-P04 debt-sweep fold-in (20 actionable + 2 round-2 R1/R2; cold-eyes review pattern adopted at Step 1) |
 | FP05 | — | ✅ | 2026-05-01 | 2026-05-01 | DS01 closing-review fold-in (20 actionable + R1-R6 round-2; B1+B4 reclassified after empirical investigation) |
-| FP06 | — | 📋 | — | — | FP05 closing-review fold-in (4 findings: purge_recycle OSError leak, SessionsError test, validator asymmetry, repr(path)) |
-| FP04 | — | 📋 | — | — | Parser hardening sweep (`parser/dat.py` `_resolve_xml` OSError + fd-leak; deferred from DS01) |
+| FP06 | — | ✅ | 2026-05-01 | 2026-05-01 | FP05 closing-review fold-in (7 findings: A1 purge_recycle OSError, B1-B3 sessions hardening, R1-R3 closing-review drift) |
+| FP07 | — | ✅ | 2026-05-01 | 2026-05-01 | `cli/` + typed-error path-quoting sweep (5+1 sites; fix base classes once, covers ~10 raise sites) |
+| FP08 | — | ✅ | 2026-05-01 | 2026-05-01 | `runner.py` warning path-quoting (1+1 sites; one-round cold-eyes converge) |
+| FP04 | — | ✅ | 2026-05-01 | 2026-05-01 | Parser hardening sweep (6 sites: OSError gaps in `dat.py` + `listxml.py` + fd-leak window in `_resolve_xml`) |
 | P04 | Phase 4 | 📋 | — | — | HTTP API (`api/`) |
 | P05 | Phase 5 | 📋 | — | — | Media subsystem (`media/`) |
 | P06 | Phase 6 | 📋 | — | — | Frontend MVP |

@@ -605,18 +605,18 @@ Dependencies: FP07 ✅.
 
 ---
 
-## FP04 — Parser hardening sweep (planned)
+## FP04 — Parser hardening sweep (closed 2026-05-01)
 
-**Theme:** items deferred from DS01 cold-eyes review (2026-05-01). Scope is `parser/dat.py` only. Opens after DS01 closes. May absorb new parser findings if `/audit` or `/indie-review` surfaces them during DS01's closing review.
+**Theme:** plumbed `OSError` into the typed-error contract at every CLI-visible parser exception path; eliminated the theoretical fd-leak window in `_resolve_xml`. Originally scoped to `parser/dat.py` only (2 deferred items from DS01); FP04's surface audit found 4 sibling sites in `listxml.py` + `_stream_machines` with the same threat model and fix shape — folded in.
 
-**Source:** pre-P03 indie-review sweep 2026-04-27 (CHANGELOG `[Unreleased]` Tier-2 entries at lines ~115-124, originally tagged "deferred until Tier 1 ships"). DS01 explicitly leaves these out of scope to keep its audit surface coherent on `copy/` + `filter/` + `cli/`.
+### 🔍 Findings fold-in
 
-### 🔍 Findings to fold
+- ✅ **A1 — `_resolve_xml` `OSError` catch.** `zipfile.ZipFile(path)` raising `PermissionError` / `IsADirectoryError` / file-disappeared race is now wrapped as `DATError(f"failed to open DAT zip: {exc}")`. Kind: review-fix. Lanes: parser.
+- ✅ **A2 — `_resolve_xml` fd-binding tightening.** Replaced `zip_ctx = ZipFile(path); with zip_ctx as zf:` with a split open-then-`try/finally` pattern; `zf.close()` is now bound at the next bytecode boundary, eliminating the theoretical leak window. Kind: review-fix. Lanes: parser.
+- ✅ **A3 — `_stream_machines` iterparse `OSError` catch.** `etree.iterparse` raising OSError mid-iteration (file-disappeared race, EIO during read) → `DATError(f"failed to read DAT XML: {exc}")`. Kind: review-fix. Lanes: parser.
+- ✅ **A4-A6 — three `parse_listxml_*` iterparse `OSError` catches.** Same shape as A3, applied to `parse_listxml_disks`, `parse_listxml_cloneof`, `parse_listxml_bios_chain`. → `ListxmlError(f"failed to read listxml: {exc}")`. Kind: review-fix. Lanes: parser.
 
-- 📋 **`_resolve_xml` `OSError` non-catch** (`parser/dat.py:48-50`). Doesn't catch `OSError` from `zipfile.ZipFile(...)` (perm-denied, EIO, broken symlink). `parser/spec.md` line 138 says every CLI-visible error path stays inside `ParserError`. Kind: review-fix. Lanes: parser.
-- 📋 **`_resolve_xml` fd-leak window** (`parser/dat.py:49-56`). `zip_ctx = zipfile.ZipFile(path)` binds before the `with` block, so a future `__enter__` failure leaks the fd. Theoretical (CPython `__enter__` is `return self`) but the idiomatic fix is one-line: move `ZipFile(path)` inside the `with` and the `try` around it. Kind: review-fix. Lanes: parser.
-
-Dependencies: DS01 (sequenced for cognitive coherence — surfaces don't overlap (`parser/dat.py` only) so technically parallelisable, but the project's per-phase loop is single-active-item by convention; running FP04 after DS01 closes keeps the convention intact).
+Dependencies: FP08 ✅. 5 regression tests added; 300 tests pass; coverage 95.11%; all five gates green. No `docs/specs/FP04.md` per the "specs are for features, not fixes" rule. See [`docs/journal/FP04.md`](docs/journal/FP04.md).
 
 ---
 

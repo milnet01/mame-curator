@@ -47,6 +47,11 @@ def parse_listxml_disks(path: Path) -> set[str]:
                 del elem.getparent()[0]
     except etree.XMLSyntaxError as exc:
         raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
+    except OSError as exc:
+        # FP04 A4-A6: iterparse opens the file lazily — OSError mid-iteration
+        # (file disappeared race, EIO, perms revoked) would otherwise propagate
+        # raw past the CLI's ParserError catch. Typed at the parser/CLI seam.
+        raise ListxmlError(f"failed to read listxml: {exc}", path=path) from exc
     return chd_required
 
 
@@ -73,6 +78,11 @@ def parse_listxml_cloneof(path: Path) -> dict[str, str]:
                 del elem.getparent()[0]
     except etree.XMLSyntaxError as exc:
         raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
+    except OSError as exc:
+        # FP04 A4-A6: iterparse opens the file lazily — OSError mid-iteration
+        # (file disappeared race, EIO, perms revoked) would otherwise propagate
+        # raw past the CLI's ParserError catch. Typed at the parser/CLI seam.
+        raise ListxmlError(f"failed to read listxml: {exc}", path=path) from exc
     return cloneof
 
 
@@ -105,4 +115,9 @@ def parse_listxml_bios_chain(path: Path) -> dict[str, BIOSChainEntry]:
                 del elem.getparent()[0]
     except etree.XMLSyntaxError as exc:
         raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
+    except OSError as exc:
+        # FP04 A4-A6: iterparse opens the file lazily — OSError mid-iteration
+        # (file disappeared race, EIO, perms revoked) would otherwise propagate
+        # raw past the CLI's ParserError catch. Typed at the parser/CLI seam.
+        raise ListxmlError(f"failed to read listxml: {exc}", path=path) from exc
     return chain

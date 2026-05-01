@@ -307,3 +307,36 @@ def test_unknown_driver_status_warning_logged_once_per_status(
     palette_warnings = [m for m in caplog.messages if "palette" in m]
     assert len(protection_warnings) == 1, "duplicate status string must warn at most once"
     assert len(palette_warnings) == 1
+
+
+# ---- FP04 — parser hardening sweep ----
+
+
+def test_zip_oserror_raises_DATError(tmp_path: Path) -> None:
+    """FP04 A1 — `zipfile.ZipFile()` raising `OSError` (not `BadZipFile`) must
+    surface as `DATError`, not propagate raw past the CLI's `ParserError` catch.
+
+    Trigger: a directory at a `.zip`-suffixed path. `zipfile.ZipFile()` on a
+    directory raises `IsADirectoryError` on POSIX / `PermissionError` on
+    Windows — both `OSError` subclasses.
+    """
+    bad = tmp_path / "actually_a_dir.zip"
+    bad.mkdir()
+    with pytest.raises(DATError, match="open DAT zip"):
+        parse_dat(bad)
+
+
+def _raise_oserror(*_args: object, **_kwargs: object) -> object:
+    raise OSError("simulated EIO during iterparse")
+
+
+def test_iterparse_oserror_raises_DATError(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """FP04 A3 — OSError from `etree.iterparse` (file disappeared race,
+    EIO during read, perms revoked between exists() and read) must surface
+    as `DATError`, not propagate raw past the CLI's ParserError catch.
+    """
+    src = tmp_path / "valid.xml"
+    src.write_text("<datafile><machine name='x'><description>X</description></machine></datafile>")
+    monkeypatch.setattr("lxml.etree.iterparse", _raise_oserror)
+    with pytest.raises(DATError, match="read DAT XML"):
+        parse_dat(src)

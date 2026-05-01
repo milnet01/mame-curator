@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP04 — Parser hardening sweep (closed 2026-05-01)
+
+Plumbed `OSError` into the typed-error contract at every CLI-visible parser exception path. Six surgical try-clause expansions across `parser/dat.py` (zipfile open + `_stream_machines` iterparse) and `parser/listxml.py` (three `parse_listxml_*` iterparse loops), plus one `try/finally` cleanup binding to eliminate the theoretical fd-leak window in `_resolve_xml`. All sites previously caught only the type-specific exception (`BadZipFile` / `XMLSyntaxError`), letting `OSError` (perm-denied, EIO, IsADirectoryError, file-disappeared race) propagate raw past the CLI's `ParserError` catch as a Python traceback — `cli/spec.md` violation. 5 regression tests added (`tests/parser/test_dat.py` + `tests/parser/test_listxml.py`). 300 tests pass; coverage 95.11%; all five gates green. Closes the deferred items from DS01 (originally surfaced in pre-P03 indie-review 2026-04-27); the audit also caught 4 sibling `iterparse`-only-catches-`XMLSyntaxError` sites in `listxml.py` + `_stream_machines` (same threat model, same fix shape — folded into the same fix-pass). No `docs/specs/FP04.md` per the "specs are for features, not fixes" rule. Follow-up: P04 (HTTP API).
+
 ### FP08 — `runner.py` warning path-quoting (closed 2026-05-01)
 
 The smallest fix-pass yet — 2 source edits + 2 regression tests. FP07 closing `/indie-review` flagged `copy/runner.py:233`'s recycle-failure warning interpolating `old_zip.name` raw (same threat model as FP06 B3 / FP07 A4: DAT machine short-name flows through to a JSON-serialised warning + CLI status line). FP08's own closing review caught a sibling site at `runner.py:92` that the initial audit's `warnings.append(f"...")` grep missed — the list-comprehension form `warnings: list[str] = [f"{w.name}: {w.kind}" for w in bios_warnings]`. Same value-flow class, same fix shape. **One-round cold-eyes spec review** (clean → READY TO SIGN OFF — by far the fastest converge yet). Closing audit + indie-review caught the R1 scope error; folded inline as Cluster R per the FP06 R2 precedent.
