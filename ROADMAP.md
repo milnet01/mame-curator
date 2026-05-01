@@ -581,17 +581,27 @@ Dependencies: FP06 ✅.
 
 ---
 
-## FP08 — FP07 closing-review fold-in (planned)
+## FP08 — FP07 closing-review fold-in (closed 2026-05-01)
 
-**Theme:** FP07 closing `/indie-review` surfaced 1 actionable finding on surrounding code. Lightest fix-pass yet; one-line edit + one regression test.
+**Theme:** FP07 closing `/indie-review` surfaced 1 actionable finding on surrounding code (M2). FP08's own closing review caught one Cluster R drift (R1: scope error in the initial audit's grep pattern — list-comp form of warnings emit at `runner.py:92` was missed). Total: 2 actionable items, 1 source line each.
 
-**Source:** indie-review-2026-05-01 closing-review on FP07.
+**Long-form contract:** [`docs/specs/FP08.md`](docs/specs/FP08.md) (signed off 2026-05-01 after 1-round cold-eyes review).
 
-### 🔍 Findings to fold
+### 🔍 Findings fold-in
 
-- 📋 **M2 — `copy/runner.py:233` warning interpolates `old_zip.name` raw.** `warnings.append(f"recycle of {old_zip.name} failed: {exc}")` — `old_zip` flows from `plan.dest_dir / f"{replaced_short}.zip"`, where `replaced_short` is a DAT machine short name (user-data path). Same threat model as FP06 B3 / FP07 A4. Warnings get serialised into the JSON copy report and rendered in the CLI status line; a control byte in a machine name leaks raw. Apply `{old_zip.name!r}`. Kind: review-fix. Lanes: copy. Source: indie-review-2026-05-01 (FP07 closing) M2.
+#### Tier 1 — single site (1)
 
-Dependencies: FP07 ✅. Smallest fix-pass yet — 1 source edit + 1 regression test.
+- ✅ **A1 — `copy/runner.py:233` recycle-failure warning quoting.** `warnings.append(f"recycle of {old_zip.name!r} failed: {exc}")`. `old_zip.name` flows from `AppendDecision.replaces` (DAT machine short-name; user-data path). Same threat model as FP06 B3 / FP07 A4. Kind: review-fix. Lanes: copy.
+
+#### Cluster R — closing-review drift (1)
+
+- ✅ **R1 — `copy/runner.py:92` BIOS-warning list-comp quoting (scope error).** FP08's initial audit grepped `warnings.append(f"...")` and missed the list-comprehension form `warnings: list[str] = [f"{w.name}: {w.kind}" for w in bios_warnings]`. Same value-flow class as A1; same fix shape. Folded inline as Cluster R per FP06 R2 precedent. Kind: review-fix. Lanes: copy.
+
+**Audit-pattern lesson** (logged for future fix-passes): grep for `warnings: list[str]\s*=` and `warnings.append` *both*; or trace value-flow into `CopyReport.warnings` to find every emit-site.
+
+**295 tests pass project-wide; coverage 95.03%; all five gates green.**
+
+Dependencies: FP07 ✅.
 
 ---
 

@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP08 — `runner.py` warning path-quoting (closed 2026-05-01)
+
+The smallest fix-pass yet — 2 source edits + 2 regression tests. FP07 closing `/indie-review` flagged `copy/runner.py:233`'s recycle-failure warning interpolating `old_zip.name` raw (same threat model as FP06 B3 / FP07 A4: DAT machine short-name flows through to a JSON-serialised warning + CLI status line). FP08's own closing review caught a sibling site at `runner.py:92` that the initial audit's `warnings.append(f"...")` grep missed — the list-comprehension form `warnings: list[str] = [f"{w.name}: {w.kind}" for w in bios_warnings]`. Same value-flow class, same fix shape. **One-round cold-eyes spec review** (clean → READY TO SIGN OFF — by far the fastest converge yet). Closing audit + indie-review caught the R1 scope error; folded inline as Cluster R per the FP06 R2 precedent.
+
+- **Tier 1 (1 — A1):** `copy/runner.py:233` warning emit now interpolates `{old_zip.name!r}`. The `{exc}` portion is a `CopyError` subclass already repr-quoted post-FP07 A4.
+- **Cluster R (1 — R1):** `copy/runner.py:92` BIOS-warning list-comp now interpolates `{w.name!r}: {w.kind}`. Audit-pattern lesson logged: `warnings.append(f"...")` grep doesn't find the list-comp form; future fix-passes should trace value-flow into `CopyReport.warnings` rather than relying on a single grep pattern.
+
+2 new regression tests added to `tests/copy/test_fp01_fixes.py` covering both sites end-to-end via `run_copy` (LF-bearing winner short-name for R1; LF-bearing existing-zip basename for A1). **295 tests pass project-wide; coverage 95.03%; all five gates green.** Long-form contract: [`docs/specs/FP08.md`](docs/specs/FP08.md). Follow-ups: FP04 (parser hardening, unchanged); P04 (HTTP API).
+
 ### FP07 — `cli/` + typed-error path-quoting sweep (closed 2026-05-01)
 
 Completes the path-quoting sweep that FP06 scoped to `filter/`. Five surgical edits land the `repr`-quoted-path contract uniformly across `cli/`, `copy/`, and `parser/` error rendering. **Two rounds of cold-eyes spec review** (round 1: 1 critical — A1 test had dead `try/except OSError` around a non-syscall — plus 2 medium clarifications folded; round 2: clean → READY TO SIGN OFF). Closing `/audit` returned clean; closing `/indie-review` flagged 1 medium (M1: CLI test assertions too loose — fold inline as Cluster R) + 1 medium on surrounding code (M2: `runner.py:233` warning — spawn FP08).

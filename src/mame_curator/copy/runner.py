@@ -89,7 +89,11 @@ def run_copy(
     )
 
     pre = preflight(plan)
-    warnings: list[str] = [f"{w.name}: {w.kind}" for w in bios_warnings]
+    # FP08 R1 (Cluster R): quote w.name via repr() — the BIOS short-name
+    # flows from DAT data (user-controlled). Same threat model as FP08 A1
+    # at runner.py:240; missed by FP08's initial `warnings.append(f"...")`
+    # grep because this site uses the list-comprehension form.
+    warnings: list[str] = [f"{w.name!r}: {w.kind}" for w in bios_warnings]
 
     # Playlist conflict resolution. CANCEL is a safety-rail for genuine
     # conflicts; an idempotent rerun (every winner-zip already at dest with
@@ -230,7 +234,14 @@ def run_copy(
                                 )
                             )
                         except CopyError as exc:
-                            warnings.append(f"recycle of {old_zip.name} failed: {exc}")
+                            # FP08 A1: quote old_zip.name via repr() — the
+                            # basename embeds replaced_short which flows from
+                            # AppendDecision.replaces (a DAT machine short
+                            # name; user-data path). Same threat model as
+                            # FP06 B3 / FP07 A4. The {exc} portion is a
+                            # CopyError subclass that already repr-quotes
+                            # any embedded path post-FP07 A4.
+                            warnings.append(f"recycle of {old_zip.name!r} failed: {exc}")
 
         if plan.dry_run:
             # Pretend success without writing.
