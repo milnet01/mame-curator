@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | FP08 — FP07 closing-review fold-in (next; planned) |
-| **Active item ID** | (none — FP07 closed 2026-05-01, tag `FP07-complete` pushed) |
-| **Active step** | (resets to all ⬜ when FP08 becomes active) |
+| **Project phase** | FP04 — Parser hardening sweep (next; planned) |
+| **Active item ID** | (none — FP08 closed 2026-05-01, tag `FP08-complete` pushed) |
+| **Active step** | (resets to all ⬜ when FP04 becomes active) |
 | **Blocked on** | — |
-| **Last update** | 2026-05-01 (FP07 closed; FP08 + FP04 + P04 queued) |
-| **Next gate** | User says "let's start FP08" (or equivalent) |
+| **Last update** | 2026-05-01 (FP08 closed; path-quoting chain FP06→FP07→FP08 complete; FP04 + P04 queued) |
+| **Next gate** | User says "let's start FP04" or "let's start P04" (or equivalent) |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
