@@ -512,11 +512,37 @@ Dependencies: DS01 ✅. Tracked here as 📋 (planned); spec written at Step 1 o
 
 ---
 
-## FP06 — FP05 closing-review fold-in (planned)
+## FP06 — FP05 closing-review fold-in (closed 2026-05-01)
 
-**Theme:** the closing `/audit` + `/indie-review` pass on FP05's patches surfaced 4 actionable findings in surrounding code (cli/, _atomic.py, filter/sessions.py). FP05-introduced drift (6 items) closed inside FP05 as Cluster R. Sourced from `/indie-review` 2026-05-01.
+**Theme:** the closing `/audit` + `/indie-review` pass on FP05's patches surfaced 4 actionable findings in surrounding code (`cli/__init__.py`, `filter/sessions.py`, `filter/_io.py`, `filter/overrides.py`) plus 3 cleanups folded as Cluster R (R1 docstring fix, R2 missed name-quoting site at `sessions.py:81` caught by closing review, R3 B1b assertion hardening). FP05-introduced drift (6 items) closed inside FP05 itself per the FP02 / DS01 precedent. **Total: 7 actionable items.**
 
-**Long-form contract:** to be written at Step 1 of FP06's loop (`docs/specs/FP06.md`).
+**Long-form contract:** [`docs/specs/FP06.md`](docs/specs/FP06.md) (signed off 2026-05-01 after 4-round cold-eyes review; closed 2026-05-01).
+
+### 🔍 Findings fold-in
+
+#### Tier 1 — real bug (1)
+
+- ✅ **A1 — `purge_recycle()` OSError leak in `_cmd_copy`.** Wrapped `if args.purge_recycle:` short-circuit in `try/except OSError` at `cli/__init__.py:215-225`; surfaces clean `error:` line + exit 1 instead of traceback. Kind: review-fix. Lanes: cli, copy.
+
+#### Tier 2 — hardening (3)
+
+- ✅ **B1 — Lock-in tests for `Sessions` exception-shape contract.** Two tests in `tests/filter/test_sessions.py`: direct construction → `ValidationError` (verified via `errors()[0]['ctx']['error']` shape); loader path → `SessionsError` with path-prefixed message. Kind: test. Lanes: filter, tests.
+- ✅ **B2 — Unify validator-raise convention.** `Sessions._active_must_reference_a_defined_session` now raises `ValueError` (was `SessionsError`); Pydantic wraps; loader's `except ValidationError → SessionsError(f"{path!r}: ...")` rewrap fires. Direct callers see `ValidationError` (a `ValueError` subclass in v2.x), matching `Session._validate_session`. Kind: review-fix. Lanes: filter.
+- ✅ **B3 — Quote user-controlled strings via `repr`.** Applied `f"{path!r}"` and `f"{name!r}"` at 13 sites total (10 path + 3 name, post-R2): `_io.py:32, 35, 40`; `sessions.py:50, 81, 86, 93, 107, 119, 138, 150`; `overrides.py:35, 41, 45`. Defends single-line error contract against control-byte spoofing. Kind: review-fix. Lanes: filter.
+
+#### Cluster R — fix-pass-internal drift (3)
+
+- ✅ **R1 — Fix misleading `__cause__` docstring + add sibling note.** `sessions.py:27-30` updated to point at `errors()[0]['ctx']['error']` (Pydantic v2 leaves `__cause__=None`); parallel comment block above `_active_must_reference_a_defined_session` documents the same wrap behaviour for B2's now-`ValueError`-raising path. Kind: doc-fix. Lanes: filter.
+- ✅ **R2 — `sessions.py:81` `self.active` quoting (B3 scope error).** Closing `/indie-review` flagged that B3 audit catalogued 2 name-quoting sites (`sessions.py:50, 125`) but missed `sessions.py:81` where `self.active` (from YAML) interpolates raw. Reproduced literal-LF leak through `ValidationError.__str__`; folded inline as Cluster R per FP02 / DS01 / FP05 precedent for fix-pass-internal scope errors. New test `test_active_with_control_char_quoted_in_error` pins. Kind: review-fix. Lanes: filter.
+- ✅ **R3 — B1b assertion hardening against path-form fragility.** Closing-review M1 flagged the original `assert repr(f) in msg or repr(str(f)) in msg` would pass both pre-fix and post-fix on a clean fixture path. Strengthened to fixture path with literal LF + strict "no LF in head" assertion that survives a future "I'll just simplify the f-string" refactor. Kind: test. Lanes: filter, tests.
+
+### Out of scope (deferred to FP07)
+
+- `cli/__init__.py:139, 187, 200, 225, 233, 240, 260` and `copy/recyclebin.py` path-quoting (different module surface; deliberately scoped FP06 to `filter/`'s loaders).
+
+**284 tests pass project-wide; coverage 94.63%; all five gates green.**
+
+Dependencies: FP05 ✅.
 
 ### 🔍 Findings to fold
 
@@ -526,6 +552,21 @@ Dependencies: DS01 ✅. Tracked here as 📋 (planned); spec written at Step 1 o
 - 📋 **B3 — error-message path quoting.** `read_capped_text` uses `f"failed to read {path}: {exc}"`; a path with newlines or control chars breaks the single-line error contract. Use `repr(path)`. Kind: review-fix. Lanes: filter. Source: indie-review-2026-05-01 lane filter M2.
 
 Dependencies: FP05 ✅. (FP04 — parser hardening — unchanged.)
+
+---
+
+## FP07 — `cli/` + `copy/recyclebin.py` path-quoting sweep (planned)
+
+**Theme:** FP06 closing `/indie-review` deferred path-quoting at sites outside `filter/` (different module surface). One cohesive batch lands them.
+
+**Source:** indie-review-2026-05-01 closing-review on FP06; spec § "Out of scope" calls them out explicitly.
+
+### 🔍 Findings to fold
+
+- 📋 **`_cmd_parse:139`, `_cmd_filter:187, 200`, `_cmd_copy:225, 233, 240, 260` — bare `f"{path}"` in error messages.** Same threat-model as FP06 B3 (control bytes in user-controlled paths break the single-line error contract; could spoof terminal output). Apply `f"{path!r}"` quoting. Kind: review-fix. Lanes: cli.
+- 📋 **`copy/recyclebin.py` — paths embedded in `RecycleError(...)` and other error messages.** Audit for `f"...{path}..."` interpolations and apply `repr` quoting where user-controlled. Kind: review-fix. Lanes: copy.
+
+Dependencies: FP06 ✅. Light fix-pass; small surface; can run alongside FP04 if scope permits.
 
 ---
 

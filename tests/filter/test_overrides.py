@@ -75,3 +75,28 @@ def test_overrides_oserror_wrapped(tmp_path: Path) -> None:
     d.mkdir()
     with pytest.raises(OverridesError):
         load_overrides(d)
+
+
+# FP06 — B3c test below
+
+
+def test_load_overrides_invalid_mapping_quotes_path(tmp_path: Path) -> None:
+    """FP06 B3c — `overrides.py:41` "is not a YAML mapping" path must quote
+    the path via `repr` so a path with control bytes can't break the
+    single-line error contract or spoof terminal output."""
+    bad = tmp_path / "evil\nname.yaml"
+    try:
+        bad.write_text("- a\n- b\n", encoding="utf-8")
+    except OSError:  # pragma: no cover
+        pytest.skip("filesystem rejects \\n in path names")
+    with pytest.raises(OverridesError) as exc_info:
+        load_overrides(bad)
+    msg = str(exc_info.value)
+    assert "evil\\nname.yaml" in msg
+    # Strict: no literal LF in user-controlled portion of the message.
+    # The "not a YAML mapping" error is a single-line f-string; pre-fix the
+    # path's LF byte leaks into the message.
+    # Note: msg may also contain trailing newline from yaml's own message;
+    # trim that comparison to the path-bearing prefix.
+    head = msg.split(" is not a YAML mapping")[0]
+    assert "\n" not in head

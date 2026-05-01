@@ -199,3 +199,109 @@ def test_session_validator_rejects_no_include_rules() -> None:
 
     with pytest.raises((SessionsError, ValueError)):
         Session()
+
+
+# FP06 — B1 + B3d tests below
+
+
+def test_direct_sessions_construction_raises_validation_error_on_bad_active() -> None:
+    """FP06 B1a — pin the post-B2 contract for direct `Sessions(...)` construction.
+
+    Pre-B2: validator raises `SessionsError` directly; Pydantic propagates.
+    `pytest.raises(ValidationError)` would NOT match → test fails.
+    Post-B2: validator raises `ValueError`; Pydantic wraps in `ValidationError`;
+    test passes. The `errors()[0]['ctx']['error']` lookup pins Pydantic v2.x's
+    structural shape (verified against 2.13)."""
+    from pydantic import ValidationError
+
+    from mame_curator.filter.sessions import Session, Sessions
+
+    valid = Session(include_genres=("X*",))
+    with pytest.raises(ValidationError) as exc_info:
+        Sessions(active="bogus", sessions={"only": valid})
+    # Loose primary check — survives Pydantic patch-version wrapping changes.
+    assert "active session 'bogus' is not defined" in str(exc_info.value)
+    # Strict structural check — pins the v2.x ctx.error shape.
+    inner = exc_info.value.errors()[0]["ctx"]["error"]
+    assert isinstance(inner, ValueError)
+
+
+def test_load_sessions_wraps_validation_error_with_path_context(tmp_path: Path) -> None:
+    """FP06 B1b — pin the loader path's contract: a YAML with bad `active` must
+    surface as `SessionsError` whose message contains the (quoted) path.
+
+    Combines B2 (validator raises ValueError → Pydantic wraps → loader's
+    `try: Sessions(...) except ValidationError → SessionsError(f"{path!r}: ...")`
+    rewrap fires) and B3 (path quoted via repr in the rewrapped message).
+
+    FP06 Cluster R / M1: fixture path now contains an LF byte. The strict
+    "no literal LF in head" assertion is what survives the "I'll just
+    simplify the f-string" refactor — a future drop of `!r` would
+    re-introduce the raw LF byte and fail the test."""
+    try:
+        f = tmp_path / "evil\nname.yaml"
+        f.write_text("active: bogus\nsessions: {}\n", encoding="utf-8")
+    except OSError:  # pragma: no cover
+        pytest.skip("filesystem rejects \\n in path names")
+    with pytest.raises(SessionsError) as exc_info:
+        load_sessions(f)
+    msg = str(exc_info.value)
+    # Path appears in repr-escaped form.
+    assert "evil\\nname.yaml" in msg
+    # Original validator message survives the rewrap.
+    assert "not defined" in msg
+    # Strict: the path-bearing prefix has no literal LF byte.
+    head = msg.split(":", 1)[0]
+    assert "\n" not in head
+
+
+def test_active_with_control_char_quoted_in_error() -> None:
+    """FP06 Cluster R / R2 — `Sessions(active="evil\\nname", ...)` must surface
+    the `active` value via `repr()` in the validator error. Pre-R2 the bare
+    `f"'{self.active}'"` interpolation leaked a literal LF byte through
+    Pydantic's `ValidationError.__str__`, breaking the single-line contract."""
+    from pydantic import ValidationError
+
+    from mame_curator.filter.sessions import Sessions
+
+    valid = Session(include_genres=("X*",))
+    with pytest.raises(ValidationError) as exc_info:
+        Sessions(active="evil\nname", sessions={"other": valid})
+    msg = str(exc_info.value)
+    # Post-R2: name is repr-escaped.
+    assert "evil\\nname" in msg
+    # Strict: no literal LF in the validator's error line. (Pydantic adds
+    # surrounding context; we check the segment between "active session "
+    # and " is not defined" — the user-controlled portion.)
+    user_segment = msg.split("active session ", 1)[1].split(" is not defined", 1)[0]
+    assert "\n" not in user_segment
+
+
+def test_session_with_control_char_in_name_quoted_in_error(tmp_path: Path) -> None:
+    """FP06 B3d — name-quoting at `sessions.py:125`. A YAML session-key with a
+    literal LF must surface in the error message via `repr(name)` (escaped form),
+    NOT as a raw LF byte that breaks the single-line error contract.
+
+    Fixture-content gotcha: Python source `"\\n"` writes one backslash + 'n'
+    to disk; PyYAML's double-quoted scalar then decodes that to one LF byte
+    at parse time. The resulting key has LF in the middle.
+    """
+    fixture = tmp_path / "sessions.yaml"
+    try:
+        fixture.write_text(
+            "active: null\n"
+            "sessions:\n"
+            '  "evil\\nname": 42\n',  # body=42 (non-mapping) → trips sessions.py:125
+            encoding="utf-8",
+        )
+    except OSError:  # pragma: no cover
+        pytest.skip("filesystem rejects \\n in path names")
+    with pytest.raises(SessionsError) as exc_info:
+        load_sessions(fixture)
+    msg = str(exc_info.value)
+    # Post-fix: name is repr-escaped — backslash-n appears as 2 chars.
+    assert "evil\\nname" in msg
+    # Strict: no literal LF byte in the rendered message (the SessionsError
+    # f-string is single-line; pre-fix the user-controlled LF byte breaks
+    # that contract).
+    assert "\n" not in msg

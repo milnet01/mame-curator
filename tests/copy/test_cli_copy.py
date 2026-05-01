@@ -215,3 +215,44 @@ def test_cmd_copy_exit_3_on_cancelled_playlist_conflict(
         _copy_args(dat=dat, listxml=listxml, filter_report=fr, source=tmp_path, dest=tmp_path)
     )
     assert run(args) == 3
+
+
+# FP06 — A1 test below
+
+
+def _raise_oserror(*_a: object, **_kw: object) -> tuple[int, int]:
+    raise OSError("permission denied")
+
+
+def test_cmd_copy_purge_recycle_oserror_surfaces_clean(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """FP06 A1 — `--purge-recycle` short-circuit at `cli/__init__.py:215-218`
+    sits OUTSIDE the FP05 B9 `try/except OSError` block. A user with an
+    unreadable recycle directory currently gets a Python traceback. Post-fix
+    the early-return is wrapped in its own `try/except OSError` and surfaces
+    a clean `error:` line with exit 1.
+    """
+    monkeypatch.setattr("mame_curator.cli.purge_recycle", _raise_oserror)
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "copy",
+            "--dry-run",
+            "--dat",
+            str(tmp_path / "x.xml"),
+            "--listxml",
+            str(tmp_path / "x.xml"),
+            "--filter-report",
+            str(tmp_path / "x.json"),
+            "--source",
+            str(tmp_path),
+            "--dest",
+            str(tmp_path),
+            "--purge-recycle",
+        ]
+    )
+    assert run(args) == 1
+    err = capsys.readouterr().err
+    assert "error:" in err
+    assert "Traceback" not in err

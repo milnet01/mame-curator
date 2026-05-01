@@ -29,12 +29,15 @@ def read_capped_text(path: Path, *, exc_cls: type[Exception]) -> str:
             try:
                 size = os.fstat(fh.fileno()).st_size
             except OSError as exc:
-                raise exc_cls(f"failed to stat {path}: {exc}") from exc
+                # FP06 B3: quote `path` via repr() so newlines / terminal
+                # control bytes in user-controlled filenames can't break
+                # the single-line error contract or spoof legitimate output.
+                raise exc_cls(f"failed to stat {path!r}: {exc}") from exc
             if size > _MAX_YAML_BYTES:
                 raise exc_cls(
-                    f"{path} exceeds 1 MiB cap ({_MAX_YAML_BYTES} bytes; "
+                    f"{path!r} exceeds 1 MiB cap ({_MAX_YAML_BYTES} bytes; "
                     f"actual: {size}); refusing to parse to defend against YAML alias bombs"
                 )
             return fh.read().decode("utf-8")
     except OSError as exc:
-        raise exc_cls(f"failed to read {path}: {exc}") from exc
+        raise exc_cls(f"failed to read {path!r}: {exc}") from exc

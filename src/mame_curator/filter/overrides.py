@@ -32,14 +32,15 @@ def load_overrides(path: Path) -> Overrides:
     try:
         raw: Any = yaml.safe_load(text)
     except yaml.YAMLError as exc:
-        raise OverridesError(f"failed to parse {path}: {exc}") from exc
+        # FP06 B3: quote user-controlled paths via repr().
+        raise OverridesError(f"failed to parse {path!r}: {exc}") from exc
     # Empty file / YAML `null` at top level → empty Overrides (matches the
     # missing-file case).
     if raw is None:
         return Overrides()
     if not isinstance(raw, dict):
-        raise OverridesError(f"{path} is not a YAML mapping")
+        raise OverridesError(f"{path!r} is not a YAML mapping")
     try:
         return Overrides.model_validate(raw)
     except ValidationError as exc:
-        raise OverridesError(f"{path} failed schema validation: {exc}") from exc
+        raise OverridesError(f"{path!r} failed schema validation: {exc}") from exc

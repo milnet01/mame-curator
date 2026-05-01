@@ -213,7 +213,16 @@ def _cmd_copy(args: argparse.Namespace) -> int:
     err_console = Console(stderr=True, soft_wrap=True)
 
     if args.purge_recycle:
-        dirs, freed = purge_recycle()
+        # FP06 A1: the --purge-recycle short-circuit returns before B9's try
+        # block runs, so OSError from purge_recycle (perm-denied recycle root,
+        # broken symlink, NFS hiccup) was reaching the user as a traceback.
+        # Flat outer try mirrors B9's pattern; B9's try is reserved for
+        # parser-input loading and binds variables consumed downstream.
+        try:
+            dirs, freed = purge_recycle()
+        except OSError as exc:
+            err_console.print(f"[red]error:[/red] failed to purge recycle: {exc}")
+            return 1
         console.print(f"  recycle purged: {dirs} directories, {freed} bytes freed")
         return 0
 
