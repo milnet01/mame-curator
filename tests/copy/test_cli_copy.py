@@ -224,6 +224,49 @@ def _raise_oserror(*_a: object, **_kw: object) -> tuple[int, int]:
     raise OSError("permission denied")
 
 
+def test_cmd_copy_quotes_filter_report_with_control_byte(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """FP07 A3 — `--filter-report` path with a control byte must surface
+    via `repr()` in the read-failure error message.
+
+    `_cmd_copy` reaches the filter-report read at line 245-251 only after
+    the parser-input loads succeed; we provide minimal-but-parseable DAT
+    + listxml files so the function gets past line 229-243, then the
+    filter-report read raises `FileNotFoundError` (an OSError subclass)
+    on the LF-bearing path.
+    """
+    dat = tmp_path / "tiny.xml"
+    dat.write_text(
+        '<?xml version="1.0"?>'
+        '<mame><machine name="x"><description>X</description></machine></mame>',
+        encoding="utf-8",
+    )
+    listxml = tmp_path / "listxml.xml"
+    listxml.write_text(
+        '<?xml version="1.0"?>'
+        '<mame><machine name="x"><description>X</description></machine></mame>',
+        encoding="utf-8",
+    )
+    bad_report = tmp_path / "evil\nname.json"
+    parser = build_parser()
+    args = parser.parse_args(
+        _copy_args(
+            dat=dat,
+            listxml=listxml,
+            filter_report=bad_report,
+            source=tmp_path,
+            dest=tmp_path,
+        )
+    )
+    assert run(args) == 1
+    err = capsys.readouterr().err
+    assert "evil\\nname.json" in err
+    # FP07 R1: literal-LF-form path must not leak (tightened from the
+    # weaker `"\n" not in err.rstrip("\n")` form).
+    assert "evil\nname.json" not in err
+
+
 def test_cmd_copy_purge_recycle_oserror_surfaces_clean(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

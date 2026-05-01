@@ -136,7 +136,9 @@ def _cmd_parse(args: argparse.Namespace) -> int:
     try:
         machines = parse_dat(args.dat)
     except ParserError as exc:
-        err_console.print(f"[red]error:[/red] failed to parse {args.dat}: {exc}")
+        # FP07 A1: quote args.dat via repr() so a control byte in a
+        # user-controlled path can't break the single-line error contract.
+        err_console.print(f"[red]error:[/red] failed to parse {args.dat!r}: {exc}")
         return 1
 
     parents = sum(1 for m in machines.values() if m.cloneof is None)
@@ -197,7 +199,8 @@ def _cmd_filter(args: argparse.Namespace) -> int:
     try:
         atomic_write_text(args.out, result.model_dump_json(indent=2) + "\n")
     except OSError as exc:
-        err_console.print(f"[red]error:[/red] failed to write {args.out}: {exc}")
+        # FP07 A2: quote args.out via repr() — same threat model as A1.
+        err_console.print(f"[red]error:[/red] failed to write {args.out!r}: {exc}")
         return 1
 
     console.print(f"  winners: {len(result.winners)}")
@@ -245,8 +248,9 @@ def _cmd_copy(args: argparse.Namespace) -> int:
     try:
         report_data = json.loads(args.filter_report.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
+        # FP07 A3: quote args.filter_report via repr() — same threat model.
         err_console.print(
-            f"[red]error:[/red] failed to read filter report {args.filter_report}: {exc}"
+            f"[red]error:[/red] failed to read filter report {args.filter_report!r}: {exc}"
         )
         return 1
 

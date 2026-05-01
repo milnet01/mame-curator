@@ -103,6 +103,30 @@ def test_run_with_unknown_command_raises_assertion() -> None:
         run(forged)
 
 
+def test_cmd_parse_quotes_path_with_control_byte(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """FP07 A1 — `--dat` pointing at a path with a control byte must surface
+    in the error message via `repr()`, NOT as a literal LF that breaks
+    the single-line error contract.
+
+    `Path` construction is pure (no syscall) so no skip clause needed;
+    `parse_dat` checks `path.exists()` and raises `DATError("DAT path does
+    not exist", path=path)` without touching the filesystem.
+    """
+    bad = tmp_path / "evil\nname.xml"
+    parser = build_parser()
+    args = parser.parse_args(["parse", str(bad)])
+    assert run(args) == 1
+    err = capsys.readouterr().err
+    # Post-fix: repr-escaped form (Python source `\\n` = 2 chars `\` + `n`).
+    assert "evil\\nname.xml" in err
+    # Strict: the literal-LF form of the path must NOT appear (FP07 R1
+    # tightened from `"\n" not in err.rstrip("\n")` — that form would
+    # false-positive on any future {exc} that contains an embedded LF).
+    assert "evil\nname.xml" not in err
+
+
 def test_dispatch_uses_set_defaults_func_pattern() -> None:
     """Per cli/spec.md "Dispatch pattern": when the second subcommand lands,
     `run()` MUST migrate from `if/elif` to `set_defaults(func=_cmd_x)` +

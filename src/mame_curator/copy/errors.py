@@ -23,7 +23,11 @@ class CopyError(Exception):
         """Render with `(path=...)` suffix when a path is attached."""
         base = super().__str__()
         if self.path is not None:
-            return f"{base} (path={self.path})"
+            # FP07 A4: quote path via repr() so a control byte in a
+            # user-controlled path can't break the single-line error
+            # contract or spoof terminal output. Single rendering site
+            # for every CopyError subclass.
+            return f"{base} (path={self.path!r})"
         return base
 
 

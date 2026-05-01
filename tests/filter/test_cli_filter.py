@@ -154,3 +154,36 @@ def test_filter_cmd_unset_overrides_uses_empty_model(
     args = parser.parse_args(_filter_args(fixtures_dir, out))
     # Must succeed without invoking the patched loaders.
     assert run(args) == 0
+
+
+# FP07 — A2 test below
+
+
+def test_cmd_filter_quotes_out_path_with_control_byte(
+    fixtures_dir: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """FP07 A2 — `--out` path with a control byte must surface via `repr()`
+    in the atomic-write OSError message.
+
+    Patch the cli-side binding `mame_curator.cli.atomic_write_text` (NOT the
+    source `mame_curator._atomic.atomic_write_text`) — `cli/__init__.py:18`
+    binds the name into the cli namespace at import time; the call site
+    looks up the cli-side binding.
+    """
+
+    def _raise_oserror(*_a: object, **_kw: object) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr("mame_curator.cli.atomic_write_text", _raise_oserror)
+    out = tmp_path / "evil\nname.json"
+    parser = build_parser()
+    args = parser.parse_args(_filter_args(fixtures_dir, out))
+    assert run(args) == 1
+    err = capsys.readouterr().err
+    assert "evil\\nname.json" in err
+    # FP07 R1: literal-LF-form path must not leak (tightened from the
+    # weaker `"\n" not in err.rstrip("\n")` form).
+    assert "evil\nname.json" not in err

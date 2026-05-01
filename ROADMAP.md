@@ -555,18 +555,43 @@ Dependencies: FP05 ✅. (FP04 — parser hardening — unchanged.)
 
 ---
 
-## FP07 — `cli/` + `copy/recyclebin.py` path-quoting sweep (planned)
+## FP07 — `cli/` + typed-error path-quoting sweep (closed 2026-05-01)
 
-**Theme:** FP06 closing `/indie-review` deferred path-quoting at sites outside `filter/` (different module surface). One cohesive batch lands them.
+**Theme:** complete the path-quoting sweep that FP06 scoped to `filter/`. Five surgical edits land the contract uniformly across `cli/`, `copy/`, and `parser/` error rendering. Strategy: fix the typed-error base classes (`copy/errors.py:26` `__str__`, `parser/errors.py:14` `__init__`) at the rendering site rather than every per-raise-site f-string — single point of change covers ~10 raise sites between `recyclebin.py`, `playlist.py`, `executor.py`, `parser/dat.py`, `parser/listxml.py`, `parser/ini.py`. Three CLI sites (`cli/__init__.py:139, 200, 249`) cover the bare `args.*` interpolations.
 
-**Source:** indie-review-2026-05-01 closing-review on FP06; spec § "Out of scope" calls them out explicitly.
+**Long-form contract:** [`docs/specs/FP07.md`](docs/specs/FP07.md) (signed off 2026-05-01 after 2-round cold-eyes review).
+
+### 🔍 Findings fold-in
+
+#### Tier 1 — closing FP06's deferred surface (5)
+
+- ✅ **A1 — `cli/__init__.py:139` `_cmd_parse` `failed to parse` error.** `args.dat!r` quoting. Kind: review-fix. Lanes: cli.
+- ✅ **A2 — `cli/__init__.py:200` `_cmd_filter` atomic-write OSError.** `args.out!r`. Kind: review-fix. Lanes: cli.
+- ✅ **A3 — `cli/__init__.py:249` `_cmd_copy` filter-report load failure.** `args.filter_report!r`. Kind: review-fix. Lanes: cli.
+- ✅ **A4 — `copy/errors.py:26` `CopyError.__str__` `(path=...)` rendering.** Single rendering site for every CopyError subclass — `RecycleError`, `PlaylistError`, `CopyExecutionError`, `PreflightError` all inherit. `f"{base} (path={self.path!r})"`. Kind: review-fix. Lanes: copy.
+- ✅ **A5 — `parser/errors.py:14` `ParserError.__init__` `(path=...)` interpolation.** Single message-construction site for every ParserError subclass — `DATError`, `INIError`, `ListxmlError`. `f"{message} (path={path!r})" if path else message`. Kind: review-fix. Lanes: parser.
+
+#### Cluster R — closing-review drift (1)
+
+- ✅ **R1 — Tighten CLI test assertions.** Closing `/indie-review` M1 flagged that `assert "\n" not in err.rstrip("\n")` only strips trailing LFs; future multi-line `{exc}` would false-positive. Narrowed all three CLI tests to `assert "evil\nname.<ext>" not in err` (literal-LF form of the path). Pure test hardening; no production-code change. Kind: test. Lanes: tests.
+
+**293 tests pass project-wide; coverage 94.93%; all five gates green.**
+
+Dependencies: FP06 ✅.
+
+---
+
+## FP08 — FP07 closing-review fold-in (planned)
+
+**Theme:** FP07 closing `/indie-review` surfaced 1 actionable finding on surrounding code. Lightest fix-pass yet; one-line edit + one regression test.
+
+**Source:** indie-review-2026-05-01 closing-review on FP07.
 
 ### 🔍 Findings to fold
 
-- 📋 **`_cmd_parse:139`, `_cmd_filter:187, 200`, `_cmd_copy:225, 233, 240, 260` — bare `f"{path}"` in error messages.** Same threat-model as FP06 B3 (control bytes in user-controlled paths break the single-line error contract; could spoof terminal output). Apply `f"{path!r}"` quoting. Kind: review-fix. Lanes: cli.
-- 📋 **`copy/recyclebin.py` — paths embedded in `RecycleError(...)` and other error messages.** Audit for `f"...{path}..."` interpolations and apply `repr` quoting where user-controlled. Kind: review-fix. Lanes: copy.
+- 📋 **M2 — `copy/runner.py:233` warning interpolates `old_zip.name` raw.** `warnings.append(f"recycle of {old_zip.name} failed: {exc}")` — `old_zip` flows from `plan.dest_dir / f"{replaced_short}.zip"`, where `replaced_short` is a DAT machine short name (user-data path). Same threat model as FP06 B3 / FP07 A4. Warnings get serialised into the JSON copy report and rendered in the CLI status line; a control byte in a machine name leaks raw. Apply `{old_zip.name!r}`. Kind: review-fix. Lanes: copy. Source: indie-review-2026-05-01 (FP07 closing) M2.
 
-Dependencies: FP06 ✅. Light fix-pass; small surface; can run alongside FP04 if scope permits.
+Dependencies: FP07 ✅. Smallest fix-pass yet — 1 source edit + 1 regression test.
 
 ---
 
