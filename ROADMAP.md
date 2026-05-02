@@ -1155,6 +1155,79 @@ and test-infra polish.
 
 ---
 
+## FP12 — Settings page list editors + path picker (planned)
+
+**Theme:** P06's spec § "Out of scope" line 511 declared "all
+Settings-page controls are built here," but FP11 only closed the
+~11 binary toggles + theme/layout pickers — every list-shaped or
+free-text field still needs hand-editing of `config.yaml`. FP12
+closes that gap with two reusable UI primitives (`<ChipListEditor>`
++ `<DragReorderList>`) plus the long-deferred `<FsBrowser>` path
+picker (R29-R34 backend already shipped in P04).
+
+`UiConfig.cards_per_row_hint` is **not** in scope here — spec § 210
+explicitly defers it to P07+. The `default_sort` dropdown is in
+scope (a thin select control, no primitive needed).
+
+### 🎨 Features
+
+- 📋 **FP12** [mame-curator-1004] **Settings-page expansion: list editors + path picker.**
+  Lanes: frontend, tests.
+  - **A — Chip list editor primitive.** `<ChipListEditor value={string[]}
+    onChange={(next) => …} placeholder="Add genre…">`. Used by 7 fields:
+    `filters.drop_{categories,genres,publishers,developers}` (4) +
+    `picker.preferred_{genres,publishers,developers}` (3). Free-text add
+    via Enter; chip click removes; supports paste-comma-separated for
+    bulk import. Coverage: ≥80%.
+  - **B — Drag-reorder list primitive.** `<DragReorderList items={…}
+    onChange={(next) => …}>`. Used by `picker.region_priority` (one
+    field). Keyboard accessible: ArrowUp/ArrowDown to reorder when
+    focused. Pointer-drag via dnd-kit (no new top-level dep).
+  - **C — Number-input pair for year range.**
+    `filters.drop_year_before` + `drop_year_after` (both `int | null`).
+    Use shadcn `<Input type="number">`; null state via a "no limit"
+    toggle next to the field. Min/max bounds: 1971..currentYear.
+  - **D — `default_sort` dropdown.** `<Select>` over the four
+    `'name' | 'year' | 'manufacturer' | 'rating'` literals. UI tab.
+  - **E — `updates.channel` dropdown.** `<Select>` over
+    `'stable' | 'dev'`. Updates tab.
+  - **F — Editable `media.cache_dir`.** Plain text input + a small
+    "Browse…" button that opens the new `<FsBrowser>` (G).
+  - **G — `<FsBrowser>` path picker.** Modal directory tree built on
+    R29 (`/api/fs/list`) with R30 (home) + R31 (drive roots) for
+    starting nodes. R33 grant-flow trigger when the user picks a
+    path outside the existing allowlist (typed `fs_sandboxed` 403
+    surfaces a "Grant filesystem access to <path>?" confirm dialog
+    that POSTs R33). Used by:
+      - `paths.{source_roms,source_dat,dest_roms,retroarch_playlist}`
+        edit-in-place from the Settings → Paths tab (was read-only
+        in FP11; spec § 304 demanded `<FsBrowser>` here).
+      - `paths.{catver,languages,bestgames,mature,series,listxml}`
+        reference-INI overrides (P08 wizard fills these initially;
+        Settings can edit afterwards).
+      - `media.cache_dir` (F above).
+  - **H — Settings → Paths now in-place editable.** Click any path
+    row → `<FsBrowser>` opens at that path; pick a new directory →
+    R15 PATCH the field. `ConfirmationDialog` on the DAT path swap
+    (it triggers `replace_world`, expensive on the real DAT).
+  - **I — Settings → Snapshots tab implementation.** R16 GET list,
+    R17 restore. Read-only listing of `data/config-snapshots/`
+    timestamps; "Restore this snapshot" → `ConfirmationDialog` with
+    concrete label "Restore configuration to <ts>" → R17 POST →
+    toast on success. Backend exists; UI is missing.
+  - **J — Settings → Backup tab (Export / Import).** R18 GET and
+    R19 POST. Export downloads a JSON bundle (browser file-picker
+    save); import accepts a file via R19 multipart. The "Re-run
+    wizard" entry from design §8 lives here as a Phase-8
+    forward-link banner.
+
+  Source: spec § "Out of scope" line 511 + FP11 § J spec sync;
+  filed 2026-05-02 from user follow-up after FP11's closing
+  /audit highlighted the list-editor gap.
+  Dependencies: FP11 (still 🚧).
+
+---
+
 ## P07 — Self-update + in-app help (planned)
 
 **Theme:** in-app updates (git-pull / release-download with
@@ -1171,10 +1244,15 @@ markdown help searchable via Cmd-K. Introduces the shared
   primitive (sha256-pinned, exponential retry, atomic writes,
   manual-fallback hook); app self-update + rollback;
   INI refresh with diff preview; bundled help server.
-  Coverage targets: updates ≥85%, help ≥90%.
+  Coverage targets: updates ≥85%, help ≥90`.
+  **Settings expansion:** `UiConfig.cards_per_row_hint` UI control
+  (`'auto' | 4 | 5 | 6 | 8` selector) lands here per `docs/specs/
+  P06.md:210` ("YAML-only in P06; the Phase-7+ Settings expansion
+  adds a UI affordance"). Implements as a `<Select>` next to the
+  layout switcher in Settings → UI tab.
   Kind: implement.
   Lanes: updates, help, downloads, frontend, tests.
-  Dependencies: P06.
+  Dependencies: P06, FP11, FP12.
 
 ---
 
