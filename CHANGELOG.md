@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### P06 — Frontend MVP (in-flight; closing fix-pass FP11 active 2026-05-02)
+### P06 — Frontend MVP (closed 2026-05-02)
 
 **P06 (`frontend/` SPA) — all 18 spec impl-steps shipped** across 19
 commits since `P05-complete`. Vite + React 19 + TypeScript scaffold;
@@ -56,7 +56,7 @@ budget); 1 Playwright smoke E2E + `e2e/fixtures/config.yaml`;
 425 pass with 89.12% coverage; frontend tests 71 pass across 21
 Vitest files; all five Python CI gates + API type-sync gate clean.
 
-### FP11 — P06 closing-review fold-in (active 2026-05-02)
+### FP11 — P06 closing-review fold-in (closed 2026-05-02)
 
 **FP11 spawned by /close-phase 2026-05-02** — P06's closing /audit
 (eslint, tsc, gitleaks, trivy, semgrep, check_api_types_sync) +
@@ -94,8 +94,22 @@ defaults, playwright preview reuse); **J** spec sync (toolchain
 versions, `parents[3]`, `_SPAStaticFiles` rationale, error-code
 reconciliation).
 
-P06 phase remains 🚧 until FP11 closes. Full bullet list in
-ROADMAP.md § FP11.
+All 10 clusters closed across ~25 commits since `e569214` (the
+P06 final-ship commit). 428 backend tests + 85 frontend tests +
+1 Playwright smoke pass; coverage 89.14% backend; all five Python
+CI gates green on Ubuntu / macOS / Windows × 3.12 / 3.13.
+
+**Notable post-close follow-up:** the `_SPAStaticFiles` carve-out
+(A2) needed Windows backslash normalisation when CI surfaced two
+Windows-only failures on the FP11 push. `path.replace("\\", "/")`
+applied before the `_NO_FALLBACK_PREFIXES` startswith check;
+Linux-runnable property test added to `test_static_mount.py` so
+future regressions surface on Linux pytest without needing the
+Windows runner. Commit `8918cb5`.
+
+P06 closes at the same SHA as FP11 — both phases ship together.
+See `docs/journal/P06.md` and `docs/journal/FP11.md`. Full
+finding-by-finding bullet list in ROADMAP.md § FP11.
 
 ### P05 — Media subsystem (closed 2026-05-02)
 

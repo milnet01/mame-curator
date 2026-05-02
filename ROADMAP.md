@@ -830,7 +830,7 @@ items came from `/indie-review` against the cold-eyes brief.
 
 ---
 
-## P06 — Frontend MVP (in-flight — closing fix-pass FP11 active)
+## P06 — Frontend MVP (closed 2026-05-02)
 
 **Theme:** Vite + React 19 + Tailwind v4 + shadcn/ui browser UI
 with virtualized grid, alternatives drawer, copy modal with SSE,
@@ -842,23 +842,23 @@ multiple themes/layouts, Cmd-K palette.
 
 ### 🎨 Features
 
-- 🚧 **P06** [mame-curator-1003-prereq] **Frontend MVP.** All 18 spec
+- ✅ **P06** [mame-curator-1003-prereq] **Frontend MVP.** All 18 spec
   impl-steps shipped (scaffold + Tailwind v4 + 6 themes + 16 shadcn
   primitives + api/types.ts + check_api_types_sync.py CI gate +
   strings.ts + SPA static mount + 19 components/pages under TDD +
   ErrorBoundary + useKeyboard + App.tsx wiring + production build +
   Playwright smoke + frontend/dist/ committed). Closing /audit +
-  /indie-review surfaced ~40 actionable findings → folded into FP11.
-  Phase remains 🚧 until FP11 closes. 425 backend tests + 71 frontend
-  tests + 1 Playwright smoke pass; coverage 89.12% backend, ≥70%
-  frontend gate.
+  /indie-review surfaced ~40 actionable findings → folded into FP11
+  (closed 2026-05-02). 428 backend tests + 85 frontend tests + 1
+  Playwright smoke pass; coverage 89.14% backend, ≥70% frontend gate.
+  See `docs/journal/P06.md`.
   Kind: implement.
   Lanes: frontend, tests.
   Dependencies: P05.
 
 ---
 
-## FP11 — P06 closing-review fold-in (active)
+## FP11 — P06 closing-review fold-in (closed 2026-05-02)
 
 **Theme:** P06's closing /audit (eslint, tsc, gitleaks, trivy,
 semgrep, check_api_types_sync) returned 8 ESLint findings (2
@@ -874,7 +874,13 @@ and test-infra polish.
 
 ### 🔍 Findings fold-in
 
-- 🚧 **FP11** [mame-curator-1003] **Fix-pass after P06 (frontend MVP).**
+- ✅ **FP11** [mame-curator-1003] **Fix-pass after P06 (frontend MVP).**
+  All 10 clusters (A-J, ~40 actionable findings) closed across ~25
+  commits since the P06 final ship at `e569214`. Notable post-A2
+  follow-up: the `_SPAStaticFiles` carve-out needed Windows backslash
+  normalisation (commit `8918cb5`) when CI surfaced two
+  Windows-only test failures — Linux-runnable property test added
+  to guard the regression.
   Lanes: frontend, api, tools, tests.
 
   **Cluster A — Critical bugs (4):**
@@ -1151,7 +1157,8 @@ and test-infra polish.
     respectively). Spec must reconcile (see B1).
 
   Source: P06 closing /audit + /indie-review (6 lanes), 2026-05-02.
-  Dependencies: P06 (still 🚧 — closes when FP11 closes).
+  Dependencies: P06 (closed at the same SHA as FP11).
+  See `docs/journal/FP11.md`.
 
 ---
 
