@@ -29,6 +29,9 @@ repos:
           - pydantic>=2.10
           - pytest>=8.3
           - types-PyYAML
+          - fastapi>=0.115
+          - starlette>=0.40
+          - httpx>=0.27
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.4
