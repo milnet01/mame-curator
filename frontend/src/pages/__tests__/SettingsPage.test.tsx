@@ -52,7 +52,7 @@ const config: AppConfigResponse = {
 }
 
 describe('SettingsPage', () => {
-  it('renders every section header', () => {
+  it('renders every section header (FP11 § B3 — 8 tabs incl. snapshots + about)', () => {
     render(
       <SettingsPage
         config={config}
@@ -66,7 +66,25 @@ describe('SettingsPage', () => {
     expect(screen.getByText(/^Interface$/)).toBeInTheDocument()
     expect(screen.getByText(/^Updates$/)).toBeInTheDocument()
     expect(screen.getByText(/^Media$/)).toBeInTheDocument()
-    expect(screen.getByText(/^Backup & restore$/)).toBeInTheDocument()
+    expect(screen.getByText(/^Snapshots$/)).toBeInTheDocument()
+    expect(screen.getByText(/^About$/)).toBeInTheDocument()
+  })
+
+  it('renders the R36 update banner when updateInfo is provided (FP11 § B3)', async () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+        updateInfo={{
+          current_version: '0.0.1',
+          latest_version: '0.0.2',
+          update_available: true,
+        }}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Updates$/ }))
+    expect(screen.getByText(/0\.0\.1.*0\.0\.2/)).toBeInTheDocument()
   })
 
   it('uses Switch (not Checkbox) on the Filters tab', async () => {

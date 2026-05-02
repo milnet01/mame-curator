@@ -158,6 +158,35 @@ export const strings = {
       backup: 'Backup & restore',
       about: 'About',
     },
+    filterLabels: {
+      drop_bios_devices_mechanical: 'Drop BIOS / device / mechanical',
+      drop_japanese_only_text: 'Drop Japanese-only text games',
+      drop_preliminary_emulation: 'Drop preliminary emulation',
+      drop_chd_required: 'Drop CHD-required games',
+      drop_mature: 'Drop mature content',
+    },
+    pickerLabels: {
+      prefer_parent_over_clone: 'Prefer parent over clone',
+      prefer_good_driver: 'Prefer good driver',
+    },
+    uiLabels: {
+      show_alternatives_indicator: 'Show alternatives indicator',
+    },
+    updatesLabels: {
+      check_on_startup: 'Check for app updates on startup',
+      ini_check_on_startup: 'Check for INI updates on startup',
+    },
+    mediaLabels: {
+      fetch_videos: 'Fetch video previews (post-P06)',
+    },
+    pathRowLabels: {
+      sourceRoms: 'Source ROMs:',
+      destination: 'Destination:',
+      dat: 'DAT:',
+    },
+    mediaCacheLabel: 'Cache:',
+    backupBlurb:
+      'Configuration snapshots can be restored from disk. Restore confirmation surfaces a destructive-action dialog.',
     banners: {
       // R35 & R36 read-only banners; Phase-7 will add wizard / apply paths.
       setupReady: 'Configuration looks ready.',
@@ -174,6 +203,10 @@ export const strings = {
   copy: {
     dryRunTitle: 'Dry-run preview',
     dryRunHint: 'No files are written. Review the diff and confirm to copy.',
+    /** AT-only label on the progress indicator. */
+    progressAriaLabel: 'Copy progress',
+    /** AT-only label on the conflict-resolution panel. */
+    conflictRegionAriaLabel: 'Existing playlist conflict',
     modalTitle: 'Copy in progress',
     pause: 'Pause',
     resume: 'Resume',

@@ -13,7 +13,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { CmdKPalette, type CmdKItem } from '@/components/CmdKPalette'
-import { useConfig } from '@/hooks/useConfig'
+import { useConfig, useConfigPatch } from '@/hooks/useConfig'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import type { ThemeName } from '@/api/types'
 
@@ -65,6 +65,7 @@ function sonnerThemeFor(theme: ThemeName | undefined): 'light' | 'dark' | 'syste
 function ShellWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const config = useConfig()
+  const configPatch = useConfigPatch()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -146,7 +147,9 @@ function ShellWithPalette() {
                   config.data ? (
                     <SettingsPage
                       config={config.data}
-                      onPatch={() => {}}
+                      // FP11 § B9: real PATCH wiring via useConfigPatch
+                      // (was a no-op `() => {}`).
+                      onPatch={(patch) => configPatch.mutate(patch)}
                       onSnapshotRestore={() => {}}
                     />
                   ) : (

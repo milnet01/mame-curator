@@ -65,7 +65,7 @@ export function CopyModal({
             <DialogTitle>{strings.copy.modalTitle}</DialogTitle>
           </DialogHeader>
 
-          <Progress value={pct} aria-label="Copy progress" />
+          <Progress value={pct} aria-label={strings.copy.progressAriaLabel} />
           <p className="font-mono text-sm" data-testid="progress-line">
             {strings.copy.progressLine(state.filesDone, state.filesTotal, state.currentFile)}
           </p>
@@ -92,7 +92,7 @@ export function CopyModal({
           {state.conflict && (
             <div
               role="region"
-              aria-label="Existing playlist conflict"
+              aria-label={strings.copy.conflictRegionAriaLabel}
               className="flex flex-col gap-2 rounded border border-destructive/40 bg-destructive/10 p-3"
             >
               <p className="text-sm font-semibold">

@@ -2,12 +2,16 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { strings } from '@/strings'
-import type { AppConfigResponse } from '@/api/types'
+import type { AppConfigResponse, AppUpdateInfo, SetupCheck } from '@/api/types'
 
 interface SettingsPageProps {
   config: AppConfigResponse
   onPatch: (patch: Partial<AppConfigResponse>) => void
   onSnapshotRestore: (id: string) => void
+  /** R36 update-check payload — when present, drives the Updates banner. */
+  updateInfo?: AppUpdateInfo
+  /** R35 setup-check payload — when present, drives the Setup banner. */
+  setupInfo?: SetupCheck
 }
 
 interface PrefSwitchProps {
@@ -33,10 +37,16 @@ const SECTION_KEYS = [
   'ui',
   'updates',
   'media',
-  'backup',
+  'snapshots',
+  'about',
 ] as const
 
-export function SettingsPage({ config, onPatch }: SettingsPageProps) {
+export function SettingsPage({
+  config,
+  onPatch,
+  updateInfo,
+  setupInfo,
+}: SettingsPageProps) {
   const updateUi = (key: keyof AppConfigResponse['ui'], value: boolean) => {
     onPatch({ ui: { ...config.ui, [key]: value } })
   }
@@ -63,6 +73,21 @@ export function SettingsPage({ config, onPatch }: SettingsPageProps) {
     <section className="flex flex-col gap-4 p-4">
       <h1 className="text-2xl font-semibold">{strings.settings.pageTitle}</h1>
 
+      {/* FP11 § B3: read-only Setup banner driven by R35 — design §8
+          calls for a banner ahead of the tab list when paths or
+          reference files are missing. Banner copy lives in strings.ts
+          so the Phase 7 wizard wiring is a single-file change. */}
+      {setupInfo && (
+        <p
+          role="status"
+          className="rounded border border-muted bg-muted/30 px-3 py-2 text-sm"
+        >
+          {setupInfo.config_present
+            ? strings.settings.banners.setupReady
+            : strings.settings.banners.setupIncomplete}
+        </p>
+      )}
+
       <Tabs defaultValue="paths">
         <TabsList>
           {SECTION_KEYS.map((key) => (
@@ -74,59 +99,64 @@ export function SettingsPage({ config, onPatch }: SettingsPageProps) {
 
         <TabsContent value="paths" className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">
-            Source ROMs: <code>{config.paths.source_roms}</code>
+            {strings.settings.pathRowLabels.sourceRoms}{' '}
+            <code>{config.paths.source_roms}</code>
           </p>
           <p className="text-sm text-muted-foreground">
-            Destination: <code>{config.paths.dest_roms}</code>
+            {strings.settings.pathRowLabels.destination}{' '}
+            <code>{config.paths.dest_roms}</code>
           </p>
           <p className="text-sm text-muted-foreground">
-            DAT: <code>{config.paths.source_dat}</code>
+            {strings.settings.pathRowLabels.dat}{' '}
+            <code>{config.paths.source_dat}</code>
           </p>
         </TabsContent>
 
         <TabsContent value="filters" className="flex flex-col gap-2">
           <PrefSwitch
             id="filters-drop-bios"
-            label="Drop BIOS / device / mechanical"
+            label={strings.settings.filterLabels.drop_bios_devices_mechanical}
             checked={config.filters.drop_bios_devices_mechanical}
             onChange={(v) => updateFilters('drop_bios_devices_mechanical', v)}
           />
           <PrefSwitch
             id="filters-drop-japanese"
-            label="Drop Japanese-only text games"
+            label={strings.settings.filterLabels.drop_japanese_only_text}
             checked={config.filters.drop_japanese_only_text}
             onChange={(v) => updateFilters('drop_japanese_only_text', v)}
           />
           <PrefSwitch
             id="filters-drop-preliminary"
-            label="Drop preliminary emulation"
+            label={strings.settings.filterLabels.drop_preliminary_emulation}
             checked={config.filters.drop_preliminary_emulation}
             onChange={(v) => updateFilters('drop_preliminary_emulation', v)}
           />
           <PrefSwitch
             id="filters-drop-chd"
-            label="Drop CHD-required games"
+            label={strings.settings.filterLabels.drop_chd_required}
             checked={config.filters.drop_chd_required}
             onChange={(v) => updateFilters('drop_chd_required', v)}
           />
           <PrefSwitch
             id="filters-drop-mature"
-            label="Drop mature content"
+            label={strings.settings.filterLabels.drop_mature}
             checked={config.filters.drop_mature}
             onChange={(v) => updateFilters('drop_mature', v)}
           />
         </TabsContent>
 
         <TabsContent value="picker" className="flex flex-col gap-2">
+          {/* Picker prefs are stored on the same FilterConfig server-side
+              (design §6.2) so the dispatch goes through `updateFilters`. */}
           <PrefSwitch
             id="picker-parent-over-clone"
-            label="Prefer parent over clone"
+            label={strings.settings.pickerLabels.prefer_parent_over_clone}
             checked={config.filters.prefer_parent_over_clone}
             onChange={(v) => updateFilters('prefer_parent_over_clone', v)}
           />
           <PrefSwitch
             id="picker-good-driver"
-            label="Prefer good driver"
+            label={strings.settings.pickerLabels.prefer_good_driver}
             checked={config.filters.prefer_good_driver}
             onChange={(v) => updateFilters('prefer_good_driver', v)}
           />
@@ -135,22 +165,39 @@ export function SettingsPage({ config, onPatch }: SettingsPageProps) {
         <TabsContent value="ui" className="flex flex-col gap-2">
           <PrefSwitch
             id="ui-show-alternatives"
-            label="Show alternatives indicator"
+            label={strings.settings.uiLabels.show_alternatives_indicator}
             checked={config.ui.show_alternatives_indicator}
             onChange={(v) => updateUi('show_alternatives_indicator', v)}
           />
         </TabsContent>
 
         <TabsContent value="updates" className="flex flex-col gap-2">
+          {/* FP11 § B3: R36 read-only banner — design §8 + spec § 147-150
+              demand it. Phase 7 will swap this for the apply-update flow. */}
+          {updateInfo && (
+            <p
+              role="status"
+              className="rounded border border-muted bg-muted/30 px-3 py-2 text-sm"
+            >
+              {updateInfo.update_available && updateInfo.latest_version
+                ? strings.settings.banners.updateAvailable(
+                    updateInfo.current_version,
+                    updateInfo.latest_version,
+                  )
+                : strings.settings.banners.updateCurrent(
+                    updateInfo.current_version,
+                  )}
+            </p>
+          )}
           <PrefSwitch
             id="updates-check-on-startup"
-            label="Check for app updates on startup"
+            label={strings.settings.updatesLabels.check_on_startup}
             checked={config.updates.check_on_startup}
             onChange={(v) => updateUpdates('check_on_startup', v)}
           />
           <PrefSwitch
             id="updates-ini-check-on-startup"
-            label="Check for INI updates on startup"
+            label={strings.settings.updatesLabels.ini_check_on_startup}
             checked={config.updates.ini_check_on_startup}
             onChange={(v) => updateUpdates('ini_check_on_startup', v)}
           />
@@ -159,19 +206,25 @@ export function SettingsPage({ config, onPatch }: SettingsPageProps) {
         <TabsContent value="media" className="flex flex-col gap-2">
           <PrefSwitch
             id="media-fetch-videos"
-            label="Fetch video previews (post-P06)"
+            label={strings.settings.mediaLabels.fetch_videos}
             checked={config.media.fetch_videos}
             onChange={(v) => updateMedia('fetch_videos', v)}
           />
           <p className="text-xs text-muted-foreground">
-            Cache: <code>{config.media.cache_dir}</code>
+            {strings.settings.mediaCacheLabel}{' '}
+            <code>{config.media.cache_dir}</code>
           </p>
         </TabsContent>
 
-        <TabsContent value="backup" className="flex flex-col gap-2">
+        <TabsContent value="snapshots" className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">
-            Configuration snapshots can be restored from disk. Restore
-            confirmation surfaces a destructive-action dialog.
+            {strings.settings.backupBlurb}
+          </p>
+        </TabsContent>
+
+        <TabsContent value="about" className="flex flex-col gap-2">
+          <p className="text-sm text-muted-foreground">
+            {strings.app.name} · {strings.app.tagline}
           </p>
         </TabsContent>
       </Tabs>
