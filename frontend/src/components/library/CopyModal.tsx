@@ -76,9 +76,16 @@ export function CopyModal({
 
           {state.warnings.length > 0 && (
             <ul className="rounded border bg-muted/40 p-2 text-xs">
-              {state.warnings.slice(-3).map((w, i) => (
-                <li key={i}>{w}</li>
-              ))}
+              {/* FP11 § D9: warnings are append-only via SSE; key by
+                  the absolute index of the warning rather than the
+                  position in the slice. The slice shifts on every
+                  new event, so positional keys forced React to
+                  re-mount each <li> on each event — replacing with
+                  absolute index keeps DOM identity stable. */}
+              {state.warnings.slice(-3).map((w, sliceIndex) => {
+                const absoluteIndex = state.warnings.length - 3 + sliceIndex
+                return <li key={absoluteIndex}>{w}</li>
+              })}
             </ul>
           )}
 
@@ -116,21 +123,41 @@ export function CopyModal({
             </div>
           )}
 
+          {/* FP11 § D8: state-machine action row. Terminal states
+              (`finished` / `aborted`) get a single Done button so
+              the user isn't stranded with a stale Cancel against a
+              completed job. `terminating` shows non-interactive
+              status only. `running` / `paused` are the only states
+              with Pause/Resume + Cancel. */}
           <div className="flex justify-end gap-2">
-            {state.state === 'paused' ? (
-              <Button onClick={onResume}>{strings.copy.resume}</Button>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={onPause}
-                disabled={state.state !== 'running'}
-              >
-                {strings.copy.pause}
+            {(state.state === 'finished' || state.state === 'aborted') && (
+              <Button onClick={() => onOpenChange(false)}>
+                {strings.copy.done}
               </Button>
             )}
-            <Button variant="destructive" onClick={() => setAbortOpen(true)}>
-              {strings.copy.abort}
-            </Button>
+            {state.state === 'terminating' && (
+              <Button variant="outline" disabled>
+                {strings.copy.sessionState.terminating}
+              </Button>
+            )}
+            {state.state === 'paused' && (
+              <>
+                <Button onClick={onResume}>{strings.copy.resume}</Button>
+                <Button variant="destructive" onClick={() => setAbortOpen(true)}>
+                  {strings.copy.abort}
+                </Button>
+              </>
+            )}
+            {state.state === 'running' && (
+              <>
+                <Button variant="outline" onClick={onPause}>
+                  {strings.copy.pause}
+                </Button>
+                <Button variant="destructive" onClick={() => setAbortOpen(true)}>
+                  {strings.copy.abort}
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

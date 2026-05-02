@@ -129,6 +129,40 @@ describe('CopyModal', () => {
     expect(onAbort).toHaveBeenCalledWith({ recycle_partial: false })
   })
 
+  it('shows a Done button in terminal states (FP11 § D8)', async () => {
+    const onOpenChange = vi.fn()
+    const { rerender } = render(
+      <CopyModal
+        open
+        onOpenChange={onOpenChange}
+        state={{ ...baseState, state: 'finished' }}
+        onPause={() => {}}
+        onResume={() => {}}
+        onAbort={() => {}}
+        onResolveConflict={() => {}}
+      />,
+    )
+    const done = screen.getByRole('button', { name: /^done$/i })
+    expect(done).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pause/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^cancel$/i })).toBeNull()
+    await userEvent.click(done)
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+
+    rerender(
+      <CopyModal
+        open
+        onOpenChange={onOpenChange}
+        state={{ ...baseState, state: 'aborted' }}
+        onPause={() => {}}
+        onResume={() => {}}
+        onAbort={() => {}}
+        onResolveConflict={() => {}}
+      />,
+    )
+    expect(screen.getByRole('button', { name: /^done$/i })).toBeInTheDocument()
+  })
+
   it('renders the conflict prompt when the state carries one', () => {
     render(
       <CopyModal

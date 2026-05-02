@@ -71,6 +71,17 @@ export const strings = {
       bios_missing: 'BIOS dependency missing',
       has_notes: 'Has user notes',
     },
+    filters: {
+      searchLabel: 'Search',
+      searchPlaceholder: 'Search games…',
+      yearRangeLabel: 'Year range',
+      onlyContested: 'Only contested picks',
+      onlyOverridden: 'Only manual overrides',
+      onlyChdMissing: 'Only CHD missing',
+      onlyBiosMissing: 'Only BIOS missing',
+      saveAsSession: 'Save as session',
+      sessionNameLabel: 'Session name',
+    },
   },
 
   alternatives: {
@@ -187,6 +198,8 @@ export const strings = {
       aborted: 'Cancelled',
     },
     historyEmpty: 'No copy history yet.',
+    /** Modal-close affordance shown in terminal states. */
+    done: 'Done',
   },
 
   help: {

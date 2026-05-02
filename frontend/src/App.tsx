@@ -1,5 +1,12 @@
 import { lazy, Suspense, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router'
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/sonner'
 import { AppShell } from '@/components/layout/AppShell'
@@ -8,6 +15,7 @@ import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { CmdKPalette, type CmdKItem } from '@/components/CmdKPalette'
 import { useConfig } from '@/hooks/useConfig'
 import { useKeyboard } from '@/hooks/useKeyboard'
+import type { ThemeName } from '@/api/types'
 
 const LibraryPage = lazy(() =>
   import('@/pages/LibraryPage').then((m) => ({ default: m.LibraryPage })),
@@ -30,7 +38,7 @@ const HelpPage = lazy(() =>
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 30_000, retry: 1 },
+    queries: { retry: 1 },
   },
 })
 
@@ -43,10 +51,22 @@ const PALETTE_ITEMS: CmdKItem[] = [
   { id: 'go-help', section: 'actions', label: 'Go to Help', value: 'nav:/help' },
 ]
 
+/**
+ * Map a project theme to a Sonner theme variant. Sonner only knows
+ * `light` / `dark` / `system`; the four arcade palettes (double_dragon,
+ * pacman, sf2, neogeo) are all dark-flavoured so they map to `dark`.
+ */
+function sonnerThemeFor(theme: ThemeName | undefined): 'light' | 'dark' | 'system' {
+  if (theme === 'light') return 'light'
+  if (theme === undefined) return 'system'
+  return 'dark'
+}
+
 function ShellWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const config = useConfig()
   const navigate = useNavigate()
+  const location = useLocation()
 
   useKeyboard([
     {
@@ -62,19 +82,20 @@ function ShellWithPalette() {
   const handleSelect = (value: string) => {
     if (value.startsWith('nav:')) {
       // FP11 § A1: SPA navigation via react-router's `useNavigate`.
-      // The prior `window.location.pathname = …` triggered a hard
-      // reload, blowing away QueryClient cache + React state on every
-      // Cmd-K nav.
       navigate(value.slice(4))
     }
   }
 
-  const theme = config.data?.ui.theme ?? 'dark'
+  const theme = config.data?.ui.theme
 
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={theme ?? 'dark'}>
       <AppShell onCmdK={() => setPaletteOpen(true)}>
-        <ErrorBoundary>
+        {/* FP11 § B12: route-level ErrorBoundary, resets on pathname
+            change so a per-page crash doesn't survive a navigation
+            recovery click. Drawer- and modal-level boundaries live at
+            their consumer sites (LibraryPage's drawer, CopyModal). */}
+        <ErrorBoundary resetKey={location.pathname}>
           <Suspense
             fallback={<div className="p-8 text-sm text-muted-foreground">Loading…</div>}
           >
@@ -150,14 +171,20 @@ function ShellWithPalette() {
         </ErrorBoundary>
       </AppShell>
 
-      <CmdKPalette
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-        items={PALETTE_ITEMS}
-        onSelect={handleSelect}
-      />
+      {/* CmdKPalette + Toaster run as siblings to the shell so a
+          route crash doesn't lock out the keyboard nav. Their own
+          ErrorBoundary catches palette/toast crashes independently
+          (third nesting depth per spec § 13). */}
+      <ErrorBoundary>
+        <CmdKPalette
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+          items={PALETTE_ITEMS}
+          onSelect={handleSelect}
+        />
+      </ErrorBoundary>
 
-      <Toaster />
+      <Toaster theme={sonnerThemeFor(theme)} />
     </ThemeProvider>
   )
 }
