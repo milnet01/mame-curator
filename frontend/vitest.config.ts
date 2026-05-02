@@ -12,6 +12,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    // Playwright owns `e2e/**`; Vitest must skip it or the Playwright
+    // `test()` import collides with Vitest's loader.
+    exclude: ['node_modules/**', 'dist/**', 'e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
