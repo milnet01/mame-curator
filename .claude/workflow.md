@@ -6,10 +6,10 @@
 |-------|-------|
 | **Project phase** | P06 — Frontend MVP (next up) |
 | **Active item ID** | P06 |
-| **Active step** | 1 — verify spec |
-| **Blocked on** | — |
-| **Last update** | 2026-05-02 (FP10 closed cleanly + P05 closed; one-round converge — 0 audit findings (ruff/bandit/mypy/gitleaks/trivy/semgrep 200 rules) and `/indie-review --fix HEAD` returned **Accept**. 423 tests pass / coverage 89.12% / `media/cache.py` 100% / all five gates green. Tags: `FP10-complete` + `P05-complete`. Next active item P06 (Frontend MVP).) |
-| **Next gate** | P06 Step 1 → draft `docs/specs/P06.md` for sign-off |
+| **Active step** | 1 — verify spec (awaiting user sign-off) |
+| **Blocked on** | user sign-off on `docs/specs/P06.md` (commit `01325a1`) |
+| **Last update** | 2026-05-02 (P06 Step 1 in progress — `docs/specs/P06.md` drafted + 2-round cold-eyes review converged (round 1: 4 Tier-1 + 6 Tier-2 + 6 Tier-3 findings on route-numbering drift, missing Switch-test gate, wrong file-size cap citation, etc.; round 2: APPROVE with one typo). Spec committed `01325a1` and awaiting user sign-off before Step 2.) |
+| **Next gate** | User sign-off on P06 spec → Step 2 (verify dependencies) |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -23,7 +23,7 @@ becomes active.
 
 P06 active — step progress (reset by /close-phase 2026-05-02 on P05 close):
 
-1. ⬜ Verify spec — draft `docs/specs/P06.md`, cold-eyes review until clean, user sign-off.
+1. 🚧 Verify spec — draft `docs/specs/P06.md` ✅ committed `01325a1`; 2-round cold-eyes review ✅ converged (round 2 APPROVE); awaiting user sign-off.
 2. ⬜ Verify dependencies — P04 ✅ (HTTP API, `api/` 40 routes), P05 ✅ (media subsystem, R39 wired through cache).
 3. ⬜ Write failing tests
 4. ⬜ Implement until tests pass
