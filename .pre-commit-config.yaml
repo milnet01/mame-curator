@@ -7,12 +7,19 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        # Frontend production bundle ships pre-minified by Vite — pre-commit
+        # mutating its trailing whitespace would invalidate the artefact and
+        # break the `npm ci && npm run build && git diff --quiet frontend/dist/`
+        # CI gate.
+        exclude: ^frontend/dist/
       - id: end-of-file-fixer
+        exclude: ^frontend/dist/
       - id: check-yaml
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ["--maxkb=1024"]
+        exclude: ^frontend/dist/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.12
