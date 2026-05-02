@@ -216,9 +216,14 @@ class SessionUpsertRequest(BaseModel):
     ``SessionNameInvalidError``) rather than via a Pydantic ``Field(pattern=...)``
     so the wire-level error code is ``session_name_invalid`` rather than the
     generic ``validation_error``.
+
+    FP11 § G3: frozen=True flipped on to match the rest of `schemas.py`.
+    The route handler reads `body.name` / `body.session` and never mutates,
+    so the freeze is purely a consistency fix — every public input/output
+    surface in this module is `frozen=True, extra="forbid"`.
     """
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid")
     name: str
     session: Session
 

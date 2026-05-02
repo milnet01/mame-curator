@@ -20,8 +20,20 @@ import { z } from 'zod'
 // Common
 // ---------------------------------------------------------------------------
 
-/** Shared zod helper: an ISO-8601 datetime string parsed to a Date. */
-const zDateTime = z.iso.datetime().pipe(z.coerce.date())
+/**
+ * Shared zod helper: an ISO-8601 datetime string parsed to a Date.
+ *
+ * `offset: true` accepts `+HH:MM` / `-HH:MM` suffixes (Pydantic emits
+ * these for tz-aware datetimes when the deployer configures a non-UTC
+ * timezone); `local: true` accepts naive datetimes (no offset, no Z)
+ * so a single missed `tz=UTC` on the backend doesn't blow up the
+ * whole frontend. The default `z.iso.datetime()` rejects both forms
+ * — too strict for a contract that aims to be drift-tolerant
+ * (FP11 § G2).
+ */
+const zDateTime = z.iso
+  .datetime({ offset: true, local: true })
+  .pipe(z.coerce.date())
 
 // ---------------------------------------------------------------------------
 // Error envelope (api/errors.py)
@@ -71,7 +83,8 @@ export interface Rom {
 export const RomSchema = z
   .object({
     name: z.string().min(1),
-    size: z.number().int().nullable(),
+    // FP11 § G1: mirror Pydantic `Field(ge=0)` constraint.
+    size: z.number().int().nonnegative().nullable(),
     crc: z.string().nullable(),
     sha1: z.string().nullable(),
   })

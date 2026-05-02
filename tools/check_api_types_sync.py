@@ -78,10 +78,23 @@ def parse_python_models(path: Path) -> dict[str, set[str]]:
 
 
 def _inherits_basemodel(cls: ast.ClassDef) -> bool:
+    """True iff `cls` inherits from `pydantic.BaseModel` (by name or qualified).
+
+    FP11 § C2: the prior matcher accepted any `*.BaseModel` attribute access
+    (e.g. `pydantic_settings.BaseModel`, custom shims), risking misclassification.
+    Restricted to bare `BaseModel` (the only form actually used in this
+    codebase) and `pydantic.BaseModel`. Anything else won't match — by
+    design, since we don't want to track non-Pydantic models.
+    """
     for base in cls.bases:
         if isinstance(base, ast.Name) and base.id == "BaseModel":
             return True
-        if isinstance(base, ast.Attribute) and base.attr == "BaseModel":
+        if (
+            isinstance(base, ast.Attribute)
+            and base.attr == "BaseModel"
+            and isinstance(base.value, ast.Name)
+            and base.value.id == "pydantic"
+        ):
             return True
     return False
 
@@ -94,27 +107,89 @@ def _is_classvar(annotation: ast.expr) -> bool:
     return False
 
 
-_INTERFACE_RE = re.compile(
-    r"export\s+interface\s+(\w+)\s*\{([^}]*)\}",
-    re.MULTILINE | re.DOTALL,
-)
-_FIELD_RE = re.compile(r"^\s*(\w+)\??\s*:", re.MULTILINE)
+_INTERFACE_HEADER_RE = re.compile(r"export\s+interface\s+(\w+)\s*\{")
+_FIELD_LINE_RE = re.compile(r"^\s*(\w+)\??\s*:")
+
+
+class TsParseError(Exception):
+    """Raised on malformed TS input (unbalanced braces, etc.)."""
+
+
+def _strip_ts_comments(text: str) -> str:
+    """Remove `/* … */` and `// …` comments.
+
+    String-literal blind, but no interface body in `types.ts` uses `//`
+    inside a string literal today; if that ever changes, the gate will
+    mis-strip and the resulting field drift will trip the parity check
+    loudly — far better than a silent miss.
+    """
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    text = re.sub(r"//[^\n]*", "", text)
+    return text
+
+
+def _extract_interface_body(text: str, header_end: int) -> tuple[str, int]:
+    """Walk from the position right after `{` and return the body + end-pos.
+
+    Brace-balanced scan so nested object types (`bar: { x: number }`) don't
+    truncate the body at the inner `}`. FP11 § C1 supersedes the prior
+    `[^}]*` regex which silently dropped fields after the first inner `}`.
+    """
+    depth = 1
+    i = header_end
+    while i < len(text):
+        ch = text[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[header_end:i], i + 1
+        i += 1
+    raise TsParseError(f"unbalanced braces at offset {header_end} (no matching `}}`)")
+
+
+def _outer_field_names(body: str) -> set[str]:
+    """Return the field names declared at the OUTER level of an interface body.
+
+    Skips field-name matches inside nested object literals (`bar: { x: ... }`
+    must not contribute `x` to the parent's field set). Walks lines while
+    tracking brace depth.
+    """
+    fields: set[str] = set()
+    depth = 0
+    for raw_line in body.splitlines():
+        # Match field-name at depth 0 BEFORE we advance the depth for this line.
+        if depth == 0:
+            m = _FIELD_LINE_RE.match(raw_line)
+            if m:
+                fields.add(m.group(1))
+        for ch in raw_line:
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth = max(0, depth - 1)
+    return fields
 
 
 def parse_ts_interfaces(path: Path) -> dict[str, set[str]]:
     """Return {InterfaceName: {field_name, …}} from a TS file.
 
-    Strips `// …` and `/* … */` comments before matching so commented-out
-    fields don't leak in. Optional fields (`foo?: …`) count by their name.
+    Brace-balanced parse — interfaces with nested object types parse
+    correctly (FP11 § C1). Optional fields (`foo?: …`) count by their
+    base name.
     """
-    text = path.read_text(encoding="utf-8")
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
-    text = re.sub(r"//[^\n]*", "", text)
+    text = _strip_ts_comments(path.read_text(encoding="utf-8"))
     out: dict[str, set[str]] = {}
-    for match in _INTERFACE_RE.finditer(text):
+    pos = 0
+    while True:
+        match = _INTERFACE_HEADER_RE.search(text, pos)
+        if not match:
+            break
         name = match.group(1)
-        body = match.group(2)
-        out[name] = {m.group(1) for m in _FIELD_RE.finditer(body)}
+        body, end_pos = _extract_interface_body(text, match.end())
+        out[name] = _outer_field_names(body)
+        pos = end_pos
     return out
 
 
@@ -145,36 +220,62 @@ def find_drift(
     return findings
 
 
+class DuplicateModelError(Exception):
+    """Raised on a divergent duplicate-name BaseModel declaration.
+
+    Two source files declaring `class Foo(BaseModel)` with different
+    field sets is ambiguous — the drift gate's accuracy depends on
+    globally-unique model names, so a divergence must fail loud
+    (FP11 § C3) rather than silently pick one and warn.
+    """
+
+
 def collect_python_models(sources: Iterable[str]) -> dict[str, set[str]]:
-    """Walk each source file and return the merged {ClassName: fields} map."""
+    """Walk each source file and return the merged {ClassName: fields} map.
+
+    Identical re-declarations (same fields) are tolerated (Python may
+    legitimately re-export a base via `import as`); divergent ones raise
+    `DuplicateModelError` so the drift gate doesn't pick the lucky one
+    and run against the wrong model.
+    """
     aggregated: dict[str, set[str]] = {}
+    origins: dict[str, str] = {}
     for rel in sources:
         path = REPO_ROOT / rel
         if not path.is_file():
             print(f"warning: {rel} not found; skipping", file=sys.stderr)
             continue
         for name, fields in parse_python_models(path).items():
-            if name in aggregated and aggregated[name] != fields:
-                # Same class name in two source files with different field sets
-                # would be ambiguous; prefer the first read and warn.
-                print(
-                    f"warning: duplicate class {name} in {rel}; "
-                    "skipping conflicting later definition",
-                    file=sys.stderr,
+            existing = aggregated.get(name)
+            if existing is not None and existing != fields:
+                raise DuplicateModelError(
+                    f"class {name!r} declared in {origins[name]!r} with fields "
+                    f"{sorted(existing)} AND in {rel!r} with fields "
+                    f"{sorted(fields)} — globally-unique BaseModel names are "
+                    "required so the drift gate compares against the right model"
                 )
-                continue
-            aggregated[name] = fields
+            if existing is None:
+                aggregated[name] = fields
+                origins[name] = rel
     return aggregated
 
 
 def main() -> int:
     """Run the drift gate; return 0 on parity, 1 if any finding fires."""
-    python_models = collect_python_models(PYTHON_SOURCES)
+    try:
+        python_models = collect_python_models(PYTHON_SOURCES)
+    except DuplicateModelError as exc:
+        print(f"error: duplicate model: {exc}", file=sys.stderr)
+        return 1
     ts_path = REPO_ROOT / TS_TYPES_FILE
     if not ts_path.is_file():
         print(f"error: {TS_TYPES_FILE} not found", file=sys.stderr)
         return 1
-    ts_interfaces = parse_ts_interfaces(ts_path)
+    try:
+        ts_interfaces = parse_ts_interfaces(ts_path)
+    except TsParseError as exc:
+        print(f"error: TS parse failed: {exc}", file=sys.stderr)
+        return 1
     findings = find_drift(python_models, ts_interfaces)
     if findings:
         print(
