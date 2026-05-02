@@ -160,3 +160,41 @@ def test_missing_asset_returns_404_not_spa_html(
         missing = client.get("/assets/missing.js")
         assert missing.status_code == 404
         assert "<html" not in missing.text.lower()
+
+
+def test_carveout_normalises_windows_backslashes() -> None:
+    """FP11 § A2 (Windows fix): Starlette's `StaticFiles` joins URL
+    paths against the on-disk dir using `os.path`, so Windows hands
+    ``_SPAStaticFiles.get_response`` a backslash-form path
+    (``api\\typo`` instead of ``api/typo``). The carve-out check MUST
+    normalise to forward slashes before comparing against
+    ``_NO_FALLBACK_PREFIXES``, otherwise typo'd API paths cascade to
+    ``index.html`` on Windows but not Linux.
+
+    The Windows-only failure surfaced via CI on the FP11 push; this
+    Linux-runnable property test guards the regression so future runs
+    catch it without needing the Windows runner.
+    """
+    from mame_curator.api.app import _SPAStaticFiles
+
+    cases: list[tuple[str, bool]] = [
+        # POSIX form — already worked.
+        ("api/typo", True),
+        ("media/foo/bar", True),
+        ("assets/missing.js", True),
+        # Windows form — was the regression.
+        (r"api\typo", True),
+        (r"media\foo\bar", True),
+        (r"assets\missing.js", True),
+        # Non-carve-out paths must still cascade to the SPA shell.
+        ("sessions/foo", False),
+        (r"sessions\foo", False),
+        ("help/topic-x", False),
+        ("", False),
+    ]
+    for path, expected in cases:
+        posix = path.replace("\\", "/")
+        actual = posix.startswith(_SPAStaticFiles._NO_FALLBACK_PREFIXES)
+        assert actual is expected, (
+            f"path={path!r}: expected carve-out match={expected}, got {actual}"
+        )

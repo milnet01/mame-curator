@@ -61,7 +61,16 @@ class _SPAStaticFiles(StaticFiles):
         except StarletteHTTPException as exc:
             if exc.status_code != 404:
                 raise
-            if path.startswith(self._NO_FALLBACK_PREFIXES):
+            # Starlette joins the URL path against the on-disk directory
+            # using `os.path`, which normalises separators to the host's
+            # native form. On Windows that's `\\`, so a naive
+            # `path.startswith("api/")` misses `api\typo`. Normalise back
+            # to forward slashes for the prefix check (the underlying
+            # 404 was raised by Starlette's resolver, which already
+            # handled the OS-side normalisation; we only need a
+            # uniform string for the carve-out comparison).
+            posix_path = path.replace("\\", "/")
+            if posix_path.startswith(self._NO_FALLBACK_PREFIXES):
                 raise
             return await super().get_response("index.html", scope)
 
