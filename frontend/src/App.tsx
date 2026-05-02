@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/sonner'
 import { AppShell } from '@/components/layout/AppShell'
@@ -46,6 +46,7 @@ const PALETTE_ITEMS: CmdKItem[] = [
 function ShellWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const config = useConfig()
+  const navigate = useNavigate()
 
   useKeyboard([
     {
@@ -60,8 +61,11 @@ function ShellWithPalette() {
 
   const handleSelect = (value: string) => {
     if (value.startsWith('nav:')) {
-      window.location.hash = ''
-      window.location.pathname = value.slice(4)
+      // FP11 § A1: SPA navigation via react-router's `useNavigate`.
+      // The prior `window.location.pathname = …` triggered a hard
+      // reload, blowing away QueryClient cache + React state on every
+      // Cmd-K nav.
+      navigate(value.slice(4))
     }
   }
 

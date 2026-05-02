@@ -29,25 +29,39 @@ _FRONTEND_DIST = Path(__file__).resolve().parents[3] / "frontend" / "dist"
 
 
 class _SPAStaticFiles(StaticFiles):
-    """`StaticFiles` that serves `index.html` for any 404 — react-router fallback.
+    """`StaticFiles` that serves `index.html` for path-shaped 404s only.
 
     Vanilla `StaticFiles(html=True)` only serves `index.html` when the
-    request hits a directory; deep SPA links like `/sessions/foo` 404. The
-    SPA contract is "any non-API URL renders the SPA shell and the router
-    decides what to show," so we catch the 404 from `super().get_response`
-    and re-issue against `index.html`. Consumers that want a real 404
-    (asset under `/assets/...` that doesn't exist) still see it because
-    the ``api_router`` is mounted before this, and within the static dir
-    `/assets/missing.js` will resolve to a 404 from this method's
-    fallback as well — but that's by design, since the SPA boots and
-    react-router shows its in-app NotFound view.
+    request resolves to a directory; deep SPA links like `/sessions/foo`
+    return 404. The SPA contract is "any non-API, non-asset URL renders
+    the SPA shell and the router decides what to show," so we catch
+    the 404 from `super().get_response` and re-issue against
+    `index.html` — BUT only for path-shaped URLs.
+
+    Carve-outs (FP11 § A2 — must NOT cascade to `index.html`):
+
+    - `api/`, `media/` — typo'd or unrouted API paths must surface as
+      a real 404 so the frontend's zod validator distinguishes
+      "missing route" from "shape mismatch". A 200 + HTML for
+      `/api/sesions/foo` masks routing bugs.
+    - `assets/` — a missing asset under the bundle MUST 404 visibly.
+      Returning `index.html` makes the browser parse HTML as JS and
+      throw `Uncaught SyntaxError: Unexpected token '<'`, breaking
+      SPA boot opaquely with no clue in DevTools.
+
+    Anything else (`/sessions/foo`, `/help/topic-x`, `/`) hits the
+    fallback, the SPA boots, react-router renders the right view.
     """
+
+    _NO_FALLBACK_PREFIXES = ("api/", "media/", "assets/")
 
     async def get_response(self, path: str, scope: Scope) -> Response:
         try:
             return await super().get_response(path, scope)
         except StarletteHTTPException as exc:
             if exc.status_code != 404:
+                raise
+            if path.startswith(self._NO_FALLBACK_PREFIXES):
                 raise
             return await super().get_response("index.html", scope)
 
