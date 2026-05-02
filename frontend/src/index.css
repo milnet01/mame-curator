@@ -1,10 +1,196 @@
-/* P06 baseline. Tailwind v4 + theme tokens land in P06 step 2. */
-:root {
-  font-family: system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
+@import "tailwindcss";
+
+/* shadcn/Tailwind v4 token bridge.
+ * Six themes per design §8.5; each is a CSS variable swap, no per-theme assets.
+ * Variables follow shadcn naming so generated primitives consume them as-is. */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
+/* dark — default; slate-950 + emerald-400 */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.13 0.012 286);
+  --foreground: oklch(0.96 0.005 286);
+  --card: oklch(0.18 0.012 286);
+  --card-foreground: oklch(0.96 0.005 286);
+  --popover: oklch(0.18 0.012 286);
+  --popover-foreground: oklch(0.96 0.005 286);
+  --primary: oklch(0.78 0.17 162);
+  --primary-foreground: oklch(0.13 0.012 286);
+  --secondary: oklch(0.27 0.012 286);
+  --secondary-foreground: oklch(0.96 0.005 286);
+  --muted: oklch(0.24 0.01 286);
+  --muted-foreground: oklch(0.7 0.01 286);
+  --accent: oklch(0.27 0.012 286);
+  --accent-foreground: oklch(0.96 0.005 286);
+  --destructive: oklch(0.65 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.27 0.012 286);
+  --input: oklch(0.27 0.012 286);
+  --ring: oklch(0.78 0.17 162);
+  --radius: 0.5rem;
+}
+
+/* light — clean white + emerald-600 */
+[data-theme="light"] {
+  color-scheme: light;
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.18 0.012 286);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.012 286);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.012 286);
+  --primary: oklch(0.6 0.17 162);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.005 286);
+  --secondary-foreground: oklch(0.18 0.012 286);
+  --muted: oklch(0.96 0.005 286);
+  --muted-foreground: oklch(0.5 0.01 286);
+  --accent: oklch(0.96 0.005 286);
+  --accent-foreground: oklch(0.18 0.012 286);
+  --destructive: oklch(0.6 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.91 0.005 286);
+  --input: oklch(0.91 0.005 286);
+  --ring: oklch(0.6 0.17 162);
+  --radius: 0.5rem;
+}
+
+/* double_dragon — warm reds + golds, Double Dragon marquee */
+[data-theme="double_dragon"] {
+  color-scheme: dark;
+  --background: oklch(0.16 0.04 35);
+  --foreground: oklch(0.95 0.06 90);
+  --card: oklch(0.22 0.06 30);
+  --card-foreground: oklch(0.95 0.06 90);
+  --popover: oklch(0.22 0.06 30);
+  --popover-foreground: oklch(0.95 0.06 90);
+  --primary: oklch(0.62 0.21 30);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.32 0.06 50);
+  --secondary-foreground: oklch(0.95 0.06 90);
+  --muted: oklch(0.28 0.04 35);
+  --muted-foreground: oklch(0.78 0.07 80);
+  --accent: oklch(0.78 0.16 80);
+  --accent-foreground: oklch(0.16 0.04 35);
+  --destructive: oklch(0.55 0.22 22);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.35 0.06 35);
+  --input: oklch(0.35 0.06 35);
+  --ring: oklch(0.62 0.21 30);
+  --radius: 0.5rem;
+}
+
+/* pacman — black + iconic Pac-Man blue + yellow */
+[data-theme="pacman"] {
+  color-scheme: dark;
+  --background: oklch(0.05 0 0);
+  --foreground: oklch(0.95 0.16 95);
+  --card: oklch(0.1 0 0);
+  --card-foreground: oklch(0.95 0.16 95);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(0.95 0.16 95);
+  --primary: oklch(0.92 0.18 95);
+  --primary-foreground: oklch(0.05 0 0);
+  --secondary: oklch(0.42 0.18 245);
+  --secondary-foreground: oklch(0.99 0 0);
+  --muted: oklch(0.18 0 0);
+  --muted-foreground: oklch(0.7 0.06 95);
+  --accent: oklch(0.55 0.21 245);
+  --accent-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.65 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.42 0.18 245);
+  --input: oklch(0.18 0 0);
+  --ring: oklch(0.92 0.18 95);
+  --radius: 0.5rem;
+}
+
+/* sf2 — Street Fighter II deep blue + crimson */
+[data-theme="sf2"] {
+  color-scheme: dark;
+  --background: oklch(0.16 0.05 250);
+  --foreground: oklch(0.95 0.02 230);
+  --card: oklch(0.22 0.07 250);
+  --card-foreground: oklch(0.95 0.02 230);
+  --popover: oklch(0.22 0.07 250);
+  --popover-foreground: oklch(0.95 0.02 230);
+  --primary: oklch(0.6 0.22 22);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.32 0.1 245);
+  --secondary-foreground: oklch(0.95 0.02 230);
+  --muted: oklch(0.26 0.07 250);
+  --muted-foreground: oklch(0.78 0.05 235);
+  --accent: oklch(0.55 0.18 250);
+  --accent-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.6 0.22 22);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.35 0.1 245);
+  --input: oklch(0.35 0.1 245);
+  --ring: oklch(0.6 0.22 22);
+  --radius: 0.5rem;
+}
+
+/* neogeo — red + black + chrome */
+[data-theme="neogeo"] {
+  color-scheme: dark;
+  --background: oklch(0.08 0.01 28);
+  --foreground: oklch(0.92 0.01 250);
+  --card: oklch(0.14 0.02 28);
+  --card-foreground: oklch(0.92 0.01 250);
+  --popover: oklch(0.14 0.02 28);
+  --popover-foreground: oklch(0.92 0.01 250);
+  --primary: oklch(0.55 0.24 25);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.78 0.01 250);
+  --secondary-foreground: oklch(0.08 0.01 28);
+  --muted: oklch(0.2 0.02 28);
+  --muted-foreground: oklch(0.7 0.01 250);
+  --accent: oklch(0.78 0.01 250);
+  --accent-foreground: oklch(0.08 0.01 28);
+  --destructive: oklch(0.55 0.24 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.28 0.02 28);
+  --input: oklch(0.28 0.02 28);
+  --ring: oklch(0.55 0.24 25);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    min-height: 100vh;
+  }
 }
