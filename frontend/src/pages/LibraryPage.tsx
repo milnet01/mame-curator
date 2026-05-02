@@ -45,10 +45,16 @@ export function LibraryPage() {
   const total = games.data?.total ?? 0
   const totalBytes = 0 // wired in a follow-up via useStats
 
-  const handleLayout = (next: LayoutName) =>
-    patch.mutate({ ui: { ...config.data!.ui, layout: next } })
-  const handleTheme = (next: ThemeName) =>
-    patch.mutate({ ui: { ...config.data!.ui, theme: next } })
+  const handleLayout = (next: LayoutName) => {
+    // FP11 § B2: gate on `config.data` so a click before the GET
+    // resolves no-ops instead of crashing on `config.data!.ui`.
+    if (!config.data) return
+    patch.mutate({ ui: { ...config.data.ui, layout: next } })
+  }
+  const handleTheme = (next: ThemeName) => {
+    if (!config.data) return
+    patch.mutate({ ui: { ...config.data.ui, theme: next } })
+  }
 
   return (
     <div className="grid h-full grid-cols-[16rem_1fr] grid-rows-[auto_1fr_auto]">

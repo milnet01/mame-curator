@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils'
 import { strings } from '@/strings'
 import type { Explanation } from '@/api/types'
 
@@ -6,6 +7,12 @@ interface WhyPickedPanelProps {
 }
 
 export function WhyPickedPanel({ explanation }: WhyPickedPanelProps) {
+  // Winner short_name is the explanation's `short_name` (the picked
+  // child) or the parent itself in the no-clones case. Highlight it
+  // in the candidates list per design §8.523 ("with current pick
+  // highlighted").
+  const winnerShortName = explanation.short_name
+
   return (
     <section className="flex flex-col gap-3 border-t pt-4">
       <header>
@@ -19,7 +26,7 @@ export function WhyPickedPanel({ explanation }: WhyPickedPanelProps) {
 
       {explanation.hits.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No tiebreaker chain — only one candidate survived filtering.
+          {strings.alternatives.whyPickedEmpty}
         </p>
       ) : (
         <ol className="flex flex-col gap-2 text-sm">
@@ -39,7 +46,20 @@ export function WhyPickedPanel({ explanation }: WhyPickedPanelProps) {
 
       {explanation.candidates.length > 1 && (
         <p className="text-xs text-muted-foreground">
-          Candidates considered: {explanation.candidates.join(', ')}
+          <span className="mr-1">Candidates considered:</span>
+          {explanation.candidates.map((name, i) => (
+            <span key={name}>
+              <span
+                className={cn(
+                  name === winnerShortName && 'font-semibold text-foreground',
+                )}
+                aria-current={name === winnerShortName ? 'true' : undefined}
+              >
+                {name}
+              </span>
+              {i < explanation.candidates.length - 1 && ', '}
+            </span>
+          ))}
         </p>
       )}
     </section>

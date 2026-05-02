@@ -41,4 +41,28 @@ describe('CmdKPalette', () => {
     await userEvent.click(screen.getByText('Galaga'))
     expect(onSelect).toHaveBeenCalledWith('galaga', expect.objectContaining({ id: 'g2' }))
   })
+
+  it('matches when the user types a hint (FP11 § B7)', async () => {
+    const itemsWithHint: CmdKItem[] = [
+      ...items,
+      {
+        id: 'g3',
+        section: 'games',
+        label: 'Donkey Kong',
+        value: 'dkong',
+        hint: '1981 platformer',
+      },
+    ]
+    render(
+      <CmdKPalette
+        open
+        onOpenChange={() => {}}
+        items={itemsWithHint}
+        onSelect={() => {}}
+      />,
+    )
+    await userEvent.type(screen.getByRole('combobox'), '1981')
+    // The hint text was added to keywords; cmdk should match.
+    expect(screen.getByText('Donkey Kong')).toBeInTheDocument()
+  })
 })

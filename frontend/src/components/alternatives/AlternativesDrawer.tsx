@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Sheet,
   SheetContent,
@@ -7,15 +8,74 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { strings } from '@/strings'
-import type { GameCard } from '@/api/types'
+import type { GameCard, OverridePostRequest } from '@/api/types'
 
 interface AlternativesDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   winner: GameCard
   alternatives: GameCard[]
-  onOverride: (request: { parent: string; winner: string }) => void
+  onOverride: (request: OverridePostRequest) => void
+}
+
+function AlternativeRow({
+  alt,
+  isWinner,
+  onPick,
+}: {
+  alt: GameCard
+  isWinner: boolean
+  onPick: () => void
+}) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const buttonName = isWinner
+    ? strings.alternatives.selectedAriaLabel(alt.description)
+    : strings.alternatives.useAriaLabel(alt.description)
+  return (
+    <Card className={cn(isWinner && 'border-primary')}>
+      <CardContent className="flex items-center gap-3 p-3">
+        {/* FP11 § B6: design §8 demands "side-by-side strip of parent +
+            clones with media". 64×80 thumbnails per row keep the drawer
+            compact while still surfacing the visual cue. */}
+        <div className="h-20 w-16 flex-shrink-0 overflow-hidden rounded bg-muted">
+          {imgFailed ? (
+            <div className="flex h-full items-center justify-center px-1 text-center text-[10px] text-muted-foreground">
+              {strings.library.placeholderFlyer}
+            </div>
+          ) : (
+            <img
+              src={`/media/${encodeURIComponent(alt.short_name)}/boxart`}
+              alt={strings.alternatives.flyerAlt(alt.description)}
+              loading="lazy"
+              onError={() => setImgFailed(true)}
+              className="h-full w-full object-cover"
+            />
+          )}
+        </div>
+        <div className="flex flex-1 flex-col">
+          <span className="text-sm font-medium">{alt.description}</span>
+          <span className="text-xs text-muted-foreground">
+            {[alt.short_name, alt.year, alt.publisher]
+              .filter(Boolean)
+              .join(' · ')}
+          </span>
+        </div>
+        <Button
+          size="sm"
+          variant={isWinner ? 'secondary' : 'default'}
+          disabled={isWinner}
+          aria-label={buttonName}
+          onClick={onPick}
+        >
+          {isWinner
+            ? strings.alternatives.pickedLabel
+            : strings.alternatives.overrideButton}
+        </Button>
+      </CardContent>
+    </Card>
+  )
 }
 
 export function AlternativesDrawer({
@@ -27,10 +87,15 @@ export function AlternativesDrawer({
 }: AlternativesDrawerProps) {
   const parent = winner.short_name
   const handleClick = (alt: GameCard) => {
-    if (alt.short_name === winner.short_name) return
     onOverride({ parent, winner: alt.short_name })
     onOpenChange(false)
   }
+
+  // FP11 § B5: spec / design §8 makes 1-element-list and N-element-list
+  // distinct UX. With one alternative (= just the winner), show
+  // "This is the only version" and skip the row list entirely. With
+  // multiple, show the count line and the rows.
+  const onlyOne = alternatives.length === 1
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -38,49 +103,25 @@ export function AlternativesDrawer({
         <SheetHeader>
           <SheetTitle>{strings.alternatives.drawerTitle}</SheetTitle>
           <SheetDescription>
-            {alternatives.length === 1
-              ? strings.alternatives.emptyText
-              : `${alternatives.length} versions in this family`}
+            {onlyOne
+              ? strings.alternatives.onlyVersionText
+              : strings.alternatives.familySummary(alternatives.length)}
           </SheetDescription>
         </SheetHeader>
 
-        <ul className="flex flex-col gap-2">
-          {alternatives.map((alt) => {
-            const isWinner = alt.short_name === winner.short_name
-            const buttonName = isWinner
-              ? `${alt.description} — selected`
-              : `Use ${alt.description}`
-            return (
+        {!onlyOne && (
+          <ul className="flex flex-col gap-2">
+            {alternatives.map((alt) => (
               <li key={alt.short_name}>
-                <Card>
-                  <CardContent className="flex items-center justify-between gap-3 p-3">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">
-                        {alt.description}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {[alt.short_name, alt.year, alt.publisher]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant={isWinner ? 'secondary' : 'default'}
-                      disabled={isWinner}
-                      aria-label={buttonName}
-                      onClick={() => handleClick(alt)}
-                    >
-                      {isWinner
-                        ? strings.alternatives.pickedLabel
-                        : strings.alternatives.overrideButton}
-                    </Button>
-                  </CardContent>
-                </Card>
+                <AlternativeRow
+                  alt={alt}
+                  isWinner={alt.short_name === winner.short_name}
+                  onPick={() => handleClick(alt)}
+                />
               </li>
-            )
-          })}
-        </ul>
+            ))}
+          </ul>
+        )}
       </SheetContent>
     </Sheet>
   )

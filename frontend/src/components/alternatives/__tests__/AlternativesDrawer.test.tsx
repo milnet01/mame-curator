@@ -86,4 +86,41 @@ describe('AlternativesDrawer', () => {
     const winnerButton = screen.getByRole('button', { name: /Pac-Man.*selected/i })
     expect(winnerButton).toBeDisabled()
   })
+
+  it('shows "only version" hint and no rows when alternatives.length === 1 (FP11 § B5)', () => {
+    render(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={winner}
+        alternatives={[winner]}
+        onOverride={() => {}}
+      />,
+    )
+    expect(
+      screen.getByText(/only version in the library/i),
+    ).toBeInTheDocument()
+    // No rows = no Use buttons rendered.
+    expect(screen.queryByRole('button', { name: /^Use /i })).not.toBeInTheDocument()
+  })
+
+  it('renders boxart media on every row (FP11 § B6)', () => {
+    render(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={winner}
+        alternatives={[winner, ...clones]}
+        onOverride={() => {}}
+      />,
+    )
+    expect(screen.getByAltText(/Box art for Pac-Man$/)).toHaveAttribute(
+      'src',
+      '/media/pacman/boxart',
+    )
+    expect(screen.getByAltText(/Box art for Pac-Man Jr\./)).toHaveAttribute(
+      'src',
+      '/media/pacmanjr/boxart',
+    )
+  })
 })

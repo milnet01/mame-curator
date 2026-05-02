@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   CommandDialog,
   CommandEmpty,
@@ -34,18 +35,29 @@ export function CmdKPalette({
   items,
   onSelect,
 }: CmdKPaletteProps) {
-  const grouped: Record<CmdKSection, CmdKItem[]> = {
-    games: [],
-    settings: [],
-    actions: [],
-    help: [],
-  }
-  for (const item of items) grouped[item.section].push(item)
+  // FP11 § B7: pre-bucket once per items-prop change so the palette
+  // doesn't pay an O(items × sections) cost per keystroke. Memoised
+  // off `items` identity — caller is expected to keep the array
+  // stable across renders.
+  const grouped = useMemo(() => {
+    const out: Record<CmdKSection, CmdKItem[]> = {
+      games: [],
+      settings: [],
+      actions: [],
+      help: [],
+    }
+    for (const item of items) out[item.section].push(item)
+    return out
+  }, [items])
 
-  const handleSelect = (value: string) => {
-    const picked = items.find((i) => i.value === value)
+  // cmdk's `<CommandItem value={...}>` is the field its fuzzy matcher
+  // scores against — we set it to the **id** (stable, opaque) so
+  // routing-shaped values (e.g. `/settings/paths`) don't leak into
+  // the search match. Free-text matching is driven by `keywords`.
+  const handleSelect = (id: string) => {
+    const picked = items.find((i) => i.id === id)
     if (!picked) return
-    onSelect(value, picked)
+    onSelect(picked.value, picked)
     onOpenChange(false)
   }
 
@@ -63,8 +75,12 @@ export function CmdKPalette({
               {grouped[section].map((item) => (
                 <CommandItem
                   key={item.id}
-                  value={item.value}
-                  keywords={[item.label]}
+                  value={item.id}
+                  keywords={[
+                    item.label,
+                    ...(item.hint ? [item.hint] : []),
+                    strings.cmdK.sections[item.section],
+                  ]}
                   onSelect={handleSelect}
                 >
                   <span>{item.label}</span>

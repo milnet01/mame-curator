@@ -75,14 +75,26 @@ export const strings = {
 
   alternatives: {
     drawerTitle: 'Alternative versions',
-    emptyText: 'No alternatives — this is the only version.',
+    /** Subtitle when the family contains only the winner. */
+    onlyVersionText: 'This is the only version in the library.',
+    /** Subtitle when the family contains multiple versions. */
+    familySummary: (n: number) =>
+      `${n.toLocaleString()} version${n === 1 ? '' : 's'} in this family`,
     pickedLabel: 'Currently selected',
     overrideButton: 'Use this version',
+    /** AT-only labels for the per-row Use button. */
+    selectedAriaLabel: (description: string) => `${description} — currently selected`,
+    useAriaLabel: (description: string) => `Use ${description}`,
     whyPickedTitle: 'Why was this picked?',
     whyPickedSubtitle:
       'Each line shows a tiebreaker rule and the trait that decided.',
+    whyPickedEmpty:
+      'No tiebreaker chain — only one candidate survived filtering.',
+    candidatesConsidered: (names: string[]) =>
+      `Candidates considered: ${names.join(', ')}`,
     notesLabel: 'Notes',
     notesPlaceholder: 'Notes (saved automatically when you click away)…',
+    flyerAlt: (description: string) => `Box art for ${description}`,
   },
 
   sessions: {
@@ -208,17 +220,22 @@ export const strings = {
     networkTitle: 'Connection problem',
     networkBody:
       'The backend did not respond. Make sure `mame-curator serve` is running.',
-    /** Map of `ApiError.code` → friendly message. Unmapped codes fall back to `detail`. */
+    /** Map of `ApiError.code` → friendly message. Unmapped codes fall back to `detail`.
+     *
+     * Keys MUST exist as `code = "..."` ClassVar values in
+     * `mame_curator.api.errors` (FP11 § B1: prior versions carried
+     * dead codes that no backend handler issued — `parent_not_found`,
+     * `winner_must_be_in_family`, `path_outside_allowed_roots` were
+     * spec-aspirational). The CI gate `tools/check_error_codes_sync.py`
+     * (FP11 follow-up) asserts every backend `ApiException.code` has
+     * a `byCode` entry and that no `byCode` entry is dead. */
     byCode: {
       game_not_found: 'No game with that short name in the loaded DAT.',
-      parent_not_found: 'The override target is not in the visible set.',
-      winner_must_be_in_family:
-        'The chosen winner must be a parent or clone of the override target.',
+      override_not_found: 'No override registered for that parent.',
       session_name_invalid:
         'Session names must start with a letter and use only letters, numbers, hyphens, and underscores.',
       session_not_found: 'No session by that name.',
-      override_not_found: 'No override registered for that parent.',
-      path_outside_allowed_roots:
+      fs_sandboxed:
         'That path is outside the allowed filesystem roots. Add it under Settings → Paths first.',
       fs_already_covered: 'That path is already inside an allowed root.',
       fs_path_invalid: 'The supplied path is not a valid directory.',
