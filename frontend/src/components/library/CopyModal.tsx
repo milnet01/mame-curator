@@ -2,12 +2,13 @@ import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { ConfirmationDialog } from '../ConfirmationDialog'
 import { strings } from '@/strings'
 import type { JobState, AppendDecisionKind } from '@/api/types'
 
@@ -134,14 +135,47 @@ export function CopyModal({
         </DialogContent>
       </Dialog>
 
-      <ConfirmationDialog
-        open={abortOpen}
-        onOpenChange={setAbortOpen}
-        title={strings.copy.abort}
-        description={strings.copy.abortConfirm(state.filesDone > 0)}
-        actionLabel={strings.copy.abortRecycleFiles}
-        onConfirm={() => onAbort({ recycle_partial: true })}
-      />
+      {/*
+        FP11 § A3: design §9 mandates "Cancel asks whether to keep
+        already-copied files or remove them." A single
+        ConfirmationDialog is single-action and traps the user on
+        whichever path the action label names. Use a dedicated
+        two-action prompt so both `recycle_partial=true` and
+        `recycle_partial=false` are reachable.
+      */}
+      <Dialog open={abortOpen} onOpenChange={setAbortOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{strings.copy.abort}</DialogTitle>
+            <DialogDescription>
+              {strings.copy.abortConfirm(state.filesDone > 0)}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setAbortOpen(false)}>
+              {strings.common.cancel}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                onAbort({ recycle_partial: false })
+                setAbortOpen(false)
+              }}
+            >
+              {strings.copy.abortKeepFiles}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                onAbort({ recycle_partial: true })
+                setAbortOpen(false)
+              }}
+            >
+              {strings.copy.abortRecycleFiles}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

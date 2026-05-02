@@ -87,4 +87,61 @@ describe('LibraryGrid', () => {
     expect(after).toBe(before)
     expect(after).toHaveAttribute('data-layout', 'list')
   })
+
+  it('exposes the resolved column count via data-columns (FP11 § A4)', () => {
+    // The actual `gridTemplateColumns` inline style sits on each virtual
+    // row, but the virtualizer only emits rows when its measurement
+    // fires (best-effort in jsdom). The grid container's `data-columns`
+    // attribute is the deterministic surface — it carries the same
+    // resolved column count and proves the auto-fill drift is gone
+    // (auto-fill rendered no `data-columns` at all).
+    const cards = fakeCards(500)
+    const { container } = render(
+      <LibraryGrid cards={cards} layout="masonry" onOpen={() => {}} />,
+    )
+    const grid = container.querySelector('[data-testid="library-grid"]')
+    expect(grid).toHaveAttribute('data-columns', '5')
+  })
+
+  it('honours cardsPerRowHint when set, falls back to layout default on `auto` (FP11 § B11)', () => {
+    const cards = fakeCards(500)
+    const { rerender, container } = render(
+      <LibraryGrid
+        cards={cards}
+        layout="masonry"
+        cardsPerRowHint={6}
+        onOpen={() => {}}
+      />,
+    )
+    expect(
+      container.querySelector('[data-testid="library-grid"]'),
+    ).toHaveAttribute('data-columns', '6')
+
+    rerender(
+      <LibraryGrid
+        cards={cards}
+        layout="masonry"
+        cardsPerRowHint="auto"
+        onOpen={() => {}}
+      />,
+    )
+    expect(
+      container.querySelector('[data-testid="library-grid"]'),
+    ).toHaveAttribute('data-columns', '5')
+  })
+
+  it('list layout always has 1 column regardless of hint', () => {
+    const cards = fakeCards(500)
+    const { container } = render(
+      <LibraryGrid
+        cards={cards}
+        layout="list"
+        cardsPerRowHint={8}
+        onOpen={() => {}}
+      />,
+    )
+    expect(
+      container.querySelector('[data-testid="library-grid"]'),
+    ).toHaveAttribute('data-columns', '1')
+  })
 })

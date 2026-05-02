@@ -3,17 +3,31 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { GameCard } from './GameCard'
 import { strings } from '@/strings'
 import { cn } from '@/lib/utils'
-import type { GameCard as GameCardType, LayoutName } from '@/api/types'
+import type {
+  CardsPerRowHint,
+  GameCard as GameCardType,
+  LayoutName,
+} from '@/api/types'
 
 interface LibraryGridProps {
   cards: GameCardType[]
   layout: LayoutName
   groupKey?: 'genre' | 'year' | 'publisher'
+  /** UiConfig.cards_per_row_hint — `'auto'` falls back to the layout default. */
+  cardsPerRowHint?: CardsPerRowHint
   onOpen: (card: GameCardType) => void
 }
 
-/** Per-layout column count + row height. List layout is single-column dense. */
-const LAYOUT_GEOMETRY: Record<
+/**
+ * Per-layout default column count + row-height target. The auto-fill
+ * Tailwind pattern was previously used (`grid-cols-[repeat(auto-fill,
+ * minmax(180px,1fr))]`) but FP11 § A4 caught it — the actual rendered
+ * column count was decoupled from the virtualization math, so wide
+ * viewports clipped cards inside 280px slots and narrow viewports
+ * left huge gaps. Now: explicit `repeat(${columns}, 1fr)` so DOM
+ * layout matches the row-bucket bookkeeping exactly.
+ */
+const LAYOUT_DEFAULTS: Record<
   LayoutName,
   { columns: number; rowHeightPx: number }
 > = {
@@ -23,13 +37,25 @@ const LAYOUT_GEOMETRY: Record<
   grouped: { columns: 5, rowHeightPx: 280 },
 }
 
+function resolveColumns(
+  layout: LayoutName,
+  hint: CardsPerRowHint | undefined,
+): number {
+  // `list` is always 1; the hint doesn't apply.
+  if (layout === 'list') return 1
+  if (hint === undefined || hint === 'auto') return LAYOUT_DEFAULTS[layout].columns
+  return hint
+}
+
 export function LibraryGrid({
   cards,
   layout,
+  cardsPerRowHint,
   onOpen,
 }: LibraryGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const { columns, rowHeightPx } = LAYOUT_GEOMETRY[layout]
+  const columns = resolveColumns(layout, cardsPerRowHint)
+  const { rowHeightPx } = LAYOUT_DEFAULTS[layout]
   const rowCount = Math.ceil(cards.length / columns)
 
   const virtualizer = useVirtualizer({
@@ -67,6 +93,7 @@ export function LibraryGrid({
       ref={scrollRef}
       data-testid="library-grid"
       data-layout={layout}
+      data-columns={columns}
       className="h-full overflow-auto"
     >
       <div
@@ -81,17 +108,11 @@ export function LibraryGrid({
             <div
               key={virtualRow.key}
               data-index={virtualRow.index}
-              className={cn(
-                'absolute left-0 top-0 grid w-full gap-3 px-3',
-                layout === 'list' && 'grid-cols-1',
-                layout === 'masonry' && 'grid-cols-[repeat(auto-fill,minmax(180px,1fr))]',
-                layout === 'covers' && 'grid-cols-[repeat(auto-fill,minmax(280px,1fr))]',
-                layout === 'grouped' &&
-                  'grid-cols-[repeat(auto-fill,minmax(180px,1fr))]',
-              )}
+              className={cn('absolute left-0 top-0 grid w-full gap-3 px-3')}
               style={{
                 transform: `translateY(${virtualRow.start}px)`,
                 height: `${rowHeightPx}px`,
+                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
               }}
             >
               {rowCards.map((card) => (

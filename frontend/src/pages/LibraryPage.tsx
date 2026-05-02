@@ -71,8 +71,9 @@ export function LibraryPage() {
         <LibraryGrid
           cards={cards}
           layout={layout}
+          cardsPerRowHint={config.data?.ui.cards_per_row_hint}
           onOpen={() => {
-            // AlternativesDrawer wiring lands in follow-up.
+            // AlternativesDrawer wiring lands in FP11 § B6 follow-up.
           }}
         />
       </ErrorBoundary>

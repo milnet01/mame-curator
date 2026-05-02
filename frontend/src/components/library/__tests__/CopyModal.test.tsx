@@ -65,7 +65,7 @@ describe('CopyModal', () => {
     expect(onResume).toHaveBeenCalled()
   })
 
-  it('opens the abort confirmation and forwards onAbort', async () => {
+  it('opens the abort prompt offering BOTH keep + recycle paths (FP11 § A3)', async () => {
     const onAbort = vi.fn()
     render(
       <CopyModal
@@ -79,12 +79,54 @@ describe('CopyModal', () => {
       />,
     )
     await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
-    // ConfirmationDialog action label is concrete per design rules.
-    const confirm = await screen.findByRole('button', {
-      name: /move to recycle bin/i,
-    })
-    await userEvent.click(confirm)
+    // Spec / design §9: "Cancel asks whether to keep already-copied
+    // files or remove them." Both paths must be reachable.
+    expect(
+      await screen.findByRole('button', { name: /keep files/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /move to recycle bin/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('aborts with recycle_partial=true when user picks recycle', async () => {
+    const onAbort = vi.fn()
+    render(
+      <CopyModal
+        open
+        onOpenChange={() => {}}
+        state={baseState}
+        onPause={() => {}}
+        onResume={() => {}}
+        onAbort={onAbort}
+        onResolveConflict={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    await userEvent.click(
+      await screen.findByRole('button', { name: /move to recycle bin/i }),
+    )
     expect(onAbort).toHaveBeenCalledWith({ recycle_partial: true })
+  })
+
+  it('aborts with recycle_partial=false when user picks keep', async () => {
+    const onAbort = vi.fn()
+    render(
+      <CopyModal
+        open
+        onOpenChange={() => {}}
+        state={baseState}
+        onPause={() => {}}
+        onResume={() => {}}
+        onAbort={onAbort}
+        onResolveConflict={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    await userEvent.click(
+      await screen.findByRole('button', { name: /keep files/i }),
+    )
+    expect(onAbort).toHaveBeenCalledWith({ recycle_partial: false })
   })
 
   it('renders the conflict prompt when the state carries one', () => {
