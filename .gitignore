@@ -10,8 +10,12 @@ develop-eggs/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Anchor `lib/` and `lib64/` to the project root — without the leading `/`
+# they match `frontend/src/lib/` and silently exclude `cn` + `applyTheme`
+# helpers from git, leaving the working tree appearing intact while clones
+# are missing the file (FP11 § F follow-up).
+/lib/
+/lib64/
 parts/
 sdist/
 var/
