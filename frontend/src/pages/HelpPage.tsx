@@ -48,8 +48,10 @@ export function HelpPage({
       </aside>
 
       <article className="prose prose-sm max-w-none dark:prose-invert">
-        {/* Server returns rendered HTML per spec; no client-side markdown. */}
-        {/* eslint-disable-next-line react/no-danger */}
+        {/* FIXME(security, 2026-05-02): R38 returns server-rendered HTML and
+            the trust boundary is local-only today; if help content ever
+            sources from upstream, swap to a sanitized renderer (DOMPurify
+            or similar). Tracked under FP11 § H4 and ROADMAP.md § FP11. */}
         <div dangerouslySetInnerHTML={{ __html: topicHtml }} />
       </article>
     </section>

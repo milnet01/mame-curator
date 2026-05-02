@@ -18,6 +18,30 @@ export const strings = {
     tagline: 'Curate, copy, and verify your MAME library.',
   },
 
+  /** Layout option labels (LayoutSwitcher dropdown). */
+  layouts: {
+    masonry: 'Masonry',
+    list: 'List',
+    covers: 'Covers',
+    grouped: 'Grouped',
+  },
+
+  /** Theme palette labels (ThemeSwitcher dropdown). Keys mirror `ThemeName`. */
+  themes: {
+    dark: 'Dark',
+    light: 'Light',
+    double_dragon: 'Double Dragon',
+    pacman: 'Pac-Man',
+    sf2: 'SF2',
+    neogeo: 'Neo Geo',
+  },
+
+  common: {
+    cancel: 'Cancel',
+    save: 'Save',
+    retry: 'Try again',
+  },
+
   nav: {
     library: 'Library',
     sessions: 'Sessions',
@@ -57,6 +81,7 @@ export const strings = {
     whyPickedTitle: 'Why was this picked?',
     whyPickedSubtitle:
       'Each line shows a tiebreaker rule and the trait that decided.',
+    notesLabel: 'Notes',
     notesPlaceholder: 'Notes (saved automatically when you click away)…',
   },
 

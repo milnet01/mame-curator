@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import type { ThemeName } from '@/api/types'
-import { applyTheme } from '@/components/library/ThemeSwitcher'
+import { applyTheme } from '@/lib/theme'
 
 interface ThemeProviderProps {
   theme: ThemeName

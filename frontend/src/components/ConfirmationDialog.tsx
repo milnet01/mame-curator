@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { strings } from '@/strings'
 
 interface ConfirmationDialogProps {
   open: boolean
@@ -19,7 +20,24 @@ interface ConfirmationDialogProps {
   destructive?: boolean
 }
 
-const FORBIDDEN_LABELS = new Set(['OK', 'Ok', 'ok', 'Confirm', 'Yes'])
+/**
+ * Action-label values that fail the design § 8 "concrete primary
+ * label" rule. Compared case-insensitively + trimmed so `' OK '`
+ * sneaks past nothing. The set names every generic affirmation; the
+ * caller MUST give a concrete verb-+-target label like "Delete 3
+ * files from drive" or "Reset configuration to defaults".
+ */
+const FORBIDDEN_LABELS_LOWER = new Set([
+  'ok',
+  'confirm',
+  'yes',
+  'continue',
+  'proceed',
+  'submit',
+  'done',
+  'apply',
+  'save',
+])
 
 export function ConfirmationDialog({
   open,
@@ -33,8 +51,8 @@ export function ConfirmationDialog({
   // Enforce design §8: destructive-action labels must be concrete (e.g.
   // "Delete 3 files from drive"), never generic. Throw at render time so
   // a regression in any caller fails loudly during dev / tests rather
-  // than shipping an "OK" button to users.
-  if (FORBIDDEN_LABELS.has(actionLabel)) {
+  // than shipping an "OK" button to users. Case-insensitive + trimmed.
+  if (FORBIDDEN_LABELS_LOWER.has(actionLabel.trim().toLowerCase())) {
     throw new Error(
       `ConfirmationDialog: actionLabel must be concrete, not "${actionLabel}". ` +
         'Per design §8, name the verb + target (e.g. "Delete 3 files from drive").',
@@ -54,7 +72,7 @@ export function ConfirmationDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
             className={

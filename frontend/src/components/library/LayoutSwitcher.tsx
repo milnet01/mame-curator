@@ -7,18 +7,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { strings } from '@/strings'
 import type { LayoutName } from '@/api/types'
 
 interface LayoutSwitcherProps {
   value: LayoutName
   onChange: (layout: LayoutName) => void
-}
-
-const LAYOUT_LABELS: Record<LayoutName, string> = {
-  masonry: 'Masonry',
-  list: 'List',
-  covers: 'Covers',
-  grouped: 'Grouped',
 }
 
 const LAYOUT_ORDER: LayoutName[] = ['masonry', 'list', 'covers', 'grouped']
@@ -37,7 +31,7 @@ export function LayoutSwitcher({ value, onChange }: LayoutSwitcherProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
           <Icon className="mr-2 h-4 w-4" aria-hidden="true" />
-          {LAYOUT_LABELS[value]}
+          {strings.layouts[value]}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -47,7 +41,7 @@ export function LayoutSwitcher({ value, onChange }: LayoutSwitcherProps) {
         >
           {LAYOUT_ORDER.map((layout) => (
             <DropdownMenuRadioItem key={layout} value={layout}>
-              {LAYOUT_LABELS[layout]}
+              {strings.layouts[layout]}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

@@ -56,8 +56,8 @@ export function LibraryPage() {
         <FiltersSidebar
           value={filters}
           onChange={setFilters}
-          onSaveSession={(_name) => {
-            // Wired to R11 in a follow-up.
+          onSaveSession={() => {
+            // Wired to R11 in FP11 § B8 (App.tsx + container hooks).
           }}
         />
       </aside>

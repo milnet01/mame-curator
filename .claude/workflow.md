@@ -23,10 +23,9 @@ becomes active.
 
 FP11 active — step progress (reset by /close-phase 2026-05-02 on FP11 spawn):
 
-1. 🚧 Verify spec — FP11 is a fix-pass (no per-item spec per "specs are for features, not fixes"); ROADMAP.md § FP11 enumerates the 10 fold-in clusters that constitute the audit surface.
-2. ⬜ Verify dependencies — P06 ✅ (scaffold + components shipped; FP11 fixes against the existing surface).
-3. ⬜ Write failing tests
-4. ⬜ Implement until tests pass
+1. ✅ Verify spec — FP11 is a fix-pass (no per-item spec per "specs are for features, not fixes"); ROADMAP.md § FP11 enumerates the 10 fold-in clusters as the audit surface.
+2. ✅ Verify dependencies — P06 ✅ (scaffold + 19 components + Playwright smoke shipped; FP11 fixes against the existing surface).
+3. 🚧 Write failing tests + 4. 🚧 Implement until tests pass — interleaved per cluster.
 5. ⬜ Run `/audit` (FP11 closing pass)
 6. ⬜ Run `/indie-review --fix` (FP11 closing pass)
 7. ⬜ Fold round-2 findings → FP12 (or close FP11 cleanly if round-2 returns 0)
