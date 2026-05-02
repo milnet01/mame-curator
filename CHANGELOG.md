@@ -17,6 +17,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P06 — Frontend MVP (in-flight; closing fix-pass FP11 active 2026-05-02)
+
+**P06 (`frontend/` SPA) — all 18 spec impl-steps shipped** across 19
+commits since `P05-complete`. Vite + React 19 + TypeScript scaffold;
+Tailwind v4 with 6 themes (`dark`, `light`, `double_dragon`,
+`pacman`, `sf2`, `neogeo`) as `@theme inline` blocks keyed on
+`data-theme`; 16 shadcn primitives (`button` / `card` / `sheet` /
+`dialog` / `alert-dialog` / `tabs` / `switch` / `slider` /
+`progress` / `sonner` / `tooltip` / `command` / `dropdown-menu` /
+`radio-group` / `input` / `label`); runtime deps (`@tanstack/
+react-query@^5.100`, `@tanstack/react-virtual@^3.13`, `react-router@^7.14`,
+`framer-motion@^12.38`, `zod@^4.4`, `lucide-react@^1.14`, `clsx`,
+`tailwind-merge`, `cva`, `@radix-ui/react-slot`); dev harness
+(`vitest@^4.1` + `@testing-library/react@^16.3` + `msw@^2.14` +
+`@playwright/test@^1.59`); `frontend/src/api/{types,client}.ts`
+(57 hand-mirrored TypeScript interfaces + zod `.strict()` schemas
+mirroring Pydantic `extra="forbid"` + `apiRequest()` fetch wrapper
+with typed `ApiError` envelope handling); `tools/check_api_types_sync.py`
+stdlib-only Python ↔ TS drift CI gate wired into `.github/workflows/
+ci.yml`; `strings.ts` user-facing string catalogue (i18n-ready,
+P06 ships English only); backend `_SPAStaticFiles` subclass on
+`api/app.py` with conditional `frontend/dist/` mount + 2 backend
+tests; 19 components/pages under TDD (`GameCard`, `LibraryGrid`
+virtualized via react-virtual, `LayoutSwitcher`, `ThemeSwitcher`,
+`FiltersSidebar` with 200ms-debounced search + Switch-only prefs,
+`AlternativesDrawer` + `WhyPickedPanel` + `NotesEditor`, `ActionBar`,
+`DryRunModal`, `CopyModal` with SSE state, `ConfirmationDialog`
+with throw-on-OK invariant, `SessionsPage` / `ActivityPage` /
+`StatsPage` / `SettingsPage` / `HelpPage`, `CmdKPalette` via cmdk,
+`no-checkbox-for-prefs` invariant test); `useKeyboard` hook
+(single-key + chord + meta-mode); `ErrorBoundary` class component
+with reset-on-key + manual retry; `AppShell` + `ThemeProvider`;
+`App.tsx` with `QueryClientProvider` + `BrowserRouter` + lazy-route
+`Suspense`; production build at 152 KB gzipped entry (< 350 KB
+budget); 1 Playwright smoke E2E + `e2e/fixtures/config.yaml`;
+`frontend/dist/` committed (15 files, 152 KB total). Backend tests
+425 pass with 89.12% coverage; frontend tests 71 pass across 21
+Vitest files; all five Python CI gates + API type-sync gate clean.
+
+### FP11 — P06 closing-review fold-in (active 2026-05-02)
+
+**FP11 spawned by /close-phase 2026-05-02** — P06's closing /audit
+(eslint, tsc, gitleaks, trivy, semgrep, check_api_types_sync) +
+/indie-review across 6 lanes (api-bridge / library-components /
+alternatives-trio / pages / layout-+-hooks-+-app / backend-static-mount
+/ test-infra) surfaced **~40 actionable findings** plus 2 vendored /
+library-by-design false positives (added to
+`docs/audit-allowlist.md` as allowlist-002 / 003).
+
+Findings batched into 10 thematic clusters per the audit-fold
+pattern: **A** critical bugs (palette hard-reload, SPA fallback
+swallows `/api/*` + `/assets/*` 404s, CopyModal abort traps user,
+LibraryGrid columns decoupled from CSS auto-fill grid); **B** spec
+contract gaps (12 — `strings.ts` dead error codes, LibraryPage
+`config.data!` crash, SettingsPage missing `snapshots`/`about` tabs,
+ActivityPage URL state, AlternativesDrawer empty-state contradiction +
+missing media, CmdKPalette keywords, App.tsx no-op stubs across 5
+routes, ErrorBoundary single-depth vs spec's three); **C** drift-gate
+hardening (regex truncation, `_inherits_basemodel` over-match,
+duplicate-class fail-loud, 204 schema contract); **D** component
+lifecycle / quality (10 — NotesEditor setState-in-effect + save
+lifecycle + ThemeSwitcher Fast-Refresh break + GameCard div-as-button
++ emoji-as-functional-UI + FiltersSidebar year bounds + CopyModal
+stranded states + ConfirmationDialog forbidden-set); **E** `strings.ts`
+catalogue completeness sweep across 12+ surfaces with inlined English;
+**F** standards/lint cleanups (TS strict-mode, bogus eslint-disable,
+unused param); **G** zod ↔ Pydantic mirroring (Field bounds not
+mirrored, `z.iso.datetime()` strictness, frozen-config drift,
+`parse<T>` zod issues discarded); **H** acceptance + a11y (Inter
+font reference, Node engines pin, pacman contrast, HelpPage XSS
+FIXME, `aria-current` on selected topic, `<section aria-labelledby>`
+links, `<time>` element on timestamps, AT-affecting strings); **I**
+test infrastructure (dead `/api/health` mock, vitest `exclude`
+defaults, playwright preview reuse); **J** spec sync (toolchain
+versions, `parents[3]`, `_SPAStaticFiles` rationale, error-code
+reconciliation).
+
+P06 phase remains 🚧 until FP11 closes. Full bullet list in
+ROADMAP.md § FP11.
+
 ### P05 — Media subsystem (closed 2026-05-02)
 
 **P05 (`media/` module) shipped** — `src/mame_curator/media/` (3 files, ~120 LoC) implementing the libretro-thumbnails URL builder + lazy-fetch sha256 disk cache per `docs/specs/P05.md`. `escape_libretro` applies the 10-character filename rule (`&*/:\<>?|"` → `_`); `urls_for(machine)` returns frozen `MediaUrls` with `boxart`/`title`/`snap` (no `video` field — design §6.3 routes video through progettoSnaps in P06+, MediaUrls absence is load-bearing for the R39 short-circuit). `fetch_with_cache(url, cache_dir, *, client)` returns the on-disk path on cache hit, downloads-then-atomic-writes on miss, returns `None` on upstream 404 (no negative caching), raises `MediaFetchError` on other upstream/network failures. `cache_path_for(url, cache_dir)` is a pure helper (no I/O); cache key = `sha256(url).hexdigest()` with the URL path's suffix appended. R39 (`/media/{name}/{kind}`) swapped from inline URL build + bare `client.get` to `urls_for` + `fetch_with_cache`; `kind=video` short-circuits with `media_upstream_not_found` BEFORE `urls_for` (load-bearing — `MediaUrls` has no `video` attribute). `app.state.media_client` migrated from bare `httpx.AsyncClient()` to `AsyncClient(timeout=10.0, follow_redirects=True)` so the 10s timeout moves from per-call to client construction and libretro CDN 301/302 redirects transit transparently.

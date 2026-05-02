@@ -830,7 +830,7 @@ items came from `/indie-review` against the cold-eyes brief.
 
 ---
 
-## P06 — Frontend MVP (planned)
+## P06 — Frontend MVP (in-flight — closing fix-pass FP11 active)
 
 **Theme:** Vite + React 19 + Tailwind v4 + shadcn/ui browser UI
 with virtualized grid, alternatives drawer, copy modal with SSE,
@@ -838,15 +838,320 @@ multiple themes/layouts, Cmd-K palette.
 
 **Long-form contract:**
 [`docs/superpowers/specs/2026-04-27-roadmap.md` § Phase 6](docs/superpowers/specs/2026-04-27-roadmap.md).
+**Per-phase spec:** [`docs/specs/P06.md`](docs/specs/P06.md).
 
 ### 🎨 Features
 
-- 📋 **P06 — frontend MVP.** All component tests + one Playwright
-  E2E. `Switch` for binary preferences (not `Checkbox`).
-  `AlertDialog` on every destructive action. Coverage target: ≥70%.
+- 🚧 **P06** [mame-curator-1003-prereq] **Frontend MVP.** All 18 spec
+  impl-steps shipped (scaffold + Tailwind v4 + 6 themes + 16 shadcn
+  primitives + api/types.ts + check_api_types_sync.py CI gate +
+  strings.ts + SPA static mount + 19 components/pages under TDD +
+  ErrorBoundary + useKeyboard + App.tsx wiring + production build +
+  Playwright smoke + frontend/dist/ committed). Closing /audit +
+  /indie-review surfaced ~40 actionable findings → folded into FP11.
+  Phase remains 🚧 until FP11 closes. 425 backend tests + 71 frontend
+  tests + 1 Playwright smoke pass; coverage 89.12% backend, ≥70%
+  frontend gate.
   Kind: implement.
   Lanes: frontend, tests.
   Dependencies: P05.
+
+---
+
+## FP11 — P06 closing-review fold-in (active)
+
+**Theme:** P06's closing /audit (eslint, tsc, gitleaks, trivy,
+semgrep, check_api_types_sync) returned 8 ESLint findings (2
+allowlisted as vendored / library-by-design; 6 actionable) +
+1 semgrep finding (corroborates indie-review HelpPage XSS); all
+other tools clean. /indie-review across 6 lanes (api-bridge,
+library-components, alternatives-trio, pages, layout-+-hooks-+-app,
+backend-static-mount, test-infra) returned ~40 actionable findings
+spanning critical bugs, spec contract gaps, drift-gate hardening,
+component lifecycle/quality, strings catalogue completeness,
+standards/lint cleanups, zod ↔ pydantic mirroring, accessibility,
+and test-infra polish.
+
+### 🔍 Findings fold-in
+
+- 🚧 **FP11** [mame-curator-1003] **Fix-pass after P06 (frontend MVP).**
+  Lanes: frontend, api, tools, tests.
+
+  **Cluster A — Critical bugs (4):**
+  - **A1** — `App.tsx:63-64` palette nav uses
+    `window.location.pathname = value.slice(4)` — hard reload, blows
+    away QueryCache + React state on every Cmd-K nav. Replace with
+    `useNavigate()` from react-router.
+  - **A2** — `api/app.py:_SPAStaticFiles.get_response` falls back to
+    `index.html` for ANY 404, including `/api/typo` and
+    `/assets/missing.js`. Empirical: undefined `/api/*` returns SPA
+    HTML (200) instead of a typed 404 envelope; missing assets
+    cascade to `index.html` + browser parses HTML as JS → opaque
+    SPA boot failure. Add prefix carve-outs for `api/`, `media/`,
+    `assets/`.
+  - **A3** — `CopyModal.tsx:137-144` abort flow offers only "Move
+    to recycle bin"; spec / design §9 demand both keep AND recycle
+    paths. `strings.copy.abortKeepFiles` + `abortRecycleFiles`
+    already catalogued. Replace single ConfirmationDialog with a
+    two-action prompt.
+  - **A4** — `LibraryGrid.tsx:31-33,87` virtualization counts rows
+    via constant `LAYOUT_GEOMETRY.columns` while the CSS uses
+    `grid-cols-[repeat(auto-fill,minmax(...,1fr))]` — the two
+    column counts decouple, so wide viewports clip cards inside
+    280px slots and narrow viewports leave huge gaps. Replace
+    auto-fill with explicit `repeat(${columns}, 1fr)` keyed off
+    geometry; thread `cards_per_row_hint`.
+
+  **Cluster B — Spec contract gaps (12):**
+  - **B1** — `strings.ts` error-code map has 3 dead codes
+    (`parent_not_found`, `winner_must_be_in_family`,
+    `path_outside_allowed_roots`) never raised by backend; backend's
+    actual `fs_sandboxed` has no friendly message. Reconcile with
+    `mame_curator/api/errors.py`. Add a one-line CI assert that
+    every `ApiException.code` ClassVar has a `strings.errors.byCode`
+    entry.
+  - **B2** — `LibraryPage.tsx:49,51` `config.data!.ui` non-null
+    assertion crashes if user clicks Layout/Theme switcher before
+    config GET resolves. Gate handlers on `config.isSuccess` or
+    early-return.
+  - **B3** — `SettingsPage.tsx:29` missing `snapshots` and `about`
+    tabs (spec § 193 demands all 9). `updates` tab missing R36
+    read-only banner (`strings.settings.banners.updateAvailable` /
+    `setupReady` are catalogued but unused). `onSnapshotRestore`
+    prop unused. Wire all three.
+  - **B4** — `ActivityPage` URL state contract violated. Spec § 191:
+    "Pagination via `?page=N&page_size=50` query params; URL state
+    survives reload." Currently `App.tsx:96-97` hardcodes `page=1` /
+    `pageSize=50` and stubs `onPageChange={() => {}}`. Wire via
+    `useSearchParams()`.
+  - **B5** — `AlternativesDrawer.tsx:41-44` `length === 1` renders
+    "No alternatives — this is the only version" (description) AND
+    iterates the one-element array showing the winner row; message
+    contradicts content. Fix branching.
+  - **B6** — `AlternativesDrawer` doesn't render boxart. Spec /
+    design §8.521-523 demand "side-by-side strip of parent + clones
+    with media". Add `<img src="/media/{name}/boxart">` per row.
+  - **B7** — `CmdKPalette.tsx:67` `keywords={[item.label]}` passes
+    only the label; typing the visible `hint` returns no match. Pass
+    `keywords=[item.label, item.hint, sectionTitle].filter(Boolean)`,
+    set `value={item.id}` instead of routing-shaped value.
+  - **B8** — `App.tsx:82-141` Sessions / Activity / Stats / Settings
+    / Help routes wired with hardcoded empty data + `() => {}`
+    handlers. Spec § "Tests to write first" requires Sessions list /
+    create / activate / deactivate to actually function. Build
+    `useSessions` / `useActivity` / `useStats` / `useHelp` hooks
+    (spec module layout lists them) and wire real container pages.
+  - **B9** — `App.tsx:124` `<SettingsPage onPatch={() => {}}>` —
+    config patches don't persist. Wire `useConfigPatch` (already
+    exists in `hooks/useConfig.ts:12`).
+  - **B10** — `App.tsx:155` Sonner Toaster reads from `next-themes`
+    provider that's never mounted. Either drop `next-themes` and
+    pass `theme={config.data?.ui.theme}` directly, or mount
+    `<NextThemesProvider attribute="data-theme">`.
+  - **B11** — `LibraryGrid.tsx:11-13` `groupKey` declared, never
+    used; `cards_per_row_hint` from `useConfig` not threaded
+    through (spec § 210 binding). Either implement grouped layout
+    sectioning or document as deferred + drop the prop.
+  - **B12** — `App.tsx:73` ErrorBoundary at single nesting depth.
+    Spec impl-step 13 + `ErrorBoundary.tsx:17-25` docstring both
+    mandate three levels: route, drawer, modal. Wrap each
+    `<Route element={...}>` and the CmdKPalette+Toaster siblings.
+
+  **Cluster C — Drift-gate hardening (4):**
+  - **C1** — `tools/check_api_types_sync.py:97-100` `_INTERFACE_RE`
+    body class `[^}]*` truncates at first `}` — nested object
+    literals (`bar: { x: number }`) silently drop fields after the
+    first `}`. Replace regex with brace-balanced scan, OR fail-loud
+    on detection of `{`/`}` inside the body and require named
+    interfaces. Same finding from L1-H1 + L6-F4 (≥2 lanes).
+  - **C2** — `tools/check_api_types_sync.py:80-86` `_inherits_basemodel`
+    matches any `*.BaseModel` attribute access (e.g.
+    `pydantic_settings.BaseModel`) instead of `pydantic.BaseModel`
+    only. Tighten or drop the attribute-access branch (no Pydantic
+    model in this codebase uses `pydantic.BaseModel`).
+  - **C3** — `tools/check_api_types_sync.py:156-166` duplicate-class
+    handling silently warns + skips; should fail loud. The drift
+    gate's reason for existing is to catch accuracy lapses; an
+    internal lapse must fail the gate, not log to stderr.
+  - **C4** — `client.ts:97-99` `apiRequest` returns `parse(schema,
+    null)` on 204 but no zod schema in `types.ts` accepts `null`.
+    R09 / R12 / R13b DELETE consumers will throw on first wire-up.
+    Add explicit void path or require callers to pass `z.null()`.
+
+  **Cluster D — Component lifecycle / quality (10):**
+  - **D1** — `NotesEditor.tsx:19-22` `setDraft(initial)` + ref
+    mutation inside `useEffect` triggers ESLint
+    `react-hooks/set-state-in-effect`. Restructure to a derived-state
+    pattern or per-game `key` prop on the editor.
+  - **D2** — `NotesEditor.tsx:24-34` save-error state stuck across
+    blurs (next blur with `draft === lastSaved.current` early-returns
+    leaving error indicator); stale "Saved" can flash against new
+    game on rapid game-switch mid-save. Add generation token (ref) +
+    role="alert" on error.
+  - **D3** — `ThemeSwitcher.tsx:35-44` `applyTheme` exported (breaks
+    Fast Refresh per ESLint) AND mutates `<html data-theme>` from
+    handler — races with `ThemeProvider.tsx:11-15` `useEffect`.
+    Strip the handler-side `applyTheme` call; let provider be the
+    single writer; move `applyTheme` to a separate utility module.
+  - **D4** — `GameCard.tsx:42-52` div-as-button: `<Card role="button"
+    tabIndex={0}>` loses native button semantics. Wrap in
+    `<button type="button" className="contents">` for native focus
+    + activation behaviour.
+  - **D5** — `GameCard.tsx:21-27` badges use emoji as functional UI
+    (`'🔀'`, `'✏️'`, `'💿'`, `'⚠️'`, `'📝'`). Coding-standards § 4 line 73:
+    "No emojis as functional UI (decorative only); use proper icons
+    (`lucide-react`)." Replace with `GitBranch` / `Pencil` / `Disc` /
+    `AlertTriangle` / `StickyNote`.
+  - **D6** — `FiltersSidebar.tsx:115-117` year-range slider bounds
+    hard-coded `min={1975}` / `max={2025}`. Pull from `useStats()`
+    `by_decade` or compute from cards.
+  - **D7** — `FiltersSidebar.tsx:54-67` debounce useEffect both
+    clears `debounceRef.current` inside the effect AND in the
+    cleanup; collapse to the canonical
+    `setTimeout` + `return () => clearTimeout(id)` shape. Latent
+    no-op redundant dispatch on rapid flux.
+  - **D8** — `CopyModal.tsx:118-133` UI traps user in `terminating`
+    / `finished` / `aborted` states (Pause shown disabled, Cancel
+    still active firing abort against terminal job, no Done/Close
+    affordance). Collapse the action row into a state machine.
+  - **D9** — `CopyModal.tsx:78-81` warning list `<li key={i}>` —
+    array index as React key, but `slice(-3)` shifts positions
+    on each new SSE event. Use payload-id-based key.
+  - **D10** — `ConfirmationDialog.tsx:22` `FORBIDDEN_LABELS` set
+    is haphazard (3 casings of OK, only one of Yes; missing
+    common alternates "Continue", "Proceed", "Done", "Submit",
+    "Yes, continue"). Normalise via `.toLowerCase()` and add.
+
+  **Cluster E — strings.ts catalogue completeness (sweep):**
+  - **E1** — Hoist all inlined English from `FiltersSidebar`
+    (4 switch labels + 7 misc strings), `LayoutSwitcher`
+    (4 layout labels), `ThemeSwitcher` (6 theme labels),
+    `DryRunModal` ("Cancel" + duplicated section labels),
+    `SessionsPage` (4 metadata labels + 2 aria-labels),
+    `ActivityPage` (timestamp coercion comment),
+    `SettingsPage` (~14 switch labels + 3 help paragraphs +
+    "Cache:" etc.), `AlternativesDrawer` (3 dynamic strings:
+    family-summary, button aria-selected/use), `WhyPickedPanel`
+    (2 strings), `NotesEditor` ("Notes" label),
+    `ConfirmationDialog` ("Cancel"), `ErrorBoundary` ("Try again").
+    Add namespaces to `strings.ts` as needed.
+
+  **Cluster F — Standards / lint cleanups (4):**
+  - **F1** — `tsconfig.app.json` missing `"strict": true`
+    (coding-standards § 4 line 65 hard requirement). Add and clean
+    up any latent null-handling errors that surface.
+  - **F2** — `HelpPage.tsx:52` bogus `// eslint-disable-next-line
+    react/no-danger` — the rule isn't configured (eslint emits
+    "Definition for rule 'react/no-danger' was not found"). Drop
+    the comment.
+  - **F3** — `ErrorBoundary.tsx:43` unused
+    `eslint-disable no-console` directive — ruleset doesn't flag
+    `console.error` here. Drop.
+  - **F4** — `LibraryPage.tsx:59` `_name` parameter declared but
+    unused. Either use it (sessions save callback) or drop
+    `(_name)` to `()`.
+
+  **Cluster G — zod ↔ pydantic mirroring (4):**
+  - **G1** — `types.ts:74-77` mirror of `Rom.size: int | None =
+    Field(default=None, ge=0)` is `z.number().int().nullable()` —
+    `ge=0` not mirrored. Add `.nonnegative()`. Sweep for other
+    `Field(...)` constraints.
+  - **G2** — `types.ts:24` `z.iso.datetime()` rejects naive
+    datetimes and offset suffixes — fragile to backend datetime
+    drift (today every emitter passes `tz=UTC` so works, but
+    one missed `tz=UTC` breaks the FE). Use
+    `z.iso.datetime({ offset: true, local: true })`.
+  - **G3** — `mame_curator/api/schemas.py:221` `SessionUpsertRequest`
+    is the only schema NOT `frozen=True` — drift from rest of
+    `schemas.py`. Either flip or comment why request bodies opt
+    out.
+  - **G4** — `client.ts:39-47, 116-126` `parse<T>` discards zod
+    `result.error.issues[]` instead of mapping into
+    `FieldError[]`. Same pattern in network-error path collapses
+    `status: 0` across two distinct failure modes (no network vs
+    bad body). Translate issues; use `-1` sentinel for
+    never-reached-the-wire.
+
+  **Cluster H — Acceptance + accessibility (8):**
+  - **H1** — `index.css:189` references `'Inter'` but no
+    `@font-face` rule loads it; spec § 305 forbids remote
+    stylesheets. Either add `@fontsource/inter` + `@import`, or
+    drop `'Inter'` from the stack.
+  - **H2** — `package.json:7` `engines.node: ">=20.0.0"` weaker
+    than spec § 285 ("Determinism across Node patch versions
+    is not guaranteed; the CI gate runs npm ci on the pinned
+    version"). Pin `"20.x"` exactly.
+  - **H3** — `index.css` `[data-theme="pacman"]` accent /
+    accent-foreground contrast ratio ≈ 4.0:1 — borderline AA-text.
+    Either bump `--accent-foreground` to oklch(1 0 0) or darken
+    `--accent` to L=0.45.
+  - **H4** — `HelpPage.tsx:53` `dangerouslySetInnerHTML` from
+    R38 — backend trust boundary today, but the lane brief
+    flagged the future risk if help content ever sources from
+    upstream. Add `// FIXME(security, 2026-05-02): replace with
+    sanitized renderer when help content sources from outside
+    `data/help/``. Optional: add DOMPurify (~14 kB gzipped).
+    (Corroborated by semgrep `react-dangerouslysetinnerhtml`.)
+  - **H5** — `HelpPage.tsx:38-41` selected-topic state visible
+    only as `bg-muted font-semibold`; screen readers get no
+    signal. Add `aria-current="page"` to the selected button.
+    Plus: add a "Loading topic…" skeleton when `topicHtml === ''`
+    but a `selectedSlug` is set (currently renders an empty
+    `<article>`).
+  - **H6** — `StatsPage.tsx` `<section>` has no
+    `aria-labelledby` link to the `<h2>`. WCAG 2.2 AA wants the
+    link; add `id` to `<h2>` and `aria-labelledby` to `<section>`.
+  - **H7** — `ActivityPage.tsx:43` timestamps render as plain
+    text inside a `<span>`. Wrap in `<time dateTime={...}>` for
+    semantic accessibility.
+  - **H8** — `SessionsPage.tsx:70,78`
+    `aria-label={`Activate ${name}`}` / `Delete ${name}` are
+    English strings. Move to
+    `strings.sessions.actions.activateAriaLabel(name)` etc.
+    (Subset of E1; called out separately because it's
+    AT-affecting.)
+
+  **Cluster I — Test infrastructure (3):**
+  - **I1** — `frontend/src/test/handlers.ts:5-7` mocks `/api/health`
+    which doesn't exist on the backend AND isn't called from
+    frontend code. Either drop the handler (preferred) or wire
+    a real `/api/health` route on the backend.
+  - **I2** — `frontend/vitest.config.ts:17` `exclude:
+    ['node_modules/**', 'dist/**', 'e2e/**']` replaces Vitest's
+    default exclude (which adds e.g. `**/.idea/**`,
+    `**/{karma,…}.config.*`). Spread `configDefaults.exclude`
+    and add `'e2e/**'`.
+  - **I3** — `frontend/playwright.config.ts:33,39`
+    `reuseExistingServer: !process.env.CI` on the backend can
+    silently reuse a dev backend running against real config
+    (not the fixture YAML) on a developer's machine. Either set
+    `false` for the backend specifically, or assert the fixture's
+    `paths.source_dat` at globalSetup.
+
+  **Cluster J — Spec sync (drift mid-implementation):**
+  - **J1** — `docs/specs/P06.md:101-122` toolchain table version
+    pins were "latest stable as of 2026-05-02" but `npm create
+    vite@latest` resolves to newer minor versions: Vite ^6 →
+    ^8.0.10, TypeScript ~5.6 → ~6.0.2, framer-motion ^11 →
+    ^12, zod ^3 → ^4, lucide-react ^0.4xx → ^1.x, eslint
+    9 → ^10. Sync the table to actual installed versions.
+  - **J2** — `docs/specs/P06.md` § "Static-file serving" claim
+    that `html=True` falls back for `/<anything>` is wrong —
+    vanilla StaticFiles only redirects on directory hits. The
+    `_SPAStaticFiles` subclass corrects this. Spec needs a
+    one-line update.
+  - **J3** — `docs/specs/P06.md` § "Static-file serving"
+    `parents[2]` should be `parents[3]` (relative to
+    `src/mame_curator/api/app.py`).
+  - **J4** — `docs/specs/P06.md:161` lists
+    `parent_not_found` / `winner_must_be_in_family` /
+    `path_outside_allowed_roots` as codes the UI must handle
+    distinctly, but backend issues none of these (uses
+    `override_not_found` / no validator / `fs_sandboxed`
+    respectively). Spec must reconcile (see B1).
+
+  Source: P06 closing /audit + /indie-review (6 lanes), 2026-05-02.
+  Dependencies: P06 (still 🚧 — closes when FP11 closes).
 
 ---
 

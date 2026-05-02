@@ -87,6 +87,28 @@ Do not delete revoked entries — the history is the value.
 - **Confirmed by phase:** DS01.
 
 
+## allowlist-002 — eslint `react-hooks/incompatible-library` on `useVirtualizer`
+
+- **Status:** active
+- **Tool / rule:** eslint `react-hooks/incompatible-library` (FP11 closing /audit, 2026-05-02).
+- **Location:** `frontend/src/components/library/LibraryGrid.tsx:35` (`useVirtualizer({ ... })`).
+- **Why this is a false positive:** the lint rule warns that `@tanstack/react-virtual`'s `useVirtualizer` returns functions that cannot be safely memoized by the React Compiler. This is documented and intentional behaviour of the library — every grid + list virtualizer has the same shape (the returned `getVirtualItems()` is intentionally non-stable so consumers re-render on scroll). The warning is a generic library-compat advisory, not a project-level defect; the spec mandates `@tanstack/react-virtual` (P06.md § Toolchain).
+- **Suppression applied:** none — the rule emits only a `warning`, not an `error`, and is correct to surface as a project-onboarding hint. Future contributors who pipe values from the virtualizer through a `useMemo`-d child should heed the warning; the audit-fold check should pre-discard it.
+- **Logged:** 2026-05-02
+- **Confirmed by phase:** FP11.
+
+
+## allowlist-003 — eslint `react-refresh/only-export-components` on shadcn-generated UI primitives
+
+- **Status:** active
+- **Tool / rule:** eslint `react-refresh/only-export-components` (FP11 closing /audit, 2026-05-02).
+- **Location:** `frontend/src/components/ui/button.tsx:64`, `frontend/src/components/ui/tabs.tsx:89`.
+- **Why this is a false positive:** these files are generated verbatim by `npx shadcn add` and ship with both the React component AND a sibling `cva()` variants helper or sub-component constant. The Fast-Refresh-only-components rule fires because of the non-component co-export. The project does not author these files — they are vendored as-is per shadcn's distribution model — so refactoring them to satisfy the lint rule diverges from the upstream registry and breaks the next `shadcn add`'s diff. Project-authored files MUST follow the rule; shadcn-generated files in `src/components/ui/` are exempt by virtue of being vendored.
+- **Suppression applied:** none — the lint rule's noise on vendored output is the cost of using shadcn; this allowlist entry IS the suppression mechanism.
+- **Logged:** 2026-05-02
+- **Confirmed by phase:** FP11.
+
+
 ## What does NOT belong here
 
 - **Findings that are real but blocked by a missing feature.**
