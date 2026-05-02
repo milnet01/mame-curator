@@ -755,7 +755,7 @@ specific grep gates; all 13 actionable items came from
 
 ---
 
-## P05 — Media subsystem (in flight)
+## P05 — Media subsystem (closed 2026-05-02)
 
 **Theme:** libretro-thumbnails URL builder + lazy fetch + sha256-
 keyed disk cache through the API proxy.
@@ -765,18 +765,20 @@ keyed disk cache through the API proxy.
 
 ### 🎨 Features
 
-- 🚧 **P05 — `media/` module.** URL escape rules
+- ✅ **P05 — `media/` module.** URL escape rules
   (`&*/:\<>?\|"` → `_`); `urls_for(machine)`; async
   `fetch_with_cache(url, cache_dir)`; cache key = `sha256(url)`.
   Coverage target: ≥90%. Implementation shipped 2026-05-02
-  (commit `44e33ef`); close BLOCKED by FP10 fold-in.
+  (commit `44e33ef`); FP10 closing fix-pass folded in
+  (commit `c4b91d4`). 423 tests pass; coverage 89.12%;
+  `media/cache.py` 100%.
   Kind: implement.
   Lanes: media, api, tests.
   Dependencies: P04.
 
 ---
 
-## FP10 — P05 indie-review fold-in (in flight)
+## FP10 — P05 indie-review fold-in (closed 2026-05-02)
 
 **Theme:** the closing `/audit` + `/indie-review` pass on P05's
 ship surfaced 5 actionable findings in `media/` + the R39 wiring.
@@ -785,7 +787,7 @@ items came from `/indie-review` against the cold-eyes brief.
 
 ### 🔍 Findings fold-in
 
-- 🚧 **FP10** [mame-curator-1002] **Fix-pass after P05 (media subsystem).**
+- ✅ **FP10** [mame-curator-1002] **Fix-pass after P05 (media subsystem).**
   Lanes: media, api, tests.
   - **A1** (Tier 1) — `httpx.AsyncClient(timeout=10.0)` at
     `api/app.py:43` is missing `follow_redirects=True`. httpx
