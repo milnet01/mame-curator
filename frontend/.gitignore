@@ -8,11 +8,10 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
 dist-ssr
-# `dist/` ignored during P06 development; the line above is removed at P06 step 18
-# when the production bundle gets committed (see root `.gitignore` for the long
-# explanation of why frontend/dist/ ships).
+test-results
+playwright-report
+# `dist/` is intentionally NOT ignored — see root `.gitignore` and design §11.
 
 *.local
 

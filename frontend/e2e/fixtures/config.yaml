@@ -1,0 +1,37 @@
+# P06 Playwright E2E fixture config.
+#
+# Points the backend at the existing 6-machine DAT in `tests/parser/fixtures/`.
+# Source / destination ROM paths are relative to the project root and must
+# exist for the API lifespan to succeed; they're empty stubs for the tests.
+
+paths:
+  source_dat: tests/parser/fixtures/mini.dat.xml
+  source_roms: data/e2e/source-roms
+  dest_roms: data/e2e/dest-roms
+  retroarch_playlist: data/e2e/mame.lpl
+
+server:
+  host: 127.0.0.1
+  port: 8080
+  open_browser_on_start: false
+
+ui:
+  theme: dark
+  layout: masonry
+  default_sort: name
+  show_alternatives_indicator: true
+  cards_per_row_hint: auto
+
+filters:
+  drop_bios_devices_mechanical: true
+  drop_japanese_only_text: true
+  drop_preliminary_emulation: true
+  drop_chd_required: true
+  drop_mature: true
+  prefer_parent_over_clone: true
+  prefer_good_driver: true
+  region_priority:
+    - World
+    - USA
+    - Europe
+    - Japan
