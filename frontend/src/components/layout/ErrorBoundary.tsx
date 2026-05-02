@@ -1,6 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { strings } from '@/strings'
 
+// FP11 § E1 finishing: surface the retry label via the catalogue.
+
 interface ErrorBoundaryProps {
   children: ReactNode
   /** Override the recoverable fallback panel. */
@@ -61,7 +63,7 @@ export class ErrorBoundary extends Component<
             onClick={this.retry}
             className="rounded border bg-background px-3 py-1 text-xs hover:bg-muted"
           >
-            Try again
+            {strings.common.retry}
           </button>
         </div>
       )

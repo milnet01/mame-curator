@@ -27,13 +27,20 @@ export default defineConfig({
   ],
   webServer: [
     {
+      // FP11 § I3: backend MUST NOT reuse a stray dev server — a
+      // dev `mame-curator serve` running against the user's real
+      // config.yaml would silently win, and the suite would assert
+      // against the wrong dataset. Always spawn a fresh process
+      // pointing at the fixture config.
       command: `uv run mame-curator serve --config ${fixtureConfig}`,
       cwd: projectRoot,
       port: 8080,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 30_000,
     },
     {
+      // Preview is reusable — it's deterministic from `frontend/dist/`,
+      // not data-bound.
       command: 'npm run preview -- --port 4173 --host 127.0.0.1',
       port: 4173,
       reuseExistingServer: !process.env.CI,

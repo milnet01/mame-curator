@@ -7,6 +7,8 @@ interface HelpPageProps {
   selectedSlug: string | null
   topicHtml: string
   onSelect: (slug: string) => void
+  /** True while the topic body is being fetched. */
+  topicLoading?: boolean
 }
 
 export function HelpPage({
@@ -14,6 +16,7 @@ export function HelpPage({
   selectedSlug,
   topicHtml,
   onSelect,
+  topicLoading = false,
 }: HelpPageProps) {
   if (topics.length === 0) {
     return (
@@ -30,29 +33,39 @@ export function HelpPage({
       <aside>
         <h1 className="mb-3 text-2xl font-semibold">{strings.help.pageTitle}</h1>
         <ul className="flex flex-col gap-1">
-          {topics.map((t) => (
-            <li key={t.slug}>
-              <button
-                type="button"
-                onClick={() => onSelect(t.slug)}
-                className={cn(
-                  'w-full rounded px-2 py-1 text-left text-sm hover:bg-muted',
-                  selectedSlug === t.slug && 'bg-muted font-semibold',
-                )}
-              >
-                {t.title}
-              </button>
-            </li>
-          ))}
+          {topics.map((t) => {
+            const isCurrent = selectedSlug === t.slug
+            return (
+              <li key={t.slug}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(t.slug)}
+                  // FP11 § H5: aria-current signals the active topic to AT;
+                  // the visual `font-semibold` carries the same meaning sighted.
+                  aria-current={isCurrent ? 'page' : undefined}
+                  className={cn(
+                    'w-full rounded px-2 py-1 text-left text-sm hover:bg-muted',
+                    isCurrent && 'bg-muted font-semibold',
+                  )}
+                >
+                  {t.title}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       </aside>
 
       <article className="prose prose-sm max-w-none dark:prose-invert">
-        {/* FIXME(security, 2026-05-02): R38 returns server-rendered HTML and
-            the trust boundary is local-only today; if help content ever
-            sources from upstream, swap to a sanitized renderer (DOMPurify
-            or similar). Tracked under FP11 § H4 and ROADMAP.md § FP11. */}
-        <div dangerouslySetInnerHTML={{ __html: topicHtml }} />
+        {topicLoading ? (
+          <p className="text-sm text-muted-foreground">{strings.help.loadingTopic}</p>
+        ) : (
+          // FIXME(security, 2026-05-02): R38 returns server-rendered HTML
+          // and the trust boundary is local-only today; if help content
+          // ever sources from upstream, swap to a sanitized renderer
+          // (DOMPurify or similar). Tracked under FP11 § H4.
+          <div dangerouslySetInnerHTML={{ __html: topicHtml }} />
+        )}
       </article>
     </section>
   )

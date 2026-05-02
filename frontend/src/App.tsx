@@ -119,11 +119,9 @@ function ShellWithPalette() {
                 path="/activity"
                 element={
                   <ActivityPage
-                    page={1}
                     pageSize={50}
                     total={0}
                     items={[]}
-                    onPageChange={() => {}}
                   />
                 }
               />

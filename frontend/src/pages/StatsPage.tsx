@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { strings } from '@/strings'
 import type { Stats } from '@/api/types'
 
@@ -24,22 +25,33 @@ function StatsSection({
 }) {
   const max = Math.max(1, ...Object.values(data))
   const entries = topN(data)
+  // FP11 § H6: aria-labelledby links the section to its <h2> for AT.
+  const headingId = useId()
   return (
-    <section className="flex flex-col gap-2 rounded border bg-card p-3">
-      <h2 className="text-base font-semibold">{title}</h2>
-      <ul className="flex flex-col gap-1">
-        {entries.map(([key, value]) => (
-          <li key={key} className="grid grid-cols-[8rem_1fr_3rem] items-center gap-2 text-sm">
-            <span className="truncate">{key}</span>
-            <span
-              className="h-3 rounded bg-primary"
-              style={{ width: `${(value / max) * 100}%` }}
-              aria-hidden="true"
-            />
-            <span className="text-right font-mono tabular-nums">{value}</span>
-          </li>
-        ))}
-      </ul>
+    <section
+      className="flex flex-col gap-2 rounded border bg-card p-3"
+      aria-labelledby={headingId}
+    >
+      <h2 id={headingId} className="text-base font-semibold">
+        {title}
+      </h2>
+      {entries.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No data yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-1">
+          {entries.map(([key, value]) => (
+            <li key={key} className="grid grid-cols-[8rem_1fr_3rem] items-center gap-2 text-sm">
+              <span className="truncate">{key}</span>
+              <span
+                className="h-3 rounded bg-primary"
+                style={{ width: `${(value / max) * 100}%` }}
+                aria-hidden="true"
+              />
+              <span className="text-right font-mono tabular-nums">{value}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }

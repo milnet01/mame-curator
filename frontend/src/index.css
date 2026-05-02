@@ -121,7 +121,9 @@
   --secondary-foreground: oklch(0.99 0 0);
   --muted: oklch(0.18 0 0);
   --muted-foreground: oklch(0.7 0.06 95);
-  --accent: oklch(0.55 0.21 245);
+  /* FP11 § H3: darkened accent (was L=0.55) so accent-foreground white
+     comfortably clears WCAG AA contrast at 4.5:1+ for normal text. */
+  --accent: oklch(0.42 0.21 245);
   --accent-foreground: oklch(0.99 0 0);
   --destructive: oklch(0.65 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
@@ -186,7 +188,12 @@
     @apply border-border;
   }
   html {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    /* FP11 § H1: dropped 'Inter' from the stack — the spec § 305
+       forbids remote stylesheets and the project doesn't ship Inter
+       as a bundled @font-face, so referencing it was misleading
+       (system-ui always won). If a future P09 polish wants Inter
+       on disk, add `@fontsource/inter` and re-introduce it here. */
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   }
   body {
     @apply bg-background text-foreground;

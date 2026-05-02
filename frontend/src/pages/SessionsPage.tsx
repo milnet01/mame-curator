@@ -12,6 +12,27 @@ interface SessionsPageProps {
   onCreate: () => void
 }
 
+function metaLine(session: Session): string {
+  const labels = strings.sessions.metaLabels
+  const yearLabel = session.include_year_range
+    ? `${session.include_year_range[0]}–${session.include_year_range[1]}`
+    : null
+  return [
+    session.include_genres.length
+      ? `${labels.genres}: ${session.include_genres.join(', ')}`
+      : null,
+    session.include_publishers.length
+      ? `${labels.publishers}: ${session.include_publishers.join(', ')}`
+      : null,
+    session.include_developers.length
+      ? `${labels.developers}: ${session.include_developers.join(', ')}`
+      : null,
+    yearLabel ? `${labels.years}: ${yearLabel}` : null,
+  ]
+    .filter(Boolean)
+    .join(strings.sessions.metaJoiner)
+}
+
 export function SessionsPage({
   sessions,
   active,
@@ -46,9 +67,6 @@ export function SessionsPage({
           {names.map((name) => {
             const isActive = name === active
             const session = sessions[name]!
-            const yearLabel = session.include_year_range
-              ? `${session.include_year_range[0]}–${session.include_year_range[1]}`
-              : null
             return (
               <li key={name}>
                 <Card>
@@ -67,7 +85,7 @@ export function SessionsPage({
                         variant="outline"
                         onClick={() => onActivate(name)}
                         disabled={isActive}
-                        aria-label={`Activate ${name}`}
+                        aria-label={strings.sessions.actions.activateAriaLabel(name)}
                       >
                         {strings.sessions.actions.activate}
                       </Button>
@@ -75,24 +93,14 @@ export function SessionsPage({
                         size="sm"
                         variant="ghost"
                         onClick={() => onDelete(name)}
-                        aria-label={`Delete ${name}`}
+                        aria-label={strings.sessions.actions.deleteAriaLabel(name)}
                       >
                         {strings.sessions.actions.delete}
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="text-xs text-muted-foreground">
-                    {[
-                      session.include_genres.length &&
-                        `Genres: ${session.include_genres.join(', ')}`,
-                      session.include_publishers.length &&
-                        `Publishers: ${session.include_publishers.join(', ')}`,
-                      session.include_developers.length &&
-                        `Developers: ${session.include_developers.join(', ')}`,
-                      yearLabel && `Years: ${yearLabel}`,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
+                    {metaLine(session)}
                   </CardContent>
                 </Card>
               </li>

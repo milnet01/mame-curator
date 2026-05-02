@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig, configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -12,9 +12,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: true,
-    // Playwright owns `e2e/**`; Vitest must skip it or the Playwright
-    // `test()` import collides with Vitest's loader.
-    exclude: ['node_modules/**', 'dist/**', 'e2e/**'],
+    // FP11 § I2: spread Vitest's defaults so editor temp dirs and
+    // build configs stay excluded; add `e2e/**` so Playwright's
+    // `test()` import doesn't collide with Vitest's loader.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
+    include: ['src/**/*.{test,spec}.?(c|m)[jt]s?(x)'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

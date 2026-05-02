@@ -120,7 +120,16 @@ export const strings = {
       deactivate: 'Deactivate',
       rename: 'Rename',
       delete: 'Delete',
+      activateAriaLabel: (name: string) => `Activate ${name}`,
+      deleteAriaLabel: (name: string) => `Delete ${name}`,
     },
+    metaLabels: {
+      genres: 'Genres',
+      publishers: 'Publishers',
+      developers: 'Developers',
+      years: 'Years',
+    },
+    metaJoiner: ' · ',
   },
 
   activity: {
@@ -239,6 +248,7 @@ export const strings = {
     pageTitle: 'Help',
     emptyTitle: 'No help topics available',
     emptyHint: 'The bundled help library will land in Phase 7.',
+    loadingTopic: 'Loading topic…',
   },
 
   cmdK: {
