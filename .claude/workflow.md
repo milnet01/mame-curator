@@ -6,10 +6,10 @@
 |-------|-------|
 | **Project phase** | P06 — Frontend MVP (active) |
 | **Active item ID** | P06 |
-| **Active step** | 3 + 4 (interleaved per spec impl-step 10 TDD loop) |
+| **Active step** | Steps 3+4 ✅; ready for App-Build steps 5+6 (parallel /audit + /indie-review) |
 | **Blocked on** | — |
-| **Last update** | 2026-05-02 (P06 spec impl-steps 1-9 complete: Vite/React19/TS scaffold (`9b42518`), Tailwind v4 + 6 themes + shadcn 16 primitives + test harness (`5bd27b9`), api/types.ts + client.ts (`f2347a9`), tools/check_api_types_sync.py CI gate (`1870f97`), strings.ts catalogue + SPA static mount + tests (`a5dfa31`); first per-component TDD pair landed: GameCard (`ff028bb`). 9 of 18 spec impl-steps done; component TDD loop now active.) |
-| **Next gate** | Spec impl-step 10 (per-component TDD loop) → 11-15 (integration polish) → 16 (build) → 17 (E2E) → 18 (dist commit) → /close-phase |
+| **Last update** | 2026-05-02 (all 18 P06 spec impl-steps complete. 71 frontend tests passing in Vitest across 21 files; 1 Playwright smoke E2E green; 425 backend tests passing with 89.12% coverage; all five Python CI gates + API type sync gate clean. `frontend/dist/` committed at `e569214`. Vitest exclude fix at `b6b0ce9`. Ready for /close-phase to drive App-Build steps 5-9.) |
+| **Next gate** | /close-phase → parallel /audit + /indie-review → fold findings into FP## or close P06 cleanly |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -25,14 +25,14 @@ P06 active — step progress (reset by /close-phase 2026-05-02 on P05 close):
 
 1. ✅ Verify spec — draft `docs/specs/P06.md` committed `01325a1`; 2-round cold-eyes review converged (round 2 APPROVE); user signed off 2026-05-02.
 2. ✅ Verify dependencies — P04 ✅ (HTTP API, `api/` 40 routes), P05 ✅ (media subsystem, R39 wired through cache).
-3. 🚧 Write failing tests + 4. 🚧 Implement until tests pass — interleaved per spec impl-step 10 TDD loop. Sub-progress (spec impl-steps 1-18):
-   - 1-5 ✅ scaffold + Tailwind/shadcn + runtime/dev deps + test configs.
-   - 6-7 ✅ api/types.ts (57 mirrored interfaces + zod) + client.ts + check_api_types_sync.py CI gate.
-   - 8-9 ✅ strings.ts catalogue + backend SPA static mount with `_SPAStaticFiles` fallback + tests.
-   - 10 🚧 per-component TDD: GameCard ✅; LibraryGrid + LayoutSwitcher / ThemeSwitcher / FiltersSidebar / AlternativesDrawer + WhyPickedPanel + NotesEditor / ActionBar + DryRunModal / CopyModal / ConfirmationDialog / Sessions/Activity/Stats/Settings/Help pages / CmdKPalette / no-checkbox-for-prefs invariant remaining.
-   - 11-13 ⬜ empty states / keyboard shortcuts / ErrorBoundary.
-   - 14-15 ⬜ App.tsx + react-router wiring / look-and-feel polish.
-   - 16-18 ⬜ production build / Playwright E2E / dist/ commit.
+3. ✅ Write failing tests + 4. ✅ Implement until tests pass — all 18 P06 spec impl-steps shipped:
+   - 1-5 ✅ Vite scaffold + Tailwind v4 + 6 themes + shadcn 16 primitives + runtime/dev deps + Vitest/MSW/Playwright configs.
+   - 6-7 ✅ api/types.ts (57 mirrored interfaces + zod schemas) + client.ts + tools/check_api_types_sync.py CI gate.
+   - 8-9 ✅ strings.ts catalogue + backend `_SPAStaticFiles` mount with deep-link fallback + 2 backend tests.
+   - 10 ✅ 19 components/pages under TDD: GameCard, LibraryGrid + LayoutSwitcher, ThemeSwitcher, FiltersSidebar, AlternativesDrawer + WhyPickedPanel + NotesEditor, ActionBar, DryRunModal, CopyModal, ConfirmationDialog, SessionsPage, ActivityPage, StatsPage, SettingsPage, HelpPage, CmdKPalette, no-checkbox-for-prefs invariant.
+   - 11-13 ✅ empty states embedded in components; useKeyboard hook (single + chord + meta-mode); ErrorBoundary class component with reset-on-key + manual retry.
+   - 14-15 ✅ AppShell + ThemeProvider + LibraryPage container; App.tsx wires QueryClientProvider + BrowserRouter + lazy routes; Inter font fallback + dark default + ≤300ms motion budget all in index.css.
+   - 16-18 ✅ Production build (152 KB gzipped entry); Playwright E2E smoke (1 passing) + fixture config.yaml; `frontend/dist/` committed (`e569214`) with pre-commit hook excludes for minified output.
 5. ⬜ Run `/audit`
 6. ⬜ Run `/indie-review`
 7. ⬜ Fold actionable findings → new FP## roadmap item
