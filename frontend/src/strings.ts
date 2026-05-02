@@ -130,12 +130,21 @@ export const strings = {
       years: 'Years',
     },
     metaJoiner: ' · ',
+    confirmDelete: {
+      title: 'Delete saved session',
+      description: (name: string) =>
+        `Permanently remove the saved session "${name}". This cannot be undone.`,
+    },
+    newSessionHint:
+      'To create a session, configure filters in the library and click "Save as session".',
+    loadError: 'Could not load sessions.',
   },
 
   activity: {
     pageTitle: 'Activity',
     emptyTitle: 'No activity yet',
     emptyHint: 'Run a copy to see events here.',
+    loadError: 'Could not load activity.',
     pagination: {
       next: 'Next',
       prev: 'Previous',
@@ -152,6 +161,7 @@ export const strings = {
       driverStatus: 'Driver status',
     },
     totalSize: (gb: string) => `Total library size: ${gb}`,
+    loadError: 'Could not load stats.',
   },
 
   settings: {
@@ -249,6 +259,7 @@ export const strings = {
     emptyTitle: 'No help topics available',
     emptyHint: 'The bundled help library will land in Phase 7.',
     loadingTopic: 'Loading topic…',
+    loadError: 'Could not load help topics.',
   },
 
   cmdK: {

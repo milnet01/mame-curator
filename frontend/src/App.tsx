@@ -6,15 +6,28 @@ import {
   Routes,
   useLocation,
   useNavigate,
+  useSearchParams,
 } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { AppShell } from '@/components/layout/AppShell'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { CmdKPalette, type CmdKItem } from '@/components/CmdKPalette'
+import { ConfirmationDialog } from '@/components/ConfirmationDialog'
 import { useConfig, useConfigPatch } from '@/hooks/useConfig'
+import {
+  useSessions,
+  useSessionActivate,
+  useSessionDeactivate,
+  useSessionDelete,
+} from '@/hooks/useSessions'
+import { useActivity } from '@/hooks/useActivity'
+import { useStats } from '@/hooks/useStats'
+import { useHelpIndex, useHelpTopic } from '@/hooks/useHelp'
 import { useKeyboard } from '@/hooks/useKeyboard'
+import { strings } from '@/strings'
 import type { ThemeName } from '@/api/types'
 
 const LibraryPage = lazy(() =>
@@ -62,6 +75,120 @@ function sonnerThemeFor(theme: ThemeName | undefined): 'light' | 'dark' | 'syste
   return 'dark'
 }
 
+// FP11 § B8: thin route containers own the data-fetching hooks so the
+// route shell stays pure JSX. Each container reads its hook(s), threads
+// the result into the page's prop contract, and surfaces errors via the
+// shared toaster.
+
+function SessionsRoute() {
+  const navigate = useNavigate()
+  const sessions = useSessions()
+  const activate = useSessionActivate()
+  const deactivate = useSessionDeactivate()
+  const del = useSessionDelete()
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+
+  if (sessions.isLoading) {
+    return <div className="p-4 text-sm text-muted-foreground">Loading sessions…</div>
+  }
+  if (sessions.error) {
+    return <div className="p-4 text-sm text-destructive">{strings.sessions.loadError}</div>
+  }
+
+  const data = sessions.data ?? { active: null, sessions: {} }
+
+  return (
+    <>
+      <SessionsPage
+        sessions={data.sessions}
+        active={data.active}
+        onActivate={(name) => activate.mutate(name)}
+        onDeactivate={() => deactivate.mutate()}
+        onDelete={(name) => setPendingDelete(name)}
+        onCreate={() => {
+          toast.message(strings.sessions.newSessionHint)
+          navigate('/')
+        }}
+      />
+      <ConfirmationDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+        title={strings.sessions.confirmDelete.title}
+        description={
+          pendingDelete ? strings.sessions.confirmDelete.description(pendingDelete) : ''
+        }
+        actionLabel={
+          pendingDelete ? strings.destructive.deleteSession(pendingDelete) : 'Delete'
+        }
+        onConfirm={() => {
+          if (pendingDelete) del.mutate(pendingDelete)
+        }}
+      />
+    </>
+  )
+}
+
+const ACTIVITY_PAGE_SIZE = 50
+
+function ActivityRoute() {
+  const [searchParams] = useSearchParams()
+  const parsedPage = Number(searchParams.get('page'))
+  const page =
+    Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1
+  const activity = useActivity(page, ACTIVITY_PAGE_SIZE)
+
+  if (activity.isLoading) {
+    return <div className="p-4 text-sm text-muted-foreground">Loading activity…</div>
+  }
+  if (activity.error) {
+    return <div className="p-4 text-sm text-destructive">{strings.activity.loadError}</div>
+  }
+
+  const data = activity.data ?? { items: [], page, page_size: ACTIVITY_PAGE_SIZE, total: 0 }
+  return (
+    <ActivityPage
+      pageSize={data.page_size}
+      total={data.total}
+      items={data.items}
+    />
+  )
+}
+
+function StatsRoute() {
+  const stats = useStats()
+  if (stats.isLoading) {
+    return <div className="p-4 text-sm text-muted-foreground">Loading stats…</div>
+  }
+  if (stats.error || !stats.data) {
+    return <div className="p-4 text-sm text-destructive">{strings.stats.loadError}</div>
+  }
+  return <StatsPage stats={stats.data} />
+}
+
+function HelpRoute() {
+  const index = useHelpIndex()
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
+  const topic = useHelpTopic(selectedSlug)
+
+  if (index.isLoading) {
+    return <div className="p-4 text-sm text-muted-foreground">Loading help…</div>
+  }
+  if (index.error) {
+    return <div className="p-4 text-sm text-destructive">{strings.help.loadError}</div>
+  }
+
+  const topics = index.data?.topics ?? []
+  return (
+    <HelpPage
+      topics={topics}
+      selectedSlug={selectedSlug}
+      topicHtml={topic.data?.html ?? ''}
+      topicLoading={topic.isLoading}
+      onSelect={setSelectedSlug}
+    />
+  )
+}
+
 function ShellWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const config = useConfig()
@@ -102,43 +229,9 @@ function ShellWithPalette() {
           >
             <Routes>
               <Route path="/" element={<LibraryPage />} />
-              <Route
-                path="/sessions"
-                element={
-                  <SessionsPage
-                    sessions={{}}
-                    active={null}
-                    onActivate={() => {}}
-                    onDeactivate={() => {}}
-                    onDelete={() => {}}
-                    onCreate={() => {}}
-                  />
-                }
-              />
-              <Route
-                path="/activity"
-                element={
-                  <ActivityPage
-                    pageSize={50}
-                    total={0}
-                    items={[]}
-                  />
-                }
-              />
-              <Route
-                path="/stats"
-                element={
-                  <StatsPage
-                    stats={{
-                      by_genre: {},
-                      by_decade: {},
-                      by_publisher: {},
-                      by_driver_status: {},
-                      total_bytes: 0,
-                    }}
-                  />
-                }
-              />
+              <Route path="/sessions" element={<SessionsRoute />} />
+              <Route path="/activity" element={<ActivityRoute />} />
+              <Route path="/stats" element={<StatsRoute />} />
               <Route
                 path="/settings"
                 element={
@@ -155,17 +248,7 @@ function ShellWithPalette() {
                   )
                 }
               />
-              <Route
-                path="/help"
-                element={
-                  <HelpPage
-                    topics={[]}
-                    selectedSlug={null}
-                    topicHtml=""
-                    onSelect={() => {}}
-                  />
-                }
-              />
+              <Route path="/help" element={<HelpRoute />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
