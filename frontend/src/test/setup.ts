@@ -32,3 +32,20 @@ class TestResizeObserver {
 
 ;(globalThis as { ResizeObserver?: typeof TestResizeObserver }).ResizeObserver =
   TestResizeObserver
+
+// jsdom lacks `scrollIntoView`; cmdk and Radix's various scroll-into-view
+// behaviours call it on focus changes. No-op is safe — tests don't assert
+// on scroll position.
+if (!('scrollIntoView' in HTMLElement.prototype)) {
+  HTMLElement.prototype.scrollIntoView = function () {}
+}
+
+// jsdom's HTMLDialogElement lacks the imperative API some Radix
+// components rely on. Provide a no-op fallback.
+const dialogProto = HTMLElement.prototype as unknown as Record<string, unknown>
+if (!dialogProto.hasPointerCapture) {
+  dialogProto.hasPointerCapture = () => false
+}
+if (!dialogProto.releasePointerCapture) {
+  dialogProto.releasePointerCapture = () => {}
+}
