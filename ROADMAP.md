@@ -1395,7 +1395,7 @@ v1 budget.
 
 ### 🎨 Features
 
-- 📋 **P07** [mame-curator-1009] **`downloads.py` + `help/` + INI-refresh CLI + cards-per-row UI.**
+- ✅ **P07** [mame-curator-1009] **`downloads.py` + `help/` + INI-refresh CLI + cards-per-row UI.**
   Lanes: updates, help, downloads, cli, frontend, tests.
   - **A — `downloads.py` primitive.** Async HTTP get with
     sha256 checksum verification, exponential retry (1s/2s/4s/8s,

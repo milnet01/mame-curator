@@ -17,6 +17,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P07 — Reference-data refresh + in-app help (closed 2026-05-04)
+
+Slim P07 (scope refined 2026-05-04 — self-update + INI diff-preview UI
+deferred to P12 post-v1) shipped 5 clusters across 5 commits:
+
+- **A — `downloads.py` primitive.** Async sha256-verified atomic
+  download with exponential retry, mirror fallback, and
+  `ManualFallback` sentinel. Used by P08 setup wizard.
+- **B — `mame-curator refresh-inis`.** New CLI command that downloads
+  the 4 mandatory progettoSnaps INIs (catver / languages / bestgames /
+  series) from AntoPISA's GitHub mirror via `downloads.py`. Per-file
+  outcome line on stdout; manual-fallback URL surfaced on failure.
+- **C — `cards_per_row_hint` UI Select.** Closes P06 spec § 210
+  deferral. New Select in Settings → UI tab, values
+  `'auto' | 4 | 5 | 6 | 8`.
+- **D — HelpPage DOMPurify.** Closes FP11 § H4 security debt. Adds
+  `dompurify@3.4`; HelpPage memoises sanitized HTML before
+  `dangerouslySetInnerHTML` to strip `<script>` and `javascript:` URLs.
+- **E — Cmd-K help-topic search.** Help topics from `/api/help/index`
+  merge into the palette as help-section items; selecting a topic
+  navigates `/help?topic=<slug>` and HelpRoute pre-selects it.
+
+446 backend tests / 89.04% coverage. 182 frontend tests / build clean.
+No `/audit` or `/indie-review` on close per user direction
+("less audit-intensive"); local gates were the close signal.
+
 ### FP14 — GameCard layout overflow + always-on identifier (closed 2026-05-04)
 
 GameCard's `aspect-[3/4]` image area pushed total card height past
