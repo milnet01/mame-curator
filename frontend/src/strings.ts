@@ -313,6 +313,8 @@ export const strings = {
       'Could not detect home directory — pick a drive root or quick-jump to continue.',
     fsBrowserEmpty: 'Empty.',
     fsBrowserDirTag: 'dir',
+    /** FP13 § D4 — accessible name for the per-row Browse button. */
+    fsBrowseAriaLabel: (target: string) => `Browse for ${target}`,
     fsGrantTitle: 'Grant filesystem access?',
     fsGrantConfirm: (path: string) =>
       `${path} is outside the current allowlist. Grant access so the picker can list its contents?`,

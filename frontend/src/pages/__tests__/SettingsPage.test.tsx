@@ -153,8 +153,12 @@ describe('SettingsPage', () => {
       screen.getAllByPlaceholderText(/^Add (genre|publisher|developer)…$/),
     ).toHaveLength(3)
     // Existing values render as chips with remove buttons.
-    expect(screen.getByRole('button', { name: 'Remove shooter' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Remove capcom' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Remove shooter from Preferred genres' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Remove capcom from Preferred publishers' }),
+    ).toBeInTheDocument()
   })
 
   it('patches the filters list when a chip is added via Enter (FP12 § A)', async () => {

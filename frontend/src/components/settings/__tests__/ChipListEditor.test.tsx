@@ -21,9 +21,9 @@ describe('ChipListEditor', () => {
       screen.getByRole('list', { name: 'Drop genres' }),
     ).toBeInTheDocument()
     // One remove button per chip.
-    expect(screen.getByRole('button', { name: 'Remove shooter' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Remove puzzle' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Remove racing' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove shooter from Drop genres' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove puzzle from Drop genres' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove racing from Drop genres' })).toBeInTheDocument()
   })
 
   it('renders the supplied placeholder on the trailing input', () => {
@@ -70,7 +70,7 @@ describe('ChipListEditor', () => {
     )
 
     await userEvent.click(
-      screen.getByRole('button', { name: 'Remove puzzle' }),
+      screen.getByRole('button', { name: 'Remove puzzle from Drop genres' }),
     )
 
     expect(onChange).toHaveBeenCalledWith(['shooter', 'racing'])

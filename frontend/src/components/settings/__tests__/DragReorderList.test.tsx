@@ -144,4 +144,18 @@ describe('DragReorderList', () => {
     expect(screen.getByRole('list', { name: 'Region priority' })).toBeInTheDocument()
     expect(screen.queryAllByRole('listitem')).toHaveLength(0)
   })
+
+  it('announces moves via an aria-live region (FP13 § D2)', async () => {
+    render(
+      <DragReorderList
+        ariaLabel="Region priority"
+        items={['us', 'eu', 'jp']}
+        onChange={() => {}}
+      />,
+    )
+    const status = screen.getByRole('status')
+    expect(status).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Move us down' }))
+    expect(status).toHaveTextContent(/Moved us to position 2 of 3/i)
+  })
 })

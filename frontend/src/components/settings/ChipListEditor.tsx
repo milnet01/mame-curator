@@ -81,7 +81,11 @@ export function ChipListEditor({
           <li key={item}>
             <button
               type="button"
-              aria-label={`Remove ${item}`}
+              // FP13 § D1: include the list label in the chip's accessible
+              // name so screen readers in flattened-browse mode (where the
+              // <ul aria-label> wrapper isn't read alongside each item)
+              // still know which chip list this chip belongs to.
+              aria-label={`Remove ${item} from ${ariaLabel}`}
               onClick={() => remove(item)}
               className="inline-flex items-center gap-1 rounded-full border border-input bg-muted px-2 py-0.5 text-xs hover:bg-muted/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >

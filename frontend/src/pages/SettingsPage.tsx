@@ -116,7 +116,7 @@ function PathRow({ id, label, value, mode = 'directory', onChange }: PathRowProp
         <Button
           variant="outline"
           onClick={() => setBrowseOpen(true)}
-          aria-label={`Browse for ${label}`}
+          aria-label={strings.settings.fsBrowseAriaLabel(label)}
         >
           {strings.settings.fsBrowserBrowse}
         </Button>
