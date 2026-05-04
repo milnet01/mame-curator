@@ -1162,7 +1162,7 @@ and test-infra polish.
 
 ---
 
-## FP12 — Settings page list editors + path picker (planned)
+## FP12 — Settings page list editors + path picker (closed 2026-05-04)
 
 **Theme:** P06's spec § "Out of scope" line 511 declared "all
 Settings-page controls are built here," but FP11 only closed the
@@ -1178,7 +1178,7 @@ scope (a thin select control, no primitive needed).
 
 ### 🎨 Features
 
-- 📋 **FP12** [mame-curator-1004] **Settings-page expansion: list editors + path picker.**
+- ✅ **FP12** [mame-curator-1004] **Settings-page expansion: list editors + path picker.**
   Lanes: frontend, tests.
   - **A — Chip list editor primitive.** `<ChipListEditor value={string[]}
     onChange={(next) => …} placeholder="Add genre…">`. Used by 7 fields:
@@ -1276,7 +1276,7 @@ scope (a thin select control, no primitive needed).
 
 ---
 
-## FP13 — FP12 closing-review fold-in (planned)
+## FP13 — FP12 closing-review fold-in (closed 2026-05-04)
 
 **Theme:** FP12's closing `/audit` (ruff / ruff format / mypy /
 bandit / eslint / gitleaks / trivy / semgrep) was clean across
@@ -1297,7 +1297,7 @@ debt-sweep should resolve).
 
 ### 🎨 Features
 
-- 📋 **FP13** [mame-curator-1006] **FP12 closing-review fold-in.**
+- ✅ **FP13** [mame-curator-1006] **FP12 closing-review fold-in.**
   Lanes: frontend, tests.
   - **A — Mutation observability (cross-cutting).**
     - A1: `useConfigPatch.onError` → toast.error via `strings.errors.byCode`. Patch failures invisible today.

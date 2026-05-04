@@ -17,11 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### FP13 — FP12 closing-review fold-in (planned)
+### FP13 — FP12 closing-review fold-in (closed 2026-05-04)
 
 22 actionable findings from FP12's closing `/audit` (clean) +
 3-lane `/indie-review` (primitives / FsBrowser / SettingsPage
-wiring), batched into 5 thematic clusters. Cross-cutting theme
+wiring) closed across 6 commits — one per cluster per FP11
+cadence. SettingsPage went from 551 → 305 lines via 6 new
+extractions (FiltersTab / PickerTab / UpdatesTab / MediaTab /
+PrefSwitch / PathRow). New `lib/apiErrorToast.ts` helper
+translates ApiError → strings.errors.byCode with detail
+fallback; wired through useConfigPatch / useSnapshotRestore /
+useFsGrantRoot. 177 frontend / 435 backend tests at close.
+Closed at the same SHA as FP12 per P05+FP10 / P06+FP11
+precedent.
+
+Original fold-in summary follows: Cross-cutting theme
 flagged by 2 of 3 lanes: silent react-query mutation errors —
 `useFsGrantRoot` / `useConfigPatch` / `useSnapshotRestore` all
 fire-and-forget without `onError`, so a 422/404/500 from the API
@@ -33,7 +43,7 @@ DAT-swap cancel. See `ROADMAP.md § FP13` for the full cluster
 breakdown. 1 deferred false positive (semgrep on HelpPage:67 —
 P06/FP11 surface, folded into next debt-sweep).
 
-### FP12 — Settings page list editors + path picker (closing audits next)
+### FP12 — Settings page list editors + path picker (closed 2026-05-04)
 
 Replaces the FP11 spec-§-511 read-only Settings tabs with
 edit-in-place primitives. One commit per cluster — all 10
