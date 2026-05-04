@@ -1,16 +1,7 @@
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useState } from 'react'
-import { ChipListEditor } from '@/components/settings/ChipListEditor'
-import { DragReorderList } from '@/components/settings/DragReorderList'
-import { YearRangeEditor } from '@/components/settings/YearRangeEditor'
-import { SnapshotsTab } from '@/components/settings/SnapshotsTab'
-import { BackupTab } from '@/components/settings/BackupTab'
-import { FsBrowser } from '@/components/settings/FsBrowser'
-import { ConfirmationDialog } from '@/components/ConfirmationDialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -18,6 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ConfirmationDialog } from '@/components/ConfirmationDialog'
+import { BackupTab } from '@/components/settings/BackupTab'
+import { FiltersTab } from '@/components/settings/FiltersTab'
+import { MediaTab } from '@/components/settings/MediaTab'
+import { PathRow } from '@/components/settings/PathRow'
+import { PickerTab } from '@/components/settings/PickerTab'
+import { PrefSwitch } from '@/components/settings/PrefSwitch'
+import { SnapshotsTab } from '@/components/settings/SnapshotsTab'
+import { UpdatesTab } from '@/components/settings/UpdatesTab'
 import { strings } from '@/strings'
 import type {
   AppConfigResponse,
@@ -31,9 +31,6 @@ type FilterCfg = AppConfigResponse['filters']
 type UiCfg = AppConfigResponse['ui']
 type UpdatesCfg = AppConfigResponse['updates']
 type DefaultSort = UiCfg['default_sort']
-type UpdateChannel = UpdatesCfg['channel']
-
-const UPDATE_CHANNEL_VALUES: readonly UpdateChannel[] = ['stable', 'dev']
 
 const DEFAULT_SORT_VALUES: readonly DefaultSort[] = [
   'name',
@@ -42,21 +39,20 @@ const DEFAULT_SORT_VALUES: readonly DefaultSort[] = [
   'rating',
 ]
 
-const FILTER_CHIP_KEYS = [
-  'drop_categories',
-  'drop_genres',
-  'drop_publishers',
-  'drop_developers',
-] as const
-
-const PICKER_CHIP_KEYS = [
-  'preferred_genres',
-  'preferred_publishers',
-  'preferred_developers',
-] as const
-
 const ARCADE_FLOOR_YEAR = 1971
 const CURRENT_YEAR = new Date().getFullYear()
+
+const SECTION_KEYS = [
+  'paths',
+  'filters',
+  'picker',
+  'ui',
+  'updates',
+  'media',
+  'snapshots',
+  'backup',
+  'about',
+] as const
 
 interface SettingsPageProps {
   config: AppConfigResponse
@@ -77,86 +73,6 @@ interface SettingsPageProps {
   onBackupImport?: (bundle: ConfigExportBundle) => void
   backupError?: string | null
 }
-
-interface PrefSwitchProps {
-  id: string
-  label: string
-  checked: boolean
-  onChange: (next: boolean) => void
-}
-
-interface PathRowProps {
-  id: string
-  label: string
-  value: string
-  mode?: 'directory' | 'file'
-  onChange: (next: string) => void
-}
-
-// FP12 § H — single Label + Input + Browse cell. The Input patches on blur
-// (avoids per-keystroke noise); the Browse button opens an <FsBrowser>
-// scoped to this row so multiple PathRows don't share a modal. The local
-// draft seeds from `value` on mount; out-of-band resets (e.g. snapshot
-// restore while the tab is open) won't reflect until the input is blurred.
-function PathRow({ id, label, value, mode = 'directory', onChange }: PathRowProps) {
-  const [draft, setDraft] = useState(value)
-  const [browseOpen, setBrowseOpen] = useState(false)
-  return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="flex items-center gap-2">
-        <Input
-          id={id}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => {
-            if (draft !== value) onChange(draft)
-          }}
-        />
-        <Button
-          variant="outline"
-          onClick={() => setBrowseOpen(true)}
-          aria-label={strings.settings.fsBrowseAriaLabel(label)}
-        >
-          {strings.settings.fsBrowserBrowse}
-        </Button>
-      </div>
-      {browseOpen && (
-        <FsBrowser
-          open
-          onOpenChange={setBrowseOpen}
-          onPick={(picked) => {
-            setDraft(picked)
-            onChange(picked)
-          }}
-          mode={mode}
-          initialPath={value || undefined}
-        />
-      )}
-    </div>
-  )
-}
-
-function PrefSwitch({ id, label, checked, onChange }: PrefSwitchProps) {
-  return (
-    <div className="flex items-center justify-between">
-      <Label htmlFor={id}>{label}</Label>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} />
-    </div>
-  )
-}
-
-const SECTION_KEYS = [
-  'paths',
-  'filters',
-  'picker',
-  'ui',
-  'updates',
-  'media',
-  'snapshots',
-  'backup',
-  'about',
-] as const
 
 export function SettingsPage({
   config,
@@ -183,23 +99,12 @@ export function SettingsPage({
   ) => {
     onPatch({ filters: { ...config.filters, [key]: value } })
   }
-  // FP12 § F: widened to a typed-key generic so `cache_dir` (string) and
-  // `fetch_videos` (boolean) share one helper.
   const updateMedia = <K extends keyof AppConfigResponse['media']>(
     key: K,
     value: AppConfigResponse['media'][K],
   ) => {
     onPatch({ media: { ...config.media, [key]: value } })
   }
-  const [cacheDirDraft, setCacheDirDraft] = useState(config.media.cache_dir)
-  const [browseOpen, setBrowseOpen] = useState(false)
-  // FP12 § H — DAT swap is destructive (replaces the whole library);
-  // hold the pending value here until the user confirms.
-  const [pendingDat, setPendingDat] = useState<string | null>(null)
-  // FP13 § B2: bumped after each pendingDat resolution (cancel or confirm)
-  // so the source_dat PathRow re-mounts and `draft` re-seeds from `value`.
-  // Without this, a typed-then-cancelled DAT path stays stale in the input.
-  const [datResetTick, setDatResetTick] = useState(0)
   const updatePaths = <K extends keyof AppConfigResponse['paths']>(
     key: K,
     value: AppConfigResponse['paths'][K],
@@ -212,6 +117,14 @@ export function SettingsPage({
   ) => {
     onPatch({ updates: { ...config.updates, [key]: value } })
   }
+
+  // FP12 § H — DAT swap is destructive (replaces the whole library);
+  // hold the pending value here until the user confirms.
+  const [pendingDat, setPendingDat] = useState<string | null>(null)
+  // FP13 § B2: bumped after each pendingDat resolution (cancel or confirm)
+  // so the source_dat PathRow re-mounts and `draft` re-seeds from `value`.
+  // Without this, a typed-then-cancelled DAT path stays stale in the input.
+  const [datResetTick, setDatResetTick] = useState(0)
 
   return (
     <section className="flex flex-col gap-4 p-4">
@@ -304,108 +217,16 @@ export function SettingsPage({
         </TabsContent>
 
         <TabsContent value="filters" className="flex flex-col gap-2">
-          <PrefSwitch
-            id="filters-drop-bios"
-            label={strings.settings.filterLabels.drop_bios_devices_mechanical}
-            checked={config.filters.drop_bios_devices_mechanical}
-            onChange={(v) => updateFilters('drop_bios_devices_mechanical', v)}
-          />
-          <PrefSwitch
-            id="filters-drop-japanese"
-            label={strings.settings.filterLabels.drop_japanese_only_text}
-            checked={config.filters.drop_japanese_only_text}
-            onChange={(v) => updateFilters('drop_japanese_only_text', v)}
-          />
-          <PrefSwitch
-            id="filters-drop-preliminary"
-            label={strings.settings.filterLabels.drop_preliminary_emulation}
-            checked={config.filters.drop_preliminary_emulation}
-            onChange={(v) => updateFilters('drop_preliminary_emulation', v)}
-          />
-          <PrefSwitch
-            id="filters-drop-chd"
-            label={strings.settings.filterLabels.drop_chd_required}
-            checked={config.filters.drop_chd_required}
-            onChange={(v) => updateFilters('drop_chd_required', v)}
-          />
-          <PrefSwitch
-            id="filters-drop-mature"
-            label={strings.settings.filterLabels.drop_mature}
-            checked={config.filters.drop_mature}
-            onChange={(v) => updateFilters('drop_mature', v)}
-          />
-          <YearRangeEditor
-            before={config.filters.drop_year_before}
-            after={config.filters.drop_year_after}
-            onBeforeChange={(v) => updateFilters('drop_year_before', v)}
-            onAfterChange={(v) => updateFilters('drop_year_after', v)}
+          <FiltersTab
+            filters={config.filters}
+            onChange={updateFilters}
             minYear={ARCADE_FLOOR_YEAR}
             maxYear={CURRENT_YEAR}
           />
-          {FILTER_CHIP_KEYS.map((key) => {
-            const id = `filters-${key.replace(/_/g, '-')}`
-            return (
-              <div key={key} className="flex flex-col gap-1">
-                <Label htmlFor={id}>
-                  {strings.settings.filterChipLists[key]}
-                </Label>
-                <ChipListEditor
-                  ariaLabel={strings.settings.filterChipLists[key]}
-                  inputId={id}
-                  value={config.filters[key]}
-                  onChange={(next) => updateFilters(key, next)}
-                  addPlaceholder={strings.settings.filterChipPlaceholders[key]}
-                />
-              </div>
-            )
-          })}
         </TabsContent>
 
         <TabsContent value="picker" className="flex flex-col gap-2">
-          {/* Picker prefs are stored on the same FilterConfig server-side
-              (design §6.2) so the dispatch goes through `updateFilters`. */}
-          <PrefSwitch
-            id="picker-parent-over-clone"
-            label={strings.settings.pickerLabels.prefer_parent_over_clone}
-            checked={config.filters.prefer_parent_over_clone}
-            onChange={(v) => updateFilters('prefer_parent_over_clone', v)}
-          />
-          <PrefSwitch
-            id="picker-good-driver"
-            label={strings.settings.pickerLabels.prefer_good_driver}
-            checked={config.filters.prefer_good_driver}
-            onChange={(v) => updateFilters('prefer_good_driver', v)}
-          />
-          {PICKER_CHIP_KEYS.map((key) => {
-            const id = `picker-${key.replace(/_/g, '-')}`
-            return (
-              <div key={key} className="flex flex-col gap-1">
-                <Label htmlFor={id}>
-                  {strings.settings.pickerChipLists[key]}
-                </Label>
-                <ChipListEditor
-                  ariaLabel={strings.settings.pickerChipLists[key]}
-                  inputId={id}
-                  value={config.filters[key]}
-                  onChange={(next) => updateFilters(key, next)}
-                  addPlaceholder={strings.settings.pickerChipPlaceholders[key]}
-                />
-              </div>
-            )
-          })}
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium">
-              {strings.settings.pickerLabels.region_priority}
-            </span>
-            <p className="text-xs text-muted-foreground">
-              {strings.settings.regionPriorityHelp}
-            </p>
-            <DragReorderList
-              ariaLabel={strings.settings.pickerLabels.region_priority}
-              items={config.filters.region_priority}
-              onChange={(next) => updateFilters('region_priority', next)}
-            />
-          </div>
+          <PickerTab filters={config.filters} onChange={updateFilters} />
         </TabsContent>
 
         <TabsContent value="ui" className="flex flex-col gap-2">
@@ -442,105 +263,15 @@ export function SettingsPage({
         </TabsContent>
 
         <TabsContent value="updates" className="flex flex-col gap-2">
-          {/* FP11 § B3: R36 read-only banner — design §8 + spec § 147-150
-              demand it. Phase 7 will swap this for the apply-update flow. */}
-          {updateInfo && (
-            <p
-              role="status"
-              className="rounded border border-muted bg-muted/30 px-3 py-2 text-sm"
-            >
-              {updateInfo.update_available && updateInfo.latest_version
-                ? strings.settings.banners.updateAvailable(
-                    updateInfo.current_version,
-                    updateInfo.latest_version,
-                  )
-                : strings.settings.banners.updateCurrent(
-                    updateInfo.current_version,
-                  )}
-            </p>
-          )}
-          <div className="flex items-center justify-between">
-            <Label htmlFor="updates-channel">
-              {strings.settings.updatesLabels.channel}
-            </Label>
-            <Select
-              value={config.updates.channel}
-              onValueChange={(v) =>
-                updateUpdates('channel', v as UpdateChannel)
-              }
-            >
-              <SelectTrigger
-                id="updates-channel"
-                aria-label={strings.settings.updatesLabels.channel}
-                className="w-32"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {UPDATE_CHANNEL_VALUES.map((v) => (
-                  <SelectItem key={v} value={v}>
-                    {strings.settings.updateChannelOptions[v]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <PrefSwitch
-            id="updates-check-on-startup"
-            label={strings.settings.updatesLabels.check_on_startup}
-            checked={config.updates.check_on_startup}
-            onChange={(v) => updateUpdates('check_on_startup', v)}
-          />
-          <PrefSwitch
-            id="updates-ini-check-on-startup"
-            label={strings.settings.updatesLabels.ini_check_on_startup}
-            checked={config.updates.ini_check_on_startup}
-            onChange={(v) => updateUpdates('ini_check_on_startup', v)}
+          <UpdatesTab
+            updates={config.updates}
+            onChange={updateUpdates}
+            updateInfo={updateInfo}
           />
         </TabsContent>
 
         <TabsContent value="media" className="flex flex-col gap-2">
-          <PrefSwitch
-            id="media-fetch-videos"
-            label={strings.settings.mediaLabels.fetch_videos}
-            checked={config.media.fetch_videos}
-            onChange={(v) => updateMedia('fetch_videos', v)}
-          />
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="media-cache-dir">
-              {strings.settings.mediaCacheLabel}
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="media-cache-dir"
-                value={cacheDirDraft}
-                onChange={(e) => setCacheDirDraft(e.target.value)}
-                onBlur={() => {
-                  if (cacheDirDraft !== config.media.cache_dir) {
-                    updateMedia('cache_dir', cacheDirDraft)
-                  }
-                }}
-              />
-              <Button
-                variant="outline"
-                onClick={() => setBrowseOpen(true)}
-                aria-label={strings.settings.mediaCacheBrowseLabel}
-              >
-                {strings.settings.fsBrowserBrowse}
-              </Button>
-            </div>
-          </div>
-          {browseOpen && (
-            <FsBrowser
-              open
-              onOpenChange={setBrowseOpen}
-              onPick={(picked) => {
-                setCacheDirDraft(picked)
-                updateMedia('cache_dir', picked)
-              }}
-              initialPath={config.media.cache_dir || undefined}
-            />
-          )}
+          <MediaTab media={config.media} onChange={updateMedia} />
         </TabsContent>
 
         <TabsContent value="snapshots" className="flex flex-col gap-2">
