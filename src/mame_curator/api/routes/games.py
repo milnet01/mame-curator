@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
+import subprocess  # nosec B404 — FP19: launch RetroArch via Popen(shell=False); argv is built from config-trusted paths + a closed set of machine names validated against world.machines.
 from collections import Counter
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from mame_curator.api.errors import GameNotFoundError
 from mame_curator.api.persist import write_json_atomic
@@ -16,6 +19,7 @@ from mame_curator.api.schemas import (
     GameCard,
     GameDetail,
     GamesPage,
+    LaunchResponse,
     LibraryFacets,
     Notes,
     NotesPutRequest,
@@ -24,6 +28,8 @@ from mame_curator.api.schemas import (
 from mame_curator.api.state import WorldState, replace_world
 from mame_curator.filter.picker import explain_pick
 from mame_curator.parser.models import Machine
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -183,6 +189,79 @@ def get_game(name: str, world: WorldState = Depends(get_world)) -> GameDetail:
         override=world.overrides.entries.get(parent),
         parent=parent,
     )
+
+
+@router.post("/api/games/{name}/launch", response_model=LaunchResponse)
+def launch_game(name: str, world: WorldState = Depends(get_world)) -> LaunchResponse:
+    """FP19: spawn RetroArch with the requested game's ROM.
+
+    Resolution order for the ROM file:
+      1. ``dest_roms/<name>.zip`` (preferred — the curated set)
+      2. ``source_roms/<name>.zip`` (fallback — pre-curate)
+
+    Returns 422 if RetroArch isn't configured (paths.retroarch +
+    paths.retroarch_core both required), 404 if the ROM file doesn't
+    exist on disk, 500 if subprocess.Popen itself raises OSError.
+
+    Spawns shell=False (argv list, no shell expansion); the RetroArch
+    process detaches from the API worker once Popen returns.
+    """
+    if name not in world.machines:
+        raise GameNotFoundError(f"game not found: {name!r}")
+
+    paths = world.config.paths
+    if paths.retroarch is None or paths.retroarch_core is None:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "RetroArch not configured. Set paths.retroarch and "
+                "paths.retroarch_core in config.yaml, then restart."
+            ),
+        )
+
+    rom_path: Path | None = None
+    for root in (paths.dest_roms, paths.source_roms):
+        candidate = root / f"{name}.zip"
+        if candidate.is_file():
+            rom_path = candidate
+            break
+    if rom_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"ROM file not found: {name}.zip in dest_roms or source_roms.",
+        )
+
+    argv = [
+        str(paths.retroarch),
+        "-L",
+        str(paths.retroarch_core),
+        str(rom_path),
+    ]
+    # FP19 threat model: ``argv`` is fully trusted at this point.
+    # - argv[0]/argv[2] come from world.config.paths (operator-controlled).
+    # - argv[3] is `dest_roms / f"{name}.zip"` where `name` is the URL path
+    #   param, GUARDED above by `if name not in world.machines: raise` —
+    #   `world.machines` is the closed set parsed from the DAT, never
+    #   arbitrary user input.
+    # - shell=False (default), argv passed as a list, so shell
+    #   metacharacters in any component are inert.
+    try:
+        proc = subprocess.Popen(  # noqa: S603  # nosec B603 — see threat model above
+            argv,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+        )
+    except OSError as exc:
+        logger.exception("RetroArch spawn failed: argv=%s", argv)
+        raise HTTPException(
+            status_code=500,
+            detail=f"failed to spawn RetroArch: {exc}",
+        ) from exc
+
+    logger.info("launched game=%s pid=%s argv=%s", name, proc.pid, argv)
+    return LaunchResponse(pid=proc.pid, rom_path=str(rom_path), argv=tuple(argv))
 
 
 @router.get("/api/games/{name}/alternatives", response_model=Alternatives)

@@ -499,6 +499,20 @@ export const LibraryFacetsSchema = z
   })
   .strict()
 
+/** FP19: outcome of POST /api/games/{name}/launch. */
+export interface LaunchResponse {
+  pid: number
+  rom_path: string
+  argv: string[]
+}
+export const LaunchResponseSchema = z
+  .object({
+    pid: z.number().int(),
+    rom_path: z.string(),
+    argv: z.array(z.string()),
+  })
+  .strict()
+
 export interface Explanation {
   short_name: string
   parent: string

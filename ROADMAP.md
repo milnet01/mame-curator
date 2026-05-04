@@ -1338,6 +1338,39 @@ debt-sweep should resolve).
 
 ---
 
+## FP19 — Launch games from the site (closed 2026-05-04)
+
+**Theme:** user request 2026-05-04 "offer the option to launch the
+games from the site, check /mnt/Storage/Scripts/Linux/RetroDB/
+(RetroDB project) for references on doing that." The library now
+shows games and lets you copy them, but had no in-app way to
+actually play one. FP19 adds the missing "play this" button.
+
+### 🎨 Features
+
+- ✅ **FP19** [mame-curator-1018] **RetroArch launch integration (v1.2.0).**
+  Lanes: api, frontend.
+  - **A — `paths.retroarch` + `paths.retroarch_core`** config
+    fields (PathsConfig). Both required for launch; absent
+    configuration → 422 with a helpful message.
+  - **B — POST `/api/games/{name}/launch`** spawns RetroArch via
+    `subprocess.Popen(shell=False)`. ROM resolved from
+    `dest_roms/<name>.zip` → `source_roms/<name>.zip`
+    (404 if neither exists). Adapted from RetroDB's launcher
+    pattern (logged subprocess argv; close_fds=True;
+    stdout/stderr/stdin DEVNULL so the worker doesn't deadlock
+    on a long-running RetroArch).
+  - **C — "Launch in RetroArch" button** in AlternativesDrawer
+    (next to the alternatives list). `useLaunchGame` mutation
+    + success toast + `toastApiError` on failure (e.g. RetroArch
+    not configured surfaces the 422 detail).
+
+  Source: user feedback 2026-05-04 with RetroArch path
+  `/mnt/Emulators/Multi-System/RetroArch/RetroArch-Linux-x86_64.AppImage`.
+  Dependencies: P03 ✅ (dest_roms layout), P04 ✅ (config + world).
+
+---
+
 ## FP18 — refresh-inis auto-patches config.yaml (closed 2026-05-04)
 
 **Theme:** v1.1.0 left the user's INIs downloaded but unused —

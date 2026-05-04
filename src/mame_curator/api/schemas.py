@@ -49,6 +49,20 @@ class PathsConfig(BaseModel):
     mature: Path | None = None
     series: Path | None = None
     listxml: Path | None = None
+    # FP19: optional RetroArch invocation paths for the in-app "Launch"
+    # button. Both must be set for the launch route to succeed; absent
+    # configuration → POST /api/games/{name}/launch returns 422.
+    retroarch: Path | None = None
+    retroarch_core: Path | None = None
+
+
+class LaunchResponse(BaseModel):
+    """FP19: outcome of POST /api/games/{name}/launch."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    pid: int
+    rom_path: str
+    argv: tuple[str, ...]
 
 
 class ServerConfig(BaseModel):

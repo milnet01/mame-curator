@@ -130,6 +130,12 @@ export const strings = {
     notesLabel: 'Notes',
     notesPlaceholder: 'Notes (saved automatically when you click away)…',
     flyerAlt: (description: string) => `Box art for ${description}`,
+    /** FP19 — Launch button + status copy. */
+    launch: 'Launch in RetroArch',
+    launching: 'Launching…',
+    launchSuccess: (name: string) => `Launched ${name}.`,
+    launchNotConfigured:
+      'RetroArch not configured. Set paths.retroarch and paths.retroarch_core in config.yaml, then restart the server.',
   },
 
   sessions: {

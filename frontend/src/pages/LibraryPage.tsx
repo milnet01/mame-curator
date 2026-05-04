@@ -11,7 +11,7 @@ import {
 } from '@/components/library/FiltersSidebar'
 import { ActionBar } from '@/components/library/ActionBar'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
-import { useAlternatives, useOverride } from '@/hooks/useAlternatives'
+import { useAlternatives, useLaunchGame, useOverride } from '@/hooks/useAlternatives'
 import { useFacets } from '@/hooks/useFacets'
 import { useGames, type GamesQuery } from '@/hooks/useGames'
 import { useConfig, useConfigPatch } from '@/hooks/useConfig'
@@ -42,6 +42,7 @@ export function LibraryPage() {
   const upsertSession = useSessionUpsert()
   const alternatives = useAlternatives(openedShortName)
   const override = useOverride()
+  const launch = useLaunchGame()
   const facets = useFacets()
 
   const layout = (config.data?.ui.layout ?? 'masonry') as LayoutName
@@ -155,7 +156,8 @@ export function LibraryPage() {
 
       {/* FP16 § B: AlternativesDrawer wiring (FP11 § B6 stub never landed).
           The drawer mounts only when a game is selected — keeps the
-          alternatives query disabled in the common closed state. */}
+          alternatives query disabled in the common closed state.
+          FP19: onLaunch spawns RetroArch via POST /api/games/{name}/launch. */}
       {openedWinner && (
         <AlternativesDrawer
           open={openedShortName !== null}
@@ -171,6 +173,13 @@ export function LibraryPage() {
               onError: toastApiError,
             })
           }}
+          onLaunch={(short) => {
+            launch.mutate(short, {
+              onSuccess: () => toast.success(strings.alternatives.launchSuccess(short)),
+              onError: toastApiError,
+            })
+          }}
+          launching={launch.isPending}
         />
       )}
 

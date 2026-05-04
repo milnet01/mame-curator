@@ -17,6 +17,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-05-04
+
+### FP19 — Launch games from the site (RetroArch integration)
+
+User asked: "offer the option to launch the games from the site,
+check /mnt/Storage/Scripts/Linux/RetroDB/ (RetroDB project) for
+references on doing that."
+
+Studied RetroDB's launcher pattern (`subprocess.Popen(shell=False)`,
+argv pre-built, token-based registry, stderr drained). Adapted to a
+slim per-request spawn for v1 — no token registry, no kill API
+(RetroArch is a foreground app the user closes themselves).
+
+- **New `paths.retroarch` + `paths.retroarch_core`** fields in
+  `PathsConfig`. Both required for launch; absent configuration
+  surfaces a 422 with copy that names the fix.
+- **POST `/api/games/{name}/launch`** spawns RetroArch via
+  `subprocess.Popen` with `shell=False`. ROM-resolution order:
+  `dest_roms/<name>.zip` → `source_roms/<name>.zip` (404 if neither
+  exists).
+- **Frontend "Launch in RetroArch" button** in AlternativesDrawer.
+  `useLaunchGame` mutation; success toast + error toast via
+  `toastApiError`.
+
+To configure on your machine:
+
+```yaml
+paths:
+  retroarch: /mnt/Emulators/Multi-System/RetroArch/RetroArch-Linux-x86_64.AppImage
+  retroarch_core: /path/to/mame_libretro.so
+```
+
+446 backend tests / 86.66% coverage. 182 frontend tests / build
+clean.
+
 ## [1.1.1] — 2026-05-04
 
 ### FP18 — refresh-inis auto-patches config.yaml + banner counts 5 INIs

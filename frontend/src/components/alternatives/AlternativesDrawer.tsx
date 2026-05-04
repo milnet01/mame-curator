@@ -18,6 +18,11 @@ interface AlternativesDrawerProps {
   winner: GameCard
   alternatives: GameCard[]
   onOverride: (request: OverridePostRequest) => void
+  /** FP19: optional Launch handler. Hides the button when not provided
+   *  (e.g. unit tests that don't mock the launch endpoint). */
+  onLaunch?: (shortName: string) => void
+  /** True while the launch mutation is in flight. */
+  launching?: boolean
 }
 
 function AlternativeRow({
@@ -84,6 +89,8 @@ export function AlternativesDrawer({
   winner,
   alternatives,
   onOverride,
+  onLaunch,
+  launching = false,
 }: AlternativesDrawerProps) {
   const parent = winner.short_name
   const handleClick = (alt: GameCard) => {
@@ -121,6 +128,20 @@ export function AlternativesDrawer({
               </li>
             ))}
           </ul>
+        )}
+
+        {/* FP19: Launch button — spawns RetroArch with the current
+            winner's ROM. Hidden when onLaunch isn't wired (unit tests). */}
+        {onLaunch && (
+          <Button
+            onClick={() => onLaunch(winner.short_name)}
+            disabled={launching}
+            className="mt-auto"
+          >
+            {launching
+              ? strings.alternatives.launching
+              : strings.alternatives.launch}
+          </Button>
         )}
       </SheetContent>
     </Sheet>

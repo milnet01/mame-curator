@@ -2,8 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiRequest } from '@/api/client'
 import {
   AlternativesSchema,
+  LaunchResponseSchema,
   OverridesViewSchema,
   type Alternatives,
+  type LaunchResponse,
   type OverridePostRequest,
   type OverridesView,
 } from '@/api/types'
@@ -46,5 +48,22 @@ export function useOverride() {
       qc.invalidateQueries({ queryKey: KEY(req.winner) })
       qc.invalidateQueries({ queryKey: KEY(req.parent) })
     },
+  })
+}
+
+/**
+ * FP19: spawn RetroArch with the given game's ROM. Returns the spawned
+ * pid + argv on success; the API surfaces 422 if RetroArch isn't
+ * configured or 404 if the ROM file doesn't exist on disk. Caller
+ * surfaces success / failure via toast.
+ */
+export function useLaunchGame() {
+  return useMutation({
+    mutationFn: (shortName: string) =>
+      apiRequest<LaunchResponse>(
+        `/api/games/${encodeURIComponent(shortName)}/launch`,
+        LaunchResponseSchema,
+        { method: 'POST' },
+      ),
   })
 }
