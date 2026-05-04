@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
+import { AlternativesDrawer } from '@/components/alternatives/AlternativesDrawer'
 import { LibraryGrid } from '@/components/library/LibraryGrid'
 import { LayoutSwitcher } from '@/components/library/LayoutSwitcher'
 import { ThemeSwitcher } from '@/components/library/ThemeSwitcher'
@@ -10,6 +11,7 @@ import {
 } from '@/components/library/FiltersSidebar'
 import { ActionBar } from '@/components/library/ActionBar'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
+import { useAlternatives, useOverride } from '@/hooks/useAlternatives'
 import { useGames, type GamesQuery } from '@/hooks/useGames'
 import { useConfig, useConfigPatch } from '@/hooks/useConfig'
 import { useSessions, useSessionUpsert } from '@/hooks/useSessions'
@@ -28,10 +30,13 @@ const DEFAULT_FILTERS: FilterSidebarState = {
 
 export function LibraryPage() {
   const [filters, setFilters] = useState<FilterSidebarState>(DEFAULT_FILTERS)
+  const [openedShortName, setOpenedShortName] = useState<string | null>(null)
   const config = useConfig()
   const patch = useConfigPatch()
   const sessions = useSessions()
   const upsertSession = useSessionUpsert()
+  const alternatives = useAlternatives(openedShortName)
+  const override = useOverride()
 
   const layout = (config.data?.ui.layout ?? 'masonry') as LayoutName
   const theme = (config.data?.ui.theme ?? 'dark') as ThemeName
@@ -52,6 +57,16 @@ export function LibraryPage() {
   const cards: GameCard[] = games.data?.items ?? []
   const total = games.data?.total ?? 0
   const totalBytes = 0 // wired in a follow-up via useStats
+
+  // FP16 § B: AlternativesDrawer needs the *winner* card (the one the user
+  // clicked) plus the alternatives list. We resolve `winner` from the
+  // current page of cards by short_name; if the click target left the page
+  // (filters changed in the meantime) the drawer falls back to the first
+  // alternative as the displayed winner so it never shows null.
+  const openedWinner = useMemo<GameCard | null>(() => {
+    if (openedShortName === null) return null
+    return cards.find((c) => c.short_name === openedShortName) ?? null
+  }, [openedShortName, cards])
 
   const handleLayout = (next: LayoutName) => {
     // FP11 § B2: gate on `config.data` so a click before the GET
@@ -123,11 +138,30 @@ export function LibraryPage() {
           cards={cards}
           layout={layout}
           cardsPerRowHint={config.data?.ui.cards_per_row_hint}
-          onOpen={() => {
-            // AlternativesDrawer wiring lands in FP11 § B6 follow-up.
-          }}
+          onOpen={(card) => setOpenedShortName(card.short_name)}
         />
       </ErrorBoundary>
+
+      {/* FP16 § B: AlternativesDrawer wiring (FP11 § B6 stub never landed).
+          The drawer mounts only when a game is selected — keeps the
+          alternatives query disabled in the common closed state. */}
+      {openedWinner && (
+        <AlternativesDrawer
+          open={openedShortName !== null}
+          onOpenChange={(o) => !o && setOpenedShortName(null)}
+          winner={openedWinner}
+          alternatives={alternatives.data?.items ?? []}
+          onOverride={(req) => {
+            override.mutate(req, {
+              onSuccess: () => {
+                toast.success(strings.library.overrideApplied)
+                setOpenedShortName(null)
+              },
+              onError: toastApiError,
+            })
+          }}
+        />
+      )}
 
       <div className="col-span-2">
         <ActionBar

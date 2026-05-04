@@ -133,19 +133,41 @@ export function SettingsPage({
     <section className="flex flex-col gap-4 p-4">
       <h1 className="text-2xl font-semibold">{strings.settings.pageTitle}</h1>
 
-      {/* FP11 § B3: read-only Setup banner driven by R35 — design §8
-          calls for a banner ahead of the tab list when paths or
-          reference files are missing. Banner copy lives in strings.ts
-          so the Phase 7 wizard wiring is a single-file change. */}
+      {/* FP11 § B3 + FP16 § C: read-only Setup banner driven by R35.
+          FP16 enriches the original binary "ready / incomplete" with
+          a per-INI status line so the user can tell at a glance
+          whether `mame-curator refresh-inis` has run successfully. */}
       {setupInfo && (
-        <p
+        <div
           role="status"
-          className="rounded border border-muted bg-muted/30 px-3 py-2 text-sm"
+          className="flex flex-col gap-1 rounded border border-muted bg-muted/30 px-3 py-2 text-sm"
         >
-          {setupInfo.config_present
-            ? strings.settings.banners.setupReady
-            : strings.settings.banners.setupIncomplete}
-        </p>
+          <span>
+            {setupInfo.config_present
+              ? strings.settings.banners.setupReady
+              : strings.settings.banners.setupIncomplete}
+          </span>
+          {(() => {
+            const ref = setupInfo.reference_files
+            const required = [
+              { name: 'catver.ini', present: ref.catver.exists },
+              { name: 'languages.ini', present: ref.languages.exists },
+              { name: 'bestgames.ini', present: ref.bestgames.exists },
+              { name: 'series.ini', present: ref.series.exists },
+            ]
+            const missing = required.filter((r) => !r.present)
+            const presentCount = required.length - missing.length
+            return (
+              <span className="text-xs text-muted-foreground">
+                {strings.settings.banners.iniStatusLine(
+                  presentCount,
+                  required.length,
+                  missing.map((r) => r.name),
+                )}
+              </span>
+            )
+          })()}
+        </div>
       )}
 
       {/* FP13 § A4: surface PATCH-response `restart_required` so server-bind

@@ -17,6 +17,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP16 — Library shipping blockers + INI visibility (closed 2026-05-04)
+
+User-reported bugs from real-data UAT during the v1.0.0 cut. All
+four shipped before the v1.0.0 tag was re-cut at the same SHA.
+
+- **Search and year-range filtering silently no-op'd in production.**
+  Frontend `useGames` sent `search` / `year_from` / `year_to`, backend
+  expects `q` / `year_min` / `year_max`. Renamed frontend params to
+  match.
+- **Clicking a game did nothing.** `LibraryPage.onOpen` was an FP11 §
+  B6 placeholder comment that never got wired. Added
+  `useAlternatives` + `useOverride` hooks; drawer now mounts on
+  card click; override mutation invalidates queries + toast.
+- **No UI signal of INI presence.** `useSetupCheck` hook added;
+  `SettingsRoute` now passes `setupInfo` to SettingsPage; setup
+  banner renders a per-INI status line listing missing files +
+  the exact `mame-curator refresh-inis` command to fix them.
+- **Stale `index.html` cached by browser hit 404s on deleted bundle
+  hashes.** Added cache-control headers in `_SPAStaticFiles`:
+  `assets/*` are immutable (Vite hash-keyed); `index.html` +
+  fallback paths revalidate every load.
+- **Sessions explainer text tightened** to clarify the v1 feature is
+  filter-bookmark, not per-game review tracking.
+
+Roadmap addition: **P14 candidate** — per-game review state
+(reviewed / skipped / pending) for the user mental model that v1
+Sessions doesn't fit.
+
+446 backend tests / 89.07% coverage. 182 frontend tests / build clean.
+
 ## [1.0.0] — 2026-05-04
 
 First public release. Everything below shipped under `[Unreleased]`

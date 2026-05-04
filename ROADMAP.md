@@ -1338,6 +1338,47 @@ debt-sweep should resolve).
 
 ---
 
+## FP16 — Library shipping blockers + INI visibility (closed 2026-05-04)
+
+**Theme:** four user-reported bugs from real-data UAT during the
+v1.0.0 cut: search/year-range silently no-op'd (param-name mismatch),
+clicking a game did nothing (FP11 § B6 placeholder), no UI signal of
+INI presence (FP11 § B3 SetupCheck wiring never landed), and a stale
+`index.html` cached by the browser referenced deleted bundle hashes.
+All four shipped + bundled with the 0.0.1 → 1.0.0 version bump.
+
+### 🐛 Bug fixes
+
+- ✅ **FP16** [mame-curator-1015] **Search params + drawer + INI banner + cache headers + v1.0.0 bump.**
+  Lanes: frontend, api, scripts.
+  - **A — useGames param names.** `search` → `q`,
+    `year_from` → `year_min`, `year_to` → `year_max` to match the
+    backend `/api/games` route.
+  - **B — `LibraryPage.onOpen` → AlternativesDrawer.**
+    `useAlternatives` + `useOverride` hooks added; drawer mounts on
+    selection; success toast + drawer close on override mutation.
+  - **C — `useSetupCheck` hook + per-INI status line in Settings →
+    Setup banner.** Banner now renders "Reference INIs: 4 / 4
+    present" or "Missing: catver.ini, … — run `mame-curator
+    refresh-inis --dest data/ini` to download." Inline runtime
+    guidance closes the discoverability gap.
+  - **D — Backend SPA cache-control headers.** `assets/*` →
+    `public, max-age=31536000, immutable`; `index.html` + SPA
+    fallback → `no-cache, must-revalidate`. Prevents future
+    stale-shell-after-deploy 404s.
+  - **E — Bundled with v1.0.0 version bump.** pyproject.toml +
+    __init__.py 0.0.1 → 1.0.0; classifier "3 - Alpha" → "5 -
+    Production/Stable". Same-SHA tags `FP16-complete` + `v1.0.0`.
+
+  Source: user UAT 2026-05-04 ("Nothing happens when I click on a
+  game and the search filter isn't working"; "How do I tell if
+  the inis have been downloaded?"; "Failed to fetch dynamically
+  imported module: SessionsPage-…js").
+  Dependencies: P06 ✅, FP11 ✅ (the FP11 § B3 / § B6
+  placeholders).
+
+---
+
 ## FP15 — Sessions UX (closed 2026-05-04)
 
 **Theme:** user asked 2026-05-04 "how do I start a session?" —
@@ -1656,6 +1697,44 @@ P11 lets the user push it upstream.
   is "user can drive their own library end-to-end"; the
   push-upstream community-contribution path is a quality-
   of-ecosystem feature, not a core-loop blocker.
+
+---
+
+## P14 — Per-game review state (planned, post-v1)
+
+**Theme:** the user's mental model when first running v1 expected
+"sessions" to mean "I've reviewed games A through C, resume at D"
+— but the v1 Sessions feature is filter-set bookmarking, not
+per-game progress tracking. P14 builds the missing feature.
+
+### 🎨 Features
+
+- 📋 **P14** [mame-curator-1014] **Per-game review state.**
+  Lanes: api, frontend, persist, tests.
+  - **A — `state.yaml` per-game review enum.** New persist file:
+    `data/state/<short>.yaml` or one consolidated map. Values:
+    `pending` (default) / `reviewed` / `skipped` / `needs-decision`.
+    Backend POST `/api/games/<short>/state` mutator + GET on the
+    games listing returns the state per item.
+  - **B — Library badge for review state.** GameCard shows a small
+    icon when state ≠ pending. Filter sidebar adds "Only pending"
+    toggle.
+  - **C — Per-game decision shortcuts.** Keyboard (R = reviewed,
+    S = skipped, ? = needs-decision) when a card is focused or
+    while the alternatives drawer is open.
+  - **D — Progress chip in /library header.** Shows "1,234 / 26,539
+    reviewed (4.6%)" + click → filter to pending only.
+  - **E — Per-letter / per-decade walkthrough mode.** Optional
+    cluster: a "walkthrough" button that walks the alphabet (or
+    decade ranges), surfacing one bucket of pending items at a
+    time and tracking completion per bucket.
+
+  Source: user feedback 2026-05-04 mid-FP16: "When I mentioned
+  sessions I meant more in terms of I went through all games A to
+  C." The v1 Sessions feature is filter-bookmark, not progress
+  tracker — this is the missing feature.
+  Kind: implement.
+  Dependencies: P06 ✅, P04 ✅. No dependency on P10 / P11 / P12.
 
 ---
 

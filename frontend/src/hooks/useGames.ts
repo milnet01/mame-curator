@@ -14,12 +14,15 @@ export interface GamesQuery {
 }
 
 function toQueryString(q: GamesQuery): string {
+  // FP16 § A: backend (api/routes/games.py:60) accepts `q`, `year_min`,
+  // `year_max` — the frontend was silently sending `search`, `year_from`,
+  // `year_to`, so search + year-range filtering both no-op'd in production.
   const params = new URLSearchParams()
   params.set('page', String(q.page))
   params.set('page_size', String(q.pageSize))
-  if (q.search) params.set('search', q.search)
-  if (q.yearFrom) params.set('year_from', String(q.yearFrom))
-  if (q.yearTo) params.set('year_to', String(q.yearTo))
+  if (q.search) params.set('q', q.search)
+  if (q.yearFrom) params.set('year_min', String(q.yearFrom))
+  if (q.yearTo) params.set('year_max', String(q.yearTo))
   if (q.onlyContested) params.set('only_contested', '1')
   if (q.onlyOverridden) params.set('only_overridden', '1')
   if (q.onlyChdMissing) params.set('only_chd_missing', '1')

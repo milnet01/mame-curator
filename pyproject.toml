@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mame-curator"
-version = "0.0.1"
+version = "1.0.0"
 description = "Curate the best playable arcade games from a MAME ROM set with a modern web UI."
 readme = "README.md"
 license = { text = "MIT" }
@@ -12,7 +12,7 @@ authors = [{ name = "Ants Schemel" }]
 requires-python = ">=3.12"
 keywords = ["mame", "retroarch", "rom", "arcade", "curation"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Environment :: Web Environment",
     "Intended Audience :: End Users/Desktop",

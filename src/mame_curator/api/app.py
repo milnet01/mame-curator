@@ -56,8 +56,9 @@ class _SPAStaticFiles(StaticFiles):
     _NO_FALLBACK_PREFIXES = ("api/", "media/", "assets/")
 
     async def get_response(self, path: str, scope: Scope) -> Response:
+        served_fallback = False
         try:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
         except StarletteHTTPException as exc:
             if exc.status_code != 404:
                 raise
@@ -72,7 +73,22 @@ class _SPAStaticFiles(StaticFiles):
             posix_path = path.replace("\\", "/")
             if posix_path.startswith(self._NO_FALLBACK_PREFIXES):
                 raise
-            return await super().get_response("index.html", scope)
+            response = await super().get_response("index.html", scope)
+            served_fallback = True
+
+        # FP16 § D: cache-control. Hash-keyed bundles under assets/ are
+        # content-addressed (Vite's `[name]-[hash].js` pattern) — they
+        # are immutable and safe to cache forever. The SPA shell
+        # (index.html, served either directly or via the fallback for
+        # /sessions, /help, etc.) MUST revalidate every load, otherwise
+        # a fresh deploy hands users a stale shell that references
+        # deleted bundle hashes — observed 2026-05-04 on the v1.0.0 cut.
+        posix_path = path.replace("\\", "/")
+        if posix_path.startswith("assets/"):
+            response.headers["cache-control"] = "public, max-age=31536000, immutable"
+        elif served_fallback or posix_path in ("", "index.html"):
+            response.headers["cache-control"] = "no-cache, must-revalidate"
+        return response
 
 
 def create_app(config_path: Path) -> FastAPI:

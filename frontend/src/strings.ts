@@ -81,12 +81,17 @@ export const strings = {
       onlyBiosMissing: 'Only BIOS missing',
       saveAsSession: 'Save as session',
       sessionNameLabel: 'Session name',
-      /** FP15 § C — one-line explainer above the Save button. */
+      /** FP15 § C — one-line explainer above the Save button.
+       *  FP16: clarified that this is filter-bookmark, not per-game
+       *  progress tracking, after a user reported the mental-model
+       *  mismatch ("I meant I went through games A to C"). */
       sessionsExplainer:
-        'Sessions save your current focus (year range + preferred genres / publishers / developers) under a name you can return to.',
+        'Sessions are named filter bookmarks (year range + preferred genres / publishers / developers). They do not track per-game review progress.',
     },
     /** FP15 § A toast on successful session save. */
     sessionSaved: (name: string) => `Saved session "${name}".`,
+    /** FP16 § B toast on successful manual override. */
+    overrideApplied: 'Override applied.',
     /** FP15 § B header pill copy (active + idle states). */
     activeSessionPill: (name: string) => `Session: ${name}`,
     activeSessionTitle: (name: string) =>
@@ -285,6 +290,15 @@ export const strings = {
       updateCurrent: (version: string) => `You're on the latest version (${version}).`,
       restartRequired:
         'Server settings changed — restart `mame-curator serve` for the new bind address to take effect.',
+      /** FP16 § C — per-INI status line under the setup banner. */
+      iniStatusLine: (
+        present: number,
+        required: number,
+        missing: readonly string[],
+      ) =>
+        missing.length === 0
+          ? `Reference INIs: ${present} / ${required} present.`
+          : `Reference INIs: ${present} / ${required} present. Missing: ${missing.join(', ')}. Run \`uv run mame-curator refresh-inis --dest data/ini\` to download.`,
     },
     snapshotRestoreConfirm: (count: number) =>
       `Restore ${count} configuration file${count === 1 ? '' : 's'} from this snapshot? Current settings will be replaced.`,

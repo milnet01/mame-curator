@@ -34,6 +34,7 @@ import { useActivity } from '@/hooks/useActivity'
 import { useStats } from '@/hooks/useStats'
 import { useHelpIndex, useHelpTopic } from '@/hooks/useHelp'
 import { useKeyboard } from '@/hooks/useKeyboard'
+import { useSetupCheck } from '@/hooks/useSetupCheck'
 import { strings } from '@/strings'
 import { ApiError } from '@/api/client'
 import type { ConfigExportBundle, ThemeName } from '@/api/types'
@@ -217,6 +218,10 @@ function SettingsRoute() {
   const restore = useSnapshotRestore()
   const exportConfig = useConfigExport()
   const importConfig = useConfigImport()
+  // FP16 § C: surface SetupCheck so the Setup banner can show per-INI
+  // status (the user has no other way to tell whether refresh-inis
+  // ever ran successfully).
+  const setupCheck = useSetupCheck()
   const [backupError, setBackupError] = useState<string | null>(null)
 
   const handleExport = async () => {
@@ -276,6 +281,7 @@ function SettingsRoute() {
       onBackupExport={handleExport}
       onBackupImport={handleImport}
       backupError={backupError}
+      setupInfo={setupCheck.data}
     />
   )
 }
