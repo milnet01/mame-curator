@@ -144,6 +144,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub_setup.set_defaults(func=_cmd_setup)
 
+    refresh = sub.add_parser(
+        "refresh-inis",
+        help="Download progettoSnaps reference INIs (catver, languages, bestgames, series).",
+    )
+    refresh.add_argument(
+        "--dest",
+        type=Path,
+        required=True,
+        help="Directory to write the INI files into (created if missing).",
+    )
+    refresh.set_defaults(func=_cmd_refresh_inis)
+
     sub_serve = sub.add_parser("serve", help="Run the HTTP API server.")
     sub_serve.add_argument("--host", default=None, help="Bind address (overrides config).")
     sub_serve.add_argument("--port", type=int, default=None, help="Bind port (overrides config).")
@@ -458,3 +470,32 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         err_console.print(f"[red]error:[/red] failed to bind {host}:{port}: {exc}")
         return 1
     return 0
+
+
+def _cmd_refresh_inis(args: argparse.Namespace) -> int:
+    """Download the four progettoSnaps reference INIs to ``--dest``.
+
+    Surfaces a per-file outcome line: green ✓ for success, red ✗ for
+    failure with the manual-fallback URL the user can grab themselves.
+    """
+    import asyncio
+
+    import httpx
+
+    from mame_curator.updates import refresh_inis
+
+    console = Console()
+    err_console = Console(stderr=True, soft_wrap=True)
+
+    async def _run() -> int:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            report = await refresh_inis(dest_dir=args.dest, client=client)
+
+        for name in report.updated:
+            console.print(f"[green]✓[/green] {name}")
+        for name, url in report.failed:
+            err_console.print(f"[red]✗[/red] {name} — manual download: {url}")
+
+        return 0 if report.all_succeeded else 1
+
+    return asyncio.run(_run())
