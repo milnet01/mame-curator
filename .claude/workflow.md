@@ -6,9 +6,9 @@
 |-------|-------|
 | **Project phase** | FP12 — Settings page list editors + path picker (🚧 active) |
 | **Active item ID** | FP12 |
-| **Active step** | 1 ✅ + 2 ✅ → 3+4 🚧 (clusters A-E + I + J + G done; F+H pending) |
+| **Active step** | 1 ✅ + 2 ✅ + 3+4 ✅ (all 10 clusters A-J done) → 5+6 next (closing audit) |
 | **Blocked on** | — |
-| **Last update** | 2026-05-04 (cluster G — FsBrowser modal — landed: self-contained component owning its own `useFs*` hooks (consumer API: `<FsBrowser open onOpenChange onPick mode initialPath />`). Quick-jump buttons for Home (R30) + drive roots (R31) + allowed roots (R32). `path` derived from `userPath` state + `home.data` fallback so default-on-async-load doesn't need setState-in-effect (project lesson preserved). Listing 403 with `fs_sandboxed` surfaces a ConfirmationDialog whose action label is the design §8 concrete form `"Grant access to <path>"`; on confirm we POST R33 and react-query auto-refetches. Mode prop: `'directory'` (default) hides files; `'file'` shows files and clicking one fires onPick. 10 MSW-backed unit tests at `frontend/src/components/settings/__tests__/FsBrowser.test.tsx` — first MSW component test in the suite (each test sets up its own QueryClientProvider and seeds `server.use(http.get|post(...))`). Will be consumed by F + H. 152 frontend tests / 435 backend tests / lint+typecheck+ruff+mypy+bandit all clean; coverage 89.19%.) |
+| **Last update** | 2026-05-04 (clusters F + H — last two FP12 clusters — landed in one commit: F (editable media.cache_dir) wires an Input + Browse button on the Media tab; the Input patches `media.cache_dir` on blur via local-draft state, Browse mounts FsBrowser in directory mode and on pick patches the cache_dir field. H (Paths tab in-place) introduces a PathRow helper (Label + Input + Browse → FsBrowser) and renders 4 rows: source_roms / dest_roms / source_dat (mode='file') / retroarch_playlist (mode='file'). DAT swap is destructive — instead of patching on blur, the new value is held in `pendingDat` state and a ConfirmationDialog with concrete action label "Swap DAT to <path>" surfaces; only on confirm does the source_dat patch fire. FsBrowser is conditionally mounted (`{open && <FsBrowser />}`) in both clusters so its useFs* hooks don't fire until the user clicks Browse — keeps existing pure-prop SettingsPage tests free of MSW handlers. 7 new SettingsPage integration tests (2 for F + 5 for H). 159 frontend tests / 435 backend tests / lint+typecheck+ruff+mypy+bandit all clean; coverage 89.19%. Step 4 (implement) of FP12 is now complete — closing audit / indie-review next per the 9-step loop.) |
 | **Next gate** | Close FP12 clusters A→J via TDD (each cluster lands with its own commit), then run `/close-phase` per FP11 precedent (CI matrix may substitute for /audit + /indie-review at user's option). 10 sub-bullets to close: A ChipListEditor, B DragReorderList, C year-range, D default_sort, E updates.channel, F media.cache_dir, G FsBrowser, H paths in-place, I snapshots tab, J backup tab. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
@@ -34,8 +34,8 @@ FP12 step progress (active 2026-05-02):
    - I ✅ Snapshots tab (R16 list + R17 restore) — SnapshotsTab primitive (8 unit tests + 2 SettingsPage integration tests), SettingsRoute container in App.tsx owning useSnapshots+useSnapshotRestore, ConfirmationDialog with concrete "Restore N files" action label per design §8. PATCH onSuccess invalidates SNAPSHOTS_KEY so new entries surface on next read.
    - J ✅ Backup tab (R18 export + R19 import) — BackupTab primitive (8 unit tests + 1 SettingsPage integration test), `useConfigExport` + `useConfigImport` hooks. SettingsRoute does Blob+`<a download>` for export, `File.text()` → `JSON.parse` → mutate for import. ConfirmationDialog labels the chosen file by name. Roadmap's "R19 multipart" hint was stale; backend takes / returns `ConfigExportBundle` JSON (`config.py:170 + 186`).
    - G ✅ FsBrowser modal path picker (R29-R34 + grant flow on 403) — self-contained, owns useFs* hooks; quick-jump for Home + drive roots + allowed roots; directory/file mode; fs_sandboxed 403 → grant ConfirmationDialog → POST R33 → re-list. 10 MSW-backed tests; first MSW component test in the suite.
-   - F ⬜ Editable media.cache_dir (Browse → FsBrowser; depends on G)
-   - H ⬜ Paths tab in-place editable (R15 PATCH; ConfirmationDialog on DAT swap; depends on G)
+   - F ✅ Editable media.cache_dir — Media tab: Input (controlled, patches on blur) + Browse → FsBrowser (directory). FsBrowser conditionally mounted so existing pure-prop SettingsPage tests don't need MSW. 2 SettingsPage integration tests.
+   - H ✅ Paths tab in-place editable — PathRow helper (Label + Input + per-row Browse → FsBrowser), wires source_roms / dest_roms / source_dat (file mode) / retroarch_playlist (file mode). DAT swap is destructive: new value held in pendingDat state, ConfirmationDialog with concrete "Swap DAT to <path>" label, source_dat only patches on confirm. 5 SettingsPage integration tests.
 5. ⬜ Run `/audit`
 6. ⬜ Run `/indie-review`
 7. ⬜ Fold actionable findings → next FP## (or close clean)
@@ -158,6 +158,59 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-04 — FP12 clusters F + H (last two FP12 work clusters) closed
+
+User said "Let's continue, please." after cluster G shipped.
+Picked up F (editable media.cache_dir) and H (Paths tab
+in-place) together — both consume `<FsBrowser>` from G and
+share the same wiring shape, so a single commit kept the
+diff readable.
+
+**Cluster F — editable media.cache_dir**:
+
+- Media tab: read-only `<p>` replaced with an `<Input>` (local
+  draft state, patches on blur via the new typed-key
+  `updateMedia`) plus a "Browse…" button that mounts
+  `<FsBrowser>` in directory mode. Pick → updates draft + patches.
+- Conditionally-mounted FsBrowser (`{open && <FsBrowser />}`)
+  so the underlying `useFs*` hooks don't fire until the user
+  clicks Browse. Important: lets the existing pure-prop
+  SettingsPage tests render without QueryClient + MSW (those
+  hooks would 404 against an unmocked backend in test).
+
+**Cluster H — Paths tab in-place editable**:
+
+- New `PathRow` helper inside SettingsPage.tsx (kept inline
+  rather than a new file — tiny surface, only used in one
+  place) wraps `<Label>` + `<Input>` + Browse → FsBrowser.
+  Same conditional-mount trick as F.
+- 4 rows: `source_roms`, `dest_roms` (directory), `source_dat`,
+  `retroarch_playlist` (both file mode).
+- DAT swap is destructive (`replace_world` rebuilds the whole
+  library). Instead of patching on blur, the new value is
+  held in `pendingDat` state and a `ConfirmationDialog` with
+  concrete action label `"Swap DAT to <path>"` surfaces; only
+  on confirm does the source_dat patch fire. Cancel discards.
+- Local draft seeds from `value` on mount. Out-of-band resets
+  (e.g. snapshot restore while the tab is open) won't reflect
+  in the input until blur — accepted as a corner case.
+
+**Test-side surprise**: `input.blur()` (direct DOM call) doesn't
+wrap in act() and the dialog assertion fired before the state
+update committed. Switched to `await userEvent.tab()` which
+triggers blur via the user-event harness and is naturally
+awaited. Pattern saved for any future "test a blur handler"
+case.
+
+Tests: 159 frontend pass (2 + 5 new — 4 of H's 5 cover the
+destructive-confirm flow), 435 backend pass at 89.19%
+coverage. eslint / tsc / ruff / mypy / bandit all clean.
+`frontend/dist/` rebuilt.
+
+FP12 step 4 (implement) is now complete — closing audit /
+indie-review next. Per FP11 precedent, may elect to ship on
+CI matrix green instead of dispatching the multi-agent close.
 
 ### 2026-05-04 — FP12 cluster G (FsBrowser modal) closed
 

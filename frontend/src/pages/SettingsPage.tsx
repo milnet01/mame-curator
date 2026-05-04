@@ -1,11 +1,16 @@
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useState } from 'react'
 import { ChipListEditor } from '@/components/settings/ChipListEditor'
 import { DragReorderList } from '@/components/settings/DragReorderList'
 import { YearRangeEditor } from '@/components/settings/YearRangeEditor'
 import { SnapshotsTab } from '@/components/settings/SnapshotsTab'
 import { BackupTab } from '@/components/settings/BackupTab'
+import { FsBrowser } from '@/components/settings/FsBrowser'
+import { ConfirmationDialog } from '@/components/ConfirmationDialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -79,6 +84,58 @@ interface PrefSwitchProps {
   onChange: (next: boolean) => void
 }
 
+interface PathRowProps {
+  id: string
+  label: string
+  value: string
+  mode?: 'directory' | 'file'
+  onChange: (next: string) => void
+}
+
+// FP12 § H — single Label + Input + Browse cell. The Input patches on blur
+// (avoids per-keystroke noise); the Browse button opens an <FsBrowser>
+// scoped to this row so multiple PathRows don't share a modal. The local
+// draft seeds from `value` on mount; out-of-band resets (e.g. snapshot
+// restore while the tab is open) won't reflect until the input is blurred.
+function PathRow({ id, label, value, mode = 'directory', onChange }: PathRowProps) {
+  const [draft, setDraft] = useState(value)
+  const [browseOpen, setBrowseOpen] = useState(false)
+  return (
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          id={id}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => {
+            if (draft !== value) onChange(draft)
+          }}
+        />
+        <Button
+          variant="outline"
+          onClick={() => setBrowseOpen(true)}
+          aria-label={`Browse for ${label}`}
+        >
+          {strings.settings.fsBrowserBrowse}
+        </Button>
+      </div>
+      {browseOpen && (
+        <FsBrowser
+          open
+          onOpenChange={setBrowseOpen}
+          onPick={(picked) => {
+            setDraft(picked)
+            onChange(picked)
+          }}
+          mode={mode}
+          initialPath={value || undefined}
+        />
+      )}
+    </div>
+  )
+}
+
 function PrefSwitch({ id, label, checked, onChange }: PrefSwitchProps) {
   return (
     <div className="flex items-center justify-between">
@@ -125,11 +182,24 @@ export function SettingsPage({
   ) => {
     onPatch({ filters: { ...config.filters, [key]: value } })
   }
-  const updateMedia = (
-    key: keyof AppConfigResponse['media'],
-    value: boolean,
+  // FP12 § F: widened to a typed-key generic so `cache_dir` (string) and
+  // `fetch_videos` (boolean) share one helper.
+  const updateMedia = <K extends keyof AppConfigResponse['media']>(
+    key: K,
+    value: AppConfigResponse['media'][K],
   ) => {
     onPatch({ media: { ...config.media, [key]: value } })
+  }
+  const [cacheDirDraft, setCacheDirDraft] = useState(config.media.cache_dir)
+  const [browseOpen, setBrowseOpen] = useState(false)
+  // FP12 § H — DAT swap is destructive (replaces the whole library);
+  // hold the pending value here until the user confirms.
+  const [pendingDat, setPendingDat] = useState<string | null>(null)
+  const updatePaths = <K extends keyof AppConfigResponse['paths']>(
+    key: K,
+    value: AppConfigResponse['paths'][K],
+  ) => {
+    onPatch({ paths: { ...config.paths, [key]: value } })
   }
   const updateUpdates = <K extends keyof UpdatesCfg>(
     key: K,
@@ -166,19 +236,48 @@ export function SettingsPage({
           ))}
         </TabsList>
 
-        <TabsContent value="paths" className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">
-            {strings.settings.pathRowLabels.sourceRoms}{' '}
-            <code>{config.paths.source_roms}</code>
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {strings.settings.pathRowLabels.destination}{' '}
-            <code>{config.paths.dest_roms}</code>
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {strings.settings.pathRowLabels.dat}{' '}
-            <code>{config.paths.source_dat}</code>
-          </p>
+        <TabsContent value="paths" className="flex flex-col gap-3">
+          <PathRow
+            id="paths-source-roms"
+            label={strings.settings.pathRowLabels.sourceRoms}
+            value={config.paths.source_roms}
+            onChange={(next) => updatePaths('source_roms', next)}
+          />
+          <PathRow
+            id="paths-dest-roms"
+            label={strings.settings.pathRowLabels.destination}
+            value={config.paths.dest_roms}
+            onChange={(next) => updatePaths('dest_roms', next)}
+          />
+          <PathRow
+            id="paths-source-dat"
+            label={strings.settings.pathRowLabels.dat}
+            value={config.paths.source_dat}
+            mode="file"
+            onChange={(next) => {
+              if (next !== config.paths.source_dat) setPendingDat(next)
+            }}
+          />
+          <PathRow
+            id="paths-retroarch-playlist"
+            label={strings.settings.pathRowLabels.retroarchPlaylist}
+            value={config.paths.retroarch_playlist}
+            mode="file"
+            onChange={(next) => updatePaths('retroarch_playlist', next)}
+          />
+          {pendingDat !== null && (
+            <ConfirmationDialog
+              open
+              onOpenChange={(o) => {
+                if (!o) setPendingDat(null)
+              }}
+              title={strings.settings.datSwapConfirmTitle}
+              description={strings.settings.datSwapConfirm}
+              actionLabel={strings.settings.datSwapActionLabel(pendingDat)}
+              destructive
+              onConfirm={() => updatePaths('source_dat', pendingDat)}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="filters" className="flex flex-col gap-2">
@@ -384,10 +483,41 @@ export function SettingsPage({
             checked={config.media.fetch_videos}
             onChange={(v) => updateMedia('fetch_videos', v)}
           />
-          <p className="text-xs text-muted-foreground">
-            {strings.settings.mediaCacheLabel}{' '}
-            <code>{config.media.cache_dir}</code>
-          </p>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="media-cache-dir">
+              {strings.settings.mediaCacheLabel}
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="media-cache-dir"
+                value={cacheDirDraft}
+                onChange={(e) => setCacheDirDraft(e.target.value)}
+                onBlur={() => {
+                  if (cacheDirDraft !== config.media.cache_dir) {
+                    updateMedia('cache_dir', cacheDirDraft)
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                onClick={() => setBrowseOpen(true)}
+                aria-label={strings.settings.mediaCacheBrowseLabel}
+              >
+                {strings.settings.fsBrowserBrowse}
+              </Button>
+            </div>
+          </div>
+          {browseOpen && (
+            <FsBrowser
+              open
+              onOpenChange={setBrowseOpen}
+              onPick={(picked) => {
+                setCacheDirDraft(picked)
+                updateMedia('cache_dir', picked)
+              }}
+              initialPath={config.media.cache_dir || undefined}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="snapshots" className="flex flex-col gap-2">

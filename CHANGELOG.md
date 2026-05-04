@@ -17,10 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### FP12 — Settings page list editors + path picker (in-flight)
+### FP12 — Settings page list editors + path picker (closing audits next)
 
 Replaces the FP11 spec-§-511 read-only Settings tabs with
-edit-in-place primitives. One commit per cluster.
+edit-in-place primitives. One commit per cluster — all 10
+shipped 2026-05-02..04.
 
 Closed: A `<ChipListEditor>` (7 fields) · B `<DragReorderList>`
 (arrow-button reorder; no dnd-kit per Karpathy rule 9) ·
@@ -35,10 +36,17 @@ mutate; ConfirmationDialog labels the file by name) ·
 G `<FsBrowser>` modal (R29-R34 wired through self-contained
 `useFs*` hooks; quick-jump for home / drive roots / allowed roots;
 file vs directory mode; `fs_sandboxed` 403 surfaces grant prompt
-that POSTs R33; first MSW-backed component test in the suite).
+that POSTs R33; first MSW-backed component test in the suite) ·
+F editable `media.cache_dir` (Input on blur + Browse → FsBrowser;
+mounted only when open so existing tests don't need MSW) ·
+H Paths tab in-place editable (PathRow helper for source_roms /
+dest_roms / source_dat / retroarch_playlist; DAT swap surfaces
+destructive ConfirmationDialog "Swap DAT to <path>" before
+patching since `replace_world` rebuilds the whole library).
 
-Pending: F editable `media.cache_dir` (deps G) ·
-H Paths tab in-place (deps G).
+Next: closing `/audit` + `/indie-review` (or CI-matrix-as-audit
+per FP11 precedent) → fold any findings into a follow-on
+fix-pass, otherwise close clean.
 
 ### P06 — Frontend MVP (closed 2026-05-02)
 

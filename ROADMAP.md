@@ -1198,8 +1198,15 @@ scope (a thin select control, no primitive needed).
     `'name' | 'year' | 'manufacturer' | 'rating'` literals. UI tab.
   - **E — `updates.channel` dropdown.** `<Select>` over
     `'stable' | 'dev'`. Updates tab.
-  - **F — Editable `media.cache_dir`.** Plain text input + a small
-    "Browse…" button that opens the new `<FsBrowser>` (G).
+  - **F — Editable `media.cache_dir`.** ✅ shipped 2026-05-04 —
+    Media tab gets an `<Input>` (controlled via local draft;
+    patches `onPatch({media:{...,cache_dir}})` on blur when the
+    value changes) plus a "Browse…" button that mounts
+    `<FsBrowser>` directory mode. Pick → updates draft + patches.
+    `FsBrowser` is conditionally mounted (`{open && <FsBrowser />}`)
+    so its `useFs*` hooks don't fire until the user actually
+    clicks Browse — keeps existing pure-prop SettingsPage tests
+    free of MSW handlers. 2 SettingsPage integration tests.
   - **G — `<FsBrowser>` path picker.** ✅ shipped 2026-05-04 —
     self-contained modal owning its own `useFs*` hooks (no
     pure-prop seam — single import via `<FsBrowser open
@@ -1224,10 +1231,18 @@ scope (a thin select control, no primitive needed).
         reference-INI overrides (P08 wizard fills these initially;
         Settings can edit afterwards).
       - `media.cache_dir` (F above).
-  - **H — Settings → Paths now in-place editable.** Click any path
-    row → `<FsBrowser>` opens at that path; pick a new directory →
-    R15 PATCH the field. `ConfirmationDialog` on the DAT path swap
-    (it triggers `replace_world`, expensive on the real DAT).
+  - **H — Settings → Paths now in-place editable.** ✅ shipped
+    2026-05-04 — `PathRow` helper (`<Label>` + `<Input>` + Browse
+    button → `<FsBrowser>`) renders 4 rows: `source_roms`,
+    `dest_roms`, `source_dat` (`mode='file'`), `retroarch_playlist`
+    (`mode='file'`). Inputs hold a local draft and patch on blur
+    when the value changed. DAT swap surfaces a destructive
+    `ConfirmationDialog` (action label `"Swap DAT to <path>"`)
+    rather than patching immediately — switching the DAT replaces
+    every machine in the library and is expensive
+    (`replace_world` rebuilds the whole world state). 5
+    SettingsPage integration tests cover render / patch-on-blur /
+    confirm-required / confirm-accept / confirm-cancel.
   - **I — Settings → Snapshots tab implementation.** ✅ shipped
     2026-05-04 — `SnapshotsTab` primitive with loading / error /
     empty / list states; per-row "Restore" opens

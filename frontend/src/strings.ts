@@ -241,11 +241,18 @@ export const strings = {
       fetch_videos: 'Fetch video previews (post-P06)',
     },
     pathRowLabels: {
-      sourceRoms: 'Source ROMs:',
-      destination: 'Destination:',
-      dat: 'DAT:',
+      sourceRoms: 'Source ROMs',
+      destination: 'Destination',
+      dat: 'DAT',
+      retroarchPlaylist: 'RetroArch playlist',
     },
-    mediaCacheLabel: 'Cache:',
+    /** FP12 § H — DAT swap is destructive (replaces the entire library). */
+    datSwapConfirmTitle: 'Swap DAT?',
+    datSwapConfirm:
+      'Switching the DAT replaces every machine in the library. Existing sessions, overrides, and notes that reference removed games stay on disk but are unreachable until you swap back.',
+    datSwapActionLabel: (path: string) => `Swap DAT to ${path}`,
+    mediaCacheLabel: 'Media cache directory',
+    mediaCacheBrowseLabel: 'Browse for media cache directory',
     backupBlurb:
       'Configuration snapshots can be restored from disk. Restore confirmation surfaces a destructive-action dialog.',
     banners: {
@@ -291,6 +298,7 @@ export const strings = {
       'Browse directories on this machine. Picking a path outside the existing allowlist surfaces a grant prompt.',
     fsBrowserHome: 'Home',
     fsBrowserUp: 'Up',
+    fsBrowserBrowse: 'Browse…',
     fsBrowserUseDirectory: 'Use this directory',
     fsBrowserLoading: 'Loading…',
     fsBrowserListError: 'Could not list this directory.',

@@ -341,6 +341,140 @@ describe('SettingsPage', () => {
     )
   })
 
+  it('renders an editable media.cache_dir input on the Media tab (FP12 § F)', async () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Media$/ }))
+    const input = screen.getByLabelText(
+      /^Media cache directory$/,
+    ) as HTMLInputElement
+    expect(input.value).toBe('./data/media-cache')
+  })
+
+  it('patches media.cache_dir on blur when the value changes (FP12 § F)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Media$/ }))
+    const input = screen.getByLabelText(/^Media cache directory$/)
+    await userEvent.clear(input)
+    await userEvent.type(input, '/tmp/new-cache')
+    await userEvent.tab()
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        media: expect.objectContaining({ cache_dir: '/tmp/new-cache' }),
+      }),
+    )
+  })
+
+  it('renders 4 editable path rows on the Paths tab (FP12 § H)', () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    expect(screen.getByLabelText(/^Source ROMs$/)).toHaveValue('/mnt/roms')
+    expect(screen.getByLabelText(/^Destination$/)).toHaveValue('/mnt/dest')
+    expect(screen.getByLabelText(/^DAT$/)).toHaveValue('/mnt/dat.xml')
+    expect(screen.getByLabelText(/^RetroArch playlist$/)).toHaveValue(
+      '/mnt/mame.lpl',
+    )
+  })
+
+  it('patches paths.source_roms on blur (FP12 § H)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    const input = screen.getByLabelText(/^Source ROMs$/)
+    await userEvent.clear(input)
+    await userEvent.type(input, '/new/roms')
+    await userEvent.tab()
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paths: expect.objectContaining({ source_roms: '/new/roms' }),
+      }),
+    )
+  })
+
+  it('does not patch the DAT immediately — surfaces a destructive confirm (FP12 § H)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    const input = screen.getByLabelText(/^DAT$/)
+    await userEvent.clear(input)
+    await userEvent.type(input, '/new/dat.xml')
+    await userEvent.tab()
+    expect(onPatch).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole('alertdialog', { name: /swap dat/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Swap DAT to /new/dat.xml' }),
+    ).toBeInTheDocument()
+  })
+
+  it('patches the DAT only after the confirm dialog is accepted (FP12 § H)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    const input = screen.getByLabelText(/^DAT$/)
+    await userEvent.clear(input)
+    await userEvent.type(input, '/new/dat.xml')
+    await userEvent.tab()
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Swap DAT to /new/dat.xml' }),
+    )
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paths: expect.objectContaining({ source_dat: '/new/dat.xml' }),
+      }),
+    )
+  })
+
+  it('does not patch the DAT if the confirm is cancelled (FP12 § H)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    const input = screen.getByLabelText(/^DAT$/)
+    await userEvent.clear(input)
+    await userEvent.type(input, '/new/dat.xml')
+    await userEvent.tab()
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    expect(onPatch).not.toHaveBeenCalled()
+  })
+
   it('fires onBackupExport when Export is clicked on the Backup tab (FP12 § J)', async () => {
     const onBackupExport = vi.fn()
     render(
