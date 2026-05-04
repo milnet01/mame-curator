@@ -57,14 +57,20 @@ export function GameCard({ card, focused = false, onOpen }: GameCardProps) {
     >
       <Card
         className={cn(
-          'flex cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring',
+          'flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring',
           focused && 'ring-2 ring-ring',
         )}
       >
-        <div className="relative aspect-[3/4] bg-muted">
+        {/* FP14: image area uses flex-1 + object-contain instead of
+            aspect-[3/4] + object-cover. Old layout pushed total card
+            height above the virtualizer rowHeight (clipping the title
+            via overflow-hidden); flex-1 makes the image fill the row
+            after CardContent claims its natural size. object-contain
+            preserves both portrait boxart and landscape marquee art. */}
+        <div className="relative min-h-0 flex-1 bg-muted">
           {imgFailed ? (
-            <div className="flex h-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
-              {strings.library.placeholderFlyer}
+            <div className="flex h-full items-center justify-center px-3 text-center text-sm font-semibold leading-tight text-muted-foreground">
+              {card.description}
             </div>
           ) : (
             <img
@@ -72,7 +78,7 @@ export function GameCard({ card, focused = false, onOpen }: GameCardProps) {
               alt={altText}
               loading="lazy"
               onError={() => setImgFailed(true)}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           )}
           {card.badges.length > 0 && (
@@ -93,10 +99,13 @@ export function GameCard({ card, focused = false, onOpen }: GameCardProps) {
             </ul>
           )}
         </div>
-        <CardContent className="flex flex-col gap-1 px-3 py-2">
+        <CardContent className="flex flex-shrink-0 flex-col gap-0.5 px-3 py-2">
           <h3 className="line-clamp-2 text-sm font-semibold leading-tight">
             {card.description}
           </h3>
+          <p className="font-mono text-xs text-muted-foreground">
+            {card.short_name}
+          </p>
           <p className="text-xs text-muted-foreground">
             {[card.year, card.publisher].filter(Boolean).join(' · ') || '—'}
           </p>

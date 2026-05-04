@@ -1338,6 +1338,42 @@ debt-sweep should resolve).
 
 ---
 
+## FP14 — GameCard layout overflow (closed 2026-05-04)
+
+**Theme:** every game tile rendered blank in production because
+`aspect-[3/4]` on the image area pushed total card height above
+the virtualizer's 280px row, and `Card.overflow-hidden` clipped
+the description heading. With 26.5k games and most without art,
+the library was unusable — no way to identify games whose
+box art hadn't been fetched yet.
+
+### 🎨 Features
+
+- ✅ **FP14** [mame-curator-1008] **GameCard layout overflow + always-on identifier.**
+  Lanes: frontend, tests.
+  - **A — Card layout fits the virtualizer row.** Replaced
+    `aspect-[3/4]` + `object-cover` on the image area with
+    `flex-1 min-h-0` + `object-contain`; CardContent gets
+    `flex-shrink-0` so it always renders. Card itself gets
+    `h-full` to fill the row exactly. Works at any rowHeight
+    (covers = 360, masonry / grouped = 280).
+  - **B — Always identify the game without art.** When the image
+    fails (or never loads), the placeholder div now renders
+    `card.description` instead of the generic "No artwork
+    available" string. Plus: shortname `<p>` (font-mono) added
+    below the description heading — what `mame-curator copy`
+    consumes; also disambiguates same-name re-releases
+    (1942 Capcom vs Williams).
+
+  Source: user screenshot 2026-05-04 showing 26,539 games in
+  Grouped layout, every tile blank with no labels. Verified
+  cause: `aspect-[3/4]` at ~360px column width forces 480px
+  image height; total card ~540px exceeds 280px rowHeight;
+  bottom ~260px clipped by `overflow-hidden`.
+  Dependencies: P06 ✅, FP11 ✅ (P06's surface).
+
+---
+
 ## P07 — Self-update + in-app help (planned)
 
 **Theme:** in-app updates (git-pull / release-download with

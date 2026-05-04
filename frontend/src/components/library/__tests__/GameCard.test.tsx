@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { GameCard } from '../GameCard'
@@ -24,19 +24,24 @@ describe('GameCard', () => {
     expect(screen.getByText(/1980 · Midway/)).toBeInTheDocument()
   })
 
+  it('renders the short name so users can identify games without art', () => {
+    render(<GameCard card={baseCard} onOpen={() => {}} />)
+    expect(screen.getByText('pacman')).toBeInTheDocument()
+  })
+
   it('renders the box-art image with a media URL and accessible name', () => {
     render(<GameCard card={baseCard} onOpen={() => {}} />)
     const img = screen.getByAltText(strings.library.flyerAlt('Pac-Man (Midway)'))
     expect(img).toHaveAttribute('src', '/media/pacman/boxart')
   })
 
-  it('falls back to a placeholder when the image fails to load', async () => {
+  it('shows the description in the art area when the image fails (so the game is still identifiable)', () => {
     render(<GameCard card={baseCard} onOpen={() => {}} />)
     const img = screen.getByAltText(strings.library.flyerAlt('Pac-Man (Midway)'))
-    img.dispatchEvent(new Event('error'))
-    expect(
-      await screen.findByText(strings.library.placeholderFlyer),
-    ).toBeInTheDocument()
+    fireEvent.error(img)
+    // Description appears once in the heading and once as the art-area placeholder.
+    const matches = screen.getAllByText('Pac-Man (Midway)')
+    expect(matches.length).toBeGreaterThanOrEqual(2)
   })
 
   it('exposes every badge as an accessible label', () => {

@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP14 — GameCard layout overflow + always-on identifier (closed 2026-05-04)
+
+GameCard's `aspect-[3/4]` image area pushed total card height past
+the virtualizer's 280px row, clipping the description heading via
+`overflow-hidden` — game tiles rendered blank in production with
+no way to identify games whose box art hadn't loaded. Replaced
+the fixed-aspect image with `flex-1 min-h-0` + `object-contain`
+so the image fills the remaining row space after CardContent
+claims its natural height. Image-fail placeholder now shows the
+description (instead of the generic "No artwork available"
+string) so games are always identifiable. Added shortname
+(`font-mono`) below the heading — what `mame-curator copy`
+consumes; also disambiguates same-name re-releases
+(1942 Capcom vs Williams).
+
 ### FP13 — FP12 closing-review fold-in (closed 2026-05-04)
 
 22 actionable findings from FP12's closing `/audit` (clean) +
