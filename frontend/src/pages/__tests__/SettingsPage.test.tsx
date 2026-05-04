@@ -291,4 +291,52 @@ describe('SettingsPage', () => {
       }),
     )
   })
+
+  it('renders the snapshot list when given snapshots (FP12 § I)', async () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+        snapshots={[
+          {
+            id: '20260502T164321Z-abc',
+            ts: new Date('2026-05-02T16:43:21Z'),
+            files: ['config.yaml', 'overrides.yaml'],
+          },
+        ]}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Snapshots$/ }))
+    expect(
+      screen.getByRole('button', { name: /^Restore$/ }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/2 files/)).toBeInTheDocument()
+  })
+
+  it('propagates the snapshot id to onSnapshotRestore on confirm (FP12 § I)', async () => {
+    const onSnapshotRestore = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={onSnapshotRestore}
+        snapshots={[
+          {
+            id: '20260502T164321Z-abc',
+            ts: new Date('2026-05-02T16:43:21Z'),
+            files: ['config.yaml', 'overrides.yaml'],
+          },
+        ]}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Snapshots$/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^Restore$/ }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Restore 2 files' }),
+    )
+    expect(onSnapshotRestore).toHaveBeenCalledExactlyOnceWith(
+      '20260502T164321Z-abc',
+    )
+  })
 })

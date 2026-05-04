@@ -259,6 +259,17 @@ export const strings = {
     },
     snapshotRestoreConfirm: (count: number) =>
       `Restore ${count} configuration file${count === 1 ? '' : 's'} from this snapshot? Current settings will be replaced.`,
+    /** FP12 § I — Snapshots tab copy. */
+    snapshotsTitle: 'Saved snapshots',
+    snapshotsLoading: 'Loading snapshots…',
+    snapshotsLoadError: 'Could not load snapshots.',
+    snapshotsEmpty: 'No snapshots yet — one is written automatically before each PATCH.',
+    snapshotItemFiles: (count: number) =>
+      `${count} file${count === 1 ? '' : 's'}`,
+    snapshotRestoreLabel: 'Restore',
+    snapshotRestoreConfirmTitle: 'Restore configuration?',
+    snapshotRestoreActionLabel: (count: number) =>
+      `Restore ${count} file${count === 1 ? '' : 's'}`,
   },
 
   copy: {

@@ -16,7 +16,12 @@ import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { CmdKPalette, type CmdKItem } from '@/components/CmdKPalette'
 import { ConfirmationDialog } from '@/components/ConfirmationDialog'
-import { useConfig, useConfigPatch } from '@/hooks/useConfig'
+import {
+  useConfig,
+  useConfigPatch,
+  useSnapshotRestore,
+  useSnapshots,
+} from '@/hooks/useConfig'
 import {
   useSessions,
   useSessionActivate,
@@ -189,10 +194,38 @@ function HelpRoute() {
   )
 }
 
+// FP12 § I: SettingsRoute owns the settings-page hooks (config + snapshots
+// + restore) so the SettingsPage stays pure-prop. Mirrors the FP11 § B8
+// container pattern used by Sessions / Activity / Stats / Help.
+function SettingsRoute() {
+  const config = useConfig()
+  const configPatch = useConfigPatch()
+  const snapshots = useSnapshots()
+  const restore = useSnapshotRestore()
+
+  if (!config.data) {
+    return (
+      <div className="p-4 text-sm text-muted-foreground">Loading settings…</div>
+    )
+  }
+
+  return (
+    <SettingsPage
+      config={config.data}
+      onPatch={(patch) => configPatch.mutate(patch)}
+      snapshots={snapshots.data?.items ?? []}
+      snapshotsLoading={snapshots.isLoading}
+      snapshotsError={
+        snapshots.error ? strings.settings.snapshotsLoadError : null
+      }
+      onSnapshotRestore={(id) => restore.mutate(id)}
+    />
+  )
+}
+
 function ShellWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const config = useConfig()
-  const configPatch = useConfigPatch()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -232,22 +265,7 @@ function ShellWithPalette() {
               <Route path="/sessions" element={<SessionsRoute />} />
               <Route path="/activity" element={<ActivityRoute />} />
               <Route path="/stats" element={<StatsRoute />} />
-              <Route
-                path="/settings"
-                element={
-                  config.data ? (
-                    <SettingsPage
-                      config={config.data}
-                      // FP11 § B9: real PATCH wiring via useConfigPatch
-                      // (was a no-op `() => {}`).
-                      onPatch={(patch) => configPatch.mutate(patch)}
-                      onSnapshotRestore={() => {}}
-                    />
-                  ) : (
-                    <div className="p-4 text-sm text-muted-foreground">Loading settings…</div>
-                  )
-                }
-              />
+              <Route path="/settings" element={<SettingsRoute />} />
               <Route path="/help" element={<HelpRoute />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

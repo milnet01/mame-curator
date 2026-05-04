@@ -6,9 +6,9 @@
 |-------|-------|
 | **Project phase** | FP12 — Settings page list editors + path picker (🚧 active) |
 | **Active item ID** | FP12 |
-| **Active step** | 1 ✅ + 2 ✅ → starting 3 🚧 (TDD cluster A) |
+| **Active step** | 1 ✅ + 2 ✅ → 3+4 🚧 (clusters A-E + I done; F+G+H+J pending) |
 | **Blocked on** | — |
-| **Last update** | 2026-05-02 (user confirmed "continue" after the FP11/P06 closing summary; picking up FP12 per ROADMAP order ahead of P07. Step 1 research issued 5 parallel queries (chip-input ARIA, dnd-kit keyboard sortables, FS-picker path-traversal, shadcn Select Tailwind v4, Blob/FormData download/upload). Step 2 deps: P06 ✅ + FP11 ✅ + P04 R29-R34 backend ✅ + R15-R19 backend ✅; all FP12 deps satisfied. Two surfaced gaps: dnd-kit not in `package.json` (ROADMAP "no new top-level dep" claim is wrong — needs `@dnd-kit/core + sortable + utilities`); shadcn `<Select>` primitive missing from `components/ui/`. Both will be installed at their cluster's start. Started ~15:00 local.) |
+| **Last update** | 2026-05-04 (cluster I — Snapshots tab — landed: SnapshotsTab primitive (8 unit tests covering load/error/empty/list/confirm/cancel/concrete-action-label), SettingsPage wires snapshots+loading+error+onSnapshotRestore through new optional props, App.tsx extracts SettingsRoute container per FP11 § B8 pattern owning useConfig+useConfigPatch+useSnapshots+useSnapshotRestore. ConfirmationDialog uses concrete "Restore N files" action label per design §8. PATCH onSuccess invalidates the snapshots query so new snapshots surface on next read. 133 frontend tests / 435 backend tests / lint+typecheck+ruff+mypy+bandit all clean; coverage 89.19%. Reordered remaining: J Backup tab next, then G FsBrowser, then F media.cache_dir + H paths in-place (both depend on G).) |
 | **Next gate** | Close FP12 clusters A→J via TDD (each cluster lands with its own commit), then run `/close-phase` per FP11 precedent (CI matrix may substitute for /audit + /indie-review at user's option). 10 sub-bullets to close: A ChipListEditor, B DragReorderList, C year-range, D default_sort, E updates.channel, F media.cache_dir, G FsBrowser, H paths in-place, I snapshots tab, J backup tab. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
@@ -31,11 +31,11 @@ FP12 step progress (active 2026-05-02):
    - C ✅ YearRangeEditor — paired Switch+`<Input type="number">` per bound; null state via the switch (off ⇒ disabled input + null in config; on ⇒ defaults to 1971 / currentYear). Min/max attrs `1971..currentYear`. 9 unit tests + 1 SettingsPage integration test; wired into Filters tab between toggles and chip lists.
    - D ✅ default_sort dropdown — added shadcn `<Select>` primitive at `components/ui/select.tsx` (hand-written matching the project's `import { X as XPrimitive } from "radix-ui"` style; 9 named exports). Wired into UI tab, drives `ui.default_sort` over the four `'name' | 'year' | 'manufacturer' | 'rating'` literals. `updateUi` widened to typed-key generic alongside `updateFilters`. 2 SettingsPage integration tests.
    - E ✅ updates.channel dropdown — `<Select>` over `'stable' | 'dev'` literal type, wired into Updates tab. `updateUpdates` widened to typed-key generic alongside `updateUi` / `updateFilters`. 2 SettingsPage integration tests.
-   - F ⬜ Editable media.cache_dir (Browse → FsBrowser)
-   - G ⬜ FsBrowser modal path picker (R29-R34 + grant flow on 403)
-   - H ⬜ Paths tab in-place editable (R15 PATCH; ConfirmationDialog on DAT swap)
-   - I ⬜ Snapshots tab (R16 list + R17 restore)
+   - I ✅ Snapshots tab (R16 list + R17 restore) — SnapshotsTab primitive (8 unit tests + 2 SettingsPage integration tests), SettingsRoute container in App.tsx owning useSnapshots+useSnapshotRestore, ConfirmationDialog with concrete "Restore N files" action label per design §8. PATCH onSuccess invalidates SNAPSHOTS_KEY so new entries surface on next read.
    - J ⬜ Backup tab (R18 export download + R19 import upload)
+   - G ⬜ FsBrowser modal path picker (R29-R34 + grant flow on 403)
+   - F ⬜ Editable media.cache_dir (Browse → FsBrowser; depends on G)
+   - H ⬜ Paths tab in-place editable (R15 PATCH; ConfirmationDialog on DAT swap; depends on G)
 5. ⬜ Run `/audit`
 6. ⬜ Run `/indie-review`
 7. ⬜ Fold actionable findings → next FP## (or close clean)
@@ -157,6 +157,54 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-04 — FP12 cluster I (Snapshots tab) closed
+
+User said "continue with the next roadmap item" (auto-mode) with
+a Karpathy-principles reminder. Reordered remaining clusters
+to I → J → G → F → H since F+H depend on G but I+J don't, so
+front-load the independent ones.
+
+Cluster I shipped:
+
+- `SnapshotsTab` primitive (`frontend/src/components/settings/SnapshotsTab.tsx`)
+  — loading / error / empty / list states; per-row Restore
+  opens `ConfirmationDialog` with the design §8 concrete action
+  label `"Restore N files"`. 8 unit tests cover all five states +
+  the cancel-doesn't-call-onRestore guard.
+- `SettingsPage` accepts new optional `snapshots` /
+  `snapshotsLoading` / `snapshotsError` props, defaults to empty
+  so older test sites compile unchanged. 2 integration tests.
+- `useSnapshots` + `useSnapshotRestore` hooks added to
+  `useConfig.ts`. `useConfigPatch.onSuccess` now invalidates the
+  snapshots query alongside setting the config cache, so a
+  fresh PATCH surfaces the new entry on next read.
+- `App.tsx` extracts `SettingsRoute` container per the
+  FP11 § B8 pattern — owns all four config-related queries
+  (config / patch / snapshots / restore) so the page stays
+  pure-prop. The shell's redundant `useConfigPatch` call dropped.
+
+**Style snag**: `prettier --write` flipped single-quote/no-semi
+to double-quote/semi (no `.prettierrc` in repo, so prettier uses
+defaults; project-wide convention is single-quote/no-semi). 5 of
+the touched files exploded to 766 inserts / 544 deletes. `git
+checkout --` reverted the noise; re-applied logical changes via
+Edit + Write in project style. Net diff: ~133 LOC added across
+5 modified + 2 new files. Lesson: **don't run `prettier --write`
+in this repo without first reading the existing file's style**;
+the format check (`npm run format`) passes despite the
+discrepancy because formatting isn't a CI gate. Saved as a
+feedback memory.
+
+Tests: 133 frontend pass (8 + 2 new), 435 backend pass at
+89.19% coverage. eslint / tsc / ruff / mypy / bandit all clean.
+`frontend/dist/` rebuilt.
+
+User question landed mid-cluster: "Are there additional sites
+that game metadata can be scraped from? There are quite a lot
+of games without graphics." — to be addressed after the cluster
+ships; metadata-source brainstorm is post-v1 territory but
+worth surfacing options now.
 
 ### 2026-05-02 — FP12 picked up (active)
 

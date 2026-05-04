@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChipListEditor } from '@/components/settings/ChipListEditor'
 import { DragReorderList } from '@/components/settings/DragReorderList'
 import { YearRangeEditor } from '@/components/settings/YearRangeEditor'
+import { SnapshotsTab } from '@/components/settings/SnapshotsTab'
 import {
   Select,
   SelectContent,
@@ -12,7 +13,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { strings } from '@/strings'
-import type { AppConfigResponse, AppUpdateInfo, SetupCheck } from '@/api/types'
+import type {
+  AppConfigResponse,
+  AppUpdateInfo,
+  SetupCheck,
+  Snapshot,
+} from '@/api/types'
 
 type FilterCfg = AppConfigResponse['filters']
 type UiCfg = AppConfigResponse['ui']
@@ -53,6 +59,11 @@ interface SettingsPageProps {
   updateInfo?: AppUpdateInfo
   /** R35 setup-check payload — when present, drives the Setup banner. */
   setupInfo?: SetupCheck
+  /** FP12 § I — R16 snapshot listing. Defaults to empty for callers that
+      haven't wired the hook yet (e.g. pre-cluster-I tests). */
+  snapshots?: readonly Snapshot[]
+  snapshotsLoading?: boolean
+  snapshotsError?: string | null
 }
 
 interface PrefSwitchProps {
@@ -85,8 +96,12 @@ const SECTION_KEYS = [
 export function SettingsPage({
   config,
   onPatch,
+  onSnapshotRestore,
   updateInfo,
   setupInfo,
+  snapshots = [],
+  snapshotsLoading = false,
+  snapshotsError = null,
 }: SettingsPageProps) {
   const updateUi = <K extends keyof UiCfg>(key: K, value: UiCfg[K]) => {
     onPatch({ ui: { ...config.ui, [key]: value } })
@@ -369,6 +384,12 @@ export function SettingsPage({
           <p className="text-sm text-muted-foreground">
             {strings.settings.backupBlurb}
           </p>
+          <SnapshotsTab
+            snapshots={snapshots}
+            loading={snapshotsLoading}
+            error={snapshotsError}
+            onRestore={onSnapshotRestore}
+          />
         </TabsContent>
 
         <TabsContent value="about" className="flex flex-col gap-2">

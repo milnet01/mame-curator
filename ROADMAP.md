@@ -1217,11 +1217,18 @@ scope (a thin select control, no primitive needed).
     row → `<FsBrowser>` opens at that path; pick a new directory →
     R15 PATCH the field. `ConfirmationDialog` on the DAT path swap
     (it triggers `replace_world`, expensive on the real DAT).
-  - **I — Settings → Snapshots tab implementation.** R16 GET list,
-    R17 restore. Read-only listing of `data/config-snapshots/`
-    timestamps; "Restore this snapshot" → `ConfirmationDialog` with
-    concrete label "Restore configuration to <ts>" → R17 POST →
-    toast on success. Backend exists; UI is missing.
+  - **I — Settings → Snapshots tab implementation.** ✅ shipped
+    2026-05-04 — `SnapshotsTab` primitive with loading / error /
+    empty / list states; per-row "Restore" opens
+    `ConfirmationDialog` whose action label is the design §8
+    concrete form `"Restore N files"` (not generic "OK").
+    `useSnapshots` + `useSnapshotRestore` hooks live in
+    `useConfig.ts`; `App.tsx` extracts `SettingsRoute` per the
+    FP11 § B8 container pattern, owning all four config-related
+    queries. `useConfigPatch.onSuccess` invalidates the snapshots
+    query so a fresh PATCH surfaces the new entry on next read.
+    8 unit tests + 2 SettingsPage integration tests; 133 frontend
+    tests total.
   - **J — Settings → Backup tab (Export / Import).** R18 GET and
     R19 POST. Export downloads a JSON bundle (browser file-picker
     save); import accepts a file via R19 multipart. The "Re-run

@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP12 — Settings page list editors + path picker (in-flight)
+
+Replaces the FP11 spec-§-511 read-only Settings tabs with
+edit-in-place primitives. One commit per cluster.
+
+Closed: A `<ChipListEditor>` (7 fields) · B `<DragReorderList>`
+(arrow-button reorder; no dnd-kit per Karpathy rule 9) ·
+C `<YearRangeEditor>` (paired Switch+number, null via switch) ·
+D `default_sort` `<Select>` · E `updates.channel` `<Select>` ·
+I Snapshots tab (R16 list + R17 restore via concrete-label
+`ConfirmationDialog`; new `SettingsRoute` container per FP11 § B8).
+
+Pending: J Backup tab · G `<FsBrowser>` modal · F editable
+`media.cache_dir` (deps G) · H Paths tab in-place (deps G).
+
 ### P06 — Frontend MVP (closed 2026-05-02)
 
 **P06 (`frontend/` SPA) — all 18 spec impl-steps shipped** across 19
