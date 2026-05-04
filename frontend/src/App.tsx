@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   BrowserRouter,
   Navigate,
@@ -175,7 +175,16 @@ function StatsRoute() {
 
 function HelpRoute() {
   const index = useHelpIndex()
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
+  const [searchParams] = useSearchParams()
+  // P07 § E: Cmd-K palette navigates to /help?topic=<slug>; HelpRoute
+  // honours that query param so the picked topic is pre-selected after
+  // the route mounts. useEffect (not useState initialiser) so a second
+  // Cmd-K pick while already on /help re-syncs.
+  const topicParam = searchParams.get('topic')
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(topicParam)
+  useEffect(() => {
+    if (topicParam) setSelectedSlug(topicParam)
+  }, [topicParam])
   const topic = useHelpTopic(selectedSlug)
 
   if (index.isLoading) {
@@ -288,6 +297,22 @@ function ShellWithPalette() {
     },
   ])
 
+  // P07 § E: merge bundled help-topic items into the palette so users
+  // can search by topic title (e.g. "playlist conflicts") and jump
+  // straight to that page. Topics arrive from /api/help/index — the
+  // palette stays usable without them.
+  const helpIndex = useHelpIndex()
+  const paletteItems = useMemo<CmdKItem[]>(() => {
+    const helpItems: CmdKItem[] = (helpIndex.data?.topics ?? []).map((t) => ({
+      id: `help-${t.slug}`,
+      section: 'help',
+      label: t.title,
+      value: `nav:/help?topic=${encodeURIComponent(t.slug)}`,
+      hint: strings.cmdK.sections.help,
+    }))
+    return [...PALETTE_ITEMS, ...helpItems]
+  }, [helpIndex.data])
+
   const handleSelect = (value: string) => {
     if (value.startsWith('nav:')) {
       // FP11 § A1: SPA navigation via react-router's `useNavigate`.
@@ -329,7 +354,7 @@ function ShellWithPalette() {
         <CmdKPalette
           open={paletteOpen}
           onOpenChange={setPaletteOpen}
-          items={PALETTE_ITEMS}
+          items={paletteItems}
           onSelect={handleSelect}
         />
       </ErrorBoundary>
