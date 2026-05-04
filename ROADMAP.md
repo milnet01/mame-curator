@@ -1425,26 +1425,41 @@ v1 budget.
 
 ---
 
-## P08 — Setup wizard (planned)
+## P08 — Setup wizard (closed 2026-05-04, slim)
 
-**Theme:** `git clone && ./run.sh` → curated grid via in-browser
-wizard, no manual config. Reuses P07's `downloads.py`. Two-flow
-reference-data acquisition (INIs checksum-pinned; `-listxml`
-tiered).
+**Theme:** `git clone && ./run.sh` → working app. Slim P08 ships
+the bootstrap scripts only; the original in-browser FileBrowser
+wizard with state persistence is deferred to post-v1 per Karpathy 9
+push-back — the existing terminal `mame-curator setup` + the
+Settings → Setup banner (FP11 § B3) cover the same ground for v1.
 
 **Long-form contract:**
 [`docs/superpowers/specs/2026-04-27-roadmap.md` § Phase 8](docs/superpowers/specs/2026-04-27-roadmap.md).
-**Two-flow `-listxml` acquisition:**
-[ADR-0003](docs/decisions/0003-listxml-tiered-acquisition.md).
 
 ### 🎨 Features
 
-- 📋 **P08 — `setup/` module.** `run.sh` / `run.bat` Stage 1;
-  Stage 2 in-browser wizard with `FileBrowser`. Resumable across
-  reboots. Coverage target: ≥85%.
-  Kind: implement.
-  Lanes: setup, frontend, tests.
-  Dependencies: P07.
+- ✅ **P08** [mame-curator-1011] **Clone-and-run bootstrap scripts.**
+  Lanes: setup, scripts.
+  - **A — `run.sh` (Linux/macOS).** Python 3.12+ detection
+    (with platform-specific install hints on failure), uv
+    auto-install via the official installer if missing,
+    `uv sync`, runs interactive `mame-curator setup` if
+    `config.yaml` is missing, then `mame-curator serve` +
+    best-effort browser open. Idempotent — re-run does the
+    right thing.
+  - **B — `run.bat` (Windows).** Same flow on Windows;
+    PowerShell `irm | iex` for the uv install path.
+
+  Scope refinement (2026-05-04): the original plan included a
+  full Stage 2 in-browser wizard with `FsBrowser`-driven
+  multi-step UI + state persistence + filter preview / filter
+  customization steps. Per Karpathy 9 push-back, those layer on
+  top of an already-working terminal flow that satisfies the
+  "non-technical user can clone-and-run" v1 contract. The
+  in-browser wizard is captured as a post-v1 candidate (P13);
+  v1 ships with the slim bootstrap.
+  Source: P07 close 2026-05-04.
+  Dependencies: P07 ✅.
 
 ---
 

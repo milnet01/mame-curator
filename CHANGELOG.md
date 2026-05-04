@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P08 — Clone-and-run bootstrap scripts (closed 2026-05-04, slim)
+
+Slim P08 ships only the bootstrap scripts; the original in-browser
+wizard is deferred to post-v1 per Karpathy 9 push-back (the existing
+terminal `mame-curator setup` + Settings page banner cover the same
+ground for v1).
+
+- **`run.sh` (Linux/macOS).** Python 3.12+ detection, uv auto-install,
+  `uv sync`, runs `mame-curator setup` if config.yaml is missing,
+  then `mame-curator serve` + browser open. Idempotent.
+- **`run.bat` (Windows).** Same flow translated for cmd.exe.
+
 ### P07 — Reference-data refresh + in-app help (closed 2026-05-04)
 
 Slim P07 (scope refined 2026-05-04 — self-update + INI diff-preview UI
