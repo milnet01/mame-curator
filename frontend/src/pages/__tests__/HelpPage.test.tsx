@@ -61,4 +61,33 @@ describe('HelpPage', () => {
     )
     expect(screen.getByText(/no help topics/i)).toBeInTheDocument()
   })
+
+  it('strips <script> tags from topic html (P07 § D — DOMPurify)', () => {
+    const malicious = '<p>Safe text</p><script>alert(1)</script>'
+    const { container } = render(
+      <HelpPage
+        topics={topics}
+        selectedSlug="overrides"
+        topicHtml={malicious}
+        onSelect={() => {}}
+      />,
+    )
+    expect(screen.getByText(/Safe text/)).toBeInTheDocument()
+    expect(container.querySelector('script')).toBeNull()
+  })
+
+  it('strips javascript: URLs from anchor hrefs (P07 § D — DOMPurify)', () => {
+    const malicious = '<a href="javascript:alert(1)">click</a>'
+    const { container } = render(
+      <HelpPage
+        topics={topics}
+        selectedSlug="overrides"
+        topicHtml={malicious}
+        onSelect={() => {}}
+      />,
+    )
+    const link = container.querySelector('a')
+    const href = link?.getAttribute('href') ?? ''
+    expect(href.toLowerCase()).not.toContain('javascript:')
+  })
 })

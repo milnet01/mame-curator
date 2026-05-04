@@ -1,3 +1,6 @@
+import { useMemo } from 'react'
+import DOMPurify from 'dompurify'
+
 import { strings } from '@/strings'
 import { cn } from '@/lib/utils'
 import type { HelpTopic } from '@/api/types'
@@ -18,6 +21,12 @@ export function HelpPage({
   onSelect,
   topicLoading = false,
 }: HelpPageProps) {
+  // P07 § D: closes FP11 § H4 security debt. DOMPurify strips <script>,
+  // javascript: URLs, and on-* event handlers before the HTML reaches
+  // dangerouslySetInnerHTML. Memoised so re-renders don't re-sanitize the
+  // same body — sanitization is the most expensive thing this page does.
+  const sanitizedHtml = useMemo(() => DOMPurify.sanitize(topicHtml), [topicHtml])
+
   if (topics.length === 0) {
     return (
       <section className="flex flex-col items-center gap-2 p-8 text-center">
@@ -60,11 +69,7 @@ export function HelpPage({
         {topicLoading ? (
           <p className="text-sm text-muted-foreground">{strings.help.loadingTopic}</p>
         ) : (
-          // FIXME(security, 2026-05-02): R38 returns server-rendered HTML
-          // and the trust boundary is local-only today; if help content
-          // ever sources from upstream, swap to a sanitized renderer
-          // (DOMPurify or similar). Tracked under FP11 § H4.
-          <div dangerouslySetInnerHTML={{ __html: topicHtml }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
         )}
       </article>
     </section>
