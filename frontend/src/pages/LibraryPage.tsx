@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
+import { toast } from 'sonner'
 import { LibraryGrid } from '@/components/library/LibraryGrid'
 import { LayoutSwitcher } from '@/components/library/LayoutSwitcher'
 import { ThemeSwitcher } from '@/components/library/ThemeSwitcher'
@@ -10,7 +12,10 @@ import { ActionBar } from '@/components/library/ActionBar'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { useGames, type GamesQuery } from '@/hooks/useGames'
 import { useConfig, useConfigPatch } from '@/hooks/useConfig'
-import type { GameCard, LayoutName, ThemeName } from '@/api/types'
+import { useSessions, useSessionUpsert } from '@/hooks/useSessions'
+import { toastApiError } from '@/lib/apiErrorToast'
+import { strings } from '@/strings'
+import type { GameCard, LayoutName, Session, ThemeName } from '@/api/types'
 
 const DEFAULT_FILTERS: FilterSidebarState = {
   search: '',
@@ -25,9 +30,12 @@ export function LibraryPage() {
   const [filters, setFilters] = useState<FilterSidebarState>(DEFAULT_FILTERS)
   const config = useConfig()
   const patch = useConfigPatch()
+  const sessions = useSessions()
+  const upsertSession = useSessionUpsert()
 
   const layout = (config.data?.ui.layout ?? 'masonry') as LayoutName
   const theme = (config.data?.ui.theme ?? 'dark') as ThemeName
+  const activeSession = sessions.data?.active ?? null
 
   const query: GamesQuery = {
     page: 1,
@@ -56,19 +64,56 @@ export function LibraryPage() {
     patch.mutate({ ui: { ...config.data.ui, theme: next } })
   }
 
+  // FP15 § A: fix LibraryPage:65's `onSaveSession` no-op stub.
+  // A session captures: the visible year range from the sidebar +
+  // the "preferred" picker chip-lists configured in Settings → Picker.
+  // Empty preferred_* lists save as empty arrays (valid Session shape;
+  // session focuses on year range only).
+  const handleSaveSession = (name: string) => {
+    if (!config.data) return
+    const session: Session = {
+      include_year_range: filters.yearRange,
+      include_genres: config.data.filters.preferred_genres,
+      include_publishers: config.data.filters.preferred_publishers,
+      include_developers: config.data.filters.preferred_developers,
+    }
+    upsertSession.mutate(
+      { name, session },
+      {
+        onSuccess: () => toast.success(strings.library.sessionSaved(name)),
+        onError: toastApiError,
+      },
+    )
+  }
+
   return (
     <div className="grid h-full grid-cols-[16rem_1fr] grid-rows-[auto_1fr_auto]">
       <aside className="row-span-2">
         <FiltersSidebar
           value={filters}
           onChange={setFilters}
-          onSaveSession={() => {
-            // Wired to R11 in FP11 § B8 (App.tsx + container hooks).
-          }}
+          onSaveSession={handleSaveSession}
         />
       </aside>
 
       <header className="flex items-center justify-end gap-2 border-b px-4 py-2">
+        {/* FP15 § B: active-session pill — visible answer to "am I in
+            a session right now?". Click navigates to /sessions for
+            switch / deactivate / delete. The "No active session" link
+            tells first-time users where saved sessions live. */}
+        <Link
+          to="/sessions"
+          className="rounded border bg-muted/50 px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+          title={
+            activeSession
+              ? strings.library.activeSessionTitle(activeSession)
+              : strings.library.noActiveSessionTitle
+          }
+        >
+          {activeSession
+            ? strings.library.activeSessionPill(activeSession)
+            : strings.library.noActiveSessionPill}
+        </Link>
         <LayoutSwitcher value={layout} onChange={handleLayout} />
         <ThemeSwitcher value={theme} onChange={handleTheme} />
       </header>

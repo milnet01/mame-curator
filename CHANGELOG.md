@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP15 — Sessions UX (closed 2026-05-04)
+
+User reported sessions weren't discoverable from the Library page.
+Investigation found three issues, all closed in one commit:
+
+- **The "Save as session" button was a no-op.** `LibraryPage.tsx:65`'s
+  `onSaveSession` was a placeholder comment that FP11 § B8 marked as
+  wired but never actually was. Clicking opened the name dialog and
+  silently did nothing. Now wires to `useSessionUpsert` with a Session
+  derived from current year range + Settings → Picker tab chip lists.
+  Success toast confirms the save.
+- **Active-session pill** added to the /library header (between filters
+  and LayoutSwitcher). Click navigates to /sessions. Shows
+  "Session: <name>" when active, "No active session" when not.
+- **One-line explainer** above the Save button in FiltersSidebar tells
+  first-time users what a session is and what it captures.
+
+182 frontend tests / build clean. No new tests — existing FiltersSidebar
+tests cover the Dialog → callback contract; the mutation wiring is
+exercised by manual UAT.
+
 ### P08 — Clone-and-run bootstrap scripts (closed 2026-05-04, slim)
 
 Slim P08 ships only the bootstrap scripts; the original in-browser

@@ -1338,6 +1338,38 @@ debt-sweep should resolve).
 
 ---
 
+## FP15 — Sessions UX (closed 2026-05-04)
+
+**Theme:** user asked 2026-05-04 "how do I start a session?" —
+investigation found three problems: the "Save as session" button
+was a no-op stub (`LibraryPage:65`'s `onSaveSession={() => {}}`
+that FP11 § B8 was supposed to wire but didn't), no active-session
+indicator was visible on /library, and no inline explainer told
+first-time users what a session captures.
+
+### 🎨 Features
+
+- ✅ **FP15** [mame-curator-1012] **Sessions UX — Save wiring + active pill + explainer.**
+  Lanes: frontend.
+  - **A — Wire `LibraryPage.onSaveSession`** to
+    `useSessionUpsert.mutate`. Session shape: `include_year_range`
+    from FiltersSidebar draft, `include_genres / publishers /
+    developers` from `config.filters.preferred_*` chip lists.
+    Success toast; `toastApiError` on failure.
+  - **B — Active-session pill in /library header.** Click
+    navigates to /sessions. Shows "Session: <name>" when active,
+    "No active session" when not.
+  - **C — One-line explainer above Save button.** "Sessions save
+    your current focus (year range + preferred genres / publishers
+    / developers) under a name you can return to."
+
+  Source: user follow-up 2026-05-04 ("Also consider, how do we
+  start a session. From this screen, what do I need to do.
+  Please consider user-friendliness when updating the UX.").
+  Dependencies: P06 ✅, FP11 ✅ (sessions hooks).
+
+---
+
 ## FP14 — GameCard layout overflow (closed 2026-05-04)
 
 **Theme:** every game tile rendered blank in production because

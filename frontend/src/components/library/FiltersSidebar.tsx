@@ -153,6 +153,12 @@ export function FiltersSidebar({
         ))}
       </div>
 
+      {/* FP15 § C: tell first-time users what a session IS before
+          asking them to save one. The Save button is at the bottom of
+          a long sidebar — without context it reads as cryptic jargon. */}
+      <p className="text-xs text-muted-foreground">
+        {strings.library.filters.sessionsExplainer}
+      </p>
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogTrigger asChild>
           <Button variant="outline">{strings.library.filters.saveAsSession}</Button>

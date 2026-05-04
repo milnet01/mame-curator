@@ -81,7 +81,18 @@ export const strings = {
       onlyBiosMissing: 'Only BIOS missing',
       saveAsSession: 'Save as session',
       sessionNameLabel: 'Session name',
+      /** FP15 § C — one-line explainer above the Save button. */
+      sessionsExplainer:
+        'Sessions save your current focus (year range + preferred genres / publishers / developers) under a name you can return to.',
     },
+    /** FP15 § A toast on successful session save. */
+    sessionSaved: (name: string) => `Saved session "${name}".`,
+    /** FP15 § B header pill copy (active + idle states). */
+    activeSessionPill: (name: string) => `Session: ${name}`,
+    activeSessionTitle: (name: string) =>
+      `Active session "${name}". Click to manage sessions.`,
+    noActiveSessionPill: 'No active session',
+    noActiveSessionTitle: 'No active session — save the current filters as one to focus your library.',
   },
 
   alternatives: {
