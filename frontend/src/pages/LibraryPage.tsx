@@ -12,6 +12,7 @@ import {
 import { ActionBar } from '@/components/library/ActionBar'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { useAlternatives, useOverride } from '@/hooks/useAlternatives'
+import { useFacets } from '@/hooks/useFacets'
 import { useGames, type GamesQuery } from '@/hooks/useGames'
 import { useConfig, useConfigPatch } from '@/hooks/useConfig'
 import { useSessions, useSessionUpsert } from '@/hooks/useSessions'
@@ -22,6 +23,10 @@ import type { GameCard, LayoutName, Session, ThemeName } from '@/api/types'
 const DEFAULT_FILTERS: FilterSidebarState = {
   search: '',
   yearRange: [1975, 2025],
+  letter: null,
+  genre: null,
+  publisher: null,
+  developer: null,
   onlyContested: false,
   onlyOverridden: false,
   onlyChdMissing: false,
@@ -37,6 +42,7 @@ export function LibraryPage() {
   const upsertSession = useSessionUpsert()
   const alternatives = useAlternatives(openedShortName)
   const override = useOverride()
+  const facets = useFacets()
 
   const layout = (config.data?.ui.layout ?? 'masonry') as LayoutName
   const theme = (config.data?.ui.theme ?? 'dark') as ThemeName
@@ -48,6 +54,10 @@ export function LibraryPage() {
     search: filters.search,
     yearFrom: filters.yearRange[0],
     yearTo: filters.yearRange[1],
+    letter: filters.letter ?? undefined,
+    genre: filters.genre ?? undefined,
+    publisher: filters.publisher ?? undefined,
+    developer: filters.developer ?? undefined,
     onlyContested: filters.onlyContested,
     onlyOverridden: filters.onlyOverridden,
     onlyChdMissing: filters.onlyChdMissing,
@@ -103,11 +113,12 @@ export function LibraryPage() {
 
   return (
     <div className="grid h-full grid-cols-[16rem_1fr] grid-rows-[auto_1fr_auto]">
-      <aside className="row-span-2">
+      <aside className="row-span-2 overflow-y-auto">
         <FiltersSidebar
           value={filters}
           onChange={setFilters}
           onSaveSession={handleSaveSession}
+          facets={facets.data}
         />
       </aside>
 

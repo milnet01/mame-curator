@@ -72,6 +72,10 @@ describe('no-checkbox-for-prefs invariant', () => {
         value={{
           search: '',
           yearRange: [1980, 2010],
+          letter: null,
+          genre: null,
+          publisher: null,
+          developer: null,
           onlyContested: false,
           onlyOverridden: false,
           onlyChdMissing: false,

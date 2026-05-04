@@ -481,6 +481,24 @@ export const AlternativesSchema = z
   .object({ items: z.array(GameCardSchema) })
   .strict()
 
+/** FP17: facets for FiltersSidebar dropdowns. Drawn from the winners
+ *  set so values always filter to non-empty results. ``letters`` uses
+ *  ``'#'`` for digit-prefixed games. */
+export interface LibraryFacets {
+  genres: string[]
+  publishers: string[]
+  developers: string[]
+  letters: string[]
+}
+export const LibraryFacetsSchema = z
+  .object({
+    genres: z.array(z.string()),
+    publishers: z.array(z.string()),
+    developers: z.array(z.string()),
+    letters: z.array(z.string()),
+  })
+  .strict()
+
 export interface Explanation {
   short_name: string
   parent: string

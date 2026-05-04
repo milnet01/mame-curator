@@ -17,6 +17,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-05-04
+
+### FP17 — Library filter expansion (closed 2026-05-04)
+
+User-requested filter additions on the /library FiltersSidebar:
+
+- **Letter filter** (A-Z + `#` for digit-prefixed games). Click a
+  letter button to filter; click again to clear. Drawn from
+  `/api/library/facets`'s `letters` (only buckets with games are
+  shown).
+- **Genre Select** dropdown — exact-match against
+  `world.ctx.category`. Sentinel "(any)" first option clears.
+- **Publisher Select** + **Developer Select** — same pattern.
+- New endpoint `GET /api/library/facets` returns deduped sorted
+  `{genres, publishers, developers, letters}` from the winners
+  set. New `LibraryFacets` schema. New `useFacets` hook
+  (60-second staleTime — facets only change on world rebuild).
+- Backend `/api/games` route accepts new `letter` / `developer`
+  query params alongside the existing `genre` / `publisher`.
+
+446 backend tests / 88.16% coverage. 182 frontend tests / build
+clean.
+
+## [1.0.1] — 2026-05-04
+
+### Fixed — INI default URLs (closed 2026-05-04)
+
+The v1.0.0 default URLs for `mame-curator refresh-inis` returned
+404 against AntoPISA's MAME_SupportFiles GitHub mirror. Root
+cause: WebFetch indexing during P07 § B mistook the per-file
+subdirectories (`catver.ini/`, `languages.ini/`, ...) for files.
+Corrected to the `<file>/<file>` pattern; verified locally with
+all 5 INIs downloaded successfully (~3 MB total). `mature.ini`
+was discovered to be available at `catver.ini/mature.ini` and
+added to defaults.
+
+Test added: `test_default_sources_covers_five_mandatory_inis`
+asserts the new 5-INI set + URL shape so a future regression
+that drops the subdir pattern fails the suite.
+
 ### FP16 — Library shipping blockers + INI visibility (closed 2026-05-04)
 
 User-reported bugs from real-data UAT during the v1.0.0 cut. All

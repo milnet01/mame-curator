@@ -13,7 +13,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 import { strings } from '@/strings'
+import type { LibraryFacets } from '@/api/types'
 
 const DEBOUNCE_MS = 200
 
@@ -26,6 +35,12 @@ const YEAR_MAX_FALLBACK = new Date().getFullYear()
 export interface FilterSidebarState {
   search: string
   yearRange: [number, number]
+  /** FP17: single-letter prefix bucket, ``'#'`` for digit-prefixed games. */
+  letter: string | null
+  /** FP17: discrete genre / publisher / developer filters. */
+  genre: string | null
+  publisher: string | null
+  developer: string | null
   onlyContested: boolean
   onlyOverridden: boolean
   onlyChdMissing: boolean
@@ -39,6 +54,10 @@ interface FiltersSidebarProps {
   /** Optional bounds passed from the library data (max year in the
    *  visible set). Falls back to currentYear when absent. */
   yearBounds?: { min: number; max: number }
+  /** FP17: facet values (genres / publishers / developers / letters)
+   *  drawn from /api/library/facets. Falls back to empty arrays before
+   *  the hook resolves so the sidebar still renders. */
+  facets?: LibraryFacets
 }
 
 const SWITCH_KEYS = [
@@ -53,6 +72,7 @@ export function FiltersSidebar({
   onChange,
   onSaveSession,
   yearBounds,
+  facets,
 }: FiltersSidebarProps) {
   const [searchDraft, setSearchDraft] = useState(value.search)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
@@ -140,6 +160,67 @@ export function FiltersSidebar({
         />
       </div>
 
+      {/* FP17 § C: letter prefix bucket. ``#`` = digit-prefixed games
+          (1942, 005, …). Click again to clear. */}
+      {facets && facets.letters.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <Label>{strings.library.filters.letterLabel}</Label>
+          <div className="flex flex-wrap gap-1">
+            {facets.letters.map((l) => {
+              const active = value.letter === l
+              return (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() =>
+                    onChange({ ...value, letter: active ? null : l })
+                  }
+                  aria-pressed={active}
+                  aria-label={strings.library.filters.letterAriaLabel(l)}
+                  className={cn(
+                    'h-7 w-7 rounded border text-xs font-medium uppercase',
+                    active
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-muted bg-muted/30 hover:bg-muted',
+                  )}
+                >
+                  {l === '#' ? '#' : l.toUpperCase()}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* FP17 § C: genre / publisher / developer Selects. Use a sentinel
+          "(any)" first option that maps to null so users can clear the
+          filter without a separate reset button. */}
+      {facets && (
+        <div className="flex flex-col gap-3">
+          <FacetSelect
+            id="filters-genre"
+            label={strings.library.filters.genreLabel}
+            value={value.genre}
+            options={facets.genres}
+            onChange={(v) => onChange({ ...value, genre: v })}
+          />
+          <FacetSelect
+            id="filters-publisher"
+            label={strings.library.filters.publisherLabel}
+            value={value.publisher}
+            options={facets.publishers}
+            onChange={(v) => onChange({ ...value, publisher: v })}
+          />
+          <FacetSelect
+            id="filters-developer"
+            label={strings.library.filters.developerLabel}
+            value={value.developer}
+            options={facets.developers}
+            onChange={(v) => onChange({ ...value, developer: v })}
+          />
+        </div>
+      )}
+
       <div className="flex flex-col gap-3">
         {SWITCH_KEYS.map((key) => (
           <div key={key} className="flex items-center justify-between">
@@ -187,5 +268,46 @@ export function FiltersSidebar({
         </DialogContent>
       </Dialog>
     </aside>
+  )
+}
+
+/** FP17 § C: facet Select with a sentinel "(any)" first option that
+ *  maps to null. Renders nothing when the options list is empty so the
+ *  sidebar doesn't show a useless empty dropdown. */
+function FacetSelect({
+  id,
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  id: string
+  label: string
+  value: string | null
+  options: readonly string[]
+  onChange: (next: string | null) => void
+}) {
+  if (options.length === 0) return null
+  const ANY = '__any__'
+  return (
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={id}>{label}</Label>
+      <Select
+        value={value ?? ANY}
+        onValueChange={(v) => onChange(v === ANY ? null : v)}
+      >
+        <SelectTrigger id={id} aria-label={label}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ANY}>{strings.library.filters.anyOption}</SelectItem>
+          {options.map((o) => (
+            <SelectItem key={o} value={o}>
+              {o}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   )
 }

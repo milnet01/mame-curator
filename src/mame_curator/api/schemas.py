@@ -186,6 +186,21 @@ class Stats(BaseModel):
     total_bytes: int
 
 
+class LibraryFacets(BaseModel):
+    """Discrete facet values for FiltersSidebar dropdowns (FP17).
+
+    Each list is sorted ascending and deduped. ``letters`` covers the
+    first-character bucket of every winner's description; ``'#'`` is
+    used for digit-prefixed games.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    genres: tuple[str, ...]
+    publishers: tuple[str, ...]
+    developers: tuple[str, ...]
+    letters: tuple[str, ...]
+
+
 # ---------------------------------------------------------------------------
 # Overrides + sessions
 # ---------------------------------------------------------------------------

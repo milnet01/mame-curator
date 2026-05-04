@@ -16,6 +16,7 @@ from mame_curator.api.schemas import (
     GameCard,
     GameDetail,
     GamesPage,
+    LibraryFacets,
     Notes,
     NotesPutRequest,
     Stats,
@@ -63,6 +64,8 @@ def list_games(
     q: str | None = None,
     genre: str | None = None,
     publisher: str | None = None,
+    developer: str | None = None,
+    letter: str | None = None,
     year_min: int | None = None,
     year_max: int | None = None,
     page: int = Query(1, ge=1),
@@ -76,6 +79,20 @@ def list_games(
     winners = list(world.filter_result.winners)
     contested_parents = {g.parent for g in world.filter_result.contested_groups}
 
+    # FP17: ``letter='#'`` selects the digits bucket (game names starting
+    # with 0-9) since MAME has plenty of those (1942, 1943, 005, ...).
+    # Other single-character values match case-insensitively against the
+    # description's first character.
+    letter_norm = (letter or "").strip().lower() or None
+
+    def matches_letter(m: Machine) -> bool:
+        if letter_norm is None:
+            return True
+        first = m.description[:1].lower()
+        if letter_norm == "#":
+            return first.isdigit()
+        return first == letter_norm
+
     def keep(short: str) -> bool:
         m = world.machines.get(short)
         if m is None:
@@ -85,6 +102,10 @@ def list_games(
         if genre is not None and world.ctx.category.get(short, "") != genre:
             return False
         if publisher is not None and (m.publisher or "") != publisher:
+            return False
+        if developer is not None and (m.developer or "") != developer:
+            return False
+        if not matches_letter(m):
             return False
         if year_min is not None and (m.year is None or m.year < year_min):
             return False
@@ -105,6 +126,42 @@ def list_games(
     end = start + page_size
     page_items = tuple(_card(world.machines[s], world) for s in filtered[start:end])
     return GamesPage(items=page_items, page=page, page_size=page_size, total=total)
+
+
+@router.get("/api/library/facets", response_model=LibraryFacets)
+def library_facets(world: WorldState = Depends(get_world)) -> LibraryFacets:
+    """FP17: discrete facet values for FiltersSidebar dropdowns.
+
+    Drawn from the ``winners`` set so the dropdowns only offer values
+    that actually filter to non-empty results. Empty / None values are
+    elided.
+    """
+    genres: set[str] = set()
+    publishers: set[str] = set()
+    developers: set[str] = set()
+    letters: set[str] = set()
+    for short in world.filter_result.winners:
+        m = world.machines.get(short)
+        if m is None:
+            continue
+        cat = world.ctx.category.get(short)
+        if cat:
+            genres.add(cat)
+        if m.publisher:
+            publishers.add(m.publisher)
+        if m.developer:
+            developers.add(m.developer)
+        first = m.description[:1].lower()
+        if first.isdigit():
+            letters.add("#")
+        elif first.isalpha():
+            letters.add(first)
+    return LibraryFacets(
+        genres=tuple(sorted(genres)),
+        publishers=tuple(sorted(publishers)),
+        developers=tuple(sorted(developers)),
+        letters=tuple(sorted(letters)),
+    )
 
 
 @router.get("/api/games/{name}", response_model=GameDetail)

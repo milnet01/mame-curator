@@ -87,6 +87,14 @@ export const strings = {
        *  mismatch ("I meant I went through games A to C"). */
       sessionsExplainer:
         'Sessions are named filter bookmarks (year range + preferred genres / publishers / developers). They do not track per-game review progress.',
+      /** FP17 § C — letter / genre / publisher / developer filters. */
+      letterLabel: 'Starting letter',
+      letterAriaLabel: (l: string) =>
+        l === '#' ? 'Filter to games starting with a digit' : `Filter to games starting with ${l.toUpperCase()}`,
+      genreLabel: 'Genre',
+      publisherLabel: 'Publisher',
+      developerLabel: 'Developer',
+      anyOption: '(any)',
     },
     /** FP15 § A toast on successful session save. */
     sessionSaved: (name: string) => `Saved session "${name}".`,

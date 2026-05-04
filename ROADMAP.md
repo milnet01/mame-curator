@@ -1338,6 +1338,39 @@ debt-sweep should resolve).
 
 ---
 
+## FP17 — Library filter expansion (closed 2026-05-04)
+
+**Theme:** user request 2026-05-04 ("Let's add the letter filter
+and a few other filters too please. I don't see where the genre
+filters are."). The /library FiltersSidebar shipped with only
+search + year-range + 4 toggles; missing letter / genre / publisher
+/ developer filters that users reasonably expect.
+
+### 🎨 Features
+
+- ✅ **FP17** [mame-curator-1016] **Library filter expansion (v1.1.0).**
+  Lanes: api, frontend.
+  - **A — Backend `letter` query param** on `/api/games`. Match
+    case-insensitive against the description's first character;
+    `letter='#'` selects digit-prefixed games (1942, 005, ...).
+  - **B — Backend `/api/library/facets`** endpoint. Returns
+    `{genres, publishers, developers, letters}` drawn from the
+    winners set, deduped + sorted. New `LibraryFacets` schema.
+    Backend `developer` param also added (parallel to existing
+    `genre` / `publisher`).
+  - **C — Frontend filter UI in FiltersSidebar.** Letter row
+    (A-Z + `#` buttons, click again to clear); Genre / Publisher /
+    Developer Selects with sentinel "(any)" option. New
+    `useFacets()` hook (60s staleTime).
+
+  Source: user feedback 2026-05-04 mid-FP16: "Let's add the letter
+  filter (oh yes, search filter is working now) and a few other
+  filters too please. I don't see where the genre filters are."
+  Dependencies: FP16 ✅ (search/year params fix; would have been
+  blocked by the same param-name mismatch).
+
+---
+
 ## FP16 — Library shipping blockers + INI visibility (closed 2026-05-04)
 
 **Theme:** four user-reported bugs from real-data UAT during the

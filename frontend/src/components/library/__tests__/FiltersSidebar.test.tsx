@@ -13,6 +13,10 @@ describe('FiltersSidebar', () => {
         value={{
           search: '',
           yearRange: [1980, 2010],
+          letter: null,
+          genre: null,
+          publisher: null,
+          developer: null,
           onlyContested: false,
           onlyOverridden: false,
           onlyChdMissing: false,
@@ -34,6 +38,10 @@ describe('FiltersSidebar', () => {
         value={{
           search: '',
           yearRange: [1980, 2010],
+          letter: null,
+          genre: null,
+          publisher: null,
+          developer: null,
           onlyContested: false,
           onlyOverridden: false,
           onlyChdMissing: false,
@@ -61,6 +69,10 @@ describe('FiltersSidebar', () => {
         value={{
           search: '',
           yearRange: [1980, 2010],
+          letter: null,
+          genre: null,
+          publisher: null,
+          developer: null,
           onlyContested: false,
           onlyOverridden: false,
           onlyChdMissing: false,

@@ -7,6 +7,12 @@ export interface GamesQuery {
   search?: string
   yearFrom?: number
   yearTo?: number
+  /** FP17: backend `letter` param. ``'#'`` selects digit-prefixed games. */
+  letter?: string
+  /** FP17: backend `genre` / `publisher` / `developer` exact-match filters. */
+  genre?: string
+  publisher?: string
+  developer?: string
   onlyContested?: boolean
   onlyOverridden?: boolean
   onlyChdMissing?: boolean
@@ -23,6 +29,10 @@ function toQueryString(q: GamesQuery): string {
   if (q.search) params.set('q', q.search)
   if (q.yearFrom) params.set('year_min', String(q.yearFrom))
   if (q.yearTo) params.set('year_max', String(q.yearTo))
+  if (q.letter) params.set('letter', q.letter)
+  if (q.genre) params.set('genre', q.genre)
+  if (q.publisher) params.set('publisher', q.publisher)
+  if (q.developer) params.set('developer', q.developer)
   if (q.onlyContested) params.set('only_contested', '1')
   if (q.onlyOverridden) params.set('only_overridden', '1')
   if (q.onlyChdMissing) params.set('only_chd_missing', '1')
