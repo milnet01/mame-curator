@@ -26,6 +26,10 @@ MANIFEST
 
 # Frontend: source-build artifacts ignored, pre-built bundle committed
 frontend/node_modules/
+# Top-level node_modules can be created accidentally if a JS/TS tool is
+# invoked from the repo root instead of `frontend/` (e.g. `npx vitest` from
+# the wrong cwd); ignore so cache files don't slip into commits.
+/node_modules/
 # (frontend/dist/ is intentionally NOT ignored — see design §11)
 
 # Virtual envs and tooling

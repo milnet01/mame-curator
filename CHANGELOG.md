@@ -31,10 +31,14 @@ I Snapshots tab (R16 list + R17 restore via concrete-label
 J Backup tab (R18 export + R19 import; `BackupTab` primitive +
 `useConfigExport` / `useConfigImport`; export does Blob →
 `<a download>`, import does `File.text()` → `JSON.parse` →
-mutate; ConfirmationDialog labels the file by name).
+mutate; ConfirmationDialog labels the file by name) ·
+G `<FsBrowser>` modal (R29-R34 wired through self-contained
+`useFs*` hooks; quick-jump for home / drive roots / allowed roots;
+file vs directory mode; `fs_sandboxed` 403 surfaces grant prompt
+that POSTs R33; first MSW-backed component test in the suite).
 
-Pending: G `<FsBrowser>` modal · F editable
-`media.cache_dir` (deps G) · H Paths tab in-place (deps G).
+Pending: F editable `media.cache_dir` (deps G) ·
+H Paths tab in-place (deps G).
 
 ### P06 — Frontend MVP (closed 2026-05-02)
 

@@ -1200,12 +1200,23 @@ scope (a thin select control, no primitive needed).
     `'stable' | 'dev'`. Updates tab.
   - **F — Editable `media.cache_dir`.** Plain text input + a small
     "Browse…" button that opens the new `<FsBrowser>` (G).
-  - **G — `<FsBrowser>` path picker.** Modal directory tree built on
-    R29 (`/api/fs/list`) with R30 (home) + R31 (drive roots) for
-    starting nodes. R33 grant-flow trigger when the user picks a
-    path outside the existing allowlist (typed `fs_sandboxed` 403
-    surfaces a "Grant filesystem access to <path>?" confirm dialog
-    that POSTs R33). Used by:
+  - **G — `<FsBrowser>` path picker.** ✅ shipped 2026-05-04 —
+    self-contained modal owning its own `useFs*` hooks (no
+    pure-prop seam — single import via `<FsBrowser open
+    onOpenChange onPick mode initialPath />`). Quick-jump buttons
+    for Home (R30) + drive roots (R31) + allowed roots (R32).
+    `path` derived from a `userPath` state + `home.data` fallback
+    so the default-on-async-load path doesn't need a setState-in-
+    effect. Listing 403 with `fs_sandboxed` surfaces a
+    `ConfirmationDialog` whose action label is the design §8
+    concrete form `"Grant access to <path>"`; on confirm we POST
+    R33 and react-query auto-refetches the listing. Mode prop:
+    `'directory'` (default) hides files; `'file'` shows files and
+    clicking one fires onPick. 10 MSW-backed unit tests at
+    `frontend/src/components/settings/__tests__/FsBrowser.test.tsx`
+    cover open/closed, list/navigate/up, pick directory + file,
+    cancel, grant prompt + grant POST. Will be consumed by F + H.
+    Used by:
       - `paths.{source_roms,source_dat,dest_roms,retroarch_playlist}`
         edit-in-place from the Settings → Paths tab (was read-only
         in FP11; spec § 304 demanded `<FsBrowser>` here).

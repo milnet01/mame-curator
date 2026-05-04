@@ -6,9 +6,9 @@
 |-------|-------|
 | **Project phase** | FP12 — Settings page list editors + path picker (🚧 active) |
 | **Active item ID** | FP12 |
-| **Active step** | 1 ✅ + 2 ✅ → 3+4 🚧 (clusters A-E + I + J done; F+G+H pending) |
+| **Active step** | 1 ✅ + 2 ✅ → 3+4 🚧 (clusters A-E + I + J + G done; F+H pending) |
 | **Blocked on** | — |
-| **Last update** | 2026-05-04 (cluster J — Backup tab — landed: BackupTab primitive (8 unit tests covering Export/Import controls, Phase-8 forward-link banner, file-pick → ConfirmationDialog → onImport, cancel-doesn't-call, error state), `useConfigExport` + `useConfigImport` hooks added to useConfig.ts, SettingsRoute container does the export download dance (Blob → `<a download>` → revoke) and the import parse step (`File.text()` → `JSON.parse` → mutate). Roadmap "R19 multipart" hint was stale — actual backend (`config.py:170 + 186`) takes / returns `ConfigExportBundle` JSON; followed the code per global rule 11. ConfirmationDialog uses concrete `"Replace settings from <filename>"` per design §8. 142 frontend tests / 435 backend tests / lint+typecheck+ruff+mypy+bandit all clean; coverage 89.19%. Remaining clusters G → F → H all blocked on G (FsBrowser primitive).) |
+| **Last update** | 2026-05-04 (cluster G — FsBrowser modal — landed: self-contained component owning its own `useFs*` hooks (consumer API: `<FsBrowser open onOpenChange onPick mode initialPath />`). Quick-jump buttons for Home (R30) + drive roots (R31) + allowed roots (R32). `path` derived from `userPath` state + `home.data` fallback so default-on-async-load doesn't need setState-in-effect (project lesson preserved). Listing 403 with `fs_sandboxed` surfaces a ConfirmationDialog whose action label is the design §8 concrete form `"Grant access to <path>"`; on confirm we POST R33 and react-query auto-refetches. Mode prop: `'directory'` (default) hides files; `'file'` shows files and clicking one fires onPick. 10 MSW-backed unit tests at `frontend/src/components/settings/__tests__/FsBrowser.test.tsx` — first MSW component test in the suite (each test sets up its own QueryClientProvider and seeds `server.use(http.get|post(...))`). Will be consumed by F + H. 152 frontend tests / 435 backend tests / lint+typecheck+ruff+mypy+bandit all clean; coverage 89.19%.) |
 | **Next gate** | Close FP12 clusters A→J via TDD (each cluster lands with its own commit), then run `/close-phase` per FP11 precedent (CI matrix may substitute for /audit + /indie-review at user's option). 10 sub-bullets to close: A ChipListEditor, B DragReorderList, C year-range, D default_sort, E updates.channel, F media.cache_dir, G FsBrowser, H paths in-place, I snapshots tab, J backup tab. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
@@ -33,7 +33,7 @@ FP12 step progress (active 2026-05-02):
    - E ✅ updates.channel dropdown — `<Select>` over `'stable' | 'dev'` literal type, wired into Updates tab. `updateUpdates` widened to typed-key generic alongside `updateUi` / `updateFilters`. 2 SettingsPage integration tests.
    - I ✅ Snapshots tab (R16 list + R17 restore) — SnapshotsTab primitive (8 unit tests + 2 SettingsPage integration tests), SettingsRoute container in App.tsx owning useSnapshots+useSnapshotRestore, ConfirmationDialog with concrete "Restore N files" action label per design §8. PATCH onSuccess invalidates SNAPSHOTS_KEY so new entries surface on next read.
    - J ✅ Backup tab (R18 export + R19 import) — BackupTab primitive (8 unit tests + 1 SettingsPage integration test), `useConfigExport` + `useConfigImport` hooks. SettingsRoute does Blob+`<a download>` for export, `File.text()` → `JSON.parse` → mutate for import. ConfirmationDialog labels the chosen file by name. Roadmap's "R19 multipart" hint was stale; backend takes / returns `ConfigExportBundle` JSON (`config.py:170 + 186`).
-   - G ⬜ FsBrowser modal path picker (R29-R34 + grant flow on 403)
+   - G ✅ FsBrowser modal path picker (R29-R34 + grant flow on 403) — self-contained, owns useFs* hooks; quick-jump for Home + drive roots + allowed roots; directory/file mode; fs_sandboxed 403 → grant ConfirmationDialog → POST R33 → re-list. 10 MSW-backed tests; first MSW component test in the suite.
    - F ⬜ Editable media.cache_dir (Browse → FsBrowser; depends on G)
    - H ⬜ Paths tab in-place editable (R15 PATCH; ConfirmationDialog on DAT swap; depends on G)
 5. ⬜ Run `/audit`
@@ -158,6 +158,49 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-04 — FP12 cluster G (FsBrowser modal) closed
+
+User said "Let's continue, please." after cluster J shipped.
+Picked up cluster G — the foundation for F + H. Self-contained
+component (owns its `useFs*` hooks; pure-prop seam wasn't worth
+the 10+ props it would have needed) introduced the suite's
+first MSW-backed component tests.
+
+Cluster G shipped:
+
+- `useFs.ts` hooks — `useFsHome`, `useFsDriveRoots`,
+  `useFsAllowedRoots`, `useFsListing(path)` (gated on
+  `path !== null`), `useFsGrantRoot`. Mirrors the existing
+  `useConfig.ts` shape; no new patterns.
+- `FsBrowser.tsx` — modal with quick-jump (Home + drive roots
+  + allowed roots), Up + path display, entries list (filtered
+  by mode), "Use this directory" + Cancel footer. Path is
+  derived (`userPath ?? home.data?.path ?? null`) so the
+  default-on-async-load case avoids setState-in-effect (saved
+  workflow lesson). `fs_sandboxed` 403 detection is duck-typed
+  (`'code' in error`) to tolerate vitest module-identity drift.
+- `FsBrowser.test.tsx` — 10 tests using `server.use(...)` per
+  test plus a tiny `renderWithClient` helper that wraps
+  `QueryClientProvider`. Covers: open/closed, list home,
+  navigate into dir, Up, pick directory, mode='file' shows +
+  picks files, cancel, grant prompt on 403, grant POST.
+
+**Two debugging takeaways saved**:
+
+- **Nested radix dialogs need fragment siblings, not children.**
+  Wrapping `<ConfirmationDialog>` inside the outer `<Dialog>`
+  blocked the AlertDialog portal from rendering. Sibling
+  fragment (`<>`) fixed it.
+- **Test regex for accessible name needs adjacent words.**
+  `/grant access/i` does not match `"Grant filesystem access?"` —
+  the words aren't adjacent. Caught here as a 1-failed-of-10
+  test that passed once the regex became `/grant filesystem access/i`.
+
+Tests: 152 frontend pass (10 + 0 new at SettingsPage level —
+G has no consumer wiring yet; that lands in F + H), 435 backend
+pass at 89.19% coverage. eslint / tsc / ruff / mypy / bandit all
+clean. `frontend/dist/` rebuilt.
 
 ### 2026-05-04 — FP12 cluster J (Backup tab) closed
 

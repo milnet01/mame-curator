@@ -285,6 +285,21 @@ export const strings = {
       `Replace settings from ${filename}`,
     backupWizardForwardLink:
       'Re-running the setup wizard ships in Phase 8.',
+    /** FP12 § G — `<FsBrowser>` modal copy. */
+    fsBrowserTitle: 'Pick a path',
+    fsBrowserDescription:
+      'Browse directories on this machine. Picking a path outside the existing allowlist surfaces a grant prompt.',
+    fsBrowserHome: 'Home',
+    fsBrowserUp: 'Up',
+    fsBrowserUseDirectory: 'Use this directory',
+    fsBrowserLoading: 'Loading…',
+    fsBrowserListError: 'Could not list this directory.',
+    fsBrowserEmpty: 'Empty.',
+    fsBrowserDirTag: 'dir',
+    fsGrantTitle: 'Grant filesystem access?',
+    fsGrantConfirm: (path: string) =>
+      `${path} is outside the current allowlist. Grant access so the picker can list its contents?`,
+    fsGrantActionLabel: (path: string) => `Grant access to ${path}`,
   },
 
   copy: {
