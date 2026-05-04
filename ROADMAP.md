@@ -1374,31 +1374,54 @@ box art hadn't been fetched yet.
 
 ---
 
-## P07 — Self-update + in-app help (planned)
+## P07 — Reference-data refresh + in-app help (planned, slim)
 
-**Theme:** in-app updates (git-pull / release-download with
-snapshot+rollback), INI refresh with diff preview, bundled
-markdown help searchable via Cmd-K. Introduces the shared
-`downloads.py` primitive that P08 reuses.
+**Theme:** users can refresh stale INI reference data via a CLI
+command, search bundled help via Cmd-K, and tweak cards-per-row
+from Settings. Introduces the shared `downloads.py` primitive
+that P08's setup wizard reuses.
+
+**Scope refinement (2026-05-04):** original P07 included in-app
+self-update with rollback and INI-refresh-with-diff-preview UI.
+Both moved to **P12 (post-v1)** per user direction "I do still
+want self-update but that can be added later" — open-source Linux
+audience self-builds via `git pull` for now, and INI refresh as
+a CLI subcommand is sufficient for v1 (the diff-preview modal is
+a polish-pass UI). Keeping P07 lean unblocks P08+P09 inside the
+v1 budget.
 
 **Long-form contract:**
 [`docs/superpowers/specs/2026-04-27-roadmap.md` § Phase 7](docs/superpowers/specs/2026-04-27-roadmap.md).
 
 ### 🎨 Features
 
-- 📋 **P07 — `updates/` + `help/` modules.** `downloads.py`
-  primitive (sha256-pinned, exponential retry, atomic writes,
-  manual-fallback hook); app self-update + rollback;
-  INI refresh with diff preview; bundled help server.
-  Coverage targets: updates ≥85%, help ≥90`.
-  **Settings expansion:** `UiConfig.cards_per_row_hint` UI control
-  (`'auto' | 4 | 5 | 6 | 8` selector) lands here per `docs/specs/
-  P06.md:210` ("YAML-only in P06; the Phase-7+ Settings expansion
-  adds a UI affordance"). Implements as a `<Select>` next to the
-  layout switcher in Settings → UI tab.
+- 📋 **P07** [mame-curator-1009] **`downloads.py` + `help/` + INI-refresh CLI + cards-per-row UI.**
+  Lanes: updates, help, downloads, cli, frontend, tests.
+  - **A — `downloads.py` primitive.** Async HTTP get with
+    sha256 checksum verification, exponential retry (1s/2s/4s/8s,
+    max 4 attempts), atomic writes (`.tmp` + rename),
+    manual-fallback hook (returns sentinel + URL on final
+    failure). Reused by P08's setup wizard. Coverage ≥90%.
+  - **B — INI refresh CLI command.** `mame-curator refresh-inis`
+    downloads the 5 INI files (categories.ini, mature.ini,
+    nplayers.ini, languages.ini, version.ini) from progettoSnaps
+    via `downloads.py`. Stdout summary: which files updated, sizes,
+    checksums verified. **No diff-preview UI** — that's P12.
+  - **C — `cards_per_row_hint` UI control.** `<Select>` (values
+    `'auto' | 4 | 5 | 6 | 8`) next to the layout switcher in
+    Settings → UI tab. Closes the P06 spec § 210 deferral.
+  - **D — HelpPage DOMPurify.** Closes FP11 § H4 security debt:
+    sanitize markdown-rendered HTML via DOMPurify before
+    `dangerouslySetInnerHTML` (or migrate to react-markdown).
+    Per 2026 best-practice, memoize sanitised content.
+  - **E — Cmd-K help-topic search.** Wire bundled help articles
+    into existing `CmdKPalette` so users can jump to a topic by
+    name. Index over titles + first paragraph; ~10 topics
+    bundled (Quickstart, Filters, Sessions, Overrides, Playlist
+    conflicts, Troubleshooting, Keyboard shortcuts, Glossary).
+
   Kind: implement.
-  Lanes: updates, help, downloads, frontend, tests.
-  Dependencies: P06, FP11, FP12.
+  Dependencies: P06, FP11, FP12, FP14.
 
 ---
 
@@ -1570,6 +1593,50 @@ P11 lets the user push it upstream.
   is "user can drive their own library end-to-end"; the
   push-upstream community-contribution path is a quality-
   of-ecosystem feature, not a core-loop blocker.
+
+---
+
+## P12 — In-app self-update + INI diff-preview UI (planned, post-v1)
+
+**Theme:** the deferred-from-P07 surface — in-app self-update
+with snapshot+rollback, `updates.channel` (stable/dev) wiring,
+UpdatesPanel in Settings, and the INI-refresh diff-preview modal
+that shows winners-changed before applying. Split out from P07
+2026-05-04 to keep v1 shippable inside budget; user explicitly
+wants the feature ("I do still want self-update but that can be
+added later").
+
+### 🎨 Features
+
+- 📋 **P12** [mame-curator-1010] **In-app self-update + INI diff-preview UI.**
+  Lanes: updates, frontend, api, tests.
+  - **A — App self-update (`updates/app.py`).** Version compare,
+    snapshot config/overrides/sessions before update,
+    git-pull (dev mode) or release-download (frozen install),
+    restart hand-off, one-click rollback to prior `git` ref or
+    snapshot. Reuses `downloads.py` from P07.
+  - **B — `updates.channel` wiring.** `'stable'` checks tagged
+    releases; `'dev'` checks `main`. The Settings dropdown
+    already exists from FP12 § E; this lane wires it through to
+    the check logic.
+  - **C — `/api/updates/*` full route logic.** Replaces the
+    Phase 4 stubs with real implementations: `/check`,
+    `/apply`, `/rollback`, snapshot endpoints.
+  - **D — UpdatesPanel UI in Settings.** "Check now" button,
+    version-available toast, "What's new" modal (renders
+    upstream CHANGELOG), "Apply update" with progress + rollback.
+  - **E — INI refresh diff-preview modal.** P07 ships the CLI
+    command without a UI; P12 adds a Settings-page preview that
+    runs the new INI files against the parsed DAT and shows:
+    new winners, dropped winners, changed winners. Confirm-then-
+    apply. Reuses the dispatcher pattern from `BackupTab`.
+
+  Source: deferred from original P07 scope 2026-05-04 to keep
+  v1 budget tight; user accepted the split with "I do still
+  want self update but that can be added later."
+  Kind: implement.
+  Dependencies: P07 (downloads.py, INI refresh CLI), P09 (v1.0.0
+  released — self-update updates _to_ a published version).
 
 ---
 
