@@ -109,6 +109,50 @@ Do not delete revoked entries — the history is the value.
 - **Confirmed by phase:** FP11.
 
 
+## allowlist-004 — semgrep `dangerouslySetInnerHTML` on FP16 § D DOMPurify-sanitized HelpPage render
+
+- **Status:** active
+- **Tool / rule:** semgrep `dangerouslySetInnerHTML from non-constant definition` (ants-audit v0.7.77, 2026-05-04).
+- **Location:** `frontend/src/pages/HelpPage.tsx:72`.
+- **Why this is a false positive:** the value passed to `dangerouslySetInnerHTML` is `sanitizedHtml`, defined two lines above as `useMemo(() => DOMPurify.sanitize(topicHtml), [topicHtml])`. FP16 § D added DOMPurify@3.4 specifically to close the FP11 § H4 security debt this rule re-flags; tests cover `<script>` strip and `javascript:` URL strip (`HelpPage.test.tsx`). Semgrep's structural pattern can't see through the useMemo + DOMPurify chain. Migrating to react-markdown would also clear the rule but adds dependency churn for the same security guarantee.
+- **Suppression applied:** none — the runtime DOMPurify call IS the suppression. This allowlist entry documents that the project's mitigation is in place.
+- **Logged:** 2026-05-04
+- **Confirmed by phase:** FP19 audit-triage.
+
+
+## allowlist-005 — grep "Weak Cryptography" on `sha1` field used as MAME ROM identifier
+
+- **Status:** active
+- **Tool / rule:** generic grep "weak cryptography" pattern (ants-audit v0.7.77, 2026-05-04).
+- **Location:** `src/mame_curator/parser/models.py:26` (`sha1: str | None`), `frontend/src/api/types.ts:81/89` (mirroring schema).
+- **Why this is a false positive:** the `sha1` field carries the canonical SHA-1 hash MAME embeds in every DAT entry to identify ROM dumps. Every MAME-ecosystem tool — ClrMamePro, RomVault, Pleasuredome DATs, libretro-thumbnails URL keys — uses SHA-1 the same way. It is **not** used for authentication, password hashing, signing, or any security boundary; it's a content-hash for ROM-set verification. Switching to SHA-256 would break interop with the entire ecosystem since DATs ship SHA-1.
+- **Suppression applied:** none — the field name `sha1` is the file-format contract; renaming it would break parsing.
+- **Logged:** 2026-05-04
+- **Confirmed by phase:** FP19 audit-triage.
+
+
+## allowlist-006 — grep "Debug / Temp Code (print)" in `tools/check_api_types_sync.py`
+
+- **Status:** active
+- **Tool / rule:** generic grep "Debug / Temp Code" — print() statement detection (ants-audit v0.7.77, 2026-05-04).
+- **Location:** `tools/check_api_types_sync.py:281, 288, 290`.
+- **Why this is a false positive:** the project rule "print() is forbidden outside cli/" scopes RUNTIME code (where `print` bypasses the structured logging layer). `tools/` is a developer-tooling directory whose scripts are CLI-shaped utilities run from the terminal — same role as `cli/`, just lives at a separate path because it's not part of the shipped wheel. `tools/check_api_types_sync.py` is the CI-time API-types-drift gate; its prints go to stdout (success line) and stderr (per-finding line via `file=sys.stderr`) by design. The script's role IS to print to humans.
+- **Suppression applied:** none — this allowlist entry IS the suppression. If `tools/` ever houses runtime code, the entry should be revoked.
+- **Logged:** 2026-05-04
+- **Confirmed by phase:** FP19 audit-triage.
+
+
+## allowlist-007 — grep "Test-Health (skipped)" on `pytest.mark.skipif sys.platform == "win32"`
+
+- **Status:** active
+- **Tool / rule:** generic grep "Test-Health (skipped / disabled / only)" (ants-audit v0.7.77, 2026-05-04).
+- **Location:** `tests/api/test_fp09_fixes.py:284`.
+- **Why this is a false positive:** the skip is a documented cross-platform conditional — Windows doesn't support `fsync(dir_fd)`, and `_atomic.atomic_write_bytes` short-circuits the parent-dir fsync on `OSError` for that exact reason. The test verifies the file fsync count remains ≥1 on POSIX where the dir fsync DOES work; running it on Windows would assert against a code path that doesn't exist there. The `reason=` argument cites the constraint directly. This is the correct shape for a platform-conditional regression test.
+- **Suppression applied:** none — `pytest.mark.skipif(...)` with a `reason=` is the canonical mechanism the audit rule should respect.
+- **Logged:** 2026-05-04
+- **Confirmed by phase:** FP19 audit-triage.
+
+
 ## What does NOT belong here
 
 - **Findings that are real but blocked by a missing feature.**
