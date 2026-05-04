@@ -184,9 +184,33 @@ export const strings = {
       drop_chd_required: 'Drop CHD-required games',
       drop_mature: 'Drop mature content',
     },
+    /** FP12 § A — chip-list field labels (filters tab). */
+    filterChipLists: {
+      drop_categories: 'Drop categories',
+      drop_genres: 'Drop genres',
+      drop_publishers: 'Drop publishers',
+      drop_developers: 'Drop developers',
+    },
+    filterChipPlaceholders: {
+      drop_categories: 'Add category…',
+      drop_genres: 'Add genre…',
+      drop_publishers: 'Add publisher…',
+      drop_developers: 'Add developer…',
+    },
     pickerLabels: {
       prefer_parent_over_clone: 'Prefer parent over clone',
       prefer_good_driver: 'Prefer good driver',
+    },
+    /** FP12 § A — chip-list field labels (picker tab). */
+    pickerChipLists: {
+      preferred_genres: 'Preferred genres',
+      preferred_publishers: 'Preferred publishers',
+      preferred_developers: 'Preferred developers',
+    },
+    pickerChipPlaceholders: {
+      preferred_genres: 'Add genre…',
+      preferred_publishers: 'Add publisher…',
+      preferred_developers: 'Add developer…',
     },
     uiLabels: {
       show_alternatives_indicator: 'Show alternatives indicator',

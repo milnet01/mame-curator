@@ -1,8 +1,24 @@
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ChipListEditor } from '@/components/settings/ChipListEditor'
 import { strings } from '@/strings'
 import type { AppConfigResponse, AppUpdateInfo, SetupCheck } from '@/api/types'
+
+type FilterCfg = AppConfigResponse['filters']
+
+const FILTER_CHIP_KEYS = [
+  'drop_categories',
+  'drop_genres',
+  'drop_publishers',
+  'drop_developers',
+] as const
+
+const PICKER_CHIP_KEYS = [
+  'preferred_genres',
+  'preferred_publishers',
+  'preferred_developers',
+] as const
 
 interface SettingsPageProps {
   config: AppConfigResponse
@@ -50,9 +66,12 @@ export function SettingsPage({
   const updateUi = (key: keyof AppConfigResponse['ui'], value: boolean) => {
     onPatch({ ui: { ...config.ui, [key]: value } })
   }
-  const updateFilters = (
-    key: keyof AppConfigResponse['filters'],
-    value: boolean,
+  // FP12 § A: generic so chip-list (string[]) and toggle (boolean) fields
+  // share one helper. P06's original boolean-only signature blocked the
+  // list editors; per-key inference keeps callers type-safe.
+  const updateFilters = <K extends keyof FilterCfg>(
+    key: K,
+    value: FilterCfg[K],
   ) => {
     onPatch({ filters: { ...config.filters, [key]: value } })
   }
@@ -143,6 +162,23 @@ export function SettingsPage({
             checked={config.filters.drop_mature}
             onChange={(v) => updateFilters('drop_mature', v)}
           />
+          {FILTER_CHIP_KEYS.map((key) => {
+            const id = `filters-${key.replace(/_/g, '-')}`
+            return (
+              <div key={key} className="flex flex-col gap-1">
+                <Label htmlFor={id}>
+                  {strings.settings.filterChipLists[key]}
+                </Label>
+                <ChipListEditor
+                  ariaLabel={strings.settings.filterChipLists[key]}
+                  inputId={id}
+                  value={config.filters[key]}
+                  onChange={(next) => updateFilters(key, next)}
+                  addPlaceholder={strings.settings.filterChipPlaceholders[key]}
+                />
+              </div>
+            )
+          })}
         </TabsContent>
 
         <TabsContent value="picker" className="flex flex-col gap-2">
@@ -160,6 +196,23 @@ export function SettingsPage({
             checked={config.filters.prefer_good_driver}
             onChange={(v) => updateFilters('prefer_good_driver', v)}
           />
+          {PICKER_CHIP_KEYS.map((key) => {
+            const id = `picker-${key.replace(/_/g, '-')}`
+            return (
+              <div key={key} className="flex flex-col gap-1">
+                <Label htmlFor={id}>
+                  {strings.settings.pickerChipLists[key]}
+                </Label>
+                <ChipListEditor
+                  ariaLabel={strings.settings.pickerChipLists[key]}
+                  inputId={id}
+                  value={config.filters[key]}
+                  onChange={(next) => updateFilters(key, next)}
+                  addPlaceholder={strings.settings.pickerChipPlaceholders[key]}
+                />
+              </div>
+            )
+          })}
         </TabsContent>
 
         <TabsContent value="ui" className="flex flex-col gap-2">

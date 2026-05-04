@@ -114,4 +114,64 @@ describe('SettingsPage', () => {
     await userEvent.click(firstSwitch)
     expect(onPatch).toHaveBeenCalled()
   })
+
+  it('renders 4 chip-list editors on the Filters tab (FP12 § A)', async () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
+    expect(screen.getByPlaceholderText('Add category…')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Add genre…')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Add publisher…')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Add developer…')).toBeInTheDocument()
+  })
+
+  it('renders 3 chip-list editors on the Picker tab (FP12 § A)', async () => {
+    const pickerConfig = {
+      ...config,
+      filters: {
+        ...config.filters,
+        preferred_genres: ['shooter'],
+        preferred_publishers: ['capcom'],
+      },
+    }
+    render(
+      <SettingsPage
+        config={pickerConfig}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Picker$/ }))
+    // 3 placeholders, one per chip-list field (preferred_*).
+    expect(
+      screen.getAllByPlaceholderText(/^Add (genre|publisher|developer)…$/),
+    ).toHaveLength(3)
+    // Existing values render as chips with remove buttons.
+    expect(screen.getByRole('button', { name: 'Remove shooter' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove capcom' })).toBeInTheDocument()
+  })
+
+  it('patches the filters list when a chip is added via Enter (FP12 § A)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
+    const input = screen.getByPlaceholderText('Add genre…')
+    await userEvent.type(input, 'shooter{Enter}')
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: expect.objectContaining({ drop_genres: ['shooter'] }),
+      }),
+    )
+  })
 })

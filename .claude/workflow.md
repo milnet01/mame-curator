@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | P07 — Self-update + in-app help (📋 next) |
-| **Active item ID** | (none — P06 + FP11 closed 2026-05-02; P07 picks up next) |
-| **Active step** | — |
+| **Project phase** | FP12 — Settings page list editors + path picker (🚧 active) |
+| **Active item ID** | FP12 |
+| **Active step** | 1 ✅ + 2 ✅ → starting 3 🚧 (TDD cluster A) |
 | **Blocked on** | — |
-| **Last update** | 2026-05-02 (FP11 + P06 closed in combined commit; user opted to ship on CI green across Ubuntu / macOS / Windows × 3.12 / 3.13 rather than dispatch the multi-agent closing audit a second time. 428 backend tests / 89.14% cov / 85 frontend tests / mypy / ruff / bandit / types-sync all green. Tags `FP11-complete` and `P06-complete` applied at the close SHA. FP12 + P07 + P08 + P09 remain queued in ROADMAP.md.) |
-| **Next gate** | Pick up P07 (Self-update + in-app help) — re-read its long-form contract at `docs/superpowers/specs/2026-04-27-roadmap.md § Phase 7`, draft `docs/specs/P07.md`, run cold-eyes spec review, then start the standard 9-step loop. FP12 is queued ahead of P07 per ROADMAP — confirm with user whether to do FP12 (Settings list editors + path picker) first or jump to P07. |
+| **Last update** | 2026-05-02 (user confirmed "continue" after the FP11/P06 closing summary; picking up FP12 per ROADMAP order ahead of P07. Step 1 research issued 5 parallel queries (chip-input ARIA, dnd-kit keyboard sortables, FS-picker path-traversal, shadcn Select Tailwind v4, Blob/FormData download/upload). Step 2 deps: P06 ✅ + FP11 ✅ + P04 R29-R34 backend ✅ + R15-R19 backend ✅; all FP12 deps satisfied. Two surfaced gaps: dnd-kit not in `package.json` (ROADMAP "no new top-level dep" claim is wrong — needs `@dnd-kit/core + sortable + utilities`); shadcn `<Select>` primitive missing from `components/ui/`. Both will be installed at their cluster's start. Started ~15:00 local.) |
+| **Next gate** | Close FP12 clusters A→J via TDD (each cluster lands with its own commit), then run `/close-phase` per FP11 precedent (CI matrix may substitute for /audit + /indie-review at user's option). 10 sub-bullets to close: A ChipListEditor, B DragReorderList, C year-range, D default_sort, E updates.channel, F media.cache_dir, G FsBrowser, H paths in-place, I snapshots tab, J backup tab. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -20,6 +20,29 @@
 While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
+
+FP12 step progress (active 2026-05-02):
+
+1. ✅ Verify spec — FP12 is a fix-pass; ROADMAP.md § FP12 enumerates clusters A-J as the audit surface (per "specs are for features, not fixes"). Step 1 research: chip ARIA = `role="listbox"` + `option`; dnd-kit keyboard = Space-to-pick / Arrow-to-move / Space-to-drop / Esc; FS-picker traversal mitigated by backend `fs_sandboxed` 403; shadcn Select uses `value`/`onValueChange`; Blob+FormData for export/import.
+2. ✅ Verify dependencies — P06 ✅, FP11 ✅, P04 R29-R34 backend ✅ (`/api/fs/list|home|roots|allowed-roots`), R15-R19 backend ✅ (`/api/config{,/snapshots,/export,/import}`). All TS types in place at `frontend/src/api/types.ts` (`FsListing`/`FsPath`/`FsAllowedRoots`/`FsDriveRoots`/`SnapshotsListing` etc.). ROADMAP entry's "depends on FP11 (still 🚧)" line is stale (FP11 closed earlier today).
+3. 🚧 Write failing tests + 4. 🚧 Implement until tests pass — cluster-by-cluster (A → J), one commit each per FP11 cadence:
+   - A ✅ ChipListEditor primitive (10 unit tests + 3 SettingsPage integration tests; rendered into 7 fields across Filters + Picker tabs; `updateFilters` widened to a typed-key generic so `string[]` and `boolean` callers share one helper)
+   - B ⬜ DragReorderList primitive (region_priority); needs dnd-kit install
+   - C ⬜ year-range number-pair (drop_year_before/after)
+   - D ⬜ default_sort dropdown (UI tab); needs shadcn select primitive install
+   - E ⬜ updates.channel dropdown (Updates tab)
+   - F ⬜ Editable media.cache_dir (Browse → FsBrowser)
+   - G ⬜ FsBrowser modal path picker (R29-R34 + grant flow on 403)
+   - H ⬜ Paths tab in-place editable (R15 PATCH; ConfirmationDialog on DAT swap)
+   - I ⬜ Snapshots tab (R16 list + R17 restore)
+   - J ⬜ Backup tab (R18 export download + R19 import upload)
+5. ⬜ Run `/audit`
+6. ⬜ Run `/indie-review`
+7. ⬜ Fold actionable findings → next FP## (or close clean)
+8. ⬜ Update CHANGELOG / ROADMAP / journal
+9. ⬜ Commit, tag `FP12-complete`, ask user about push
+
+---
 
 FP11 + P06 closed 2026-05-02 — step progress preserved as audit context:
 
@@ -54,9 +77,15 @@ P06 step progress (preserved as audit context):
 
 ### Active item details
 
-(none — P06 + FP11 closed 2026-05-02). Next-up candidates:
+**FP12 — Settings page list editors + path picker (🚧 active).**
+Audit surface: ROADMAP § FP12 clusters A-J (10 sub-bullets).
+Branch: `main` (direct push per project rules — solo dev / public repo).
+Closing-strategy: cluster-by-cluster TDD commits (FP11 cadence); `/close-phase` at the end with optional CI-matrix-as-audit per FP11 precedent.
+Out-of-scope (deferred to P07+): `UiConfig.cards_per_row_hint` UI control — P06 spec § 210 explicitly defers it.
+New deps required: `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` (cluster B); shadcn `select` primitive (clusters D + E) — both installed at their cluster's start.
 
-- **FP12** — Settings page list editors + path picker. Closes the `<ChipListEditor>` / `<DragReorderList>` / `default_sort` dropdown / `updates.channel` dropdown / editable `media.cache_dir` / `<FsBrowser>` path picker / Settings → Snapshots tab / Settings → Backup tab / `cards_per_row_hint` UI control gap left by P06 + FP11. ROADMAP § FP12 has the full 10-bullet list.
+Next after FP12 closes:
+
 - **P07** — Self-update + in-app help. Long-form contract: `docs/superpowers/specs/2026-04-27-roadmap.md` § Phase 7. Adds the `updates/` and `help/` modules and wires the Settings → Updates banner's Apply path. Depends on P06, FP11, FP12.
 
 ### Phase history (App-Build mapping)
@@ -93,7 +122,7 @@ nominal. Both tags point at `56449c6`.
 | FP10 | — | ✅ | 2026-05-02 | 2026-05-02 | P05 indie-review fold-in (5 actionable: A1 `follow_redirects=True`, A2 empty-body cache poison guard, A3 user-detail double-wrap, A4 TOCTOU invariant comment, A5 single-`!r` network error) |
 | P06 | Phase 6 | ✅ | 2026-05-02 | 2026-05-02 | Frontend MVP — Vite + React 19 + Tailwind v4 + shadcn/ui SPA; combined ship + FP11 fold-in |
 | FP11 | — | ✅ | 2026-05-02 | 2026-05-02 | P06 closing-review fold-in (10 thematic clusters A–J, ~40 actionable findings closed across ~25 commits; user-elected close-on-CI-green per FP10 small-fix-pass precedent) |
-| FP12 | — | 📋 | — | — | Settings page list editors + path picker (planned; depends on FP11) |
+| FP12 | — | 🚧 | — | — | Settings page list editors + path picker (active 2026-05-02; depends on FP11 ✅) |
 | P07 | Phase 7 | 📋 | — | — | Self-update + help (`updates/`, `help/`) |
 | P08 | Phase 8 | 📋 | — | — | Setup wizard (`setup/`) |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
@@ -128,6 +157,16 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-02 — FP12 picked up (active)
+
+User confirmed "continue" after the FP11/P06 closing summary, picking up **FP12** per ROADMAP order ahead of P07. Step 1 + 2 closed in one batch:
+
+- **Step 1 research** — 5 parallel WebSearch queries returned: chip-input ARIA pattern (`role="listbox"` + `role="option"` per chip; PrimeReact / Zag.js conventions); dnd-kit Sortable preset uses `sortableKeyboardCoordinates` with Space-to-pick + Arrow-to-move + Space-to-drop + Esc-to-cancel; FS-picker path-traversal risk mitigated by the existing backend `fs_sandboxed` 403 contract (R33 grant-flow handles outside-allowlist picks); shadcn `<Select>` uses `value` + `onValueChange` controlled props; Blob/FormData for R18 export download + R19 import upload.
+- **Step 1 surfaced gaps** — ROADMAP § FP12-B's "Pointer-drag via dnd-kit (no new top-level dep)" is wrong; dnd-kit isn't in `package.json`. Need `@dnd-kit/core + @dnd-kit/sortable + @dnd-kit/utilities` (3 packages, install at cluster B). Separately, shadcn `<Select>` primitive isn't in `components/ui/` (clusters D + E need it; install via `npx shadcn@latest add select`).
+- **Step 2 deps** — all green: P06 ✅, FP11 ✅, P04 R29-R34 ✅, R15-R19 ✅, all TS types mirrored at `frontend/src/api/types.ts`.
+
+Cluster plan (A → J, one commit per cluster per FP11 cadence): A ChipListEditor (foundation, used in 7 fields); B DragReorderList; C year-range pair; D default_sort; E updates.channel; F media.cache_dir editable; G FsBrowser modal; H paths in-place editable; I Snapshots tab; J Backup tab. Closing strategy: `/close-phase` at the end with optional CI-matrix substitution per FP11 precedent.
 
 ### 2026-05-02 — P06 + FP11 closed
 
