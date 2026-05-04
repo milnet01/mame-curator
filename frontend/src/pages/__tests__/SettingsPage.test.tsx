@@ -175,6 +175,40 @@ describe('SettingsPage', () => {
     )
   })
 
+  it('renders the updates.channel dropdown with the current value (FP12 § E)', async () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Updates$/ }))
+    const trigger = screen.getByRole('combobox', { name: 'Update channel' })
+    expect(trigger).toHaveTextContent('Stable')
+  })
+
+  it('patches updates.channel when a new option is picked (FP12 § E)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Updates$/ }))
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Update channel' }),
+    )
+    await userEvent.click(screen.getByRole('option', { name: 'Dev' }))
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updates: expect.objectContaining({ channel: 'dev' }),
+      }),
+    )
+  })
+
   it('renders the default_sort dropdown with the current value (FP12 § D)', async () => {
     render(
       <SettingsPage

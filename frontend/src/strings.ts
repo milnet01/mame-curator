@@ -230,6 +230,12 @@ export const strings = {
     updatesLabels: {
       check_on_startup: 'Check for app updates on startup',
       ini_check_on_startup: 'Check for INI updates on startup',
+      channel: 'Update channel',
+    },
+    /** FP12 § E — `updates.channel` dropdown options. */
+    updateChannelOptions: {
+      stable: 'Stable',
+      dev: 'Dev',
     },
     mediaLabels: {
       fetch_videos: 'Fetch video previews (post-P06)',

@@ -16,7 +16,11 @@ import type { AppConfigResponse, AppUpdateInfo, SetupCheck } from '@/api/types'
 
 type FilterCfg = AppConfigResponse['filters']
 type UiCfg = AppConfigResponse['ui']
+type UpdatesCfg = AppConfigResponse['updates']
 type DefaultSort = UiCfg['default_sort']
+type UpdateChannel = UpdatesCfg['channel']
+
+const UPDATE_CHANNEL_VALUES: readonly UpdateChannel[] = ['stable', 'dev']
 
 const DEFAULT_SORT_VALUES: readonly DefaultSort[] = [
   'name',
@@ -102,9 +106,9 @@ export function SettingsPage({
   ) => {
     onPatch({ media: { ...config.media, [key]: value } })
   }
-  const updateUpdates = (
-    key: keyof AppConfigResponse['updates'],
-    value: boolean,
+  const updateUpdates = <K extends keyof UpdatesCfg>(
+    key: K,
+    value: UpdatesCfg[K],
   ) => {
     onPatch({ updates: { ...config.updates, [key]: value } })
   }
@@ -308,6 +312,32 @@ export function SettingsPage({
                   )}
             </p>
           )}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="updates-channel">
+              {strings.settings.updatesLabels.channel}
+            </Label>
+            <Select
+              value={config.updates.channel}
+              onValueChange={(v) =>
+                updateUpdates('channel', v as UpdateChannel)
+              }
+            >
+              <SelectTrigger
+                id="updates-channel"
+                aria-label={strings.settings.updatesLabels.channel}
+                className="w-32"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {UPDATE_CHANNEL_VALUES.map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {strings.settings.updateChannelOptions[v]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <PrefSwitch
             id="updates-check-on-startup"
             label={strings.settings.updatesLabels.check_on_startup}
