@@ -10,6 +10,7 @@ import {
   type FsListing,
   type FsPath,
 } from '@/api/types'
+import { toastApiError } from '@/lib/apiErrorToast'
 import { useApiQuery } from './useApi'
 
 const FS_HOME_KEY = ['fs', 'home'] as const
@@ -54,5 +55,6 @@ export function useFsGrantRoot() {
     onSuccess: (next) => {
       qc.setQueryData(FS_ALLOWED_KEY, next)
     },
+    onError: toastApiError,
   })
 }

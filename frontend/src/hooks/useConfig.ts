@@ -8,6 +8,7 @@ import {
   type ConfigExportBundle,
   type SnapshotsListing,
 } from '@/api/types'
+import { toastApiError } from '@/lib/apiErrorToast'
 import { useApiQuery } from './useApi'
 
 const KEY = ['config'] as const
@@ -31,6 +32,7 @@ export function useConfigPatch() {
       // invalidate so the Snapshots tab reflects the new entry on next read.
       qc.invalidateQueries({ queryKey: SNAPSHOTS_KEY })
     },
+    onError: toastApiError,
   })
 }
 
@@ -55,6 +57,7 @@ export function useSnapshotRestore() {
       qc.setQueryData(KEY, next)
       qc.invalidateQueries({ queryKey: SNAPSHOTS_KEY })
     },
+    onError: toastApiError,
   })
 }
 

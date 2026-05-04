@@ -491,4 +491,30 @@ describe('SettingsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Export/ }))
     expect(onBackupExport).toHaveBeenCalledOnce()
   })
+
+  it('renders the restart-required banner when config.restart_required is true (FP13 § A4)', () => {
+    render(
+      <SettingsPage
+        config={{ ...config, restart_required: true }}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    expect(
+      screen.getByText(/restart `mame-curator serve`/i),
+    ).toBeInTheDocument()
+  })
+
+  it('omits the restart-required banner when config.restart_required is false (FP13 § A4)', () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    expect(
+      screen.queryByText(/restart `mame-curator serve`/i),
+    ).not.toBeInTheDocument()
+  })
 })

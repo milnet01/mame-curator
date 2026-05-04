@@ -227,6 +227,17 @@ export function SettingsPage({
         </p>
       )}
 
+      {/* FP13 § A4: surface PATCH-response `restart_required` so server-bind
+          changes (host/port) don't silently take effect only after restart. */}
+      {config.restart_required && (
+        <p
+          role="status"
+          className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+        >
+          {strings.settings.banners.restartRequired}
+        </p>
+      )}
+
       <Tabs defaultValue="paths">
         <TabsList>
           {SECTION_KEYS.map((key) => (

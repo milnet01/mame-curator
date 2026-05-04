@@ -263,6 +263,8 @@ export const strings = {
       updateAvailable: (current: string, latest: string) =>
         `Update available: ${current} → ${latest}. Apply flow ships in Phase 7.`,
       updateCurrent: (version: string) => `You're on the latest version (${version}).`,
+      restartRequired:
+        'Server settings changed — restart `mame-curator serve` for the new bind address to take effect.',
     },
     snapshotRestoreConfirm: (count: number) =>
       `Restore ${count} configuration file${count === 1 ? '' : 's'} from this snapshot? Current settings will be replaced.`,
