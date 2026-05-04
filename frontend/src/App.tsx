@@ -35,6 +35,7 @@ import { useStats } from '@/hooks/useStats'
 import { useHelpIndex, useHelpTopic } from '@/hooks/useHelp'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { strings } from '@/strings'
+import { ApiError } from '@/api/client'
 import type { ConfigExportBundle, ThemeName } from '@/api/types'
 
 const LibraryPage = lazy(() =>
@@ -217,7 +218,9 @@ function SettingsRoute() {
         type: 'application/json',
       })
       const url = URL.createObjectURL(blob)
-      const ts = new Date().toISOString().replace(/[:.]/g, '-')
+      // FP13 § E3: drop millisecond noise from the export filename — second
+      // resolution is plenty for a human-shaped backup name.
+      const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
       const a = document.createElement('a')
       a.href = url
       a.download = `mame-curator-config-${ts}.json`
@@ -236,8 +239,12 @@ function SettingsRoute() {
     setBackupError(null)
     try {
       await importConfig.mutateAsync(bundle)
-    } catch {
-      setBackupError(strings.settings.backupImportError)
+    } catch (err) {
+      // FP13 § E6: prefer the server's structured `detail` over the generic
+      // import-error string so the user sees what specifically rejected.
+      setBackupError(
+        err instanceof ApiError ? err.detail : strings.settings.backupImportError,
+      )
     }
   }
 

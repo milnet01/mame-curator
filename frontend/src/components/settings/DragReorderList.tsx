@@ -62,6 +62,11 @@ export function DragReorderList({
         aria-label={ariaLabel}
         className="flex flex-col gap-1"
       >
+        {/* FP13 § E4: `key={item}` keeps React reconciliation stable across
+            reorder so focus survives the swap (important since this list is
+            keyboard-driven). The contract is that items are unique; callers
+            (today only `region_priority`, fed via `ChipListEditor` and
+            server-validated config) enforce uniqueness upstream. */}
         {items.map((item, i) => {
           const isFirst = i === 0
           const isLast = i === items.length - 1

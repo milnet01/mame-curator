@@ -55,7 +55,16 @@ function YearField({
         disabled={!enabled}
         onChange={(e) => {
           const raw = e.target.value
-          onChange(raw === '' ? null : Number(raw))
+          if (raw === '') {
+            onChange(null)
+            return
+          }
+          // FP13 § E2: guard against NaN (paste of "abc") and clamp out-of-
+          // range values (paste of "1850" or "9999"). HTML `min`/`max` are
+          // spinner-only constraints, not validation.
+          const n = Number(raw)
+          if (Number.isNaN(n)) return
+          onChange(n < min ? min : n > max ? max : n)
         }}
         className="w-24"
       />
