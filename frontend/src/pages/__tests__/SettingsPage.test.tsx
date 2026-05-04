@@ -248,6 +248,40 @@ describe('SettingsPage', () => {
     )
   })
 
+  it('renders the cards_per_row_hint dropdown with the current value (P07 § C)', async () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    const trigger = screen.getByRole('combobox', { name: 'Cards per row' })
+    expect(trigger).toHaveTextContent('Automatic')
+  })
+
+  it('patches ui.cards_per_row_hint as a number when an integer option is picked (P07 § C)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Cards per row' }),
+    )
+    await userEvent.click(screen.getByRole('option', { name: '6 columns' }))
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ui: expect.objectContaining({ cards_per_row_hint: 6 }),
+      }),
+    )
+  })
+
   it('patches drop_year_before when the year-range switch is toggled on (FP12 § C)', async () => {
     const onPatch = vi.fn()
     render(

@@ -219,6 +219,7 @@ export const strings = {
     uiLabels: {
       show_alternatives_indicator: 'Show alternatives indicator',
       default_sort: 'Default sort order',
+      cards_per_row_hint: 'Cards per row',
     },
     /** FP12 § D — `default_sort` dropdown options (UI tab). */
     defaultSortOptions: {
@@ -226,6 +227,14 @@ export const strings = {
       year: 'By year',
       manufacturer: 'By manufacturer',
       rating: 'By rating',
+    },
+    /** P07 § C — `cards_per_row_hint` dropdown options (UI tab). */
+    cardsPerRowOptions: {
+      auto: 'Automatic',
+      '4': '4 columns',
+      '5': '5 columns',
+      '6': '6 columns',
+      '8': '8 columns',
     },
     updatesLabels: {
       check_on_startup: 'Check for app updates on startup',

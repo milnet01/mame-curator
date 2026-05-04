@@ -31,6 +31,7 @@ type FilterCfg = AppConfigResponse['filters']
 type UiCfg = AppConfigResponse['ui']
 type UpdatesCfg = AppConfigResponse['updates']
 type DefaultSort = UiCfg['default_sort']
+type CardsPerRowHint = UiCfg['cards_per_row_hint']
 
 const DEFAULT_SORT_VALUES: readonly DefaultSort[] = [
   'name',
@@ -38,6 +39,8 @@ const DEFAULT_SORT_VALUES: readonly DefaultSort[] = [
   'manufacturer',
   'rating',
 ]
+
+const CARDS_PER_ROW_VALUES: readonly CardsPerRowHint[] = ['auto', 4, 5, 6, 8]
 
 const ARCADE_FLOOR_YEAR = 1971
 const CURRENT_YEAR = new Date().getFullYear()
@@ -255,6 +258,39 @@ export function SettingsPage({
                 {DEFAULT_SORT_VALUES.map((v) => (
                   <SelectItem key={v} value={v}>
                     {strings.settings.defaultSortOptions[v]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="ui-cards-per-row">
+              {strings.settings.uiLabels.cards_per_row_hint}
+            </Label>
+            <Select
+              value={String(config.ui.cards_per_row_hint)}
+              onValueChange={(v) =>
+                updateUi(
+                  'cards_per_row_hint',
+                  v === 'auto' ? 'auto' : (Number(v) as 4 | 5 | 6 | 8),
+                )
+              }
+            >
+              <SelectTrigger
+                id="ui-cards-per-row"
+                aria-label={strings.settings.uiLabels.cards_per_row_hint}
+                className="w-48"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CARDS_PER_ROW_VALUES.map((v) => (
+                  <SelectItem key={String(v)} value={String(v)}>
+                    {
+                      strings.settings.cardsPerRowOptions[
+                        String(v) as keyof typeof strings.settings.cardsPerRowOptions
+                      ]
+                    }
                   </SelectItem>
                 ))}
               </SelectContent>
