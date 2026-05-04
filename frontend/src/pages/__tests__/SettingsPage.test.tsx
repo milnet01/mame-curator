@@ -174,4 +174,31 @@ describe('SettingsPage', () => {
       }),
     )
   })
+
+  it('patches region_priority when reordered on the Picker tab (FP12 § B)', async () => {
+    const onPatch = vi.fn()
+    const cfg: AppConfigResponse = {
+      ...config,
+      filters: { ...config.filters, region_priority: ['us', 'eu', 'jp'] },
+    }
+    render(
+      <SettingsPage
+        config={cfg}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Picker$/ }))
+    expect(
+      screen.getByRole('list', { name: 'Region priority' }),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Move us down' }))
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: expect.objectContaining({
+          region_priority: ['eu', 'us', 'jp'],
+        }),
+      }),
+    )
+  })
 })

@@ -2,6 +2,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChipListEditor } from '@/components/settings/ChipListEditor'
+import { DragReorderList } from '@/components/settings/DragReorderList'
 import { strings } from '@/strings'
 import type { AppConfigResponse, AppUpdateInfo, SetupCheck } from '@/api/types'
 
@@ -213,6 +214,19 @@ export function SettingsPage({
               </div>
             )
           })}
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium">
+              {strings.settings.pickerLabels.region_priority}
+            </span>
+            <p className="text-xs text-muted-foreground">
+              {strings.settings.regionPriorityHelp}
+            </p>
+            <DragReorderList
+              ariaLabel={strings.settings.pickerLabels.region_priority}
+              items={config.filters.region_priority}
+              onChange={(next) => updateFilters('region_priority', next)}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="ui" className="flex flex-col gap-2">

@@ -200,7 +200,11 @@ export const strings = {
     pickerLabels: {
       prefer_parent_over_clone: 'Prefer parent over clone',
       prefer_good_driver: 'Prefer good driver',
+      region_priority: 'Region priority',
     },
+    /** FP12 § B — drag-reorder list (region_priority) helper copy. */
+    regionPriorityHelp:
+      'Order matters: when multiple region variants exist, the one nearest the top wins.',
     /** FP12 § A — chip-list field labels (picker tab). */
     pickerChipLists: {
       preferred_genres: 'Preferred genres',

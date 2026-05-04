@@ -27,7 +27,7 @@ FP12 step progress (active 2026-05-02):
 2. ✅ Verify dependencies — P06 ✅, FP11 ✅, P04 R29-R34 backend ✅ (`/api/fs/list|home|roots|allowed-roots`), R15-R19 backend ✅ (`/api/config{,/snapshots,/export,/import}`). All TS types in place at `frontend/src/api/types.ts` (`FsListing`/`FsPath`/`FsAllowedRoots`/`FsDriveRoots`/`SnapshotsListing` etc.). ROADMAP entry's "depends on FP11 (still 🚧)" line is stale (FP11 closed earlier today).
 3. 🚧 Write failing tests + 4. 🚧 Implement until tests pass — cluster-by-cluster (A → J), one commit each per FP11 cadence:
    - A ✅ ChipListEditor primitive (10 unit tests + 3 SettingsPage integration tests; rendered into 7 fields across Filters + Picker tabs; `updateFilters` widened to a typed-key generic so `string[]` and `boolean` callers share one helper)
-   - B ⬜ DragReorderList primitive (region_priority); needs dnd-kit install
+   - B ✅ DragReorderList primitive — user-elected simpler arrow-button + ArrowUp/ArrowDown keyboard reorder (no dnd-kit dep added per Karpathy rule 9 push-back; revisit if drag-feel proves needed). 10 unit tests + 1 SettingsPage integration test; wired into Picker tab for `region_priority`.
    - C ⬜ year-range number-pair (drop_year_before/after)
    - D ⬜ default_sort dropdown (UI tab); needs shadcn select primitive install
    - E ⬜ updates.channel dropdown (Updates tab)
