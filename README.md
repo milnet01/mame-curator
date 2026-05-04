@@ -48,6 +48,31 @@ uv sync --extra dev
 uv run pre-commit install
 ```
 
+## Run the app (dev mode)
+
+For visual testing of the SPA against a live backend:
+
+```bash
+./scripts/dev.sh                  # uses ./config.yaml
+./scripts/dev.sh --config /elsewhere/config.yaml
+```
+
+This starts the FastAPI backend on `:8080` and the Vite dev server on
+`:5173` with hot-module reload. Visit
+[http://127.0.0.1:5173](http://127.0.0.1:5173). Ctrl+C stops both.
+
+A real `config.yaml` with paths to your MAME ROM set + DAT is
+required — the backend's startup parses the DAT before serving any
+routes.
+
+For a "production-shape" run (single `:8080` serving the
+pre-built SPA from `frontend/dist/`) without HMR:
+
+```bash
+( cd frontend && npm run build )
+uv run mame-curator serve --config config.yaml
+```
+
 ## Run the full CI gate locally
 
 All five must pass on `main`:
