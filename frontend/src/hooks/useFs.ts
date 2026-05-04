@@ -34,10 +34,16 @@ export function useFsAllowedRoots() {
   )
 }
 
+// FP13 § C1: when `path` is null the query is disabled, but its cache slot
+// must NOT collide with a real `path === ''` listing. The sentinel can never
+// appear in a legitimate path string, so the disabled state and any future
+// empty-path call sit on independent keys.
+const DISABLED_PATH_SENTINEL = '__fs_listing_disabled__'
+
 export function useFsListing(path: string | null) {
   return useApiQuery<FsListing>(
-    fsListKey(path ?? ''),
-    `/api/fs/list?path=${encodeURIComponent(path ?? '')}`,
+    fsListKey(path ?? DISABLED_PATH_SENTINEL),
+    path !== null ? `/api/fs/list?path=${encodeURIComponent(path)}` : '',
     FsListingSchema,
     { enabled: path !== null },
   )
@@ -54,6 +60,9 @@ export function useFsGrantRoot() {
       ),
     onSuccess: (next) => {
       qc.setQueryData(FS_ALLOWED_KEY, next)
+      // FP13 § C6: a freshly-granted root may unblock listings in any open
+      // FsBrowser instance. Invalidate the prefix so they refetch.
+      qc.invalidateQueries({ queryKey: ['fs', 'list'] })
     },
     onError: toastApiError,
   })

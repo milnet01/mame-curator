@@ -116,16 +116,23 @@ export function FsBrowser({
               {r.path}
             </Button>
           ))}
-          {(driveRoots.data?.roots ?? []).map((r) => (
-            <Button
-              key={r}
-              size="sm"
-              variant="outline"
-              onClick={() => setUserPath(r)}
-            >
-              {r}
-            </Button>
-          ))}
+          {/* FP13 § C4: drive roots that are already covered by an allowed
+              root would otherwise render as a visual duplicate. */}
+          {(driveRoots.data?.roots ?? [])
+            .filter(
+              (r) =>
+                !(allowed.data?.roots ?? []).some((a) => a.path === r),
+            )
+            .map((r) => (
+              <Button
+                key={r}
+                size="sm"
+                variant="outline"
+                onClick={() => setUserPath(r)}
+              >
+                {r}
+              </Button>
+            ))}
         </div>
 
         <div className="flex items-center gap-2 text-sm">
@@ -134,11 +141,24 @@ export function FsBrowser({
             variant="outline"
             onClick={goUp}
             disabled={!listing.data?.parent}
+            title={
+              !listing.data?.parent
+                ? strings.settings.fsBrowserUpAtTop
+                : undefined
+            }
           >
             {strings.settings.fsBrowserUp}
           </Button>
           <code className="flex-1 truncate">{path ?? ''}</code>
         </div>
+
+        {/* FP13 § C7: home detection failed and the user hasn't quick-jumped
+            anywhere — surface so the path bar isn't an unexplained blank. */}
+        {home.error && !userPath && !sandboxBlocked && (
+          <p role="alert" className="text-sm text-destructive">
+            {strings.settings.fsBrowserHomeError}
+          </p>
+        )}
 
         {listing.isLoading && (
           <p className="text-sm text-muted-foreground">
@@ -178,12 +198,16 @@ export function FsBrowser({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             {strings.common.cancel}
           </Button>
-          <Button
-            onClick={usePath}
-            disabled={!path || mode !== 'directory' || !!sandboxBlocked}
-          >
-            {strings.settings.fsBrowserUseDirectory}
-          </Button>
+          {/* FP13 § C3: in file mode the user picks via clicking a row;
+              the directory-confirm button is meaningless here. */}
+          {mode === 'directory' && (
+            <Button
+              onClick={usePath}
+              disabled={!path || !!sandboxBlocked}
+            >
+              {strings.settings.fsBrowserUseDirectory}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -192,7 +216,13 @@ export function FsBrowser({
       <ConfirmationDialog
         open
         onOpenChange={(o) => {
-          if (!o && home.data) setUserPath(home.data.path)
+          // FP13 § C2: cancelling the grant prompt closes FsBrowser
+          // entirely. Previously this tried to reset to home.data.path,
+          // but if home was unloaded the 403 listing stayed live and the
+          // dialog re-opened immediately (lockout). Closing the modal is
+          // the unambiguous exit; the user can re-open and pick a
+          // different starting point.
+          if (!o) onOpenChange(false)
         }}
         title={strings.settings.fsGrantTitle}
         description={strings.settings.fsGrantConfirm(sandboxBlocked)}

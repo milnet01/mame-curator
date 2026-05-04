@@ -304,10 +304,13 @@ export const strings = {
       'Browse directories on this machine. Picking a path outside the existing allowlist surfaces a grant prompt.',
     fsBrowserHome: 'Home',
     fsBrowserUp: 'Up',
+    fsBrowserUpAtTop: 'Already at the top of the allowed area.',
     fsBrowserBrowse: 'Browse…',
     fsBrowserUseDirectory: 'Use this directory',
     fsBrowserLoading: 'Loading…',
     fsBrowserListError: 'Could not list this directory.',
+    fsBrowserHomeError:
+      'Could not detect home directory — pick a drive root or quick-jump to continue.',
     fsBrowserEmpty: 'Empty.',
     fsBrowserDirTag: 'dir',
     fsGrantTitle: 'Grant filesystem access?',

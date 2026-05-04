@@ -182,6 +182,82 @@ describe('FsBrowser (FP12 § G)', () => {
     ).toBeInTheDocument()
   })
 
+  it('hides the "Use this directory" footer button in file mode (FP13 § C3)', async () => {
+    renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} mode="file" />,
+    )
+    await screen.findByText('projects')
+    expect(
+      screen.queryByRole('button', { name: /use this directory/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('does not render a drive-root button that duplicates an allowed root (FP13 § C4)', async () => {
+    server.use(
+      http.get('/api/fs/roots', () =>
+        HttpResponse.json({ roots: ['/', HOME] }),
+      ),
+    )
+    renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} />,
+    )
+    await screen.findByText('projects')
+    // HOME is in allowed-roots; only one quick-jump button for HOME exists.
+    const homeButtons = screen.getAllByRole('button', { name: HOME })
+    expect(homeButtons).toHaveLength(1)
+    // The other drive root '/' still renders.
+    expect(screen.getByRole('button', { name: '/' })).toBeInTheDocument()
+  })
+
+  it('closes the modal when the grant prompt is cancelled (FP13 § C2)', async () => {
+    const onOpenChange = vi.fn()
+    server.use(
+      http.get('/api/fs/list', ({ request }) => {
+        const path = new URL(request.url).searchParams.get('path')
+        if (path === HOME) return HttpResponse.json(homeListing)
+        return HttpResponse.json(
+          {
+            code: 'fs_sandboxed',
+            detail: `${path} outside allowlist`,
+            fields: [],
+          },
+          { status: 403 },
+        )
+      }),
+    )
+    renderWithClient(
+      <FsBrowser
+        open
+        onOpenChange={onOpenChange}
+        onPick={() => {}}
+        initialPath="/etc"
+      />,
+    )
+    await screen.findByRole('alertdialog', { name: /grant filesystem access/i })
+    // The grant prompt offers Cancel + the "Grant access to /etc" affirm.
+    // Clicking Cancel must close FsBrowser entirely, not silently reset to
+    // home (which would re-open the prompt if home hadn't loaded).
+    await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('surfaces an inline error when home detection fails (FP13 § C7)', async () => {
+    server.use(
+      http.get('/api/fs/home', () =>
+        HttpResponse.json(
+          { code: 'fs_path_invalid', detail: 'no home', fields: [] },
+          { status: 500 },
+        ),
+      ),
+    )
+    renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} />,
+    )
+    expect(
+      await screen.findByText(/could not detect home directory/i),
+    ).toBeInTheDocument()
+  })
+
   it('POSTs a grant when the prompt is confirmed', async () => {
     let granted: string | null = null
     server.use(
