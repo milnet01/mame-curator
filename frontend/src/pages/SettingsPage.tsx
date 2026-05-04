@@ -4,10 +4,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChipListEditor } from '@/components/settings/ChipListEditor'
 import { DragReorderList } from '@/components/settings/DragReorderList'
 import { YearRangeEditor } from '@/components/settings/YearRangeEditor'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { strings } from '@/strings'
 import type { AppConfigResponse, AppUpdateInfo, SetupCheck } from '@/api/types'
 
 type FilterCfg = AppConfigResponse['filters']
+type UiCfg = AppConfigResponse['ui']
+type DefaultSort = UiCfg['default_sort']
+
+const DEFAULT_SORT_VALUES: readonly DefaultSort[] = [
+  'name',
+  'year',
+  'manufacturer',
+  'rating',
+]
 
 const FILTER_CHIP_KEYS = [
   'drop_categories',
@@ -68,7 +84,7 @@ export function SettingsPage({
   updateInfo,
   setupInfo,
 }: SettingsPageProps) {
-  const updateUi = (key: keyof AppConfigResponse['ui'], value: boolean) => {
+  const updateUi = <K extends keyof UiCfg>(key: K, value: UiCfg[K]) => {
     onPatch({ ui: { ...config.ui, [key]: value } })
   }
   // FP12 § A: generic so chip-list (string[]) and toggle (boolean) fields
@@ -248,6 +264,30 @@ export function SettingsPage({
             checked={config.ui.show_alternatives_indicator}
             onChange={(v) => updateUi('show_alternatives_indicator', v)}
           />
+          <div className="flex items-center justify-between">
+            <Label htmlFor="ui-default-sort">
+              {strings.settings.uiLabels.default_sort}
+            </Label>
+            <Select
+              value={config.ui.default_sort}
+              onValueChange={(v) => updateUi('default_sort', v as DefaultSort)}
+            >
+              <SelectTrigger
+                id="ui-default-sort"
+                aria-label={strings.settings.uiLabels.default_sort}
+                className="w-48"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DEFAULT_SORT_VALUES.map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {strings.settings.defaultSortOptions[v]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </TabsContent>
 
         <TabsContent value="updates" className="flex flex-col gap-2">

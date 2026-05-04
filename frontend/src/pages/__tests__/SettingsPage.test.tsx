@@ -175,6 +175,40 @@ describe('SettingsPage', () => {
     )
   })
 
+  it('renders the default_sort dropdown with the current value (FP12 § D)', async () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    const trigger = screen.getByRole('combobox', { name: 'Default sort order' })
+    expect(trigger).toHaveTextContent('By name')
+  })
+
+  it('patches ui.default_sort when a new option is picked (FP12 § D)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Default sort order' }),
+    )
+    await userEvent.click(screen.getByRole('option', { name: 'By year' }))
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ui: expect.objectContaining({ default_sort: 'year' }),
+      }),
+    )
+  })
+
   it('patches drop_year_before when the year-range switch is toggled on (FP12 § C)', async () => {
     const onPatch = vi.fn()
     render(

@@ -218,6 +218,14 @@ export const strings = {
     },
     uiLabels: {
       show_alternatives_indicator: 'Show alternatives indicator',
+      default_sort: 'Default sort order',
+    },
+    /** FP12 § D — `default_sort` dropdown options (UI tab). */
+    defaultSortOptions: {
+      name: 'By name',
+      year: 'By year',
+      manufacturer: 'By manufacturer',
+      rating: 'By rating',
     },
     updatesLabels: {
       check_on_startup: 'Check for app updates on startup',

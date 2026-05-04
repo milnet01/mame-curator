@@ -29,7 +29,7 @@ FP12 step progress (active 2026-05-02):
    - A ✅ ChipListEditor primitive (10 unit tests + 3 SettingsPage integration tests; rendered into 7 fields across Filters + Picker tabs; `updateFilters` widened to a typed-key generic so `string[]` and `boolean` callers share one helper)
    - B ✅ DragReorderList primitive — user-elected simpler arrow-button + ArrowUp/ArrowDown keyboard reorder (no dnd-kit dep added per Karpathy rule 9 push-back; revisit if drag-feel proves needed). 10 unit tests + 1 SettingsPage integration test; wired into Picker tab for `region_priority`.
    - C ✅ YearRangeEditor — paired Switch+`<Input type="number">` per bound; null state via the switch (off ⇒ disabled input + null in config; on ⇒ defaults to 1971 / currentYear). Min/max attrs `1971..currentYear`. 9 unit tests + 1 SettingsPage integration test; wired into Filters tab between toggles and chip lists.
-   - D ⬜ default_sort dropdown (UI tab); needs shadcn select primitive install
+   - D ✅ default_sort dropdown — added shadcn `<Select>` primitive at `components/ui/select.tsx` (hand-written matching the project's `import { X as XPrimitive } from "radix-ui"` style; 9 named exports). Wired into UI tab, drives `ui.default_sort` over the four `'name' | 'year' | 'manufacturer' | 'rating'` literals. `updateUi` widened to typed-key generic alongside `updateFilters`. 2 SettingsPage integration tests.
    - E ⬜ updates.channel dropdown (Updates tab)
    - F ⬜ Editable media.cache_dir (Browse → FsBrowser)
    - G ⬜ FsBrowser modal path picker (R29-R34 + grant flow on 403)
