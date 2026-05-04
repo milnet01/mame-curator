@@ -128,6 +128,7 @@ nominal. Both tags point at `56449c6`.
 | P08 | Phase 8 | 📋 | — | — | Setup wizard (`setup/`) |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
 | P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
+| P11 | — | 📋 | — | — | Contribute missing thumbnails to libretro-thumbnails (post-v1; depends on P05 ✅, composes with P10) |
 
 The detailed per-phase contract for every phase still lives at
 `docs/superpowers/specs/2026-04-27-roadmap.md` — that file is the

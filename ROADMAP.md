@@ -1473,6 +1473,70 @@ coverage in the v1 cut; it's a one-day surface change to
 
 ---
 
+## P11 — Contribute missing thumbnails upstream (planned, post-v1)
+
+**Theme:** the media subsystem (P05) consumes the
+[`libretro-thumbnails`](https://github.com/libretro-thumbnails/MAME)
+GitHub repos read-only. P11 adds a **push-back** surface: when
+the user has a CC-compatible image for a game that isn't yet
+in the upstream repo, generate a stage-and-PR flow so the
+artwork can be contributed back. Composes with P10 (which
+fills gaps from additional scraped sources locally) — once a
+gap is filled and the source license allows redistribution,
+P11 lets the user push it upstream.
+
+### 🎨 Features
+
+- 📋 **P11** [mame-curator-1007] **Contribute missing thumbnails to libretro-thumbnails.**
+  Lanes: api, frontend, media.
+  - **A — Upload-prep flow.** Pick a local image file →
+    preview at the target dimensions per category
+    (`Named_Boxarts` / `Named_Snaps` / `Named_Titles`, PNG,
+    256×~) → re-encode + rename to the canonical
+    `<short-name>.png`. Backend module under
+    `media/contribute/`.
+  - **B — License gate.** Confirmation dialog citing
+    libretro-thumbnails CC-BY licensing requirement;
+    user must affirm the image is their own scan or
+    otherwise CC-compatible (publisher-owned official
+    artwork explicitly excluded). The dialog uses the
+    design §8 concrete-action-label rule.
+  - **C — Manual-PR path.** Default low-friction flow: emit
+    a directory of staged files + a generated
+    `git format-patch` instruction sheet so the user can
+    fork + PR manually. No GitHub auth required.
+  - **D — Auto-PR path (optional, gated).** With a user-
+    supplied GitHub PAT (stored in OS keychain via
+    `keyring`, never in `config.yaml`), open the PR via
+    GitHub API. Strictly opt-in; the manual path remains
+    the default. Threat model: PAT scope must be limited
+    to `public_repo`; we never write to repos outside
+    `libretro-thumbnails/*`.
+  - **E — "Missing-upstream" filter.** Library-page filter
+    surfacing games where (a) we have a local image AND
+    (b) the libretro-thumbnails 404 was cached. Lets the
+    user batch contribute. Driven by the existing media-
+    cache index plus a new `upstream_has_thumbnail`
+    boolean column in the library state.
+
+  Source: user follow-up question 2026-05-04 ("I see that
+  some of the boxarts are from github. Can we upload ones
+  they don't have on this github project?"). Captured +
+  recommended placement post-v1 (after the project reaches
+  daily-driver state); user accepted the same day with
+  "this is a feature that can be added towards the end of
+  this project."
+  Kind: implement.
+  Dependencies: P05 (media subsystem); P10 (more useful
+  alongside P10's expanded local sources). No dependency
+  on P07 / P08 / P09 / FP##.
+  Out-of-scope for v1 deliberately — the release-bar focus
+  is "user can drive their own library end-to-end"; the
+  push-upstream community-contribution path is a quality-
+  of-ecosystem feature, not a core-loop blocker.
+
+---
+
 ## Future enhancements (post-v1.0.0)
 
 Captured in
