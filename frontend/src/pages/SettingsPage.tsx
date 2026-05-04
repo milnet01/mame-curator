@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChipListEditor } from '@/components/settings/ChipListEditor'
 import { DragReorderList } from '@/components/settings/DragReorderList'
+import { YearRangeEditor } from '@/components/settings/YearRangeEditor'
 import { strings } from '@/strings'
 import type { AppConfigResponse, AppUpdateInfo, SetupCheck } from '@/api/types'
 
@@ -20,6 +21,9 @@ const PICKER_CHIP_KEYS = [
   'preferred_publishers',
   'preferred_developers',
 ] as const
+
+const ARCADE_FLOOR_YEAR = 1971
+const CURRENT_YEAR = new Date().getFullYear()
 
 interface SettingsPageProps {
   config: AppConfigResponse
@@ -162,6 +166,14 @@ export function SettingsPage({
             label={strings.settings.filterLabels.drop_mature}
             checked={config.filters.drop_mature}
             onChange={(v) => updateFilters('drop_mature', v)}
+          />
+          <YearRangeEditor
+            before={config.filters.drop_year_before}
+            after={config.filters.drop_year_after}
+            onBeforeChange={(v) => updateFilters('drop_year_before', v)}
+            onAfterChange={(v) => updateFilters('drop_year_after', v)}
+            minYear={ARCADE_FLOOR_YEAR}
+            maxYear={CURRENT_YEAR}
           />
           {FILTER_CHIP_KEYS.map((key) => {
             const id = `filters-${key.replace(/_/g, '-')}`

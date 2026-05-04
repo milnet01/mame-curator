@@ -175,6 +175,28 @@ describe('SettingsPage', () => {
     )
   })
 
+  it('patches drop_year_before when the year-range switch is toggled on (FP12 § C)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
+    await userEvent.click(
+      screen.getByRole('switch', {
+        name: 'Apply Drop games before year filter',
+      }),
+    )
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: expect.objectContaining({ drop_year_before: 1971 }),
+      }),
+    )
+  })
+
   it('patches region_priority when reordered on the Picker tab (FP12 § B)', async () => {
     const onPatch = vi.fn()
     const cfg: AppConfigResponse = {
