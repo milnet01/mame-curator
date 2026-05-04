@@ -18,6 +18,8 @@ import { CmdKPalette, type CmdKItem } from '@/components/CmdKPalette'
 import { ConfirmationDialog } from '@/components/ConfirmationDialog'
 import {
   useConfig,
+  useConfigExport,
+  useConfigImport,
   useConfigPatch,
   useSnapshotRestore,
   useSnapshots,
@@ -194,14 +196,55 @@ function HelpRoute() {
   )
 }
 
-// FP12 § I: SettingsRoute owns the settings-page hooks (config + snapshots
-// + restore) so the SettingsPage stays pure-prop. Mirrors the FP11 § B8
-// container pattern used by Sessions / Activity / Stats / Help.
+// FP12 § I + § J: SettingsRoute owns the settings-page hooks (config +
+// snapshots + restore + export + import) so the SettingsPage stays
+// pure-prop. Mirrors the FP11 § B8 container pattern used by Sessions /
+// Activity / Stats / Help.
 function SettingsRoute() {
   const config = useConfig()
   const configPatch = useConfigPatch()
   const snapshots = useSnapshots()
   const restore = useSnapshotRestore()
+  const exportConfig = useConfigExport()
+  const importConfig = useConfigImport()
+  const [backupError, setBackupError] = useState<string | null>(null)
+
+  const handleExport = async () => {
+    setBackupError(null)
+    try {
+      const bundle = await exportConfig.mutateAsync()
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const ts = new Date().toISOString().replace(/[:.]/g, '-')
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `mame-curator-config-${ts}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      setBackupError(strings.settings.backupExportError)
+    }
+  }
+
+  const handleImport = async (file: File) => {
+    setBackupError(null)
+    let bundle
+    try {
+      bundle = JSON.parse(await file.text())
+    } catch {
+      setBackupError(strings.settings.backupImportInvalidJson)
+      return
+    }
+    try {
+      await importConfig.mutateAsync(bundle)
+    } catch {
+      setBackupError(strings.settings.backupImportError)
+    }
+  }
 
   if (!config.data) {
     return (
@@ -219,6 +262,9 @@ function SettingsRoute() {
         snapshots.error ? strings.settings.snapshotsLoadError : null
       }
       onSnapshotRestore={(id) => restore.mutate(id)}
+      onBackupExport={handleExport}
+      onBackupImport={handleImport}
+      backupError={backupError}
     />
   )
 }

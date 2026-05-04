@@ -6,9 +6,9 @@
 |-------|-------|
 | **Project phase** | FP12 — Settings page list editors + path picker (🚧 active) |
 | **Active item ID** | FP12 |
-| **Active step** | 1 ✅ + 2 ✅ → 3+4 🚧 (clusters A-E + I done; F+G+H+J pending) |
+| **Active step** | 1 ✅ + 2 ✅ → 3+4 🚧 (clusters A-E + I + J done; F+G+H pending) |
 | **Blocked on** | — |
-| **Last update** | 2026-05-04 (cluster I — Snapshots tab — landed: SnapshotsTab primitive (8 unit tests covering load/error/empty/list/confirm/cancel/concrete-action-label), SettingsPage wires snapshots+loading+error+onSnapshotRestore through new optional props, App.tsx extracts SettingsRoute container per FP11 § B8 pattern owning useConfig+useConfigPatch+useSnapshots+useSnapshotRestore. ConfirmationDialog uses concrete "Restore N files" action label per design §8. PATCH onSuccess invalidates the snapshots query so new snapshots surface on next read. 133 frontend tests / 435 backend tests / lint+typecheck+ruff+mypy+bandit all clean; coverage 89.19%. Reordered remaining: J Backup tab next, then G FsBrowser, then F media.cache_dir + H paths in-place (both depend on G).) |
+| **Last update** | 2026-05-04 (cluster J — Backup tab — landed: BackupTab primitive (8 unit tests covering Export/Import controls, Phase-8 forward-link banner, file-pick → ConfirmationDialog → onImport, cancel-doesn't-call, error state), `useConfigExport` + `useConfigImport` hooks added to useConfig.ts, SettingsRoute container does the export download dance (Blob → `<a download>` → revoke) and the import parse step (`File.text()` → `JSON.parse` → mutate). Roadmap "R19 multipart" hint was stale — actual backend (`config.py:170 + 186`) takes / returns `ConfigExportBundle` JSON; followed the code per global rule 11. ConfirmationDialog uses concrete `"Replace settings from <filename>"` per design §8. 142 frontend tests / 435 backend tests / lint+typecheck+ruff+mypy+bandit all clean; coverage 89.19%. Remaining clusters G → F → H all blocked on G (FsBrowser primitive).) |
 | **Next gate** | Close FP12 clusters A→J via TDD (each cluster lands with its own commit), then run `/close-phase` per FP11 precedent (CI matrix may substitute for /audit + /indie-review at user's option). 10 sub-bullets to close: A ChipListEditor, B DragReorderList, C year-range, D default_sort, E updates.channel, F media.cache_dir, G FsBrowser, H paths in-place, I snapshots tab, J backup tab. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
@@ -32,7 +32,7 @@ FP12 step progress (active 2026-05-02):
    - D ✅ default_sort dropdown — added shadcn `<Select>` primitive at `components/ui/select.tsx` (hand-written matching the project's `import { X as XPrimitive } from "radix-ui"` style; 9 named exports). Wired into UI tab, drives `ui.default_sort` over the four `'name' | 'year' | 'manufacturer' | 'rating'` literals. `updateUi` widened to typed-key generic alongside `updateFilters`. 2 SettingsPage integration tests.
    - E ✅ updates.channel dropdown — `<Select>` over `'stable' | 'dev'` literal type, wired into Updates tab. `updateUpdates` widened to typed-key generic alongside `updateUi` / `updateFilters`. 2 SettingsPage integration tests.
    - I ✅ Snapshots tab (R16 list + R17 restore) — SnapshotsTab primitive (8 unit tests + 2 SettingsPage integration tests), SettingsRoute container in App.tsx owning useSnapshots+useSnapshotRestore, ConfirmationDialog with concrete "Restore N files" action label per design §8. PATCH onSuccess invalidates SNAPSHOTS_KEY so new entries surface on next read.
-   - J ⬜ Backup tab (R18 export download + R19 import upload)
+   - J ✅ Backup tab (R18 export + R19 import) — BackupTab primitive (8 unit tests + 1 SettingsPage integration test), `useConfigExport` + `useConfigImport` hooks. SettingsRoute does Blob+`<a download>` for export, `File.text()` → `JSON.parse` → mutate for import. ConfirmationDialog labels the chosen file by name. Roadmap's "R19 multipart" hint was stale; backend takes / returns `ConfigExportBundle` JSON (`config.py:170 + 186`).
    - G ⬜ FsBrowser modal path picker (R29-R34 + grant flow on 403)
    - F ⬜ Editable media.cache_dir (Browse → FsBrowser; depends on G)
    - H ⬜ Paths tab in-place editable (R15 PATCH; ConfirmationDialog on DAT swap; depends on G)
@@ -158,6 +158,43 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-04 — FP12 cluster J (Backup tab) closed
+
+User said "Let's continue, please." after the P10 add. Resumed
+the FP12 queue at cluster J (the next independent cluster — F
++ G + H all depend on G).
+
+Cluster J shipped:
+
+- `BackupTab` primitive (`frontend/src/components/settings/BackupTab.tsx`)
+  — Export button + Import file picker + Phase-8 forward-link
+  banner. File pick opens `ConfirmationDialog` whose action label
+  is the design §8 concrete form `"Replace settings from <file>"`.
+  8 unit tests cover all controls + the cancel-doesn't-call-onImport
+  guard + the error-state surface.
+- `useConfigExport` + `useConfigImport` hooks added to
+  `useConfig.ts`. Import's `onSuccess` mirrors the snapshot-restore
+  flow: setQueryData on the config cache + invalidate snapshots
+  so the new auto-snapshot surfaces on next read.
+- `SettingsPage` accepts new optional `onBackupExport` /
+  `onBackupImport` / `backupError` props (no-op defaults so older
+  test sites still compile). New `'backup'` tab between
+  `'snapshots'` and `'about'`.
+- `SettingsRoute` (App.tsx) owns the export download dance
+  (Blob → `<a download>` with timestamped filename → revoke URL)
+  and the import parse step (`File.text()` → `JSON.parse` → mutate).
+  Errors from either flow surface via `backupError` state.
+
+**Roadmap drift surfaced**: ROADMAP § FP12-J said "R19 multipart"
+but the actual backend (`config.py:170 + 186`) takes / returns
+`ConfigExportBundle` JSON. Followed the code per global rule 11
+(stay in your lane); flagged in the journal entry rather than
+papering over either side.
+
+Tests: 142 frontend pass (8 + 1 new), 435 backend pass at
+89.19% coverage. eslint / tsc / ruff / mypy / bandit all clean.
+`frontend/dist/` rebuilt.
 
 ### 2026-05-04 — P10 (media coverage expansion) added
 

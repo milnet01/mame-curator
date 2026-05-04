@@ -27,9 +27,13 @@ Closed: A `<ChipListEditor>` (7 fields) · B `<DragReorderList>`
 C `<YearRangeEditor>` (paired Switch+number, null via switch) ·
 D `default_sort` `<Select>` · E `updates.channel` `<Select>` ·
 I Snapshots tab (R16 list + R17 restore via concrete-label
-`ConfirmationDialog`; new `SettingsRoute` container per FP11 § B8).
+`ConfirmationDialog`; new `SettingsRoute` container per FP11 § B8) ·
+J Backup tab (R18 export + R19 import; `BackupTab` primitive +
+`useConfigExport` / `useConfigImport`; export does Blob →
+`<a download>`, import does `File.text()` → `JSON.parse` →
+mutate; ConfirmationDialog labels the file by name).
 
-Pending: J Backup tab · G `<FsBrowser>` modal · F editable
+Pending: G `<FsBrowser>` modal · F editable
 `media.cache_dir` (deps G) · H Paths tab in-place (deps G).
 
 ### P06 — Frontend MVP (closed 2026-05-02)

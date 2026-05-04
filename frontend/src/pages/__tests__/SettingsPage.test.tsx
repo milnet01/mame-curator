@@ -52,7 +52,7 @@ const config: AppConfigResponse = {
 }
 
 describe('SettingsPage', () => {
-  it('renders every section header (FP11 § B3 — 8 tabs incl. snapshots + about)', () => {
+  it('renders every section header (FP12 § J — 9 tabs incl. backup)', () => {
     render(
       <SettingsPage
         config={config}
@@ -67,6 +67,7 @@ describe('SettingsPage', () => {
     expect(screen.getByText(/^Updates$/)).toBeInTheDocument()
     expect(screen.getByText(/^Media$/)).toBeInTheDocument()
     expect(screen.getByText(/^Snapshots$/)).toBeInTheDocument()
+    expect(screen.getByText(/^Backup & restore$/)).toBeInTheDocument()
     expect(screen.getByText(/^About$/)).toBeInTheDocument()
   })
 
@@ -338,5 +339,22 @@ describe('SettingsPage', () => {
     expect(onSnapshotRestore).toHaveBeenCalledExactlyOnceWith(
       '20260502T164321Z-abc',
     )
+  })
+
+  it('fires onBackupExport when Export is clicked on the Backup tab (FP12 § J)', async () => {
+    const onBackupExport = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+        onBackupExport={onBackupExport}
+      />,
+    )
+    await userEvent.click(
+      screen.getByRole('tab', { name: /^Backup & restore$/ }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: /^Export/ }))
+    expect(onBackupExport).toHaveBeenCalledOnce()
   })
 })

@@ -5,6 +5,7 @@ import { ChipListEditor } from '@/components/settings/ChipListEditor'
 import { DragReorderList } from '@/components/settings/DragReorderList'
 import { YearRangeEditor } from '@/components/settings/YearRangeEditor'
 import { SnapshotsTab } from '@/components/settings/SnapshotsTab'
+import { BackupTab } from '@/components/settings/BackupTab'
 import {
   Select,
   SelectContent,
@@ -64,6 +65,11 @@ interface SettingsPageProps {
   snapshots?: readonly Snapshot[]
   snapshotsLoading?: boolean
   snapshotsError?: string | null
+  /** FP12 § J — Backup tab callbacks. No-op defaults so callers without
+      export/import wiring still compile. */
+  onBackupExport?: () => void
+  onBackupImport?: (file: File) => void
+  backupError?: string | null
 }
 
 interface PrefSwitchProps {
@@ -90,6 +96,7 @@ const SECTION_KEYS = [
   'updates',
   'media',
   'snapshots',
+  'backup',
   'about',
 ] as const
 
@@ -102,6 +109,9 @@ export function SettingsPage({
   snapshots = [],
   snapshotsLoading = false,
   snapshotsError = null,
+  onBackupExport = () => {},
+  onBackupImport = () => {},
+  backupError = null,
 }: SettingsPageProps) {
   const updateUi = <K extends keyof UiCfg>(key: K, value: UiCfg[K]) => {
     onPatch({ ui: { ...config.ui, [key]: value } })
@@ -389,6 +399,14 @@ export function SettingsPage({
             loading={snapshotsLoading}
             error={snapshotsError}
             onRestore={onSnapshotRestore}
+          />
+        </TabsContent>
+
+        <TabsContent value="backup" className="flex flex-col gap-2">
+          <BackupTab
+            onExport={onBackupExport}
+            onImport={onBackupImport}
+            error={backupError}
           />
         </TabsContent>
 

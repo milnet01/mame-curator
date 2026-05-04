@@ -270,6 +270,21 @@ export const strings = {
     snapshotRestoreConfirmTitle: 'Restore configuration?',
     snapshotRestoreActionLabel: (count: number) =>
       `Restore ${count} file${count === 1 ? '' : 's'}`,
+    /** FP12 § J — Backup tab copy. */
+    backupTabBlurb:
+      'Export a JSON bundle of every config / session / override file, or replace them all from a previously-exported bundle.',
+    backupExportLabel: 'Export bundle',
+    backupImportLabel: 'Import bundle',
+    backupExportError: 'Could not export configuration.',
+    backupImportError: 'Could not import configuration.',
+    backupImportInvalidJson: 'That file is not a valid JSON bundle.',
+    backupImportConfirmTitle: 'Replace configuration?',
+    backupImportConfirm: (filename: string) =>
+      `Replace every configuration file with the contents of ${filename}? Current settings will be overwritten.`,
+    backupImportActionLabel: (filename: string) =>
+      `Replace settings from ${filename}`,
+    backupWizardForwardLink:
+      'Re-running the setup wizard ships in Phase 8.',
   },
 
   copy: {

@@ -1229,11 +1229,19 @@ scope (a thin select control, no primitive needed).
     query so a fresh PATCH surfaces the new entry on next read.
     8 unit tests + 2 SettingsPage integration tests; 133 frontend
     tests total.
-  - **J — Settings → Backup tab (Export / Import).** R18 GET and
-    R19 POST. Export downloads a JSON bundle (browser file-picker
-    save); import accepts a file via R19 multipart. The "Re-run
-    wizard" entry from design §8 lives here as a Phase-8
-    forward-link banner.
+  - **J — Settings → Backup tab (Export / Import).** ✅ shipped
+    2026-05-04 — `BackupTab` primitive (Export button +
+    file-picker Import + ConfirmationDialog whose action label is
+    the design §8 concrete form `"Replace settings from <file>"`)
+    plus a Phase-8 forward-link line. R18 / R19 are both JSON
+    POSTs (the roadmap's "R19 multipart" hint was stale — the
+    backend at `config.py:170 + 186` takes / returns
+    `ConfigExportBundle`). `useConfigExport` + `useConfigImport`
+    hooks live in `useConfig.ts`; `SettingsRoute` does the
+    download dance (Blob → `<a download>` → revoke) and the
+    upload parse step (`File.text()` → `JSON.parse` → mutate).
+    8 unit tests + 1 SettingsPage integration test; 142 frontend
+    tests total.
 
   Source: spec § "Out of scope" line 511 + FP11 § J spec sync;
   filed 2026-05-02 from user follow-up after FP11's closing
