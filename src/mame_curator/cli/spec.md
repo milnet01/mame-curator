@@ -14,6 +14,18 @@ The set of subcommands grows phase-by-phase. Each subcommand's behavioral contra
 | 2 | `filter ...` | shipped | `filter/spec.md` |
 | 3 | `copy ...` | planned | `copy/spec.md` |
 | 4 | `serve` (or invoked via `uvicorn`) | planned | `api/spec.md` |
+| — | `setup` | shipped | (no host module — wizard wraps `AppConfig` schema directly) |
+
+The `setup` subcommand is a small CLI-only bootstrap shipped ahead of the
+P08 browser-based first-run wizard. Scope is deliberately minimal:
+prompts for the four required `paths.*` fields (or accepts them via flags
+for non-interactive use), validates that `source_roms` and `source_dat`
+exist, then writes a starter `config.yaml` that omits the rest of the
+sections so they fall back to `AppConfig` defaults. Anything richer
+(filter chip lists, region priority, theme, …) is tweaked through the
+in-app Settings page or by hand-editing — `setup`'s job is "get me to a
+running app", not "configure every knob". The full P08 wizard (browser
+flow, FS picker, INI auto-detection) replaces `setup` when it lands.
 
 The CLI MUST refuse to run with no subcommand (argparse `required=True` on the subparsers group). Adding a subcommand requires both registering it in `build_parser()` AND adding a dispatch branch in `run()` — the dispatch branch calls a handler defined in `cli/_cmd_<name>.py` (or, for tiny phase-1 handlers, inline in `__init__.py`).
 

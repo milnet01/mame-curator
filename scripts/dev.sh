@@ -32,7 +32,7 @@ command -v npm >/dev/null || { echo "error: npm not on PATH (Node 20.x required)
 
 if [[ ! -f "${CONFIG}" ]]; then
   echo "error: config not found at ${CONFIG}" >&2
-  echo "       edit ${REPO_ROOT}/config.yaml with real paths first" >&2
+  echo "       run \`uv run mame-curator setup --out ${CONFIG}\` first" >&2
   exit 1
 fi
 

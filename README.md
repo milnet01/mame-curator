@@ -50,7 +50,22 @@ uv run pre-commit install
 
 ## Run the app (dev mode)
 
-For visual testing of the SPA against a live backend:
+First-time setup — generate a `config.yaml` interactively:
+
+```bash
+uv run mame-curator setup           # writes ./config.yaml
+uv run mame-curator setup --out /elsewhere/config.yaml --force
+```
+
+The wizard prompts for the four required paths (source ROM
+directory, source DAT, destination ROM directory, RetroArch
+playlist target). All other sections fall back to defaults that
+you can refine through the in-app Settings page. To pre-fill
+non-interactively, pass `--source-roms`, `--source-dat`,
+`--dest-roms`, and `--retroarch-playlist`.
+
+Then start both servers for visual testing of the SPA against a
+live backend:
 
 ```bash
 ./scripts/dev.sh                  # uses ./config.yaml
@@ -60,10 +75,6 @@ For visual testing of the SPA against a live backend:
 This starts the FastAPI backend on `:8080` and the Vite dev server on
 `:5173` with hot-module reload. Visit
 [http://127.0.0.1:5173](http://127.0.0.1:5173). Ctrl+C stops both.
-
-A real `config.yaml` with paths to your MAME ROM set + DAT is
-required — the backend's startup parses the DAT before serving any
-routes.
 
 For a "production-shape" run (single `:8080` serving the
 pre-built SPA from `frontend/dist/`) without HMR:
