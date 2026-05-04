@@ -1310,6 +1310,73 @@ CONTRIBUTING, final UAT, tag `v1.0.0`, GitHub publish.
 
 ---
 
+## P10 — Media coverage expansion (planned, post-v1)
+
+**Theme:** raise box-art / snapshot / marquee coverage by
+fanning out to multiple metadata sources beyond the libretro-
+thumbnails set shipped in P05. The current single-source
+fallback misses progettoSnaps-only games, recent additions,
+and most Japanese-text obscurities.
+
+Default placement is **post-v1.0.0** — none of these blocks
+release. The smallest sub-bullet (P10 § A — progettoSnaps as a
+second URL source, no auth, same shape as libretro-thumbnails)
+could be promoted ahead of P07 if the user wants more art
+coverage in the v1 cut; it's a one-day surface change to
+`media/urls.py` plus a new fixture pack.
+
+### 🎨 Features
+
+- 📋 **P10** [mame-curator-1005] **Media coverage expansion.**
+  Lanes: media, frontend, tests.
+  - **A — progettoSnaps fallback URL source.** Add
+    `https://www.progettosnaps.net/snap/<shortname>.png` (and
+    sibling marquees / titles / cabinets / flyers) to
+    `media/urls.py` as a secondary builder. Cache contract is
+    identical to P05 (sha256-keyed, lazy-fetch). Wire into
+    `MediaUrls` so the resolver tries libretro first, falls
+    back to progettoSnaps on 404. **Yield estimate:** closes
+    60–70% of the missing-art gap. **Effort:** ~1 day.
+  - **B — ArcadeDB (arcadeitalia.net) JSON API.** REST endpoint
+    `service_scraper.php?ajax=query_mame&game_name=<shortname>`
+    returns title / year / manufacturer + screenshot / marquee
+    / flyer URLs. Highest-quality images of the bunch but
+    rate-limited; needs a polite client (per-host backoff,
+    `User-Agent` set, ≤1 req/s). Folds into the same lazy-fetch
+    cache. **Effort:** ~2 days incl. polite-client primitive.
+  - **C — Wikipedia / MediaWiki API for prose blurbs.** Not
+    primarily for images — the goal is one or two sentences of
+    flavor text on the alternatives drawer's `WhyPickedPanel`.
+    Where Wikipedia hosts a licensed image (rare for arcade
+    games), opportunistically pull it. **Effort:** ~1 day.
+  - **D — Mobygames API (port-cover fallback).** Console ports
+    of arcade titles often have higher-resolution box art than
+    the arcade originals. Mobygames has an API key; we'd need
+    to handle quota and credit attribution per their TOS.
+    Lower priority than A/B. **Effort:** ~2 days incl. auth.
+  - **E — EmuMovies (deferred).** Best video coverage, but
+    requires a paid login + bandwidth subscription per their
+    TOS — outside scope for an MIT-licensed open-source
+    project. Capture as "considered, declined" unless a user
+    requests it explicitly with their own credentials. No
+    immediate work.
+  - **F — Settings: per-source enable/disable.** New
+    `media.sources` array in `AppConfig` with the source IDs
+    above; Settings → Media tab gets a checkbox group. Lets
+    users opt out of slow / rate-limited sources (e.g. for
+    offline use). **Effort:** ~0.5 day after A+B land.
+
+  Source: user follow-up question 2026-05-04 mid-FP12 ("Are
+  there additional sites that game metadata can be scraped
+  from? There are quite a lot of games without graphics").
+  Captured + recommended placement post-v1; user accepted the
+  same day.
+  Kind: implement.
+  Dependencies: P05 (media subsystem must exist), FP10
+  (closed). No dependency on FP12 / P07 / P08 / P09.
+
+---
+
 ## Future enhancements (post-v1.0.0)
 
 Captured in

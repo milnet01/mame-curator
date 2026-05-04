@@ -126,6 +126,7 @@ nominal. Both tags point at `56449c6`.
 | P07 | Phase 7 | 📋 | — | — | Self-update + help (`updates/`, `help/`) |
 | P08 | Phase 8 | 📋 | — | — | Setup wizard (`setup/`) |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
+| P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
 
 The detailed per-phase contract for every phase still lives at
 `docs/superpowers/specs/2026-04-27-roadmap.md` — that file is the
@@ -157,6 +158,19 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-04 — P10 (media coverage expansion) added
+
+User asked mid-FP12 "Are there additional sites that game
+metadata can be scraped from? There are quite a lot of games
+without graphics." Six sources brainstormed; user accepted
+same-day to file as a post-FP12 roadmap entry. Slotted as P10
+post-v1 (after P09's v1.0.0 release). § A (progettoSnaps as a
+second URL source) flagged as promotable ahead of P07 on user
+say-so — one-day surface change to `media/urls.py`, no auth,
+same lazy-fetch cache shape as the libretro-thumbnails wiring
+P05 already ships. Stable ID `mame-curator-1005`; counter bumped
+to 1005.
 
 ### 2026-05-04 — FP12 cluster I (Snapshots tab) closed
 
