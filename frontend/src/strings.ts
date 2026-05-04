@@ -287,6 +287,10 @@ export const strings = {
     backupExportError: 'Could not export configuration.',
     backupImportError: 'Could not import configuration.',
     backupImportInvalidJson: 'That file is not a valid JSON bundle.',
+    backupImportInvalidShape:
+      'That JSON is not a configuration bundle (expected `config`, `overrides`, `sessions`, `notes` keys).',
+    backupImportTooLarge:
+      'That file is too large — configuration bundles should be well under 5 MB.',
     backupImportConfirmTitle: 'Replace configuration?',
     backupImportConfirm: (filename: string) =>
       `Replace every configuration file with the contents of ${filename}? Current settings will be overwritten.`,

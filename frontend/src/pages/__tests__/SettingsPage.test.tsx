@@ -458,6 +458,27 @@ describe('SettingsPage', () => {
     )
   })
 
+  it('reverts the DAT input back to the prior value when the confirm is cancelled (FP13 § B2)', async () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    const input = screen.getByLabelText(/^DAT$/) as HTMLInputElement
+    await userEvent.clear(input)
+    await userEvent.type(input, '/new/dat.xml')
+    await userEvent.tab()
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    // After cancel, the input should re-mount and re-seed from the unchanged
+    // `value` prop. Without the FP13 § B2 reset-tick this assertion fails —
+    // the old `draft` state retains '/new/dat.xml'.
+    expect((screen.getByLabelText(/^DAT$/) as HTMLInputElement).value).toBe(
+      config.paths.source_dat,
+    )
+  })
+
   it('does not patch the DAT if the confirm is cancelled (FP12 § H)', async () => {
     const onPatch = vi.fn()
     render(

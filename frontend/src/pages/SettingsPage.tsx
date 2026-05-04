@@ -22,6 +22,7 @@ import { strings } from '@/strings'
 import type {
   AppConfigResponse,
   AppUpdateInfo,
+  ConfigExportBundle,
   SetupCheck,
   Snapshot,
 } from '@/api/types'
@@ -73,7 +74,7 @@ interface SettingsPageProps {
   /** FP12 § J — Backup tab callbacks. No-op defaults so callers without
       export/import wiring still compile. */
   onBackupExport?: () => void
-  onBackupImport?: (file: File) => void
+  onBackupImport?: (bundle: ConfigExportBundle) => void
   backupError?: string | null
 }
 
@@ -195,6 +196,10 @@ export function SettingsPage({
   // FP12 § H — DAT swap is destructive (replaces the whole library);
   // hold the pending value here until the user confirms.
   const [pendingDat, setPendingDat] = useState<string | null>(null)
+  // FP13 § B2: bumped after each pendingDat resolution (cancel or confirm)
+  // so the source_dat PathRow re-mounts and `draft` re-seeds from `value`.
+  // Without this, a typed-then-cancelled DAT path stays stale in the input.
+  const [datResetTick, setDatResetTick] = useState(0)
   const updatePaths = <K extends keyof AppConfigResponse['paths']>(
     key: K,
     value: AppConfigResponse['paths'][K],
@@ -261,6 +266,7 @@ export function SettingsPage({
             onChange={(next) => updatePaths('dest_roms', next)}
           />
           <PathRow
+            key={`paths-source-dat-${datResetTick}`}
             id="paths-source-dat"
             label={strings.settings.pathRowLabels.dat}
             value={config.paths.source_dat}
@@ -280,13 +286,19 @@ export function SettingsPage({
             <ConfirmationDialog
               open
               onOpenChange={(o) => {
-                if (!o) setPendingDat(null)
+                if (!o) {
+                  setPendingDat(null)
+                  setDatResetTick((n) => n + 1)
+                }
               }}
               title={strings.settings.datSwapConfirmTitle}
               description={strings.settings.datSwapConfirm}
               actionLabel={strings.settings.datSwapActionLabel(pendingDat)}
               destructive
-              onConfirm={() => updatePaths('source_dat', pendingDat)}
+              onConfirm={() => {
+                updatePaths('source_dat', pendingDat)
+                setDatResetTick((n) => n + 1)
+              }}
             />
           )}
         </TabsContent>

@@ -35,7 +35,7 @@ import { useStats } from '@/hooks/useStats'
 import { useHelpIndex, useHelpTopic } from '@/hooks/useHelp'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { strings } from '@/strings'
-import type { ThemeName } from '@/api/types'
+import type { ConfigExportBundle, ThemeName } from '@/api/types'
 
 const LibraryPage = lazy(() =>
   import('@/pages/LibraryPage').then((m) => ({ default: m.LibraryPage })),
@@ -230,15 +230,10 @@ function SettingsRoute() {
     }
   }
 
-  const handleImport = async (file: File) => {
+  // FP13 § B1: BackupTab now pre-validates (size + JSON parse + schema) and
+  // hands us a typed bundle, so this handler is the mutate-only step.
+  const handleImport = async (bundle: ConfigExportBundle) => {
     setBackupError(null)
-    let bundle
-    try {
-      bundle = JSON.parse(await file.text())
-    } catch {
-      setBackupError(strings.settings.backupImportInvalidJson)
-      return
-    }
     try {
       await importConfig.mutateAsync(bundle)
     } catch {

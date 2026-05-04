@@ -6,12 +6,15 @@ import { BackupTab } from '../BackupTab'
 
 afterEach(() => cleanup())
 
+const VALID_BUNDLE_JSON =
+  '{"config":{},"overrides":{},"sessions":{},"notes":{}}'
+
 const sampleFile = () =>
-  new File(['{"config":{},"overrides":{},"sessions":{},"notes":{}}'], 'backup.json', {
+  new File([VALID_BUNDLE_JSON], 'backup.json', {
     type: 'application/json',
   })
 
-describe('BackupTab (FP12 § J)', () => {
+describe('BackupTab (FP12 § J + FP13 § B1/B3)', () => {
   it('renders Export and Import controls', () => {
     render(<BackupTab onExport={() => {}} onImport={() => {}} />)
     expect(screen.getByRole('button', { name: /^Export/ })).toBeInTheDocument()
@@ -30,7 +33,7 @@ describe('BackupTab (FP12 § J)', () => {
     expect(onExport).toHaveBeenCalledOnce()
   })
 
-  it('opens a confirmation dialog when a file is selected', async () => {
+  it('opens a confirmation dialog when a valid file is selected', async () => {
     render(<BackupTab onExport={() => {}} onImport={() => {}} />)
     const input = screen.getByLabelText(/^Import/) as HTMLInputElement
     await userEvent.upload(input, sampleFile())
@@ -48,17 +51,21 @@ describe('BackupTab (FP12 § J)', () => {
     ).toBeInTheDocument()
   })
 
-  it('calls onImport with the file only after confirming', async () => {
+  it('calls onImport with the parsed bundle only after confirming (FP13 § B1)', async () => {
     const onImport = vi.fn()
-    const file = sampleFile()
     render(<BackupTab onExport={() => {}} onImport={onImport} />)
     const input = screen.getByLabelText(/^Import/) as HTMLInputElement
-    await userEvent.upload(input, file)
+    await userEvent.upload(input, sampleFile())
     expect(onImport).not.toHaveBeenCalled()
     await userEvent.click(
       screen.getByRole('button', { name: 'Replace settings from backup.json' }),
     )
-    expect(onImport).toHaveBeenCalledExactlyOnceWith(file)
+    expect(onImport).toHaveBeenCalledExactlyOnceWith({
+      config: {},
+      overrides: {},
+      sessions: {},
+      notes: {},
+    })
   })
 
   it('does not call onImport when the dialog is cancelled', async () => {
@@ -70,10 +77,54 @@ describe('BackupTab (FP12 § J)', () => {
     expect(onImport).not.toHaveBeenCalled()
   })
 
-  it('renders an error message when error is set', () => {
+  it('renders a parent-supplied error message when error is set', () => {
     render(
       <BackupTab onExport={() => {}} onImport={() => {}} error="Bad bundle." />,
     )
     expect(screen.getByRole('alert')).toHaveTextContent(/bad bundle/i)
+  })
+
+  it('rejects a file whose JSON parse fails — no dialog opens (FP13 § B1)', async () => {
+    const onImport = vi.fn()
+    render(<BackupTab onExport={() => {}} onImport={onImport} />)
+    const input = screen.getByLabelText(/^Import/) as HTMLInputElement
+    const garbage = new File(['{ not json'], 'garbage.json', {
+      type: 'application/json',
+    })
+    await userEvent.upload(input, garbage)
+    expect(screen.getByRole('alert')).toHaveTextContent(/not a valid JSON/i)
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(onImport).not.toHaveBeenCalled()
+  })
+
+  it('rejects a file whose schema does not match — no dialog opens (FP13 § B1)', async () => {
+    const onImport = vi.fn()
+    render(<BackupTab onExport={() => {}} onImport={onImport} />)
+    const input = screen.getByLabelText(/^Import/) as HTMLInputElement
+    // Valid JSON but wrong shape (missing required keys + extra key).
+    const wrongShape = new File([JSON.stringify({ unrelated: 1 })], 'wrong.json', {
+      type: 'application/json',
+    })
+    await userEvent.upload(input, wrongShape)
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /not a configuration bundle/i,
+    )
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(onImport).not.toHaveBeenCalled()
+  })
+
+  it('rejects a file larger than the size cap — no parse, no dialog (FP13 § B3)', async () => {
+    const onImport = vi.fn()
+    render(<BackupTab onExport={() => {}} onImport={onImport} />)
+    const input = screen.getByLabelText(/^Import/) as HTMLInputElement
+    // Build a 6 MB blob — over the 5 MB cap. Content can be empty padding;
+    // size check happens before parse, so the body never matters.
+    const huge = new File(['x'.repeat(6 * 1024 * 1024)], 'huge.json', {
+      type: 'application/json',
+    })
+    await userEvent.upload(input, huge)
+    expect(screen.getByRole('alert')).toHaveTextContent(/too large/i)
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(onImport).not.toHaveBeenCalled()
   })
 })
