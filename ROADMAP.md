@@ -1276,6 +1276,68 @@ scope (a thin select control, no primitive needed).
 
 ---
 
+## FP13 — FP12 closing-review fold-in (planned)
+
+**Theme:** FP12's closing `/audit` (ruff / ruff format / mypy /
+bandit / eslint / gitleaks / trivy / semgrep) was clean across
+the FP12 surface; the 3-lane `/indie-review` (primitives /
+FsBrowser / SettingsPage wiring) returned **22 actionable
+findings + 1 deferred false positive**, batched into 5 thematic
+clusters. Cross-cutting theme flagged by 2 of 3 lanes: silent
+react-query mutation errors — `useFsGrantRoot`, `useConfigPatch`,
+and `useSnapshotRestore` all fire-and-forget without `onError`,
+so a 422/404/500 from the API is invisible to the user.
+
+False positive deferred (not folded here): semgrep flagged
+`dangerouslySetInnerHTML` on `frontend/src/pages/HelpPage.tsx:67`
+— out of FP12 scope (P06/FP11 surface). Folded into the next
+debt-sweep, not allowlisted (the rule is real; the trust-boundary
+mitigation is an FP11 § H4 `FIXME(security)` comment that the
+debt-sweep should resolve).
+
+### 🎨 Features
+
+- 📋 **FP13** [mame-curator-1006] **FP12 closing-review fold-in.**
+  Lanes: frontend, tests.
+  - **A — Mutation observability (cross-cutting).**
+    - A1: `useConfigPatch.onError` → toast.error via `strings.errors.byCode`. Patch failures invisible today.
+    - A2: `useSnapshotRestore.onError` → toast.error. `snapshot_not_found` 404 invisible today.
+    - A3: `useFsGrantRoot.onError` → inline error in `<FsBrowser>` modal + `disabled={grant.isPending}` on the AlertDialogAction.
+    - A4: PATCH `restart_required: true` → banner in Settings page when set; today the flag is dropped on the floor (reachable via Import once a different `server.port` lands).
+  - **B — Destructive-confirm correctness.**
+    - B1: `BackupTab` Import — pre-confirm structural validation via `ConfigExportBundleSchema.safeParse(parsed)` before showing the "Replace settings from <file>" dialog; surface zod issues with actionable copy.
+    - B2: DAT-swap cancel — `key={config.paths.source_dat}` on the source_dat `<PathRow>` so Cancel re-mounts the input and `draft` re-seeds from `value`. Today Cancel closes the confirm dialog but leaves the rejected path string in the input.
+    - B3: `BackupTab` Import — file-size pre-check (≤5MB cap) before `await file.text()`; surface `backupImportTooLarge`. Prevents 100MB+ paste freezing the tab on the main thread.
+  - **C — FsBrowser correctness + UX.**
+    - C1: `useFsListing` query-key collision when `path === null`. Today the disabled query and a hypothetical `path=''` listing share `['fs','list','']`. Branch on null instead of `path ?? ''`.
+    - C2: Sandbox confirm cancel-path lockout — when the user cancels the grant prompt and `home.data` hasn't loaded, the listing stays 403 and the dialog immediately re-opens (no exit). Close `<FsBrowser>` entirely on cancel or revert to last-known-good path.
+    - C3: `mode='file'` "Use this directory" footer button — hide when `mode !== 'directory'` instead of leaving a permanently-disabled button with the wrong label.
+    - C4: Quick-jump dedupe — drive roots that already appear in `allowed.data.roots` render twice today (cosmetic).
+    - C5: goUp disabled at allowlist root — add `title="Already at the top of the allowed area"` so disabled state is discoverable.
+    - C6: `useFsGrantRoot.onSuccess` — also `qc.invalidateQueries({ queryKey: ['fs','list'] })` so freshly-granted directories refetch in any other open FsBrowser instance.
+    - C7: `useFsHome` error fallback — surface inline "could not detect home directory; pick a drive root to continue" instead of silent empty path bar.
+  - **D — Accessibility (WCAG 2.2).**
+    - D1: `ChipListEditor` — split chip text from the remove button (`<span>{item}</span><button aria-label={`Remove ${item}`}>×</button>`) so AT announces chip content separately from the affordance.
+    - D2: `DragReorderList` — `aria-live="polite"` region announcing "Moved <item> to position N of M" after each ArrowUp/ArrowDown / button-click. Currently silent to AT.
+    - D3: `DragReorderList` — adopt the FP12 § Step 1 research contract's `role="listbox"` + `aria-activedescendant` pattern OR add an inline comment justifying the simpler `role="list"` since user elected arrow-button reorder over dnd-kit (Karpathy push-back).
+    - D4: SettingsPage Browse-button `aria-label` template literal at line 118 → `strings.settings.fsBrowseAriaLabel(label)` per coding-standards §4.
+  - **E — Standards compliance + minor hardening.**
+    - E1: `SettingsPage.tsx` 551 lines vs `coding-standards.md §2` hard-cap 350. Extract `FiltersTab` / `PickerTab` / `UpdatesTab` / `MediaTab` per the existing `SnapshotsTab`/`BackupTab` shape; SettingsPage becomes a thin tab dispatcher under 200 lines.
+    - E2: `YearRangeEditor` — `Number(raw)` NaN guard + `min..max` clamp at trust boundary (paste of `"abc"` or `"1850"` currently produces `NaN`/out-of-range that flows to the patch as `null` or rejected).
+    - E3: Export filename — `.toISOString().slice(0, 19).replace(/[:T]/g, '-')` drops the millisecond noise (`2026-05-04T13-22-09-455Z` → `2026-05-04-13-22-09`).
+    - E4: `DragReorderList` — `key={`${item}-${index}`}` OR document item-uniqueness precondition (today depends on caller dedup).
+    - E5: `useFsListing` — gate URL build behind `path !== null` instead of `path ?? ''` so the disabled query doesn't construct a misleading URL.
+    - E6: `BackupTab` Import — surface `FieldError[]` from server response inline rather than only the generic error string.
+
+  Source: FP12 closing `/audit` (clean across the FP12 surface)
+  + 3-lane `/indie-review` (primitives, FsBrowser, SettingsPage
+  wiring); filed 2026-05-04. All 22 findings came from the
+  cold-eyes multi-agent review — static analysis surfaced zero
+  on this lane.
+  Dependencies: FP12 (still 🚧).
+
+---
+
 ## P07 — Self-update + in-app help (planned)
 
 **Theme:** in-app updates (git-pull / release-download with

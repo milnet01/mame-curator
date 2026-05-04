@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP13 — FP12 closing-review fold-in (planned)
+
+22 actionable findings from FP12's closing `/audit` (clean) +
+3-lane `/indie-review` (primitives / FsBrowser / SettingsPage
+wiring), batched into 5 thematic clusters. Cross-cutting theme
+flagged by 2 of 3 lanes: silent react-query mutation errors —
+`useFsGrantRoot` / `useConfigPatch` / `useSnapshotRestore` all
+fire-and-forget without `onError`, so a 422/404/500 from the API
+is invisible to the user. Plus: SettingsPage at 551 lines vs
+coding-standards §2 hard-cap 350 (extract per-tab subcomponents);
+WCAG announcement gaps on `<DragReorderList>` + `<ChipListEditor>`
+chip semantics; destructive-confirm UX gaps in BackupTab Import +
+DAT-swap cancel. See `ROADMAP.md § FP13` for the full cluster
+breakdown. 1 deferred false positive (semgrep on HelpPage:67 —
+P06/FP11 surface, folded into next debt-sweep).
+
 ### FP12 — Settings page list editors + path picker (closing audits next)
 
 Replaces the FP11 spec-§-511 read-only Settings tabs with
