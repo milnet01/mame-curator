@@ -17,6 +17,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-05-04
+
+First public release. Everything below shipped under `[Unreleased]`
+between 2026-04-27 and 2026-05-04 is rolled into this tag. The
+phase-by-phase summary that follows captures the v1 scope.
+
+### Phase summary
+
+- **P00 — Scaffold + tooling baseline (2026-04-27).** Project skeleton,
+  five-gate CI (ruff / format / mypy / bandit / pytest), Conventional
+  Commits convention, MIT license.
+- **P01 — `parser/` module (2026-04-27).** `parse_dat()` streams a
+  ~48 MB / 43k-machine DAT in ~5 s via `lxml.iterparse`; the four
+  mandatory progettoSnaps INIs (`catver` / `languages` / `bestgames` /
+  `mature`); the official MAME `-listxml` for CHD detection +
+  parent/clone joining (Pleasuredome strips `cloneof` / `romof`).
+- **P02 — `filter/` module (2026-04-27).** Four-phase rule chain (drop
+  → pick → override → session-slice). `Sessions` continuation-mode
+  inclusion focus. 158 tests, 96%+ coverage.
+- **P03 — `copy/` module (2026-04-30).** Atomic ROM copy + BIOS chain
+  resolution + RetroArch `.lpl` writer + recycle-bin for replaced
+  files + playlist conflict handling. 300 tests; 5 fix-passes folded
+  in (FP01 / FP02 / FP04 / FP07 / FP08) + the pre-P04 debt sweep
+  DS01.
+- **P04 — `api/` module (2026-05-01).** FastAPI surface with 40 routes,
+  SSE for live copy progress, sandbox + R29-R34 filesystem-browser
+  endpoints. FP09 indie-review fold-in.
+- **P05 — `media/` module (2026-05-02).** libretro-thumbnails URL
+  builder + sha256-keyed lazy-fetch disk cache. FP10 fold-in.
+- **P06 — Frontend MVP (2026-05-02).** Vite + React 19 + Tailwind v4 +
+  shadcn/ui SPA: library grid (4 layouts), alternatives drawer,
+  themes (Light / Dark / Double Dragon / Pac-Man / SF2 / Neo-Geo),
+  Sessions / Activity / Stats / Settings / Help pages, Cmd-K palette,
+  ErrorBoundary tree. FP11 closing-review fold-in (40 findings across
+  10 clusters).
+- **P07 — Reference-data refresh + in-app help (2026-05-04, slim).**
+  `downloads.py` primitive (sha256-verified atomic download with
+  retry + mirror fallback); `mame-curator refresh-inis` CLI;
+  `cards_per_row_hint` UI Select; HelpPage DOMPurify; Cmd-K wired to
+  bundled help topics. Self-update + INI diff-preview UI deferred to
+  P12 (post-v1) per Karpathy 9 push-back.
+- **P08 — Clone-and-run bootstrap (2026-05-04, slim).** `run.sh` /
+  `run.bat` provision Python + uv + deps + interactive setup +
+  serve + browser open in one idempotent script. In-browser wizard
+  deferred post-v1.
+- **P09 — Polish + v1.0.0 cut (2026-05-04).** Updated README with
+  `./run.sh` quickstart; CHANGELOG bootstrapped with this entry; tag
+  `v1.0.0`.
+
+### Settings + UX fix-passes folded into v1.0.0
+
+- **FP12 — Settings page list editors + path picker (2026-05-04).**
+  `<ChipListEditor>`, `<DragReorderList>`, `<YearRangeEditor>`,
+  vendored shadcn `<Select>`, full `<FsBrowser>` modal with sandbox
+  grant flow, in-place editable Paths tab, Snapshots + Backup tabs.
+  10 clusters A-J in 13 commits.
+- **FP13 — FP12 closing-review fold-in (2026-05-04).** 22 findings
+  from `/audit` (clean) + 3-lane `/indie-review` closed in 6 commits;
+  SettingsPage extracted from 551 → 305 lines via 6 sibling
+  components; new `lib/apiErrorToast.ts` translates ApiError → user
+  copy.
+- **FP14 — GameCard layout overflow (2026-05-04).** `aspect-[3/4]`
+  pushed total card height past the virtualizer's row height,
+  clipping the description heading. Replaced with `flex-1 min-h-0` +
+  `object-contain`; image-fail placeholder shows the description so
+  games without art are still identifiable; added shortname row for
+  technical disambiguation (1942 Capcom vs Williams).
+- **FP15 — Sessions UX (2026-05-04).** Wired the load-bearing no-op
+  `LibraryPage.onSaveSession` (an FP11 placeholder that was never
+  filled); added active-session pill in /library header; added
+  one-line explainer above the Save button.
+
+### Versioning policy
+
+[Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html). v1
+is the first stable contract. Breaking changes after v1 require a
+major bump.
+
 ### FP15 — Sessions UX (closed 2026-05-04)
 
 User reported sessions weren't discoverable from the Library page.

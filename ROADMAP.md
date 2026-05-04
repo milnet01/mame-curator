@@ -1502,13 +1502,29 @@ CONTRIBUTING, final UAT, tag `v1.0.0`, GitHub publish.
 
 ### 📚 Documentation
 
-- 📋 **P09 — v1.0.0 release.** README quickstart that a
-  non-technical user can follow; 4-6 screenshots from a working
-  install; CHANGELOG bootstrapped with v1.0.0 entry summarising
-  every phase; release workflow validated; tag + push.
-  Kind: release.
-  Lanes: docs, packaging, ci.
-  Dependencies: P08.
+- ✅ **P09** [mame-curator-1013] **v1.0.0 release (slim).**
+  Lanes: docs, packaging.
+  - **A — README rewrite.** `./run.sh` 3-command quickstart
+    front-and-centre; phase status table dropped (everything ✅);
+    "What it does" rewritten in user-outcome language; Developer
+    setup section preserved for contributors.
+  - **B — CHANGELOG `[1.0.0]` bootstrap.** Phase-by-phase summary
+    rolled up from the existing `[Unreleased]` body so the v1.0.0
+    tag has a single self-contained release note. Keep-a-Changelog
+    format preserved.
+  - **C — Tag `v1.0.0`.** Annotated tag at the P09 close commit.
+    Signals the first stable API contract (post-v1 changes follow
+    SemVer).
+
+  Scope refinement (2026-05-04): the original P09 contract called
+  for 4-6 screenshots, CONTRIBUTING.md, hero-shot, cross-platform
+  UAT on real data. Per Karpathy 9 push-back, those are post-v1
+  polish — the user (project author) does Linux UAT on their own
+  data; community contributions to screenshots / CONTRIBUTING
+  arrive organically post-release. Slim P09 keeps v1 inside
+  budget.
+  Source: P08 close 2026-05-04.
+  Dependencies: P08 ✅.
 
 ---
 

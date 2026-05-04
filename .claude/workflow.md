@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | P09 — Polish + v1.0.0 release (📋 next) |
-| **Active item ID** | P09 |
+| **Project phase** | v1.0.0 shipped — post-v1 backlog (P10 / P11 / P12 / P13 candidates) |
+| **Active item ID** | (none — v1.0.0 tagged) |
 | **Active step** | ⬜ all (FP13 + FP12 closed at same SHA 2026-05-04; user-elected close-on-local-gates-green per FP11 precedent for fix-passes whose patches close prior indie-review findings) |
 | **Blocked on** | — |
 | **Last update** | 2026-05-04 (FP15 closed — sessions UX fix-pass after user reported "how do I start a session?". Three gaps: Save button was no-op stub from FP11 § B8 placeholder, no active-session indicator on /library, no inline explainer of what a session is. All 3 closed in one commit. Earlier today: P08 closed — slim run.sh + run.bat. P07 closed — slim. FP14 — GameCard layout overflow fix. FP13 + FP12 — same SHA per P05+FP10 / P06+FP11 precedent. All 22 FP13 findings closed across 6 commits (one per cluster) — A mutation observability + restart_required banner, B destructive-confirm correctness, C FsBrowser correctness + UX, D accessibility WCAG 2.2, E1 SettingsPage extract under 350-line hard cap, E2-E6 hardening sweep. SettingsPage went from 551 → 305 lines via 6 new extractions: FiltersTab / PickerTab / UpdatesTab / MediaTab / PrefSwitch / PathRow. New helper `lib/apiErrorToast.ts` translates ApiError → strings.errors.byCode with detail fallback; wired through useConfigPatch / useSnapshotRestore / useFsGrantRoot. 177 frontend / 435 backend tests / lint+typecheck+ruff+mypy+bandit / build all clean at close. P11 added 2026-05-04 — "Contribute missing thumbnails upstream" (post-v1, depends on P05). Repo PUBLIC; pushed FP12-complete + FP13-complete tags after close.) |
-| **Next gate** | P09 step 1 — release polish. Long-form contract at `docs/superpowers/specs/2026-04-27-roadmap.md` § Phase 9. README quickstart (3 commands: `git clone && ./run.sh && open localhost:8080`), 4-6 screenshots from a working install, CHANGELOG bootstrapped with v1.0.0 entry summarising every phase, final UAT on real data, tag `v1.0.0`. P09 is the v1.0.0 cut. |
+| **Next gate** | v1.0.0 shipped 2026-05-04. Post-v1 backlog: P10 (media coverage expansion), P11 (contribute thumbnails upstream), P12 (in-app self-update + INI diff-preview UI), P13 candidate (in-browser setup wizard). All deferred-by-design — pick whichever is most valuable when the user comes back. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -128,6 +128,7 @@ nominal. Both tags point at `56449c6`.
 | P07 | Phase 7 (slim) | ✅ | 2026-05-04 | 2026-05-04 | Slim: downloads.py + refresh-inis CLI + cards_per_row Select + HelpPage DOMPurify + Cmd-K help wire-up (5 clusters A-E in 5 commits; no audits run per user direction) |
 | P08 | Phase 8 (slim) | ✅ | 2026-05-04 | 2026-05-04 | Slim: run.sh + run.bat clone-and-run bootstrap scripts (in-browser wizard deferred post-v1 per Karpathy 9 push-back) |
 | FP15 | — | ✅ | 2026-05-04 | 2026-05-04 | Sessions UX — Save wiring (load-bearing FP11 § B8 stub) + active-session pill + first-time explainer |
+| P09 | Phase 9 (slim) | ✅ | 2026-05-04 | 2026-05-04 | v1.0.0 release — README rewrite + CHANGELOG [1.0.0] bootstrap + `v1.0.0` semver tag |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
 | P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
 | P11 | — | 📋 | — | — | Contribute missing thumbnails to libretro-thumbnails (post-v1; depends on P05 ✅, composes with P10) |
