@@ -148,12 +148,16 @@ export function SettingsPage({
               : strings.settings.banners.setupIncomplete}
           </span>
           {(() => {
+            // FP18 § B: count all 5 INIs that refresh-inis ships by default
+            // (mature.ini was added in v1.0.1 once we discovered AntoPISA
+            // hosts it at catver.ini/mature.ini).
             const ref = setupInfo.reference_files
             const required = [
               { name: 'catver.ini', present: ref.catver.exists },
               { name: 'languages.ini', present: ref.languages.exists },
               { name: 'bestgames.ini', present: ref.bestgames.exists },
               { name: 'series.ini', present: ref.series.exists },
+              { name: 'mature.ini', present: ref.mature.exists },
             ]
             const missing = required.filter((r) => !r.present)
             const presentCount = required.length - missing.length

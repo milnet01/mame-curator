@@ -17,6 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-05-04
+
+### FP18 — refresh-inis auto-patches config.yaml + banner counts 5 INIs
+
+User reported INIs downloaded to disk but the running server wasn't
+using them — config.yaml's `paths.{catver,languages,bestgames,series,
+mature}` were unset, so the lifespan parsed them as `None`. The
+Settings → Setup banner reinforced the confusion by hardcoding "4 INIs
+required" (FP16 § C) when v1.0.1 had already added mature.ini to the
+default download set.
+
+- **`refresh-inis` now patches `config.yaml`.** New `--config` flag
+  (default `./config.yaml`); after a successful download, fields under
+  `paths.*` that are currently unset are pointed at the downloaded
+  files. Existing user-supplied paths are never clobbered. Atomic
+  write via `_atomic.atomic_write_text`. Output ends with a "restart
+  the server" hint. Pass `--no-config` to skip the patch.
+- **Setup banner counts 5 INIs** (was 4). `mature.ini` joined the
+  default download set in v1.0.1.
+
+End-to-end smoke test: clean `/tmp/config-test.yaml`, run
+`uv run mame-curator refresh-inis --dest /tmp/mame-ini-test --config
+/tmp/config-test.yaml` → 5/5 downloaded + config patched + restart
+hint shown.
+
+446 backend tests / 88.16% coverage. 182 frontend tests / build
+clean.
+
 ## [1.1.0] — 2026-05-04
 
 ### FP17 — Library filter expansion (closed 2026-05-04)

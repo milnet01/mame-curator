@@ -1338,6 +1338,34 @@ debt-sweep should resolve).
 
 ---
 
+## FP18 — refresh-inis auto-patches config.yaml (closed 2026-05-04)
+
+**Theme:** v1.1.0 left the user's INIs downloaded but unused —
+`config.yaml`'s `paths.{catver,languages,bestgames,series,mature}`
+fields were unset by default and the user had no idea they needed
+to be filled in. FP18 closes the loop: `refresh-inis` now patches
+the config.
+
+### 🐛 Bug fixes
+
+- ✅ **FP18** [mame-curator-1017] **refresh-inis auto-patches config.yaml + 5-INI banner count.**
+  Lanes: cli, frontend.
+  - **A — `refresh-inis --config` flag.** After a successful
+    download, `paths.{ini-field}` entries that are currently
+    unset are pointed at the downloaded files. Existing user-
+    supplied paths are preserved (never clobbered). Atomic write
+    via `_atomic.atomic_write_text`. Prints a "restart the server"
+    hint. `--no-config` opts out.
+  - **B — SettingsPage Setup banner counts 5 INIs** (was 4 in
+    FP16 § C). `mature.ini` joined the default download set in
+    v1.0.1; banner now reflects that.
+
+  Source: user 2026-05-04 ("ini files downloaded. Is the site
+  using them though?" then confirmed the banner showed 0/4).
+  Dependencies: FP17 ✅, v1.0.1 ✅ (mature.ini in defaults).
+
+---
+
 ## FP17 — Library filter expansion (closed 2026-05-04)
 
 **Theme:** user request 2026-05-04 ("Let's add the letter filter

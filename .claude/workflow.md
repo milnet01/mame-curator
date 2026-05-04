@@ -132,6 +132,7 @@ nominal. Both tags point at `56449c6`.
 | FP16 | — | ✅ | 2026-05-04 | 2026-05-04 | Library shipping blockers + INI visibility (search/year params + drawer wiring + setupInfo wiring + SPA cache headers + version bump 0.0.1→1.0.0; v1.0.0 re-tagged at this SHA) |
 | v1.0.1 | — | ✅ | 2026-05-04 | 2026-05-04 | INI URL hotfix — AntoPISA repo uses `<file>/<file>` subdirectories, not flat files; 5/5 INIs now download (mature.ini was bonus) |
 | FP17 | — | ✅ | 2026-05-04 | 2026-05-04 | Library filter expansion — letter + genre + publisher + developer filters; new /api/library/facets endpoint; v1.1.0 |
+| FP18 | — | ✅ | 2026-05-04 | 2026-05-04 | refresh-inis auto-patches config.yaml + Setup banner counts 5 INIs; v1.1.1 |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
 | P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
 | P11 | — | 📋 | — | — | Contribute missing thumbnails to libretro-thumbnails (post-v1; depends on P05 ✅, composes with P10) |
