@@ -78,8 +78,10 @@ async def test_refresh_inis_creates_dest_dir(tmp_path: Path) -> None:
     assert report.all_succeeded
 
 
-def test_default_sources_covers_four_mandatory_inis() -> None:
-    """Sanity: ``INI_DEFAULT_SOURCES`` ships URLs for the four mandatory INIs."""
+def test_default_sources_covers_five_mandatory_inis() -> None:
+    """Sanity: ``INI_DEFAULT_SOURCES`` ships URLs for the five INIs the
+    project parses (v1.0.1: ``mature.ini`` was added once we discovered
+    it lives at ``catver.ini/mature.ini`` in AntoPISA's repo)."""
     from mame_curator.updates import INI_DEFAULT_SOURCES
 
     assert set(INI_DEFAULT_SOURCES) == {
@@ -87,6 +89,12 @@ def test_default_sources_covers_four_mandatory_inis() -> None:
         "languages.ini",
         "bestgames.ini",
         "series.ini",
+        "mature.ini",
     }
     for url in INI_DEFAULT_SOURCES.values():
         assert url.startswith("https://")
+        # v1.0.1 fix: AntoPISA's repo uses per-file subdirectories
+        # (catver.ini/catver.ini), not flat files — guard against a
+        # regression that drops the subdirectory pattern.
+        assert "/AntoPISA/MAME_SupportFiles/" in url
+        assert url.count("/") >= 7  # baseline + repo + main + subdir + file

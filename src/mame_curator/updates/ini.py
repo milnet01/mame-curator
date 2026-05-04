@@ -3,12 +3,14 @@
 Canonical sources mirror AntoPISA's GitHub repo
 (`https://github.com/AntoPISA/MAME_SupportFiles`) for stability — direct
 progettoSnaps URLs are versioned per MAME release (no permanent paths)
-and Antonio Pisa publishes a flat layout on GitHub. The four mandatory
-INIs the project consumes (``catver.ini`` / ``languages.ini`` /
-``bestgames.ini`` / ``series.ini``) are all present there.
+and AntoPISA publishes the same files at stable raw GitHub URLs.
 
-``mature.ini`` is not in AntoPISA's repo and remains optional + user-
-supplied. The CLI command refreshes only the configured sources.
+The repo organises files under per-file subdirectories
+(`catver.ini/catver.ini`, `languages.ini/languages.ini`, etc.) — the
+v1 default URLs reflect that layout. Five files are wired by default:
+the four mandatory ones (``catver`` / ``languages`` / ``bestgames`` /
+``series``) plus ``mature.ini`` which lives inside ``catver.ini/``
+alongside the main catver file.
 
 A bad URL or upstream 404 surfaces as a ``failed`` entry in
 ``INIRefreshReport`` (with the URL for the user to grab manually) — not
@@ -30,11 +32,14 @@ from mame_curator.downloads import ManualFallback, download
 logger = logging.getLogger(__name__)
 
 
+_BASE = "https://raw.githubusercontent.com/AntoPISA/MAME_SupportFiles/main"
+
 INI_DEFAULT_SOURCES: dict[str, str] = {
-    "catver.ini": "https://raw.githubusercontent.com/AntoPISA/MAME_SupportFiles/main/catver.ini",
-    "languages.ini": "https://raw.githubusercontent.com/AntoPISA/MAME_SupportFiles/main/languages.ini",
-    "bestgames.ini": "https://raw.githubusercontent.com/AntoPISA/MAME_SupportFiles/main/bestgames.ini",
-    "series.ini": "https://raw.githubusercontent.com/AntoPISA/MAME_SupportFiles/main/series.ini",
+    "catver.ini": f"{_BASE}/catver.ini/catver.ini",
+    "languages.ini": f"{_BASE}/languages.ini/languages.ini",
+    "bestgames.ini": f"{_BASE}/bestgames.ini/bestgames.ini",
+    "series.ini": f"{_BASE}/series.ini/series.ini",
+    "mature.ini": f"{_BASE}/catver.ini/mature.ini",
 }
 
 
