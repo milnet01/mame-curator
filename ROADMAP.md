@@ -1338,6 +1338,458 @@ debt-sweep should resolve).
 
 ---
 
+## FP23 — Parent/clone collapse listxml fix + DryRun wiring (closed 2026-05-07)
+
+**Theme:** discovered during the P15 cart-and-curated-library
+brainstorm: the running v1.2.0 app showed 21,049 cards in the
+Library bottom-bar with the 1942 family appearing 7 times across
+regions / revisions / bootlegs / hacks. Round 1 of the P15 spec
+cold-eyes review caught the mis-diagnosis ("the picker isn't
+wired" — wrong) and pointed at the real cause: `cloneof_map={}`
+at world-load time, so `filter/runner.run_filter` groups by self
+and every machine becomes its own winner.
+
+Per [ADR-0002](docs/decisions/0002-cloneof-from-listxml.md),
+parent/clone relationships are stripped from Pleasuredome DATs
+and must come from MAME `-listxml`. The user's `config.yaml` had
+`paths.listxml: null` since v1.0.0 — silent failure (FP18's
+setup banner counts INIs but not listxml).
+
+### 🐛 Bug fixes
+
+- ✅ **FP23** [mame-curator-1023] **Parent/clone collapse listxml fix + DryRun wiring.**
+  Lanes: api, frontend.
+  - **A — Listxml installed.** Generated MAME 0.287 listxml
+    (302 MB, 27,604 cloneof entries; 3 versions newer than the
+    user's 0.284 DAT — cloneof for old arcade titles is stable
+    across this drift). User's `config.yaml` now references it
+    (config is gitignored; fix lives locally per project policy).
+    Verified `/api/games?total` drops 21,049 → 10,591 after
+    restart; `/api/games/1942/alternatives` returns the parent +
+    7 clones, matching the original screenshot exactly.
+  - **B — `ListxmlBanner.tsx`** (3 unit tests) renders above the
+    Library grid when
+    `setupCheck.reference_files.listxml.exists === false` so
+    future users see the silent-failure state explicitly. Pairs
+    with the existing FP16 § C INI banner; closes the gap that
+    let the bug ship for 23 days. Future enhancement: extend the
+    setup-check `reference_files` block with cloneof-coverage
+    statistics (P15 § 4.3.1) so the banner can also flag a
+    listxml that loaded but parsed empty.
+  - **C — `useDryRun` hook** (`POST /api/copy/dry-run` mutation)
+    wired to the previously-no-op `onDryRun` handler in
+    `LibraryPage`; opens the existing `DryRunModal` with the
+    report on success. P15 swaps the `selected_names` source
+    from `cards` → `cart.items` — modal contract unchanged so
+    this hook keeps working through the cart redesign.
+  - **D — `onCopy` stays a no-op stub.** Full Copy lifecycle
+    (SSE + conflict resolution) is genuinely P15-scale
+    (~500 lines + tests) and fits naturally with the cart-driven
+    input swap. Scope reset surfaced to user mid-session after
+    initial under-estimate.
+
+  Source: P15 brainstorm 2026-05-07 ("Library shows 21,049 with
+  1942 appearing 7×"); cold-eyes review round 1 reframe.
+  Dependencies: FP18 ✅ (banner pattern), P03 ✅ (`DryRunReport`
+  contract), [ADR-0002](docs/decisions/0002-cloneof-from-listxml.md).
+
+---
+
+## FP22 — Launch button shows when RetroArch unconfigured (planned)
+
+**Theme:** user reported 2026-05-04 a 422 on
+`POST /api/games/ddragon3p/launch` after clicking the Launch button:
+
+```
+INFO: 127.0.0.1:51874 - "GET /api/games/ddragon3p/alternatives HTTP/1.1" 200 OK
+INFO: 127.0.0.1:51874 - "POST /api/games/ddragon3p/launch HTTP/1.1" 422 Unprocessable Content
+```
+
+The 422 is the FP19 contract's "RetroArch not configured" envelope
+(`api/routes/games.py:213-220`) — `paths.retroarch` and / or
+`paths.retroarch_core` is unset in `config.yaml`. The bug is UX:
+the **Launch button shipped unconditionally** in
+`AlternativesDrawer.tsx:135-145` and the SettingsPage Setup banner
+doesn't track RetroArch config state, so a user with no RetroArch
+configured can click Launch and only learns from a toast that
+something needs editing in `config.yaml`.
+
+### 🐛 Bug fixes
+
+- 📋 **FP22** [mame-curator-1022] **Launch button gates on RetroArch config + Setup banner surfaces it.**
+  Lanes: api, frontend.
+  - **A — `/api/setup/check` returns `retroarch_configured: bool`.**
+    Existing endpoint (`useSetupCheck` consumer at
+    `frontend/src/hooks/useSetupCheck.ts`) gains a derived flag
+    `retroarch_configured = (paths.retroarch is not None and
+    paths.retroarch_core is not None)`. Schema mirror in
+    `frontend/src/api/types.ts`; sync gate via
+    `tools/check_api_types_sync.py` covers it.
+  - **B — Launch button gates on `retroarch_configured`.**
+    `AlternativesDrawer.tsx` (or the `useLaunchGame` consumer)
+    reads the setup-check flag; when false, render the button as
+    disabled with a tooltip / inline message linking to
+    `/settings?tab=paths` and the strings.ts copy "Configure
+    RetroArch in Settings → Paths to enable launching."
+  - **C — Setup banner surfaces RetroArch state.**
+    `SettingsPage.tsx` Setup banner (currently shows DAT, listxml,
+    INI counts) gains a "RetroArch: configured / not configured"
+    line so the user sees the gap without clicking through to
+    Paths tab. Same pattern as the existing INI count.
+  - **D — 422 envelope copy upgrade.** When 422 does fire (e.g.
+    config edited mid-session and not restarted), the toast text
+    via `toastApiError` should be the friendly
+    `strings.errors.byCode.retroarch_not_configured` mapping
+    (rather than the raw `detail` string). Add the mapping in
+    `strings.ts:errors.byCode`. Pairs with FP21 § J (the
+    backend-side typed `RetroArchNotConfiguredError` carries the
+    `code` field that flips the toast onto this branch).
+
+  Source: user 2026-05-04 ("trying to launch a game" → 422 with
+  no in-app guidance to fix).
+  Dependencies: FP19 ✅. Soft dep on FP21 § J for code-routed
+  toast (D); A/B/C ship without it.
+
+---
+
+## FP20 — `/indie-review` Tier 1: security + data-loss (planned)
+
+**Theme:** fold-in of the 2026-05-04 multi-agent independent review
+across 10 lanes (parser, filter, copy, api-data, api-mutation,
+bootstrap, frontend library, frontend settings, frontend
+alternatives/help/sessions, frontend infra). Tier 1 covers the
+ship-this-week class: spec-mandated locks that aren't installed,
+non-atomic writes on the data path, sandbox-escape vectors,
+silent-failure surfaces. Post-v1.2.0 hardening pass; no functional
+regressions expected.
+
+### 🔒 Security
+
+- 📋 **FP20** [mame-curator-1019] **Indie-review Tier 1 — security + data-loss fixes.**
+  Lanes: parser, copy, api, frontend.
+  - **A — Parser XXE + zip-bomb hardening.** `parser/dat.py:94`
+    and `parser/listxml.py:38,71,102` use `lxml.iterparse(...)`
+    with default settings; `# nosec B410` claims `no_network=True`
+    is sufficient but it does not block `file://` URIs nor
+    internal-entity expansion. Fix: pass an explicit
+    `XMLParser(resolve_entities=False, no_network=True,
+    huge_tree=False)` via the `parser=` kwarg at all four call
+    sites. Also cap `zf.getinfo(member).file_size` at
+    `_MAX_DAT_BYTES` (e.g. 256 MiB) before `zf.extract` in
+    `parser/dat.py:84` so a malicious 100 KB zip can't decompress
+    to gigabytes. Update the inline `# nosec` comment.
+  - **B — Activity log + recyclebin manifest non-atomic writes.**
+    `copy/activity.py:26-29` claims O_APPEND PIPE_BUF atomicity but
+    Python `BufferedWriter` may split a `write()` across multiple
+    syscalls; large `copy_started` events can exceed 4 KiB. Fix:
+    use `os.open(O_WRONLY|O_APPEND|O_CREAT)` + a single
+    `os.write(fd, line_bytes)` (or document the deviation and
+    relax the spec claim). Same fix shape for `copy/recyclebin.py`
+    `manifest.json` write (line 51) and `copy/playlist.py`
+    `write_lpl` — replace ad-hoc tmp+replace with the project's
+    `_atomic.atomic_write_text` helper. Closes 3 non-atomic write
+    sites and a Rule-of-Three reuse violation.
+  - **C — `app.state.world_lock` not installed.** P04 spec lines
+    104-115 require a per-app `asyncio.Lock` guarding all
+    `set_world` writes; none exists. Two concurrent PATCHes (e.g.
+    frontend slider autosave under retry) interleave reads and
+    silently lose one write. Fix: instantiate
+    `app.state.world_lock = asyncio.Lock()` in `app.py`'s
+    lifespan; convert `patch_config`, `restore_config_snapshot`,
+    `import_config`, `fs_grant_root`, `fs_revoke_root` to `async`;
+    wrap each read-merge-write-snapshot-set_world block in
+    `async with request.app.state.world_lock`.
+  - **D — `compose_allowlist` admits non-existent paths.**
+    `api/fs.py:55-56` resolves `Path(raw).resolve(strict=False)`
+    so allowlist entries pointing at non-existent or removed
+    directories survive in `granted_roots`; if the user later
+    creates / symlinks anything at that name it's silently inside
+    the sandbox. Fix: filter resolved entries to those that
+    `exists()` and `is_dir()`; log INFO on dropped entries so the
+    Settings UI can surface "your granted root `<path>` is gone".
+  - **E — `help.py` env-override path traversal.**
+    `api/routes/help.py:24-27` reads `MAME_CURATOR_HELP_DIR`
+    without `.resolve()`. A symlinked override directory then
+    passes the `relative_to` traversal check at line 54. Fix:
+    `return Path(override).resolve()` and likewise for the
+    package-relative path.
+  - **F — `download()` URL scheme allowlist.**
+    `downloads.py:73-101` passes any URL straight to
+    `httpx.AsyncClient.get`. Fix: reject schemes other than
+    `http`/`https` at function entry (5-line `urlparse` check on
+    `url` and each `mirrors[]`).
+  - **G — `useApiQuery` silent error path.**
+    `frontend/src/hooks/useApi.ts:19-25` has no error toast hook;
+    every query failure (R01 games, R03 alternatives, R07 stats,
+    R10 sessions, R28 activity, R37 help, R29 fs, R35 setup, R14
+    config) drops to per-route silence. P06 spec § "Error
+    envelope handling" mandates `strings.errors.byCode` toast.
+    Fix: at the App.tsx queryClient ctor, pass
+    `queryCache: new QueryCache({ onError: toastApiError })` and
+    matching `mutationCache`. Funnels every failure through the
+    toast and removes per-mutation `onError` boilerplate.
+  - **H — `GameCard` `aria-label` clobbers accessible name.**
+    `frontend/src/components/library/GameCard.tsx:55` sets
+    `aria-label={card.description}` on the wrapper button, which
+    overrides the accessible-name calculation entirely — screen
+    readers announce only the description, hiding year /
+    publisher / badges / shortname. Fix: drop `aria-label` from
+    the button; let the `<h3>` compute the accessible name; set
+    `alt=""` on the `<img>` (the heading already names it).
+  - **I — `LibraryPage` swallows query errors.**
+    `frontend/src/pages/LibraryPage.tsx:67-69` reads `games.data`
+    without checking `games.isError`; backend down → user sees
+    "No games match your filters" with disabled action bar. Fix
+    becomes trivial once H/G land (global toast surfaces the
+    error); also render an inline error panel with a Retry
+    button calling `games.refetch()`.
+  - **J — `SnapshotsTab` restore failure has no inline surface.**
+    Restore mutation routes errors to `toastApiError` only;
+    dialog auto-closes; the snapshot list does not invalidate.
+    Fix: add `restoreError?: string | null` prop, render
+    `<p role="alert">` above the list when set (mirrors
+    `BackupTab.error` pattern already in place).
+  - **K — `FsBrowser` `Esc`-closes-everything bug.**
+    `frontend/src/components/settings/FsBrowser.tsx:90-234`
+    renders the grant `ConfirmationDialog` *inside* a fragment
+    co-mounted with the outer `Dialog`; `Esc` in the grant prompt
+    fires the outer `Dialog`'s `onOpenChange(false)`, closing the
+    entire browser. Fix: gate the grant prompt's `onOpenChange`
+    on its own state; close the inner Dialog first when
+    `sandboxBlocked` flips true, OR render the AlertDialog as the
+    only layer when sandbox blocked.
+  - **L — `HelpPage` DOMPurify config hardening.**
+    `frontend/src/pages/HelpPage.tsx:28` calls
+    `DOMPurify.sanitize(topicHtml)` with no config; default
+    profile permits `<a target="_blank">` without
+    `rel="noopener"` (reverse-tabnabbing) and `data:` URLs on
+    `<img>`. Fix: add config object `{ALLOWED_URI_REGEXP:
+    /^(?:https?|mailto):/i, FORBID_TAGS: ['style','form'],
+    FORBID_ATTR: ['style']}` plus a one-time
+    `DOMPurify.addHook('afterSanitizeAttributes', ...)` to set
+    `rel="noopener noreferrer"` on `target="_blank"`. Closes
+    `allowlist-004`'s contracted hardening that shipped FP16 § H4.
+
+  Source: `/indie-review` 2026-05-04, 10 lanes parallel-dispatch.
+  Dependencies: none (post-v1.2.0; `main` baseline).
+
+---
+
+## FP21 — `/indie-review` Tier 2: hardening sweep (planned)
+
+**Theme:** Tier 2 fold-in from the 2026-05-04 multi-agent review.
+Real-bug class — manifests on common paths, but not a security
+hole or silent-loss vector. Bundles spec drift, recycle-bin
+correctness, SSE edge cases, and the API mutation route
+ergonomics.
+
+### 🐛 Bug fixes
+
+- 📋 **FP21** [mame-curator-1020] **Indie-review Tier 2 — hardening + correctness.**
+  Lanes: filter, copy, api, frontend.
+  - **A — `filter/picker.py:182-185` `explain_pick` decisive
+    semantics.** Spec line 63: "the tiebreaker(s) that **actually
+    decided** the winner." Implementation records every
+    tiebreaker where the winner beat *any* opponent, including
+    pairings already settled by an earlier tier. Fix: per
+    opponent, find the *first* non-zero tiebreaker; collect the
+    union across opponents.
+  - **B — `filter/sessions.py:40` `Session._validate_session`
+    typed-error drift.** Spec line 139 promises `SessionsError`;
+    direct callers get Pydantic `ValidationError`. Fix: raise
+    `SessionsError` from the validator (or update spec.md to
+    acknowledge `ValidationError` for direct construction).
+  - **C — `filter/drops.py:38` `_device` strict-identity.**
+    `not m.runnable` differs from spec rule 2's
+    `m.runnable is False` if `Machine.runnable` is ever widened
+    to `bool | None`. Latent today; one-character fix.
+  - **D — `copy/recyclebin.py` manifest atomicity + per-file
+    shape.** Multiple `recycle_file` calls into the same
+    `target_dir` overwrite each other's `manifest.json`. Fix:
+    move to per-file `<basename>.manifest.json` (or list-shaped
+    manifest). Write manifest **before** moving the file so a
+    failure mid-recycle leaves the original intact.
+  - **E — `copy/preflight.py:48-55` free-space estimate ignores
+    BIOS chain.** Sums only `plan.winners` zip sizes; `run_copy`
+    actually copies `winners | bios_set`. Fix: accept `bios_set`
+    as a preflight parameter (or compute it there); subtract
+    `already_copied` so reruns report meaningfully.
+  - **F — `copy/recyclebin.py:71-81` `purge_recycle` mtime
+    drift.** Uses dir `st_mtime` which advances on any new file
+    added; spec semantics are keyed to
+    `manifest.json["recycled_at"]`. Fix: read
+    `recycled_at` from manifest with dir-mtime fallback. Move
+    `bytes_freed` accumulation inside try/except to avoid
+    over-reporting on partial `rmtree` failure.
+  - **G — `executor.copy_one` TOCTOU vs source disappearance.**
+    Source vanishing between `runner.exists()` check and
+    `executor.stat()` raises `FileNotFoundError`, surfaces as
+    `FAILED` rather than `SKIPPED_MISSING_SOURCE`. Fix: wrap the
+    initial `src.stat()` in `try/except FileNotFoundError` →
+    return `SKIPPED_MISSING_SOURCE` for that errno.
+  - **H — `api/routes/media.py:56` blocks the event loop.**
+    `path.read_bytes()` is a sync call inside an async handler.
+    Under `LibraryGrid` fan-out (50 thumbnails per view) this
+    serialises behind one another. Fix: replace with
+    `FileResponse(path, media_type="image/png")` — `FileResponse`
+    reads via `anyio.to_thread`.
+  - **I — `api/app.py:120-124` shutdown silent-detach.**
+    `thread.join(timeout=5.0)` may return with the worker still
+    alive; lifespan exits without logging. Fix: log a warning on
+    `current.thread.is_alive()` post-join; consider one extra
+    `controller.cancel(recycle_partial=True)`.
+  - **J — `launch_game` should use typed `ApiException`.**
+    `api/routes/games.py:214,229` raises `HTTPException` instead
+    of project-typed `ApiException` subclasses, breaking the
+    error-envelope contract (`code` / `fields` fields are
+    omitted). Fix: add `RetroArchNotConfiguredError` (422) and
+    `RomFileNotFoundError` (404) to `api/errors.py`; raise those
+    instead.
+  - **K — `api/jobs.py` SSE register-before-replay race.**
+    `_events_iterator` merges live `lifecycle_history` +
+    `progress_history` deque/list while the worker keeps
+    appending; `RuntimeError: deque mutated during iteration`
+    is reachable. Also: events emitted between replay end and
+    `subscribers.append(q)` are lost for the new subscriber.
+    Fix: snapshot history into local `tuple()` copies *before*
+    merging; register the subscriber **before** replay so race
+    events queue up.
+  - **L — `api/jobs.py` late-progress-after-terminal drops.**
+    Worker's last `on_progress` may execute on the loop thread
+    after `_on_worker_done` set `self._current = None`,
+    delivering a `file_progress` past the `None` sentinel — out
+    of order. Fix: drain pending dispatches before
+    `_close_subscribers`; make terminal+sentinel a single
+    finalisation step on the loop thread.
+  - **M — Snapshot directory unbounded.** Every PATCH /
+    override / session / notes / grant / import creates a new
+    snapshot dir; no LRU. Fix: add `MAX_SNAPSHOTS = 200` (or
+    config knob); after `mkdir`, list siblings, prune oldest
+    beyond cap.
+  - **N — `patch_config` accepts bare `dict[str, Any]`.**
+    P04 spec lines 645-657 specify a typed `AppConfigPatch`
+    Pydantic model with `extra="forbid"` per section; the
+    implementation skips it. Cheap DoS via `deep_merge` recursion
+    is a side-effect. Fix: define `AppConfigPatch` per spec; drop
+    bare-dict ingestion.
+  - **O — `import_config` cross-file crash atomicity.**
+    Four files written in sequence; each is atomic, the batch is
+    not. Fix: stage all four `.tmp`s first, then issue the four
+    `os.replace` calls back-to-back; add an `import.in_progress`
+    sentinel for half-applied detection.
+  - **P — `downloads.py` Content-Length cap + streaming.**
+    `client.get()` buffers full body in memory; fine for 5 INIs,
+    not for future ~50 MB MAME `-listxml` use. Fix: stream into
+    a hash + tempfile with a configurable `max_bytes` (default
+    100 MB); abort on Content-Length exceed.
+  - **Q — `run.sh` uv-install integrity.**
+    `curl -LsSf https://astral.sh/uv/install.sh | sh` has no
+    integrity check. Fix (cheap): pin
+    `--proto '=https' --tlsv1.2`. Fix (proper): write an ADR
+    documenting the trade-off, OR vendor the uv release.
+  - **R — `useLaunchGame` / `useOverride` bake `onError`.**
+    `frontend/src/hooks/useAlternatives.ts:38-69` mutations rely
+    on call-sites passing `onError: toastApiError`. Fix: bake
+    the toast into the hook; let call-sites override.
+  - **S — `useKeyboard` re-binds on every render.**
+    `frontend/src/hooks/useKeyboard.ts:34-87` declares
+    `[bindings]` as the effect dep; call-sites pass a fresh
+    array literal on every render → tear-down + reattach every
+    render. Chord support (spec § step 12 `g l`) is unreliable
+    because re-renders reset pending state. Fix: ref-based
+    handler that reads bindings on each event so `bindings` is
+    not a dep.
+  - **T — `LibraryGrid` keyboard nav gap.** No `role="grid"` /
+    roving tabindex / arrow-key navigation despite spec
+    requirement (`j`/`k`/`o`/`Enter`). Fix: add the WAI-ARIA
+    composite-grid pattern; wire keys via `useKeyboard`.
+
+  Source: `/indie-review` 2026-05-04 Tier 2.
+  Dependencies: FP20 ✅ (Tier 1 lands first).
+
+---
+
+## DS02 — `/indie-review` Tier 3: structural debt sweep (planned)
+
+**Theme:** Tier 3 fold-in — structural debt the review surfaced
+that doesn't manifest as a user-visible bug today: file-cap
+violations, i18n leaks, accessibility polish, spec-doc
+synchronisation. Defer to a debt-sweep pass per project policy
+("every released version is debt-swept").
+
+### 🧹 Cleanup / debt
+
+- 📋 **DS02** [mame-curator-1021] **Indie-review Tier 3 — structural debt.**
+  Lanes: backend, frontend, docs.
+  - **A — File-cap splits (5 files over hard cap).**
+    `copy/runner.py` 518 → extract `_resolve_append_conflict`,
+    `_overwrite_recycle_existing`, `_recycle_partial_session`,
+    `_build_playlist_entries` helpers (drops to ~250 LoC).
+    `cli/__init__.py` 594 → extract `cli/_cmd_setup.py`,
+    `cli/_cmd_refresh_inis.py`, `cli/_cmd_serve.py`,
+    `cli/_cmd_copy.py`, `cli/_cmd_filter.py` per spec layout
+    (drops to ~250). `frontend/src/pages/SettingsPage.tsx` 367
+    → extract `UiTab.tsx` + `SetupBanner.tsx` (drops to ~270).
+    `frontend/src/App.tsx` 381 → extract the five `*Route`
+    containers into `src/routes/{Sessions,Activity,Stats,
+    Help,Settings}Route.tsx` (drops to ~140; closes a missed
+    P06 spec line 37 deliverable). `api/jobs.py` 434 → extract
+    `_ProgressSynthesizer` + `Job` dataclass into helper modules
+    (drops to ~200).
+  - **B — CI gate for file caps.**
+    `find -name '*.py' | xargs wc -l | awk '$1>500'` blocks PR;
+    same for `.tsx` at 350. Prevents recurrence.
+  - **C — i18n leaks into `strings.ts`.** Hardcoded strings in
+    `DryRunModal.tsx`, `YearRangeEditor.tsx:87,97`,
+    `WhyPickedPanel.tsx:49`, `SettingsPage.tsx` per-INI list,
+    Suspense fallback `App.tsx:339-341`, route loading
+    skeletons (5 sites in App.tsx).
+  - **D — Accessibility polish.** Skip-to-main link in
+    `AppShell.tsx`; `aria-label` on `<aside>` + `<nav>`
+    landmarks; `aria-busy` + scoped game-name on Launch button
+    (`AlternativesDrawer.tsx:135-145`); per-thumb `aria-label`s
+    on the year-range slider; `aria-live` on route loading
+    skeletons.
+  - **E — `parse_listxml_bios_chain` spec orphan.**
+    `BIOSChainEntry` and `parse_listxml_bios_chain` are imported
+    by `cli/__init__.py:50`, `api/state.py:39-40`,
+    `copy/bios.py:9`, `copy/types.py:18`, but absent from
+    `parser/__init__.py:19-37` `__all__` AND from
+    `parser/spec.md`'s "Public functions" section. Fix:
+    promote to public surface in `parser/spec.md` + `__all__`,
+    OR move to a non-public location.
+  - **F — `_atomic.atomic_write_*` mkdir contract.** Function
+    silently `mkdir(parents=True, exist_ok=True)` the parent;
+    the docstring doesn't mention it. Fix: pick a contract
+    (`*, parents: bool = False` opt-in OR explicit caller-
+    mkdir). Document; update `media/cache.py:78` and
+    `cli/__init__.py:543` to mkdir explicitly.
+  - **G — Settings tab URL state.**
+    `frontend/src/pages/SettingsPage.tsx:188` uses local
+    `defaultValue="paths"` Tabs state — refresh loses the user's
+    place. Fix: `useSearchParams` controlled `Tabs` per P06
+    URL-state precedent.
+  - **H — `tab` routes panel-mount strategy.** All 8
+    `<TabsContent>` panels mount simultaneously even when
+    hidden. Fix: investigate Radix `forceMount={false}` or
+    conditional render to defer hidden-panel hooks.
+  - **I — `apiRequestVoid` strict-vs-permissive asymmetry.**
+    `frontend/src/api/client.ts:202-216` accepts any 2xx
+    silently while `apiRequest` rejects unexpected 204. Pick
+    one model.
+  - **J — Spec doc updates.** `docs/audit-allowlist.md`
+    entry-004's claim that "the project's mitigation is in
+    place" updated post-FP20-L (DOMPurify config). `parser/
+    spec.md` adds zip-bomb cap clause + hardened-parser clause.
+    `copy/spec.md` clarifies activity-log atomicity claim and
+    multi-file recycle manifest shape.
+
+  Source: `/indie-review` 2026-05-04 Tier 3.
+  Dependencies: FP20 + FP21 (lands after the bug-class fixes;
+  CI gate naturally lands last to avoid blocking the splits).
+
+---
+
 ## FP19 — Launch games from the site (closed 2026-05-04)
 
 **Theme:** user request 2026-05-04 "offer the option to launch the

@@ -17,6 +17,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP23 — Parent/clone collapse listxml fix + DryRun wiring (closed 2026-05-07)
+
+Discovered during the P15 cart-and-curated-library brainstorm:
+the running v1.2.0 app showed 21,049 cards in the Library bottom-
+bar with the 1942 family appearing 7 times across regions /
+revisions / bootlegs / hacks. Round 1 of the P15 spec cold-eyes
+review caught the mis-diagnosis ("the picker isn't wired" —
+wrong) and pointed at the real cause: `cloneof_map={}` at world-
+load time, so `filter/runner.run_filter` groups by self and every
+machine becomes its own winner.
+
+Per [ADR-0002](docs/decisions/0002-cloneof-from-listxml.md),
+parent/clone relationships are stripped from Pleasuredome DATs
+and must come from MAME `-listxml`. The user's `config.yaml` had
+`paths.listxml: null` since v1.0.0 — silent failure (FP18's
+setup banner counts INIs but not listxml).
+
+- **MAME 0.287 listxml installed** (302 MB, 27,604 cloneof
+  entries; 3 versions newer than the user's 0.284 DAT — cloneof
+  for old arcade titles is stable across this drift). Library
+  bottom-bar drops 21,049 → 10,591 after restart;
+  `/api/games/1942/alternatives` returns the parent + 7 clones,
+  matching the original screenshot exactly.
+- **`ListxmlBanner.tsx`** (3 unit tests) renders above the
+  Library grid when
+  `setupCheck.reference_files.listxml.exists === false` so future
+  users see the silent-failure state explicitly. Closes the gap
+  that let the bug ship for 23 days.
+- **`useDryRun` hook** (`POST /api/copy/dry-run`) wired to the
+  previously-no-op `onDryRun` handler in `LibraryPage`; opens
+  the existing `DryRunModal` with the report on success. P15
+  swaps the `selected_names` source from `cards` → `cart.items`
+  — modal contract unchanged so the hook keeps working through
+  the cart redesign.
+- **`onCopy` stays a no-op stub** — full Copy lifecycle (SSE +
+  conflict resolution) is genuinely P15-scale (~500 lines + tests)
+  and fits naturally with the cart-driven input swap.
+
+446 backend tests / 188 frontend tests / ruff + mypy + bandit
+clean / coverage 86.66%.
+
+### Planned — `FP22` Launch button gates on RetroArch config
+
+User reported 2026-05-04 that clicking Launch on a game with
+RetroArch unconfigured returns 422 with no in-app guidance to
+fix. Roadmap'd as `FP22`: gate the Launch button on a setup-check
+flag, surface RetroArch state in the Setup banner, and route the
+422 through `strings.errors.byCode` for friendlier copy. See
+`ROADMAP.md` `FP22`.
+
+### Planned — `/indie-review` 2026-05-04 fold-in
+
+10-lane multi-agent independent code review surfaced findings
+batched into three tiered phases:
+
+- **FP20** — Tier 1 (security + data-loss): parser XXE / zip-bomb
+  hardening, copy activity-log + recyclebin manifest atomicity,
+  missing `app.state.world_lock`, `compose_allowlist`
+  non-existent-path admission, `help.py` env-override resolve,
+  `download()` URL scheme allowlist, global `useApiQuery` toast,
+  `GameCard` `aria-label` clobber, `LibraryPage` query-error
+  surface, `SnapshotsTab` restore inline error, `FsBrowser`
+  `Esc`-closes-everything, `HelpPage` DOMPurify config.
+- **FP21** — Tier 2 (hardening): `explain_pick` decisive
+  semantics, `Session` typed-error drift, recyclebin manifest
+  per-file shape, preflight free-space includes BIOS, TOCTOU
+  source-vanish → SKIPPED, `media.py` `FileResponse` event-loop
+  unblock, `launch_game` typed `ApiException`, SSE
+  register-before-replay race, late-progress drop, snapshot LRU,
+  `AppConfigPatch` Pydantic, cross-file import staging, download
+  streaming + cap, `useLaunchGame`/`useOverride` baked-in
+  `onError`, `useKeyboard` ref-based handler, `LibraryGrid`
+  WAI-ARIA grid pattern.
+- **DS02** — Tier 3 (structural debt): file-cap splits across 5
+  files, CI gate for caps, i18n leaks, a11y polish (skip-to-main,
+  aria-busy on Launch, slider thumb labels), `parse_listxml_
+  bios_chain` spec orphan, `_atomic` mkdir contract, Settings
+  tab URL state, `apiRequestVoid` asymmetry, spec doc sync.
+
+See `ROADMAP.md` `FP20`, `FP21`, `DS02` blocks for finding-level
+detail with `file:line` cites.
+
 ## [1.2.0] — 2026-05-04
 
 ### FP19 — Launch games from the site (RetroArch integration)
