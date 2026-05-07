@@ -224,6 +224,8 @@ export interface PathsConfig {
   mature: string | null
   series: string | null
   listxml: string | null
+  retroarch: string | null
+  retroarch_core: string | null
 }
 export const PathsConfigSchema = z
   .object({
@@ -237,6 +239,8 @@ export const PathsConfigSchema = z
     mature: z.string().nullable(),
     series: z.string().nullable(),
     listxml: z.string().nullable(),
+    retroarch: z.string().nullable(),
+    retroarch_core: z.string().nullable(),
   })
   .strict()
 
