@@ -90,6 +90,7 @@ class UiConfig(BaseModel):
     default_sort: Literal["name", "year", "manufacturer", "rating"] = "name"
     show_alternatives_indicator: bool = True
     cards_per_row_hint: Literal["auto", 4, 5, 6, 8] = "auto"
+    cart_clear_on_copy: Literal["always", "on_success", "never"] = "on_success"
 
 
 class UpdatesConfig(BaseModel):

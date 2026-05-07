@@ -139,3 +139,33 @@ def test_filter_recompute_idempotent_under_no_op_patch(client: Any, _: dict[str,
     assert response.status_code == 200
     post = client.get("/api/games").json()
     assert post == pre, "no-op PATCH must not change games listing"
+
+
+# ---- P15 § 5.4 tests --------------------------------------------------------
+
+
+def test_cart_clear_on_copy_default_and_round_trip(client: Any) -> None:
+    """P15 § 5.4: ui.cart_clear_on_copy defaults to 'on_success' and
+    accepts the three Literal values."""
+    # Default
+    resp = client.get("/api/config")
+    assert resp.status_code == 200
+    assert resp.json()["ui"]["cart_clear_on_copy"] == "on_success"
+
+    # Round-trip each valid value
+    for value in ("always", "on_success", "never"):
+        patch = client.patch(
+            "/api/config",
+            json={"ui": {"cart_clear_on_copy": value}},
+        )
+        assert patch.status_code == 200, patch.text
+        assert client.get("/api/config").json()["ui"]["cart_clear_on_copy"] == value
+
+
+def test_cart_clear_on_copy_rejects_invalid(client: Any) -> None:
+    """Pydantic Literal narrows the field; anything else 422s."""
+    resp = client.patch(
+        "/api/config",
+        json={"ui": {"cart_clear_on_copy": "sometimes"}},
+    )
+    assert resp.status_code == 422
