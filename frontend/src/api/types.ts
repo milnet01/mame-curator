@@ -309,6 +309,7 @@ export interface UiConfig {
   default_sort: SortKey
   show_alternatives_indicator: boolean
   cards_per_row_hint: CardsPerRowHint
+  cart_clear_on_copy: 'always' | 'on_success' | 'never'
 }
 export const UiConfigSchema = z
   .object({
@@ -317,6 +318,7 @@ export const UiConfigSchema = z
     default_sort: SortKeySchema,
     show_alternatives_indicator: z.boolean(),
     cards_per_row_hint: CardsPerRowHintSchema,
+    cart_clear_on_copy: z.enum(['always', 'on_success', 'never']).default('on_success'),
   })
   .strict()
 
@@ -441,6 +443,7 @@ export interface GamesPage {
   page: number
   page_size: number
   total: number
+  total_bytes: number
 }
 export const GamesPageSchema = z
   .object({
@@ -448,6 +451,27 @@ export const GamesPageSchema = z
     page: z.number().int(),
     page_size: z.number().int(),
     total: z.number().int(),
+    total_bytes: z.number().int().nonnegative(),
+  })
+  .strict()
+
+export interface ValidateRequest {
+  short_names: string[]
+}
+export const ValidateRequestSchema = z
+  .object({
+    short_names: z.array(z.string()),
+  })
+  .strict()
+
+export interface ValidateResponse {
+  existing: string[]
+  missing: string[]
+}
+export const ValidateResponseSchema = z
+  .object({
+    existing: z.array(z.string()),
+    missing: z.array(z.string()),
   })
   .strict()
 
@@ -945,12 +969,16 @@ export interface SetupCheck {
   config_present: boolean
   paths: SetupPaths
   reference_files: SetupReferenceFiles
+  listxml_available: boolean
+  cloneof_map_size: number
 }
 export const SetupCheckSchema = z
   .object({
     config_present: z.boolean(),
     paths: SetupPathsSchema,
     reference_files: SetupReferenceFilesSchema,
+    listxml_available: z.boolean(),
+    cloneof_map_size: z.number().int().nonnegative(),
   })
   .strict()
 
