@@ -1,0 +1,80 @@
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import { strings } from '@/strings'
+
+export interface FeaturedTileQuery {
+  publisher?: string
+  developer?: string
+  genre?: string
+  yearFrom?: number
+  yearTo?: number
+}
+
+export interface FeaturedTile {
+  id: string
+  title: string
+  description: string
+  query: FeaturedTileQuery
+}
+
+interface FeaturedTilesRowProps {
+  counts: Record<string, number>
+  activeTileId: string | null
+  onTileSelect: (tileId: string) => void
+}
+
+/**
+ * P15 § 4.2 — horizontal scroll of curated INI-derived tiles.
+ *
+ * Tile catalogue lives in strings.library.featured.tiles (code-
+ * defined, one-PR-per-edit). Counts are supplied by the parent
+ * (LibraryPage) which fans out one /api/games?…&page_size=0
+ * query per tile; react-query 5min staleness keeps the cost down.
+ *
+ * Click filters the grid to the tile's query; CartBar morphs to
+ * show "Add all N" (where N is the post-filter total). Click DOES
+ * NOT auto-add to cart (D8: preview-before-add is safer).
+ */
+export function FeaturedTilesRow({
+  counts,
+  activeTileId,
+  onTileSelect,
+}: FeaturedTilesRowProps) {
+  return (
+    <section className="px-4 py-3" aria-label={strings.library.featured.heading}>
+      <h2 className="mb-2 text-sm font-semibold">
+        {strings.library.featured.heading}
+      </h2>
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {strings.library.featured.tiles.map((tile) => {
+          const count = counts[tile.id]
+          const isActive = activeTileId === tile.id
+          return (
+            <button
+              key={tile.id}
+              type="button"
+              aria-pressed={isActive}
+              onClick={() => onTileSelect(tile.id)}
+              className="shrink-0 text-left"
+            >
+              <Card
+                className={cn(
+                  'flex w-40 flex-col gap-1 p-3 transition-shadow hover:shadow-lg',
+                  isActive && 'ring-2 ring-ring',
+                )}
+              >
+                <p className="text-sm font-semibold leading-tight">{tile.title}</p>
+                <p className="text-xs text-muted-foreground">{tile.description}</p>
+                {count !== undefined && (
+                  <p className="mt-auto text-xs tabular-nums text-muted-foreground">
+                    {strings.library.featured.countLabel(count)}
+                  </p>
+                )}
+              </Card>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
