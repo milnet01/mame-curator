@@ -4,13 +4,17 @@ import { MemoryRouter } from 'react-router'
 
 import { ListxmlBanner } from '../ListxmlBanner'
 
-function renderInRouter(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>)
+function renderBanner(props: { exists: boolean | undefined; cloneofMapSize?: number }) {
+  return render(
+    <MemoryRouter>
+      <ListxmlBanner {...props} />
+    </MemoryRouter>,
+  )
 }
 
 describe('ListxmlBanner', () => {
   it('renders a warning when listxml is missing', () => {
-    renderInRouter(<ListxmlBanner exists={false} />)
+    renderBanner({ exists: false })
     expect(screen.getByRole('alert')).toBeInTheDocument()
     // Banner names the file kind and the user-visible consequence so the
     // user can connect the symptom (duplicates) to the cause (no listxml).
@@ -21,13 +25,20 @@ describe('ListxmlBanner', () => {
     )
   })
 
-  it('renders nothing when listxml exists', () => {
-    const { container } = renderInRouter(<ListxmlBanner exists={true} />)
+  it('does not render when listxml is fully loaded', () => {
+    const { container } = renderBanner({ exists: true, cloneofMapSize: 27604 })
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('renders nothing while the setup-check is still loading (exists=undefined)', () => {
-    const { container } = renderInRouter(<ListxmlBanner exists={undefined} />)
+  it('does not render while the setup-check is still loading (exists=undefined)', () => {
+    const { container } = renderBanner({ exists: undefined })
     expect(container).toBeEmptyDOMElement()
+  })
+
+  it('renders empty-parse body when exists=true and cloneofMapSize=0', () => {
+    renderBanner({ exists: true, cloneofMapSize: 0 })
+    expect(
+      screen.getByText(/Listxml loaded but contains no cloneof entries/i),
+    ).toBeInTheDocument()
   })
 })
