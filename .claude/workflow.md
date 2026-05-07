@@ -5,10 +5,10 @@
 | Field | Value |
 |-------|-------|
 | **Project phase** | v1.2.0 shipped — pre-P15 fix-pass cleanup (FP23 closed); P15 cart-and-curated-library spec drafted, awaiting implementation plan |
-| **Active item ID** | P15 — Cart and curated library (spec at `docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`); writing-plans handoff next session |
-| **Active step** | ⬜ all (FP23 closed 2026-05-07; P15 spec written + 7-round cold-eyes review APPROVE; user signed off on spec then asked for bug-fix-first before plan) |
-| **Blocked on** | User to commit pre-existing FP20 / FP21 / FP22 / DS02 planning blocks (uncommitted in CHANGELOG.md / ROADMAP.md / .roadmap-counter prior to this session) before FP23's CHANGELOG/ROADMAP entries can land cleanly. |
-| **Last update** | 2026-05-07 (P15 brainstorm → spec → 7-round cold-eyes review converged on APPROVE; user asked to fix any bugs first before plan. FP23 closed: parent/clone collapse failure (21,049 cards → 10,591) — root cause `paths.listxml: null` in user's config.yaml since v1.0.0; runner.run_filter empty cloneof_map → every machine self-parents. Fix: install MAME 0.287, generate listxml (302 MB, 27,604 cloneof entries), point config at it; new ListxmlBanner on Library page surfaces the missing-listxml state for future users; new useDryRun hook + DryRunModal wired to /api/copy/dry-run with filter-result as input set (P15 will swap to cart.items). onCopy stays no-op stub — full Copy lifecycle (SSE + conflict resolution) is P15-scale ~500 lines, fits naturally with cart redesign. 446 backend tests / 188 frontend / ruff+mypy+bandit clean / coverage 86.66%.) |
+| **Active item ID** | P15 — Cart and curated library (plan at `docs/superpowers/plans/2026-05-07-cart-and-curated-library-plan.md`) |
+| **Active step** | 🚧 1 (D1 done; backend wave B1-B5 next) |
+| **Blocked on** | — |
+| **Last update** | 2026-05-07 (P15 plan committed; D1 opens the phase. Backend B1 next) |
 | **Next gate** | P15 implementation plan via writing-plans skill. Spec + diagnosis-first picker section already in place; the plan should still verify cloneof_map empty-state behaviour against post-FP23 baseline (the runtime symptom is gone, but the listxml-availability banner + setup-check extension are still part of P15 § 4.3.1 and FP23's banner only covers the warning — P15 still needs the setup-check field extensions). |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |

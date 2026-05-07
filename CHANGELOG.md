@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned — P15 Cart and curated library
+
+User feedback 2026-05-07: opening the app shows 21,049 cards
+with no clear path to pick a few games and copy them. P15 adds
+cart-first selection (per-game `+Add`, featured INI-derived
+tiles, sticky cart-bar with expand-up panel), wires the
+previously no-op `onCopy` to a live SSE-driven flow, and adds
+the `cloneof_map`-non-empty regression test that locks the
+FP23 fix at the test level. See `ROADMAP.md` `P15`.
+
 ### FP23 — Parent/clone collapse listxml fix + DryRun wiring (closed 2026-05-07)
 
 Discovered during the P15 cart-and-curated-library brainstorm:

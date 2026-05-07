@@ -1338,6 +1338,22 @@ debt-sweep should resolve).
 
 ---
 
+## P15 — Cart and curated library (planned)
+
+**Theme:** [`docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`](docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md) — turn the dead `21,049 games · 0.0 GB` bottom-bar into a cart-first selection model with featured INI-derived tiles, dismissible onboarding banner, sticky cart-bar with expand-up panel, and live Copy + DryRun flows. Picker runtime symptom shipped fixed in FP23; this phase adds the regression test that locks `cloneof_map` non-empty ⇒ winners < machines, plus the `listxml_available` + `cloneof_map_size` setup-check fields that let the banner cover the "supplied but parsed empty" edge case.
+
+### 🎨 Features
+
+- 🚧 **P15** [mame-curator-1024] **Cart-first selection + curated featured tiles + live Copy.**
+  Lanes: api, frontend, docs.
+
+  See spec § 9 file-level diff summary for the full surface; this roadmap entry is intentionally a pointer rather than a duplicate.
+
+  Source: user feedback 2026-05-07 ("21,049 games, no clear path to pick three"); brainstorm + 7-round cold-eyes review APPROVE.
+  Dependencies: FP23 ✅ (listxml banner foundation), FP19 ✅ (RetroArch launch — cart preserves), FP17 ✅ (`/api/library/facets` for tile counts).
+
+---
+
 ## FP23 — Parent/clone collapse listxml fix + DryRun wiring (closed 2026-05-07)
 
 **Theme:** discovered during the P15 cart-and-curated-library
