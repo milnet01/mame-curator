@@ -19,7 +19,7 @@ import { OnboardingBanner } from '@/components/library/OnboardingBanner'
 import { FeaturedTilesRow } from '@/components/library/FeaturedTilesRow'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { useAlternatives, useLaunchGame, useOverride } from '@/hooks/useAlternatives'
-import { useCart } from '@/hooks/useCart'
+import type { UseCartResult } from '@/hooks/useCart'
 import { useCopySession } from '@/hooks/useCopySession'
 import { useDryRun } from '@/hooks/useDryRun'
 import { useFacets } from '@/hooks/useFacets'
@@ -60,7 +60,11 @@ async function fetchTileCount(tile: (typeof strings.library.featured.tiles)[numb
   return GamesPageSchema.parse(await r.json())
 }
 
-export function LibraryPage() {
+interface LibraryPageProps {
+  cart: UseCartResult
+}
+
+export function LibraryPage({ cart }: LibraryPageProps) {
   const [filters, setFilters] = useState<FilterSidebarState>(DEFAULT_FILTERS)
   const [openedShortName, setOpenedShortName] = useState<string | null>(null)
   const [dryRunReport, setDryRunReport] = useState<DryRunReport | null>(null)
@@ -77,7 +81,6 @@ export function LibraryPage() {
   const facets = useFacets()
   const setupCheck = useSetupCheck()
   const dryRun = useDryRun()
-  const cart = useCart()
   const validateCart = useValidateCart()
   const copySession = useCopySession()
 

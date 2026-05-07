@@ -33,6 +33,7 @@ import {
 import { useActivity } from '@/hooks/useActivity'
 import { useStats } from '@/hooks/useStats'
 import { useHelpIndex, useHelpTopic } from '@/hooks/useHelp'
+import { useCart } from '@/hooks/useCart'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { useSetupCheck } from '@/hooks/useSetupCheck'
 import { strings } from '@/strings'
@@ -289,6 +290,7 @@ function SettingsRoute() {
 function ShellWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const config = useConfig()
+  const cart = useCart()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -330,7 +332,7 @@ function ShellWithPalette() {
 
   return (
     <ThemeProvider theme={theme ?? 'dark'}>
-      <AppShell onCmdK={() => setPaletteOpen(true)}>
+      <AppShell cartCount={cart.items.length} onCmdK={() => setPaletteOpen(true)}>
         {/* FP11 § B12: route-level ErrorBoundary, resets on pathname
             change so a per-page crash doesn't survive a navigation
             recovery click. Drawer- and modal-level boundaries live at
@@ -340,7 +342,7 @@ function ShellWithPalette() {
             fallback={<div className="p-8 text-sm text-muted-foreground">Loading…</div>}
           >
             <Routes>
-              <Route path="/" element={<LibraryPage />} />
+              <Route path="/" element={<LibraryPage cart={cart} />} />
               <Route path="/sessions" element={<SessionsRoute />} />
               <Route path="/activity" element={<ActivityRoute />} />
               <Route path="/stats" element={<StatsRoute />} />
