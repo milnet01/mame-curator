@@ -18,25 +18,25 @@ const baseCard: GameCardType = {
 
 describe('GameCard', () => {
   it('renders title, year and publisher', () => {
-    render(<GameCard card={baseCard} onOpen={() => {}} />)
+    render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
     expect(screen.getByRole('heading', { name: 'Pac-Man (Midway)' })).toBeInTheDocument()
     // Year and publisher render together as "1980 · Midway".
     expect(screen.getByText(/1980 · Midway/)).toBeInTheDocument()
   })
 
   it('renders the short name so users can identify games without art', () => {
-    render(<GameCard card={baseCard} onOpen={() => {}} />)
+    render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
     expect(screen.getByText('pacman')).toBeInTheDocument()
   })
 
   it('renders the box-art image with a media URL and accessible name', () => {
-    render(<GameCard card={baseCard} onOpen={() => {}} />)
+    render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
     const img = screen.getByAltText(strings.library.flyerAlt('Pac-Man (Midway)'))
     expect(img).toHaveAttribute('src', '/media/pacman/boxart')
   })
 
   it('shows the description in the art area when the image fails (so the game is still identifiable)', () => {
-    render(<GameCard card={baseCard} onOpen={() => {}} />)
+    render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
     const img = screen.getByAltText(strings.library.flyerAlt('Pac-Man (Midway)'))
     fireEvent.error(img)
     // Description appears once in the heading and once as the art-area placeholder.
@@ -49,7 +49,7 @@ describe('GameCard', () => {
       ...baseCard,
       badges: ['contested', 'overridden', 'chd_missing', 'bios_missing', 'has_notes'],
     }
-    render(<GameCard card={card} onOpen={() => {}} />)
+    render(<GameCard card={card} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
     expect(
       screen.getByLabelText(strings.library.badges.contested),
     ).toBeInTheDocument()
@@ -69,17 +69,55 @@ describe('GameCard', () => {
 
   it('calls onOpen when the user clicks the card', async () => {
     const onOpen = vi.fn()
-    render(<GameCard card={baseCard} onOpen={onOpen} />)
-    await userEvent.click(screen.getByRole('button', { name: /Pac-Man/ }))
+    render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Pac-Man (Midway)' }))
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
   it('calls onOpen when the user activates the card with Enter', async () => {
     const onOpen = vi.fn()
-    render(<GameCard card={baseCard} onOpen={onOpen} />)
-    const card = screen.getByRole('button', { name: /Pac-Man/ })
+    render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={() => {}} />)
+    const card = screen.getByRole('button', { name: 'Pac-Man (Midway)' })
     card.focus()
     await userEvent.keyboard('{Enter}')
     expect(onOpen).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('GameCard +Add', () => {
+  it('renders an Add button when not in cart', () => {
+    render(
+      <GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />,
+    )
+    expect(
+      screen.getByRole('button', { name: /add pac-man \(midway\) to cart/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('renders ✓ Added when in cart', () => {
+    render(
+      <GameCard card={baseCard} inCart={true} onOpen={() => {}} onAdd={() => {}} />,
+    )
+    expect(screen.getByText(/✓ added/i)).toBeInTheDocument()
+  })
+
+  it('emits onAdd when Add button clicked, does not bubble to onOpen', () => {
+    const onAdd = vi.fn()
+    const onOpen = vi.fn()
+    render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={onAdd} />)
+    fireEvent.click(
+      screen.getByRole('button', { name: /add pac-man \(midway\) to cart/i }),
+    )
+    expect(onAdd).toHaveBeenCalledWith('pacman')
+    expect(onOpen).not.toHaveBeenCalled()
+  })
+
+  it('emits onOpen when card body clicked', () => {
+    const onAdd = vi.fn()
+    const onOpen = vi.fn()
+    render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={onAdd} />)
+    // Outer card button has aria-label === card.description
+    fireEvent.click(screen.getByRole('button', { name: 'Pac-Man (Midway)' }))
+    expect(onOpen).toHaveBeenCalled()
   })
 })

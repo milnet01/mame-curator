@@ -16,6 +16,8 @@ interface LibraryGridProps {
   /** UiConfig.cards_per_row_hint — `'auto'` falls back to the layout default. */
   cardsPerRowHint?: CardsPerRowHint
   onOpen: (card: GameCardType) => void
+  isInCart: (shortName: string) => boolean
+  onAdd: (shortName: string) => void
 }
 
 /**
@@ -52,6 +54,8 @@ export function LibraryGrid({
   layout,
   cardsPerRowHint,
   onOpen,
+  isInCart,
+  onAdd,
 }: LibraryGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const columns = resolveColumns(layout, cardsPerRowHint)
@@ -119,7 +123,9 @@ export function LibraryGrid({
                 <GameCard
                   key={card.short_name}
                   card={card}
+                  inCart={isInCart(card.short_name)}
                   onOpen={() => onOpen(card)}
+                  onAdd={onAdd}
                 />
               ))}
             </div>

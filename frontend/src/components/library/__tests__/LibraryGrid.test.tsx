@@ -55,7 +55,7 @@ describe('LibraryGrid', () => {
   it('virtualizes a 3,000-card fixture (renders far fewer cards than total)', async () => {
     const cards = fakeCards(3000)
     const { container } = render(
-      <LibraryGrid cards={cards} layout="masonry" onOpen={() => {}} />,
+      <LibraryGrid cards={cards} layout="masonry" onOpen={() => {}} isInCart={() => false} onAdd={() => {}} />,
     )
     // The inner spacer carries the full virtual height; presence of it
     // proves the virtualizer is initialized with `count = ceil(N / cols)`.
@@ -71,17 +71,17 @@ describe('LibraryGrid', () => {
   })
 
   it('renders an empty state when given zero cards', () => {
-    render(<LibraryGrid cards={[]} layout="masonry" onOpen={() => {}} />)
+    render(<LibraryGrid cards={[]} layout="masonry" onOpen={() => {}} isInCart={() => false} onAdd={() => {}} />)
     expect(screen.getByText(/No games match/i)).toBeInTheDocument()
   })
 
   it('switches layout without unmounting (component stays mounted)', () => {
     const cards = fakeCards(20)
     const { rerender } = render(
-      <LibraryGrid cards={cards} layout="masonry" onOpen={() => {}} />,
+      <LibraryGrid cards={cards} layout="masonry" onOpen={() => {}} isInCart={() => false} onAdd={() => {}} />,
     )
     const before = screen.getByTestId('library-grid')
-    rerender(<LibraryGrid cards={cards} layout="list" onOpen={() => {}} />)
+    rerender(<LibraryGrid cards={cards} layout="list" onOpen={() => {}} isInCart={() => false} onAdd={() => {}} />)
     const after = screen.getByTestId('library-grid')
     // Same DOM node identity = same React component instance.
     expect(after).toBe(before)
@@ -97,7 +97,7 @@ describe('LibraryGrid', () => {
     // (auto-fill rendered no `data-columns` at all).
     const cards = fakeCards(500)
     const { container } = render(
-      <LibraryGrid cards={cards} layout="masonry" onOpen={() => {}} />,
+      <LibraryGrid cards={cards} layout="masonry" onOpen={() => {}} isInCart={() => false} onAdd={() => {}} />,
     )
     const grid = container.querySelector('[data-testid="library-grid"]')
     expect(grid).toHaveAttribute('data-columns', '5')
@@ -111,6 +111,8 @@ describe('LibraryGrid', () => {
         layout="masonry"
         cardsPerRowHint={6}
         onOpen={() => {}}
+        isInCart={() => false}
+        onAdd={() => {}}
       />,
     )
     expect(
@@ -123,6 +125,8 @@ describe('LibraryGrid', () => {
         layout="masonry"
         cardsPerRowHint="auto"
         onOpen={() => {}}
+        isInCart={() => false}
+        onAdd={() => {}}
       />,
     )
     expect(
@@ -138,6 +142,8 @@ describe('LibraryGrid', () => {
         layout="list"
         cardsPerRowHint={8}
         onOpen={() => {}}
+        isInCart={() => false}
+        onAdd={() => {}}
       />,
     )
     expect(

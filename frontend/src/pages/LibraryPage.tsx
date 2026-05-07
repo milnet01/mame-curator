@@ -191,6 +191,8 @@ export function LibraryPage() {
             layout={layout}
             cardsPerRowHint={config.data?.ui.cards_per_row_hint}
             onOpen={(card) => setOpenedShortName(card.short_name)}
+            isInCart={() => false}
+            onAdd={() => {}}
           />
         </ErrorBoundary>
       </div>

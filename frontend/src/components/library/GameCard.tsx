@@ -15,7 +15,9 @@ import type { Badge, GameCard as GameCardType } from '@/api/types'
 interface GameCardProps {
   card: GameCardType
   focused?: boolean
+  inCart: boolean
   onOpen: () => void
+  onAdd: (shortName: string) => void
 }
 
 const BADGE_LABELS: Record<Badge, string> = {
@@ -38,7 +40,13 @@ const BADGE_ICONS: Record<Badge, LucideIcon> = {
   has_notes: StickyNote,
 }
 
-export function GameCard({ card, focused = false, onOpen }: GameCardProps) {
+export function GameCard({
+  card,
+  focused = false,
+  inCart,
+  onOpen,
+  onAdd,
+}: GameCardProps) {
   const [imgFailed, setImgFailed] = useState(false)
   const flyerSrc = `/media/${encodeURIComponent(card.short_name)}/boxart`
   const altText = strings.library.flyerAlt(card.description)
@@ -68,6 +76,21 @@ export function GameCard({ card, focused = false, onOpen }: GameCardProps) {
             after CardContent claims its natural size. object-contain
             preserves both portrait boxart and landscape marquee art. */}
         <div className="relative min-h-0 flex-1 bg-muted">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onAdd(card.short_name)
+            }}
+            aria-label={
+              inCart
+                ? strings.library.cart.removeFromCart(card.description)
+                : strings.library.cart.addToCart(card.description)
+            }
+            className="absolute left-1 top-1 z-10 rounded bg-background/90 px-2 py-1 text-xs font-medium shadow-sm hover:bg-background"
+          >
+            {inCart ? strings.library.cart.added : '+Add'}
+          </button>
           {imgFailed ? (
             <div className="flex h-full items-center justify-center px-3 text-center text-sm font-semibold leading-tight text-muted-foreground">
               {card.description}
