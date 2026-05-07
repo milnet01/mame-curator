@@ -52,6 +52,9 @@ def _probe_ref(path: Path | None) -> SetupReferenceStatus:
 @router.get("/api/setup/check", response_model=SetupCheck)
 def setup_check(world: WorldState = Depends(get_world)) -> SetupCheck:
     p = world.config.paths
+    listxml_status = _probe_ref(p.listxml)
+    cloneof_map_size = len(world.cloneof_map)
+    listxml_available = p.listxml is not None and listxml_status.exists and cloneof_map_size > 0
     return SetupCheck(
         config_present=True,
         paths=SetupPaths(
@@ -65,8 +68,10 @@ def setup_check(world: WorldState = Depends(get_world)) -> SetupCheck:
             bestgames=_probe_ref(p.bestgames),
             mature=_probe_ref(p.mature),
             series=_probe_ref(p.series),
-            listxml=_probe_ref(p.listxml),
+            listxml=listxml_status,
         ),
+        listxml_available=listxml_available,
+        cloneof_map_size=cloneof_map_size,
     )
 
 

@@ -474,6 +474,8 @@ class SetupCheck(BaseModel):
     config_present: bool
     paths: SetupPaths
     reference_files: SetupReferenceFiles
+    listxml_available: bool
+    cloneof_map_size: int
 
 
 class AppUpdateInfo(BaseModel):
