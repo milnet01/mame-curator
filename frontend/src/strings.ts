@@ -106,7 +106,18 @@ export const strings = {
           description: 'Vertical-scroll shoot-em-up classics',
           query: { genre: 'Shooter / Vertical' },
         },
-      ] as const,
+      ] as readonly {
+        id: string
+        title: string
+        description: string
+        query: {
+          publisher?: string
+          developer?: string
+          genre?: string
+          yearFrom?: number
+          yearTo?: number
+        }
+      }[],
       countLabel: (n: number) =>
         `${n.toLocaleString()} game${n === 1 ? '' : 's'}`,
     },

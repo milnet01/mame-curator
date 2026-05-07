@@ -17,6 +17,8 @@ const config: AppConfigResponse = {
     mature: null,
     series: null,
     listxml: null,
+    retroarch: null,
+    retroarch_core: null,
   },
   server: { host: '127.0.0.1', port: 8080, open_browser_on_start: true },
   filters: {
@@ -45,6 +47,7 @@ const config: AppConfigResponse = {
     default_sort: 'name',
     show_alternatives_indicator: true,
     cards_per_row_hint: 'auto',
+    cart_clear_on_copy: 'on_success',
   },
   updates: { channel: 'stable', check_on_startup: true, ini_check_on_startup: true },
   fs: { granted_roots: [] },

@@ -9,6 +9,7 @@ import {
   Search,
   Settings,
   ShoppingCart,
+  type LucideIcon,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -26,17 +27,24 @@ interface AppShellProps {
   onCmdK: () => void
 }
 
-const PRIMARY = [
+interface NavItem {
+  to: string
+  label: string
+  icon: LucideIcon
+  end?: boolean
+}
+
+const PRIMARY: NavItem[] = [
   { to: '/', label: strings.nav.library, icon: Layers, end: true },
   { to: '/settings', label: strings.nav.settings, icon: Settings },
   { to: '/help', label: strings.nav.help, icon: BookOpen },
-] as const
+]
 
-const MORE = [
+const MORE: NavItem[] = [
   { to: '/sessions', label: strings.nav.sessions, icon: Layers },
   { to: '/activity', label: strings.nav.activity, icon: Activity },
   { to: '/stats', label: strings.nav.stats, icon: BarChart },
-] as const
+]
 
 export function AppShell({ children, cartCount, onCmdK }: AppShellProps) {
   return (
