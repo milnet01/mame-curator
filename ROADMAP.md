@@ -1338,6 +1338,64 @@ debt-sweep should resolve).
 
 ---
 
+## FP24 — P15 closing-review fold-in (planned)
+
+**Theme:** P15's closing `/audit` (semgrep + gitleaks + eslint + trivy on top of CI-clean ruff/mypy/bandit) returned 4 actionable lint findings; the 8-lane `/indie-review` (backend + cart hook + SSE hooks + discovery surface + selection surface + LibraryPage + AppShell + types/e2e) added 30+ cross-cutting and per-lane findings. P15's `/close-phase` cannot close until these are folded. Findings batched into three tiers; all share a single `FP24` ID per the FP19/FP12 closing-review precedent.
+
+### 🐛 Bug fixes
+
+- 🚧 **FP24** [mame-curator-1025] **P15 closing-review fold-in.**
+  Lanes: api, frontend, e2e, docs.
+
+  **Tier 1 — Critical / ship-this-week:**
+  - **A — `JobEvent.payload` key mismatch** (`useCopySession.ts:75-76`). Backend emits `total_files` / `total_bytes` (verify against `api/jobs.py:207-214`); frontend reads `files_total` / `bytes_total`. Progress bar pinned at 0/0 every copy job. One-line fix per key, but verify the actual payload shape before patching.
+  - **B — CartBar GB shows filter-result total, not cart total** (`pages/LibraryPage.tsx:325`). `totalSizeBytes={games.data?.total_bytes ?? 0}` — that's the FILTERED LIBRARY's bytes, not the cart's. Misleads users about copy size. Fix path: relabel as "filtered library" OR remove the GB figure until per-cart-item byte sum is available (requires `useCart.totalBytes` implementation OR a server-side `/api/copy/dry-run`-derived size).
+  - **C — AppShell Cart NavLink broken** (`components/layout/AppShell.tsx:71-84`). `to="/"` shadows the Library NavLink — both highlight active simultaneously, click re-navigates to `/` with no panel toggle. Fix: convert to `<button onClick={...}>` that triggers `setCartExpanded(true)` (lift cart-expanded state to App.tsx alongside the cart hoist), OR add a dedicated `/cart` route.
+  - **D — `OnboardingBanner.tsx:25` `setState`-in-effect** (eslint `react-hooks/set-state-in-effect`, hard error). The `useEffect` on `cartHasItems` calls `setDismissed(true)`. Fix: derive visibility from `!dismissed && !cartHasItems`, write to localStorage in the same effect WITHOUT `setDismissed`, OR move the persistent-dismiss callback to `LibraryPage` to fire on first cart.add.
+  - **E — `GameCard.tsx:60-79` nested `<button>` inside `<button>`** (invalid HTML5). Outer button-with-`className="contents"` wraps the `+Add` inner button; `e.stopPropagation()` makes it work in most browsers but AT behavior is undefined. Fix: replace outer with `<div role="button" tabIndex={0} onKeyDown={...}>` so the `+Add` stays a native button.
+  - **F — `ValidateRequest.short_names` unbounded** (`api/schemas.py:164-167`). User-controlled list with no length cap. Fix: `Field(max_length=10_000)` on `short_names` + per-item `Annotated[str, Field(max_length=64)]`.
+  - **G — `useCart` localStorage unavailability silent** (`hooks/useCart.ts:54-63`). Spec § 8 risk 3 mandates a one-time toast. The `storageBroken` ref is set in the catch block but never surfaced. Fix: return `isStorageBroken: boolean` from the hook + `LibraryPage` fires `toast.warning(strings.library.cart.storageUnavailableToast)` in a `useEffect`.
+
+  **Tier 2 — Hardening / correctness:**
+  - **H — SSE double-`start()` leaks orphan stream** (`useCopySession.ts:65`). No guard before opening a new EventSource. Fix: `closeStream()` before `new EventSource(...)`.
+  - **I — SSE `onerror` closes unconditionally** (`useCopySession.ts:116`). Eliminates EventSource auto-reconnect on transient drops. Fix: only close when `readyState === EventSource.CLOSED`; surface non-terminal drops via toast or progress-bar warning state.
+  - **J — SSE unmount race** (`useCopySession.ts:44-45`). Component unmounts after `start.mutate()` but before `onSuccess` → orphan stream survives until `job_finished`. Fix: track a `cancelled` flag in a ref, gate `onSuccess` body on it.
+  - **K — `JSON.parse` on SSE data with no try/catch** (`useCopySession.ts:67`). Malformed server push throws inside `onmessage`; React doesn't catch. Fix: try/catch + `console.warn` on parse failure.
+  - **L — `resolveConflict` accepts typed param it ignores** (`useCopySession.ts:141-146`). User clicks Resolve, decision discarded silently. Fix: drop the parameter (signature `()`) or `console.warn` to make the discard traceable; document the no-backend-endpoint constraint.
+  - **M — `handleBulkAdd` adds page slice, not filter total** (`pages/LibraryPage.tsx:161`). Label promises "Add all 6847", action delivers up to `pageSize=200`. Fix path: (a) add `GET /api/games/ids?<filter>` returning all matching shortnames, (b) iteratively fetch all pages before `addAll`, OR (c) cap label to `min(total, pageSize)` and amend the spec contract. (a) is spec-faithful.
+  - **N — `handleCopy` double-submit guard missing** (`pages/LibraryPage.tsx:176-197`). Two clicks within validate→start latency fire two start() calls. Fix: disable Copy button while `validateCart.isPending || copySession.state` is non-null (pass disabled flag through CartBar).
+  - **O — Clear all missing AlertDialog** (`components/library/CartPanel.tsx:55`). Coding-standards § 4 mandates AlertDialog for destructive ops; cart has no undo. Fix: wrap `onClearAll` in an AlertDialog naming the count.
+  - **P — FeaturedTilesRow tile buttons have no accessible name** (`components/library/FeaturedTilesRow.tsx:53-59`). Button's accessible name is the concatenation of `<p>` children — "Capcom ClassicsCapcom CPS-1...38 games" with no separators. Fix: `aria-label={tile.title}` on the `<button>`.
+  - **Q — Focus ring invisible on GameCard** (`components/library/GameCard.tsx:60-65`). `className="contents"` removes the button's CSS box; the brand `focus-visible:ring-2 focus-visible:ring-ring` on Card never fires because Card is a `<div>`. Fix lands with E (replace outer button with `role="button"` div + ring on the wrapper).
+  - **R — `useCart.readInitial` doesn't validate `chosenVariant` type** (`hooks/useCart.ts:28-33`). A persisted entry `{ shortName: "sf2", chosenVariant: 123 }` passes the filter. Fix: extend the predicate to assert `typeof i.chosenVariant === 'undefined' || typeof i.chosenVariant === 'string'`.
+  - **S — `useCart.addAll` truncation silent** (`hooks/useCart.ts:89-91`). Spec § 8 risk 6 mandates a toast on truncation. Fix: return `{ added: number, truncated: number }` so the caller can fire `toast.warning(strings.library.cart.maxCartReachedToast(MAX_CART_SIZE))`.
+  - **T — Stale-closure risk on cart auto-clear effect** (`pages/LibraryPage.tsx:200-206`). `eslint-disable-next-line react-hooks/exhaustive-deps` with no comment naming the stability invariant. Fix: confirm `cart.clear` and `copySession.reset` are stable `useCallback` refs in their respective hooks; document the invariant in the suppression comment.
+  - **U — Raw `fetch` in `fetchTileCount`** (`pages/LibraryPage.tsx:51-61`). Coding-standards § 4: "No raw `fetch` in components." Fix: route through `apiRequest` from `@/api/client`.
+  - **V — `openedWinner` re-creation on every render** (`pages/LibraryPage.tsx:107`, eslint pre-finding). `cards = games.data?.items ?? []` creates a new array reference each render-while-loading; downstream `useMemo` re-runs needlessly. Fix: `const cards = useMemo(() => games.data?.items ?? [], [games.data])`.
+  - **W — CartBar missing `aria-expanded` + `aria-controls`** (`components/library/CartBar.tsx:56-65`). WAI-ARIA disclosure-button pattern requires both. Fix: add both; CartPanel needs `id="cart-panel"` to anchor.
+  - **X — CartBar `bulkAddTotal=0` renders "Add all 0"** (`components/library/CartBar.tsx:45`). Confusing affordance when filter returns zero. Fix: change guard to `bulkAddTotal !== null && bulkAddTotal > 0`.
+  - **Y — Banner roles wrong** (`components/library/{ListxmlBanner.tsx:25, OnboardingBanner.tsx:47}`). `role="alert"` on listxml is too aggressive for an informational notice; `role="status"` on onboarding misuses the live-region role on a static banner. Fix: ListxmlBanner → `role="status"`; OnboardingBanner → `role="note"` or remove the role.
+  - **Z — Tile counts flash "0 games" on load** (`pages/LibraryPage.tsx:122`). `(tileQueries[idx].data as ...)?.total ?? 0` → 0 during loading; FeaturedTilesRow checks `count !== undefined` so a literal `0` displays. Fix: omit the `?? 0` so loading shows undefined and the tile suppresses the count label.
+
+  **Tier 3 — Structural / debt:**
+  - **AA — Hardcoded user strings** (`GameCard.tsx:92` `'+Add'`; `CartPanel.tsx:26` `aria-label="Cart contents"`). Add `strings.library.cart.add` and `strings.library.cart.contentsRegionLabel`; reference both. (Coding-standards § 4 single-source-of-truth.)
+  - **BB — `listxml_available` zombie field** (`api/schemas.py:472`, `api/routes/stubs.py`). Computed server-side but no frontend consumer (banner re-derives from `exists` + `cloneof_map_size`). Fix: either wire ListxmlBanner to consume it as the single source of truth, or delete the field entirely.
+  - **CC — `_probe_path kind` parameter unused** (`api/routes/stubs.py:27-31`). Required keyword arg silently discarded. Fix: implement `path.is_dir()` / `path.is_file()` validation, OR delete the parameter.
+  - **DD — `Badge.BIOS_MISSING` never appended** (`api/routes/games.py:39-50`). Enum value declared, filter param exists, but `_badges()` doesn't add it. Fix: append when `short in world.bios_chain`, OR document as filter-only.
+  - **EE — `schemas.py` over hard cap** (557 / 500 lines). Coding-standards § 2. Fix: extract a `schemas_setup.py` for setup/updates models.
+  - **FF — `dryRunConfirmDeferred` dead string** (`strings.ts:195-197`). No consumer post-F11. Fix: delete.
+  - **GG — `FeaturedTile` type duplicated** between `strings.ts` (inline cast) and `FeaturedTilesRow.tsx` (export). Fix: hoist to `strings.ts` or `api/types.ts` and import.
+  - **HH — Tile count uses `page_size=1`, spec said `0`** (`pages/LibraryPage.tsx:52`). Backend rejects 0 (`Query(50, ge=1, le=500)`). Fix: update spec § 4.2 to reflect `page_size=1` rationale; consider a count-only `?count_only=true` parameter to skip the unused `items` payload.
+  - **II — `Cmd+K` kbd label on Linux** (`components/layout/AppShell.tsx:123`). Project runs on Linux per CLAUDE.md; `useKeyboard` uses `meta` (= Super on Linux). Fix: detect platform and label accordingly, OR rename to `Ctrl+K` and update the binding.
+  - **JJ — eslint `_` and `_req` unused-var warnings** (`useCart.ts:106`, `useCopySession.ts:142`). Project eslint config doesn't accept the `^_` prefix convention. Fix: add `argsIgnorePattern: '^_'` + `varsIgnorePattern: '^_'` to `frontend/eslint.config.js` `@typescript-eslint/no-unused-vars` rule, OR rename the destructure leftover.
+  - **KK — E2E coverage gaps:** pre-Copy validate orphan-drop toast, cart auto-clear after Copy, AlternativesDrawer variant tracking, ListxmlBanner empty-parse trigger, SettingsPage `cart_clear_on_copy` round-trip. Add Playwright cases or accept Vitest-only coverage with a spec § 6 note.
+  - **LL — `handleTileSelect` resets ALL filters on toggle-off** (`pages/LibraryPage.tsx:143-146`). User who set search="contra" then clicked "Run & Gun" loses the search on toggle-off. Fix: preserve non-tile-driven filter state.
+
+  Source: P15 closing `/audit` (4 actionable lint findings) + 8-lane `/indie-review` (cross-cutting + per-lane HIGH/MEDIUM); filed 2026-05-08.
+  Dependencies: P15 (still 🚧). FP24 must close before P15 can close.
+
+---
+
 ## P15 — Cart and curated library (planned)
 
 **Theme:** [`docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`](docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md) — turn the dead `21,049 games · 0.0 GB` bottom-bar into a cart-first selection model with featured INI-derived tiles, dismissible onboarding banner, sticky cart-bar with expand-up panel, and live Copy + DryRun flows. Picker runtime symptom shipped fixed in FP23; this phase adds the regression test that locks `cloneof_map` non-empty ⇒ winners < machines, plus the `listxml_available` + `cloneof_map_size` setup-check fields that let the banner cover the "supplied but parsed empty" edge case.

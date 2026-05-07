@@ -17,6 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned — `FP24` P15 closing-review fold-in
+
+P15's closing `/audit` returned 4 actionable lint findings; the
+8-lane `/indie-review` returned 30+ cross-cutting and per-lane
+findings (CartBar GB display reads filter total instead of cart
+total; AppShell Cart NavLink shadows Library; `JobEvent` payload
+key mismatch breaks the copy progress bar; `OnboardingBanner`
+setState-in-effect lint hard error; `GameCard` nested
+`<button>` inside `<button>` invalid HTML5; security hardening
+on `ValidateRequest`; localStorage unavailability silent;
+hardcoded user strings; SSE double-start orphan stream; etc.).
+P15 cannot close until FP24 closes. See `ROADMAP.md` `FP24` for
+the full Tier 1 / Tier 2 / Tier 3 batched list.
+
 ### Planned — P15 Cart and curated library
 
 User feedback 2026-05-07: opening the app shows 21,049 cards
