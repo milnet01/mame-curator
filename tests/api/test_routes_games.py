@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 # ---- Per-route shape tests (R01–R07) ----------------------------------------
 
 
@@ -142,3 +144,50 @@ def test_stats_aggregations(client: Any) -> None:
     assert isinstance(body["by_driver_status"], dict)
     assert isinstance(body["total_bytes"], int)
     assert body["total_bytes"] >= 0
+
+
+def test_cloneof_map_collapses_winners(client: Any) -> None:
+    """Regression for FP23: non-empty cloneof_map ⇒ winners < machines.
+
+    The api_listxml fixture (tests/api/fixtures/api_listxml.xml) maps
+    pacmanf → pacman as a clone-of relationship. With the cloneof_map
+    populated, the runner groups pacmanf under pacman; pick_winner
+    picks one of them; total winners is strictly less than total
+    machines.
+
+    If this test ever fails, the picker-collapse path has regressed —
+    most likely paths.listxml is null again (the FP23 symptom), or
+    parse_listxml_cloneof returns empty, or state.py drops
+    cloneof_map on the floor between parser and FilterContext.
+    Diagnose by checking /api/setup/check (P15 § B2 adds
+    cloneof_map_size to the response).
+    """
+    resp = client.get("/api/games", params={"page_size": 500})
+    assert resp.status_code == 200
+    body = resp.json()
+    # mini DAT has 6 machines (pacman, pacmanf, neogeo, z80,
+    # 3bagfull, brokensim). With pacmanf collapsed under pacman,
+    # total ≤ 5.
+    assert body["total"] < 6, (
+        f"expected post-collapse total < 6, got {body['total']} "
+        f"— cloneof_map likely empty (regression of FP23)"
+    )
+
+
+def test_no_listxml_self_parents_every_machine() -> None:
+    """When paths.listxml is null, every machine self-parents — the
+    pre-FP23 symptom. Confirms the cloneof_map dependency is the
+    actual cause of post-collapse winner counts.
+
+    The runner-level invariant is already covered by
+    tests/filter/test_runner.py (line 156: ctx = FilterContext(
+    cloneof_map={"b": "a"}); plus the populated-case at line 62).
+    Re-implementing the same coverage at the API layer would be
+    duplicative; this skip-with-rationale documents the choice for
+    future readers. Re-enable if API surface changes.
+    """
+    pytest.skip(
+        "API-level no-listxml regression covered transitively by "
+        "tests/filter/test_runner.py:156 (runner-level cloneof_map={} "
+        "⇒ self-parent invariant)."
+    )
