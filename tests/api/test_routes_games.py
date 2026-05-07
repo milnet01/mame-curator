@@ -174,6 +174,20 @@ def test_cloneof_map_collapses_winners(client: Any) -> None:
     )
 
 
+def test_total_bytes_matches_filtered_sum(client: Any) -> None:
+    """P15 § 4.3.2: GamesPage.total_bytes equals sum of ROM bytes
+    over the filtered slice (not the page slice).
+
+    With the mini DAT, /api/games?page_size=1 returns one card on
+    page 1 of N, but total_bytes covers ALL filtered machines —
+    the bottom-bar reads the same regardless of pagination.
+    """
+    full = client.get("/api/games", params={"page_size": 500}).json()
+    paged = client.get("/api/games", params={"page_size": 1}).json()
+    assert full["total_bytes"] == paged["total_bytes"]
+    assert full["total_bytes"] > 0  # mini DAT machines have non-empty roms
+
+
 def test_no_listxml_self_parents_every_machine() -> None:
     """When paths.listxml is null, every machine self-parents — the
     pre-FP23 symptom. Confirms the cloneof_map dependency is the

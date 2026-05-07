@@ -157,6 +157,7 @@ class GamesPage(BaseModel):
     page: int
     page_size: int
     total: int
+    total_bytes: int
 
 
 class GameDetail(BaseModel):

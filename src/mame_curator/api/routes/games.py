@@ -128,10 +128,17 @@ def list_games(
 
     filtered = [s for s in winners if keep(s)]
     total = len(filtered)
+    total_bytes = sum(sum(r.size or 0 for r in world.machines[s].roms) for s in filtered)
     start = (page - 1) * page_size
     end = start + page_size
     page_items = tuple(_card(world.machines[s], world) for s in filtered[start:end])
-    return GamesPage(items=page_items, page=page, page_size=page_size, total=total)
+    return GamesPage(
+        items=page_items,
+        page=page,
+        page_size=page_size,
+        total=total,
+        total_bytes=total_bytes,
+    )
 
 
 @router.get("/api/library/facets", response_model=LibraryFacets)
