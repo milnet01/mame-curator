@@ -24,6 +24,8 @@ from mame_curator.api.schemas import (
     Notes,
     NotesPutRequest,
     Stats,
+    ValidateRequest,
+    ValidateResponse,
 )
 from mame_curator.api.state import WorldState, replace_world
 from mame_curator.filter.picker import explain_pick
@@ -175,6 +177,27 @@ def library_facets(world: WorldState = Depends(get_world)) -> LibraryFacets:
         developers=tuple(sorted(developers)),
         letters=tuple(sorted(letters)),
     )
+
+
+@router.post("/api/games/validate", response_model=ValidateResponse)
+def validate_games(
+    body: ValidateRequest,
+    world: WorldState = Depends(get_world),
+) -> ValidateResponse:
+    """P15 § 5.1: split cart shortnames into {existing, missing}.
+
+    Set lookup against ``world.machines``; no pagination, no filter
+    chain. Used pre-Copy to drop orphaned cart items after a DAT
+    swap or refresh-inis run.
+    """
+    existing: list[str] = []
+    missing: list[str] = []
+    for name in body.short_names:
+        if name in world.machines:
+            existing.append(name)
+        else:
+            missing.append(name)
+    return ValidateResponse(existing=tuple(existing), missing=tuple(missing))
 
 
 @router.get("/api/games/{name}", response_model=GameDetail)

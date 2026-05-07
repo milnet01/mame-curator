@@ -160,6 +160,17 @@ class GamesPage(BaseModel):
     total_bytes: int
 
 
+class ValidateRequest(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    short_names: tuple[str, ...]
+
+
+class ValidateResponse(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    existing: tuple[str, ...]
+    missing: tuple[str, ...]
+
+
 class GameDetail(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     short_name: str

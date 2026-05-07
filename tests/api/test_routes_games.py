@@ -205,3 +205,28 @@ def test_no_listxml_self_parents_every_machine() -> None:
         "tests/filter/test_runner.py:156 (runner-level cloneof_map={} "
         "⇒ self-parent invariant)."
     )
+
+
+def test_validate_round_trip(client: Any) -> None:
+    """P15 § 5.1: POST /api/games/validate splits names into
+    {existing, missing} against world.machines.
+
+    Set-lookup; no pagination, no filter chain. Used pre-Copy to
+    drop orphaned cart items after a DAT swap.
+    """
+    resp = client.post(
+        "/api/games/validate",
+        json={"short_names": ["pacman", "definitely_not_a_real_game", "pacmanf"]},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert sorted(body["existing"]) == ["pacman", "pacmanf"]
+    assert body["missing"] == ["definitely_not_a_real_game"]
+
+
+def test_validate_empty_input_returns_empty_pair(client: Any) -> None:
+    """Empty cart pre-Copy is a valid case (user clicked Copy after
+    Clear all without re-adding); endpoint returns {[], []}."""
+    resp = client.post("/api/games/validate", json={"short_names": []})
+    assert resp.status_code == 200
+    assert resp.json() == {"existing": [], "missing": []}
