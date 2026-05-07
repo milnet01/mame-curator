@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | v1.0.0 shipped — post-v1 backlog (P10 / P11 / P12 / P13 / P14 candidates) |
-| **Active item ID** | FP17 — library filter expansion (next, user-requested) |
-| **Active step** | ⬜ all (FP13 + FP12 closed at same SHA 2026-05-04; user-elected close-on-local-gates-green per FP11 precedent for fix-passes whose patches close prior indie-review findings) |
-| **Blocked on** | — |
-| **Last update** | 2026-05-04 (FP15 closed — sessions UX fix-pass after user reported "how do I start a session?". Three gaps: Save button was no-op stub from FP11 § B8 placeholder, no active-session indicator on /library, no inline explainer of what a session is. All 3 closed in one commit. Earlier today: P08 closed — slim run.sh + run.bat. P07 closed — slim. FP14 — GameCard layout overflow fix. FP13 + FP12 — same SHA per P05+FP10 / P06+FP11 precedent. All 22 FP13 findings closed across 6 commits (one per cluster) — A mutation observability + restart_required banner, B destructive-confirm correctness, C FsBrowser correctness + UX, D accessibility WCAG 2.2, E1 SettingsPage extract under 350-line hard cap, E2-E6 hardening sweep. SettingsPage went from 551 → 305 lines via 6 new extractions: FiltersTab / PickerTab / UpdatesTab / MediaTab / PrefSwitch / PathRow. New helper `lib/apiErrorToast.ts` translates ApiError → strings.errors.byCode with detail fallback; wired through useConfigPatch / useSnapshotRestore / useFsGrantRoot. 177 frontend / 435 backend tests / lint+typecheck+ruff+mypy+bandit / build all clean at close. P11 added 2026-05-04 — "Contribute missing thumbnails upstream" (post-v1, depends on P05). Repo PUBLIC; pushed FP12-complete + FP13-complete tags after close.) |
-| **Next gate** | v1.0.0 shipped 2026-05-04. Post-v1 backlog: P10 (media coverage expansion), P11 (contribute thumbnails upstream), P12 (in-app self-update + INI diff-preview UI), P13 candidate (in-browser setup wizard). All deferred-by-design — pick whichever is most valuable when the user comes back. |
+| **Project phase** | v1.2.0 shipped — pre-P15 fix-pass cleanup (FP23 closed); P15 cart-and-curated-library spec drafted, awaiting implementation plan |
+| **Active item ID** | P15 — Cart and curated library (spec at `docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`); writing-plans handoff next session |
+| **Active step** | ⬜ all (FP23 closed 2026-05-07; P15 spec written + 7-round cold-eyes review APPROVE; user signed off on spec then asked for bug-fix-first before plan) |
+| **Blocked on** | User to commit pre-existing FP20 / FP21 / FP22 / DS02 planning blocks (uncommitted in CHANGELOG.md / ROADMAP.md / .roadmap-counter prior to this session) before FP23's CHANGELOG/ROADMAP entries can land cleanly. |
+| **Last update** | 2026-05-07 (P15 brainstorm → spec → 7-round cold-eyes review converged on APPROVE; user asked to fix any bugs first before plan. FP23 closed: parent/clone collapse failure (21,049 cards → 10,591) — root cause `paths.listxml: null` in user's config.yaml since v1.0.0; runner.run_filter empty cloneof_map → every machine self-parents. Fix: install MAME 0.287, generate listxml (302 MB, 27,604 cloneof entries), point config at it; new ListxmlBanner on Library page surfaces the missing-listxml state for future users; new useDryRun hook + DryRunModal wired to /api/copy/dry-run with filter-result as input set (P15 will swap to cart.items). onCopy stays no-op stub — full Copy lifecycle (SSE + conflict resolution) is P15-scale ~500 lines, fits naturally with cart redesign. 446 backend tests / 188 frontend / ruff+mypy+bandit clean / coverage 86.66%.) |
+| **Next gate** | P15 implementation plan via writing-plans skill. Spec + diagnosis-first picker section already in place; the plan should still verify cloneof_map empty-state behaviour against post-FP23 baseline (the runtime symptom is gone, but the listxml-availability banner + setup-check extension are still part of P15 § 4.3.1 and FP23's banner only covers the warning — P15 still needs the setup-check field extensions). |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -134,10 +134,12 @@ nominal. Both tags point at `56449c6`.
 | FP17 | — | ✅ | 2026-05-04 | 2026-05-04 | Library filter expansion — letter + genre + publisher + developer filters; new /api/library/facets endpoint; v1.1.0 |
 | FP18 | — | ✅ | 2026-05-04 | 2026-05-04 | refresh-inis auto-patches config.yaml + Setup banner counts 5 INIs; v1.1.1 |
 | FP19 | — | ✅ | 2026-05-04 | 2026-05-04 | Launch in RetroArch — paths.retroarch config + POST /api/games/{name}/launch + Launch button in alternatives drawer; v1.2.0 |
+| FP23 | — | ✅ | 2026-05-07 | 2026-05-07 | Parent/clone collapse listxml fix — diagnosed during P15 brainstorm; user's `paths.listxml: null` made `cloneof_map={}` so every machine became its own winner (21,049 → 10,591 after fix). Installed MAME 0.287, generated listxml; new `ListxmlBanner` surfaces missing-listxml state for future users; new `useDryRun` hook + DryRunModal wired (onCopy stays no-op, full Copy lifecycle scoped to P15). |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
 | P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
 | P11 | — | 📋 | — | — | Contribute missing thumbnails to libretro-thumbnails (post-v1; depends on P05 ✅, composes with P10) |
 | P12 | — | 📋 | — | — | In-app self-update + INI diff-preview UI (post-v1; deferred from P07 2026-05-04 to keep v1 budget tight; depends on P07 / P09) |
+| P15 | — | 📋 | — | — | Cart and curated library — spec drafted 2026-05-07 (`docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`); 7-round cold-eyes-review APPROVE; awaiting writing-plans handoff. |
 
 The detailed per-phase contract for every phase still lives at
 `docs/superpowers/specs/2026-04-27-roadmap.md` — that file is the
@@ -169,6 +171,82 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-07 — FP23 closed (parent/clone collapse listxml fix)
+
+Discovered during the P15 brainstorm — user screenshot of the
+running v1.2.0 app showed `21,049 games` in the Library bottom
+bar, with the 1942 family appearing 7 times (all clones), 1941
+× 4, 1943 × 5, 18 Wheeler × 5, etc. The first cold-eyes review
+of the P15 spec caught my mis-diagnosis (I'd asserted "the
+picker isn't wired", which was wrong) and pointed me at the
+real cause: `cloneof_map={}` at world-load time, so
+`runner.run_filter` group-by-parent collapses to group-by-self
+and every machine becomes its own winner.
+
+Per ADR-0002, parent/clone relationships flow from MAME
+`-listxml`, not from the Pleasuredome DAT (which strips
+`cloneof`). User's `config.yaml` had `paths.listxml: null` —
+silent failure since v1.0.0; FP18's setup banner counts INIs
+but not listxml.
+
+**Fix shape (revised mid-session after I underestimated the
+modal-wiring scope):**
+
+- Installed openSUSE's `mame` package (0.287, 3 versions newer
+  than user's 0.284 DAT — cloneof for old arcade titles is
+  stable across this drift).
+- Generated listxml: `mame -listxml > /mnt/Games/MAME/listxml-0.287.xml`
+  (302 MB, 27,604 cloneof relationships).
+- Set `paths.listxml` in user's `config.yaml`. Verified app
+  restart drops `/api/games?total` from 21,049 → 10,591;
+  /api/games/1942/alternatives returns 8 family members
+  (parent + 7 clones, exactly matching the screenshot's count).
+- New `components/library/ListxmlBanner.tsx` (3-test pass) +
+  rendering in `LibraryPage` above the grid when
+  `setupCheck.reference_files.listxml.exists === false`.
+- New `hooks/useDryRun.ts` (POST /api/copy/dry-run mutation)
+  + handler in `LibraryPage` that opens the existing
+  `DryRunModal` with the report on success. P15 swaps the
+  `selected_names` source from `cards` → `cart.items` —
+  modal contract unchanged so this hook keeps working.
+- `onCopy` stays a no-op stub for now: full Copy lifecycle
+  wiring (SSE, conflict resolution) is genuinely P15-scale
+  (~500 lines + tests) and fits naturally with the cart-driven
+  input swap. Scope reset surfaced to user mid-session after
+  initial under-estimate; sign-off taken on the smaller shape.
+
+**Workflow lessons saved:**
+
+- **Cold-eyes review on every spec catches mis-diagnoses, not
+  just typos.** Round 1 of the P15 cold-eyes review surfaced
+  F1 ("the picker isn't wired" — wrong) which would have led
+  to a no-op fix. The reviewer cross-checked `state.py` /
+  `runner.py` / `picker.py` and found the actual code path,
+  saving a wasted FP. Pattern reaffirmed.
+- **Scope-reset honesty mid-session is cheaper than over-
+  promising.** Initial sign-off was for "wire onCopy/onDryRun
+  to filter result"; on inspection, Copy needed full SSE +
+  conflict-resolve wiring (~500 lines). Surfaced this back to
+  the user with a revised three-option scope question; they
+  picked the middle option. Saves both author and user from
+  a mid-implementation discovery + scope creep.
+- **Gitignored `config.yaml` is the right shape for per-user
+  secrets-adjacent config.** The fix to `paths.listxml`
+  doesn't enter the commit; user's environment is fixed
+  locally. Future sessions of /audit / /indie-review etc.
+  should not propose committing user-local paths.
+
+Tests: 3 new ListxmlBanner unit tests; 446 backend / 188
+frontend pass; ruff / mypy / bandit clean; coverage 86.66%
+(above 85% gate). `frontend/dist/` rebuilt.
+
+CHANGELOG / ROADMAP entries deferred to user-driven commit:
+the working tree contains pre-existing FP20/FP21/FP22/DS02
+planning blocks the user drafted before this session;
+combining their planning prose with this fix-pass's commit
+narrative would muddle authorship. Counter at 1023 reflects
+FP23's stable ID (mame-curator-1023).
 
 ### 2026-05-04 — FP12 clusters F + H (last two FP12 work clusters) closed
 

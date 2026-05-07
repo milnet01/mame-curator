@@ -106,6 +106,19 @@ export const strings = {
       `Active session "${name}". Click to manage sessions.`,
     noActiveSessionPill: 'No active session',
     noActiveSessionTitle: 'No active session — save the current filters as one to focus your library.',
+    /** FP23 — Library-page banner shown when paths.listxml is unset
+     *  (per ADR-0002, the picker can't collapse parent/clone groups
+     *  without it, so every machine surfaces as its own card). */
+    listxmlMissing: {
+      title: 'MAME listxml not configured',
+      body:
+        'Without a MAME listxml file, region and version variants of the same game appear as separate cards. Configure the listxml path in Settings to collapse them into one card per game.',
+      cta: 'Open Settings',
+    },
+    /** FP23 — DryRunModal "Confirm" toast when full Copy wiring isn't in
+     *  yet; P15 replaces the toast with the actual Copy-lifecycle launch. */
+    dryRunConfirmDeferred:
+      'Copy execution wiring lands with the cart redesign (P15). Use the CLI for now: `mame-curator copy --apply`.',
   },
 
   alternatives: {

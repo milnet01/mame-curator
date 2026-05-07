@@ -4,21 +4,31 @@ import { toast } from 'sonner'
 import { AlternativesDrawer } from '@/components/alternatives/AlternativesDrawer'
 import { LibraryGrid } from '@/components/library/LibraryGrid'
 import { LayoutSwitcher } from '@/components/library/LayoutSwitcher'
+import { ListxmlBanner } from '@/components/library/ListxmlBanner'
 import { ThemeSwitcher } from '@/components/library/ThemeSwitcher'
 import {
   FiltersSidebar,
   type FilterSidebarState,
 } from '@/components/library/FiltersSidebar'
 import { ActionBar } from '@/components/library/ActionBar'
+import { DryRunModal } from '@/components/library/DryRunModal'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { useAlternatives, useLaunchGame, useOverride } from '@/hooks/useAlternatives'
+import { useDryRun } from '@/hooks/useDryRun'
 import { useFacets } from '@/hooks/useFacets'
 import { useGames, type GamesQuery } from '@/hooks/useGames'
 import { useConfig, useConfigPatch } from '@/hooks/useConfig'
 import { useSessions, useSessionUpsert } from '@/hooks/useSessions'
+import { useSetupCheck } from '@/hooks/useSetupCheck'
 import { toastApiError } from '@/lib/apiErrorToast'
 import { strings } from '@/strings'
-import type { GameCard, LayoutName, Session, ThemeName } from '@/api/types'
+import type {
+  DryRunReport,
+  GameCard,
+  LayoutName,
+  Session,
+  ThemeName,
+} from '@/api/types'
 
 const DEFAULT_FILTERS: FilterSidebarState = {
   search: '',
@@ -36,6 +46,9 @@ const DEFAULT_FILTERS: FilterSidebarState = {
 export function LibraryPage() {
   const [filters, setFilters] = useState<FilterSidebarState>(DEFAULT_FILTERS)
   const [openedShortName, setOpenedShortName] = useState<string | null>(null)
+  // FP23: stash the dry-run report so the modal renders against it; cleared
+  // on close. Null = modal closed.
+  const [dryRunReport, setDryRunReport] = useState<DryRunReport | null>(null)
   const config = useConfig()
   const patch = useConfigPatch()
   const sessions = useSessions()
@@ -44,6 +57,10 @@ export function LibraryPage() {
   const override = useOverride()
   const launch = useLaunchGame()
   const facets = useFacets()
+  // FP23: surface listxml-availability so the banner above the grid can warn
+  // the user when parent/clone collapse can't run (per ADR-0002 fallback).
+  const setupCheck = useSetupCheck()
+  const dryRun = useDryRun()
 
   const layout = (config.data?.ui.layout ?? 'masonry') as LayoutName
   const theme = (config.data?.ui.theme ?? 'dark') as ThemeName
@@ -88,6 +105,25 @@ export function LibraryPage() {
   const handleTheme = (next: ThemeName) => {
     if (!config.data) return
     patch.mutate({ ui: { ...config.data.ui, theme: next } })
+  }
+
+  // FP23: wire the previously no-op onDryRun handler. Sends the current
+  // filter result (cards' short_names) to /api/copy/dry-run; on success,
+  // opens DryRunModal with the returned report. P15 will swap the
+  // selected_names source from `cards` to `cart.items` — modal contract
+  // unchanged so this hook keeps working.
+  const handleDryRun = () => {
+    dryRun.mutate(
+      {
+        selected_names: cards.map((c) => c.short_name),
+        conflict_strategy: 'CANCEL',
+        append_decisions: {},
+      },
+      {
+        onSuccess: setDryRunReport,
+        onError: toastApiError,
+      },
+    )
   }
 
   // FP15 § A: fix LibraryPage:65's `onSaveSession` no-op stub.
@@ -145,14 +181,19 @@ export function LibraryPage() {
         <ThemeSwitcher value={theme} onChange={handleTheme} />
       </header>
 
-      <ErrorBoundary>
-        <LibraryGrid
-          cards={cards}
-          layout={layout}
-          cardsPerRowHint={config.data?.ui.cards_per_row_hint}
-          onOpen={(card) => setOpenedShortName(card.short_name)}
-        />
-      </ErrorBoundary>
+      <div className="flex flex-col overflow-hidden">
+        {/* FP23: banner only renders when listxml is missing (exists=false);
+            loading and present-state both suppress it. */}
+        <ListxmlBanner exists={setupCheck.data?.reference_files.listxml.exists} />
+        <ErrorBoundary>
+          <LibraryGrid
+            cards={cards}
+            layout={layout}
+            cardsPerRowHint={config.data?.ui.cards_per_row_hint}
+            onOpen={(card) => setOpenedShortName(card.short_name)}
+          />
+        </ErrorBoundary>
+      </div>
 
       {/* FP16 § B: AlternativesDrawer wiring (FP11 § B6 stub never landed).
           The drawer mounts only when a game is selected — keeps the
@@ -183,16 +224,30 @@ export function LibraryPage() {
         />
       )}
 
+      {/* FP23: DryRunModal shows the report returned from /api/copy/dry-run.
+          onConfirm is intentionally a no-op + close for FP23 — full Copy
+          lifecycle wiring (SSE, conflict resolution) lands in P15 alongside
+          the cart-driven input swap. */}
+      {dryRunReport && (
+        <DryRunModal
+          open={true}
+          onOpenChange={(open) => !open && setDryRunReport(null)}
+          report={dryRunReport}
+          onConfirm={() => {
+            toast.message(strings.library.dryRunConfirmDeferred)
+            setDryRunReport(null)
+          }}
+        />
+      )}
+
       <div className="col-span-2">
         <ActionBar
           gameCount={total}
           totalSizeBytes={totalBytes}
           biosDepCount={0}
-          onDryRun={() => {
-            /* Dry-run modal wiring follow-up. */
-          }}
+          onDryRun={handleDryRun}
           onCopy={() => {
-            /* Copy modal wiring follow-up. */
+            /* P15: full Copy lifecycle wiring with cart input. */
           }}
         />
       </div>
