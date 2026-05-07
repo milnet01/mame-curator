@@ -579,4 +579,38 @@ describe('SettingsPage', () => {
       screen.queryByText(/restart `mame-curator serve`/i),
     ).not.toBeInTheDocument()
   })
+
+  it('renders the cart_clear_on_copy dropdown with the current value (P15 § F13)', async () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    const trigger = screen.getByRole('combobox', { name: 'Clear cart after copy' })
+    expect(trigger).toHaveTextContent('On success only')
+  })
+
+  it('patches ui.cart_clear_on_copy when a new option is picked (P15 § F13)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Clear cart after copy' }),
+    )
+    await userEvent.click(screen.getByRole('option', { name: 'Never' }))
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ui: expect.objectContaining({ cart_clear_on_copy: 'never' }),
+      }),
+    )
+  })
 })

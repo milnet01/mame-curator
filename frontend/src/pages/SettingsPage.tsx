@@ -32,6 +32,7 @@ type UiCfg = AppConfigResponse['ui']
 type UpdatesCfg = AppConfigResponse['updates']
 type DefaultSort = UiCfg['default_sort']
 type CardsPerRowHint = UiCfg['cards_per_row_hint']
+type CartClearOnCopy = UiCfg['cart_clear_on_copy']
 
 const DEFAULT_SORT_VALUES: readonly DefaultSort[] = [
   'name',
@@ -41,6 +42,12 @@ const DEFAULT_SORT_VALUES: readonly DefaultSort[] = [
 ]
 
 const CARDS_PER_ROW_VALUES: readonly CardsPerRowHint[] = ['auto', 4, 5, 6, 8]
+
+const CART_CLEAR_VALUES: readonly CartClearOnCopy[] = [
+  'always',
+  'on_success',
+  'never',
+]
 
 const ARCADE_FLOOR_YEAR = 1971
 const CURRENT_YEAR = new Date().getFullYear()
@@ -284,6 +291,32 @@ export function SettingsPage({
                 {DEFAULT_SORT_VALUES.map((v) => (
                   <SelectItem key={v} value={v}>
                     {strings.settings.defaultSortOptions[v]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="ui-cart-clear-on-copy">
+              {strings.settings.uiLabels.cart_clear_on_copy}
+            </Label>
+            <Select
+              value={config.ui.cart_clear_on_copy}
+              onValueChange={(v) =>
+                updateUi('cart_clear_on_copy', v as CartClearOnCopy)
+              }
+            >
+              <SelectTrigger
+                id="ui-cart-clear-on-copy"
+                aria-label={strings.settings.uiLabels.cart_clear_on_copy}
+                className="w-48"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CART_CLEAR_VALUES.map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {strings.settings.uiLabels.cart_clear_on_copy_options[v]}
                   </SelectItem>
                 ))}
               </SelectContent>
