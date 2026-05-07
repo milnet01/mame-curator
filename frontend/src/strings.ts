@@ -50,6 +50,8 @@ export const strings = {
     settings: 'Settings',
     help: 'Help',
     commandPalette: 'Search games, settings, and actions',
+    cart: (n: number) => `Cart (${n})`,
+    more: 'More',
   },
 
   library: {
@@ -70,6 +72,66 @@ export const strings = {
       chd_missing: 'CHD file missing',
       bios_missing: 'BIOS dependency missing',
       has_notes: 'Has user notes',
+    },
+    featured: {
+      heading: 'Featured',
+      tiles: [
+        {
+          id: 'capcom-classics',
+          title: 'Capcom Classics',
+          description: 'Capcom CPS-1 / CPS-2 era arcade hits',
+          query: { publisher: 'Capcom', yearTo: 2000 },
+        },
+        {
+          id: 'beat-em-ups',
+          title: "Beat 'em Ups",
+          description: 'Side-scrolling brawlers',
+          query: { genre: "Beat'em up" },
+        },
+        {
+          id: 'run-and-gun',
+          title: 'Run & Gun Shooters',
+          description: 'Run-and-gun shooters',
+          query: { genre: 'Shooter / Run-and-Gun' },
+        },
+        {
+          id: 'best-of-1992',
+          title: 'Best of 1992',
+          description: 'Arcade titles released in 1992',
+          query: { yearFrom: 1992, yearTo: 1992 },
+        },
+        {
+          id: 'shmups-vertical',
+          title: 'SHMUPS — Vertical',
+          description: 'Vertical-scroll shoot-em-up classics',
+          query: { genre: 'Shooter / Vertical' },
+        },
+      ] as const,
+      countLabel: (n: number) =>
+        `${n.toLocaleString()} game${n === 1 ? '' : 's'}`,
+    },
+    cart: {
+      summaryEmpty: 'Cart empty',
+      summary: (n: number, gb: string) =>
+        `${n.toLocaleString()} game${n === 1 ? '' : 's'} · ${gb}`,
+      addToCart: (gameName: string) => `Add ${gameName} to cart`,
+      removeFromCart: (gameName: string) => `Remove ${gameName} from cart`,
+      added: '✓ Added',
+      bulkAdd: (n: number) => `Add all ${n.toLocaleString()}`,
+      expand: 'Expand cart',
+      collapse: 'Collapse cart',
+      clearAll: 'Clear all',
+      validateDroppedToast: (n: number) =>
+        `${n} cart item${n === 1 ? '' : 's'} removed — they're no longer in your library.`,
+      variantBadge: (variantName: string) => `⇄ ${variantName}`,
+      storageUnavailableToast:
+        'Browser storage unavailable; cart will not persist for this session.',
+      maxCartReachedToast: (max: number) =>
+        `Cart full (max ${max.toLocaleString()}); some items were not added.`,
+    },
+    onboarding: {
+      body: "Tap a game to add it to your list. Click COPY when you're done.",
+      dismissAriaLabel: 'Dismiss onboarding banner',
     },
     filters: {
       searchLabel: 'Search',
@@ -114,6 +176,8 @@ export const strings = {
       body:
         'Without a MAME listxml file, region and version variants of the same game appear as separate cards. Configure the listxml path in Settings to collapse them into one card per game.',
       cta: 'Open Settings',
+      emptyParseBody:
+        'Listxml loaded but contains no cloneof entries — region/version variants will appear separately.',
     },
     /** FP23 — DryRunModal "Confirm" toast when full Copy wiring isn't in
      *  yet; P15 replaces the toast with the actual Copy-lifecycle launch. */
@@ -263,6 +327,12 @@ export const strings = {
       show_alternatives_indicator: 'Show alternatives indicator',
       default_sort: 'Default sort order',
       cards_per_row_hint: 'Cards per row',
+      cart_clear_on_copy: 'Clear cart after copy',
+      cart_clear_on_copy_options: {
+        always: 'Always',
+        on_success: 'On success only',
+        never: 'Never',
+      },
     },
     /** FP12 § D — `default_sort` dropdown options (UI tab). */
     defaultSortOptions: {
