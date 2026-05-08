@@ -230,3 +230,27 @@ def test_validate_empty_input_returns_empty_pair(client: Any) -> None:
     resp = client.post("/api/games/validate", json={"short_names": []})
     assert resp.status_code == 200
     assert resp.json() == {"existing": [], "missing": []}
+
+
+def test_validate_rejects_oversized_list(client: Any) -> None:
+    """FP24-F: ValidateRequest.short_names must be bounded so a
+    user-controlled list can't exhaust server memory.
+
+    The cap (10,000) is well above the cart MAX_CART_SIZE (10,000)
+    and below any plausible legit usage; one extra item should hit
+    422.
+    """
+    payload = {"short_names": [f"x{i}" for i in range(10_001)]}
+    resp = client.post("/api/games/validate", json=payload)
+    assert resp.status_code == 422
+
+
+def test_validate_rejects_oversized_item(client: Any) -> None:
+    """FP24-F: per-item cap rejects pathological-length names.
+
+    Real shortnames are <= 24 chars; 64 leaves a comfortable margin
+    while pinning the upper bound.
+    """
+    payload = {"short_names": ["a" * 65]}
+    resp = client.post("/api/games/validate", json=payload)
+    assert resp.status_code == 422

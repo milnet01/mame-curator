@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -162,8 +162,18 @@ class GamesPage(BaseModel):
 
 
 class ValidateRequest(BaseModel):
+    """FP24-F: bounded to cap user-controlled memory pressure.
+
+    10,000 items matches the frontend cart's MAX_CART_SIZE; the 64-char
+    per-item cap sits comfortably above real MAME shortnames (max ~24)
+    without admitting pathological input.
+    """
+
     model_config = ConfigDict(frozen=True, extra="forbid")
-    short_names: tuple[str, ...]
+    short_names: Annotated[
+        tuple[Annotated[str, Field(max_length=64)], ...],
+        Field(max_length=10_000),
+    ]
 
 
 class ValidateResponse(BaseModel):
