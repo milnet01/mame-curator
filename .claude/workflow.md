@@ -83,7 +83,7 @@ nominal. Both tags point at `56449c6`.
 | FP19 | — | ✅ | 2026-05-04 | 2026-05-04 | Launch in RetroArch — paths.retroarch config + POST /api/games/{name}/launch + Launch button in alternatives drawer; v1.2.0 |
 | FP23 | — | ✅ | 2026-05-07 | 2026-05-07 | Parent/clone collapse listxml fix — diagnosed during P15 brainstorm; user's `paths.listxml: null` made `cloneof_map={}` so every machine became its own winner (21,049 → 10,591 after fix). Installed MAME 0.287, generated listxml; new `ListxmlBanner` surfaces missing-listxml state for future users; new `useDryRun` hook + DryRunModal wired (onCopy stays no-op, full Copy lifecycle scoped to P15). |
 | FP24 | — | ✅ | 2026-05-08 | 2026-05-08 | P15 closing-review fold-in — all Tier 1 (A–G + Q + S, 7 commits) + Tier 2 (H–Z, 3 commits) + Tier 3 (AA–LL, 3 commits) closed across 13 commits. Plus HelpRoute setState-in-effect ride-along. 455 backend / 240 frontend tests green / coverage 86.93%. |
-| P15 | — | ✅ | 2026-05-08 | 2026-05-08 | Cart-first selection + curated featured tiles + live Copy — combined ship + FP24 fold-in (B1–B5 backend + F1–F14 frontend + Playwright cart-flow). `P15-complete` + `FP24-complete` tag the same SHA. |
+| P15 | — | ✅ | 2026-05-08 | 2026-05-08 | Cart-first selection + curated featured tiles + live Copy — B1–B5 backend + F1–F14 frontend + Playwright cart-flow shipped 2026-05-07 to 2026-05-08; closing `/audit` + 8-lane `/indie-review` folded into FP24 (13 commits). `P15-complete` and `FP24-complete` tag distinct SHAs (FP24 closed first, then P15 close-flip in its own docs commit). |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
 | P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
 | P11 | — | 📋 | — | — | Contribute missing thumbnails to libretro-thumbnails (post-v1; depends on P05 ✅, composes with P10) |
@@ -194,8 +194,15 @@ three options surfaced. Then:
   stub that just points back at the workflow journal — saves a
   file and a duplicated narrative.
 
-Tag: `P15-complete` (annotated) at the same SHA as
-`FP24-complete`. Public repo → push prompt deferred to user.
+Tag: `P15-complete` (annotated) at the docs-close commit
+(today). `FP24-complete` already tags yesterday's FP24 close
+commit — distinct SHAs, since FP24 closed in its own commit
+(`aaa4dae`) before P15 could close clean. Pattern differs from
+P06+FP11's combined-ship same-SHA tagging because FP24 absorbed
+30+ findings across 13 commits, and folding the close-flip
+into the last fix-pass commit would have buried it.
+
+Public repo → push prompt deferred to user.
 
 ### 2026-05-08 — FP24 closed (P15 closing-review fold-in)
 

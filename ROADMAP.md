@@ -1409,7 +1409,7 @@ debt-sweep should resolve).
   - **E2E.** Playwright `cart-flow.spec.ts` covers banner dismiss → tile filter → bulk-add → expand-panel → Copy.
   - **Docs.** Implementation plan at `docs/superpowers/plans/2026-05-07-cart-and-curated-library-plan.md`; closing fold-in tracked in FP24.
 
-  Plan was a single ship — no mid-phase splits. Closing `/audit` (4 actionable lint findings) + 8-lane `/indie-review` folded into FP24 (30+ findings across Tier 1/2/3 closed in 13 commits 2026-05-08).
+  Plan was a single ship — no mid-phase splits. Closing `/audit` (4 actionable lint findings) + 8-lane `/indie-review` folded into FP24 (30+ findings across Tier 1/2/3 closed in 13 commits 2026-05-08); `P15-complete` tags the docs-close commit, distinct from `FP24-complete` (which tags yesterday's FP24 close).
   Source: user feedback 2026-05-07 ("21,049 games, no clear path to pick three"); brainstorm + 7-round cold-eyes review APPROVE.
   Dependencies: FP23 ✅ (listxml banner foundation), FP19 ✅ (RetroArch launch — cart preserves), FP17 ✅ (`/api/library/facets` for tile counts).
   See `docs/journal/P15.md`.
