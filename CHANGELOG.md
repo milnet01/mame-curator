@@ -233,6 +233,19 @@ setup banner counts INIs but not listxml).
 446 backend tests / 188 frontend tests / ruff + mypy + bandit
 clean / coverage 86.66%.
 
+### Planned — `DS03` Dependency freshness sweep
+
+User request 2026-05-08: ensure every external library in
+`pyproject.toml` and `frontend/package.json` is on its latest
+stable release, per global rule § 5 ("Use the latest external-
+library version, with current idioms"). DS03 is a dedicated
+single-coordinated-bump sweep covering backend deps, frontend
+deps, and pinned GitHub Actions versions; runs the full CI
+matrix once for the whole bump rather than piecemeal upgrades.
+Idiom-modernisation rewrites are out of scope (separate fix-
+pass if a major version's new idioms surface drive-by). See
+`ROADMAP.md` `DS03`.
+
 ### Planned — `FP22` Launch button gates on RetroArch config
 
 User reported 2026-05-04 that clicking Launch on a game with

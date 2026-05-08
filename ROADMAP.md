@@ -1868,6 +1868,28 @@ synchronisation. Defer to a debt-sweep pass per project policy
 
 ---
 
+## DS03 — Dependency freshness sweep (planned)
+
+**Theme:** verify every external library in `pyproject.toml` and `frontend/package.json` is on its **latest stable release**, and update the version constraints (or pinned exacts) to match. Per global rule § 5 ("Use the latest external-library version, with current idioms"), the project prefers latest-stable unless there's an explicit reason to pin. This sweep audits that invariant project-wide and ships a single coordinated bump.
+
+**Why now (vs. ad-hoc):** the project has shipped 24 fix-passes plus 15 phases without a dedicated dependency-refresh pass. Individual deps have been updated as they came up (radix-ui during FP12, framer-motion during P15, etc.) but there's no single moment that says "everything is current." A dedicated sweep is cheaper than piecemeal upgrades because the test suites + CI matrix run once for the whole bump, not once per dep.
+
+### 🧹 Cleanup / debt
+
+- 📋 **DS03** [mame-curator-1025] **Dependency freshness sweep — pyproject.toml + frontend/package.json on latest stable.**
+  Lanes: deps, build, ci.
+  - **A — Backend audit (`pyproject.toml`).** Walk every entry under `[project.dependencies]` and `[project.optional-dependencies].dev`; for each, compare the floor constraint against the current PyPI latest stable (`uv pip list --outdated` + manual check for major-version-gated packages). Note any pinned-on-purpose entries (Pydantic v2 vs. v1 etc.) so the sweep doesn't regress them.
+  - **B — Frontend audit (`frontend/package.json`).** Same shape against npm: `npm outdated` lists candidate bumps; verify each major-version bump's release notes for breaking changes. React 19, Tailwind 4, Vite 6+, TypeScript 6+ are already current as of P15 close — note in passing if any of them have shipped a newer point release.
+  - **C — Github Actions audit (`.github/workflows/ci.yml`).** Bump pinned action SHAs / tags (`actions/checkout`, `actions/setup-python`, `astral-sh/setup-uv`, `actions/upload-artifact`). The 2026-05-08 CI run flagged `actions/upload-artifact@v4` as Node.js 20 deprecated — covered here.
+  - **D — Coordinated bump commit.** Single commit that lifts every floor / pinned version together. Run the full local CI gate (`uv run pytest && uv run ruff check && uv run ruff format --check && uv run mypy && uv run bandit -c pyproject.toml -r src` + `npm test` + `npm run build`) before commit. CI matrix re-runs across Ubuntu / macOS / Windows × 3.12 / 3.13 confirms cross-platform compatibility of the bumped set.
+  - **E — Idiom-modernise check.** Per global rule § 5 second clause: where a dep's major version brings new idioms (e.g. Pydantic 2.11+ deprecation warnings, FastAPI route-decorator style changes, React 19 use() hook), surface the idiom-drift in a follow-up note rather than bulk-rewriting in DS03 itself. Idiom changes go into a separate fix-pass if non-trivial; DS03 stays scoped to floor-bumps + green CI.
+
+  Source: user request 2026-05-08 ("ensure that we are on the latest version of all dependencies"); reinforces global rule § 5.
+  Dependencies: none. Slot DS03 anywhere in the queue — independent of FP22 / FP20 / FP21 / DS02 work.
+  Out of scope: idiom-modernisation rewrites (separate fix-pass if a major version's new idioms would land alongside as drive-by edits — see § E above); semver-minor floor bumps that would force a downstream API break (defer to a follow-up if surfaced).
+
+---
+
 ## FP19 — Launch games from the site (closed 2026-05-04)
 
 **Theme:** user request 2026-05-04 "offer the option to launch the
