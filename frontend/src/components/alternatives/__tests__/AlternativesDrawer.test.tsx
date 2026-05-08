@@ -1,9 +1,19 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
+import type { ReactElement } from 'react'
 
 import { AlternativesDrawer } from '../AlternativesDrawer'
 import type { GameCard } from '@/api/types'
+
+// FP22-B introduced a <Link> in the disabled-Launch hint, so any render
+// that exercises the Launch path needs a router context. Wrapping every
+// render keeps the existing tests untouched while supporting the new
+// ones.
+function renderWithRouter(ui: ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>)
+}
 
 const winner: GameCard = {
   short_name: 'pacman',
@@ -37,7 +47,7 @@ const clones: GameCard[] = [
 
 describe('AlternativesDrawer', () => {
   it('renders parent + clones when open', () => {
-    render(
+    renderWithRouter(
       <AlternativesDrawer
         open
         onOpenChange={() => {}}
@@ -54,7 +64,7 @@ describe('AlternativesDrawer', () => {
   it('calls onOverride with parent + chosen winner and closes', async () => {
     const onOverride = vi.fn()
     const onOpenChange = vi.fn()
-    render(
+    renderWithRouter(
       <AlternativesDrawer
         open
         onOpenChange={onOpenChange}
@@ -74,7 +84,7 @@ describe('AlternativesDrawer', () => {
   })
 
   it('disables the use-this-version button on the current winner', () => {
-    render(
+    renderWithRouter(
       <AlternativesDrawer
         open
         onOpenChange={() => {}}
@@ -88,7 +98,7 @@ describe('AlternativesDrawer', () => {
   })
 
   it('shows "only version" hint and no rows when alternatives.length === 1 (FP11 § B5)', () => {
-    render(
+    renderWithRouter(
       <AlternativesDrawer
         open
         onOpenChange={() => {}}
@@ -105,7 +115,7 @@ describe('AlternativesDrawer', () => {
   })
 
   it('renders boxart media on every row (FP11 § B6)', () => {
-    render(
+    renderWithRouter(
       <AlternativesDrawer
         open
         onOpenChange={() => {}}
@@ -122,5 +132,81 @@ describe('AlternativesDrawer', () => {
       'src',
       '/media/pacmanjr/boxart',
     )
+  })
+
+  it('disables Launch and shows the configure hint when RetroArch is not configured (FP22-B)', () => {
+    renderWithRouter(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={winner}
+        alternatives={[winner, ...clones]}
+        onOverride={() => {}}
+        onLaunch={() => {}}
+        retroarchConfigured={false}
+      />,
+    )
+    const launchButton = screen.getByRole('button', { name: /Launch in RetroArch/i })
+    expect(launchButton).toBeDisabled()
+    // The hint text spans a <Link> in the middle, so assert against the
+    // combined textContent of the status element rather than getByText.
+    const hint = screen.getByRole('status')
+    expect(hint.textContent).toMatch(/Configure RetroArch in Settings.*to enable launching/i)
+    // Hint links to Settings → Paths so the user can fix it in one click.
+    const link = screen.getByRole('link', { name: /Settings.*Paths/i })
+    expect(link).toHaveAttribute('href', '/settings?tab=paths')
+  })
+
+  it('does not call onLaunch when the button is gated (FP22-B)', async () => {
+    const onLaunch = vi.fn()
+    renderWithRouter(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={winner}
+        alternatives={[winner, ...clones]}
+        onOverride={() => {}}
+        onLaunch={onLaunch}
+        retroarchConfigured={false}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Launch in RetroArch/i }))
+    expect(onLaunch).not.toHaveBeenCalled()
+  })
+
+  it('enables Launch when retroarchConfigured is true (FP22-B)', async () => {
+    const onLaunch = vi.fn()
+    renderWithRouter(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={winner}
+        alternatives={[winner, ...clones]}
+        onOverride={() => {}}
+        onLaunch={onLaunch}
+        retroarchConfigured
+      />,
+    )
+    const launchButton = screen.getByRole('button', { name: /Launch in RetroArch/i })
+    expect(launchButton).toBeEnabled()
+    await userEvent.click(launchButton)
+    expect(onLaunch).toHaveBeenCalledWith('pacman')
+  })
+
+  it('treats undefined retroarchConfigured as not-yet-known and disables Launch (FP22-B)', () => {
+    // setupCheck.data is undefined while the query is loading; the button
+    // should not be clickable until we have a definitive answer, otherwise
+    // the user can race the query and trigger a 422.
+    renderWithRouter(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={winner}
+        alternatives={[winner, ...clones]}
+        onOverride={() => {}}
+        onLaunch={() => {}}
+      />,
+    )
+    expect(screen.getByRole('button', { name: /Launch in RetroArch/i })).toBeDisabled()
   })
 })

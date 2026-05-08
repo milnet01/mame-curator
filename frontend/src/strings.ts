@@ -240,6 +240,12 @@ export const strings = {
     launchSuccess: (name: string) => `Launched ${name}.`,
     launchNotConfigured:
       'RetroArch not configured. Set paths.retroarch and paths.retroarch_core in config.yaml, then restart the server.',
+    /** FP22-B — inline hint under the disabled Launch button. Split into
+     *  prefix / link-label / suffix so the link in the middle is a real
+     *  <Link> component and screen readers announce a normal sentence. */
+    launchConfigurePrefix: 'Configure RetroArch in',
+    launchConfigureLinkLabel: 'Settings → Paths',
+    launchConfigureSuffix: ' to enable launching.',
   },
 
   sessions: {
@@ -423,6 +429,10 @@ export const strings = {
         missing.length === 0
           ? `Reference INIs: ${present} / ${required} present.`
           : `Reference INIs: ${present} / ${required} present. Missing: ${missing.join(', ')}. Run \`uv run mame-curator refresh-inis --dest data/ini\` to download.`,
+      /** FP22-C — RetroArch readiness line under the setup banner. */
+      retroarchConfigured: 'RetroArch: configured.',
+      retroarchNotConfigured:
+        'RetroArch: not configured — set paths.retroarch and paths.retroarch_core in the Paths tab to enable launching.',
     },
     snapshotRestoreConfirm: (count: number) =>
       `Restore ${count} configuration file${count === 1 ? '' : 's'} from this snapshot? Current settings will be replaced.`,

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import {
   Sheet,
   SheetContent,
@@ -23,6 +24,13 @@ interface AlternativesDrawerProps {
   onLaunch?: (shortName: string) => void
   /** True while the launch mutation is in flight. */
   launching?: boolean
+  /** FP22-B: gates the Launch button on RetroArch config presence.
+   *  ``true``  → button is enabled.
+   *  ``false`` → button is disabled with an inline "Configure RetroArch
+   *              in Settings → Paths" hint linking to /settings?tab=paths.
+   *  ``undefined`` → setupCheck query still loading; treat as gated so a
+   *  fast-clicker can't race the query into a 422. */
+  retroarchConfigured?: boolean
 }
 
 function AlternativeRow({
@@ -91,6 +99,7 @@ export function AlternativesDrawer({
   onOverride,
   onLaunch,
   launching = false,
+  retroarchConfigured,
 }: AlternativesDrawerProps) {
   const parent = winner.short_name
   const handleClick = (alt: GameCard) => {
@@ -131,17 +140,38 @@ export function AlternativesDrawer({
         )}
 
         {/* FP19: Launch button — spawns RetroArch with the current
-            winner's ROM. Hidden when onLaunch isn't wired (unit tests). */}
+            winner's ROM. Hidden when onLaunch isn't wired (unit tests).
+            FP22-B: when retroarchConfigured is not strictly true the
+            button is disabled and an inline hint surfaces the fix path
+            (Settings → Paths). undefined is treated as "not yet known"
+            and gates as well so a fast-clicker can't race the
+            useSetupCheck query and get a 422 toast. */}
         {onLaunch && (
-          <Button
-            onClick={() => onLaunch(winner.short_name)}
-            disabled={launching}
-            className="mt-auto"
-          >
-            {launching
-              ? strings.alternatives.launching
-              : strings.alternatives.launch}
-          </Button>
+          <div className="mt-auto flex flex-col gap-2">
+            <Button
+              onClick={() => onLaunch(winner.short_name)}
+              disabled={launching || retroarchConfigured !== true}
+            >
+              {launching
+                ? strings.alternatives.launching
+                : strings.alternatives.launch}
+            </Button>
+            {retroarchConfigured === false && (
+              <p
+                role="status"
+                className="text-xs text-muted-foreground"
+              >
+                {strings.alternatives.launchConfigurePrefix}{' '}
+                <Link
+                  to="/settings?tab=paths"
+                  className="underline"
+                >
+                  {strings.alternatives.launchConfigureLinkLabel}
+                </Link>
+                {strings.alternatives.launchConfigureSuffix}
+              </p>
+            )}
+          </div>
         )}
       </SheetContent>
     </Sheet>

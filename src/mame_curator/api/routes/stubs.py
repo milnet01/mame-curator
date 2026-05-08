@@ -66,6 +66,7 @@ def setup_check(world: WorldState = Depends(get_world)) -> SetupCheck:
     p = world.config.paths
     listxml_status = _probe_ref(p.listxml)
     cloneof_map_size = len(world.cloneof_map)
+    retroarch_configured = p.retroarch is not None and p.retroarch_core is not None
     return SetupCheck(
         config_present=True,
         paths=SetupPaths(
@@ -82,6 +83,7 @@ def setup_check(world: WorldState = Depends(get_world)) -> SetupCheck:
             listxml=listxml_status,
         ),
         cloneof_map_size=cloneof_map_size,
+        retroarch_configured=retroarch_configured,
     )
 
 

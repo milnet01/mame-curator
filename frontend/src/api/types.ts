@@ -970,6 +970,7 @@ export interface SetupCheck {
   paths: SetupPaths
   reference_files: SetupReferenceFiles
   cloneof_map_size: number
+  retroarch_configured: boolean
 }
 export const SetupCheckSchema = z
   .object({
@@ -977,6 +978,7 @@ export const SetupCheckSchema = z
     paths: SetupPathsSchema,
     reference_files: SetupReferenceFilesSchema,
     cloneof_map_size: z.number().int().nonnegative(),
+    retroarch_configured: z.boolean(),
   })
   .strict()
 

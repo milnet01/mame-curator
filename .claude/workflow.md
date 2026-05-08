@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | v1.2.0 shipped — P15 (cart and curated library) closed 2026-05-08 alongside FP24 closing-review fold-in; queue advances to FP22 (RetroArch launch gate) → FP20 / FP21 / DS02 (indie-review tiered fold-in) → P10/P11/P12 (post-v1 enhancements) |
-| **Active item ID** | (none — P15 closed; FP22 is queued next per ROADMAP order) |
+| **Project phase** | v1.2.0 shipped — FP22 (Launch button gates on RetroArch config) closed 2026-05-08; queue advances to FP20 / FP21 / DS02 (indie-review tiered fold-in) → DS03 (dependency freshness) → P09 polish → P10/P11/P12 post-v1 ladder |
+| **Active item ID** | (none — FP22 closed; FP20 is queued next per user direction "FP20 / FP21 / DS02 indie-review tiered fold-in") |
 | **Active step** | n/a |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-08 (P15 closed clean at FP24's SHA; both `P15-complete` and `FP24-complete` tag the same commit; 455 backend / 240 frontend tests green at coverage 86.93%) |
-| **Next gate** | User picks next item. ROADMAP order suggests **FP22** (Launch button gates on RetroArch config — small UX fix-pass from real user feedback 2026-05-04, ~4 sub-bullets in `api/setup/check` + `AlternativesDrawer` + `SettingsPage` + `strings.errors.byCode`). Larger alternatives are **FP20** (Tier 1 security/data-loss from indie-review 2026-05-04) or **FP21** (Tier 2 hardening). The post-v1 ladder (P10 media expansion / P11 thumbnails / P12 self-update + INI diff) waits for v1.0.0 polish if that path is taken. |
+| **Last update** | 2026-05-08 (FP22 closed clean; 458 backend / 246 frontend tests green at coverage 87.00%) |
+| **Next gate** | User-driven order is **FP20 → FP21 → DS02 → DS03 → P09 polish → post-v1**. FP20 (Tier 1 security + data-loss, 12 sub-bullets A–L) is the next item — wide surface across parser / copy / api / frontend, expect a multi-commit fix-pass with per-cluster TDD. FP22-D folds into FP21 § J (typed `RetroArchNotConfiguredError`). |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,10 +21,9 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-**No active item.** P15 closed clean 2026-05-08 alongside FP24
-fold-in. Next pickup is user-driven — see the **Next gate** row
-above for the suggested ROADMAP-order pickup (FP22) and
-alternatives.
+**No active item.** FP22 closed 2026-05-08. Next pickup per
+user direction is **FP20** (indie-review Tier 1) — see the
+**Next gate** row above and `ROADMAP.md § FP20`.
 
 (Prior step-progress blocks for FP12 / FP11 / P06 — preserved
 across earlier sessions as audit context — were retired during
@@ -84,6 +83,7 @@ nominal. Both tags point at `56449c6`.
 | FP23 | — | ✅ | 2026-05-07 | 2026-05-07 | Parent/clone collapse listxml fix — diagnosed during P15 brainstorm; user's `paths.listxml: null` made `cloneof_map={}` so every machine became its own winner (21,049 → 10,591 after fix). Installed MAME 0.287, generated listxml; new `ListxmlBanner` surfaces missing-listxml state for future users; new `useDryRun` hook + DryRunModal wired (onCopy stays no-op, full Copy lifecycle scoped to P15). |
 | FP24 | — | ✅ | 2026-05-08 | 2026-05-08 | P15 closing-review fold-in — all Tier 1 (A–G + Q + S, 7 commits) + Tier 2 (H–Z, 3 commits) + Tier 3 (AA–LL, 3 commits) closed across 13 commits. Plus HelpRoute setState-in-effect ride-along. 455 backend / 240 frontend tests green / coverage 86.93%. |
 | P15 | — | ✅ | 2026-05-08 | 2026-05-08 | Cart-first selection + curated featured tiles + live Copy — B1–B5 backend + F1–F14 frontend + Playwright cart-flow shipped 2026-05-07 to 2026-05-08; closing `/audit` + 8-lane `/indie-review` folded into FP24 (13 commits). `P15-complete` and `FP24-complete` tag distinct SHAs (FP24 closed first, then P15 close-flip in its own docs commit). |
+| FP22 | — | ✅ | 2026-05-08 | 2026-05-08 | Launch button gates on RetroArch config — A `/api/setup/check` returns `retroarch_configured`, B AlternativesDrawer disables the button + inline hint to /settings?tab=paths when the flag is anything other than strictly true, C SettingsPage Setup banner surfaces the same line. D deferred to FP21 § J (typed RetroArchNotConfiguredError will carry the byCode-mapping needed for friendly toast). 458 backend / 246 frontend tests green / coverage 87.00%. |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
 | P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
 | P11 | — | 📋 | — | — | Contribute missing thumbnails to libretro-thumbnails (post-v1; depends on P05 ✅, composes with P10) |
@@ -120,6 +120,87 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-08 — FP22 closed (Launch button RetroArch gate)
+
+User said "Let's continue with roadmap items from here: FP22
+(RetroArch launch gate, smallest UX item) → FP20 / FP21 / DS02
+(indie-review tiered fold-in) → DS03 (dependency freshness) →
+P09 polish → post-v1 ladder." Picked up FP22 first per the
+user-stated order.
+
+**Sub-bullets shipped:**
+
+- **A — `/api/setup/check` returns `retroarch_configured`.** New
+  derived bool on `SetupCheck` (Pydantic `schemas_setup.py` +
+  route `stubs.py:setup_check` + TS `types.ts` mirror + Zod
+  `SetupCheckSchema`). Three new pytest cases under
+  `tests/api/test_routes_stubs.py`: default-false (no retroarch
+  paths in fixture), one-of-two-set (only `retroarch`), both-set
+  → true. Helper `_write_config_with_retroarch` splices into the
+  conftest YAML's `paths:` block before `\nserver:\n` so the
+  Pydantic `extra="forbid"` on `FsConfig` doesn't reject mid-
+  block insertions.
+- **B — Launch button gates on flag.** `AlternativesDrawer.tsx`
+  takes a new optional `retroarchConfigured?: boolean` prop. The
+  button disables when the prop is anything other than strictly
+  `true` (so `undefined` while the `useSetupCheck` query is
+  loading also gates — no race-into-422). When the prop is
+  `false`, an inline `<p role="status">` hint surfaces under the
+  button: "Configure RetroArch in Settings → Paths to enable
+  launching." with a react-router `<Link>` mid-sentence. Three
+  new vitest cases (false / true / undefined) plus the existing
+  six all rewrapped in `MemoryRouter` since the Link needs a
+  router context. LibraryPage threads
+  `setupCheck.data?.retroarch_configured` through.
+- **C — Setup banner surfaces state.** `SettingsPage.tsx` Setup
+  banner gains a third `<span>` after the INI status line:
+  "RetroArch: configured." or "RetroArch: not configured — set
+  paths.retroarch and paths.retroarch_core in the Paths tab to
+  enable launching." Two new vitest cases.
+- **D — friendly 422 toast copy.** **Deferred to FP21 § J.** The
+  spec said "A/B/C ship without it" and adding the byCode entry
+  here without the typed `RetroArchNotConfiguredError` from FP21
+  would have left a dead string-table entry — strings.ts'
+  contract is "no `byCode` entry is dead." Folded D into FP21 § J
+  with explicit cross-references in ROADMAP.
+
+**Workflow lessons saved:**
+
+- **`<Link>` in components forces test-side router context.**
+  Adding the inline hint with a `<Link to="/settings?tab=paths">`
+  broke six existing AlternativesDrawer tests that didn't render
+  inside any router. Wrapping every render in `MemoryRouter`
+  (via a small `renderWithRouter` helper) was cheaper than
+  switching to a plain `<a href>` and gave free `href` assertion
+  via `expect(link).toHaveAttribute('href', ...)`. Same pattern
+  ListxmlBanner tests already use.
+- **"undefined while loading" is a meaningful gating state.** The
+  drawer takes `retroarchConfigured?: boolean` — three values:
+  `true` enables, `false` disables with hint, `undefined` (still
+  loading) disables silently. A boolean default (`= true` or `=
+  false`) loses the loading-vs-known distinction; the cost of
+  carrying `undefined` is one explicit comparison
+  (`!== true`) and is worth it because the alternative is a
+  user racing the query into the same 422 the fix is meant to
+  prevent.
+- **Lane discipline beats dead code.** FP22-D could have shipped
+  the byCode entry now (no CI gate enforces dead-code on
+  strings.ts; `tools/check_error_codes_sync.py` doesn't exist
+  yet) but the strings.ts comment-as-contract says no dead
+  entries. Honouring the implicit contract by deferring D to
+  the natural FP21 § J landing keeps the diff legible and
+  prevents a string from sitting idle for several days.
+  Pattern saved: when a sub-bullet says "Pairs with FP## § X"
+  and the pair would land just one fix-pass later, defer rather
+  than land both halves staggered.
+
+Tests at close: 458 backend (1 skipped) / 246 frontend / coverage
+87.00% / ruff + ruff format + mypy + bandit + types-sync clean /
+eslint + tsc clean. `frontend/dist/` rebuilt.
+
+Tag: `FP22-complete` (annotated) at this commit. Public repo →
+push prompt deferred to user.
 
 ### 2026-05-08 — P15 closed (clean close at FP24's SHA)
 

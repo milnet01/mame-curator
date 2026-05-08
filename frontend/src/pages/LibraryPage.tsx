@@ -383,6 +383,7 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
             })
           }}
           launching={launch.isPending}
+          retroarchConfigured={setupCheck.data?.retroarch_configured}
         />
       )}
 

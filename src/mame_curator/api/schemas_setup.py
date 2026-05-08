@@ -56,6 +56,13 @@ class SetupCheck(BaseModel):
     no consumer ever used it because ListxmlBanner re-derives the
     file-missing vs parsed-empty distinction from the raw fields to
     pick a different body for each.
+
+    FP22-A: ``retroarch_configured`` is the AND of ``paths.retroarch``
+    and ``paths.retroarch_core`` both being non-null. The frontend
+    Launch button (FP19) gates on this so a misconfigured user sees
+    a disabled button and inline pointer to Settings → Paths instead
+    of a 422 toast after click. The Setup banner mirrors the same
+    bit for at-a-glance config state.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -63,6 +70,7 @@ class SetupCheck(BaseModel):
     paths: SetupPaths
     reference_files: SetupReferenceFiles
     cloneof_map_size: int
+    retroarch_configured: bool
 
 
 class AppUpdateInfo(BaseModel):

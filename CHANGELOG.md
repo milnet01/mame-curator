@@ -17,6 +17,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP22 — Launch button gates on RetroArch config (closed 2026-05-08)
+
+User reported a 422 on POST `/api/games/{name}/launch` after
+clicking Launch with `paths.retroarch` / `paths.retroarch_core`
+unset in `config.yaml`. The Launch button shipped unconditionally
+(FP19) and the Setup banner didn't track RetroArch state, so the
+gap only surfaced via a toast after click. FP22 closes that gap.
+
+- **A** `/api/setup/check` now returns `retroarch_configured: bool`
+  — the AND of the two paths being non-null. Pydantic + TS + Zod
+  mirrors in lockstep; three new pytest cases cover default-false,
+  one-of-two-set, and both-set.
+- **B** AlternativesDrawer accepts a `retroarchConfigured?:
+  boolean` prop. The Launch button disables when it's anything
+  other than strictly `true` (so `undefined` while the
+  `useSetupCheck` query loads also gates), and an inline hint
+  links to `/settings?tab=paths` when the prop is `false`. Three
+  new vitest cases.
+- **C** Settings page Setup banner gains a "RetroArch: configured"
+  / "RetroArch: not configured" line, mirroring the existing INI
+  status line. Two new vitest cases.
+- **D** Friendly toast copy for the 422 envelope was deferred to
+  FP21 § J — the typed `RetroArchNotConfiguredError` from that
+  fix-pass carries the `code` field; the byCode mapping lands
+  there beside the code it describes (strings.ts forbids dead
+  byCode entries).
+
+Tests: 458 backend (1 skipped) / 246 frontend / coverage 87.00% /
+ruff + mypy + bandit + types-sync clean / eslint + tsc clean.
+`frontend/dist/` rebuilt.
+
 ### FP24 — P15 closing-review fold-in (closed 2026-05-08)
 
 P15's closing `/audit` returned 4 actionable lint findings; the

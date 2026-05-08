@@ -178,6 +178,14 @@ export function SettingsPage({
               </span>
             )
           })()}
+          {/* FP22-C: RetroArch status mirrors the INI line so the user
+              sees their launch readiness without clicking through to
+              Paths. paired with the gated Launch button (FP22-B). */}
+          <span className="text-xs text-muted-foreground">
+            {setupInfo.retroarch_configured
+              ? strings.settings.banners.retroarchConfigured
+              : strings.settings.banners.retroarchNotConfigured}
+          </span>
         </div>
       )}
 

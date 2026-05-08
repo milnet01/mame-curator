@@ -1473,7 +1473,7 @@ setup banner counts INIs but not listxml).
 
 ---
 
-## FP22 — Launch button shows when RetroArch unconfigured (planned)
+## FP22 — Launch button shows when RetroArch unconfigured (closed 2026-05-08)
 
 **Theme:** user reported 2026-05-04 a 422 on
 `POST /api/games/ddragon3p/launch` after clicking the Launch button:
@@ -1494,39 +1494,41 @@ something needs editing in `config.yaml`.
 
 ### 🐛 Bug fixes
 
-- 📋 **FP22** [mame-curator-1022] **Launch button gates on RetroArch config + Setup banner surfaces it.**
-  Lanes: api, frontend.
-  - **A — `/api/setup/check` returns `retroarch_configured: bool`.**
-    Existing endpoint (`useSetupCheck` consumer at
-    `frontend/src/hooks/useSetupCheck.ts`) gains a derived flag
-    `retroarch_configured = (paths.retroarch is not None and
-    paths.retroarch_core is not None)`. Schema mirror in
-    `frontend/src/api/types.ts`; sync gate via
-    `tools/check_api_types_sync.py` covers it.
-  - **B — Launch button gates on `retroarch_configured`.**
-    `AlternativesDrawer.tsx` (or the `useLaunchGame` consumer)
-    reads the setup-check flag; when false, render the button as
-    disabled with a tooltip / inline message linking to
-    `/settings?tab=paths` and the strings.ts copy "Configure
-    RetroArch in Settings → Paths to enable launching."
-  - **C — Setup banner surfaces RetroArch state.**
-    `SettingsPage.tsx` Setup banner (currently shows DAT, listxml,
-    INI counts) gains a "RetroArch: configured / not configured"
-    line so the user sees the gap without clicking through to
-    Paths tab. Same pattern as the existing INI count.
-  - **D — 422 envelope copy upgrade.** When 422 does fire (e.g.
-    config edited mid-session and not restarted), the toast text
-    via `toastApiError` should be the friendly
-    `strings.errors.byCode.retroarch_not_configured` mapping
-    (rather than the raw `detail` string). Add the mapping in
-    `strings.ts:errors.byCode`. Pairs with FP21 § J (the
-    backend-side typed `RetroArchNotConfiguredError` carries the
-    `code` field that flips the toast onto this branch).
+- ✅ **FP22** [mame-curator-1022] **Launch button gates on RetroArch config + Setup banner surfaces it.**
+  Lanes: api, frontend. Shipped 2026-05-08.
+  - **A — `/api/setup/check` returns `retroarch_configured: bool`.** ✅
+    Derived flag in `api/routes/stubs.py:setup_check` (true iff both
+    `paths.retroarch` and `paths.retroarch_core` are non-null);
+    Pydantic mirror in `api/schemas_setup.py:SetupCheck`; TS mirror
+    + Zod schema in `frontend/src/api/types.ts`. Three new pytest
+    cases in `tests/api/test_routes_stubs.py` (default-false /
+    one-of-two-set / both-set).
+  - **B — Launch button gates on `retroarch_configured`.** ✅
+    `AlternativesDrawer.tsx` accepts a new `retroarchConfigured?:
+    boolean` prop. The button is disabled when the prop is anything
+    other than strictly `true` (so `undefined` while the
+    `useSetupCheck` query is still loading also gates, preventing a
+    fast-clicker from racing into a 422). When the prop is `false`,
+    an inline `<p role="status">` hint surfaces under the button
+    linking to `/settings?tab=paths` via a react-router `<Link>`.
+    Three new vitest cases (false / true / undefined). LibraryPage
+    threads `setupCheck.data?.retroarch_configured` through.
+  - **C — Setup banner surfaces RetroArch state.** ✅
+    `SettingsPage.tsx` Setup banner gains a third `<span>` after the
+    INI status line: "RetroArch: configured." or "RetroArch: not
+    configured — set paths.retroarch and paths.retroarch_core in the
+    Paths tab to enable launching." Two new vitest cases.
+  - **D — 422 envelope copy upgrade.** ⏭️ Deferred to FP21 § J.
+    Spec said "A/B/C ship without it"; landing the byCode mapping
+    without the typed `RetroArchNotConfiguredError` would have left
+    a dead string-table entry (the strings.ts contract is "no
+    `byCode` entry is dead"). FP21 § J already promises the typed
+    error class with the `code` field, so D rides along there
+    naturally — extended below.
 
   Source: user 2026-05-04 ("trying to launch a game" → 422 with
   no in-app guidance to fix).
-  Dependencies: FP19 ✅. Soft dep on FP21 § J for code-routed
-  toast (D); A/B/C ship without it.
+  Dependencies: FP19 ✅. D folded into FP21 § J.
 
 ---
 
@@ -1722,7 +1724,14 @@ ergonomics.
     error-envelope contract (`code` / `fields` fields are
     omitted). Fix: add `RetroArchNotConfiguredError` (422) and
     `RomFileNotFoundError` (404) to `api/errors.py`; raise those
-    instead.
+    instead. **Folds in FP22-D** — once these typed errors carry
+    `code` fields, add the matching
+    `strings.errors.byCode.retroarch_not_configured` and
+    `rom_file_not_found` mappings in `frontend/src/strings.ts` so
+    `toastApiError` surfaces friendly copy instead of the raw
+    `detail` string. (FP22 deliberately deferred D so the byCode
+    entries land beside the codes they describe — strings.ts'
+    "no dead byCode entries" contract.)
   - **K — `api/jobs.py` SSE register-before-replay race.**
     `_events_iterator` merges live `lifecycle_history` +
     `progress_history` deque/list while the worker keeps
