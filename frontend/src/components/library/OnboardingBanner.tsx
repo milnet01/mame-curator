@@ -16,25 +16,28 @@ interface OnboardingBannerProps {
  * localStorage so the banner stays gone across reloads.
  */
 export function OnboardingBanner({ cartHasItems }: OnboardingBannerProps) {
-  const [dismissed, setDismissed] = useState(
+  // FP24-D: visibility is derived (`!explicitlyDismissed && !cartHasItems`)
+  // so the cart-has-items auto-hide doesn't need a setState inside an
+  // effect (eslint react-hooks/set-state-in-effect). The effect still
+  // persists the auto-dismissal so the banner stays gone across reloads.
+  const [explicitlyDismissed, setExplicitlyDismissed] = useState(
     () => localStorage.getItem(ONBOARDING_DISMISS_KEY) === '1',
   )
 
   useEffect(() => {
-    if (cartHasItems && !dismissed) {
-      setDismissed(true)
+    if (cartHasItems && !explicitlyDismissed) {
       try {
         localStorage.setItem(ONBOARDING_DISMISS_KEY, '1')
       } catch {
         /* private browsing / quota — degrade silently */
       }
     }
-  }, [cartHasItems, dismissed])
+  }, [cartHasItems, explicitlyDismissed])
 
-  if (dismissed) return null
+  if (explicitlyDismissed || cartHasItems) return null
 
   const handleDismiss = () => {
-    setDismissed(true)
+    setExplicitlyDismissed(true)
     try {
       localStorage.setItem(ONBOARDING_DISMISS_KEY, '1')
     } catch {
