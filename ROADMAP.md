@@ -1338,13 +1338,13 @@ debt-sweep should resolve).
 
 ---
 
-## FP24 — P15 closing-review fold-in (planned)
+## FP24 — P15 closing-review fold-in (closed 2026-05-08)
 
-**Theme:** P15's closing `/audit` (semgrep + gitleaks + eslint + trivy on top of CI-clean ruff/mypy/bandit) returned 4 actionable lint findings; the 8-lane `/indie-review` (backend + cart hook + SSE hooks + discovery surface + selection surface + LibraryPage + AppShell + types/e2e) added 30+ cross-cutting and per-lane findings. P15's `/close-phase` cannot close until these are folded. Findings batched into three tiers; all share a single `FP24` ID per the FP19/FP12 closing-review precedent.
+**Theme:** P15's closing `/audit` (semgrep + gitleaks + eslint + trivy on top of CI-clean ruff/mypy/bandit) returned 4 actionable lint findings; the 8-lane `/indie-review` (backend + cart hook + SSE hooks + discovery surface + selection surface + LibraryPage + AppShell + types/e2e) added 30+ cross-cutting and per-lane findings. P15's `/close-phase` cannot close until these are folded. Findings batched into three tiers; all share a single `FP24` ID per the FP19/FP12 closing-review precedent. **All Tier 1, Tier 2, and Tier 3 closed across 13 commits 2026-05-08.**
 
 ### 🐛 Bug fixes
 
-- 🚧 **FP24** [mame-curator-1025] **P15 closing-review fold-in.**
+- ✅ **FP24** [mame-curator-1025] **P15 closing-review fold-in.**
   Lanes: api, frontend, e2e, docs.
 
   **Tier 1 — Critical / ship-this-week:**

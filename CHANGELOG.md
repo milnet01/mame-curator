@@ -17,19 +17,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned — `FP24` P15 closing-review fold-in
+### FP24 — P15 closing-review fold-in (closed 2026-05-08)
 
 P15's closing `/audit` returned 4 actionable lint findings; the
 8-lane `/indie-review` returned 30+ cross-cutting and per-lane
-findings (CartBar GB display reads filter total instead of cart
-total; AppShell Cart NavLink shadows Library; `JobEvent` payload
-key mismatch breaks the copy progress bar; `OnboardingBanner`
-setState-in-effect lint hard error; `GameCard` nested
-`<button>` inside `<button>` invalid HTML5; security hardening
-on `ValidateRequest`; localStorage unavailability silent;
-hardcoded user strings; SSE double-start orphan stream; etc.).
-P15 cannot close until FP24 closes. See `ROADMAP.md` `FP24` for
-the full Tier 1 / Tier 2 / Tier 3 batched list.
+findings batched into three tiers. All Tier 1 (A–G + Q + S),
+Tier 2 (H–Z), and Tier 3 (AA–LL) closed across 13 commits.
+
+Tier 1 — user-visible blockers:
+
+- **A** `JobEvent.payload` keys aligned with the typed contract
+  (`files_total` / `bytes_total`); copy progress bar now updates.
+- **B** CartBar's GB figure dropped — it showed the filtered
+  library's bytes, not the cart's; per-cart byte sum is a
+  v1-deferred concept (no per-row byte data on `GameCard`).
+- **C** AppShell Cart NavLink (which shadowed Library on `/`)
+  becomes a button; cart-expanded state lifts to
+  `ShellWithPalette` so the button can open the panel from
+  any route.
+- **D** `OnboardingBanner` derives visibility from props instead
+  of `setState` in `useEffect` (eslint hard error fixed).
+- **E + Q** `GameCard`'s outer `<button>` becomes
+  `role="button"` div + onKeyDown (Enter/Space); the
+  focus-visible ring lives on the wrapper so it actually paints.
+- **F** `ValidateRequest.short_names` bounded to 10,000 items at
+  64 chars each; user-controlled lists can no longer pressure
+  server memory.
+- **G + S** `useCart` exposes `isStorageBroken` and `addAll`
+  returns `{added, truncated}` so `LibraryPage` fires
+  `storageUnavailableToast` and `maxCartReachedToast`.
+
+Tier 2 — hardening:
+
+- **H/I/J/K/L** SSE lifecycle in `useCopySession`: orphan
+  stream closure on second start, transient-error reconnect
+  preservation, unmount race guard, malformed-payload try/catch,
+  conflict-resolve param logged not silently dropped.
+- **M/N/T/U/V** `LibraryPage`: `handleBulkAdd` iterates all
+  filter pages; double-click guard on Copy/Dry-run; cart auto-
+  clear effect's eslint-disable now documents the stable-ref
+  invariant; `fetchTileCount` routed through `apiRequest`;
+  `cards` wrapped in `useMemo` so downstream identity stays
+  stable.
+- **O/P/R/W/X/Y/Z + AA partial** Cart UX + accessibility:
+  AlertDialog confirm on Clear-all; tile button explicit
+  `aria-label`; `useCart.readInitial` validates `chosenVariant`
+  type; CartBar disclosure-pattern aria; "Add all 0" suppressed;
+  banner roles fixed (ListxmlBanner → status, OnboardingBanner
+  → none); tile counts no longer flash 0 during load;
+  hardcoded strings for `+Add` and `Cart contents` extracted.
+
+Tier 3 — debt:
+
+- **BB** `listxml_available` zombie field deleted from
+  `SetupCheck` schema + types + tests.
+- **CC** `_probe_path`'s `kind` parameter now drives `is_dir`
+  / `is_file` checks instead of being silently discarded.
+- **DD** `Badge.BIOS_MISSING` now appended in `_badges()` when
+  the machine's parent appears in `world.bios_chain`.
+- **EE** `schemas.py` over the 500-line cap split into
+  `schemas_setup.py` + `schemas_fs.py` with re-exports for
+  back-compat.
+- **FF** `dryRunConfirmDeferred` dead string deleted.
+- **GG** `FeaturedTile` / `FeaturedTileQuery` types hoisted to
+  `strings.ts` (single source of truth).
+- **HH** Tile-count `page_size=1` rationale documented.
+- **II** Cmd+K kbd label adapts to platform (⌘K on macOS,
+  Ctrl+K elsewhere).
+- **JJ** eslint `argsIgnorePattern: '^_'` accepts the project's
+  underscore-prefix convention.
+- **LL** `handleTileSelect` toggle-off preserves non-tile-driven
+  filter state (search box, letter, only-X toggles).
+- **KK partial** Cart-flow e2e adjusted to FP24-Y / FP24-B; five
+  additional e2e cases deferred (Vitest unit coverage already
+  pins those contracts; finding accepted Vitest-only).
+
+Plus two ride-alongs: `HelpRoute` setState-in-effect (eslint
+blocker that fell out of the FP24 lint sweep, not in the
+original enumeration) — fixed by deriving `selectedSlug` from
+the URL and routing onSelect through `setSearchParams`.
+
+455 backend tests / 240 frontend tests / ruff + mypy + bandit
+clean / eslint + tsc clean / coverage 86.93%.
 
 ### Planned — P15 Cart and curated library
 
