@@ -969,7 +969,6 @@ export interface SetupCheck {
   config_present: boolean
   paths: SetupPaths
   reference_files: SetupReferenceFiles
-  listxml_available: boolean
   cloneof_map_size: number
 }
 export const SetupCheckSchema = z
@@ -977,7 +976,6 @@ export const SetupCheckSchema = z
     config_present: z.boolean(),
     paths: SetupPathsSchema,
     reference_files: SetupReferenceFilesSchema,
-    listxml_available: z.boolean(),
     cloneof_map_size: z.number().int().nonnegative(),
   })
   .strict()

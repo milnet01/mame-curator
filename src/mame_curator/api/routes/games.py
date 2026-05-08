@@ -45,6 +45,12 @@ def _badges(short: str, world: WorldState) -> tuple[Badge, ...]:
         out.append(Badge.OVERRIDDEN)
     if short in world.chd_required:
         out.append(Badge.CHD_MISSING)
+    # FP24-DD: BIOS_MISSING was declared in the Badge enum and accepted as
+    # a filter param (only_bios_missing) but never appended. A machine
+    # whose parent appears in world.bios_chain is BIOS-dependent — that's
+    # the canonical "needs a BIOS" signal already used elsewhere.
+    if _parent_of(short, world) in world.bios_chain:
+        out.append(Badge.BIOS_MISSING)
     if world.notes.get(short):
         out.append(Badge.HAS_NOTES)
     return tuple(out)

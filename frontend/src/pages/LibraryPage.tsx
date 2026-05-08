@@ -54,6 +54,12 @@ const DEFAULT_FILTERS: FilterSidebarState = {
 // FP24-U: routed through apiRequest (typed errors, schema validation,
 // envelope decoding) per coding-standards § 4 "no raw fetch in
 // components."
+//
+// FP24-HH: page_size=1 (not the spec's "0") because the backend caps
+// page_size at `Query(50, ge=1, le=500)`. Only the envelope's `total`
+// field matters here; the 1-row payload is acceptable overhead. A
+// future "?count_only=true" parameter would let us drop the items
+// payload entirely.
 async function fetchTileCount(tile: (typeof strings.library.featured.tiles)[number]): Promise<GamesPage> {
   const p = new URLSearchParams({ page: '1', page_size: '1' })
   if (tile.query.publisher) p.set('publisher', tile.query.publisher)

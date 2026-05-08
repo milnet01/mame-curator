@@ -493,11 +493,18 @@ class SetupReferenceFiles(BaseModel):
 
 
 class SetupCheck(BaseModel):
+    """Setup-check response model.
+
+    FP24-BB: the derived ``listxml_available`` boolean was removed —
+    no consumer ever used it because ListxmlBanner re-derives the
+    file-missing vs parsed-empty distinction from the raw fields to
+    pick a different body for each.
+    """
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     config_present: bool
     paths: SetupPaths
     reference_files: SetupReferenceFiles
-    listxml_available: bool
     cloneof_map_size: int
 
 

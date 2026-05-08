@@ -25,7 +25,19 @@ router = APIRouter()
 
 
 def _probe_path(path: Path, *, kind: str, writable: bool = False) -> SetupPathStatus:
-    exists = path.exists()
+    """Probe a path's existence + access bits, gated on ``kind``.
+
+    FP24-CC: ``kind`` now drives an ``is_dir`` / ``is_file`` check so
+    a file at a directory path (or vice versa) reports ``exists=False``
+    rather than masquerading as valid. The parameter was previously
+    discarded silently.
+    """
+    if kind == "dir":
+        exists = path.is_dir()
+    elif kind == "file":
+        exists = path.is_file()
+    else:  # pragma: no cover — guarded by the typed callers below.
+        raise ValueError(f"_probe_path: unsupported kind {kind!r}")
     readable = exists and os.access(path, os.R_OK)
     is_writable = exists and writable and os.access(path, os.W_OK)
     return SetupPathStatus(path=str(path), exists=exists, readable=readable, writable=is_writable)
@@ -54,7 +66,6 @@ def setup_check(world: WorldState = Depends(get_world)) -> SetupCheck:
     p = world.config.paths
     listxml_status = _probe_ref(p.listxml)
     cloneof_map_size = len(world.cloneof_map)
-    listxml_available = p.listxml is not None and listxml_status.exists and cloneof_map_size > 0
     return SetupCheck(
         config_present=True,
         paths=SetupPaths(
@@ -70,7 +81,6 @@ def setup_check(world: WorldState = Depends(get_world)) -> SetupCheck:
             series=_probe_ref(p.series),
             listxml=listxml_status,
         ),
-        listxml_available=listxml_available,
         cloneof_map_size=cloneof_map_size,
     )
 

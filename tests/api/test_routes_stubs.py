@@ -32,19 +32,21 @@ def test_route_r36_shape_updates_check(client: Any) -> None:
     assert app["update_available"] is False
 
 
-def test_setup_check_listxml_available_and_cloneof_map_size(client: Any) -> None:
-    """P15 § 4.3.1: /api/setup/check exposes listxml_available +
-    cloneof_map_size.
+def test_setup_check_cloneof_map_size_and_listxml_status(client: Any) -> None:
+    """P15 § 4.3.1: /api/setup/check exposes cloneof_map_size and the
+    raw listxml status under reference_files.
 
-    listxml_available is True iff paths.listxml is set AND the file
-    exists AND the parsed cloneof_map has at least one entry.
+    FP24-BB: the derived ``listxml_available`` boolean was removed —
+    the ListxmlBanner re-derives `file missing` vs `parsed empty`
+    from the raw fields so it can pick a different body for each.
     cloneof_map_size is the literal len(world.cloneof_map).
 
-    The api_listxml fixture maps pacmanf → pacman, so
-    cloneof_map_size >= 1 and listxml_available is True.
+    The api_listxml fixture maps pacmanf → pacman, so cloneof_map_size
+    >= 1 and reference_files.listxml.exists is True.
     """
     resp = client.get("/api/setup/check")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["listxml_available"] is True
+    assert "listxml_available" not in body
     assert body["cloneof_map_size"] >= 1
+    assert body["reference_files"]["listxml"]["exists"] is True
