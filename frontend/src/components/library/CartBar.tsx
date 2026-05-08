@@ -4,7 +4,6 @@ import { strings } from '@/strings'
 
 interface CartBarProps {
   itemCount: number
-  totalSizeBytes: number
   bulkAddTotal: number | null
   expanded: boolean
   onBulkAdd: () => void
@@ -13,14 +12,13 @@ interface CartBarProps {
   onCopy: () => void
 }
 
-function formatGB(bytes: number): string {
-  const gb = bytes / 1024 ** 3
-  return `${gb.toFixed(1)} GB`
-}
-
+// FP24-B: byte total dropped from the cart bar. `useCart.totalBytes` is
+// a v1-deferred concept (no per-item byte data on `GameCard`), so the
+// caller previously fed in the filtered library's `total_bytes`, which
+// misled users about copy size. The figure can return once a per-cart
+// byte source exists (see useCart.ts § 4.1 docstring).
 export function CartBar({
   itemCount,
-  totalSizeBytes,
   bulkAddTotal,
   expanded,
   onBulkAdd,
@@ -38,7 +36,7 @@ export function CartBar({
         <span className={empty ? 'text-muted-foreground' : 'font-medium'}>
           {empty
             ? strings.library.cart.summaryEmpty
-            : strings.library.cart.summary(itemCount, formatGB(totalSizeBytes))}
+            : strings.library.cart.summary(itemCount)}
         </span>
       </div>
       <div className="flex items-center gap-2">

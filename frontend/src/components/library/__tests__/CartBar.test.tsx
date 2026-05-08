@@ -9,7 +9,6 @@ describe('CartBar', () => {
     render(
       <CartBar
         itemCount={0}
-        totalSizeBytes={0}
         bulkAddTotal={null}
         expanded={false}
         onBulkAdd={noop}
@@ -25,7 +24,6 @@ describe('CartBar', () => {
     render(
       <CartBar
         itemCount={0}
-        totalSizeBytes={0}
         bulkAddTotal={null}
         expanded={false}
         onBulkAdd={noop}
@@ -42,7 +40,6 @@ describe('CartBar', () => {
     render(
       <CartBar
         itemCount={51}
-        totalSizeBytes={1024 ** 3 * 2.5}
         bulkAddTotal={null}
         expanded={false}
         onBulkAdd={noop}
@@ -51,14 +48,17 @@ describe('CartBar', () => {
         onCopy={noop}
       />,
     )
-    expect(screen.getByText(/51 games · 2\.5 GB/)).toBeInTheDocument()
+    // FP24-B: GB figure removed from CartBar — useCart.totalBytes is
+    // a v1-deferred concept (see useCart.ts § 4.1 docstring), and showing
+    // the filtered-library byte total here misled users about copy size.
+    expect(screen.getByText(/51 games/)).toBeInTheDocument()
+    expect(screen.queryByText(/GB/i)).not.toBeInTheDocument()
   })
 
   it('shows bulk-add button only when bulkAddTotal is non-null', () => {
     const { rerender } = render(
       <CartBar
         itemCount={0}
-        totalSizeBytes={0}
         bulkAddTotal={null}
         expanded={false}
         onBulkAdd={noop}
@@ -72,7 +72,6 @@ describe('CartBar', () => {
     rerender(
       <CartBar
         itemCount={0}
-        totalSizeBytes={0}
         bulkAddTotal={51}
         expanded={false}
         onBulkAdd={noop}
@@ -92,7 +91,6 @@ describe('CartBar', () => {
     render(
       <CartBar
         itemCount={3}
-        totalSizeBytes={0}
         bulkAddTotal={51}
         expanded={false}
         onBulkAdd={onBulkAdd}
@@ -115,7 +113,6 @@ describe('CartBar', () => {
     render(
       <CartBar
         itemCount={3}
-        totalSizeBytes={0}
         bulkAddTotal={null}
         expanded={true}
         onBulkAdd={noop}

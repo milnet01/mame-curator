@@ -322,7 +322,6 @@ export function LibraryPage({ cart }: LibraryPageProps) {
         />
         <CartBar
           itemCount={cart.items.length}
-          totalSizeBytes={games.data?.total_bytes ?? 0}
           bulkAddTotal={activeTileId !== null ? total : null}
           expanded={cartExpanded}
           onBulkAdd={handleBulkAdd}

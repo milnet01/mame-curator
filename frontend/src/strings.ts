@@ -123,8 +123,8 @@ export const strings = {
     },
     cart: {
       summaryEmpty: 'Cart empty',
-      summary: (n: number, gb: string) =>
-        `${n.toLocaleString()} game${n === 1 ? '' : 's'} · ${gb}`,
+      summary: (n: number) =>
+        `${n.toLocaleString()} game${n === 1 ? '' : 's'}`,
       addToCart: (gameName: string) => `Add ${gameName} to cart`,
       removeFromCart: (gameName: string) => `Remove ${gameName} from cart`,
       added: '✓ Added',
