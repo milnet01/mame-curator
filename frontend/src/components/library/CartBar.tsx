@@ -10,6 +10,9 @@ interface CartBarProps {
   onToggleExpand: () => void
   onDryRun: () => void
   onCopy: () => void
+  // FP24-N: disabled while a Copy is in flight (validate or job
+  // running) so a second click can't fire validate+start twice.
+  copyDisabled?: boolean
 }
 
 // FP24-B: byte total dropped from the cart bar. `useCart.totalBytes` is
@@ -25,6 +28,7 @@ export function CartBar({
   onToggleExpand,
   onDryRun,
   onCopy,
+  copyDisabled = false,
 }: CartBarProps) {
   const empty = itemCount === 0
   const ChevronIcon = expanded ? ChevronDown : ChevronUp
@@ -45,10 +49,10 @@ export function CartBar({
             {strings.library.cart.bulkAdd(bulkAddTotal)}
           </Button>
         )}
-        <Button variant="outline" onClick={onDryRun} disabled={empty}>
+        <Button variant="outline" onClick={onDryRun} disabled={empty || copyDisabled}>
           {strings.library.actions.dryRun}
         </Button>
-        <Button onClick={onCopy} disabled={empty}>
+        <Button onClick={onCopy} disabled={empty || copyDisabled}>
           {strings.library.actions.copy}
         </Button>
         <Button

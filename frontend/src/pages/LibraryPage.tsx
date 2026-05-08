@@ -30,6 +30,7 @@ import { useSessions, useSessionUpsert } from '@/hooks/useSessions'
 import { useSetupCheck } from '@/hooks/useSetupCheck'
 import { toastApiError } from '@/lib/apiErrorToast'
 import { strings } from '@/strings'
+import { apiRequest } from '@/api/client'
 import { GamesPageSchema, type GamesPage } from '@/api/types'
 import type { DryRunReport, GameCard, LayoutName, Session, ThemeName } from '@/api/types'
 
@@ -48,6 +49,10 @@ const DEFAULT_FILTERS: FilterSidebarState = {
 
 // Module-level helper so useQueries queryFn doesn't close over any reactive
 // deps — tile objects are `as const` so they're stable references.
+//
+// FP24-U: routed through apiRequest (typed errors, schema validation,
+// envelope decoding) per coding-standards § 4 "no raw fetch in
+// components."
 async function fetchTileCount(tile: (typeof strings.library.featured.tiles)[number]): Promise<GamesPage> {
   const p = new URLSearchParams({ page: '1', page_size: '1' })
   if (tile.query.publisher) p.set('publisher', tile.query.publisher)
@@ -55,9 +60,7 @@ async function fetchTileCount(tile: (typeof strings.library.featured.tiles)[numb
   if (tile.query.genre) p.set('genre', tile.query.genre)
   if (tile.query.yearFrom) p.set('year_min', String(tile.query.yearFrom))
   if (tile.query.yearTo) p.set('year_max', String(tile.query.yearTo))
-  const r = await fetch(`/api/games?${p}`)
-  if (!r.ok) throw new Error(`tile count ${tile.id}: HTTP ${r.status}`)
-  return GamesPageSchema.parse(await r.json())
+  return apiRequest<GamesPage>(`/api/games?${p}`, GamesPageSchema)
 }
 
 interface LibraryPageProps {
@@ -107,7 +110,14 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
     onlyBiosMissing: filters.onlyBiosMissing,
   }
   const games = useGames(query)
-  const cards: GameCard[] = games.data?.items ?? []
+  // FP24-V: stable refs so downstream useMemo/useEffect deps don't
+  // re-run on every render. games.data flips reference on each fetch
+  // resolution; the inner items/total references are already stable
+  // per react-query's cached result.
+  const cards: GameCard[] = useMemo(
+    () => games.data?.items ?? [],
+    [games.data],
+  )
   const total = games.data?.total ?? 0
 
   // Fan out one count query per featured tile. useQueries keeps hook count
@@ -161,10 +171,45 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
     })
   }
 
-  // FP24-S: surface MAX_CART_SIZE truncation as a toast so the user
-  // knows some items didn't make it into the cart.
-  const handleBulkAdd = () => {
-    const { truncated } = cart.addAll(cards.map((c) => c.short_name))
+  // FP24-M + S: handleBulkAdd promises "Add all N" where N is the
+  // filter-result total — but the loaded `cards` slice is at most one
+  // page (pageSize=200). Iterate the same filter at the backend's
+  // page_size=500 cap until we've covered `total`, then `addAll`.
+  // Surfaces MAX_CART_SIZE truncation as a toast so the user knows
+  // some items didn't fit.
+  const handleBulkAdd = async () => {
+    const PAGE_SIZE = 500
+    const collected: string[] = []
+    const targetTotal = Math.min(total, MAX_CART_SIZE)
+    let page = 1
+    while (collected.length < targetTotal) {
+      const pageQuery: GamesQuery = { ...query, page, pageSize: PAGE_SIZE }
+      const params = new URLSearchParams()
+      params.set('page', String(pageQuery.page))
+      params.set('page_size', String(pageQuery.pageSize))
+      if (pageQuery.search) params.set('q', pageQuery.search)
+      if (pageQuery.yearFrom) params.set('year_min', String(pageQuery.yearFrom))
+      if (pageQuery.yearTo) params.set('year_max', String(pageQuery.yearTo))
+      if (pageQuery.letter) params.set('letter', pageQuery.letter)
+      if (pageQuery.genre) params.set('genre', pageQuery.genre)
+      if (pageQuery.publisher) params.set('publisher', pageQuery.publisher)
+      if (pageQuery.developer) params.set('developer', pageQuery.developer)
+      if (pageQuery.onlyContested) params.set('only_contested', '1')
+      if (pageQuery.onlyOverridden) params.set('only_overridden', '1')
+      if (pageQuery.onlyChdMissing) params.set('only_chd_missing', '1')
+      if (pageQuery.onlyBiosMissing) params.set('only_bios_missing', '1')
+      let pageData: GamesPage
+      try {
+        pageData = await apiRequest<GamesPage>(`/api/games?${params}`, GamesPageSchema)
+      } catch (err) {
+        toastApiError(err)
+        return
+      }
+      collected.push(...pageData.items.map((c) => c.short_name))
+      if (pageData.items.length === 0) break
+      page += 1
+    }
+    const { truncated } = cart.addAll(collected)
     if (truncated > 0) {
       toast.warning(strings.library.cart.maxCartReachedToast(MAX_CART_SIZE))
     }
@@ -207,6 +252,11 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
   }
 
   // Cart auto-clear on terminal copy state, per config.ui.cart_clear_on_copy.
+  // FP24-T: cart and copySession.reset are stable useCallback refs out of
+  // useCart / useCopySession, so omitting them from the dep array is
+  // intentional — including them would re-run this effect on every cart
+  // mutation (cart.clear changes identity if cart re-renders) and the
+  // policy logic only wants to react to copy-state and policy changes.
   useEffect(() => {
     const policy = config.data?.ui.cart_clear_on_copy ?? 'on_success'
     const st = copySession.state?.state
@@ -348,6 +398,9 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
           onToggleExpand={() => onCartExpandedChange(!cartExpanded)}
           onDryRun={handleDryRun}
           onCopy={handleCopy}
+          // FP24-N: lock Copy + Dry-run while a copy is queued so a
+          // double-click can't fire validate+start twice.
+          copyDisabled={validateCart.isPending || copySession.state !== null}
         />
       </div>
     </div>
