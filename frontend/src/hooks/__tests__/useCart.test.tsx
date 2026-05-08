@@ -65,6 +65,30 @@ describe('useCart', () => {
     expect(result.current.items).toHaveLength(MAX_CART_SIZE)
   })
 
+  // FP24-S: addAll must report how many items were actually added vs
+  // dropped to truncation so the caller can fire maxCartReachedToast.
+  it('addAll() returns {added, truncated} so callers can toast', () => {
+    const { result } = renderHook(() => useCart())
+    let report = { added: -1, truncated: -1 }
+    act(() => {
+      report = result.current.addAll(
+        Array.from({ length: MAX_CART_SIZE + 7 }, (_, i) => `g${i}`),
+      )
+    })
+    expect(report.added).toBe(MAX_CART_SIZE)
+    expect(report.truncated).toBe(7)
+  })
+
+  it('addAll() reports truncated:0 when within bounds', () => {
+    const { result } = renderHook(() => useCart())
+    let report = { added: -1, truncated: -1 }
+    act(() => {
+      report = result.current.addAll(['a', 'b', 'c'])
+    })
+    expect(report.added).toBe(3)
+    expect(report.truncated).toBe(0)
+  })
+
   it('setVariant() updates chosenVariant on an existing entry', () => {
     const { result } = renderHook(() => useCart())
     act(() => result.current.add('1942'))
@@ -102,5 +126,30 @@ describe('useCart', () => {
     } finally {
       Storage.prototype.setItem = setItem
     }
+  })
+
+  // FP24-G: caller needs visibility into the "storage is broken" state
+  // to fire strings.library.cart.storageUnavailableToast — previously
+  // the useRef was set internally but never returned so the toast
+  // never fired even though the spec mandates it.
+  it('isStorageBroken flips true after a write throws', () => {
+    const setItem = Storage.prototype.setItem
+    Storage.prototype.setItem = () => {
+      throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+    }
+    try {
+      const { result } = renderHook(() => useCart())
+      expect(result.current.isStorageBroken).toBe(false)
+      act(() => result.current.add('pacman'))
+      expect(result.current.isStorageBroken).toBe(true)
+    } finally {
+      Storage.prototype.setItem = setItem
+    }
+  })
+
+  it('isStorageBroken stays false on healthy storage', () => {
+    const { result } = renderHook(() => useCart())
+    act(() => result.current.add('pacman'))
+    expect(result.current.isStorageBroken).toBe(false)
   })
 })

@@ -19,7 +19,7 @@ import { OnboardingBanner } from '@/components/library/OnboardingBanner'
 import { FeaturedTilesRow } from '@/components/library/FeaturedTilesRow'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { useAlternatives, useLaunchGame, useOverride } from '@/hooks/useAlternatives'
-import type { UseCartResult } from '@/hooks/useCart'
+import { MAX_CART_SIZE, type UseCartResult } from '@/hooks/useCart'
 import { useCopySession } from '@/hooks/useCopySession'
 import { useDryRun } from '@/hooks/useDryRun'
 import { useFacets } from '@/hooks/useFacets'
@@ -161,7 +161,14 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
     })
   }
 
-  const handleBulkAdd = () => cart.addAll(cards.map((c) => c.short_name))
+  // FP24-S: surface MAX_CART_SIZE truncation as a toast so the user
+  // knows some items didn't make it into the cart.
+  const handleBulkAdd = () => {
+    const { truncated } = cart.addAll(cards.map((c) => c.short_name))
+    if (truncated > 0) {
+      toast.warning(strings.library.cart.maxCartReachedToast(MAX_CART_SIZE))
+    }
+  }
 
   // P15: dry-run reads from cart.items (with chosenVariant substitution).
   const handleDryRun = () => {
@@ -207,6 +214,16 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
     else if (st === 'aborted' && policy === 'always') { cart.clear(); copySession.reset() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [copySession.state?.state, config.data?.ui.cart_clear_on_copy])
+
+  // FP24-G: surface the localStorage-unavailable state as a toast so
+  // the user knows their cart won't persist. Toast fires once on the
+  // false → true edge; the hook keeps the flag latched for the rest
+  // of the session so subsequent cart edits don't re-toast.
+  useEffect(() => {
+    if (cart.isStorageBroken) {
+      toast.warning(strings.library.cart.storageUnavailableToast)
+    }
+  }, [cart.isStorageBroken])
 
   const handleSaveSession = (name: string) => {
     if (!config.data) return
