@@ -82,6 +82,25 @@ describe('GameCard', () => {
     await userEvent.keyboard('{Enter}')
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
+
+  // FP24-E + Q: outer card is a role="button" div (not a native button)
+  // because the +Add control inside is itself a real button — nested
+  // <button> is invalid HTML5. WAI-ARIA composite button still requires
+  // both Enter and Space activation.
+  it('calls onOpen when the user activates the card with Space', async () => {
+    const onOpen = vi.fn()
+    render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={() => {}} />)
+    const card = screen.getByRole('button', { name: 'Pac-Man (Midway)' })
+    card.focus()
+    await userEvent.keyboard(' ')
+    expect(onOpen).toHaveBeenCalledTimes(1)
+  })
+
+  it('outer card is not a native button (avoids nested-button HTML5 violation)', () => {
+    render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
+    const card = screen.getByRole('button', { name: 'Pac-Man (Midway)' })
+    expect(card.tagName).not.toBe('BUTTON')
+  })
 })
 
 describe('GameCard +Add', () => {

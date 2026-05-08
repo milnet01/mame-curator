@@ -51,21 +51,32 @@ export function GameCard({
   const flyerSrc = `/media/${encodeURIComponent(card.short_name)}/boxart`
   const altText = strings.library.flyerAlt(card.description)
 
+  // FP24-E + Q: outer wrapper is role="button" div, not a native
+  // <button>. The inner +Add is itself a real button and nested
+  // <button> is invalid HTML5 / undefined AT behaviour. Composite
+  // button keyboard semantics (Enter + Space) are restored via
+  // onKeyDown; focus-visible ring lives on the wrapper so it has
+  // visible focus to attach to (FP11 § D4's `className="contents"`
+  // ate the button's CSS box, leaving the ring nowhere to render).
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onOpen()
+    }
+  }
+
   return (
-    // FP11 § D4: native <button> wrapper restores focus-visible /
-    // Enter+Space activation / form-context semantics that the prior
-    // div-with-role="button" lost. `className="contents"` makes the
-    // button render its children inline, leaving the Card layout
-    // pixel-identical to the pre-fix render.
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
+      onKeyDown={handleKeyDown}
       aria-label={card.description}
-      className="contents text-left"
+      className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
     >
       <Card
         className={cn(
-          'flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring',
+          'flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg',
           focused && 'ring-2 ring-ring',
         )}
       >
@@ -134,6 +145,6 @@ export function GameCard({
           </p>
         </CardContent>
       </Card>
-    </button>
+    </div>
   )
 }
