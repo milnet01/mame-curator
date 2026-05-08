@@ -35,6 +35,9 @@ interface JobEventMsg {
 export function useCopySession() {
   const [state, setState] = useState<CopyModalState | null>(null)
   const esRef = useRef<EventSource | null>(null)
+  // FP24-J: unmounted/cancelled flag so onSuccess returning AFTER an
+  // unmount or reset() doesn't open an orphan stream we can't close.
+  const cancelledRef = useRef(false)
 
   const closeStream = useCallback(() => {
     esRef.current?.close()
@@ -42,7 +45,13 @@ export function useCopySession() {
   }, [])
 
   // Tear down SSE on unmount
-  useEffect(() => () => closeStream(), [closeStream])
+  useEffect(
+    () => () => {
+      cancelledRef.current = true
+      closeStream()
+    },
+    [closeStream],
+  )
 
   const startMutation = useMutation({
     mutationFn: (req: CopyJobRequest) =>
@@ -51,6 +60,14 @@ export function useCopySession() {
         body: req,
       }),
     onSuccess: (data) => {
+      // FP24-J: bail if the consumer unmounted or reset() during the
+      // start mutation in flight; opening a fresh EventSource would
+      // leak it past the component lifecycle.
+      if (cancelledRef.current) return
+      // FP24-H: a second start() before the first stream terminates
+      // must close the orphan stream so it doesn't keep dispatching
+      // events into a hook whose state has moved on.
+      closeStream()
       setState({
         jobId: data.job_id,
         state: 'running',
@@ -64,7 +81,16 @@ export function useCopySession() {
       })
       const es = new EventSource('/api/copy/status')
       es.onmessage = (ev: MessageEvent) => {
-        const msg = JSON.parse(ev.data as string) as JobEventMsg
+        // FP24-K: malformed SSE data must not crash the hook (React
+        // doesn't catch synchronous exceptions inside event-handler
+        // listeners).
+        let msg: JobEventMsg
+        try {
+          msg = JSON.parse(ev.data as string) as JobEventMsg
+        } catch (err) {
+          console.warn('useCopySession: discarded malformed SSE event', err)
+          return
+        }
         setState((prev) => {
           if (!prev) return prev
           switch (msg.event) {
@@ -113,7 +139,12 @@ export function useCopySession() {
           }
         })
       }
-      es.onerror = () => closeStream()
+      // FP24-I: only close on a terminal failure (readyState===CLOSED).
+      // Browsers auto-reconnect on transient drops with readyState
+      // back at CONNECTING; closing in that state defeats reconnect.
+      es.onerror = () => {
+        if (es.readyState === EventSource.CLOSED) closeStream()
+      }
       esRef.current = es
     },
   })
@@ -136,10 +167,17 @@ export function useCopySession() {
       }),
   })
 
-  // No backend endpoint for mid-flight conflict resolution; stash and clear.
-  // Parent should abort + restart with updated append_decisions if needed.
+  // FP24-L: there is no /api/copy/resolve-conflict endpoint, so the
+  // user's choice is discarded — we just clear the prompt locally.
+  // The only way to pick a different conflict strategy is to abort
+  // and restart with updated CopyJobRequest.append_decisions. Log
+  // the discard so debugging surfaces a misuse.
   const resolveConflict = useCallback(
-    (_req: { kind: AppendDecisionKind; replaces: string }) => {
+    (req: { kind: AppendDecisionKind; replaces: string }) => {
+      console.warn(
+        'useCopySession.resolveConflict: no backend endpoint, discarding decision',
+        req,
+      )
       setState((prev) => (prev ? { ...prev, conflict: null } : prev))
     },
     [],

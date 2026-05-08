@@ -11,11 +11,15 @@ import { useCopySession } from '../useCopySession'
 // ---------------------------------------------------------------------------
 
 class MockEventSource {
+  static CONNECTING = 0
+  static OPEN = 1
+  static CLOSED = 2
   static instances: MockEventSource[] = []
   url: string
   onmessage: ((ev: MessageEvent) => void) | null = null
   onerror: ((ev: Event) => void) | null = null
   closed = false
+  readyState = MockEventSource.OPEN
 
   constructor(url: string) {
     this.url = url
@@ -26,8 +30,23 @@ class MockEventSource {
     this.onmessage?.(new MessageEvent('message', { data: JSON.stringify(data) }))
   }
 
+  // Helpers for FP24-I (transient drop) and FP24-K (parse error).
+  emitRaw(raw: string) {
+    this.onmessage?.(new MessageEvent('message', { data: raw }))
+  }
+  emitTransientError() {
+    // Browser EventSource keeps readyState at CONNECTING during retry.
+    this.readyState = MockEventSource.CONNECTING
+    this.onerror?.(new Event('error'))
+  }
+  emitTerminalError() {
+    this.readyState = MockEventSource.CLOSED
+    this.onerror?.(new Event('error'))
+  }
+
   close() {
     this.closed = true
+    this.readyState = MockEventSource.CLOSED
   }
 }
 
@@ -209,5 +228,93 @@ describe('useCopySession', () => {
     act(() => result.current.reset())
     expect(result.current.state).toBeNull()
     expect(MockEventSource.instances[0].closed).toBe(true)
+  })
+
+  // FP24-H: a second start() call before the first stream terminates
+  // must close the orphan stream so it doesn't keep dispatching events
+  // into a hook whose state has moved on.
+  it('a second start() closes the previous stream', async () => {
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    })
+    act(() => {
+      result.current.start({
+        selected_names: ['a'],
+        conflict_strategy: 'CANCEL',
+        append_decisions: {},
+      })
+    })
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(1))
+    act(() => {
+      result.current.start({
+        selected_names: ['b'],
+        conflict_strategy: 'CANCEL',
+        append_decisions: {},
+      })
+    })
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(2))
+    expect(MockEventSource.instances[0].closed).toBe(true)
+  })
+
+  // FP24-I: onerror with a transient (CONNECTING) readyState means the
+  // browser is auto-reconnecting; we must not unconditionally close.
+  it('transient SSE error does NOT close the stream', async () => {
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    })
+    act(() => {
+      result.current.start({
+        selected_names: ['pacman'],
+        conflict_strategy: 'CANCEL',
+        append_decisions: {},
+      })
+    })
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(1))
+    const es = MockEventSource.instances[0]
+    act(() => es.emitTransientError())
+    expect(es.closed).toBe(false)
+  })
+
+  it('terminal SSE error (readyState=CLOSED) closes the stream', async () => {
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    })
+    act(() => {
+      result.current.start({
+        selected_names: ['pacman'],
+        conflict_strategy: 'CANCEL',
+        append_decisions: {},
+      })
+    })
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(1))
+    const es = MockEventSource.instances[0]
+    act(() => es.emitTerminalError())
+    expect(es.closed).toBe(true)
+  })
+
+  // FP24-K: malformed SSE data must not crash the hook.
+  it('malformed SSE payload is logged and discarded, hook state intact', async () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const { result } = renderHook(() => useCopySession(), {
+        wrapper: renderWithClient(),
+      })
+      act(() => {
+        result.current.start({
+          selected_names: ['pacman'],
+          conflict_strategy: 'CANCEL',
+          append_decisions: {},
+        })
+      })
+      await waitFor(() => expect(MockEventSource.instances).toHaveLength(1))
+      const es = MockEventSource.instances[0]
+      // Send raw garbage that JSON.parse throws on
+      act(() => es.emitRaw('{not_json'))
+      // State stays running (it never crashed)
+      expect(result.current.state?.state).toBe('running')
+      expect(consoleWarn).toHaveBeenCalled()
+    } finally {
+      consoleWarn.mockRestore()
+    }
   })
 })
