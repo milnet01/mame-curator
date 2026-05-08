@@ -25,6 +25,7 @@ interface AppShellProps {
   children: ReactNode
   cartCount: number
   onCmdK: () => void
+  onOpenCart: () => void
 }
 
 interface NavItem {
@@ -46,7 +47,11 @@ const MORE: NavItem[] = [
   { to: '/stats', label: strings.nav.stats, icon: BarChart },
 ]
 
-export function AppShell({ children, cartCount, onCmdK }: AppShellProps) {
+// FP24-C: the Cart entry was a NavLink to="/" so on Library it lit up
+// active simultaneously with Library and clicking re-navigated home
+// with no panel toggle. It is now a button that fires onOpenCart so
+// the parent shell can open the cart panel from any route.
+export function AppShell({ children, cartCount, onCmdK, onOpenCart }: AppShellProps) {
   return (
     <div className="grid h-screen grid-rows-[auto_1fr] bg-background text-foreground">
       <header className="flex items-center gap-4 border-b px-4 py-2">
@@ -68,20 +73,15 @@ export function AppShell({ children, cartCount, onCmdK }: AppShellProps) {
               {label}
             </NavLink>
           ))}
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted',
-                isActive && 'bg-muted font-medium',
-              )
-            }
+          <button
+            type="button"
+            onClick={onOpenCart}
+            className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted"
             aria-label={strings.nav.cart(cartCount)}
           >
             <ShoppingCart className="h-4 w-4" aria-hidden="true" />
             {cartCount}
-          </NavLink>
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

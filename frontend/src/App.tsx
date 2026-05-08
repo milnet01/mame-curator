@@ -289,6 +289,9 @@ function SettingsRoute() {
 
 function ShellWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false)
+  // FP24-C: cart-expanded state lives at the shell level so the AppShell's
+  // Cart button can open the panel from any route, not just /.
+  const [cartExpanded, setCartExpanded] = useState(false)
   const config = useConfig()
   const cart = useCart()
   const navigate = useNavigate()
@@ -332,7 +335,14 @@ function ShellWithPalette() {
 
   return (
     <ThemeProvider theme={theme ?? 'dark'}>
-      <AppShell cartCount={cart.items.length} onCmdK={() => setPaletteOpen(true)}>
+      <AppShell
+        cartCount={cart.items.length}
+        onCmdK={() => setPaletteOpen(true)}
+        onOpenCart={() => {
+          setCartExpanded(true)
+          if (location.pathname !== '/') navigate('/')
+        }}
+      >
         {/* FP11 § B12: route-level ErrorBoundary, resets on pathname
             change so a per-page crash doesn't survive a navigation
             recovery click. Drawer- and modal-level boundaries live at
@@ -342,7 +352,16 @@ function ShellWithPalette() {
             fallback={<div className="p-8 text-sm text-muted-foreground">Loading…</div>}
           >
             <Routes>
-              <Route path="/" element={<LibraryPage cart={cart} />} />
+              <Route
+                path="/"
+                element={
+                  <LibraryPage
+                    cart={cart}
+                    cartExpanded={cartExpanded}
+                    onCartExpandedChange={setCartExpanded}
+                  />
+                }
+              />
               <Route path="/sessions" element={<SessionsRoute />} />
               <Route path="/activity" element={<ActivityRoute />} />
               <Route path="/stats" element={<StatsRoute />} />

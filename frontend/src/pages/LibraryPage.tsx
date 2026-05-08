@@ -62,14 +62,17 @@ async function fetchTileCount(tile: (typeof strings.library.featured.tiles)[numb
 
 interface LibraryPageProps {
   cart: UseCartResult
+  // FP24-C: cart panel state is owned by ShellWithPalette so the navbar
+  // Cart button can open the panel from any route.
+  cartExpanded: boolean
+  onCartExpandedChange: (next: boolean) => void
 }
 
-export function LibraryPage({ cart }: LibraryPageProps) {
+export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: LibraryPageProps) {
   const [filters, setFilters] = useState<FilterSidebarState>(DEFAULT_FILTERS)
   const [openedShortName, setOpenedShortName] = useState<string | null>(null)
   const [dryRunReport, setDryRunReport] = useState<DryRunReport | null>(null)
   const [activeTileId, setActiveTileId] = useState<string | null>(null)
-  const [cartExpanded, setCartExpanded] = useState(false)
 
   const config = useConfig()
   const patch = useConfigPatch()
@@ -325,7 +328,7 @@ export function LibraryPage({ cart }: LibraryPageProps) {
           bulkAddTotal={activeTileId !== null ? total : null}
           expanded={cartExpanded}
           onBulkAdd={handleBulkAdd}
-          onToggleExpand={() => setCartExpanded((x) => !x)}
+          onToggleExpand={() => onCartExpandedChange(!cartExpanded)}
           onDryRun={handleDryRun}
           onCopy={handleCopy}
         />
