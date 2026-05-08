@@ -121,7 +121,14 @@ export function AppShell({ children, cartCount, onCmdK, onOpenCart }: AppShellPr
               {strings.nav.commandPalette}
             </span>
             <kbd className="ml-auto rounded border bg-muted px-1 py-0.5 text-[10px] font-mono">
-              ⌘K
+              {/* FP24-II: useKeyboard's `meta:true` matches Cmd on macOS,
+                  Ctrl on Windows, Super on Linux. The kbd label adapts so
+                  Linux/Windows users see "Ctrl+K" instead of the macOS
+                  glyph for a key that doesn't fire the chord on their
+                  platform. */}
+              {typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform)
+                ? '⌘K'
+                : 'Ctrl+K'}
             </kbd>
           </Button>
         </div>

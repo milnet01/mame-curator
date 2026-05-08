@@ -164,17 +164,27 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
     patch.mutate({ ui: { ...config.data.ui, theme: next } })
   }
 
+  // FP24-LL: toggling a tile off must NOT wipe non-tile-driven filter
+  // state (search box, letter, the various "only X" toggles). Reset
+  // only the fields the tile owns (publisher / developer / genre /
+  // yearRange) — everything else stays put.
   const handleTileSelect = (tileId: string) => {
     const tile = strings.library.featured.tiles.find((t) => t.id === tileId)
     if (!tile) return
     if (activeTileId === tileId) {
       setActiveTileId(null)
-      setFilters(DEFAULT_FILTERS)
+      setFilters((prev) => ({
+        ...prev,
+        publisher: null,
+        developer: null,
+        genre: null,
+        yearRange: DEFAULT_FILTERS.yearRange,
+      }))
       return
     }
     setActiveTileId(tileId)
-    setFilters({
-      ...DEFAULT_FILTERS,
+    setFilters((prev) => ({
+      ...prev,
       publisher: tile.query.publisher ?? null,
       developer: tile.query.developer ?? null,
       genre: tile.query.genre ?? null,
@@ -182,7 +192,7 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
         tile.query.yearFrom ?? DEFAULT_FILTERS.yearRange[0],
         tile.query.yearTo ?? DEFAULT_FILTERS.yearRange[1],
       ],
-    })
+    }))
   }
 
   // FP24-M + S: handleBulkAdd promises "Add all N" where N is the

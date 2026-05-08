@@ -18,6 +18,23 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    // FP24-JJ: accept the `_`-prefix convention for "intentionally
+    // unused" — applies to destructure leftovers, ignored callback
+    // params, and one-shot consts whose only purpose is the
+    // discard-the-key trick. Matches the rest of the codebase's
+    // existing convention; the bare default rejected `_unused` /
+    // `_req` despite the leading underscore.
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
+    },
   },
   // shadcn/ui primitives are vendored verbatim from `npx shadcn add` and
   // ship a non-component co-export (a `cva()` variants helper) that trips

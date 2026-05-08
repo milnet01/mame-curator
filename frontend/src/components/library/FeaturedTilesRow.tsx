@@ -1,21 +1,10 @@
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { strings } from '@/strings'
+// FP24-GG: FeaturedTile / FeaturedTileQuery hoisted into strings.ts
+// so the catalogue and this component share one type definition.
+import { strings, type FeaturedTile, type FeaturedTileQuery } from '@/strings'
 
-export interface FeaturedTileQuery {
-  publisher?: string
-  developer?: string
-  genre?: string
-  yearFrom?: number
-  yearTo?: number
-}
-
-export interface FeaturedTile {
-  id: string
-  title: string
-  description: string
-  query: FeaturedTileQuery
-}
+export type { FeaturedTile, FeaturedTileQuery }
 
 interface FeaturedTilesRowProps {
   // FP24-Z: each value may be undefined while the per-tile count

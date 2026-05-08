@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import {
   BrowserRouter,
   Navigate,
@@ -177,16 +177,15 @@ function StatsRoute() {
 
 function HelpRoute() {
   const index = useHelpIndex()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   // P07 § E: Cmd-K palette navigates to /help?topic=<slug>; HelpRoute
-  // honours that query param so the picked topic is pre-selected after
-  // the route mounts. useEffect (not useState initialiser) so a second
-  // Cmd-K pick while already on /help re-syncs.
-  const topicParam = searchParams.get('topic')
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(topicParam)
-  useEffect(() => {
-    if (topicParam) setSelectedSlug(topicParam)
-  }, [topicParam])
+  // honours that query param so the picked topic is pre-selected.
+  //
+  // FP24 (HelpRoute setState-in-effect): the URL is the source of
+  // truth — onSelect rewrites the search param so the next render
+  // reads the new value, no useEffect/setState sync. A second
+  // Cmd-K pick re-navigates and re-runs the read here.
+  const selectedSlug = searchParams.get('topic')
   const topic = useHelpTopic(selectedSlug)
 
   if (index.isLoading) {
@@ -203,7 +202,10 @@ function HelpRoute() {
       selectedSlug={selectedSlug}
       topicHtml={topic.data?.html ?? ''}
       topicLoading={topic.isLoading}
-      onSelect={setSelectedSlug}
+      onSelect={(slug) => {
+        if (slug === null) setSearchParams({}, { replace: true })
+        else setSearchParams({ topic: slug }, { replace: true })
+      }}
     />
   )
 }

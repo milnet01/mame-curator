@@ -12,6 +12,24 @@
  * handling".
  */
 
+// FP24-GG: hoisted from FeaturedTilesRow.tsx so the strings catalogue
+// can name the type and the row component can import it back as the
+// single source of truth (no inline-cast duplication).
+export interface FeaturedTileQuery {
+  publisher?: string
+  developer?: string
+  genre?: string
+  yearFrom?: number
+  yearTo?: number
+}
+
+export interface FeaturedTile {
+  id: string
+  title: string
+  description: string
+  query: FeaturedTileQuery
+}
+
 export const strings = {
   app: {
     name: 'MAME Curator',
@@ -106,18 +124,7 @@ export const strings = {
           description: 'Vertical-scroll shoot-em-up classics',
           query: { genre: 'Shooter / Vertical' },
         },
-      ] as readonly {
-        id: string
-        title: string
-        description: string
-        query: {
-          publisher?: string
-          developer?: string
-          genre?: string
-          yearFrom?: number
-          yearTo?: number
-        }
-      }[],
+      ] as readonly FeaturedTile[],
       countLabel: (n: number) =>
         `${n.toLocaleString()} game${n === 1 ? '' : 's'}`,
     },
@@ -200,10 +207,9 @@ export const strings = {
       emptyParseBody:
         'Listxml loaded but contains no cloneof entries — region/version variants will appear separately.',
     },
-    /** FP23 — DryRunModal "Confirm" toast when full Copy wiring isn't in
-     *  yet; P15 replaces the toast with the actual Copy-lifecycle launch. */
-    dryRunConfirmDeferred:
-      'Copy execution wiring lands with the cart redesign (P15). Use the CLI for now: `mame-curator copy --apply`.',
+    // FP24-FF: dryRunConfirmDeferred deleted — the FP23-era toast for
+    // the deferred Copy wiring is no longer needed; P15's cart redesign
+    // shipped the real DryRun → Copy flow via useCopySession.
   },
 
   alternatives: {
