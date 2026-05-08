@@ -72,3 +72,23 @@ async def test_sse_copy_progress_streams_events(app: Any, source_dir: Path) -> N
         e["payload"]["short_name"] for e in events if e["event"] == "file_finished"
     ]
     assert file_started_shorts == file_finished_shorts, "file_started/finished mis-ordered"
+
+    # FP24-A: job_started payload keys must match the typed JobStartedPayload
+    # contract (frontend api/types.ts:721-723 + JobStatus model). Earlier
+    # versions emitted total_files/total_bytes which left the progress bar
+    # pinned at 0/0 because the consumer reads files_total/bytes_total.
+    job_started = events[0]
+    assert "files_total" in job_started["payload"], (
+        "job_started must emit files_total (typed contract); "
+        f"saw keys: {sorted(job_started['payload'].keys())}"
+    )
+    assert "bytes_total" in job_started["payload"], (
+        "job_started must emit bytes_total (typed contract); "
+        f"saw keys: {sorted(job_started['payload'].keys())}"
+    )
+    assert "total_files" not in job_started["payload"], (
+        "job_started must not emit drifted total_files key"
+    )
+    assert "total_bytes" not in job_started["payload"], (
+        "job_started must not emit drifted total_bytes key"
+    )

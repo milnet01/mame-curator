@@ -203,13 +203,17 @@ class JobManager:
             self._current = job
 
             # Emit initial events on the loop thread before the worker spawns.
+            # FP24-A: payload keys files_total/bytes_total match the typed
+            # JobStartedPayload contract (schemas.py JobStatus + frontend
+            # api/types.ts). Drifted total_files/total_bytes left the
+            # progress bar pinned at 0/0.
             self._emit(
                 JobEvent(
                     event="job_started",
                     payload={
                         "job_id": job_id,
-                        "total_files": files_total,
-                        "total_bytes": bytes_total,
+                        "files_total": files_total,
+                        "bytes_total": bytes_total,
                         "started_at": started_at.isoformat(),
                     },
                     ts=started_at,
