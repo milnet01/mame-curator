@@ -38,12 +38,17 @@ function readInitial(): CartItem[] {
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    return parsed.filter(
-      (i): i is CartItem =>
-        i !== null &&
-        typeof i === 'object' &&
-        typeof (i as CartItem).shortName === 'string',
-    )
+    // FP24-R: validate chosenVariant type as well — a hand-edited
+    // localStorage entry like `{shortName: "sf2", chosenVariant: 123}`
+    // would otherwise reach the rest of the code as a non-string and
+    // crash downstream `.map((i) => i.chosenVariant ?? i.shortName)`.
+    return parsed.filter((i): i is CartItem => {
+      if (i === null || typeof i !== 'object') return false
+      const candidate = i as Record<string, unknown>
+      if (typeof candidate.shortName !== 'string') return false
+      const variant = candidate.chosenVariant
+      return variant === undefined || typeof variant === 'string'
+    })
   } catch {
     return []
   }

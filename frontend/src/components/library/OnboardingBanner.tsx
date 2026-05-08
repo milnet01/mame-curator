@@ -46,10 +46,10 @@ export function OnboardingBanner({ cartHasItems }: OnboardingBannerProps) {
   }
 
   return (
-    <div
-      role="status"
-      className="mx-4 mt-2 flex items-center gap-3 rounded border bg-muted/40 px-3 py-2 text-sm"
-    >
+    // FP24-Y: no live-region role — this banner is static instructional
+    // content, not a status update. role="status" misuses the polite
+    // live-region semantics for first-paint copy.
+    <div className="mx-4 mt-2 flex items-center gap-3 rounded border bg-muted/40 px-3 py-2 text-sm">
       <span>{strings.library.onboarding.body}</span>
       <Button
         size="icon"

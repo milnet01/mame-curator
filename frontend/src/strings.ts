@@ -128,10 +128,20 @@ export const strings = {
       addToCart: (gameName: string) => `Add ${gameName} to cart`,
       removeFromCart: (gameName: string) => `Remove ${gameName} from cart`,
       added: '✓ Added',
+      add: '+Add',
+      contentsRegionLabel: 'Cart contents',
       bulkAdd: (n: number) => `Add all ${n.toLocaleString()}`,
       expand: 'Expand cart',
       collapse: 'Collapse cart',
       clearAll: 'Clear all',
+      // FP24-O: AlertDialog labels for the destructive Clear-all flow.
+      clearAllConfirm: {
+        title: 'Clear cart?',
+        description: (n: number) =>
+          `This removes ${n.toLocaleString()} game${n === 1 ? '' : 's'} from your cart. This cannot be undone.`,
+        action: (n: number) =>
+          `Remove ${n.toLocaleString()} game${n === 1 ? '' : 's'} from cart`,
+      },
       validateDroppedToast: (n: number) =>
         `${n} cart item${n === 1 ? '' : 's'} removed — they're no longer in your library.`,
       variantBadge: (variantName: string) => `⇄ ${variantName}`,

@@ -100,7 +100,7 @@ export function GameCard({
             }
             className="absolute left-1 top-1 z-10 rounded bg-background/90 px-2 py-1 text-xs font-medium shadow-sm hover:bg-background"
           >
-            {inCart ? strings.library.cart.added : '+Add'}
+            {inCart ? strings.library.cart.added : strings.library.cart.add}
           </button>
           {imgFailed ? (
             <div className="flex h-full items-center justify-center px-3 text-center text-sm font-semibold leading-tight text-muted-foreground">

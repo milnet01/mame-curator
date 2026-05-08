@@ -22,8 +22,10 @@ export function CartPanel({ open, items, onRemove, onClearAll }: CartPanelProps)
   if (!open) return null
   return (
     <aside
+      // FP24-W: id anchors CartBar's aria-controls disclosure pattern.
+      id="cart-panel"
       role="region"
-      aria-label="Cart contents"
+      aria-label={strings.library.cart.contentsRegionLabel}
       className="max-h-80 overflow-y-auto border-t bg-background px-4 py-3"
     >
       <ul className="flex flex-col gap-1">

@@ -22,7 +22,10 @@ export function ListxmlBanner({ exists, cloneofMapSize }: ListxmlBannerProps) {
 
   return (
     <div
-      role="alert"
+      // FP24-Y: role="status" — informational notice that polite live-
+      // region etiquette suits, not the assertive role="alert" reserved
+      // for time-sensitive alerts (errors interrupting work).
+      role="status"
       className="mx-4 mt-2 flex flex-wrap items-center gap-3 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
     >
       <span className="font-medium">{strings.library.listxmlMissing.title}</span>

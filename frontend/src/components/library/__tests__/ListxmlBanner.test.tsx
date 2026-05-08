@@ -15,7 +15,9 @@ function renderBanner(props: { exists: boolean | undefined; cloneofMapSize?: num
 describe('ListxmlBanner', () => {
   it('renders a warning when listxml is missing', () => {
     renderBanner({ exists: false })
-    expect(screen.getByRole('alert')).toBeInTheDocument()
+    // FP24-Y: role="status" (polite live region) — informational notice,
+    // not the assertive role="alert" reserved for time-sensitive errors.
+    expect(screen.getByRole('status')).toBeInTheDocument()
     // Banner names the file kind and the user-visible consequence so the
     // user can connect the symptom (duplicates) to the cause (no listxml).
     expect(screen.getByText(/listxml not configured/i)).toBeInTheDocument()

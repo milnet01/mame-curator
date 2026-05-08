@@ -17,6 +17,7 @@ import { CopyModal } from '@/components/library/CopyModal'
 import { DryRunModal } from '@/components/library/DryRunModal'
 import { OnboardingBanner } from '@/components/library/OnboardingBanner'
 import { FeaturedTilesRow } from '@/components/library/FeaturedTilesRow'
+import { ConfirmationDialog } from '@/components/ConfirmationDialog'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { useAlternatives, useLaunchGame, useOverride } from '@/hooks/useAlternatives'
 import { MAX_CART_SIZE, type UseCartResult } from '@/hooks/useCart'
@@ -76,6 +77,9 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
   const [openedShortName, setOpenedShortName] = useState<string | null>(null)
   const [dryRunReport, setDryRunReport] = useState<DryRunReport | null>(null)
   const [activeTileId, setActiveTileId] = useState<string | null>(null)
+  // FP24-O: Clear-all is destructive (cart has no undo) — coding-
+  // standards § 4 mandates AlertDialog confirm for destructive ops.
+  const [clearAllOpen, setClearAllOpen] = useState(false)
 
   const config = useConfig()
   const patch = useConfigPatch()
@@ -129,10 +133,14 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
       staleTime: 5 * 60 * 1000,
     })),
   })
-  const tileCounts: Record<string, number> = Object.fromEntries(
+  // FP24-Z: omit `?? 0` so still-loading tiles surface as `undefined`
+  // and FeaturedTilesRow's `count !== undefined` guard suppresses the
+  // count label until the query lands. Otherwise tiles flash a
+  // misleading "0 games" before the real number paints.
+  const tileCounts: Record<string, number | undefined> = Object.fromEntries(
     strings.library.featured.tiles.map((tile, idx) => [
       tile.id,
-      (tileQueries[idx].data as GamesPage | undefined)?.total ?? 0,
+      (tileQueries[idx].data as GamesPage | undefined)?.total,
     ]),
   )
 
@@ -388,7 +396,16 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
           open={cartExpanded}
           items={cart.items}
           onRemove={cart.remove}
-          onClearAll={cart.clear}
+          onClearAll={() => setClearAllOpen(true)}
+        />
+        <ConfirmationDialog
+          open={clearAllOpen}
+          onOpenChange={setClearAllOpen}
+          title={strings.library.cart.clearAllConfirm.title}
+          description={strings.library.cart.clearAllConfirm.description(cart.items.length)}
+          actionLabel={strings.library.cart.clearAllConfirm.action(cart.items.length)}
+          onConfirm={() => cart.clear()}
+          destructive
         />
         <CartBar
           itemCount={cart.items.length}

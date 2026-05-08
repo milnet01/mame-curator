@@ -44,7 +44,10 @@ export function CartBar({
         </span>
       </div>
       <div className="flex items-center gap-2">
-        {bulkAddTotal !== null && (
+        {/* FP24-X: zero-result filter still shows the bulk-add affordance
+            with a confusing "Add all 0" label. Only render when there's
+            something to add. */}
+        {bulkAddTotal !== null && bulkAddTotal > 0 && (
           <Button variant="outline" onClick={onBulkAdd}>
             {strings.library.cart.bulkAdd(bulkAddTotal)}
           </Button>
@@ -62,6 +65,10 @@ export function CartBar({
           aria-label={
             expanded ? strings.library.cart.collapse : strings.library.cart.expand
           }
+          // FP24-W: WAI-ARIA disclosure pattern — aria-expanded reflects
+          // panel state; aria-controls anchors to the panel's id.
+          aria-expanded={expanded}
+          aria-controls="cart-panel"
         >
           <ChevronIcon className="h-4 w-4" aria-hidden="true" />
         </Button>

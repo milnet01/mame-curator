@@ -18,7 +18,10 @@ export interface FeaturedTile {
 }
 
 interface FeaturedTilesRowProps {
-  counts: Record<string, number>
+  // FP24-Z: each value may be undefined while the per-tile count
+  // query is in flight, so the label can suppress until real data
+  // arrives instead of flashing "0 games".
+  counts: Record<string, number | undefined>
   activeTileId: string | null
   onTileSelect: (tileId: string) => void
 }
@@ -53,6 +56,12 @@ export function FeaturedTilesRow({
             <button
               key={tile.id}
               type="button"
+              // FP24-P: explicit aria-label — the implicit accessible
+              // name was the concatenated text of the inner <p>s, which
+              // produced strings like "Capcom ClassicsCapcom CPS-1...
+              // 38 games" with no separators. The title alone is the
+              // useful identifier for AT users.
+              aria-label={tile.title}
               aria-pressed={isActive}
               onClick={() => onTileSelect(tile.id)}
               className="shrink-0 text-left"
