@@ -58,13 +58,13 @@ This phase creates these files. None are modified later in this phase:
 - [ ] **Step 0a: Verify working directory and git state**
 
 ```bash
-cd /mnt/Storage/Scripts/Linux/MAME_Curator
+cd /mnt/Emulators/Scripts/Linux/MAME_Curator
 pwd
 git status
 git log --oneline -5
 ```
 
-Expected: cwd is `/mnt/Storage/Scripts/Linux/MAME_Curator`, working tree clean, three commits present (the design / standards / roadmap docs).
+Expected: cwd is `/mnt/Emulators/Scripts/Linux/MAME_Curator` (relocated from `/mnt/Storage/...` on 2026-05-08), working tree clean, three commits present (the design / standards / roadmap docs).
 
 - [ ] **Step 0b: Verify Python and uv are available**
 
@@ -87,7 +87,7 @@ Expected: Python ≥ 3.12, uv ≥ 0.5 (or some version). If uv is missing, insta
 - [ ] **Step 1: Initialize the package**
 
 ```bash
-cd /mnt/Storage/Scripts/Linux/MAME_Curator
+cd /mnt/Emulators/Scripts/Linux/MAME_Curator
 uv init --package --name mame-curator --python ">=3.12"
 ```
 

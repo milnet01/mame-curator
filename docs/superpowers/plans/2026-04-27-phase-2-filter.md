@@ -78,7 +78,7 @@ Parent/clone relationships are sourced from the official MAME `-listxml`, **not*
 - [ ] **Step 0a: Verify Phase 1 is committed and green**
 
 ```bash
-cd /mnt/Storage/Scripts/Linux/MAME_Curator
+cd /mnt/Emulators/Scripts/Linux/MAME_Curator
 git log --oneline -3
 uv run pytest -q --no-cov
 uv run ruff check && uv run ruff format --check && uv run mypy && uv run bandit -c pyproject.toml -r src

@@ -58,7 +58,7 @@
 - [ ] **Step 0a: Verify Phase 0 is committed and green**
 
 ```bash
-cd /mnt/Storage/Scripts/Linux/MAME_Curator
+cd /mnt/Emulators/Scripts/Linux/MAME_Curator
 git log --oneline -1
 uv run pytest -q
 ```
@@ -1637,7 +1637,7 @@ This is the live "does it actually work on 43,579 machines in <30 s?" test. We a
 - [ ] **Step 1: Time the parse on the real DAT**
 
 ```bash
-cd /mnt/Storage/Scripts/Linux/MAME_Curator
+cd /mnt/Emulators/Scripts/Linux/MAME_Curator
 time uv run mame-curator parse "/mnt/Games/MAME/MAME 0.284 ROMs (non-merged).zip"
 ```
 

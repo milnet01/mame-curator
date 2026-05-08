@@ -1867,8 +1867,9 @@ synchronisation. Defer to a debt-sweep pass per project policy
 ## FP19 — Launch games from the site (closed 2026-05-04)
 
 **Theme:** user request 2026-05-04 "offer the option to launch the
-games from the site, check /mnt/Storage/Scripts/Linux/RetroDB/
-(RetroDB project) for references on doing that." The library now
+games from the site, check /mnt/Emulators/Scripts/Linux/RetroDB/
+(RetroDB project; was `/mnt/Storage/...` at the time of the
+original request) for references on doing that." The library now
 shows games and lets you copy them, but had no in-app way to
 actually play one. FP19 adds the missing "play this" button.
 
