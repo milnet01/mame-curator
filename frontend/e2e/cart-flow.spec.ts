@@ -25,9 +25,9 @@ test('first visit shows onboarding banner; +Add populates the cart', async ({
   await page.goto('/')
 
   // Onboarding banner visible on first mount.
-  const banner = page
-    .getByRole('status')
-    .filter({ hasText: /Tap a game to add it to your list/i })
+  // FP24-Y: banner has no role (it's static instructional content,
+  // not a live region). Match by visible text instead.
+  const banner = page.getByText(/Tap a game to add it to your list/i)
   await expect(banner).toBeVisible()
 
   // Cart bar shows empty (footer-scoped to avoid ambiguity)
@@ -45,7 +45,8 @@ test('first visit shows onboarding banner; +Add populates the cart', async ({
   // Banner auto-dismisses on first add
   await expect(banner).not.toBeVisible()
 
-  // Cart bar now shows 1 game (formatting: "1 game · X.Y GB")
+  // Cart bar now shows the game count (FP24-B dropped the GB figure
+  // until per-cart-item byte sums exist).
   await expect(page.getByText(/^1 game/)).toBeVisible()
 
   // Card flips to ✓ Added (the same card we just clicked)

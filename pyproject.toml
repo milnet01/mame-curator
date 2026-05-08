@@ -100,6 +100,10 @@ ignore = [
 # (`docs/specs/P04.md` § Routes).
 "src/mame_curator/api/routes/*.py" = ["B008", "D102", "D103"]
 "src/mame_curator/api/schemas.py" = ["D101", "D106"]
+# FP24-EE: schemas.py extracted Setup/Updates/Help and Filesystem into
+# sibling modules; the pure-type-definition rule applies to them too.
+"src/mame_curator/api/schemas_setup.py" = ["D101", "D106"]
+"src/mame_curator/api/schemas_fs.py" = ["D101", "D106"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

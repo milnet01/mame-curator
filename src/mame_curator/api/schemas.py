@@ -408,141 +408,60 @@ class ActivityPage(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Filesystem
+# Filesystem / Setup / Updates / Help — extracted per FP24-EE.
 # ---------------------------------------------------------------------------
+#
+# Re-exported here so existing
+# ``from mame_curator.api.schemas import SetupCheck, FsListing, ...``
+# callers keep working without changes.
 
 
-class FsEntry(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    name: str
-    path: str
-    is_dir: bool
-    size: int | None
-    mtime: datetime
+# above so the module is read top-to-bottom in dependency order.
+from mame_curator.api.schemas_fs import (  # noqa: E402
+    FsAllowedRoot,
+    FsAllowedRoots,
+    FsDriveRoots,
+    FsEntry,
+    FsGrantRootRequest,
+    FsListing,
+    FsPath,
+)
+from mame_curator.api.schemas_setup import (  # noqa: E402
+    AppUpdateInfo,
+    HelpContent,
+    HelpIndex,
+    HelpTopic,
+    SetupCheck,
+    SetupPaths,
+    SetupPathStatus,
+    SetupReferenceFiles,
+    SetupReferenceStatus,
+    UpdatesCheck,
+)
 
-
-class FsListing(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    path: str
-    entries: tuple[FsEntry, ...]
-    parent: str | None
-
-
-class FsPath(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    path: str
-
-
-class FsAllowedRoot(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    id: str
-    path: str
-    source: Literal["config", "granted"]
-
-
-class FsAllowedRoots(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    roots: tuple[FsAllowedRoot, ...]
-
-
-class FsDriveRoots(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    roots: tuple[str, ...]
-
-
-class FsGrantRootRequest(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    path: str
-
-
-# ---------------------------------------------------------------------------
-# Setup / updates stubs
-# ---------------------------------------------------------------------------
-
-
-class SetupPathStatus(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    path: str
-    exists: bool
-    readable: bool
-    writable: bool
-    dat_parses: bool | None = None
-
-
-class SetupPaths(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    source_roms: SetupPathStatus
-    source_dat: SetupPathStatus
-    dest_roms: SetupPathStatus
-
-
-class SetupReferenceStatus(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    path: str
-    exists: bool
-
-
-class SetupReferenceFiles(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    catver: SetupReferenceStatus
-    languages: SetupReferenceStatus
-    bestgames: SetupReferenceStatus
-    mature: SetupReferenceStatus
-    series: SetupReferenceStatus
-    listxml: SetupReferenceStatus
-
-
-class SetupCheck(BaseModel):
-    """Setup-check response model.
-
-    FP24-BB: the derived ``listxml_available`` boolean was removed —
-    no consumer ever used it because ListxmlBanner re-derives the
-    file-missing vs parsed-empty distinction from the raw fields to
-    pick a different body for each.
-    """
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    config_present: bool
-    paths: SetupPaths
-    reference_files: SetupReferenceFiles
-    cloneof_map_size: int
-
-
-class AppUpdateInfo(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    current_version: str
-    latest_version: str | None
-    update_available: bool
-
-
-class UpdatesCheck(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    app: AppUpdateInfo
-    ini: tuple[Any, ...] = ()
-
-
-# ---------------------------------------------------------------------------
-# Help
-# ---------------------------------------------------------------------------
-
-
-class HelpTopic(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    slug: str
-    title: str
-
-
-class HelpIndex(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    topics: tuple[HelpTopic, ...]
-
-
-class HelpContent(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    slug: str
-    title: str
-    html: str
-
+# Explicit __all__ so mypy --strict's no_implicit_reexport flags this
+# module as a public re-export point. Existing callers of
+# `from mame_curator.api.schemas import SetupCheck, FsListing, ...`
+# keep working unchanged.
+__all__ = (
+    "AppUpdateInfo",
+    "FsAllowedRoot",
+    "FsAllowedRoots",
+    "FsDriveRoots",
+    "FsEntry",
+    "FsGrantRootRequest",
+    "FsListing",
+    "FsPath",
+    "HelpContent",
+    "HelpIndex",
+    "HelpTopic",
+    "SetupCheck",
+    "SetupPathStatus",
+    "SetupPaths",
+    "SetupReferenceFiles",
+    "SetupReferenceStatus",
+    "UpdatesCheck",
+)
 
 # ---------------------------------------------------------------------------
 # Notes-write request

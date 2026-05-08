@@ -31,8 +31,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # Python modules that contribute Pydantic models reachable from api/schemas.py.
+# FP24-EE: schemas.py extracted Setup/Updates/Help into schemas_setup.py and
+# Filesystem into schemas_fs.py; both are re-exported by schemas.py for
+# back-compat but the parity walk needs to scan the new files directly.
 PYTHON_SOURCES = (
     "src/mame_curator/api/schemas.py",
+    "src/mame_curator/api/schemas_setup.py",
+    "src/mame_curator/api/schemas_fs.py",
     "src/mame_curator/api/errors.py",
     "src/mame_curator/copy/types.py",
     "src/mame_curator/parser/models.py",
