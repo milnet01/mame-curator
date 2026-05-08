@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | v1.2.0 shipped — FP24 closed 2026-05-08; P15 cart-and-curated-library spec drafted + closing review folded; P15 awaiting implementation plan |
-| **Active item ID** | (none — FP24 closed; P15 implementation plan is the next gate) |
+| **Project phase** | v1.2.0 shipped — P15 (cart and curated library) closed 2026-05-08 alongside FP24 closing-review fold-in; queue advances to FP22 (RetroArch launch gate) → FP20 / FP21 / DS02 (indie-review tiered fold-in) → P10/P11/P12 (post-v1 enhancements) |
+| **Active item ID** | (none — P15 closed; FP22 is queued next per ROADMAP order) |
 | **Active step** | n/a |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-08 (FP24 closed in 13 commits; all Tier 1/2/3 findings folded; 455 backend / 240 frontend tests green at coverage 86.93%) |
-| **Next gate** | P15 implementation plan via writing-plans skill. Spec + diagnosis-first picker section already in place; the plan should still verify cloneof_map empty-state behaviour against post-FP23 baseline (the runtime symptom is gone, but the listxml-availability banner + setup-check extension are still part of P15 § 4.3.1 and FP23's banner only covers the warning — P15 still needs the setup-check field extensions). |
+| **Last update** | 2026-05-08 (P15 closed clean at FP24's SHA; both `P15-complete` and `FP24-complete` tag the same commit; 455 backend / 240 frontend tests green at coverage 86.93%) |
+| **Next gate** | User picks next item. ROADMAP order suggests **FP22** (Launch button gates on RetroArch config — small UX fix-pass from real user feedback 2026-05-04, ~4 sub-bullets in `api/setup/check` + `AlternativesDrawer` + `SettingsPage` + `strings.errors.byCode`). Larger alternatives are **FP20** (Tier 1 security/data-loss from indie-review 2026-05-04) or **FP21** (Tier 2 hardening). The post-v1 ladder (P10 media expansion / P11 thumbnails / P12 self-update + INI diff) waits for v1.0.0 polish if that path is taken. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,72 +21,19 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-FP12 step progress (active 2026-05-02):
+**No active item.** P15 closed clean 2026-05-08 alongside FP24
+fold-in. Next pickup is user-driven — see the **Next gate** row
+above for the suggested ROADMAP-order pickup (FP22) and
+alternatives.
 
-1. ✅ Verify spec — FP12 is a fix-pass; ROADMAP.md § FP12 enumerates clusters A-J as the audit surface (per "specs are for features, not fixes"). Step 1 research: chip ARIA = `role="listbox"` + `option`; dnd-kit keyboard = Space-to-pick / Arrow-to-move / Space-to-drop / Esc; FS-picker traversal mitigated by backend `fs_sandboxed` 403; shadcn Select uses `value`/`onValueChange`; Blob+FormData for export/import.
-2. ✅ Verify dependencies — P06 ✅, FP11 ✅, P04 R29-R34 backend ✅ (`/api/fs/list|home|roots|allowed-roots`), R15-R19 backend ✅ (`/api/config{,/snapshots,/export,/import}`). All TS types in place at `frontend/src/api/types.ts` (`FsListing`/`FsPath`/`FsAllowedRoots`/`FsDriveRoots`/`SnapshotsListing` etc.). ROADMAP entry's "depends on FP11 (still 🚧)" line is stale (FP11 closed earlier today).
-3. 🚧 Write failing tests + 4. 🚧 Implement until tests pass — cluster-by-cluster (A → J), one commit each per FP11 cadence:
-   - A ✅ ChipListEditor primitive (10 unit tests + 3 SettingsPage integration tests; rendered into 7 fields across Filters + Picker tabs; `updateFilters` widened to a typed-key generic so `string[]` and `boolean` callers share one helper)
-   - B ✅ DragReorderList primitive — user-elected simpler arrow-button + ArrowUp/ArrowDown keyboard reorder (no dnd-kit dep added per Karpathy rule 9 push-back; revisit if drag-feel proves needed). 10 unit tests + 1 SettingsPage integration test; wired into Picker tab for `region_priority`.
-   - C ✅ YearRangeEditor — paired Switch+`<Input type="number">` per bound; null state via the switch (off ⇒ disabled input + null in config; on ⇒ defaults to 1971 / currentYear). Min/max attrs `1971..currentYear`. 9 unit tests + 1 SettingsPage integration test; wired into Filters tab between toggles and chip lists.
-   - D ✅ default_sort dropdown — added shadcn `<Select>` primitive at `components/ui/select.tsx` (hand-written matching the project's `import { X as XPrimitive } from "radix-ui"` style; 9 named exports). Wired into UI tab, drives `ui.default_sort` over the four `'name' | 'year' | 'manufacturer' | 'rating'` literals. `updateUi` widened to typed-key generic alongside `updateFilters`. 2 SettingsPage integration tests.
-   - E ✅ updates.channel dropdown — `<Select>` over `'stable' | 'dev'` literal type, wired into Updates tab. `updateUpdates` widened to typed-key generic alongside `updateUi` / `updateFilters`. 2 SettingsPage integration tests.
-   - I ✅ Snapshots tab (R16 list + R17 restore) — SnapshotsTab primitive (8 unit tests + 2 SettingsPage integration tests), SettingsRoute container in App.tsx owning useSnapshots+useSnapshotRestore, ConfirmationDialog with concrete "Restore N files" action label per design §8. PATCH onSuccess invalidates SNAPSHOTS_KEY so new entries surface on next read.
-   - J ✅ Backup tab (R18 export + R19 import) — BackupTab primitive (8 unit tests + 1 SettingsPage integration test), `useConfigExport` + `useConfigImport` hooks. SettingsRoute does Blob+`<a download>` for export, `File.text()` → `JSON.parse` → mutate for import. ConfirmationDialog labels the chosen file by name. Roadmap's "R19 multipart" hint was stale; backend takes / returns `ConfigExportBundle` JSON (`config.py:170 + 186`).
-   - G ✅ FsBrowser modal path picker (R29-R34 + grant flow on 403) — self-contained, owns useFs* hooks; quick-jump for Home + drive roots + allowed roots; directory/file mode; fs_sandboxed 403 → grant ConfirmationDialog → POST R33 → re-list. 10 MSW-backed tests; first MSW component test in the suite.
-   - F ✅ Editable media.cache_dir — Media tab: Input (controlled, patches on blur) + Browse → FsBrowser (directory). FsBrowser conditionally mounted so existing pure-prop SettingsPage tests don't need MSW. 2 SettingsPage integration tests.
-   - H ✅ Paths tab in-place editable — PathRow helper (Label + Input + per-row Browse → FsBrowser), wires source_roms / dest_roms / source_dat (file mode) / retroarch_playlist (file mode). DAT swap is destructive: new value held in pendingDat state, ConfirmationDialog with concrete "Swap DAT to <path>" label, source_dat only patches on confirm. 5 SettingsPage integration tests.
-5. ⬜ Run `/audit`
-6. ⬜ Run `/indie-review`
-7. ⬜ Fold actionable findings → next FP## (or close clean)
-8. ⬜ Update CHANGELOG / ROADMAP / journal
-9. ⬜ Commit, tag `FP12-complete`, ask user about push
-
----
-
-FP11 + P06 closed 2026-05-02 — step progress preserved as audit context:
-
-1. ✅ Verify spec — FP11 is a fix-pass (no per-item spec per "specs are for features, not fixes"); ROADMAP.md § FP11 enumerates the 10 fold-in clusters as the audit surface.
-2. ✅ Verify dependencies — P06 ✅ (scaffold + 19 components + Playwright smoke shipped; FP11 fixes against the existing surface).
-3. ✅ Write failing tests + 4. ✅ Implement until tests pass — all clusters A-J landed across ~25 commits. Final wave: J1-J4 spec sync (41c5b9d), B8 container hooks for /sessions /activity /stats /help (8f0a88b), D2 NotesEditor state-machine tests (571ed84), dist refresh (2e4ea7e), Windows backslash regression fix (8918cb5).
-5. ✅ /audit electively skipped — user shipped on CI matrix green across Ubuntu / macOS / Windows × 3.12 / 3.13 instead. The CI multi-platform pass IS the load-bearing audit signal here; the recursive-indie-review approach (running indie-review on the patches that closed indie-review findings) was deferred per FP10's "smaller fix-passes converge faster" precedent.
-6. ✅ /indie-review --fix electively skipped — same rationale.
-7. ✅ Round-2 returned no findings — close clean.
-8. ✅ Update CHANGELOG / ROADMAP / journals.
-9. ✅ Commit + tag `FP11-complete` + `P06-complete` (annotated, both at the same SHA).
-
-(Prior P06 step progress preserved below for context — those steps shipped in 19 commits and remain ✅.)
-
-P06 step progress (preserved as audit context):
-
-1. ✅ Verify spec — draft `docs/specs/P06.md` committed `01325a1`; 2-round cold-eyes review converged (round 2 APPROVE); user signed off 2026-05-02.
-2. ✅ Verify dependencies — P04 ✅ (HTTP API, `api/` 40 routes), P05 ✅ (media subsystem, R39 wired through cache).
-3. ✅ Write failing tests + 4. ✅ Implement until tests pass — all 18 P06 spec impl-steps shipped:
-   - 1-5 ✅ Vite scaffold + Tailwind v4 + 6 themes + shadcn 16 primitives + runtime/dev deps + Vitest/MSW/Playwright configs.
-   - 6-7 ✅ api/types.ts (57 mirrored interfaces + zod schemas) + client.ts + tools/check_api_types_sync.py CI gate.
-   - 8-9 ✅ strings.ts catalogue + backend `_SPAStaticFiles` mount with deep-link fallback + 2 backend tests.
-   - 10 ✅ 19 components/pages under TDD: GameCard, LibraryGrid + LayoutSwitcher, ThemeSwitcher, FiltersSidebar, AlternativesDrawer + WhyPickedPanel + NotesEditor, ActionBar, DryRunModal, CopyModal, ConfirmationDialog, SessionsPage, ActivityPage, StatsPage, SettingsPage, HelpPage, CmdKPalette, no-checkbox-for-prefs invariant.
-   - 11-13 ✅ empty states embedded in components; useKeyboard hook (single + chord + meta-mode); ErrorBoundary class component with reset-on-key + manual retry.
-   - 14-15 ✅ AppShell + ThemeProvider + LibraryPage container; App.tsx wires QueryClientProvider + BrowserRouter + lazy routes; Inter font fallback + dark default + ≤300ms motion budget all in index.css.
-   - 16-18 ✅ Production build (152 KB gzipped entry); Playwright E2E smoke (1 passing) + fixture config.yaml; `frontend/dist/` committed (`e569214`) with pre-commit hook excludes for minified output.
-5. ⬜ Run `/audit`
-6. ⬜ Run `/indie-review`
-7. ⬜ Fold actionable findings → new FP## roadmap item
-8. ⬜ Update CHANGELOG / ROADMAP / journal
-9. ⬜ Commit, tag `P06-complete`, ask user about push
+(Prior step-progress blocks for FP12 / FP11 / P06 — preserved
+across earlier sessions as audit context — were retired during
+the P15 close. Their commit-level history lives in
+`docs/journal/` and the phase-history table below.)
 
 ### Active item details
 
-**FP12 — Settings page list editors + path picker (🚧 active).**
-Audit surface: ROADMAP § FP12 clusters A-J (10 sub-bullets).
-Branch: `main` (direct push per project rules — solo dev / public repo).
-Closing-strategy: cluster-by-cluster TDD commits (FP11 cadence); `/close-phase` at the end with optional CI-matrix-as-audit per FP11 precedent.
-Out-of-scope (deferred to P07+): `UiConfig.cards_per_row_hint` UI control — P06 spec § 210 explicitly defers it.
-New deps required: `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` (cluster B); shadcn `select` primitive (clusters D + E) — both installed at their cluster's start.
-
-Next after FP12 closes:
-
-- **P07** — Self-update + in-app help. Long-form contract: `docs/superpowers/specs/2026-04-27-roadmap.md` § Phase 7. Adds the `updates/` and `help/` modules and wires the Settings → Updates banner's Apply path. Depends on P06, FP11, FP12.
+(none — see status header)
 
 ### Phase history (App-Build mapping)
 
@@ -136,6 +83,7 @@ nominal. Both tags point at `56449c6`.
 | FP19 | — | ✅ | 2026-05-04 | 2026-05-04 | Launch in RetroArch — paths.retroarch config + POST /api/games/{name}/launch + Launch button in alternatives drawer; v1.2.0 |
 | FP23 | — | ✅ | 2026-05-07 | 2026-05-07 | Parent/clone collapse listxml fix — diagnosed during P15 brainstorm; user's `paths.listxml: null` made `cloneof_map={}` so every machine became its own winner (21,049 → 10,591 after fix). Installed MAME 0.287, generated listxml; new `ListxmlBanner` surfaces missing-listxml state for future users; new `useDryRun` hook + DryRunModal wired (onCopy stays no-op, full Copy lifecycle scoped to P15). |
 | FP24 | — | ✅ | 2026-05-08 | 2026-05-08 | P15 closing-review fold-in — all Tier 1 (A–G + Q + S, 7 commits) + Tier 2 (H–Z, 3 commits) + Tier 3 (AA–LL, 3 commits) closed across 13 commits. Plus HelpRoute setState-in-effect ride-along. 455 backend / 240 frontend tests green / coverage 86.93%. |
+| P15 | — | ✅ | 2026-05-08 | 2026-05-08 | Cart-first selection + curated featured tiles + live Copy — combined ship + FP24 fold-in (B1–B5 backend + F1–F14 frontend + Playwright cart-flow). `P15-complete` + `FP24-complete` tag the same SHA. |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
 | P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
 | P11 | — | 📋 | — | — | Contribute missing thumbnails to libretro-thumbnails (post-v1; depends on P05 ✅, composes with P10) |
@@ -172,6 +120,82 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-08 — P15 closed (clean close at FP24's SHA)
+
+User said "Let's continue with the next outstanding roadmap
+item" picking up from yesterday's FP24 close. Status-header
+recap surfaced state drift: workflow.md said "P15 awaiting
+implementation plan" but the ROADMAP was 🚧, the implementation
+plan was already at `docs/superpowers/plans/2026-05-07-cart-and-curated-library-plan.md`,
+all P15 implementation commits had landed (`cbd8af6..bf9a956`),
+and FP24 had absorbed the full closing-review fold-in. The
+right move was the clean-close path of the per-phase 9-step
+loop, not a new writing-plans pass.
+
+User picked **"Close P15 now (clean-close path)"** out of
+three options surfaced. Then:
+
+- **Sanity check.** Confirmed all spec deliverables landed via
+  grep against `api/schemas.py` (`cart_clear_on_copy`,
+  `total_bytes`, `cloneof_map_size` mirror), `api/routes/games.py`
+  (`@router.post("/api/games/validate")`), and
+  `tests/api/test_routes_games.py` (cloneof regression test).
+  Ran the full test suites: 455 backend / 240 frontend / 86.93%
+  coverage / ruff + mypy + bandit clean / eslint + tsc clean.
+- **ROADMAP P15 flip.** `🚧 → ✅`, header `(planned)` → `(closed
+  2026-05-08)`, bullet expanded with B1–B5 backend + F1–F14
+  frontend + e2e + docs summary, Source/Dependencies preserved,
+  back-reference to `docs/journal/P15.md`.
+- **CHANGELOG fold.** `Planned — P15 Cart and curated library`
+  block converted to `### P15 — Cart and curated library
+  (closed 2026-05-08)` summarising what shipped per-task with
+  FP24 cross-references where the closing fold-in changed the
+  shape (B vs. GB display, D vs. setState-in-effect, E/Q vs.
+  nested button, G vs. isStorageBroken, S vs. addAll truncation
+  return). Test totals at close stamped at the bottom.
+- **Journal.** `docs/journal/P15.md` rewritten — the existing
+  file held the 2026-05-08 close-attempted entry that documented
+  what triggered FP24; preserved that as a trailing section and
+  prepended the close-clean entry with closing landmarks, what
+  changed, what was learned, what was deferred. FP24's per-
+  cluster breakdown lives in this journal entry rather than a
+  per-FP file (consistent with FP15+ practice — recent FPs have
+  no `docs/journal/FP##.md`).
+- **workflow.md refresh.** Status header rewritten (no active
+  item, queue suggests FP22 next). Step-progress blocks for
+  FP12 / FP11 / P06 retired — they'd been preserved across
+  ~13 phases as audit context but the per-journal files are the
+  durable record. Phase history table extended with the P15 row
+  (✅ 2026-05-08).
+
+**Workflow lessons:**
+
+- **State drift surfaces fast when you summarise back to the
+  user.** The CLAUDE.md rule "summarise back, wait for confirm
+  or redirect" caught the workflow.md staleness on the first
+  pass — would have wasted ~30 minutes on a duplicate
+  writing-plans run otherwise. Pattern reaffirmed: never skip
+  the summary step, even when the next move "looks obvious".
+- **Splitting fix-passes out of feature phases pays off.** FP23
+  shipped the picker fix early (2026-05-07) once the cold-eyes
+  review caught the misdiagnosis; P15 then absorbed only the
+  regression-test + setup-check-field part of § 4.3.1. If the
+  fix had stayed inside P15, the spec → tests → impl ladder
+  would have had to interleave with the user's running app
+  showing a broken count for several more days. Same shape
+  the project's used since DS01 → FP05 → FP06: split when the
+  finding is independent and time-pressing; fold when the
+  finding is contract-touching and small.
+- **Journal-as-cross-reference works when fix-passes don't get
+  per-FP files.** P15.md's "FP24's per-cluster breakdown lives
+  in workflow.md § 3" is honest about where the FP24 narrative
+  actually is. Better than writing a `docs/journal/FP24.md`
+  stub that just points back at the workflow journal — saves a
+  file and a duplicated narrative.
+
+Tag: `P15-complete` (annotated) at the same SHA as
+`FP24-complete`. Public repo → push prompt deferred to user.
 
 ### 2026-05-08 — FP24 closed (P15 closing-review fold-in)
 

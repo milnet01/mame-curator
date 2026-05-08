@@ -100,15 +100,97 @@ the URL and routing onSelect through `setSearchParams`.
 455 backend tests / 240 frontend tests / ruff + mypy + bandit
 clean / eslint + tsc clean / coverage 86.93%.
 
-### Planned — P15 Cart and curated library
+### P15 — Cart and curated library (closed 2026-05-08)
 
-User feedback 2026-05-07: opening the app shows 21,049 cards
-with no clear path to pick a few games and copy them. P15 adds
-cart-first selection (per-game `+Add`, featured INI-derived
-tiles, sticky cart-bar with expand-up panel), wires the
-previously no-op `onCopy` to a live SSE-driven flow, and adds
-the `cloneof_map`-non-empty regression test that locks the
-FP23 fix at the test level. See `ROADMAP.md` `P15`.
+User feedback 2026-05-07: opening the app showed 21,049 cards
+with no clear path to pick a few games and copy them. P15 turns
+the dead bottom-bar into a cart-first selection model with
+per-game `+Add`, featured INI-derived tiles, sticky cart-bar
+with expand-up panel, and a live SSE-driven Copy flow. Plan at
+`docs/superpowers/plans/2026-05-07-cart-and-curated-library-plan.md`;
+spec at `docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`.
+
+**Backend (B1–B5):**
+
+- **B1** `tests/filter/test_runner.py::test_cloneof_map_empty_self_parents`
+  + `tests/api/test_routes_games.py::test_cloneof_map_collapses_winners`
+  pin the FP23 fix at the test level: non-empty `cloneof_map` ⇒
+  winners strictly less than machines.
+- **B2** `/api/setup/check` extended with `cloneof_map_size: int`
+  on the existing `reference_files.listxml` block. (The
+  `listxml_available` flag added during planning was deleted in
+  FP24-BB once the empty-parse banner branch derived its state
+  from `exists` + `cloneof_map_size` directly.)
+- **B3** `GamesPage.total_bytes: int` populated server-side as
+  the sum over the same `filtered` slice that produces `total`;
+  bottom-bar GB figure now reflects post-collapse winners.
+- **B4** `POST /api/games/validate` accepts
+  `{ short_names: string[] }` (bounded 10,000 / 64-char per item
+  via FP24-F) and returns `{ existing, missing }` against
+  `world.machines` — set lookup, no pagination.
+- **B5** `UiConfig.cart_clear_on_copy: Literal['always','on_success','never']`
+  defaults to `'on_success'`.
+
+**Frontend (F1–F14):**
+
+- **F1** TypeScript mirrors for the five backend fields above.
+- **F2** `useCart` — localStorage-backed (`mame-curator:cart:v1`),
+  `add` / `remove` / `addAll` (returns `{added, truncated}` after
+  FP24-S) / `setVariant` / `clear`, `isStorageBroken` probe (FP24-G)
+  for private-browsing modes, MAX_CART_SIZE = 10,000 ceiling.
+- **F3** `useValidateCart` mutation hook for pre-Copy reconcile.
+- **F4** `strings.ts` additions: `FEATURED_TILES` catalogue
+  (Capcom Classics / Beat 'em Ups / Run & Gun / Best of 1992 /
+  SHMUPS Vertical), onboarding copy, cart strings, listxml banner
+  copy.
+- **F5** `OnboardingBanner` — dismissible, `localStorage`-keyed
+  (`mame-curator:onboarding-dismissed:v1`); auto-dismisses on
+  first add. Visibility derived from props (FP24-D).
+- **F6** `FeaturedTilesRow` — horizontal tile buttons; each tile
+  fetches its count via `/api/games?page_size=1` (page_size=0
+  not supported by backend); 5-min react-query staleness.
+- **F7** `CartBar` — replaces `ActionBar.tsx`; collapsed shows
+  `🛒 N games · [Dry-run] [Copy] [⌃]`; `[Add all M]` appears when
+  a featured tile is active. (Per-cart GB figure dropped in
+  FP24-B — no per-row byte data on `GameCard`.)
+- **F8** `CartPanel` — expand-up panel listing cart items with
+  per-row `✕` remove + `Clear all` (AlertDialog confirm via
+  FP24-O).
+- **F9** `GameCard` `+Add` affordance + cart-aware "✓ Added"
+  state. Outer `<button>` became `role="button"` div + onKeyDown
+  in FP24-E/Q to avoid nested-button DOM.
+- **F10** `useCopySession` SSE hook — job_started → progress →
+  job_completed / job_failed lifecycle, transient-error reconnect
+  preservation (FP24-I), unmount race guard (FP24-J),
+  malformed-payload try/catch (FP24-K). Used by `LibraryPage`'s
+  `onCopy` route.
+- **F11** `LibraryPage` end-to-end cart wiring: `+Add` calls
+  `cart.add`; featured tile click sets filter + `bulkAddTotal`;
+  bulk-add paginates the full filter result (FP24-M); pre-Copy
+  validate drops orphans with a single toast; cart auto-clear on
+  `succeeded` (per `cart_clear_on_copy` config).
+- **F11.1** `ListxmlBanner` empty-parse branch — banner now
+  renders when listxml exists but `cloneof_map_size === 0`,
+  closing the gap FP23 left.
+- **F12** Top-nav reshape — left rail → horizontal nav with
+  `Library | 🛒 N | Settings | Help | ⋯ More` (Sessions /
+  Activity / Stats under "More"). URL paths preserved so deep
+  links still work. Cart NavLink became a button in FP24-C
+  (was shadowing Library on `/`).
+- **F13** `SettingsPage` `cart_clear_on_copy` Select alongside
+  `default_sort` in the Display Card.
+- **F14** Playwright `cart-flow.spec.ts`: banner dismiss → tile
+  filter → bulk-add → expand-panel → Copy. (Five additional E2E
+  cases the FP24-KK finding named were deferred — Vitest unit
+  coverage already pins those contracts.)
+
+Closing `/audit` (4 actionable lint findings) + 8-lane
+`/indie-review` (30+ findings across Tier 1/2/3) folded into
+FP24, closed in 13 commits 2026-05-08. Plus two ride-alongs
+(`HelpRoute` setState-in-effect, eslint argsIgnorePattern).
+
+455 backend tests / 240 frontend tests / ruff + mypy + bandit
+clean / eslint + tsc clean / coverage 86.93%.
 
 ### FP23 — Parent/clone collapse listxml fix + DryRun wiring (closed 2026-05-07)
 

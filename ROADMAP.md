@@ -1396,19 +1396,23 @@ debt-sweep should resolve).
 
 ---
 
-## P15 — Cart and curated library (planned)
+## P15 — Cart and curated library (closed 2026-05-08)
 
-**Theme:** [`docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`](docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md) — turn the dead `21,049 games · 0.0 GB` bottom-bar into a cart-first selection model with featured INI-derived tiles, dismissible onboarding banner, sticky cart-bar with expand-up panel, and live Copy + DryRun flows. Picker runtime symptom shipped fixed in FP23; this phase adds the regression test that locks `cloneof_map` non-empty ⇒ winners < machines, plus the `listxml_available` + `cloneof_map_size` setup-check fields that let the banner cover the "supplied but parsed empty" edge case.
+**Theme:** [`docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`](docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md) — turned the dead `21,049 games · 0.0 GB` bottom-bar into a cart-first selection model with featured INI-derived tiles, dismissible onboarding banner, sticky cart-bar with expand-up panel, and live Copy + DryRun flows. Picker runtime symptom shipped fixed in FP23; this phase added the regression test that locks `cloneof_map` non-empty ⇒ winners < machines, plus the `listxml_available` + `cloneof_map_size` setup-check fields that let the banner cover the "supplied but parsed empty" edge case.
 
 ### 🎨 Features
 
-- 🚧 **P15** [mame-curator-1024] **Cart-first selection + curated featured tiles + live Copy.**
+- ✅ **P15** [mame-curator-1024] **Cart-first selection + curated featured tiles + live Copy.**
   Lanes: api, frontend, docs.
+  - **Backend (B1–B5).** `tests/api/test_routes_games.py::test_cloneof_map_collapses_winners` regression for FP23; `/api/setup/check` extended with `listxml_available` and `cloneof_map_size`; `GamesPage.total_bytes` server-summed; `POST /api/games/validate` for cart reconciliation; `UiConfig.cart_clear_on_copy` literal Union (`'always' | 'on_success' | 'never'`, default `'on_success'`).
+  - **Frontend (F1–F14).** `useCart` (localStorage v1, `addAll` truncates at MAX_CART_SIZE, `isStorageBroken` probe); `useValidateCart`; `useCopySession` SSE hook (job_started → progress → terminal, transient-error reconnect); `FeaturedTilesRow` + `OnboardingBanner` (localStorage-keyed dismissal + auto-dismiss on first add); `CartBar` (replaces ActionBar) + `CartPanel` (expand-up); `GameCard` `+Add` affordance + cart-aware "✓ Added"; `LibraryPage` end-to-end wiring with pre-Copy `validate` orphan-drop; `ListxmlBanner` empty-parse branch; top-nav reshape (Library + 🛒 + Settings + Help + ⋯ More); `SettingsPage` `cart_clear_on_copy` Select.
+  - **E2E.** Playwright `cart-flow.spec.ts` covers banner dismiss → tile filter → bulk-add → expand-panel → Copy.
+  - **Docs.** Implementation plan at `docs/superpowers/plans/2026-05-07-cart-and-curated-library-plan.md`; closing fold-in tracked in FP24.
 
-  See spec § 9 file-level diff summary for the full surface; this roadmap entry is intentionally a pointer rather than a duplicate.
-
+  Plan was a single ship — no mid-phase splits. Closing `/audit` (4 actionable lint findings) + 8-lane `/indie-review` folded into FP24 (30+ findings across Tier 1/2/3 closed in 13 commits 2026-05-08).
   Source: user feedback 2026-05-07 ("21,049 games, no clear path to pick three"); brainstorm + 7-round cold-eyes review APPROVE.
   Dependencies: FP23 ✅ (listxml banner foundation), FP19 ✅ (RetroArch launch — cart preserves), FP17 ✅ (`/api/library/facets` for tile counts).
+  See `docs/journal/P15.md`.
 
 ---
 
