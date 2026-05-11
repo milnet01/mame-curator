@@ -17,7 +17,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### FP20 — `/indie-review` Tier 1 security + data-loss fold-in (in progress 2026-05-11)
+### FP26 — FP25 closing-review fold-in + UX e2e walkthroughs (closed 2026-05-11)
+
+21 sub-bullets sourced from FP25's closing `/audit` + 4-lane
+`/indie-review` (5 Tier 1 + 12 Tier 2 + 15+ Tier 3) plus the user's
+mid-session Playwright UX walkthrough scope-add. Shipped across
+five commits:
+
+- **Tier 3 (Playwright UX walkthroughs)** `dddae88` — new
+  `frontend/e2e/fp25-ux-walkthrough.spec.ts` (4 cases): cold-start
+  outage → one Sonner toast (FP25-G); LibraryErrorPanel sticky-
+  panel + Retry-disabled flow (FP25-H, captured FP26-V buggy
+  behavior); HelpPage scoped DOMPurify end-to-end (FP25-I/J — no
+  `<script>` survives, `target="_blank"` carries
+  `rel="noopener noreferrer"`, `data:` URL stripped); settings
+  restore failure persistent alert (FP25-K(12) UX shape).
+- **FP26-V (NEW Tier 1)** `8b70f34` — `LibraryPage` keeps the
+  error panel mounted while a refetch from an errored state is
+  in flight. React Query v5 resets `isError` to false during
+  refetch; the old `{games.isError ? <Panel/> : <Grid/>}` ternary
+  unmounted the panel, so FP25-H's `disabled={isFetching}` /
+  "Retrying…" affordance never reached the user's screen. Fix:
+  `games.isError || (games.isFetching && errorUpdatedAt >
+  dataUpdatedAt)`. The Playwright walkthrough caught it; unit
+  tests didn't because they rendered the panel directly with
+  `isFetching=true`, bypassing the host's conditional.
+- **Tier 1 + L + H batch** `a54dd10` — FP26-A strengthened
+  world_lock test sufficiency via the `asserted_set_world`
+  monkey-patch (per-route + cross-route concurrent test both
+  assert `tracker.held` at every `set_world` call); FP26-B
+  wrapped `mkdir(parent)` in `ActivityLogError` envelope; FP26-C
+  fixed FP25-F's vacuous assertions (now `rglob` over the whole
+  recycle tree); FP26-D extended FP25-E skipif to "skip unless
+  linux" (macOS fork hazard); FP26-H added the 0-byte-write
+  defensive-branch test; FP26-L dropped the dead FP25-K(12)
+  `restore.isPending ? null : ...` conditional (React Query 5
+  already clears `error` on `mutate()`).
+- **Tier 2 batch** `1653737` — FP26-E P04 spec `_deactivate`
+  enumeration; FP26-F best-effort parent-dir fsync on first
+  activity append (`_atomic._fsync_parent_dir` renamed to public
+  `fsync_parent_dir` per Rule of Three); FP26-G `copy/spec.md`
+  drift cleanup (FP25-C "open" stale text rewritten, broken
+  `§ Errors envelope` reference fixed, `ActivityLogError` added
+  to enum); FP26-I `queryClient.test.tsx` calls
+  `_resetApiErrorToastDedupForTests()` in beforeEach; FP26-J/K
+  apiErrorToast docblock acknowledges deliberate unboundedness +
+  names the rejected `toast({id})` alternative; FP26-M
+  allowlist-004 line citation refreshed to grep-instruction +
+  `helpSanitizer.sanitize(...)` wording; FP26-N `_TrackingLock`
+  duck-type rationale; FP26-P `RecycleError.recycled_orphan`
+  attribute for double-failure machine-readable signal.
+
+Final five-gate close: 504 backend tests (1 skipped) / 273
+frontend tests / 9 e2e specs / coverage 87% / ruff + ruff format +
+mypy + bandit (0 findings all severities) / ESLint + tsc clean.
+`frontend/dist/` rebuilt.
+
+Workflow lesson saved: e2e walkthroughs catch a class of bug unit
+tests miss — host-component conditionals that unmount the child
+during the very state the child is meant to handle. Filed via the
+user's mid-session "use Playwright to walk through features"
+direction; FP26-V is the canonical example. Pattern: any feature
+whose user contract is "X becomes visible while Y is pending"
+needs an e2e walkthrough exercising the HOST's render condition,
+not just the child component in isolation.
+
+### FP20 — `/indie-review` Tier 1 security + data-loss fold-in (closed 2026-05-11)
 
 The 2026-05-04 multi-agent indie-review surfaced 12 sub-bullets across
 10 lanes — parser XXE/zip-bomb (A), copy non-atomic writes (B), API
@@ -79,7 +144,7 @@ Tier 2 hardening gaps, and 10 Tier 3 polish items. All 11 batched into
 `FP25` for the closing-review fold-in. FP20 stays open until FP25
 closes; `FP20-complete` tag will fire then.
 
-### FP25 — FP20 closing-review fold-in (in progress 2026-05-11)
+### FP25 — FP20 closing-review fold-in (closed 2026-05-11)
 
 11 sub-bullets sourced from FP20's closing `/audit` + 5-lane
 `/indie-review` (1 Tier 1 / 7 Tier 2 / 10 Tier 3 polish items grouped

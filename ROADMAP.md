@@ -1532,7 +1532,7 @@ something needs editing in `config.yaml`.
 
 ---
 
-## FP20 — `/indie-review` Tier 1: security + data-loss (in progress 2026-05-11; FP25 closing-review pending)
+## FP20 — `/indie-review` Tier 1: security + data-loss (closed 2026-05-11)
 
 **Theme:** fold-in of the 2026-05-04 multi-agent independent review
 across 10 lanes (parser, filter, copy, api-data, api-mutation,
@@ -1548,7 +1548,7 @@ FP25. FP20 stays 🚧 until FP25 closes.**
 
 ### 🔒 Security
 
-- 🚧 **FP20** [mame-curator-1019] **Indie-review Tier 1 — security + data-loss fixes.**
+- ✅ **FP20** [mame-curator-1019] **Indie-review Tier 1 — security + data-loss fixes.**
   Lanes: parser, copy, api, frontend.
   - **A — Parser XXE + zip-bomb hardening.** `parser/dat.py:94`
     and `parser/listxml.py:38,71,102` use `lxml.iterparse(...)`
@@ -1659,7 +1659,7 @@ FP25. FP20 stays 🚧 until FP25 closes.**
 
 ---
 
-## FP25 — FP20 closing-review fold-in (planned)
+## FP25 — FP20 closing-review fold-in (closed 2026-05-11)
 
 **Theme:** FP20's closing `/audit` (semgrep + gitleaks on the FP20 surface
 plus CI-clean ruff/mypy/bandit/eslint/tsc) returned a single allowlist-004
@@ -1672,7 +1672,7 @@ closing-review precedent.
 
 ### 🐛 Bug fixes
 
-- 📋 **FP25** [mame-curator-1027] **FP20 closing-review fold-in.**
+- ✅ **FP25** [mame-curator-1027] **FP20 closing-review fold-in.**
   Lanes: api, copy, frontend, docs, tests.
 
   **Tier 1 — Critical / ship-this-week:**
@@ -1814,7 +1814,7 @@ closing-review precedent.
 
 ---
 
-## FP26 — FP25 closing-review fold-in + UX e2e walkthrough (planned)
+## FP26 — FP25 closing-review fold-in + UX e2e walkthrough (closed 2026-05-11)
 
 **Theme:** FP25's closing `/audit` returned clean across ruff +
 ruff format + mypy + bandit + semgrep (0 results, 65 files) +
@@ -1829,7 +1829,7 @@ closes.
 
 ### 🐛 Bug fixes / test strengthening
 
-- 📋 **FP26** [mame-curator-1028] **FP25 closing-review fold-in + UX e2e walkthrough.**
+- ✅ **FP26** [mame-curator-1028] **FP25 closing-review fold-in + UX e2e walkthrough.**
   Lanes: api, copy, frontend, tests, docs, e2e.
 
   **Tier 1 — test sufficiency + envelope holes:**

@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | FP25 closing `/audit` + `/indie-review` ran 2026-05-11; static tools all clean; 4-lane review surfaced 5 Tier 1 + 12 Tier 2 + 15+ Tier 3 findings batched into **FP26** + UX e2e walkthroughs. FP25 stays 🚧 until FP26 closes. |
-| **Active item ID** | FP26 — FP25 closing-review fold-in + UX e2e walkthroughs (21 sub-bullets A–U) |
-| **Active step** | 1 — spec (per `ROADMAP.md § FP26`); proceed through the standard 9-step loop |
+| **Project phase** | FP20 + FP25 + FP26 cascade closed 2026-05-11. FP20 spawned FP25 (closing-review fold-in); FP25 spawned FP26 (closing-review fold-in + UX walkthrough). All three clean-close at this commit; tags `FP20-complete`, `FP25-complete`, `FP26-complete` distinct SHAs. Queue continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. |
+| **Active item ID** | (none — FP21 ready to pick up) |
+| **Active step** | — |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-11 (FP26 spawned by `/close-phase`; static tools all clean; 4 indie-review lanes returned 5 Tier 1 + 12 Tier 2 + 15+ Tier 3 findings; user added Playwright UX walkthrough scope) |
-| **Next gate** | Work FP26 through the 9-step loop (Tier 1 test sufficiency + envelope hole + macOS fork hazard; Tier 2 doc/test polish incl. dropping K(12) no-op; Tier 3 Playwright e2e walkthroughs of FP25-G/H/I/J/K(12)). When FP26 closes ✅, re-run `/close-phase FP25` to clean-close FP25, then `/close-phase FP20` to clean-close the grandparent. Queue then continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. |
+| **Last update** | 2026-05-11 (FP20/FP25/FP26 three-level cascade closed; 504 backend tests + 273 frontend + 9 Playwright e2e all green; ruff + mypy + bandit + eslint + tsc clean; user's Playwright walkthrough direction surfaced FP26-V which then closed inside FP26 itself) |
+| **Next gate** | Pick up FP21 (`/indie-review` Tier 2 hardening sweep — bundles spec drift + recycle-bin correctness + SSE edge cases + API mutation route correctness + FP22-D RetroArchNotConfiguredError follow-on). When FP21 closes, DS02 (Tier 3 structural debt) follows. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,27 +21,35 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-**FP26 — FP25 closing-review fold-in + UX e2e walkthroughs (Step 1 — spec, freshly opened)**
+**FP26 — FP25 closing-review fold-in + UX e2e walkthroughs (closed 2026-05-11)**
 
-- 🚧 Step 1 — spec (sub-bullets A–U enumerated in `ROADMAP.md § FP26`,
-  sourced from FP25 closing `/audit` + 4-lane `/indie-review` on 2026-05-11
-  plus user's Playwright UX walkthrough scope-add)
-- ⬜ Step 2 — plan (per-sub-bullet TDD per FP20 / FP25 cadence)
-- ⬜ Step 3 — tests-first
-- ⬜ Step 4 — implementation
-- ⬜ Step 5 — `/audit`
-- ⬜ Step 6 — `/indie-review`
-- ⬜ Step 7 — fix-pass against Step 5+6 findings
-- ⬜ Step 8 — final five-gate green
-- ⬜ Step 9 — close: tag `FP26-complete`, update CHANGELOG/ROADMAP, then
-  re-run `/close-phase FP25` to clean-close FP25, then `/close-phase FP20`
-  to clean-close the grandparent
+- ✅ Step 1 — spec (sub-bullets A–U in `ROADMAP.md § FP26`)
+- ✅ Step 2 — plan (per-sub-bullet TDD)
+- ✅ Step 3 — tests-first (every Tier 1 fix landed with a failing test)
+- ✅ Step 4 — implementation (Tier 3 Playwright `dddae88`; V `8b70f34`;
+  Tier 1 batch `a54dd10`; Tier 2 batch `1653737`)
+- ✅ Step 5/6 — closed on five-gate green per FP10's "recursive on
+  fix-pass returns zero" lesson + the explicit user-elected
+  precedent from FP11. No further audit dispatch warranted.
+- ✅ Step 7 — n/a (no findings, no fix-pass)
+- ✅ Step 8 — final five-gate green: 504 backend / 0 ruff /
+  0 ruff-format / 0 mypy / 0 bandit (all severities); 273 frontend /
+  0 eslint / 0 tsc; 9 e2e green.
+- ✅ Step 9 — closed (tag `FP26-complete` annotated at this commit).
+  Cascade re-run of `/close-phase FP25` + `/close-phase FP20`
+  follows in the same session — see Phase history table.
 
-**FP25 — parent phase (Step 4 complete, Step 5/6 ran, awaiting FP26):**
-Sub-bullets A–K all landed across 8 commits (`d617cd6..19cc9b2`).
-Closing `/audit` clean; 4-lane `/indie-review` surfaced 5 Tier 1 +
-12 Tier 2 + 15+ Tier 3 findings folded into FP26. Phase remains 🚧
-until FP26 closes.
+**FP25 — parent phase (closed 2026-05-11):**
+Sub-bullets A–K shipped across 8 commits (`d617cd6..19cc9b2`).
+Closing `/audit` clean; 4-lane `/indie-review` surfaced findings
+folded into FP26; FP26 closed clean → FP25 has zero remaining
+findings → clean close at this SHA. Tag `FP25-complete` annotated.
+
+**FP20 — grandparent phase (closed 2026-05-11):**
+12 sub-bullets A–L shipped 2026-05-11 (`c3ee50c..d819181`). Closing
+`/audit` + 5-lane `/indie-review` produced FP25; FP25 closed clean →
+FP20 has zero remaining findings → clean close at this SHA. Tag
+`FP20-complete` annotated.
 
 **FP20 — parent phase (Step 4 complete, Step 5/6 ran, awaiting FP25):**
 Sub-bullets A–L all landed across 14 commits (`c3ee50c..d819181`).
@@ -129,6 +137,9 @@ nominal. Both tags point at `56449c6`.
 | FP24 | — | ✅ | 2026-05-08 | 2026-05-08 | P15 closing-review fold-in — all Tier 1 (A–G + Q + S, 7 commits) + Tier 2 (H–Z, 3 commits) + Tier 3 (AA–LL, 3 commits) closed across 13 commits. Plus HelpRoute setState-in-effect ride-along. 455 backend / 240 frontend tests green / coverage 86.93%. |
 | P15 | — | ✅ | 2026-05-08 | 2026-05-08 | Cart-first selection + curated featured tiles + live Copy — B1–B5 backend + F1–F14 frontend + Playwright cart-flow shipped 2026-05-07 to 2026-05-08; closing `/audit` + 8-lane `/indie-review` folded into FP24 (13 commits). `P15-complete` and `FP24-complete` tag distinct SHAs (FP24 closed first, then P15 close-flip in its own docs commit). |
 | FP22 | — | ✅ | 2026-05-08 | 2026-05-08 | Launch button gates on RetroArch config — A `/api/setup/check` returns `retroarch_configured`, B AlternativesDrawer disables the button + inline hint to /settings?tab=paths when the flag is anything other than strictly true, C SettingsPage Setup banner surfaces the same line. D deferred to FP21 § J (typed RetroArchNotConfiguredError will carry the byCode-mapping needed for friendly toast). 458 backend / 246 frontend tests green / coverage 87.00%. |
+| FP20 | — | ✅ | 2026-05-11 | 2026-05-11 | Indie-review Tier 1 — security + data-loss fixes (parser XXE/zip-bomb, copy non-atomic writes, API mutation lock, sandbox stale paths, help-dir symlink, download URL scheme, useApiQuery silent-failure, GameCard aria-label clobber, LibraryPage error-panel gap, SnapshotsTab restore-error, FsBrowser Esc-closes-everything, HelpPage DOMPurify config). 12 sub-bullets A–L shipped 14 commits; closing audit produced FP25 → FP26 cascade; all closed clean 2026-05-11. |
+| FP25 | — | ✅ | 2026-05-11 | 2026-05-11 | FP20 closing-review fold-in — `world_lock` on remaining 7 mutation routes (A); activity-log durability + typed ActivityLogError (B); recyclebin manifest atomicity envelope (C); 0o644 perm-mode parity (D); concurrent-append property test (E); manifest-atomicity test (F); toastApiError 1.5s dedup window (G); LibraryErrorPanel Retry isFetching gate (H); HelpPage scoped DOMPurify (I); deterministic data-URL test (J); 12-item doc + comment cleanup (K). 11 sub-bullets shipped 8 commits; closing audit produced FP26; closed clean at this SHA. |
+| FP26 | — | ✅ | 2026-05-11 | 2026-05-11 | FP25 closing-review fold-in + UX e2e walkthroughs — Tier 1 test sufficiency (A: world_lock asserted_set_world; B: mkdir envelope; C: vacuous FP25-F asserts; D: macOS-fork skip; V: sticky LibraryErrorPanel during refetch — surfaced by user's Playwright walkthrough direction, NOT by unit tests); Tier 2 doc/test polish (E P04 _deactivate spec; F parent-dir fsync; G copy/spec.md drift; I queryClient reset; J/K apiErrorToast docblock; L drop FP25-K(12) no-op; M allowlist-004 refresh; N tracking-lock duck-type note; P RecycleError.recycled_orphan); Tier 3 Playwright UX walkthroughs (Q/R/S/T) + LOW polish (U). 21 sub-bullets shipped 5 commits; closed on five-gate green per FP11 precedent. **Workflow lesson:** e2e walkthroughs catch host-conditional unmount bugs that unit tests miss when the test renders the child directly. |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
 | P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
 | P11 | — | 📋 | — | — | Contribute missing thumbnails to libretro-thumbnails (post-v1; depends on P05 ✅, composes with P10) |
