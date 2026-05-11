@@ -88,9 +88,22 @@ def test_fp25_e_concurrent_appenders_never_interleave(tmp_path: Path) -> None:
     per_child = 20
     expected_total = 2 * per_child
 
+    # FP26-D: ``mp.get_context("fork")`` returns a ``ForkContext`` on
+    # Linux but mypy on Windows sees the union'd ``BaseContext`` (no
+    # ``Process`` attribute) — the test is skipif-gated above, so the
+    # call is unreachable on Windows, but mypy still type-checks it.
+    # Suppress with attr-defined; the skipif gate is the runtime guard.
     ctx = mp.get_context("fork")
-    p1 = ctx.Process(target=_child_appender, args=(str(log_path), "child-a", per_child))
-    p2 = ctx.Process(target=_child_appender, args=(str(log_path), "child-b", per_child))
+    # The Windows-mypy-only attr-defined suppression below also carries
+    # unused-ignore so the Linux gate doesn't flag the suppression as
+    # unused; on Linux mypy sees the narrow ForkContext (Process is
+    # available) so the attr-defined ignore is logically dead there.
+    p1 = ctx.Process(  # type: ignore[attr-defined,unused-ignore]
+        target=_child_appender, args=(str(log_path), "child-a", per_child)
+    )
+    p2 = ctx.Process(  # type: ignore[attr-defined,unused-ignore]
+        target=_child_appender, args=(str(log_path), "child-b", per_child)
+    )
     p1.start()
     p2.start()
     p1.join(timeout=30)

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -50,10 +51,12 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
             # manifest.json / .lpl owner-only while activity.jsonl is
             # 0o644 (via os.open in copy/activity.py). The mismatch confused
             # users inspecting the data directory; fchmod aligns the
-            # whole project on one mode. fchmod is best-effort on Windows
-            # — POSIX bits don't apply there anyway.
-            with contextlib.suppress(OSError):
-                os.fchmod(tmp_handle.fileno(), 0o644)
+            # whole project on one mode. Windows has no POSIX mode bits
+            # AND ``os.fchmod`` is unavailable in the Win32 typeshed —
+            # gate on ``sys.platform`` so mypy resolves it cleanly.
+            if sys.platform != "win32":
+                with contextlib.suppress(OSError):
+                    os.fchmod(tmp_handle.fileno(), 0o644)
         finally:
             tmp_handle.close()
         os.replace(tmp_path, path)
@@ -117,9 +120,10 @@ def atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8") -> None
                 # a defense-in-depth concern, not a hard contract.
                 os.fsync(tmp_handle.fileno())
             # FP25-D: pin perms at 0o644 — see atomic_write_bytes for the
-            # full reasoning. Same suppress-OSError treatment for Windows.
-            with contextlib.suppress(OSError):
-                os.fchmod(tmp_handle.fileno(), 0o644)
+            # full reasoning. Same sys.platform gate for Windows-mypy.
+            if sys.platform != "win32":
+                with contextlib.suppress(OSError):
+                    os.fchmod(tmp_handle.fileno(), 0o644)
         finally:
             tmp_handle.close()
         # Windows: must close before replace. Linux/macOS would tolerate
