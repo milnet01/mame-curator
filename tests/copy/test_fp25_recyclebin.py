@@ -145,9 +145,11 @@ def test_fp25_f_no_manifest_json_on_atomic_replace_failure(
     # the prior `if target_dir.exists():` guard making the assertion
     # vacuously true. The crash-safety contract is "no half-written
     # manifest.json ANYWHERE in the recycle tree".
-    leftover_manifests = list(recycle_root.rglob("manifest.json"))
+    # FP21-D: glob matches both the legacy `manifest.json` shape and
+    # the per-file `<basename>.manifest.json` shape.
+    leftover_manifests = list(recycle_root.rglob("*manifest.json"))
     assert leftover_manifests == [], (
-        f"no half-written manifest.json may remain after atomic_write_text "
+        f"no half-written manifest may remain after atomic_write_text "
         f"failure, found: {leftover_manifests}"
     )
 
@@ -181,7 +183,8 @@ def test_fp25_f_no_tmp_files_remain_on_atomic_replace_failure(
     # locked here is `_atomic.atomic_write_text`'s `if not completed:
     # tmp_path.unlink(missing_ok=True)` cleanup path — proving no
     # `.tmp` siblings linger anywhere.
-    leftover_tmps = list(recycle_root.rglob("manifest.json.*.tmp"))
+    # FP21-D: glob matches both legacy and per-file manifest tmp shapes.
+    leftover_tmps = list(recycle_root.rglob("*manifest.json.*.tmp"))
     assert leftover_tmps == [], (
         f"no manifest tmp files may remain after atomic_write_text failure, found: {leftover_tmps}"
     )

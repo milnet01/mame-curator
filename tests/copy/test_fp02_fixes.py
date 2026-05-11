@@ -183,9 +183,10 @@ def test_recycle_dirname_uses_session_id_so_cross_session_does_not_collide(
 
     # Different session_ids → different parent dirs.
     assert p1.parent != p2.parent
-    # Each manifest references its own session.
-    m1 = json.loads((p1.parent / "manifest.json").read_text(encoding="utf-8"))
-    m2 = json.loads((p2.parent / "manifest.json").read_text(encoding="utf-8"))
+    # Each manifest references its own session. FP21-D: per-file manifest
+    # naming — was a single `manifest.json` per dir.
+    m1 = json.loads((p1.parent / "sf2.zip.manifest.json").read_text(encoding="utf-8"))
+    m2 = json.loads((p2.parent / "kof94.zip.manifest.json").read_text(encoding="utf-8"))
     assert m1["session_id"] == "sess-A"
     assert m2["session_id"] == "sess-B"
     # Files preserved.

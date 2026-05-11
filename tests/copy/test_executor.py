@@ -119,6 +119,25 @@ def test_copy_outcome_records_short_name_and_role(source_dir: Path, dest_dir: Pa
 # FP05 — C3 test below
 
 
+def test_fp21_g_source_disappeared_returns_skipped_missing_source(
+    tmp_path: Path,
+) -> None:
+    """FP21-G: TOCTOU between an existence check upstream and ``copy_one``
+    must surface as ``CopyOutcomeStatus.SKIPPED_MISSING_SOURCE``, not
+    ``CopyExecutionError`` / FAILED.
+
+    Pre-fix ``src.stat()`` ran outside the OSError-wrapping ``try`` block,
+    so a missing source raised ``FileNotFoundError`` directly. The runner
+    saw FAILED instead of the SKIPPED variant — different status, different
+    activity-log event, different user-visible report.
+    """
+    src = tmp_path / "ghost.zip"  # never created
+    dst = tmp_path / "dest" / "ghost.zip"
+    outcome = copy_one(src, dst, short_name="ghost", role="winner")
+    assert outcome.status is CopyOutcomeStatus.SKIPPED_MISSING_SOURCE
+    assert outcome.bytes == 0
+
+
 def test_copy_one_exdev_raises_typed_error(
     source_dir: Path, dest_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

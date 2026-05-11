@@ -27,7 +27,16 @@ def recycle_file(
     session_id: str,
     recycle_root: Path = Path("data/recycle"),
 ) -> Path:
-    """Move `path` into `recycle_root/<session_id>/`; write manifest."""
+    """Move `path` into `recycle_root/<session_id>/`; write a per-file manifest.
+
+    FP21-D: per-file ``<basename>.manifest.json`` (was a single
+    ``manifest.json`` per dir, which multiple files in the same session
+    silently overwrote). The manifest is written **before** the move so
+    a failure during the manifest step leaves the source file untouched
+    — no rollback path needed. If the manifest write succeeds and the
+    move then fails, the manifest is unlinked so the recycle directory
+    doesn't accumulate metadata for files that aren't there.
+    """
     if not path.exists():
         raise RecycleError("source path does not exist", path=path)
 
@@ -35,70 +44,99 @@ def recycle_file(
     base = recycle_root / session_id
     # Same session, same filename (pathological — recycling identical paths
     # twice in one session): walk a `-1`, `-2`, ... counter on the parent
-    # directory. Different sessions never share a directory because
-    # session_id is unique per copy run (timestamp + random suffix).
+    # directory. Different basenames share the same dir per FP21-D (each
+    # gets its own `<basename>.manifest.json`).
     target_dir = base
     counter = 0
     while (target_dir / path.name).exists():
         counter += 1
         target_dir = base.with_name(f"{base.name}-{counter}")
-    # FP25-C: remember whether target_dir was created by this call so we
-    # can rm it on rollback without disturbing a sibling session's dir.
+    # Remember whether target_dir was created by this call so we can
+    # rm it on cleanup without disturbing a sibling session's dir.
     target_dir_existed = target_dir.exists()
     target_dir.mkdir(parents=True, exist_ok=True)
 
     target = target_dir / path.name
-    try:
-        shutil.move(str(path), str(target))
-    except OSError as exc:
-        if not target_dir_existed:
-            with contextlib.suppress(OSError):
-                target_dir.rmdir()
-        raise RecycleError(f"failed to move to recycle: {exc}", path=path) from exc
-
-    manifest = target_dir / "manifest.json"
+    # FP21-D: per-file manifest name. Two recycle_file calls with
+    # different basenames coexist; the FP02 counter-on-collision rule
+    # still applies for the (rare) same-basename-twice case.
+    manifest = target_dir / f"{path.name}.manifest.json"
     payload = {
         "recycled_at": now.isoformat(),
         "reason": reason,
         "session_id": session_id,
         "original_path": str(path),
     }
-    # FP20-B: atomic_write_text via tmp+rename so a crash mid-write
-    # leaves the prior manifest intact (or no manifest at all) — never
-    # a half-written file. Rule-of-three honoured: copy/playlist.py and
-    # cli/__init__.py already use the same helper.
-    # FP25-C: on manifest-write failure, roll the move back so the
-    # filesystem is in its pre-call state and wrap the OSError in
-    # RecycleError. The raw-OSError escape bypassed the typed-error
-    # envelope established at the move step above.
+
+    # FP21-D: write manifest first. If this fails the source file is
+    # untouched (never moved), so there is no rollback to perform — the
+    # filesystem is in the same state as before the call. atomic_write_text
+    # itself is tmp+rename+fsync (FP20-B) so a crash mid-write leaves no
+    # half-written manifest either.
     try:
         atomic_write_text(manifest, json.dumps(payload, indent=2))
     except OSError as exc:
-        recycled_orphan: Path | None = None
-        try:
-            shutil.move(str(target), str(path))
-        except OSError as rollback_exc:
-            # FP26-P: escalate to ERROR (data sits in an unknown state)
-            # and attach the orphan path to RecycleError so the caller
-            # can render a "manual cleanup needed at <path>" hint
-            # without relying on log scraping.
-            logger.error(
-                "FP25-C / FP26-P: recycle manifest write failed AND rollback "
-                "failed; orphan file at %s without manifest. rollback error: %s",
-                target,
-                rollback_exc,
-            )
-            recycled_orphan = target
-        else:
-            if not target_dir_existed:
-                with contextlib.suppress(OSError):
-                    target_dir.rmdir()
+        if not target_dir_existed:
+            with contextlib.suppress(OSError):
+                target_dir.rmdir()
         raise RecycleError(
             f"failed to write recycle manifest: {exc}",
             path=manifest,
-            recycled_orphan=recycled_orphan,
         ) from exc
+
+    # FP21-D: move after manifest is durable. On move failure, unlink
+    # the manifest so the recycle tree doesn't accumulate metadata for
+    # files that don't exist. The source file remains at its original
+    # location either way.
+    try:
+        shutil.move(str(path), str(target))
+    except OSError as exc:
+        with contextlib.suppress(OSError):
+            manifest.unlink()
+        if not target_dir_existed:
+            with contextlib.suppress(OSError):
+                target_dir.rmdir()
+        raise RecycleError(f"failed to move to recycle: {exc}", path=path) from exc
     return target
+
+
+def _latest_recycled_at(sub: Path) -> datetime | None:
+    """Return the max ``recycled_at`` across all manifests in ``sub``.
+
+    Supports both the FP21-D per-file ``<basename>.manifest.json`` shape
+    and the legacy single ``manifest.json`` shape so a recycle tree
+    written before the upgrade still purges correctly. Returns ``None``
+    when no readable manifest is present (corrupt JSON, permission
+    denied, no matching file at all); ``purge_recycle`` then falls back
+    to directory mtime.
+    """
+    latest: datetime | None = None
+    for manifest_path in sub.glob("*.manifest.json"):
+        ts = _read_recycled_at(manifest_path)
+        if ts is None:
+            continue
+        if latest is None or ts > latest:
+            latest = ts
+    legacy = sub / "manifest.json"
+    if legacy.exists():
+        ts = _read_recycled_at(legacy)
+        if ts is not None and (latest is None or ts > latest):
+            latest = ts
+    return latest
+
+
+def _read_recycled_at(manifest_path: Path) -> datetime | None:
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    ts_str = payload.get("recycled_at") if isinstance(payload, dict) else None
+    if not isinstance(ts_str, str):
+        return None
+    try:
+        return datetime.fromisoformat(ts_str)
+    except ValueError:
+        return None
 
 
 def purge_recycle(
@@ -106,22 +144,50 @@ def purge_recycle(
     older_than: timedelta = timedelta(days=30),
     recycle_root: Path = Path("data/recycle"),
 ) -> tuple[int, int]:
-    """Remove recycle subdirs older than `older_than`; return (dirs_purged, bytes_freed)."""
+    """Remove recycle subdirs older than `older_than`; return (dirs_purged, bytes_freed).
+
+    FP21-F: eligibility is keyed to the latest ``recycled_at`` across
+    the dir's manifests (not the dir's mtime, which advances on every
+    new file added). Falls back to dir mtime when no readable manifest
+    is present. ``bytes_freed`` is accumulated **after** a successful
+    ``shutil.rmtree`` so a partial-failure mid-purge doesn't over-report.
+    """
     if not recycle_root.exists():
         return (0, 0)
 
-    cutoff = time.time() - older_than.total_seconds()
+    cutoff = datetime.now(UTC) - older_than
+    cutoff_epoch = time.time() - older_than.total_seconds()
     dirs_purged = 0
     bytes_freed = 0
     for sub in sorted(recycle_root.iterdir()):
         if not sub.is_dir():
             continue
-        if sub.stat().st_mtime > cutoff:
+        latest_dt = _latest_recycled_at(sub)
+        if latest_dt is not None:
+            if latest_dt > cutoff:
+                continue
+        else:
+            try:
+                if sub.stat().st_mtime > cutoff_epoch:
+                    continue
+            except OSError:
+                continue
+        # Sum sizes before removal so a partial failure doesn't leave
+        # bytes_freed referencing already-deleted children. The
+        # accumulation only commits to the return total if rmtree
+        # succeeds.
+        sub_bytes = 0
+        try:
+            for child in sub.rglob("*"):
+                if child.is_file():
+                    try:
+                        sub_bytes += child.stat().st_size
+                    except OSError:
+                        continue
+            shutil.rmtree(sub)
+        except OSError:
+            logger.exception("purge_recycle: failed to remove %r", str(sub))
             continue
-        # Sum sizes before removal.
-        for child in sub.rglob("*"):
-            if child.is_file():
-                bytes_freed += child.stat().st_size
-        shutil.rmtree(sub)
+        bytes_freed += sub_bytes
         dirs_purged += 1
     return (dirs_purged, bytes_freed)

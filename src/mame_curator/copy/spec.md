@@ -222,13 +222,18 @@ Layout — one subdirectory per **copy session**, keyed by the session_id (which
 data/recycle/
 ├── 20260430T142305Z-deadbeef/
 │   ├── sf2.zip
+│   ├── sf2.zip.manifest.json    # FP21-D: per-file manifest
 │   ├── kof94.zip
-│   └── manifest.json    # {"recycled_at": "...", "reason": "REPLACE_AND_RECYCLE", "session_id": "..."}
+│   └── kof94.zip.manifest.json
 └── 20260501T091244Z-cafef00d/
     └── ...
 ```
 
-(Pre-FP02, dirnames were the timestamp alone. Two sessions recycling within the same second collided on the directory and the second session's `manifest.json` overwrote the first's. Session-keyed dirnames make cross-session collisions impossible — see ROADMAP § FP02.)
+Each recycled file gets its own `<basename>.manifest.json` (FP21-D). The
+payload is `{"recycled_at": "...", "reason": "REPLACE_AND_RECYCLE",
+"session_id": "...", "original_path": "..."}`.
+
+(Pre-FP02, dirnames were the timestamp alone. Two sessions recycling within the same second collided on the directory and the second session's `manifest.json` overwrote the first's. Session-keyed dirnames make cross-session collisions impossible — see ROADMAP § FP02. Pre-FP21-D, the per-dir `manifest.json` was overwritten when multiple files from the same session were recycled — per-file naming fixes that.)
 
 Public functions:
 
@@ -252,7 +257,9 @@ def purge_recycle(
 
 `recycle_file` MUST be atomic on the same filesystem (same `os.replace` discipline as `copy_one`). On a cross-filesystem move (e.g. dest is on USB, project is on internal), it falls back to `shutil.move` which is `copy + unlink`; a crash mid-move on cross-FS leaves the source file intact — that's the right failure mode (no data loss).
 
-The accompanying `manifest.json` write is routed through `_atomic.atomic_write_text` (FP20-B): tmp+rename+fsync+cleanup so a crash mid-write leaves either the prior manifest or no manifest at all — never a half-written record. FP25-C wraps the `atomic_write_text` call in a try/except that raises `RecycleError` (typed-error envelope) AND rolls the recycled file back to its original location (all-or-nothing invariant). If the rollback itself fails, a WARNING log names the orphan and the original `RecycleError` still propagates so the caller can surface a "manual cleanup needed" hint.
+The accompanying `<basename>.manifest.json` write is routed through `_atomic.atomic_write_text` (FP20-B): tmp+rename+fsync+cleanup so a crash mid-write leaves either the prior manifest or no manifest at all — never a half-written record. **FP21-D ordering:** the manifest is written **before** the source file is moved; a failure during the manifest write therefore leaves the source untouched (no rollback path needed). If the manifest write succeeds and the move then fails, the just-written manifest is unlinked so the recycle directory doesn't accumulate metadata for files that aren't there. The pre-FP21-D move-then-write-then-rollback envelope (FP25-C) is superseded by this ordering — under any single-step failure, the source file is intact at its original location.
+
+`purge_recycle` decides eligibility from the latest `recycled_at` across the dir's manifests (FP21-F); legacy single-`manifest.json` layouts are also read so a recycle tree written before the FP21-D upgrade purges correctly. Falls back to directory mtime when no readable manifest is present.
 
 `purge_recycle` runs only on explicit user opt-in (CLI `mame-curator copy --purge-recycle` or API `POST /api/copy/recycle/purge`). It is NOT automatic — the design's 30-day retention is a *minimum*; users can keep recycle indefinitely.
 

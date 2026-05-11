@@ -6,6 +6,8 @@ import time
 from datetime import timedelta
 from pathlib import Path
 
+import pytest
+
 from mame_curator.copy import purge_recycle, recycle_file
 
 
@@ -26,14 +28,18 @@ def test_recycle_moves_file_into_timestamped_dir(tmp_path: Path) -> None:
 
 
 def test_recycle_writes_manifest(tmp_path: Path) -> None:
-    """manifest.json beside recycled file records reason + session_id."""
+    """``<basename>.manifest.json`` beside the recycled file records the metadata.
+
+    FP21-D: per-file manifest naming (was a single ``manifest.json`` that
+    multiple files in the same session-dir overwrote).
+    """
     src = tmp_path / "sf2.zip"
     src.write_bytes(b"x")
     recycle_root = tmp_path / "recycle"
     new_path = recycle_file(
         src, reason="REPLACE_AND_RECYCLE", session_id="01HZZ", recycle_root=recycle_root
     )
-    manifest = new_path.parent / "manifest.json"
+    manifest = new_path.parent / "sf2.zip.manifest.json"
     assert manifest.exists()
     text = manifest.read_text(encoding="utf-8")
     assert "REPLACE_AND_RECYCLE" in text
@@ -98,3 +104,95 @@ def test_recycle_idempotent_timestamp_collision(tmp_path: Path) -> None:
     # Both files exist after both calls.
     assert p1.exists() and p1.read_bytes() == b"a"
     assert p2.exists() and p2.read_bytes() == b"b"
+
+
+def test_fp21_d_per_file_manifests_dont_collide(tmp_path: Path) -> None:
+    """FP21-D: recycling two files into the same session dir produces TWO
+    manifests, one per file. Pre-fix the second call's ``manifest.json``
+    overwrote the first, silently losing the first file's metadata.
+    """
+    src1 = tmp_path / "a.zip"
+    src1.write_bytes(b"a")
+    src2 = tmp_path / "b.zip"
+    src2.write_bytes(b"b")
+    recycle_root = tmp_path / "recycle"
+
+    p1 = recycle_file(src1, reason="r1", session_id="s", recycle_root=recycle_root)
+    p2 = recycle_file(src2, reason="r2", session_id="s", recycle_root=recycle_root)
+    # Both files land in the SAME parent directory (no -1 / -2 counter
+    # because the basenames differ).
+    assert p1.parent == p2.parent
+    # And each has its own manifest, distinct from the other.
+    m1 = p1.parent / "a.zip.manifest.json"
+    m2 = p1.parent / "b.zip.manifest.json"
+    assert m1.exists() and m2.exists()
+    assert "r1" in m1.read_text(encoding="utf-8")
+    assert "r2" in m2.read_text(encoding="utf-8")
+
+
+def test_fp21_d_source_intact_when_manifest_write_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FP21-D: write-manifest-then-move ordering means the source file is
+    NEVER moved if the manifest write fails. Pre-fix used move-then-write
+    with a rollback envelope (FP25-C); on rollback failure the source was
+    orphaned. With write-first, the source is intact under any failure.
+    """
+
+    def failing_atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8") -> None:
+        raise OSError("simulated ENOSPC")
+
+    monkeypatch.setattr("mame_curator.copy.recyclebin.atomic_write_text", failing_atomic_write_text)
+
+    src = tmp_path / "sf2.zip"
+    src.write_bytes(b"original content")
+    recycle_root = tmp_path / "recycle"
+
+    with pytest.raises(Exception, match="manifest"):
+        recycle_file(src, reason="x", session_id="s", recycle_root=recycle_root)
+
+    # Source untouched — no rollback path was needed because the file
+    # never moved.
+    assert src.exists() and src.read_bytes() == b"original content"
+    # No half-written state inside the recycle tree.
+    target_dir = recycle_root / "s"
+    if target_dir.exists():
+        assert list(target_dir.iterdir()) == []
+
+
+def test_fp21_f_purge_uses_manifest_recycled_at_over_dir_mtime(
+    tmp_path: Path,
+) -> None:
+    """FP21-F: ``purge_recycle`` decides eligibility from
+    ``manifest['recycled_at']``, not from directory mtime which advances
+    on every new file added.
+
+    Setup: recycle a file (writes manifest with NOW as recycled_at),
+    then **artificially advance the dir mtime backwards** to a value 40
+    days ago. Pre-fix the dir-mtime check would mark the dir purgeable;
+    post-fix the manifest's NOW timestamp keeps it.
+    """
+    import os as _os
+
+    recycle_root = tmp_path / "recycle"
+    src = tmp_path / "sf2.zip"
+    src.write_bytes(b"x")
+    new_path = recycle_file(src, reason="x", session_id="s", recycle_root=recycle_root)
+    target_dir = new_path.parent
+
+    # Push BOTH dir and manifest mtimes back 40 days so dir-mtime would
+    # decide purge eligible — but recycled_at inside the manifest is
+    # still today.
+    old_time = time.time() - 40 * 86400
+    for child in target_dir.rglob("*"):
+        _os.utime(child, (old_time, old_time))
+    _os.utime(target_dir, (old_time, old_time))
+
+    dirs_purged, bytes_freed = purge_recycle(
+        older_than=timedelta(days=30), recycle_root=recycle_root
+    )
+    assert dirs_purged == 0, (
+        "manifest's recycled_at is today; mtime backdating must not trigger purge"
+    )
+    assert bytes_freed == 0
+    assert target_dir.exists()

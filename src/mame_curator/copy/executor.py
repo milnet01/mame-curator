@@ -58,7 +58,22 @@ def copy_one(
 
     dst.parent.mkdir(parents=True, exist_ok=True)
     tmp = dst.with_suffix(dst.suffix + ".tmp")
-    total = src.stat().st_size
+    # FP21-G: source can disappear between an upstream existence check
+    # and this ``stat`` (TOCTOU). Return the SKIPPED variant instead of
+    # raising ``FileNotFoundError`` — the runner already has typed
+    # handling for "missing source"; "failed mid-copy" was the wrong
+    # bucket for this case.
+    try:
+        total = src.stat().st_size
+    except FileNotFoundError:
+        return CopyOutcome(
+            short_name=short_name,
+            role=role,
+            status=CopyOutcomeStatus.SKIPPED_MISSING_SOURCE,
+            src=src,
+            dst=dst,
+            bytes=0,
+        )
     # try/finally over try/except so KeyboardInterrupt, MemoryError, and any
     # other BaseException also trigger tmp cleanup. The OSError branch wraps
     # into CopyExecutionError; everything else propagates with the .tmp gone.

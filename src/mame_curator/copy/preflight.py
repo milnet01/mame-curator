@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+from mame_curator.copy.bios import resolve_bios_dependencies
 from mame_curator.copy.types import CopyPlan, PreflightResult
 
 
@@ -26,6 +27,13 @@ def _is_idempotent(src: Path, dst: Path) -> bool:
     return s.st_size == d.st_size and abs(s.st_mtime - d.st_mtime) < 1.0
 
 
+def _size_or_zero(p: Path) -> int:
+    try:
+        return p.stat().st_size if p.exists() else 0
+    except OSError:
+        return 0
+
+
 def preflight(plan: CopyPlan) -> PreflightResult:
     """Check source/destination filesystems; return PreflightResult (never raises)."""
     missing: list[str] = []
@@ -45,10 +53,19 @@ def preflight(plan: CopyPlan) -> PreflightResult:
     free_space_gap = 0
     if dest_writable:
         try:
+            # FP21-E: include BIOS-chain zips in total_needed. ``run_copy``
+            # transfers ``winners | bios_set``; summing only winners
+            # under-counted by the BIOS chain's size — a 50 MB neogeo
+            # missing from the estimate could shadow an ENOSPC failure
+            # later. Subtract ``already_copied`` so re-runs report a
+            # meaningful gap instead of phantom shortfall.
+            bios_set, _bios_warnings = resolve_bios_dependencies(plan.winners, plan.bios_chain)
+            transfer_set: set[str] = set(plan.winners) | bios_set
+            already_set = set(already)
             total_needed = sum(
-                (plan.source_dir / f"{w}.zip").stat().st_size
-                for w in plan.winners
-                if (plan.source_dir / f"{w}.zip").exists()
+                _size_or_zero(plan.source_dir / f"{short}.zip")
+                for short in transfer_set
+                if short not in already_set
             )
             anchor = plan.dest_dir if plan.dest_dir.exists() else plan.dest_dir.parent
             if anchor.exists():
