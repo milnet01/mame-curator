@@ -1960,7 +1960,7 @@ closes.
 
 ---
 
-## FP21 — `/indie-review` Tier 2: hardening sweep (planned)
+## FP21 — `/indie-review` Tier 2: hardening sweep (closed 2026-05-11)
 
 **Theme:** Tier 2 fold-in from the 2026-05-04 multi-agent review.
 Real-bug class — manifests on common paths, but not a security
@@ -1968,9 +1968,19 @@ hole or silent-loss vector. Bundles spec drift, recycle-bin
 correctness, SSE edge cases, and the API mutation route
 ergonomics.
 
+20 sub-bullets shipped across 5 commits (filter A/B/C → copy
+D/E/F/G → api H/J → api I/K/L/M/N/O → downloads P + run.sh Q +
+frontend R/S/T). 523 backend / 273 frontend tests green; coverage
+86.79%; ruff + ruff format + mypy + bandit + eslint + tsc clean.
+FP21-L investigated and ruled non-reachable; defensive guard
+preserved with a pinning test. FP22-D (RetroArchNotConfiguredError
+byCode) closed in J. FP25-C move-then-rollback envelope superseded
+by D's write-then-move ordering — source intact under any single-
+step failure path.
+
 ### 🐛 Bug fixes
 
-- 📋 **FP21** [mame-curator-1020] **Indie-review Tier 2 — hardening + correctness.**
+- ✅ **FP21** [mame-curator-1020] **Indie-review Tier 2 — hardening + correctness.**
   Lanes: filter, copy, api, frontend.
   - **A — `filter/picker.py:182-185` `explain_pick` decisive
     semantics.** Spec line 63: "the tiebreaker(s) that **actually

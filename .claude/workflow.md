@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | FP20 + FP25 + FP26 cascade closed 2026-05-11. FP20 spawned FP25 (closing-review fold-in); FP25 spawned FP26 (closing-review fold-in + UX walkthrough). All three clean-close at this commit; tags `FP20-complete`, `FP25-complete`, `FP26-complete` distinct SHAs. Queue continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. |
-| **Active item ID** | (none — FP21 ready to pick up) |
+| **Project phase** | FP21 closed 2026-05-11 (5 commits, 20 sub-bullets across filter / copy / api / downloads / run.sh / frontend lanes). Queue continues **DS02 → DS03 → P09 polish → post-v1**. ROADMAP format refactor (user request mid-session) is the next item before DS02. |
+| **Active item ID** | (none — ROADMAP format refactor + DS02 next) |
 | **Active step** | — |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-11 (FP20/FP25/FP26 three-level cascade closed; 504 backend tests + 273 frontend + 9 Playwright e2e all green; ruff + mypy + bandit + eslint + tsc clean; user's Playwright walkthrough direction surfaced FP26-V which then closed inside FP26 itself) |
-| **Next gate** | Pick up FP21 (`/indie-review` Tier 2 hardening sweep — bundles spec drift + recycle-bin correctness + SSE edge cases + API mutation route correctness + FP22-D RetroArchNotConfiguredError follow-on). When FP21 closes, DS02 (Tier 3 structural debt) follows. |
+| **Last update** | 2026-05-11 (FP21 closed clean; 523 backend tests + 273 frontend tests green; coverage 86.79%; ruff + ruff format + mypy + bandit + eslint + tsc clean; FP22-D byCode closed inside J; L investigated and ruled non-reachable; FP25-C envelope superseded by D's write-first ordering) |
+| **Next gate** | User-requested ROADMAP format refactor — adopt the Ants_Terminal format (stable IDs, status emojis, theme sections, position-is-priority) with `mame-roadmap-format: 1` pragma. After that, DS02 (Tier 3 structural debt). |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -140,6 +140,7 @@ nominal. Both tags point at `56449c6`.
 | FP20 | — | ✅ | 2026-05-11 | 2026-05-11 | Indie-review Tier 1 — security + data-loss fixes (parser XXE/zip-bomb, copy non-atomic writes, API mutation lock, sandbox stale paths, help-dir symlink, download URL scheme, useApiQuery silent-failure, GameCard aria-label clobber, LibraryPage error-panel gap, SnapshotsTab restore-error, FsBrowser Esc-closes-everything, HelpPage DOMPurify config). 12 sub-bullets A–L shipped 14 commits; closing audit produced FP25 → FP26 cascade; all closed clean 2026-05-11. |
 | FP25 | — | ✅ | 2026-05-11 | 2026-05-11 | FP20 closing-review fold-in — `world_lock` on remaining 7 mutation routes (A); activity-log durability + typed ActivityLogError (B); recyclebin manifest atomicity envelope (C); 0o644 perm-mode parity (D); concurrent-append property test (E); manifest-atomicity test (F); toastApiError 1.5s dedup window (G); LibraryErrorPanel Retry isFetching gate (H); HelpPage scoped DOMPurify (I); deterministic data-URL test (J); 12-item doc + comment cleanup (K). 11 sub-bullets shipped 8 commits; closing audit produced FP26; closed clean at this SHA. |
 | FP26 | — | ✅ | 2026-05-11 | 2026-05-11 | FP25 closing-review fold-in + UX e2e walkthroughs — Tier 1 test sufficiency (A: world_lock asserted_set_world; B: mkdir envelope; C: vacuous FP25-F asserts; D: macOS-fork skip; V: sticky LibraryErrorPanel during refetch — surfaced by user's Playwright walkthrough direction, NOT by unit tests); Tier 2 doc/test polish (E P04 _deactivate spec; F parent-dir fsync; G copy/spec.md drift; I queryClient reset; J/K apiErrorToast docblock; L drop FP25-K(12) no-op; M allowlist-004 refresh; N tracking-lock duck-type note; P RecycleError.recycled_orphan); Tier 3 Playwright UX walkthroughs (Q/R/S/T) + LOW polish (U). 21 sub-bullets shipped 5 commits; closed on five-gate green per FP11 precedent. **Workflow lesson:** e2e walkthroughs catch host-conditional unmount bugs that unit tests miss when the test renders the child directly. |
+| FP21 | — | ✅ | 2026-05-11 | 2026-05-11 | `/indie-review` Tier 2 hardening sweep — 20 sub-bullets across filter (A picker decisive / B sessions typed-error spec / C drops strict-identity), copy (D recyclebin per-file manifest write-first / E preflight BIOS chain / F purge_recycle manifest-keyed / G executor TOCTOU), api (H FileResponse / I shutdown logging / J typed launch errors + FP22-D byCode / K SSE register-before-replay snapshot / L non-reachable analysis + guard / M snapshot LRU / N AppConfigPatch + deep_merge depth cap / O import sentinel), downloads (P streaming + 100 MB cap), run.sh (Q curl tls), frontend (R bake toastApiError / S useKeyboard ref-based / T LibraryGrid grid semantics). Shipped 5 commits; closed on five-gate green per FP10/FP11 precedent (narrow-scope per-bullet TDD made multi-agent closing audit low-yield). **Workflow lesson:** write-first ordering for atomicity envelopes is simpler than move-then-rollback and produces stronger source-intact invariants under failure. |
 | P09 | Phase 9 | 📋 | — | — | Polish + v1.0.0 release |
 | P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
 | P11 | — | 📋 | — | — | Contribute missing thumbnails to libretro-thumbnails (post-v1; depends on P05 ✅, composes with P10) |
@@ -176,6 +177,60 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-11 — FP21 closed (Tier 2 hardening sweep, 20 sub-bullets)
+
+User said "Can we continue with the oldest uncompleted work from the
+roadmap please." That was FP21 per the queued order. Step 1
+verification swept all 20 sub-bullets against current code in
+parallel reads — found 19 real bugs + 1 (L) ruled non-reachable on
+analysis. Step 3+4 ran per-bullet TDD across 5 themed batches.
+
+**Mid-session events:**
+
+- User asked "Does this project have a FUNDING.yml file?" — yes,
+  `.github/FUNDING.yml` with `github: [milnet01]`. One-question
+  detour; FP21 resumed.
+- User requested a ROADMAP format refactor (adopt Ants_Terminal
+  conventions). Folded into the queue as the next item AFTER FP21
+  close, since the format refactor touches ~2800 lines and is
+  conceptually separate from the fix-pass.
+
+**Workflow lessons saved:**
+
+- **Write-first beats move-then-rollback for atomicity.** FP25-C
+  shipped a move-then-rollback envelope on recycle_file with
+  defensive logic for rollback failure (the orphan-file case).
+  FP21-D's swap-the-order ordering removes the worst case entirely:
+  a write failure means the source never moved, so there's nothing
+  to roll back. Pattern saved: when designing crash-safety
+  envelopes, prefer "do the easily-reversible thing first" over
+  "do the hard thing first with rollback."
+- **`call_soon_threadsafe` FIFO from same thread.** This ruled out
+  FP21-L (late-progress-after-terminal) as a reachable bug. The
+  worker thread sequentially queues progress callbacks then the
+  terminal callback; the loop processes them in queue order; no
+  reorder possible. Pattern saved: when analysing concurrent
+  dispatch races, check the producer-side ordering guarantees
+  before assuming the consumer needs special handling.
+- **Per-opponent first-decisive is observable.** FP21-A's snapshot
+  delta touched every contested group in the smoke fixture — the
+  prior over-reporting was actually being read by tests, not just
+  spec-internal. Snapshot regeneration was the right move; the
+  alternative (re-engineering tests around the new shape) would
+  have left the spec promise unfulfilled.
+- **Closing on per-bullet TDD instead of /close-phase audits.**
+  For narrow-scope per-bullet fix-passes, the multi-agent closing
+  audit returns near-zero findings (FP10 precedent confirmed
+  twice). FP21 followed FP10/FP11's user-elected close-on-five-gate
+  green path rather than dispatching /audit + /indie-review. The
+  per-bullet TDD discipline plus the snapshot-regenerated picker
+  test plus the 8 new regression tests in tests/api/test_fp21_fixes.py
+  + tests/copy/test_recyclebin.py + tests/copy/test_preflight.py
+  + tests/copy/test_executor.py provide tight coverage of the
+  changed surface.
+
+Tag: `FP21-complete` (annotated) at this commit.
 
 ### 2026-05-08 — FP22 closed (Launch button RetroArch gate)
 

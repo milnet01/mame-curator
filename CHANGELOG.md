@@ -17,6 +17,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP21 — `/indie-review` Tier 2 hardening sweep (closed 2026-05-11)
+
+20 sub-bullets across `filter/`, `copy/`, `api/`, `downloads.py`,
+`run.sh`, and the frontend, sourced from the 2026-05-04 multi-agent
+review's Tier 2 fold-in. Real-bug class — manifests on common paths
+but not a security hole or silent-loss vector. Shipped across 5
+commits:
+
+- **Filter A/B/C** `8363996` — `picker.explain_pick` now records the
+  FIRST decisive tiebreaker per opponent (with union across opponents)
+  instead of every tiebreaker that returned `<0` against any opponent;
+  `tests/snapshots/filter_smoke.json` regenerated. `drops._device`
+  uses strict-identity `m.runnable is False` so a future widening to
+  `bool | None` doesn't flip "unknown" into DEVICE. `filter/spec.md`
+  clarifies the per-opponent first-decisive semantics and the typed-
+  error contract (loader → `SessionsError`; direct construction →
+  Pydantic `ValidationError`).
+- **Copy D/E/F/G** `e7a88f1` — `recyclebin.recycle_file` writes a
+  per-file `<basename>.manifest.json` (was a per-dir `manifest.json`
+  that multiple files in the same session overwrote), and writes the
+  manifest BEFORE moving the file so the source is intact under any
+  single-step failure. `preflight.preflight` includes BIOS-chain zips
+  in `total_needed` and subtracts `already_copied` so the free-space
+  gap reflects what `run_copy` actually transfers. `purge_recycle`
+  decides eligibility from the latest `recycled_at` across manifests
+  (legacy `manifest.json` fallback supported), and accumulates
+  `bytes_freed` only after a successful `rmtree`. `executor.copy_one`
+  wraps the initial `src.stat()` in `try/except FileNotFoundError →
+  SKIPPED_MISSING_SOURCE` instead of FAILED.
+- **API H + J** `f24a458` — `routes/media.media_proxy` returns
+  `FileResponse(path)` instead of sync `path.read_bytes()` so the
+  asyncio event loop interleaves under thumbnail fan-out.
+  `routes/games.launch_game` raises typed
+  `RetroArchNotConfiguredError(422)` and `RomFileNotFoundError(404)`;
+  `strings.ts` byCode entries land beside the new codes — closes
+  FP22-D that was deferred so the strings.ts no-dead-entry contract
+  held.
+- **API I/K/L/M/N/O** `0311040` — lifespan shutdown logs a WARNING
+  on `thread.is_alive()` after join timeout (was silent detach).
+  `JobManager._events_iterator` snapshots history to local tuples
+  before `heapq.merge` and registers the subscriber before draining
+  — fixes a real `deque mutated during iteration` race and a "lost
+  events between replay and append" gap. L investigated and ruled
+  non-reachable; defensive guard pinned with a test.
+  `persist.snapshot_files` prunes oldest siblings beyond
+  `MAX_SNAPSHOTS = 200`. `routes/config.patch_config` validates the
+  body through a new `AppConfigPatch` (extra='forbid') per spec line
+  647, with `deep_merge` depth-capped at 10 as defence-in-depth.
+  `routes/config.import_config` drops `data/import.in_progress`
+  during the 4-file batch so a startup-time check can detect a
+  half-applied import.
+- **Downloads P + run.sh Q + frontend R/S/T** `b6c6728` —
+  `downloads.download` streams via `client.stream` +
+  `aiter_bytes`, summing against `DEFAULT_MAX_BYTES = 100 MB` with
+  Content-Length pre-check. `run.sh` pins `curl --proto '=https'
+  --tlsv1.2` on the uv installer pipe. `useAlternatives`'
+  `useOverride` + `useLaunchGame` bake `toastApiError` into
+  `onError`. `useKeyboard` stores bindings in a ref so the listener
+  registers once per lifetime — chord shortcuts (`g l`) now survive
+  re-renders. `LibraryGrid` adds composite-grid semantics:
+  `role="grid"` + `role="row"` + `role="gridcell"` with roving
+  `tabindex`, arrow / `j` / `k` / `o` / Enter / Home / End nav, and
+  `virtualizer.scrollToIndex` on focus moves.
+
+**FP25-C envelope superseded:** the move-then-rollback approach is
+replaced by FP21-D's write-then-move ordering. `RecycleError.recycled_orphan`
+remains as a vestigial field (never set under the new ordering) for
+backward compat with FP26-P callers.
+
+**Test totals:** 523 backend / 273 frontend pass; coverage 86.79%;
+ruff + ruff format + mypy + bandit + eslint + tsc all clean.
+
 ### FP26 — FP25 closing-review fold-in + UX e2e walkthroughs (closed 2026-05-11)
 
 21 sub-bullets sourced from FP25's closing `/audit` + 4-lane
