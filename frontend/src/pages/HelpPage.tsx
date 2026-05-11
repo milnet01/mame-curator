@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import DOMPurify from 'dompurify'
+import DOMPurify, { type Config } from 'dompurify'
 
 import { strings } from '@/strings'
 import { cn } from '@/lib/utils'
@@ -17,7 +17,7 @@ import type { HelpTopic } from '@/api/types'
 //     forms that could otherwise auto-submit on render.
 //   FORBID_ATTR — inline ``style="..."`` is stripped on every
 //     element, complementing FORBID_TAGS for the same threat.
-const HELP_SANITIZE_CONFIG: DOMPurify.Config = {
+const HELP_SANITIZE_CONFIG: Config = {
   ALLOWED_URI_REGEXP: /^(?:https?|mailto):/i,
   FORBID_TAGS: ['style', 'form'],
   FORBID_ATTR: ['style'],
