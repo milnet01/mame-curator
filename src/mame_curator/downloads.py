@@ -24,12 +24,20 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 
 from mame_curator._atomic import atomic_write_bytes
 
 logger = logging.getLogger(__name__)
+
+# FP20-F: schemes accepted by ``download()``. Everything else (file, data,
+# ftp, javascript, gopher, …) raises ``InvalidUrlError`` at function entry
+# before any ``httpx.AsyncClient.get`` call. A misconfigured transport
+# could otherwise let ``file://`` exfiltrate local content or ``data:``
+# inject arbitrary bodies.
+_ALLOWED_URL_SCHEMES = frozenset({"http", "https"})
 
 
 class DownloadError(Exception):
@@ -38,6 +46,19 @@ class DownloadError(Exception):
 
 class ChecksumMismatch(DownloadError):
     """Downloaded file's sha256 didn't match the expected value."""
+
+
+class InvalidUrlError(DownloadError):
+    """FP20-F: URL scheme is not in the http/https allowlist."""
+
+
+def _check_scheme(u: str) -> None:
+    scheme = urlparse(u).scheme.lower()
+    if scheme not in _ALLOWED_URL_SCHEMES:
+        raise InvalidUrlError(
+            f"download(): URL scheme {scheme!r} not allowed (expected one of "
+            f"{sorted(_ALLOWED_URL_SCHEMES)}): {u!r}"
+        )
 
 
 @dataclass(frozen=True)
@@ -68,6 +89,11 @@ async def download(
     the caller's responsibility.
     """
     urls_to_try = [url, *mirrors]
+    # FP20-F: validate every URL up-front so a poisoned mirror can't
+    # trigger a transport-level attack on fallback.
+    for u in urls_to_try:
+        _check_scheme(u)
+
     last_error = ""
 
     for u in urls_to_try:

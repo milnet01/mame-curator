@@ -16,7 +16,7 @@ import httpx
 import pytest
 import respx
 
-from mame_curator.downloads import ManualFallback, download
+from mame_curator.downloads import InvalidUrlError, ManualFallback, download
 
 
 @pytest.fixture(autouse=True)
@@ -171,3 +171,52 @@ async def test_download_checksum_mismatch_falls_through_to_mirror(
 
     assert result == dest
     assert dest.read_bytes() == body
+
+
+# ---- FP20-F: URL scheme allowlist (http / https only) -----------------------
+
+
+@pytest.mark.parametrize(
+    "bad_url",
+    [
+        "file:///etc/passwd",
+        "ftp://example.com/foo.ini",
+        "data:text/plain,hello",
+        "javascript:alert(1)",
+        "gopher://example.com/",
+    ],
+)
+@pytest.mark.asyncio
+async def test_download_rejects_non_http_scheme(tmp_path: Path, bad_url: str) -> None:
+    """FP20-F: download() must reject schemes outside http(s) at function entry.
+
+    Without this check, a misconfigured (or attacker-controlled) URL could
+    drive ``httpx.AsyncClient.get`` to a custom transport that opens
+    ``file://`` for local exfiltration or ``data:`` for arbitrary in-memory
+    bodies. The expected behaviour is a typed ``InvalidUrlError`` raised
+    BEFORE any network attempt — no respx mocks armed, so if the check
+    silently passed httpx would fail with a different error and the
+    test would mis-diagnose.
+    """
+    dest = tmp_path / "out.ini"
+    async with httpx.AsyncClient() as client:
+        with pytest.raises(InvalidUrlError):
+            await download(url=bad_url, dest=dest, client=client)
+    assert not dest.exists()
+
+
+@pytest.mark.asyncio
+async def test_download_rejects_bad_scheme_in_mirrors(tmp_path: Path) -> None:
+    """FP20-F: mirrors[] entries are validated alongside the primary URL.
+
+    A valid primary masking a poisoned mirror would still trigger the
+    transport-level attack on fallback. Validation is upfront so the
+    failure happens before any network call.
+    """
+    primary = "https://example.com/ok.ini"
+    bad_mirror = "file:///etc/passwd"
+    dest = tmp_path / "out.ini"
+    async with httpx.AsyncClient() as client:
+        with pytest.raises(InvalidUrlError):
+            await download(url=primary, dest=dest, client=client, mirrors=[bad_mirror])
+    assert not dest.exists()
