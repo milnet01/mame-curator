@@ -21,10 +21,16 @@ _SLUG_RE = re.compile(r"^[a-z0-9_-]{1,64}$")
 
 
 def _help_dir() -> Path:
+    # FP20-E: every return path is canonicalised via ``.resolve()`` so that
+    # ``help_index()`` (which globs ``base`` directly) and ``help_topic()``
+    # (which calls ``relative_to(base.resolve())``) operate on identical
+    # paths. Without this, a symlinked ``MAME_CURATOR_HELP_DIR`` lets the
+    # two endpoints disagree on what is "inside" the help directory and
+    # weakens the traversal guard at line 54.
     override = os.environ.get("MAME_CURATOR_HELP_DIR")
     if override:
-        return Path(override)
-    return Path(__file__).resolve().parents[3].parent / "docs" / "help"
+        return Path(override).resolve()
+    return (Path(__file__).resolve().parents[3].parent / "docs" / "help").resolve()
 
 
 def _read_title(md_path: Path) -> str:
