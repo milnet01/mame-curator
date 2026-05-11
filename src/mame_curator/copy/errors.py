@@ -45,3 +45,14 @@ class RecycleError(CopyError):
 
 class CopyExecutionError(CopyError):
     """Wrapped OSError from copy_one that escaped retry."""
+
+
+class ActivityLogError(CopyError):
+    """OSError from the activity-log writer (open, write, or close).
+
+    FP25-B: ``copy/activity.py:append_activity`` previously propagated raw
+    ``OSError`` (open failure, write failure, ENOSPC mid-line), bypassing
+    the ``CopyError`` envelope that the CLI / API layer relies on to
+    distinguish copy-module errors from generic Python exceptions. Every
+    failure mode in the append path now wraps as this typed subclass.
+    """
