@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | v1.2.0 shipped — FP20 (indie-review Tier 1 security + data-loss) underway since 2026-05-11; A–F landed (backend complete), G–L (frontend) still pending |
-| **Active item ID** | FP20 — `/indie-review` Tier 1: security + data-loss (12 sub-bullets A–L, 6 of 12 landed; all backend done) |
-| **Active step** | 4 — implementation (TDD-driven, per-sub-bullet commits) |
+| **Project phase** | v1.2.0 shipped — FP20 (indie-review Tier 1 security + data-loss) Step 4 complete 2026-05-11; all 12 sub-bullets A–L landed across backend + frontend, awaiting Step 5 `/audit` + Step 6 `/indie-review` |
+| **Active item ID** | FP20 — `/indie-review` Tier 1: security + data-loss (12 of 12 sub-bullets landed) |
+| **Active step** | 4 ✅ → 5 (audit) ready to start |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-11 (FP20-D `52a112c`, FP20-E `73f2df8`, FP20-F `c49225b`; 473 backend tests green at coverage 87.10%) |
-| **Next gate** | After FP20 closes (A–L all landed + `/audit` + `/indie-review` clean), queue continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. Inside FP20, the backend trio D/E/F shipped this session; remaining work is frontend sub-bullets **G** (`useApiQuery` toast funnel) → **H** (`GameCard` aria-label) → **I** (`LibraryPage` error panel) → **J** (`SnapshotsTab` inline surface) → **K** (`FsBrowser` Esc) → **L** (`HelpPage` DOMPurify). FP22-D folds into FP21 § J. |
+| **Last update** | 2026-05-11 (FP20-L `c9e61b5` + tsc follow-up `d819181`; 473 backend tests + 265 frontend tests all green; backend coverage 87.10%) |
+| **Next gate** | Run `/close-phase` to orchestrate Step 5 `/audit` + Step 6 `/indie-review` in parallel against the FP20 surface, triage findings, then either close FP20 cleanly (tag `FP20-complete`, push) or spawn FP25 for fix-pass items. After FP20 closes the queue continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. FP22-D folds into FP21 § J. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,7 +21,7 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-**FP20 — `/indie-review` Tier 1 fold-in (Step 4 ongoing)**
+**FP20 — `/indie-review` Tier 1 fold-in (Step 4 complete, Step 5/6 next)**
 
 - ✅ Step 1 — spec (sub-bullets A–L enumerated in `ROADMAP.md § FP20`,
   sourced from 2026-05-04 indie-review)
@@ -30,11 +30,12 @@ becomes active.
 - ✅ Step 3 — tests-first (XXE + Billion Laughs + zip-bomb; atomic
   `os.write`; `asyncio.Lock` instance — all failing-test scaffolding
   written before implementation)
-- 🚧 Step 4 — implementation (6 of 12 sub-bullets landed: A `c3ee50c`,
-  B `6a12a93`, C `61fbc68`, D `52a112c`, E `73f2df8`, F `c49225b`;
-  backend complete, frontend G–L next)
-- ⬜ Step 5 — `/audit` (static analysis sweep across the FP20 surface)
-- ⬜ Step 6 — `/indie-review` (closing review of the FP20 fold-in itself)
+- ✅ Step 4 — implementation (12 of 12 sub-bullets landed: A `c3ee50c`,
+  B `6a12a93`, C `61fbc68`, D `52a112c`, E `73f2df8`, F `c49225b`,
+  G `76a3010`, H `7cc8796`, I `4b4faca`, J `3bb01ef`, K `e149c1c`,
+  L `c9e61b5` + tsc follow-up `d819181`)
+- 🚧 Step 5 — `/audit` (static analysis sweep across the FP20 surface) — ready
+- 🚧 Step 6 — `/indie-review` (closing review of the FP20 fold-in itself) — ready
 - ⬜ Step 7 — fix-pass against Step 5+6 findings (may spawn FP25)
 - ⬜ Step 8 — final five-gate green
 - ⬜ Step 9 — close: tag `FP20-complete`, update CHANGELOG/ROADMAP
@@ -55,15 +56,20 @@ failures). Sub-bullets landed so far:
 - **D** `compose_allowlist` drops stale granted_roots (`api/fs.py`)
 - **E** `_help_dir()` resolves at the source (`api/routes/help.py`)
 - **F** `download()` http/https scheme allowlist (`downloads.py`)
-
-Remaining (all frontend):
-
-- **G** `useApiQuery` silent error path (frontend)
-- **H** `GameCard` `aria-label` clobbers accessible name (frontend)
-- **I** `LibraryPage` swallows query errors (frontend)
-- **J** `SnapshotsTab` restore failure no inline surface (frontend)
-- **K** `FsBrowser` Esc-closes-everything bug (frontend)
-- **L** `HelpPage` DOMPurify config hardening (frontend)
+- **G** `createAppQueryClient` + queryCache onError funnel
+  (`lib/queryClient.ts`, `App.tsx`)
+- **H** `GameCard` aria-labelledby + decorative img alt
+  (`components/library/GameCard.tsx`)
+- **I** `LibraryErrorPanel` + Retry wiring
+  (`components/library/LibraryErrorPanel.tsx`, `pages/LibraryPage.tsx`)
+- **J** `SnapshotsTab.restoreError` prop + inline alert
+  (`components/settings/SnapshotsTab.tsx`, `pages/SettingsPage.tsx`,
+  `App.tsx`)
+- **K** `FsBrowser` single-layer dialog rendering
+  (`components/settings/FsBrowser.tsx`)
+- **L** `HelpPage` DOMPurify hardening (rel="noopener noreferrer" +
+  FORBID_TAGS + FORBID_ATTR + ALLOWED_URI_REGEXP + data-URL strip)
+  (`pages/HelpPage.tsx`)
 
 (Prior step-progress blocks for FP12 / FP11 / P06 — preserved
 across earlier sessions as audit context — were retired during
