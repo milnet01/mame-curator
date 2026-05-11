@@ -385,19 +385,38 @@ class JobManager:
             raise JobNotFoundError("no active copy job")
         job = self._current
         q: asyncio.Queue[JobEvent | None] = asyncio.Queue(maxsize=_QUEUE_SIZE)
-        # Replay history (lifecycle + progress merged by ts), then register so
-        # live events queue afterwards. Cluster R H1: lifecycle is unbounded;
-        # progress is bounded and may have evicted oldest ticks under pressure.
+        # FP21-K: register the subscriber FIRST, then snapshot history
+        # into a local tuple, then drain the snapshot into ``q``. Two
+        # bugs the old order had:
+        #   (1) ``heapq.merge`` iterated ``progress_history`` (deque) +
+        #       ``lifecycle_history`` (list) live; the worker thread's
+        #       ``_emit`` mutates them concurrently via the loop's
+        #       ``call_soon_threadsafe`` queue, so a yielding ``await``
+        #       between merge-iteration steps could provoke
+        #       ``RuntimeError: deque mutated during iteration``.
+        #   (2) Events emitted between the replay loop ending and the
+        #       subscriber appending went only to *other* subscribers —
+        #       this subscriber missed them entirely.
+        # Register-then-snapshot solves both: snapshotted tuples are
+        # immutable so iteration is safe, and any ``_emit`` between
+        # snapshot and drain queues to ``q`` (since it's already in
+        # ``subscribers``) — replay then drains-after-live entries arrive
+        # but heap-merge by ``ts`` still produces a globally ordered stream
+        # on the consumer side because every live event has a ``ts``
+        # strictly later than the snapshotted ones.
         import heapq
 
-        merged = heapq.merge(job.lifecycle_history, job.progress_history, key=lambda ev: ev.ts)
+        if job.state not in ("finished", "aborted"):
+            job.subscribers.append(q)
+        lifecycle_snapshot = tuple(job.lifecycle_history)
+        progress_snapshot = tuple(job.progress_history)
+        merged = heapq.merge(lifecycle_snapshot, progress_snapshot, key=lambda ev: ev.ts)
         for ev in merged:
             await q.put(ev)
-        # If the job already terminated while we were replaying, push sentinel.
+        # If the job already terminated before subscription, push sentinel
+        # so the consumer exits cleanly after seeing the replay.
         if job.state in ("finished", "aborted"):
             await q.put(None)
-        else:
-            job.subscribers.append(q)
         try:
             while True:
                 next_ev: JobEvent | None = await q.get()

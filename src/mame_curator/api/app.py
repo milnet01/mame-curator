@@ -137,6 +137,20 @@ def create_app(config_path: Path) -> FastAPI:
             if current is not None:
                 current.controller.cancel()
                 current.thread.join(timeout=5.0)
+                # FP21-I: log a warning if the worker is still alive
+                # after the 5-second join — the prior code silently
+                # detached, leaving a daemon thread running with no
+                # signal to the operator that the controlled shutdown
+                # failed. The daemon flag (set in JobManager.start)
+                # means Python will reap it on interpreter exit; the
+                # warning surfaces that the graceful path didn't take.
+                if current.thread.is_alive():
+                    logger.warning(
+                        "FP21-I: copy worker thread did not exit within 5s "
+                        "of cancel; detaching (daemon will be reaped at "
+                        "interpreter exit). job_id=%r",
+                        current.id,
+                    )
 
     app = FastAPI(title="MAME Curator", version="0.0.1", lifespan=lifespan)
     install_handlers(app)

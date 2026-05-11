@@ -218,12 +218,28 @@ def replace_world(
     )
 
 
-def deep_merge(base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
-    """Recursive merge: scalars/lists replace; nested dicts merge."""
+_MERGE_MAX_DEPTH = 10  # FP21-N: depth cap on deep_merge recursion
+
+
+def deep_merge(base: dict[str, Any], patch: dict[str, Any], *, _depth: int = 0) -> dict[str, Any]:
+    """Recursive merge: scalars/lists replace; nested dicts merge.
+
+    FP21-N: bounded recursion depth (``_MERGE_MAX_DEPTH``) so a
+    pathological patch body of ``{"a": {"a": {"a": ...}}}`` can't
+    stack-overflow the worker. Legitimate config sections are 1-2 levels
+    deep; ``10`` is a generous ceiling. The route also validates the
+    body against ``AppConfigPatch`` which forbids unknown top-level
+    keys, so this depth cap is defence-in-depth.
+    """
+    if _depth >= _MERGE_MAX_DEPTH:
+        # Treat over-deep patches as replace-at-this-level — preserves
+        # idempotence on the rare-but-legitimate case where the user
+        # nests a deep dict on purpose (e.g. logging.handlers.console).
+        return dict(patch)
     out = dict(base)
     for k, v in patch.items():
         if isinstance(v, dict) and isinstance(out.get(k), dict):
-            out[k] = deep_merge(out[k], v)
+            out[k] = deep_merge(out[k], v, _depth=_depth + 1)
         else:
             out[k] = v
     return out

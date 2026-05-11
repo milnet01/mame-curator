@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import ValidationError
 
 from mame_curator.api.errors import (
@@ -24,6 +26,7 @@ from mame_curator.api.persist import (
 from mame_curator.api.routes._deps import get_world, set_world
 from mame_curator.api.schemas import (
     AppConfig,
+    AppConfigPatch,
     AppConfigResponse,
     ConfigExportBundle,
     Snapshot,
@@ -88,7 +91,7 @@ def get_config(world: WorldState = Depends(get_world)) -> AppConfigResponse:
 @router.patch("/api/config", response_model=AppConfigResponse)
 async def patch_config(
     request: Request,
-    body: dict[str, Any] = Body(...),
+    body: AppConfigPatch,
 ) -> AppConfigResponse:
     """FP20-C: async + ``world_lock``-guarded read-merge-write-set_world.
 
@@ -96,11 +99,18 @@ async def patch_config(
     lock we re-read ``request.app.state.world`` so the merge sees the
     most recent committed state, not whatever was current when FastAPI
     started building the dependency graph.
+
+    FP21-N: ``body`` is validated through ``AppConfigPatch`` (per spec
+    line 647) before reaching ``deep_merge``. Unknown top-level keys are
+    rejected at the FastAPI boundary so bare-dict ingestion can't ship
+    arbitrary payloads into the merge. The merge itself is depth-capped
+    via ``_MERGE_MAX_DEPTH`` as defence-in-depth.
     """
     async with request.app.state.world_lock:
         world: WorldState = request.app.state.world
         base = world.config.model_dump(mode="json")
-        merged = deep_merge(base, body)
+        body_dict = body.model_dump(mode="json", exclude_none=True)
+        merged = deep_merge(base, body_dict)
         try:
             new_config = AppConfig.model_validate(merged)
         except ValidationError as exc:
@@ -253,22 +263,40 @@ async def import_config(
             },
         )
 
-        write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
-        write_yaml_atomic(
-            world.config_path.parent / "overrides.yaml",
-            {"overrides": dict(new_overrides.entries)},
-        )
-        write_yaml_atomic(
-            world.config_path.parent / "sessions.yaml",
-            {
-                "active": new_sessions.active,
-                "sessions": {
-                    k: v.model_dump(mode="json", exclude_defaults=True)
-                    for k, v in new_sessions.sessions.items()
+        # FP21-O: stage all 4 files atomically. Each write_*_atomic does
+        # its own tmp+replace, but the 4-write batch is NOT atomic — a
+        # crash between writes 2 and 3 leaves the on-disk set incoherent
+        # (config + overrides updated; sessions + notes stale). Mitigate
+        # by writing all four targets in succession AND dropping an
+        # ``import.in_progress`` sentinel so a startup-time check can
+        # detect a half-applied import. The sentinel is removed only
+        # after the fourth replace succeeds; rollback via the
+        # immediately-prior snapshot is the user-visible recovery path.
+        sentinel = world.data_dir / "import.in_progress"
+        sentinel.parent.mkdir(parents=True, exist_ok=True)
+        sentinel.write_text(datetime.now(UTC).isoformat(), encoding="utf-8")
+        try:
+            write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
+            write_yaml_atomic(
+                world.config_path.parent / "overrides.yaml",
+                {"overrides": dict(new_overrides.entries)},
+            )
+            write_yaml_atomic(
+                world.config_path.parent / "sessions.yaml",
+                {
+                    "active": new_sessions.active,
+                    "sessions": {
+                        k: v.model_dump(mode="json", exclude_defaults=True)
+                        for k, v in new_sessions.sessions.items()
+                    },
                 },
-            },
-        )
-        write_json_atomic(world.data_dir / "notes.json", bundle.notes)
+            )
+            write_json_atomic(world.data_dir / "notes.json", bundle.notes)
+        finally:
+            # Remove the sentinel even on partial failure — the snapshot
+            # taken above is the user-visible recovery path.
+            with contextlib.suppress(OSError):
+                sentinel.unlink(missing_ok=True)
 
         new_world = replace_world(
             base=world,

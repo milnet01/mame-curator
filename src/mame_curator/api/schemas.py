@@ -112,6 +112,28 @@ class AppConfig(BaseModel):
     updates: UpdatesConfig = UpdatesConfig()
     fs: FsConfig = FsConfig()
 
+
+class AppConfigPatch(BaseModel):
+    """FP21-N: typed PATCH body for ``/api/config``.
+
+    Per P04 spec lines 645-657. Each section is optional and accepts a
+    ``dict[str, Any]`` (the section's own validation runs on the merged
+    full ``AppConfig`` after ``deep_merge``). ``extra="forbid"`` rejects
+    unknown top-level keys so typos / malicious sections never reach the
+    merge step. Combined with ``deep_merge``'s ``_MERGE_MAX_DEPTH`` cap
+    this closes the bare-dict-ingestion DoS surface.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    paths: dict[str, Any] | None = None
+    server: dict[str, Any] | None = None
+    filters: dict[str, Any] | None = None
+    picker: dict[str, Any] | None = None
+    media: dict[str, Any] | None = None
+    ui: dict[str, Any] | None = None
+    updates: dict[str, Any] | None = None
+    fs: dict[str, Any] | None = None
+
     @model_validator(mode="before")
     @classmethod
     def _merge_picker_into_filters(cls, data: Any) -> Any:

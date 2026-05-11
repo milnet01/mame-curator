@@ -20,11 +20,23 @@ from mame_curator.api.errors import SnapshotNotFoundError
 logger = logging.getLogger(__name__)
 
 
+# FP21-M: cap on the number of snapshot directories kept on disk. Every
+# PATCH / override / session / notes / grant / import creates a new
+# snapshot dir; without an LRU bound a long-running server fills the
+# data directory indefinitely. ``200`` covers roughly six months of
+# moderate use (1 mutation per day) and keeps disk usage trivial.
+MAX_SNAPSHOTS = 200
+
+
 def snapshot_files(snapshots_dir: Path, files: Mapping[str, Path]) -> str:
     """Snapshot any files that currently exist into a new timestamped directory.
 
     Returns the snapshot id (timestamp string). Files that don't exist are
     skipped (e.g. first PATCH before any user-side overrides.yaml exists).
+
+    FP21-M: after creating the new snapshot dir, prune oldest siblings
+    that exceed ``MAX_SNAPSHOTS``. Best-effort — a stat / rmtree failure
+    is logged but doesn't fail the snapshot itself.
     """
     snap_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%S_%fZ")
     snap_dir = snapshots_dir / snap_id
@@ -38,7 +50,28 @@ def snapshot_files(snapshots_dir: Path, files: Mapping[str, Path]) -> str:
             logger.exception("snapshot read failed for %r", str(src))
             continue
         atomic_write_bytes(snap_dir / name, data)
+    _prune_old_snapshots(snapshots_dir)
     return snap_id
+
+
+def _prune_old_snapshots(snapshots_dir: Path) -> None:
+    """FP21-M: enforce ``MAX_SNAPSHOTS`` cap by removing oldest siblings."""
+    import shutil
+
+    try:
+        all_dirs = [p for p in snapshots_dir.iterdir() if p.is_dir()]
+    except OSError:
+        return
+    if len(all_dirs) <= MAX_SNAPSHOTS:
+        return
+    # Sort oldest-first by name (timestamp prefix is monotonic).
+    all_dirs.sort(key=lambda p: p.name)
+    overflow = len(all_dirs) - MAX_SNAPSHOTS
+    for victim in all_dirs[:overflow]:
+        try:
+            shutil.rmtree(victim)
+        except OSError:
+            logger.exception("snapshot prune failed for %r", str(victim))
 
 
 def list_snapshots(snapshots_dir: Path) -> list[dict[str, Any]]:
