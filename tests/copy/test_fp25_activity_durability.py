@@ -158,6 +158,60 @@ def test_fp25_b_oserror_on_write_wrapped_as_activitylogerror(
     assert exc_info.value.path == log_path
 
 
+def test_fp26_b_oserror_on_mkdir_wrapped_as_activitylogerror(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FP26-B: ``OSError`` from the parent-dir ``mkdir`` also wraps as
+    ``ActivityLogError``.
+
+    The FP25-B closing review (L2-H1) caught that the pre-FP26-B writer
+    let ``log_path.parent.mkdir(...)`` raise raw ``OSError`` on EACCES
+    / EROFS / ENOSPC for inode allocation / ENOTDIR. The CLI / API's
+    ``CopyError`` boundary would not catch the bare OSError. Now it
+    wraps in the typed envelope alongside the open / write paths.
+    """
+    log_path = tmp_path / "no_perm" / "activity.jsonl"
+
+    real_mkdir = Path.mkdir
+
+    def failing_mkdir(self: Path, *args: object, **kwargs: object) -> None:
+        if self == log_path.parent:
+            raise OSError("simulated EACCES on parent dir")
+        real_mkdir(self, *args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(Path, "mkdir", failing_mkdir)
+
+    with pytest.raises(ActivityLogError) as exc_info:
+        append_activity(_event(), log_path=log_path)
+    assert isinstance(exc_info.value, CopyError)
+    assert exc_info.value.path == log_path.parent
+
+
+def test_fp26_h_zero_byte_write_raises_activitylogerror(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FP26-H: a 0-byte ``os.write`` return with no OSError raises
+    ``ActivityLogError`` rather than spinning forever.
+
+    POSIX permits ``os.write(fd, data)`` to return 0 with no error in
+    rare conditions (some pseudo-filesystems, hypothetical kernel
+    bugs); without the explicit "written == 0" branch in FP25-B's
+    loop, the writer would spin on `view = view[0:]` forever. Test
+    forces the branch via a monkey-patched ``os.write`` that always
+    returns 0.
+    """
+    log_path = tmp_path / "activity.jsonl"
+
+    def zero_write(fd: int, data: bytes) -> int:
+        return 0
+
+    monkeypatch.setattr(os_mod, "write", zero_write)
+
+    with pytest.raises(ActivityLogError) as exc_info:
+        append_activity(_event(), log_path=log_path)
+    assert "0 bytes" in str(exc_info.value)
+
+
 def test_fp25_b_oserror_on_open_wrapped_as_activitylogerror(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

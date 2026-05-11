@@ -51,7 +51,17 @@ def append_activity(
     log_path: Path = Path("data/activity.jsonl"),
 ) -> None:
     """Append one event line to the activity log; creates parent dir if missing."""
-    log_path.parent.mkdir(parents=True, exist_ok=True)
+    # FP26-B: wrap the mkdir in the ActivityLogError envelope so an
+    # EACCES on `data/` (or any OSError class — EROFS, ENOSPC for inode
+    # allocation, ENOTDIR if a sibling file occupies the parent name)
+    # surfaces as the typed CopyError subclass instead of escaping the
+    # CLI's catch boundary. The FP25-B audit (L2-H1) caught the gap.
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise ActivityLogError(
+            "failed to prepare activity log directory", path=log_path.parent
+        ) from exc
     line_bytes = (event.model_dump_json() + "\n").encode("utf-8")
     try:
         fd = os.open(log_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)

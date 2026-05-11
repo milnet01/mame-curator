@@ -12,9 +12,14 @@ parses cleanly. 6 KiB is comfortably above Linux's legacy PIPE_BUF
 for arbitrarily large writes on regular files (not just pipe/FIFO
 boundaries).
 
-Gated on ``sys.platform != "win32"`` because Windows has no POSIX
-O_APPEND atomicity guarantee — the equivalent on NTFS is a separate
-contract that the project does not claim.
+Gated on ``sys.platform == "linux"`` (FP26-D): Windows has no POSIX
+O_APPEND atomicity guarantee — the NTFS equivalent is a separate
+contract the project does not claim. macOS's `mp.get_context("fork")`
+is unsafe after CoreFoundation initialisation (the project's CI
+matrix runs `macos-latest` without setting
+`OBJC_DISABLE_INITIALIZE_FORK_SAFETY`), so the test would either hang
+on the 30 s join timeout or fail with a non-zero exitcode. Linux-only
+keeps the contract pinned where it's load-bearing.
 """
 
 from __future__ import annotations
@@ -36,7 +41,8 @@ from mame_curator.copy.types import (
     PlanSummary,
 )
 
-_WINDOWS = sys.platform == "win32"
+# FP26-D: gate strictly on linux; macOS fork is unsafe post-CoreFoundation.
+_FORK_SAFE = sys.platform == "linux"
 
 
 def _make_big_event(session_id: str, summary_size: int = 6 * 1024) -> ActivityEvent:
@@ -65,7 +71,10 @@ def _child_appender(log_path: str, session_id: str, count: int) -> None:
         append_activity(_make_big_event(session_id), log_path=Path(log_path))
 
 
-@pytest.mark.skipif(_WINDOWS, reason="POSIX O_APPEND atomicity guarantee only")
+@pytest.mark.skipif(
+    not _FORK_SAFE,
+    reason="POSIX O_APPEND atomicity + fork-safe mp.get_context — linux only",
+)
 def test_fp25_e_concurrent_appenders_never_interleave(tmp_path: Path) -> None:
     """Two child processes each appending 6 KiB events produce parseable lines.
 

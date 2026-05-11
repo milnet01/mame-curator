@@ -139,11 +139,17 @@ def test_fp25_f_no_manifest_json_on_atomic_replace_failure(
             recycle_root=recycle_root,
         )
 
-    target_dir = recycle_root / "01HZZ"
-    if target_dir.exists():
-        assert not (target_dir / "manifest.json").exists(), (
-            "no half-written manifest.json may remain after atomic_write_text failure"
-        )
+    # FP26-C: assert against the WHOLE recycle root, not just the
+    # target_dir — FP25-C's rollback succeeds in this test path and
+    # removes the target_dir entirely. The L2-H2 indie-review caught
+    # the prior `if target_dir.exists():` guard making the assertion
+    # vacuously true. The crash-safety contract is "no half-written
+    # manifest.json ANYWHERE in the recycle tree".
+    leftover_manifests = list(recycle_root.rglob("manifest.json"))
+    assert leftover_manifests == [], (
+        f"no half-written manifest.json may remain after atomic_write_text "
+        f"failure, found: {leftover_manifests}"
+    )
 
 
 def test_fp25_f_no_tmp_files_remain_on_atomic_replace_failure(
@@ -170,10 +176,12 @@ def test_fp25_f_no_tmp_files_remain_on_atomic_replace_failure(
             recycle_root=recycle_root,
         )
 
-    target_dir = recycle_root / "01HZZ"
-    if target_dir.exists():
-        leftover_tmps = list(target_dir.glob("manifest.json.*.tmp"))
-        assert not leftover_tmps, (
-            f"no manifest tmp files may remain after atomic_write_text failure, "
-            f"found: {leftover_tmps}"
-        )
+    # FP26-C: glob over the entire recycle tree, not just target_dir
+    # (which the rollback may have removed). The contract being
+    # locked here is `_atomic.atomic_write_text`'s `if not completed:
+    # tmp_path.unlink(missing_ok=True)` cleanup path — proving no
+    # `.tmp` siblings linger anywhere.
+    leftover_tmps = list(recycle_root.rglob("manifest.json.*.tmp"))
+    assert leftover_tmps == [], (
+        f"no manifest tmp files may remain after atomic_write_text failure, found: {leftover_tmps}"
+    )

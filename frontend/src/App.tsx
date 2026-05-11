@@ -282,19 +282,17 @@ function SettingsRoute() {
       // string so the user sees what specifically rejected (404 vs
       // 422 vs 500). The toast (FP20-G) still flashes — this is the
       // post-dismissal surface.
-      // FP25-K(12): clear the alert while a fresh restore is in
-      // flight so a rapid retry doesn't flash the prior error on
-      // top of the spinner — once the new mutation either succeeds
-      // (clears `restore.error`) or fails again (replaces it), the
-      // alert returns with up-to-date copy.
+      // FP26-L: dropped FP25-K(12)'s `restore.isPending ? null : ...`
+      // conditional — React Query 5.x's `useMutation` already
+      // synchronously clears `error` to `null` when `mutate()` is
+      // called, so the conditional was dead defence. Verified
+      // empirically (Lane 4 M1 indie-review).
       snapshotRestoreError={
-        restore.isPending
-          ? null
-          : restore.error
-            ? restore.error instanceof ApiError
-              ? restore.error.detail
-              : strings.settings.snapshotRestoreError
-            : null
+        restore.error
+          ? restore.error instanceof ApiError
+            ? restore.error.detail
+            : strings.settings.snapshotRestoreError
+          : null
       }
       onSnapshotRestore={(id) => restore.mutate(id)}
       onBackupExport={handleExport}

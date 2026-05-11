@@ -74,24 +74,33 @@ def test_fp25_a_games_route_is_async(name: str) -> None:
 
 
 class _TrackingLock:
-    """``asyncio.Lock`` wrapper that records each acquire/release.
+    """``asyncio.Lock`` wrapper that records each acquire/release pair
+    AND exposes a ``held`` flag for use by a ``set_world`` patch that
+    asserts the critical-section invariant.
 
     Drop-in compatible with ``async with`` (returns ``self`` from
     ``__aenter__``). The real lock is held for the duration of the
-    critical section; we only intercept the boundary.
+    critical section; we intercept the boundary to keep books.
+
+    FP26-A — strengthens the L1-H1 / L1-H2 indie-review findings: the
+    per-route tests now prove ``set_world`` runs INSIDE the
+    ``async with`` block, not just that ``__aenter__`` fired.
     """
 
     def __init__(self, inner: asyncio.Lock) -> None:
         self._inner = inner
         self.acquires = 0
         self.releases = 0
+        self.held = False
 
     async def __aenter__(self) -> _TrackingLock:
         await self._inner.acquire()
         self.acquires += 1
+        self.held = True
         return self
 
     async def __aexit__(self, *exc: object) -> None:
+        self.held = False
         self.releases += 1
         self._inner.release()
 
@@ -101,11 +110,41 @@ class _TrackingLock:
 
 
 @pytest.fixture
-def tracking_client(client: Any) -> Iterator[tuple[Any, _TrackingLock]]:
-    """Yield a TestClient whose app.state.world_lock is wrapped in a tracker."""
+def tracking_client(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[tuple[Any, _TrackingLock]]:
+    """Yield a TestClient whose ``app.state.world_lock`` is wrapped in a
+    tracker AND whose ``set_world`` is intercepted to assert the lock is
+    held at every call.
+
+    FP26-A: prior to this hardening, a route that did
+    ``async with lock: pass`` and then ran set_world OUTSIDE the lock
+    would have passed the per-route tests. Now any such regression fires
+    an ``AssertionError`` at the set_world call site itself.
+    """
     real_lock = client.app.state.world_lock
     tracker = _TrackingLock(real_lock)
     client.app.state.world_lock = tracker
+
+    # Patch ``set_world`` at every import site (`_deps` is the source of
+    # truth; ``curate`` and ``games`` import it by name, so the
+    # ``from mame_curator.api.routes._deps import set_world`` binding
+    # captured a reference at import time — patching ``_deps.set_world``
+    # alone doesn't reach the route modules' local names).
+    from mame_curator.api.routes import _deps, curate
+    from mame_curator.api.routes import games as games_module
+
+    real_set_world = _deps.set_world
+
+    def asserted_set_world(request: Any, world: Any) -> None:
+        assert tracker.held, (
+            "FP26-A: set_world called outside world_lock — the critical-section invariant is broken"
+        )
+        real_set_world(request, world)
+
+    monkeypatch.setattr(_deps, "set_world", asserted_set_world)
+    monkeypatch.setattr(curate, "set_world", asserted_set_world)
+    monkeypatch.setattr(games_module, "set_world", asserted_set_world)
     try:
         yield client, tracker
     finally:
@@ -188,22 +227,49 @@ def test_fp25_a_put_notes_acquires_world_lock(tracking_client: Any) -> None:
     assert tracker.acquires >= 1, "put_notes must acquire world_lock"
 
 
-def test_fp25_a_concurrent_cross_route_mutations_both_land(app: Any, config_file: Path) -> None:
-    """Two ``asyncio.gather``-ed mutations across different routes both land.
+def test_fp25_a_concurrent_cross_route_mutations_both_land(
+    app: Any, config_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two ``asyncio.gather``-ed mutations across different routes both
+    land — AND every ``set_world`` call happens inside the lock.
 
     Without the lock, two concurrent mutations would each read the same
     ``app.state.world``, compute a new world that includes only their own
     edit, and the later set_world overwrites the earlier — losing one
     user edit silently. P04 spec lines 104-115 mandate the lock contract.
 
-    The test fires POST /api/overrides + POST /api/sessions concurrently
-    against the same app instance via ``httpx.AsyncClient`` + ASGI
-    transport (so the requests actually run on the event loop, not
-    serialised by TestClient). Both edits must be visible afterwards.
+    FP26-A strengthening: the prior test asserted "both responses 200"
+    and "both edits visible afterwards", but the current sync-body
+    handlers never yield mid-critical-section, so the test passed even
+    with the lock removed. Adds the ``asserted_set_world`` pattern from
+    the per-route fixture: every ``set_world`` call MUST observe the
+    tracking lock as held, otherwise the test fails at the call site.
+    Catches "lock acquired but set_world ran outside the `async with`"
+    refactor regressions even when no real race fires.
     """
 
     async def _drive() -> None:
         async with app.router.lifespan_context(app):
+            # Wrap the lock + intercept set_world inside the lifespan so
+            # the world_lock from build_world is the one we observe.
+            real_lock = app.state.world_lock
+            tracker = _TrackingLock(real_lock)
+            app.state.world_lock = tracker
+
+            from mame_curator.api.routes import _deps, curate
+            from mame_curator.api.routes import games as games_module
+
+            real_set_world = _deps.set_world
+            held_observations: list[bool] = []
+
+            def asserted_set_world(request: Any, world: Any) -> None:
+                held_observations.append(tracker.held)
+                real_set_world(request, world)
+
+            monkeypatch.setattr(_deps, "set_world", asserted_set_world)
+            monkeypatch.setattr(curate, "set_world", asserted_set_world)
+            monkeypatch.setattr(games_module, "set_world", asserted_set_world)
+
             transport = httpx.ASGITransport(app=app)
             async with httpx.AsyncClient(transport=transport, base_url="http://test") as ac:
                 ra, rb = await asyncio.gather(
@@ -222,16 +288,29 @@ def test_fp25_a_concurrent_cross_route_mutations_both_land(app: Any, config_file
                 assert ra.status_code == 200, ra.text
                 assert rb.status_code == 200, rb.text
 
-                # Verify BOTH edits are visible — not just one.
-                overrides_view = ra.json()
-                assert "pacman" in overrides_view["entries"], (
-                    "post_override edit lost — concurrent set_world race"
+                # FP26-A critical-section invariant: every set_world saw
+                # lock held.
+                assert len(held_observations) == 2, (
+                    f"expected 2 set_world calls, got {len(held_observations)}"
+                )
+                assert all(held_observations), (
+                    "FP26-A: at least one set_world ran outside world_lock"
                 )
 
+                # FP26-A (L1-M2): verify edits via independent GETs, not
+                # via the same response that did the override — the prior
+                # form was tautological.
                 sessions_resp = await ac.get("/api/sessions")
                 assert sessions_resp.status_code == 200
                 assert "s_concurrent" in sessions_resp.json()["sessions"], (
                     "upsert_session edit lost — concurrent set_world race"
+                )
+                # post_override has no GET endpoint; assert via the
+                # world state directly through the test client's app
+                # reference.
+                world = app.state.world
+                assert "pacman" in world.overrides.entries, (
+                    "post_override edit lost — concurrent set_world race"
                 )
 
     asyncio.run(_drive())

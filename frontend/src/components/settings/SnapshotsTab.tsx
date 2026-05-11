@@ -14,11 +14,13 @@ interface SnapshotsTabProps {
    * the user has no signal the restore actually failed and the
    * config didn't change. Mirrors ``BackupTab.error``.
    *
-   * FP25-K(9): lifetime contract — the alert lives from SettingsRoute
-   * mount until the next restore mutation cycle. SettingsRoute owns
-   * the state and clears it when a new restore enters `isPending`
-   * (FP25-K(12)) so a fast retry doesn't flash the stale error. The
-   * tab itself does NOT own the state — it would have no way to
+   * FP25-K(9) / FP26-L: lifetime contract — the alert lives from the
+   * `useSnapshotRestore()` mutation's last error settle until the
+   * next `mutate()` call. SettingsRoute owns the state via the
+   * mutation hook; React Query 5 synchronously clears the mutation's
+   * `error` field when `mutate()` is called, so the alert disappears
+   * for the duration of a pending retry without any explicit clear.
+   * The tab itself does NOT own the state — it would have no way to
    * distinguish "Settings just mounted" from "user opened the tab
    * after a fresh restore failed" once it remounted. */
   restoreError?: string | null
