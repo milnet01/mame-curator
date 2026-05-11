@@ -7,9 +7,14 @@ import subprocess  # nosec B404 — FP19: launch RetroArch via Popen(shell=False
 from collections import Counter
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 
-from mame_curator.api.errors import GameNotFoundError
+from mame_curator.api.errors import (
+    ApiException,
+    GameNotFoundError,
+    RetroArchNotConfiguredError,
+    RomFileNotFoundError,
+)
 from mame_curator.api.persist import write_json_atomic
 from mame_curator.api.routes._deps import get_world, set_world
 from mame_curator.api.schemas import (
@@ -247,12 +252,12 @@ def launch_game(name: str, world: WorldState = Depends(get_world)) -> LaunchResp
 
     paths = world.config.paths
     if paths.retroarch is None or paths.retroarch_core is None:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "RetroArch not configured. Set paths.retroarch and "
-                "paths.retroarch_core in config.yaml, then restart."
-            ),
+        # FP21-J: typed exception so the error envelope carries
+        # `code="retroarch_not_configured"` and the frontend can map
+        # it to the friendly toast copy in strings.ts byCode.
+        raise RetroArchNotConfiguredError(
+            "RetroArch not configured. Set paths.retroarch and "
+            "paths.retroarch_core in config.yaml, then restart."
         )
 
     rom_path: Path | None = None
@@ -262,10 +267,9 @@ def launch_game(name: str, world: WorldState = Depends(get_world)) -> LaunchResp
             rom_path = candidate
             break
     if rom_path is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"ROM file not found: {name}.zip in dest_roms or source_roms.",
-        )
+        # FP21-J: typed exception. Distinct from GameNotFoundError —
+        # the DAT entry exists; only the .zip on disk is missing.
+        raise RomFileNotFoundError(f"ROM file not found: {name}.zip in dest_roms or source_roms.")
 
     argv = [
         str(paths.retroarch),
@@ -291,10 +295,10 @@ def launch_game(name: str, world: WorldState = Depends(get_world)) -> LaunchResp
         )
     except OSError as exc:
         logger.exception("RetroArch spawn failed: argv=%s", argv)
-        raise HTTPException(
-            status_code=500,
-            detail=f"failed to spawn RetroArch: {exc}",
-        ) from exc
+        # FP21-J: the Popen failure path stays inside the typed envelope.
+        # 500 sits on a thin base ApiException("internal") since this is
+        # a system-level failure rather than a user-correctable input.
+        raise ApiException(f"failed to spawn RetroArch: {exc}") from exc
 
     logger.info("launched game=%s pid=%s argv=%s", name, proc.pid, argv)
     return LaunchResponse(pid=proc.pid, rom_path=str(rom_path), argv=tuple(argv))

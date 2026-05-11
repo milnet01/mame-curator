@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import httpx
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 
 from mame_curator.api.errors import (
     GameNotFoundError,
@@ -53,4 +53,9 @@ async def media_proxy(
         raise MediaUpstreamError(str(exc)) from exc
     if path is None:
         raise MediaUpstreamNotFoundError(f"upstream 404 for {url!r}")
-    return Response(content=path.read_bytes(), media_type="image/png")
+    # FP21-H: ``FileResponse`` streams the bytes via ``anyio.to_thread``
+    # instead of doing a synchronous ``path.read_bytes()`` inside the
+    # async handler. Under fan-out (50 thumbnails on a Library view) the
+    # sync read serialised against the event loop; streaming lets the
+    # asyncio scheduler interleave the I/O. Same wire-bytes contract.
+    return FileResponse(path, media_type="image/png")

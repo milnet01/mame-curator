@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from mame_curator.copy import preflight
 from mame_curator.copy.types import ConflictStrategy, CopyPlan
 from mame_curator.parser.listxml import BIOSChainEntry
@@ -67,51 +69,64 @@ def test_preflight_detects_idempotent_already_copied(source_dir: Path, dest_dir:
     assert "kof94" in result.already_copied
 
 
-def test_fp21_e_preflight_total_needed_includes_bios_chain(tmp_path: Path) -> None:
+def test_fp21_e_preflight_total_needed_includes_bios_chain(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """FP21-E: ``preflight`` accounts for BIOS-chain zips when computing
     ``free_space_gap_bytes``. Pre-fix ``total_needed`` summed only
     ``plan.winners`` zips; ``run_copy`` actually transfers
     ``winners | bios_set`` so the free-space estimate was systematically
     under-counted by the BIOS chain's size — a 50 MB neogeo BIOS missing
     from the estimate could mean "preflight OK" then mid-copy ENOSPC.
+
+    Real ``shutil.disk_usage`` is replaced with a deterministic stub so
+    concurrent filesystem activity (other tests, OS-side I/O) can't
+    perturb the delta. We only care that the BIOS bytes change the
+    answer — not how much real disk is free.
     """
+    import shutil as _shutil
+
     src = tmp_path / "source"
     src.mkdir()
     dest = tmp_path / "dest"
     dest.mkdir()
-    # Winner with a BIOS dep — make the BIOS zip much larger than the winner
-    # so the difference is empirically visible in free_space_gap_bytes.
     (src / "kof94.zip").write_bytes(b"x" * 1000)
     (src / "neogeo.zip").write_bytes(b"y" * 100_000)
 
-    bios_chain = {
-        "kof94": BIOSChainEntry(romof="neogeo"),
-    }
-    plan = _plan(
+    FIXED_FREE = 10 * 1024 * 1024  # 10 MB headroom; deterministic between calls
+
+    def fake_disk_usage(_path: object) -> object:
+        # ``shutil._ntuple_diskusage`` is the precise named-tuple type;
+        # SimpleNamespace satisfies the only attribute preflight reads.
+        from types import SimpleNamespace
+
+        return SimpleNamespace(total=FIXED_FREE * 2, used=FIXED_FREE, free=FIXED_FREE)
+
+    monkeypatch.setattr(_shutil, "disk_usage", fake_disk_usage)
+
+    plan_with_bios = _plan(
         winners=("kof94",),
         source_dir=src,
         dest_dir=dest,
-        bios_chain=bios_chain,
+        bios_chain={"kof94": BIOSChainEntry(romof="neogeo")},
     )
-
-    result = preflight(plan)
-    # Reference plan with no BIOS (same winner, empty chain) to get the
-    # delta — proves the BIOS bytes are now accounted for.
     plan_no_bios = _plan(
         winners=("kof94",),
         source_dir=src,
         dest_dir=dest,
         bios_chain={},
     )
-    result_no_bios = preflight(plan_no_bios)
 
-    # When the BIOS chain is included, total_needed is larger, so the
-    # free_space_gap is smaller (less headroom). Concretely: the neogeo
-    # zip's 100 KB shows up as a 100 KB reduction in the gap.
-    delta = result_no_bios.free_space_gap_bytes - result.free_space_gap_bytes
-    assert delta >= 100_000, (
-        f"BIOS zip's 100KB must be accounted for in total_needed; "
-        f"observed delta={delta} between plans with vs without BIOS chain"
+    result_with = preflight(plan_with_bios)
+    result_no = preflight(plan_no_bios)
+
+    # With BIOS: total_needed = 1000 + 100_000 = 101_000
+    # No BIOS:    total_needed = 1000
+    # gap = FIXED_FREE - total_needed → delta = exactly 100_000.
+    delta = result_no.free_space_gap_bytes - result_with.free_space_gap_bytes
+    assert delta == 100_000, (
+        f"BIOS zip's 100KB must show as a 100KB drop in free_space_gap_bytes; "
+        f"observed delta={delta}"
     )
 
 

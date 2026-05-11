@@ -599,6 +599,11 @@ export const strings = {
       media_kind_invalid: 'That media kind is not supported.',
       media_upstream_error: 'Could not reach the libretro-thumbnails server.',
       media_upstream_not_found: 'The requested media is not in the libretro library.',
+      // FP21-J / FP22-D: typed launch_game errors lifted out of bare HTTPException.
+      retroarch_not_configured:
+        'RetroArch is not configured. Set paths.retroarch and paths.retroarch_core under Settings → Paths, then restart.',
+      rom_file_not_found:
+        'The ROM file is missing on disk. Run a curated Copy first so the .zip is in your destination folder.',
       validation_error: 'The form has invalid values. Check the highlighted fields.',
       config_invalid: 'The configuration is not valid — see field errors below.',
       response_shape_invalid:

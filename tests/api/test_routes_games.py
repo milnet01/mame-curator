@@ -188,6 +188,32 @@ def test_total_bytes_matches_filtered_sum(client: Any) -> None:
     assert full["total_bytes"] > 0  # mini DAT machines have non-empty roms
 
 
+def test_fp21_j_launch_returns_typed_retroarch_not_configured(client: Any) -> None:
+    """FP21-J: ``POST /api/games/{name}/launch`` with no RetroArch paths
+    returns the typed envelope ``code='retroarch_not_configured'`` (422),
+    NOT a bare ``HTTPException`` whose ``code`` field is empty.
+
+    The fixture config has no ``paths.retroarch`` / ``paths.retroarch_core``
+    set, so this route hits the typed-error branch by default.
+    """
+    resp = client.post("/api/games/pacman/launch")
+    assert resp.status_code == 422
+    body = resp.json()
+    assert body["code"] == "retroarch_not_configured", f"expected typed code, got {body!r}"
+    # `detail` carries human-readable copy; toastApiError will swap it
+    # for `strings.errors.byCode.retroarch_not_configured`.
+    assert "RetroArch" in body["detail"]
+
+
+def test_fp21_j_launch_returns_typed_game_not_found_for_unknown(client: Any) -> None:
+    """FP21-J: unknown short name still routes through GameNotFoundError
+    (404). Confirms the typed error path is unbroken by the J refactor.
+    """
+    resp = client.post("/api/games/no_such_machine/launch")
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "game_not_found"
+
+
 def test_no_listxml_self_parents_every_machine() -> None:
     """When paths.listxml is null, every machine self-parents — the
     pre-FP23 symptom. Confirms the cloneof_map dependency is the

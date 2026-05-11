@@ -190,6 +190,32 @@ class MediaUpstreamNotFoundError(ApiException):
     status_code = 404
 
 
+class RetroArchNotConfiguredError(ApiException):
+    """422 — POST /api/games/{name}/launch called without RetroArch paths.
+
+    FP21-J: typed-error replacement for the bare ``HTTPException(422)``
+    in ``launch_game``. The ``code`` field lets ``toastApiError`` map to
+    a friendly message via ``strings.errors.byCode.retroarch_not_configured``
+    instead of surfacing the raw ``detail`` string. Pairs with FP22-D
+    (the deferred byCode entry now lands beside the code it describes).
+    """
+
+    code = "retroarch_not_configured"
+    status_code = 422
+
+
+class RomFileNotFoundError(ApiException):
+    """404 — POST /api/games/{name}/launch couldn't find the ROM file on disk.
+
+    FP21-J: typed-error replacement for the bare ``HTTPException(404)``.
+    Distinct from ``GameNotFoundError`` (DAT-level miss); this is "DAT
+    has the entry but no .zip in dest_roms or source_roms."
+    """
+
+    code = "rom_file_not_found"
+    status_code = 404
+
+
 def _render(exc: ApiException) -> JSONResponse:
     body = ApiErrorBody(detail=exc.detail, code=exc.code, fields=exc.fields)
     return JSONResponse(status_code=exc.status_code, content=body.model_dump(mode="json"))
