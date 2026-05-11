@@ -323,7 +323,7 @@ detail with `file:line` cites.
 ### FP19 — Launch games from the site (RetroArch integration)
 
 User asked: "offer the option to launch the games from the site,
-check /mnt/Emulators/Scripts/Linux/RetroDB/ (RetroDB project; was
+check /mnt/Games/Scripts/Linux/RetroDB/ (RetroDB project; was
 `/mnt/Storage/...` at the time of the original request) for
 references on doing that."
 
