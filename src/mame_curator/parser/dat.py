@@ -16,7 +16,10 @@ from typing import Any
 
 # bandit B410: lxml's iterparse defaults to no_network=True; we never parse XML from
 # untrusted network sources, only user-supplied DAT files from trusted ROM aggregators.
-# defusedxml.lxml is deprecated upstream, so this is the supported approach.
+# defusedxml.lxml is deprecated upstream, so we use lxml directly with an explicit
+# hardened XMLParser (FP20-A): resolve_entities=False blocks Billion Laughs
+# internal-entity expansion, no_network=True blocks http(s)/ftp DTD fetches,
+# huge_tree=False refuses pathologically deep trees.
 from lxml import etree  # nosec B410
 from pydantic import ValidationError
 
@@ -25,6 +28,24 @@ from mame_curator.parser.manufacturer import split_manufacturer
 from mame_curator.parser.models import BiosSet, DriverStatus, Machine, Rom
 
 logger = logging.getLogger(__name__)
+
+# FP20-A: cap zip-bomb decompressed size before extraction. The real
+# Pleasuredome DAT is ~50 MiB extracted, so 256 MiB leaves ~5x headroom
+# for legitimate growth without admitting a denial-of-disk attack.
+_MAX_DAT_BYTES = 256 * 1024 * 1024
+
+
+# FP20-A: every ``etree.iterparse`` call site passes these kwargs directly.
+# Unlike ``etree.parse``, iterparse does not accept ``parser=...``;
+# the safety knobs are direct iterparse kwargs. Setting these explicitly
+# is defense-in-depth even though no_network=True is already the default —
+# the spec contract is "every iterparse spells out the hardened set."
+HARDENED_ITERPARSE_KWARGS: dict[str, Any] = {
+    "resolve_entities": False,
+    "no_network": True,
+    "huge_tree": False,
+    "load_dtd": False,
+}
 
 
 def parse_dat(path: Path) -> dict[str, Machine]:
@@ -80,6 +101,17 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
                 f"DAT zip member {member!r} would escape the extraction tempdir",
                 path=path,
             )
+        # FP20-A: refuse extraction if the central-dir advertises a
+        # decompressed size beyond the cap. Reading file_size is metadata-
+        # only and never decompresses payload — so a malicious 100 KB zip
+        # claiming gigabytes can't fill the tempdir.
+        info = zf.getinfo(member)
+        if info.file_size > _MAX_DAT_BYTES:
+            raise DATError(
+                f"DAT zip member {member!r} declared size {info.file_size} "
+                f"exceeds size cap {_MAX_DAT_BYTES} (zip-bomb defence)",
+                path=path,
+            )
         with tempfile.TemporaryDirectory() as tmp:
             extracted = zf.extract(member, path=tmp)
             yield Path(extracted)
@@ -91,7 +123,12 @@ def _stream_machines(xml_path: Path) -> dict[str, Machine]:
     machines: dict[str, Machine] = {}
     seen_unknown_statuses: set[str] = set()
     try:
-        for _event, elem in etree.iterparse(str(xml_path), events=("end",), tag="machine"):
+        for _event, elem in etree.iterparse(
+            str(xml_path),
+            events=("end",),
+            tag="machine",
+            **HARDENED_ITERPARSE_KWARGS,
+        ):
             machine = _machine_from_element(elem, seen_unknown_statuses)
             if machine.name in machines:
                 raise DATError(f"duplicate machine name: {machine.name}", path=xml_path)

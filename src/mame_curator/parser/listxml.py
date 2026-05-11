@@ -10,9 +10,13 @@ from pathlib import Path
 
 # bandit B410: lxml's iterparse defaults to no_network=True; we never parse XML from
 # untrusted network sources, only user-supplied listxml files from trusted MAME builds.
+# FP20-A: every iterparse below is wired through the hardened parser
+# (resolve_entities=False + no_network=True + huge_tree=False) defined
+# in dat.py, blocking XXE / Billion Laughs / file:// URI vectors.
 from lxml import etree  # nosec B410
 from pydantic import BaseModel, ConfigDict
 
+from mame_curator.parser.dat import HARDENED_ITERPARSE_KWARGS
 from mame_curator.parser.errors import ListxmlError
 
 
@@ -35,7 +39,12 @@ def parse_listxml_disks(path: Path) -> set[str]:
 
     chd_required: set[str] = set()
     try:
-        for _event, elem in etree.iterparse(str(path), events=("end",), tag="machine"):
+        for _event, elem in etree.iterparse(
+            str(path),
+            events=("end",),
+            tag="machine",
+            **HARDENED_ITERPARSE_KWARGS,
+        ):
             if elem.find("disk") is not None:
                 name = elem.get("name")
                 if name:
@@ -68,7 +77,12 @@ def parse_listxml_cloneof(path: Path) -> dict[str, str]:
 
     cloneof: dict[str, str] = {}
     try:
-        for _event, elem in etree.iterparse(str(path), events=("end",), tag="machine"):
+        for _event, elem in etree.iterparse(
+            str(path),
+            events=("end",),
+            tag="machine",
+            **HARDENED_ITERPARSE_KWARGS,
+        ):
             name = elem.get("name")
             parent = elem.get("cloneof")
             if name and parent:
@@ -99,7 +113,12 @@ def parse_listxml_bios_chain(path: Path) -> dict[str, BIOSChainEntry]:
 
     chain: dict[str, BIOSChainEntry] = {}
     try:
-        for _event, elem in etree.iterparse(str(path), events=("end",), tag="machine"):
+        for _event, elem in etree.iterparse(
+            str(path),
+            events=("end",),
+            tag="machine",
+            **HARDENED_ITERPARSE_KWARGS,
+        ):
             name = elem.get("name")
             if not name:
                 elem.clear()
