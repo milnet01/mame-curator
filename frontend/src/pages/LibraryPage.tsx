@@ -349,25 +349,42 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
           cloneofMapSize={setupCheck.data?.cloneof_map_size}
         />
         <ErrorBoundary>
-          {games.isError ? (
-            // FP20-I: query failure surfaces as an inline alert with
-            // a Retry affordance; the FP20-G global toast already
-            // flashed at error time, but it dismisses — this panel
-            // keeps the failure visible until the user retries.
-            <LibraryErrorPanel
-              onRetry={() => games.refetch()}
-              isFetching={games.isFetching}
-            />
-          ) : (
-            <LibraryGrid
-              cards={cards}
-              layout={layout}
-              cardsPerRowHint={config.data?.ui.cards_per_row_hint}
-              isInCart={(s) => cart.has(s)}
-              onAdd={(s) => cart.add(s)}
-              onOpen={(card) => setOpenedShortName(card.short_name)}
-            />
-          )}
+          {(() => {
+            // FP20-I: query failure surfaces as an inline alert with a
+            // Retry affordance; the FP20-G global toast already flashed
+            // at error time, but it dismisses — this panel keeps the
+            // failure visible until the user retries.
+            //
+            // FP26-V: keep the panel mounted while a refetch FROM an
+            // errored state is in flight. React Query v5 resets
+            // `isError` to false during refetch (so the prior `{games.
+            // isError ? ...}` ternary unmounted the panel mid-retry —
+            // FP25-H's `disabled={isFetching}` / "Retrying…" affordance
+            // never reached the user's screen). `errorUpdatedAt >
+            // dataUpdatedAt` tells us the last completed settle was an
+            // error, so we sticky-render the panel through the refetch
+            // window; once the refetch resolves successfully,
+            // dataUpdatedAt moves ahead and the grid takes over.
+            const lastSettleWasError =
+              (games.errorUpdatedAt ?? 0) > (games.dataUpdatedAt ?? 0)
+            const showErrorPanel =
+              games.isError || (games.isFetching && lastSettleWasError)
+            return showErrorPanel ? (
+              <LibraryErrorPanel
+                onRetry={() => games.refetch()}
+                isFetching={games.isFetching}
+              />
+            ) : (
+              <LibraryGrid
+                cards={cards}
+                layout={layout}
+                cardsPerRowHint={config.data?.ui.cards_per_row_hint}
+                isInCart={(s) => cart.has(s)}
+                onAdd={(s) => cart.add(s)}
+                onOpen={(card) => setOpenedShortName(card.short_name)}
+              />
+            )
+          })()}
         </ErrorBoundary>
       </div>
 

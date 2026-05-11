@@ -53,24 +53,20 @@ test('FP26-Q: cold-start backend outage produces one toast (FP25-G dedup window)
 
 // ---- FP26-R: LibraryErrorPanel Retry disables while refetch in-flight ------
 
-test('FP26-R+V: LibraryErrorPanel unmounts on Retry — FP25-H affordance never visible (FP26-V finding)', async ({
+test('FP26-R + FP26-V: LibraryErrorPanel stays mounted during refetch; Retry disables + relabels (FP25-H end-to-end)', async ({
   page,
 }) => {
-  // FP26-V — UX bug surfaced by this walkthrough that the FP25-H
-  // unit test missed: clicking Retry calls `games.refetch()`, react-
-  // query resets `isError` to false for the duration of the in-flight
-  // refetch, LibraryPage's `{games.isError ? <Panel/> : <Grid/>}`
-  // ternary unmounts the panel, and the user sees nothing happen
-  // (the empty grid takes over until refetch settles). FP25-H's
-  // `disabled={isFetching}` plumbing is correct at the component
-  // level, but the panel hosting the button is GONE during the
-  // window that would have shown the disabled state.
+  // FP26-V fix verified end-to-end: `LibraryPage` keeps the error
+  // panel mounted while a refetch FROM an errored state is in flight
+  // (`games.isError || (games.isFetching && errorUpdatedAt >
+  // dataUpdatedAt)`). With the panel sticky, FP25-H's
+  // `disabled={isFetching}` plumbing finally reaches the user — they
+  // see the button disable + relabel to "Retrying…" during the
+  // refetch, then re-enable once the refetch settles back to error.
   //
-  // Fix (FP26-V): make the panel sticky while a refetch from an
-  // errored state is in flight — e.g. `games.isError || (games.
-  // isFetching && games.errorUpdateCount > 0)`. Until that lands,
-  // this test captures the observed (buggy) behavior so a future
-  // commit that fixes FP26-V flips the assertions.
+  // Locks BOTH halves of the contract:
+  //   1. (FP26-V) panel stays visible across the click; no flicker.
+  //   2. (FP25-H) button disables + relabels while in flight.
   await page.route('**/api/games?**', async (route) => {
     await new Promise((r) => setTimeout(r, 1200))
     await route.fulfill({
@@ -88,20 +84,23 @@ test('FP26-R+V: LibraryErrorPanel unmounts on Retry — FP25-H affordance never 
 
   const panel = page.getByRole('alert')
   await expect(panel).toBeVisible({ timeout: 10000 })
-  const retry = page.getByRole('button', { name: /try again/i })
+  const retry = page.getByRole('button', { name: /try again|retrying/i })
   await expect(retry).toBeEnabled()
+  await expect(retry).toHaveText(/try again/i)
 
+  // Click Retry — refetch begins. FP26-V: panel STAYS visible across
+  // the click (no flicker). FP25-H: button disables + relabels.
   await retry.click()
-  // CURRENT BUGGY BEHAVIOR (FP26-V): the panel unmounts on Retry.
-  // No "Retrying…" label is ever shown to the user. The grid empty
-  // state appears in the panel's place until refetch settles to
-  // error again. This is the FP26-V finding the walkthrough caught.
-  await expect(panel).toBeHidden({ timeout: 3000 })
+  await expect(panel).toBeVisible() // sticky
+  await expect(retry).toBeDisabled({ timeout: 5000 })
+  await expect(retry).toHaveText(/retrying/i)
 
-  // After refetch settles (1.2s + ~1s retry exponential + 1.2s = ~3.5s)
-  // the panel returns. The user sees a brief flicker, not an in-flight
-  // affordance.
-  await expect(panel).toBeVisible({ timeout: 10000 })
+  // After refetch settles (~1.2s × 2 attempts via retry: 1 ≈ 2.4–3.5s),
+  // the panel is still visible (back to errored state) and the button
+  // re-enables with the original label.
+  await expect(retry).toBeEnabled({ timeout: 10000 })
+  await expect(retry).toHaveText(/try again/i)
+  await expect(panel).toBeVisible()
 })
 
 // ---- FP26-S: HelpPage DOMPurify scoping + deterministic data-URL -----------
