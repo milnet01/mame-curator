@@ -3,6 +3,14 @@ import { strings } from '@/strings'
 
 interface LibraryErrorPanelProps {
   onRetry: () => void
+  /**
+   * FP25-H: gates the Retry button's enabled state. While the in-flight
+   * refetch is running, the button disables + label switches to
+   * "Retrying…" so the user can't mash it and queue redundant refetches.
+   * Optional with a default of `false` so the FP20-I call sites don't
+   * have to thread the prop until they care.
+   */
+  isFetching?: boolean
 }
 
 /**
@@ -15,7 +23,10 @@ interface LibraryErrorPanelProps {
  * because the failure interrupts the user's work flow. Retry calls
  * react-query's ``refetch`` which re-runs the failed query.
  */
-export function LibraryErrorPanel({ onRetry }: LibraryErrorPanelProps) {
+export function LibraryErrorPanel({
+  onRetry,
+  isFetching = false,
+}: LibraryErrorPanelProps) {
   return (
     <div
       role="alert"
@@ -24,8 +35,13 @@ export function LibraryErrorPanel({ onRetry }: LibraryErrorPanelProps) {
       <p className="font-medium">{strings.library.loadFailedTitle}</p>
       <p className="text-muted-foreground">{strings.library.loadFailedHint}</p>
       <div>
-        <Button variant="outline" size="sm" onClick={onRetry}>
-          {strings.common.retry}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRetry}
+          disabled={isFetching}
+        >
+          {isFetching ? strings.common.retrying : strings.common.retry}
         </Button>
       </div>
     </div>

@@ -58,6 +58,9 @@ export const strings = {
     cancel: 'Cancel',
     save: 'Save',
     retry: 'Try again',
+    // FP25-H: in-flight label for the Retry button while LibraryErrorPanel's
+    // refetch is running — gates double-clicks and gives a visible signal.
+    retrying: 'Retrying…',
   },
 
   nav: {

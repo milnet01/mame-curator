@@ -33,4 +33,33 @@ describe('LibraryErrorPanel', () => {
     await userEvent.click(button)
     expect(onRetry).toHaveBeenCalledTimes(1)
   })
+
+  // FP25-H: in-flight feedback for Retry
+  it('FP25-H: disables Retry while isFetching=true', () => {
+    render(<LibraryErrorPanel onRetry={() => {}} isFetching />)
+    const button = screen.getByRole('button', {
+      name: strings.common.retrying,
+    })
+    expect(button).toBeDisabled()
+  })
+
+  it('FP25-H: shows "Retrying…" label while in-flight', () => {
+    render(<LibraryErrorPanel onRetry={() => {}} isFetching />)
+    expect(
+      screen.getByText(strings.common.retrying),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(strings.common.retry),
+    ).not.toBeInTheDocument()
+  })
+
+  it('FP25-H: disabled Retry does not invoke onRetry on click', async () => {
+    const onRetry = vi.fn()
+    render(<LibraryErrorPanel onRetry={onRetry} isFetching />)
+    const button = screen.getByRole('button', {
+      name: strings.common.retrying,
+    })
+    await userEvent.click(button)
+    expect(onRetry).not.toHaveBeenCalled()
+  })
 })

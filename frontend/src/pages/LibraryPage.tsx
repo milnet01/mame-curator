@@ -354,7 +354,10 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
             // a Retry affordance; the FP20-G global toast already
             // flashed at error time, but it dismisses — this panel
             // keeps the failure visible until the user retries.
-            <LibraryErrorPanel onRetry={() => games.refetch()} />
+            <LibraryErrorPanel
+              onRetry={() => games.refetch()}
+              isFetching={games.isFetching}
+            />
           ) : (
             <LibraryGrid
               cards={cards}
