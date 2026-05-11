@@ -49,7 +49,11 @@ export function GameCard({
 }: GameCardProps) {
   const [imgFailed, setImgFailed] = useState(false)
   const flyerSrc = `/media/${encodeURIComponent(card.short_name)}/boxart`
-  const altText = strings.library.flyerAlt(card.description)
+  // FP20-H: stable id wires aria-labelledby on the outer card to the
+  // inner heading, so the button's accessible name is exactly the
+  // game description — not the screen-reader-clobbering aria-label
+  // that used to live on the wrapper.
+  const titleId = `gamecard-title-${card.short_name}`
 
   // FP24-E + Q: outer wrapper is role="button" div, not a native
   // <button>. The inner +Add is itself a real button and nested
@@ -71,7 +75,7 @@ export function GameCard({
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={handleKeyDown}
-      aria-label={card.description}
+      aria-labelledby={titleId}
       className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
     >
       <Card
@@ -109,7 +113,11 @@ export function GameCard({
           ) : (
             <img
               src={flyerSrc}
-              alt={altText}
+              // FP20-H: decorative — the <h3> already names the card
+              // via aria-labelledby. A duplicate alt would re-announce
+              // the description to AT users on hover/focus.
+              alt=""
+              data-testid={`gamecard-img-${card.short_name}`}
               loading="lazy"
               onError={() => setImgFailed(true)}
               className="h-full w-full object-contain"
@@ -134,7 +142,10 @@ export function GameCard({
           )}
         </div>
         <CardContent className="flex flex-shrink-0 flex-col gap-0.5 px-3 py-2">
-          <h3 className="line-clamp-2 text-sm font-semibold leading-tight">
+          <h3
+            id={titleId}
+            className="line-clamp-2 text-sm font-semibold leading-tight"
+          >
             {card.description}
           </h3>
           <p className="font-mono text-xs text-muted-foreground">

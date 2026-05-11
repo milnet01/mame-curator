@@ -29,19 +29,46 @@ describe('GameCard', () => {
     expect(screen.getByText('pacman')).toBeInTheDocument()
   })
 
-  it('renders the box-art image with a media URL and accessible name', () => {
+  it('renders the box-art image with a media URL', () => {
+    // FP20-H: img is decorative (alt=""), so queries by alt-text no
+    // longer find it; the testid carries through. Decoration is the
+    // right semantic — the heading already names the card via
+    // aria-labelledby, so a duplicate alt would double-announce.
     render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
-    const img = screen.getByAltText(strings.library.flyerAlt('Pac-Man (Midway)'))
+    const img = screen.getByTestId('gamecard-img-pacman')
     expect(img).toHaveAttribute('src', '/media/pacman/boxart')
   })
 
   it('shows the description in the art area when the image fails (so the game is still identifiable)', () => {
     render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
-    const img = screen.getByAltText(strings.library.flyerAlt('Pac-Man (Midway)'))
+    const img = screen.getByTestId('gamecard-img-pacman')
     fireEvent.error(img)
     // Description appears once in the heading and once as the art-area placeholder.
     const matches = screen.getAllByText('Pac-Man (Midway)')
     expect(matches.length).toBeGreaterThanOrEqual(2)
+  })
+
+  // ---- FP20-H: accessible-name + decorative-image hardening ---------------
+
+  it('outer card has no aria-label (avoids clobbering accessible name)', () => {
+    render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
+    const card = screen.getByRole('button', { name: 'Pac-Man (Midway)' })
+    expect(card).not.toHaveAttribute('aria-label')
+  })
+
+  it('outer card delegates accessible name to the <h3> via aria-labelledby', () => {
+    render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
+    const card = screen.getByRole('button', { name: 'Pac-Man (Midway)' })
+    const labelledBy = card.getAttribute('aria-labelledby')
+    expect(labelledBy).toBe('gamecard-title-pacman')
+    const heading = screen.getByRole('heading', { name: 'Pac-Man (Midway)' })
+    expect(heading.id).toBe('gamecard-title-pacman')
+  })
+
+  it('box-art image is marked decorative (alt="") so the heading is the sole name source', () => {
+    render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
+    const img = screen.getByTestId('gamecard-img-pacman')
+    expect(img).toHaveAttribute('alt', '')
   })
 
   it('exposes every badge as an accessible label', () => {
@@ -135,7 +162,8 @@ describe('GameCard +Add', () => {
     const onAdd = vi.fn()
     const onOpen = vi.fn()
     render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={onAdd} />)
-    // Outer card button has aria-label === card.description
+    // FP20-H: outer card's accessible name now comes from the <h3> via
+    // aria-labelledby — no aria-label on the wrapper.
     fireEvent.click(screen.getByRole('button', { name: 'Pac-Man (Midway)' }))
     expect(onOpen).toHaveBeenCalled()
   })

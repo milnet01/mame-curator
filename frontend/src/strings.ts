@@ -233,7 +233,6 @@ export const strings = {
       `Candidates considered: ${names.join(', ')}`,
     notesLabel: 'Notes',
     notesPlaceholder: 'Notes (saved automatically when you click away)…',
-    flyerAlt: (description: string) => `Box art for ${description}`,
     /** FP19 — Launch button + status copy. */
     launch: 'Launch in RetroArch',
     launching: 'Launching…',
