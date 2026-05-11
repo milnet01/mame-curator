@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | FP20 closing `/audit` + `/indie-review` ran 2026-05-11; 18 findings (1 Tier 1 spec-violation, 7 Tier 2, 10 Tier 3) batched into **FP25** closing-review fold-in. FP20 stays 🚧 until FP25 closes. |
-| **Active item ID** | FP25 — FP20 closing-review fold-in (11 sub-bullets A–K) |
-| **Active step** | 1 — spec (per `ROADMAP.md § FP25`); proceed through the standard 9-step loop |
-| **Blocked on** | nothing |
-| **Last update** | 2026-05-11 (FP25 spawned by `/close-phase`; 473 backend tests + 265 frontend tests all green; semgrep 1-finding maps to allowlist-004 re-confirmed; gitleaks clean) |
-| **Next gate** | Work FP25 through the 9-step loop (spec already filed in ROADMAP); when FP25 closes ✅, run `/close-phase FP20` again to clean-close FP20 + tag `FP20-complete`. Queue then continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. FP22-D folds into FP21 § J. |
+| **Project phase** | FP25 Step 4 complete — all 11 sub-bullets A–K shipped across 8 commits on 2026-05-11. FP20 stays 🚧 pending FP25 close. |
+| **Active item ID** | FP25 — FP20 closing-review fold-in (11/11 sub-bullets A–K shipped) |
+| **Active step** | 5 — `/audit` (closing) + 6 — `/indie-review` (closing) pending; then triage (Step 7), CHANGELOG/ROADMAP flip (Step 8), tag (Step 9) |
+| **Blocked on** | nothing — ready for `/close-phase` orchestrator |
+| **Last update** | 2026-05-11 (FP25 sub-bullets A–K shipped across `d617cd6..19cc9b2`; 502 backend + 273 frontend tests green; ruff + mypy + ESLint + tsc clean) |
+| **Next gate** | Run `/close-phase` to orchestrate closing `/audit` + `/indie-review` in parallel. If clean → tag `FP25-complete` (annotated), update workflow.md + journal, then re-run `/close-phase FP20` to clean-close the parent and tag `FP20-complete`. If findings → spawn next `FP##`. Queue then continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,16 +21,17 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-**FP25 — FP20 closing-review fold-in (Step 1 — spec, freshly opened)**
+**FP25 — FP20 closing-review fold-in (Step 4 complete, awaiting `/close-phase`)**
 
-- 🚧 Step 1 — spec (sub-bullets A–K enumerated in `ROADMAP.md § FP25`,
-  sourced from FP20 closing `/audit` + 5-lane `/indie-review` on 2026-05-11)
-- ⬜ Step 2 — plan (per-sub-bullet TDD per the FP20 cadence)
-- ⬜ Step 3 — tests-first
-- ⬜ Step 4 — implementation
-- ⬜ Step 5 — `/audit`
-- ⬜ Step 6 — `/indie-review`
-- ⬜ Step 7 — fix-pass against Step 5+6 findings
+- ✅ Step 1 — spec (sub-bullets A–K enumerated in `ROADMAP.md § FP25`)
+- ✅ Step 2 — plan (per-sub-bullet TDD per FP20 cadence)
+- ✅ Step 3 — tests-first (failing tests landed for A, B, C, D, F, G, H, J)
+- ✅ Step 4 — implementation (all 11 sub-bullets shipped: A `d617cd6`,
+  B `87b32de`, C+F `f569953`, D `d210aa6`, E `efd6b6b`, G `32d66cb`,
+  H `84c55cb`, I+J `b21fe08`, K `19cc9b2`)
+- 🚧 Step 5 — `/audit` (pending — orchestrated by `/close-phase`)
+- 🚧 Step 6 — `/indie-review` (pending — orchestrated by `/close-phase`)
+- ⬜ Step 7 — fix-pass against Step 5+6 findings (only if needed)
 - ⬜ Step 8 — final five-gate green
 - ⬜ Step 9 — close: tag `FP25-complete`, update CHANGELOG/ROADMAP, then
   re-run `/close-phase FP20` to clean-close the parent

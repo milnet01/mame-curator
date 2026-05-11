@@ -79,6 +79,72 @@ Tier 2 hardening gaps, and 10 Tier 3 polish items. All 11 batched into
 `FP25` for the closing-review fold-in. FP20 stays open until FP25
 closes; `FP20-complete` tag will fire then.
 
+### FP25 — FP20 closing-review fold-in (in progress 2026-05-11)
+
+11 sub-bullets sourced from FP20's closing `/audit` + 5-lane
+`/indie-review` (1 Tier 1 / 7 Tier 2 / 10 Tier 3 polish items grouped
+into K). All 11 shipped per-sub-bullet TDD across 8 commits:
+
+- **A** `d617cd6` — `world_lock` on the remaining 7 mutation routes
+  (`api/routes/curate.py` overrides POST/DELETE + sessions POST/DELETE,
+  activate, _deactivate; `api/routes/games.py:put_notes`). Converts
+  each to `async def`, drops `Depends(get_world)`, re-reads
+  `request.app.state.world` inside `async with
+  request.app.state.world_lock`. New acceptance test fires two
+  `asyncio.gather`-ed cross-route mutations and asserts both edits
+  land. Closes the data-loss class on concurrent PATCH +
+  sessions/overrides/notes races.
+- **B** `87b32de` — `copy/activity.py` durability + typed
+  `ActivityLogError`. `append_activity` now loops on short writes
+  (POSIX permits short returns on regular files), issues a best-
+  effort `os.fsync` (suppressed on tmpfs / some networked mounts),
+  and wraps `os.open` / `os.write` failures in the new
+  `ActivityLogError(CopyError)` envelope. `copy/spec.md` § Activity
+  log updated to name the new semantic explicitly.
+- **C** + **F** `f569953` — `copy/recyclebin.py` manifest atomicity
+  envelope. The manifest write now runs inside try/except: on
+  `OSError`, `shutil.move` rolls the recycled file back to its
+  original path (all-or-nothing) and the empty target_dir is cleaned
+  up if this call created it. FP25-F tests monkeypatch `os.replace`
+  inside `atomic_write_text` to fail and assert no `manifest.json` /
+  no `.tmp` files remain.
+- **D** `d210aa6` — `_atomic.atomic_write_*` perm-mode pinned at
+  0o644 via `os.fchmod(tmp.fileno(), 0o644)`. Parity with
+  `copy/activity.py:append_activity`'s `os.open(..., 0o644)`; the
+  pre-FP25-D 0o600 default left half the data dir owner-only.
+- **E** `efd6b6b` — concurrent-append property test for the activity
+  log. Fork two child processes each appending 20 × 6 KiB events,
+  assert every resulting JSONL line parses cleanly and the per-child
+  counts match. Exercises POSIX O_APPEND atomicity end-to-end.
+- **G** `32d66cb` — `toastApiError` 1500 ms dedup window keyed on
+  `(code, detail)`. Cold-start outages (9+ near-simultaneous query
+  failures) now collapse to one toast; distinct errors still surface
+  separately; >1.5 s later the same key re-toasts.
+- **H** `84c55cb` — `LibraryErrorPanel` Retry disabled while
+  `isFetching`. Optional `isFetching?: boolean` prop swaps the label
+  to "Retrying…" and `disabled`s the button so a frustrated user
+  can't queue redundant refetches.
+- **I** + **J** `b21fe08` — HelpPage scoped DOMPurify instance via
+  `DOMPurify(window)` so the `target="_blank"` `forceKeepAttr`, the
+  rel-injection, and the data:-URL strip don't leak to the global
+  singleton. **J** strengthens the FP20-L data-URL test to a
+  deterministic outcome (either `<img>` absent OR `<img>` with no
+  src) instead of the vacuous pre-FP25-J assertion.
+- **K** `19cc9b2` — 12-item doc + comment cleanup batch: parser nosec
+  rewrite (1), zip-bomb cap comment (2), Billion Laughs timing relax
+  to 5 s (3), `_atomic.py` noqa SIM115 reason (4), `help.py` drop
+  redundant `.resolve()` (5), `fs.py` dedupe FP20-D INFO log via
+  module-level seen-stale set (6), GameCard `aria-labelledby` id
+  uniqueness invariant doc (7), queryClient test
+  `toHaveBeenCalledTimes(1)` (8), SnapshotsTab `restoreError` JSDoc
+  lifetime contract (9), HelpPage tagName casing comment (10), drop
+  dead `el.getAttribute?.` optional chain (11), App.tsx clear
+  `snapshotRestoreError` while `restore.isPending` (12).
+
+Tests at FP25 step 4 close: 502 backend (1 skipped) / 273 frontend /
+coverage 87.x% / ruff + ruff format + mypy + bandit / eslint + tsc
+clean. `frontend/dist/` rebuilt.
+
 ### FP22 — Launch button gates on RetroArch config (closed 2026-05-08)
 
 User reported a 422 on POST `/api/games/{name}/launch` after
