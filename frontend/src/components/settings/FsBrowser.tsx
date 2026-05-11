@@ -86,8 +86,33 @@ export function FsBrowser({
     (e) => mode === 'file' || e.is_dir,
   )
 
+  // FP20-K: render only one dialog layer at a time. Previously both
+  // the browse Dialog and the grant ConfirmationDialog were siblings
+  // inside a fragment; pressing Esc inside the grant prompt fired
+  // BOTH dialogs' onOpenChange handlers, and the outer one closed
+  // FsBrowser entirely even when the user only meant to dismiss the
+  // grant prompt. Single-layer rendering keeps Esc routing
+  // unambiguous and preserves the FP13 § C2 cancel-closes-everything
+  // behaviour via the AlertDialog's own onOpenChange.
+  if (sandboxBlocked) {
+    return (
+      <ConfirmationDialog
+        open
+        onOpenChange={(o) => {
+          // FP13 § C2: cancel = close FsBrowser entirely (avoid the
+          // re-prompt loop when home isn't loaded — see C2 comment).
+          if (!o) onOpenChange(false)
+        }}
+        title={strings.settings.fsGrantTitle}
+        description={strings.settings.fsGrantConfirm(sandboxBlocked)}
+        actionLabel={strings.settings.fsGrantActionLabel(sandboxBlocked)}
+        onConfirm={() => grant.mutate(sandboxBlocked)}
+        destructive={false}
+      />
+    )
+  }
+
   return (
-    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -211,26 +236,5 @@ export function FsBrowser({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-
-    {sandboxBlocked && (
-      <ConfirmationDialog
-        open
-        onOpenChange={(o) => {
-          // FP13 § C2: cancelling the grant prompt closes FsBrowser
-          // entirely. Previously this tried to reset to home.data.path,
-          // but if home was unloaded the 403 listing stayed live and the
-          // dialog re-opened immediately (lockout). Closing the modal is
-          // the unambiguous exit; the user can re-open and pick a
-          // different starting point.
-          if (!o) onOpenChange(false)
-        }}
-        title={strings.settings.fsGrantTitle}
-        description={strings.settings.fsGrantConfirm(sandboxBlocked)}
-        actionLabel={strings.settings.fsGrantActionLabel(sandboxBlocked)}
-        onConfirm={() => grant.mutate(sandboxBlocked)}
-        destructive={false}
-      />
-    )}
-    </>
   )
 }

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { FsBrowser } from '../FsBrowser'
+import { strings } from '@/strings'
 import { server, http, HttpResponse } from '@/test/handlers'
 
 afterEach(() => cleanup())
@@ -207,6 +208,55 @@ describe('FsBrowser (FP12 § G)', () => {
     expect(homeButtons).toHaveLength(1)
     // The other drive root '/' still renders.
     expect(screen.getByRole('button', { name: '/' })).toBeInTheDocument()
+  })
+
+  it('renders ONLY the grant prompt when sandbox-blocked (not co-mounted with browse Dialog)', async () => {
+    /**
+     * FP20-K: previously both the outer "Pick a path" Dialog and the
+     * grant ConfirmationDialog were rendered as siblings of a fragment.
+     * ``Esc`` in the grant prompt then fired BOTH dialogs' onOpenChange
+     * handlers — the outer Dialog's handler calls the parent's
+     * onOpenChange(false) directly, unmounting FsBrowser even though
+     * the user only intended to dismiss the grant prompt.
+     *
+     * Fix: render only one layer at a time. When ``sandboxBlocked`` is
+     * truthy, the browse Dialog is unmounted and the AlertDialog is the
+     * sole open layer; Esc routes cleanly to a single handler. The
+     * FP13 § C2 behaviour (cancelling the grant closes FsBrowser) is
+     * preserved by the AlertDialog's own onOpenChange.
+     */
+    server.use(
+      http.get('/api/fs/list', ({ request }) => {
+        const path = new URL(request.url).searchParams.get('path')
+        if (path === HOME) return HttpResponse.json(homeListing)
+        return HttpResponse.json(
+          {
+            code: 'fs_sandboxed',
+            detail: `${path} outside allowlist`,
+            fields: [],
+          },
+          { status: 403 },
+        )
+      }),
+    )
+    renderWithClient(
+      <FsBrowser
+        open
+        onOpenChange={() => {}}
+        onPick={() => {}}
+        initialPath="/etc"
+      />,
+    )
+    await screen.findByRole('alertdialog', { name: /grant filesystem access/i })
+    // The outer browse Dialog's title is the canonical signal that it
+    // is in the DOM. If both dialogs were co-mounted (pre-FP20-K), the
+    // text would be present on the queryable surface.
+    expect(
+      screen.queryByText(strings.settings.fsBrowserTitle),
+    ).not.toBeInTheDocument()
+    // And only one dialog/alertdialog should be in the DOM.
+    expect(screen.queryAllByRole('dialog')).toHaveLength(0)
+    expect(screen.queryAllByRole('alertdialog')).toHaveLength(1)
   })
 
   it('closes the modal when the grant prompt is cancelled (FP13 § C2)', async () => {
