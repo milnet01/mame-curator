@@ -1532,7 +1532,7 @@ something needs editing in `config.yaml`.
 
 ---
 
-## FP20 — `/indie-review` Tier 1: security + data-loss (planned)
+## FP20 — `/indie-review` Tier 1: security + data-loss (in progress 2026-05-11; FP25 closing-review pending)
 
 **Theme:** fold-in of the 2026-05-04 multi-agent independent review
 across 10 lanes (parser, filter, copy, api-data, api-mutation,
@@ -1541,11 +1541,14 @@ alternatives/help/sessions, frontend infra). Tier 1 covers the
 ship-this-week class: spec-mandated locks that aren't installed,
 non-atomic writes on the data path, sandbox-escape vectors,
 silent-failure surfaces. Post-v1.2.0 hardening pass; no functional
-regressions expected.
+regressions expected. **All 12 sub-bullets A–L shipped 2026-05-11 across
+14 commits (`c3ee50c..d819181`); closing `/audit` + `/indie-review`
+surfaced 1 Tier 1 spec-violation + 7 Tier 2 + 10 Tier 3 — folded into
+FP25. FP20 stays 🚧 until FP25 closes.**
 
 ### 🔒 Security
 
-- 📋 **FP20** [mame-curator-1019] **Indie-review Tier 1 — security + data-loss fixes.**
+- 🚧 **FP20** [mame-curator-1019] **Indie-review Tier 1 — security + data-loss fixes.**
   Lanes: parser, copy, api, frontend.
   - **A — Parser XXE + zip-bomb hardening.** `parser/dat.py:94`
     and `parser/listxml.py:38,71,102` use `lxml.iterparse(...)`
@@ -1651,7 +1654,163 @@ regressions expected.
     `allowlist-004`'s contracted hardening that shipped FP16 § H4.
 
   Source: `/indie-review` 2026-05-04, 10 lanes parallel-dispatch.
-  Dependencies: none (post-v1.2.0; `main` baseline).
+  Dependencies: none (post-v1.2.0; `main` baseline). FP25 closing-review
+  fold-in must close before FP20 can flip to ✅.
+
+---
+
+## FP25 — FP20 closing-review fold-in (planned)
+
+**Theme:** FP20's closing `/audit` (semgrep + gitleaks on the FP20 surface
+plus CI-clean ruff/mypy/bandit/eslint/tsc) returned a single allowlist-004
+re-confirmation; the 5-lane `/indie-review` (parser / copy / api-mutation
++ sandbox / frontend infra+library / frontend settings+help) surfaced
+**1 Tier 1 spec-violation, 7 Tier 2 hardening gaps, 10 Tier 3 polish
+items**. FP20 cannot close until these are folded. Findings batched into
+three tiers; all share a single `FP25` ID per the FP24 / FP19 / FP12
+closing-review precedent.
+
+### 🐛 Bug fixes
+
+- 📋 **FP25** [mame-curator-1027] **FP20 closing-review fold-in.**
+  Lanes: api, copy, frontend, docs, tests.
+
+  **Tier 1 — Critical / ship-this-week:**
+  - **A — `world_lock` covers only 5 of the 7 spec-required mutation
+    routes** (Lane 3 F1). `docs/specs/P04.md:104-115` is normative:
+    PATCH config, overrides POST/DELETE, sessions
+    POST/DELETE/activate, notes PUT, snapshot restore, fs
+    grant/revoke must all run under `app.state.world_lock`. FP20-C
+    wired `patch_config`, `restore_config_snapshot`, `import_config`,
+    `fs_grant_root`, `fs_revoke_root`. Still racy: `api/routes/curate.py`
+    (six `set_world` sites — overrides POST/DELETE, sessions
+    POST/DELETE/activate/deactivate) and `api/routes/games.py:put_notes`.
+    The FP20-C inline comment at `api/app.py:111-113` minimises this as
+    "deferred", but the spec table is normative — the lock contract is
+    currently half-delivered. Fix: convert the seven remaining routes to
+    `async`, drop their `Depends(get_world)` injection, re-read
+    `request.app.state.world` inside `async with` and run
+    read-merge-write-set_world under the lock. Closes the data-loss
+    class on concurrent PATCH + sessions/overrides/notes races. Add an
+    acceptance test that fires two `asyncio.gather`-ed mutations across
+    different routes and asserts both edits land.
+
+  **Tier 2 — Hardening / correctness:**
+  - **B — Activity-log durability + typed errors** (Lane 2 W1–W3).
+    `src/mame_curator/copy/activity.py:34-38` bypasses `BufferedWriter`
+    correctly but (a) does not fsync the fd — module docstring claims
+    atomicity but the page-cache flush is at the kernel's discretion;
+    (b) ignores `os.write` return value — POSIX permits short writes
+    on regular files (signal-interrupted, ENOSPC partway); (c)
+    propagates raw `OSError` instead of wrapping in
+    `ActivityLogError(CopyError)` per the `copy/spec.md` envelope. Fix:
+    optional best-effort fsync after write (suppress OSError on tmpfs
+    per allowlist-007's pattern), loop until `total == len(line_bytes)`,
+    wrap OSError in a typed `ActivityLogError`. Update the module
+    docstring to name the durability semantic explicitly.
+  - **C — Recyclebin manifest atomicity envelope** (Lane 2 W4).
+    `src/mame_curator/copy/recyclebin.py:44-60`: if `shutil.move`
+    succeeds but `atomic_write_text(manifest, ...)` fails, the recycled
+    `.zip` sits with no `manifest.json` — `purge_recycle` still cleans
+    after 30d, but forensics has no record. Worse: `atomic_write_text`
+    raises `OSError` raw, bypassing the `RecycleError` envelope
+    established at line 47. Fix: wrap the `atomic_write_text` call in a
+    try/except that raises `RecycleError`; either roll back the move on
+    manifest failure (preserves the all-or-nothing invariant) or comment-
+    pin the partial state as deliberate with a recovery note.
+  - **D — `_atomic.py` perm-mode parity** (Lane 2 W5).
+    `tempfile.NamedTemporaryFile` defaults to `0o600`; the resulting file
+    after `os.replace` retains those perms. `copy/activity.py` uses
+    `os.open(..., 0o644)` and respects umask. Result: recyclebin
+    manifest and RetroArch `.lpl` are owner-only readable while activity
+    log is world-readable. Fix: `os.fchmod(tmp.fileno(), 0o644)` before
+    close in `_atomic.atomic_write_text` / `atomic_write_bytes`, OR
+    comment-pin the 0o600 mode as deliberate (with reasoning).
+  - **G — `toastApiError` toast burst on cold-start outage** (Lane 4
+    T2-1). When the backend is down, `LibraryPage` fires 9+ near-
+    simultaneous query failures (six tile counts via `useQueries` fan-
+    out + games + facets + config + sessions + setupCheck), and
+    `queryCache.onError` produces one toast per failure. Sonner does
+    not dedup. Fix: add a coalescing window (1–2s last-seen
+    `(code, detail)`) inside `frontend/src/lib/apiErrorToast.ts` so
+    cold-start outages produce one toast, not nine.
+  - **H — Retry button has no in-flight feedback** (Lane 4 T2-2).
+    `LibraryErrorPanel` Retry calls `games.refetch()` but does not
+    disable during the in-flight fetch. The user can mash it. Fix:
+    plumb `isFetching` through to `LibraryErrorPanel` and set
+    `disabled={isFetching}`; optionally show a small spinner / "Retrying…"
+    label so the affordance is unambiguous.
+  - **I — DOMPurify hooks are global singletons** (Lane 5 T2-2).
+    `frontend/src/pages/HelpPage.tsx` registers
+    `uponSanitizeAttribute` + `afterSanitizeAttributes` at module
+    evaluation. Any future `DOMPurify.sanitize(...)` call anywhere in
+    the bundle silently inherits the `target="_blank"` `forceKeepAttr`,
+    rel-injection, and `data:` src strip on
+    IMG/SOURCE/AUDIO/VIDEO/TRACK. No current victims, but the next
+    developer adding a Markdown-rendered notes field will be surprised.
+    Fix: either (a) module-level `hooksInstalled` guard + comment, (b)
+    use `DOMPurify.removeAllHooks()` before adding, or (c) refactor to
+    a HelpPage-scoped DOMPurify instance via `DOMPurify(window)` factory.
+    Add a top-of-module warning naming the global-side-effect class.
+
+  **Tier 3 — Tests + doc cleanup:**
+  - **E — Concurrent-write property test for activity log** (Lane 2
+    T3a). The existing `test_activity_log_append_uses_single_os_write`
+    asserts a necessary condition (one syscall) but not sufficient
+    (concurrent appenders interleaving). Add a fork-2-child test that
+    each appends N × 6 KiB lines and asserts every resulting JSONL line
+    parses cleanly. Proves the POSIX O_APPEND guarantee end-to-end.
+  - **F — Manifest-atomicity test for recyclebin** (Lane 2 T3b). No
+    test verifies tmp cleanup-on-failure or that a half-written
+    `manifest.json` never appears. Monkeypatch `os.replace` to raise
+    inside `atomic_write_text` during `recycle_file`, assert no
+    `manifest.json` and no `manifest.json.*.tmp` remain. Locks the
+    crash-safety contract.
+  - **J — Strengthen data-URL test in HelpPage** (Lane 5 T2-4). The
+    current assertion `if (img !== null) { expect(src).not.toMatch
+    (/^data:/) }` passes vacuously if `<img>` is removed entirely.
+    Assert deterministic outcome: either `<img>` is absent, OR `<img>`
+    survives with `alt=""` and no `src`. Prevents a future config
+    change from silently failing-open.
+  - **K — Doc + comment cleanup batch.** Twelve sub-items grouped:
+    (1) `parser/dat.py:23` + `listxml.py:16` rewrite `# nosec B410`
+    comments to lead with the hardening (drop the misleading "trusted
+    source" framing — Phase 4 routes parse through the API);
+    (2) `parser/dat.py:32-35` zip-bomb cap comment naming the single-
+    member upstream enforcement;
+    (3) `tests/parser/test_dat.py:206` Billion Laughs timing assertion
+    — switch from `elapsed < 1.0` to `len < 1000 AND elapsed < 5.0`
+    for CI tolerance;
+    (4) `_atomic.py:27, 85` `# noqa: SIM115` add reason comment per
+    project rule (CLAUDE.md);
+    (5) `api/routes/help.py:60` drop the redundant `.resolve()` (FP20-E
+    made `_help_dir()` canonical at source); add a one-line comment
+    instead;
+    (6) `api/fs.py:68-72` dedupe the FP20-D INFO log — cache seen-stale
+    paths on the world to avoid log spam under polling load;
+    (7) `frontend/src/components/library/GameCard.tsx:56` document the
+    `aria-labelledby` id uniqueness invariant (currently relies on MAME
+    short_name uniqueness within a DAT — fragile if cards repeat in a
+    drawer + grid concurrently);
+    (8) `frontend/src/lib/__tests__/queryClient.test.tsx` add
+    `.toHaveBeenCalledTimes(1)` assertion to lock the once-per-failure
+    contract;
+    (9) `frontend/src/components/settings/SnapshotsTab.tsx` JSDoc
+    `restoreError` lifetime contract ("alert lifetime = SettingsRoute
+    mount + one mutation cycle");
+    (10) `HelpPage.tsx:59` SVG tagName casing comment (HTML tagName is
+    uppercase, SVG is lowercase — currently safe because DATA_URI_TAGS
+    is HTML-only, but worth documenting);
+    (11) `HelpPage.tsx:73` drop the dead `el.getAttribute?.` optional
+    chain (Element always has the method);
+    (12) `App.tsx:285-291` clear `restoreError` during
+    `restore.isPending` to avoid the stale-flash on rapid retries.
+
+  Source: FP20 closing `/audit` (1 allowlist-004 re-confirmation, no new
+  findings) + 5-lane `/indie-review` (parser / copy / api-mutation +
+  sandbox / frontend infra+library / frontend settings+help); filed
+  2026-05-11.
+  Dependencies: FP20 (still 🚧). FP25 must close before FP20 can flip ✅.
 
 ---
 

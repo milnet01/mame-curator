@@ -17,6 +17,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP20 — `/indie-review` Tier 1 security + data-loss fold-in (in progress 2026-05-11)
+
+The 2026-05-04 multi-agent indie-review surfaced 12 sub-bullets across
+10 lanes — parser XXE/zip-bomb (A), copy non-atomic writes (B), API
+mutation lock not installed (C), sandbox allowlist admits stale paths
+(D), help-dir env-override symlink (E), download URL scheme allowlist
+(F), useApiQuery silent-failure path (G), GameCard aria-label clobber
+(H), LibraryPage error-panel gap (I), SnapshotsTab restore-error
+surface (J), FsBrowser Esc-closes-everything (K), HelpPage DOMPurify
+config hardening (L). All 12 shipped across 14 commits on 2026-05-11:
+
+- **A** `c3ee50c` — parser/dat.py + parser/listxml.py + tests; explicit
+  `resolve_entities=False / no_network=True / huge_tree=False /
+  load_dtd=False` hardened-iterparse kwargs at all four call sites,
+  plus a 256 MiB cap on `zf.getinfo(member).file_size` before
+  extraction.
+- **B** `6a12a93` — copy/activity.py (`os.open + os.write` bypasses the
+  BufferedWriter split risk); copy/recyclebin.py + copy/playlist.py
+  routed through `_atomic.atomic_write_text` (Rule-of-Three honoured).
+- **C** `61fbc68` — `app.state.world_lock = asyncio.Lock()` installed
+  in `api/app.py` lifespan; `patch_config`, `restore_config_snapshot`,
+  `import_config`, `fs_grant_root`, `fs_revoke_root` converted to
+  `async` and wrapped in `async with`.
+- **D** `52a112c` — `compose_allowlist` filters `granted_roots` to
+  entries that satisfy both `exists()` and `is_dir()`; dropped entries
+  emit INFO log naming the resolved path.
+- **E** `73f2df8` — `_help_dir()` resolves both branches (override +
+  package-relative) so callers operate on the canonical path.
+- **F** `c49225b` — `download()` rejects schemes outside `{http, https}`
+  via `_check_scheme` applied to the primary URL and every mirror
+  before any HTTP attempt. Typed `InvalidUrlError(DownloadError)`.
+- **G** `76a3010` — `createAppQueryClient()` factory wires
+  `queryCache: new QueryCache({ onError: toastApiError })` so every
+  failing query funnels through the global toast helper.
+- **H** `7cc8796` — GameCard drops the `aria-label` clobber on its
+  wrapper; an `aria-labelledby` to a per-card `id`-bearing `<h3>` plus
+  decorative `alt=""` on the box-art image.
+- **I** `4b4faca` — new `LibraryErrorPanel` (alert role, title + hint +
+  Retry button); LibraryPage renders the panel in place of the grid
+  when `games.isError`, with `games.refetch()` on Retry.
+- **J** `3bb01ef` — `SnapshotsTab.restoreError` prop renders a
+  persistent alert above the snapshot list (mirrors `BackupTab.error`);
+  `App.tsx` SettingsRoute derives the message from `restore.error`
+  (ApiError.detail preferred).
+- **K** `e149c1c` — `FsBrowser` renders only one dialog layer at a
+  time — when sandbox-blocked, the browse Dialog is unmounted and the
+  AlertDialog is the sole open layer.
+- **L** `c9e61b5` + `d819181` — HelpPage DOMPurify hardened:
+  `ALLOWED_URI_REGEXP = /^(?:https?|mailto):/i`, `FORBID_TAGS =
+  ['style', 'form']`, `FORBID_ATTR = ['style']`, a `forceKeepAttr` hook
+  preserving `target="_blank"`, an `afterSanitizeAttributes` hook
+  setting `rel="noopener noreferrer"`, and a `data:` src strip for
+  IMG/SOURCE/AUDIO/VIDEO/TRACK closing the `DATA_URI_TAGS` bypass.
+
+Closing `/audit` (semgrep + gitleaks on the FP20 surface plus CI-clean
+ruff/mypy/bandit/eslint/tsc) returned a single allowlist-004 re-
+confirmation; the 5-lane `/indie-review` surfaced 1 Tier 1 spec-
+violation (`world_lock` covers only 5 of 7 spec-required routes), 7
+Tier 2 hardening gaps, and 10 Tier 3 polish items. All 11 batched into
+`FP25` for the closing-review fold-in. FP20 stays open until FP25
+closes; `FP20-complete` tag will fire then.
+
 ### FP22 — Launch button gates on RetroArch config (closed 2026-05-08)
 
 User reported a 422 on POST `/api/games/{name}/launch` after

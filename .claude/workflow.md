@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | v1.2.0 shipped — FP20 (indie-review Tier 1 security + data-loss) Step 4 complete 2026-05-11; all 12 sub-bullets A–L landed across backend + frontend, awaiting Step 5 `/audit` + Step 6 `/indie-review` |
-| **Active item ID** | FP20 — `/indie-review` Tier 1: security + data-loss (12 of 12 sub-bullets landed) |
-| **Active step** | 4 ✅ → 5 (audit) ready to start |
+| **Project phase** | FP20 closing `/audit` + `/indie-review` ran 2026-05-11; 18 findings (1 Tier 1 spec-violation, 7 Tier 2, 10 Tier 3) batched into **FP25** closing-review fold-in. FP20 stays 🚧 until FP25 closes. |
+| **Active item ID** | FP25 — FP20 closing-review fold-in (11 sub-bullets A–K) |
+| **Active step** | 1 — spec (per `ROADMAP.md § FP25`); proceed through the standard 9-step loop |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-11 (FP20-L `c9e61b5` + tsc follow-up `d819181`; 473 backend tests + 265 frontend tests all green; backend coverage 87.10%) |
-| **Next gate** | Run `/close-phase` to orchestrate Step 5 `/audit` + Step 6 `/indie-review` in parallel against the FP20 surface, triage findings, then either close FP20 cleanly (tag `FP20-complete`, push) or spawn FP25 for fix-pass items. After FP20 closes the queue continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. FP22-D folds into FP21 § J. |
+| **Last update** | 2026-05-11 (FP25 spawned by `/close-phase`; 473 backend tests + 265 frontend tests all green; semgrep 1-finding maps to allowlist-004 re-confirmed; gitleaks clean) |
+| **Next gate** | Work FP25 through the 9-step loop (spec already filed in ROADMAP); when FP25 closes ✅, run `/close-phase FP20` again to clean-close FP20 + tag `FP20-complete`. Queue then continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. FP22-D folds into FP21 § J. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,55 +21,50 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-**FP20 — `/indie-review` Tier 1 fold-in (Step 4 complete, Step 5/6 next)**
+**FP25 — FP20 closing-review fold-in (Step 1 — spec, freshly opened)**
 
-- ✅ Step 1 — spec (sub-bullets A–L enumerated in `ROADMAP.md § FP20`,
-  sourced from 2026-05-04 indie-review)
-- ✅ Step 2 — plan (per-sub-bullet TDD; one commit per cluster A/B/C,
-  D/E/F next as the remaining backend trio)
-- ✅ Step 3 — tests-first (XXE + Billion Laughs + zip-bomb; atomic
-  `os.write`; `asyncio.Lock` instance — all failing-test scaffolding
-  written before implementation)
-- ✅ Step 4 — implementation (12 of 12 sub-bullets landed: A `c3ee50c`,
-  B `6a12a93`, C `61fbc68`, D `52a112c`, E `73f2df8`, F `c49225b`,
-  G `76a3010`, H `7cc8796`, I `4b4faca`, J `3bb01ef`, K `e149c1c`,
-  L `c9e61b5` + tsc follow-up `d819181`)
-- 🚧 Step 5 — `/audit` (static analysis sweep across the FP20 surface) — ready
-- 🚧 Step 6 — `/indie-review` (closing review of the FP20 fold-in itself) — ready
-- ⬜ Step 7 — fix-pass against Step 5+6 findings (may spawn FP25)
+- 🚧 Step 1 — spec (sub-bullets A–K enumerated in `ROADMAP.md § FP25`,
+  sourced from FP20 closing `/audit` + 5-lane `/indie-review` on 2026-05-11)
+- ⬜ Step 2 — plan (per-sub-bullet TDD per the FP20 cadence)
+- ⬜ Step 3 — tests-first
+- ⬜ Step 4 — implementation
+- ⬜ Step 5 — `/audit`
+- ⬜ Step 6 — `/indie-review`
+- ⬜ Step 7 — fix-pass against Step 5+6 findings
 - ⬜ Step 8 — final five-gate green
-- ⬜ Step 9 — close: tag `FP20-complete`, update CHANGELOG/ROADMAP
+- ⬜ Step 9 — close: tag `FP25-complete`, update CHANGELOG/ROADMAP, then
+  re-run `/close-phase FP20` to clean-close the parent
+
+**FP20 — parent phase (Step 4 complete, Step 5/6 ran, awaiting FP25):**
+Sub-bullets A–L all landed across 14 commits (`c3ee50c..d819181`).
+Closing `/audit` + `/indie-review` ran cleanly — 18 findings (1 Tier 1
+spec-violation, 7 Tier 2 hardening, 10 Tier 3 polish) folded into FP25.
+Phase remains 🚧 until FP25 closes.
 
 ### Active item details
 
-**FP20 — Tier 1 security + data-loss fold-in.** 12 sub-bullets
-identified in the 2026-05-04 `/indie-review` across 10 lanes; this
-fix-pass picks up the "ship-this-week" class (spec-mandated locks
-not installed, non-atomic writes, sandbox-escape vectors, silent
-failures). Sub-bullets landed so far:
+**FP25 — FP20 closing-review fold-in.** 11 sub-bullets sourced from the
+5-lane `/indie-review` plus semgrep+gitleaks on the FP20 surface:
 
-- **A** parser XXE + zip-bomb (`parser/dat.py`, `parser/listxml.py`)
-- **B** atomic writes (`copy/activity.py`, `copy/recyclebin.py`,
-  `copy/playlist.py`)
-- **C** `app.state.world_lock` install (`api/app.py`,
-  `api/routes/config.py`, `api/routes/fs.py`)
-- **D** `compose_allowlist` drops stale granted_roots (`api/fs.py`)
-- **E** `_help_dir()` resolves at the source (`api/routes/help.py`)
-- **F** `download()` http/https scheme allowlist (`downloads.py`)
-- **G** `createAppQueryClient` + queryCache onError funnel
-  (`lib/queryClient.ts`, `App.tsx`)
-- **H** `GameCard` aria-labelledby + decorative img alt
-  (`components/library/GameCard.tsx`)
-- **I** `LibraryErrorPanel` + Retry wiring
-  (`components/library/LibraryErrorPanel.tsx`, `pages/LibraryPage.tsx`)
-- **J** `SnapshotsTab.restoreError` prop + inline alert
-  (`components/settings/SnapshotsTab.tsx`, `pages/SettingsPage.tsx`,
-  `App.tsx`)
-- **K** `FsBrowser` single-layer dialog rendering
-  (`components/settings/FsBrowser.tsx`)
-- **L** `HelpPage` DOMPurify hardening (rel="noopener noreferrer" +
-  FORBID_TAGS + FORBID_ATTR + ALLOWED_URI_REGEXP + data-URL strip)
-  (`pages/HelpPage.tsx`)
+- **A** (Tier 1) — wire `world_lock` on `curate.py` (6 routes) +
+  `games.py:put_notes` per P04 spec §104-115
+- **B** activity-log durability + typed errors (fsync, short-write,
+  `ActivityLogError`)
+- **C** recyclebin manifest atomicity envelope
+- **D** `_atomic.py` perm-mode parity (`0o644` not `0o600`)
+- **E** concurrent-write property test for activity log
+- **F** manifest-atomicity test for recyclebin (monkeypatched failure)
+- **G** `toastApiError` dedup window for cold-start outages
+- **H** `LibraryErrorPanel` `disabled={isFetching}` on Retry
+- **I** DOMPurify hooks scope guard / scoped instance
+- **J** strengthen data-URL test (deterministic outcome)
+- **K** 12-item doc + comment cleanup batch (see ROADMAP § FP25 for the
+  enumeration)
+
+**FP20 — parent (12/12 sub-bullets shipped — see ROADMAP § FP20).**
+Sub-bullets A–F backend; G–L frontend. All landed across 14 commits
+on 2026-05-11. Closing `/audit` + `/indie-review` findings funnel into
+FP25 above.
 
 (Prior step-progress blocks for FP12 / FP11 / P06 — preserved
 across earlier sessions as audit context — were retired during

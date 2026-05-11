@@ -61,8 +61,14 @@ The enum is **open-membership**: `<driver status="...">` values not in this set 
 ### `parse_dat(path: Path) -> dict[str, Machine]`
 
 - Accepts `.xml` or `.zip`. For `.zip`, extracts to a temp file (single XML inside) and parses that.
-- Streams via `lxml.iterparse(events=("end",), tag="machine")` — never loads the full tree. Uses the canonical fast-iter idiom (`Element.clear()` plus `getprevious()` + `del parent[0]`) so the spine of empty siblings does not accumulate across the parse.
-- **Zip-slip protection**: rejects any `.zip` member whose path is absolute or contains `..` components → `DATError`. Defense in depth even when the threat model nominally trusts the source, because Phase 4's API will expose `parse_dat` to network-controlled inputs.
+- Streams via `lxml.iterparse(events=("end",), tag="machine", **HARDENED_ITERPARSE_KWARGS)` — never loads the full tree. Uses the canonical fast-iter idiom (`Element.clear()` plus `getprevious()` + `del parent[0]`) so the spine of empty siblings does not accumulate across the parse.
+- **`HARDENED_ITERPARSE_KWARGS`** (FP20-A, defined in `parser/dat.py` and re-exported to `listxml.py`) pins four safety knobs at every `iterparse` call site:
+  - `resolve_entities=False` — blocks Billion Laughs internal-entity expansion (lol1→lol2→…→lol5 DoS) AND the XXE `file://` entity-content leak that `no_network=True` alone does not block.
+  - `no_network=True` — already the lxml default; pinned explicitly so a future lxml default-change can't silently relax the contract.
+  - `huge_tree=False` — refuses pathologically deep XML trees.
+  - `load_dtd=False` — refuses external DTD subset fetches.
+- **Zip-bomb protection** (FP20-A): before `zf.extract`, reads `zf.getinfo(member).file_size` from the central directory (metadata only, no decompression) and refuses extraction if it exceeds `_MAX_DAT_BYTES` (256 MiB — ~5× headroom over the real ~50 MiB Pleasuredome DAT). A malicious 100 KB upload declaring gigabytes in its central directory raises `DATError` before any payload touches the tempdir.
+- **Zip-slip protection**: rejects any `.zip` member whose path is absolute or contains `..` components → `DATError`. Defense in depth even when the threat model nominally trusts the source, because Phase 4's API exposes `parse_dat` to network-controlled inputs.
 - Returns a dict keyed by `Machine.name`. Two machines with the same name is a `ParserError`.
 - Raises `ParserError` on malformed XML, missing root element, missing required attributes, or duplicate `name`.
 
@@ -97,7 +103,7 @@ The enum is **open-membership**: `<driver status="...">` values not in this set 
 
 - Returns `{clone_short_name: parent_short_name}` for every machine with a non-empty `cloneof` attribute. Parents and standalone machines are absent from the map.
 - Used by `filter/` to reconstruct parent/clone relationships that the Pleasuredome DAT strips.
-- Same `lxml.iterparse` streaming pattern as `parse_listxml_disks` (clear element + detach previous siblings to keep memory bounded across the 43k-machine listxml).
+- Same `lxml.iterparse` streaming pattern as `parse_listxml_disks` (clear element + detach previous siblings to keep memory bounded across the 43k-machine listxml). Every iterparse call site in `listxml.py` splats the same `HARDENED_ITERPARSE_KWARGS` (XXE / Billion Laughs / `file://` URI defence — see `parse_dat` above).
 
 ### `split_manufacturer(raw: str | None) -> tuple[str | None, str | None]`
 

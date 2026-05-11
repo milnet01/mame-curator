@@ -114,10 +114,10 @@ Do not delete revoked entries — the history is the value.
 - **Status:** active
 - **Tool / rule:** semgrep `dangerouslySetInnerHTML from non-constant definition` (ants-audit v0.7.77, 2026-05-04).
 - **Location:** `frontend/src/pages/HelpPage.tsx:72`.
-- **Why this is a false positive:** the value passed to `dangerouslySetInnerHTML` is `sanitizedHtml`, defined two lines above as `useMemo(() => DOMPurify.sanitize(topicHtml), [topicHtml])`. FP16 § D added DOMPurify@3.4 specifically to close the FP11 § H4 security debt this rule re-flags; tests cover `<script>` strip and `javascript:` URL strip (`HelpPage.test.tsx`). Semgrep's structural pattern can't see through the useMemo + DOMPurify chain. Migrating to react-markdown would also clear the rule but adds dependency churn for the same security guarantee.
+- **Why this is a false positive:** the value passed to `dangerouslySetInnerHTML` is `sanitizedHtml`, defined two lines above as `useMemo(() => DOMPurify.sanitize(topicHtml, HELP_SANITIZE_CONFIG), [topicHtml])`. FP16 § D added DOMPurify@3.4 to close the FP11 § H4 security debt this rule re-flags; FP20-L further tightened the config (`ALLOWED_URI_REGEXP = /^(?:https?|mailto):/i`, `FORBID_TAGS = ['style', 'form']`, `FORBID_ATTR = ['style']`, `forceKeepAttr` hook for `target="_blank"` paired with an `afterSanitizeAttributes` hook setting `rel="noopener noreferrer"`, plus a `data:` URL strip on IMG/SOURCE/AUDIO/VIDEO/TRACK closing the DOMPurify `DATA_URI_TAGS` bypass). Tests cover `<script>` strip, `javascript:` URL strip, `<style>` / `<form>` removal, inline `style` attribute strip, `data:` strip on `<img>`, `rel="noopener noreferrer"` injection, and `https://` / `mailto:` preservation (`HelpPage.test.tsx`). Semgrep's structural pattern still can't see through the useMemo + DOMPurify chain. Migrating to react-markdown would clear the rule but adds dependency churn for the same security guarantee.
 - **Suppression applied:** none — the runtime DOMPurify call IS the suppression. This allowlist entry documents that the project's mitigation is in place.
 - **Logged:** 2026-05-04
-- **Confirmed by phase:** FP19 audit-triage.
+- **Confirmed by phase:** FP19 audit-triage; re-confirmed FP20 closing-audit (2026-05-11) after FP20-L hardened the DOMPurify config.
 
 
 ## allowlist-005 — grep "Weak Cryptography" on `sha1` field used as MAME ROM identifier

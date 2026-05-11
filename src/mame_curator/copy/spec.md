@@ -146,7 +146,7 @@ Constraints (these are testable assertions; `test_lpl_format_matches_retroarch_s
 - `core_path` / `core_name` are `"DETECT"` placeholders so RetroArch falls back to its core scan. Hard-coding a path traps users on a specific RetroArch install.
 - `db_name` is `"MAME.lpl"` — the canonical MAME database name shipped with libretro-database. Tells RetroArch which thumbnail subdirectory to consult.
 
-The writer itself uses the **`copy_one` atomic pattern** — write to `mame.lpl.tmp`, `os.replace` to `mame.lpl`. A half-written playlist breaks RetroArch on next launch.
+The writer routes through **`_atomic.atomic_write_text`** (FP20-B): unique tmp name via `tempfile.NamedTemporaryFile` (collision-proof under concurrent writers vs the legacy `.tmp` suffix), `os.replace` for the atomic rename, fsync of the file fd before close, best-effort `fsync(parent_dir_fd)` after the replace (suppresses `OSError` for Windows / tmpfs per `allowlist-007`), and tmp cleanup on any exception. A half-written playlist would break RetroArch on next launch; the helper guarantees the destination is either the prior file or the new file — never a torn intermediate. Rule-of-Three honoured (third call site after `cli/__init__.py` and `copy/recyclebin.py`).
 
 ### Which winners become entries
 
@@ -252,6 +252,8 @@ def purge_recycle(
 
 `recycle_file` MUST be atomic on the same filesystem (same `os.replace` discipline as `copy_one`). On a cross-filesystem move (e.g. dest is on USB, project is on internal), it falls back to `shutil.move` which is `copy + unlink`; a crash mid-move on cross-FS leaves the source file intact — that's the right failure mode (no data loss).
 
+The accompanying `manifest.json` write is routed through `_atomic.atomic_write_text` (FP20-B): tmp+rename+fsync+cleanup so a crash mid-write leaves either the prior manifest or no manifest at all — never a half-written record. FP25-C is open to wrap the `atomic_write_text` `OSError` in `RecycleError` so it flows through the typed-exception envelope instead of propagating raw.
+
 `purge_recycle` runs only on explicit user opt-in (CLI `mame-curator copy --purge-recycle` or API `POST /api/copy/recycle/purge`). It is NOT automatic — the design's 30-day retention is a *minimum*; users can keep recycle indefinitely.
 
 Each `recycle_file` call appends one `file_recycled` event to `data/activity.jsonl`; each `purge_recycle` call appends one `recycle_purged` event.
@@ -324,10 +326,10 @@ Writer:
 
 ```python
 def append_activity(event: ActivityEvent, log_path: Path = Path("data/activity.jsonl")) -> None:
-    """Append one event line. Atomic at the per-line level via O_APPEND."""
+    """Append one event line. Atomic at the per-line level via O_APPEND + single os.write."""
 ```
 
-Implementation: open `log_path` with `mode="a"`, write `event.model_dump_json() + "\n"`, close. POSIX `O_APPEND` guarantees atomicity for writes ≤ `PIPE_BUF` (4096 bytes on Linux). Each `ActivityEvent` line is well under 4 KiB; concurrent writers from different processes won't interleave bytes.
+Implementation (FP20-B): bypass Python's `BufferedWriter` (8 KiB default buffer would split logical writes > 4 KiB into multiple syscalls and break the POSIX claim for large events). Use `os.open(log_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)` + a single `os.write(fd, line_bytes)`. POSIX guarantees a single `write()` syscall on an `O_APPEND` fd is atomic regardless of size on local filesystems, so concurrent appenders never interleave bytes — even when a `copy_started` event with a long `plan_summary` exceeds the legacy `PIPE_BUF` (4 KiB Linux) limit. **Atomicity, not durability** — no fsync is issued; a power loss between the syscall returning and the page cache flushing may lose the most recent record(s) (the trade-off avoids per-event fsync latency on hot paths). FP25-B is open to either add a best-effort fsync or pin the semantic in this docstring.
 
 Reader (for the future Activity API in Phase 4):
 
