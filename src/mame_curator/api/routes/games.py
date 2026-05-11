@@ -339,23 +339,25 @@ def get_notes(name: str, world: WorldState = Depends(get_world)) -> Notes:
 
 
 @router.put("/api/games/{name}/notes", response_model=Notes)
-def put_notes(
+async def put_notes(
     name: str,
     body: NotesPutRequest,
     request: Request,
-    world: WorldState = Depends(get_world),
 ) -> Notes:
-    if name not in world.machines:
-        raise GameNotFoundError(f"game not found: {name!r}")
-    notes = dict(world.notes)
-    if body.notes:
-        notes[name] = body.notes
-    else:
-        notes.pop(name, None)
-    write_json_atomic(world.data_dir / "notes.json", notes)
-    new_world = replace_world(base=world, notes=notes)
-    set_world(request, new_world)
-    return Notes(notes=body.notes)
+    """FP25-A: async + ``world_lock``-guarded read-merge-write-set_world."""
+    async with request.app.state.world_lock:
+        world: WorldState = request.app.state.world
+        if name not in world.machines:
+            raise GameNotFoundError(f"game not found: {name!r}")
+        notes = dict(world.notes)
+        if body.notes:
+            notes[name] = body.notes
+        else:
+            notes.pop(name, None)
+        write_json_atomic(world.data_dir / "notes.json", notes)
+        new_world = replace_world(base=world, notes=notes)
+        set_world(request, new_world)
+        return Notes(notes=body.notes)
 
 
 @router.get("/api/stats", response_model=Stats)
