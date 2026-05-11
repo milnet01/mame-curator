@@ -9,14 +9,6 @@
         {
           "detail": "pacman wins via tier",
           "name": "tier"
-        },
-        {
-          "detail": "pacman wins via parent_over_clone",
-          "name": "parent_over_clone"
-        },
-        {
-          "detail": "pacman wins via alpha",
-          "name": "alpha"
         }
       ],
       "parent": "pacman",
@@ -32,14 +24,6 @@
         {
           "detail": "sf2 wins via tier",
           "name": "tier"
-        },
-        {
-          "detail": "sf2 wins via parent_over_clone",
-          "name": "parent_over_clone"
-        },
-        {
-          "detail": "sf2 wins via alpha",
-          "name": "alpha"
         }
       ],
       "parent": "sf2",
@@ -54,14 +38,6 @@
         {
           "detail": "galaxian wins via parent_over_clone",
           "name": "parent_over_clone"
-        },
-        {
-          "detail": "galaxian wins via region",
-          "name": "region"
-        },
-        {
-          "detail": "galaxian wins via alpha",
-          "name": "alpha"
         }
       ],
       "parent": "galaxian",
@@ -76,10 +52,6 @@
         {
           "detail": "dkong wins via parent_over_clone",
           "name": "parent_over_clone"
-        },
-        {
-          "detail": "dkong wins via alpha",
-          "name": "alpha"
         }
       ],
       "parent": "dkong",
@@ -94,18 +66,6 @@
         {
           "detail": "mslug wins via tier",
           "name": "tier"
-        },
-        {
-          "detail": "mslug wins via parent_over_clone",
-          "name": "parent_over_clone"
-        },
-        {
-          "detail": "mslug wins via region",
-          "name": "region"
-        },
-        {
-          "detail": "mslug wins via alpha",
-          "name": "alpha"
         }
       ],
       "parent": "mslug",
@@ -120,14 +80,6 @@
         {
           "detail": "ddragon wins via tier",
           "name": "tier"
-        },
-        {
-          "detail": "ddragon wins via parent_over_clone",
-          "name": "parent_over_clone"
-        },
-        {
-          "detail": "ddragon wins via alpha",
-          "name": "alpha"
         }
       ],
       "parent": "ddragon",
@@ -142,18 +94,6 @@
         {
           "detail": "rtype wins via tier",
           "name": "tier"
-        },
-        {
-          "detail": "rtype wins via parent_over_clone",
-          "name": "parent_over_clone"
-        },
-        {
-          "detail": "rtype wins via region",
-          "name": "region"
-        },
-        {
-          "detail": "rtype wins via alpha",
-          "name": "alpha"
         }
       ],
       "parent": "rtype",
@@ -168,14 +108,6 @@
         {
           "detail": "bublbobl wins via parent_over_clone",
           "name": "parent_over_clone"
-        },
-        {
-          "detail": "bublbobl wins via region",
-          "name": "region"
-        },
-        {
-          "detail": "bublbobl wins via alpha",
-          "name": "alpha"
         }
       ],
       "parent": "bublbobl",
@@ -190,18 +122,6 @@
         {
           "detail": "contra wins via tier",
           "name": "tier"
-        },
-        {
-          "detail": "contra wins via parent_over_clone",
-          "name": "parent_over_clone"
-        },
-        {
-          "detail": "contra wins via region",
-          "name": "region"
-        },
-        {
-          "detail": "contra wins via alpha",
-          "name": "alpha"
         }
       ],
       "parent": "contra",

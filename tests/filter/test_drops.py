@@ -36,6 +36,26 @@ def test_non_runnable_dropped_as_device() -> None:
     )
 
 
+def test_fp21_c_runnable_strict_identity_no_drop_when_none() -> None:
+    """FP21-C: ``_device`` matches spec rule 2 (``m.runnable is False``), not
+    truthiness (``not m.runnable``).
+
+    ``Machine.runnable`` is ``bool`` today, but the spec is keyed to strict
+    identity so that any future widening to ``bool | None`` (a model whose
+    DAT did not declare the attribute) doesn't silently flip "runnable
+    unknown" machines into the DEVICE bucket. ``model_construct`` bypasses
+    Pydantic validation to inject ``None`` for the regression check.
+    """
+    machine = Machine.model_construct(
+        name="unknown",
+        description="unknown",
+        is_device=False,
+        is_bios=False,
+        runnable=None,  # FP21-C: validation skipped via model_construct
+    )
+    assert drop_reason(machine, FilterContext(), FilterConfig()) is None
+
+
 def test_mechanical_dropped() -> None:
     assert (
         drop_reason(m(name="x", is_mechanical=True), FilterContext(), FilterConfig())

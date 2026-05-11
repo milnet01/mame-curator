@@ -35,7 +35,10 @@ def _bios(m: Machine, _c: FilterContext, cfg: FilterConfig) -> DroppedReason | N
 def _device(m: Machine, _c: FilterContext, cfg: FilterConfig) -> DroppedReason | None:
     if not cfg.drop_bios_devices_mechanical:
         return None
-    return DroppedReason.DEVICE if (m.is_device or not m.runnable) else None
+    # FP21-C: strict identity against ``False`` per spec rule 2 — a future
+    # widening of ``Machine.runnable`` to ``bool | None`` (DAT silent about
+    # runnable) must not be flipped into the DEVICE bucket by truthiness.
+    return DroppedReason.DEVICE if (m.is_device or m.runnable is False) else None
 
 
 def _mechanical(m: Machine, _c: FilterContext, cfg: FilterConfig) -> DroppedReason | None:

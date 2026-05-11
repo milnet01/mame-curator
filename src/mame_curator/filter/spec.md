@@ -60,7 +60,7 @@ Composed via `functools.cmp_to_key`. Each comparator returns `-1`, `0`, or `+1` 
 ### Public API
 
 - `pick_winner(candidates, parent, ctx, config) -> Machine` — runs the comparator chain over the Phase-A-survivor set for a single parent/clone group and returns the winner. Empty groups are filtered out by `run_filter` before the call, so `pick_winner` never sees zero candidates and never returns `None`.
-- `explain_pick(candidates, parent, ctx, config) -> tuple[TiebreakerHit, ...]` — runs the same comparators in order and records which one(s) actually decided the winner. A tiebreaker that returned 0 across the entire candidate set is omitted.
+- `explain_pick(candidates, parent, ctx, config) -> tuple[TiebreakerHit, ...]` — runs the same comparators in order and records which one(s) actually decided the winner. **Semantics (FP21-A):** decisiveness is keyed *per opponent* — for each non-winner candidate, the FIRST non-zero comparator in chain order is the one that settled that pairing; any later comparator that also discriminates against the same opponent is already-decided and not recorded. The reported set is the union across opponents, preserving chain order. Equivalently: a tiebreaker appears iff it was the first to break the tie against at least one opponent. (A tiebreaker that returned 0 across the entire candidate set is therefore omitted, but the inverse — being non-zero against some opponent — is not sufficient.)
 
 Both are exported from `mame_curator.filter`. `pick_winner` is also called internally by `run_filter` for every parent/clone group.
 
@@ -136,9 +136,11 @@ class Sessions(BaseModel):
 ```
 
 Validation:
-- A `Session` must have at least one non-empty include rule (else `SessionsError`).
+- A `Session` must have at least one non-empty include rule.
 - `include_year_range` must satisfy `lo <= hi`.
 - `active`, when non-null, must be a key in `sessions`.
+
+**Error-type contract (FP21-B):** the loader path — `load_sessions(path)` and `Session.from_raw(name, raw)` — raises `SessionsError` (with file path / session-name context) for any of the rules above. **Direct construction** (`Session(...)` / `Sessions(...)` called from Python code, bypassing the loader) instead raises Pydantic's `ValidationError`, because the validators internally raise `ValueError` which Pydantic wraps. This split is deliberate: the loader is the user-facing path and gets the project's typed error envelope; direct construction is library-internal and gets Pydantic's native error so callers can introspect via `validation_error.errors()[0]["ctx"]["error"]`. `ValidationError` is a `ValueError` subclass in Pydantic v2.x, so an `except ValueError:` catches both.
 
 ### `FilterConfig` (subset of `config.yaml` consumed by the filter)
 

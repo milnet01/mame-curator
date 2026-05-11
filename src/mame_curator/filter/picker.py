@@ -171,16 +171,29 @@ def explain_pick(
 ) -> tuple[TiebreakerHit, ...]:
     """List the tiebreakers that actually decided the winner.
 
-    Per spec line 57: a tiebreaker is recorded only if it produced a non-zero
-    cmp result against at least one other candidate (i.e., it broke a tie that
-    earlier comparators couldn't resolve, OR it was the first to discriminate).
+    Per spec line 63: a tiebreaker is decisive **per opponent**: the *first*
+    non-zero comparator in chain order settles that pairing; any later
+    comparators that also discriminate against the same opponent are
+    already-decided and not recorded. The reported set is the union across
+    opponents, preserving chain order.
+
+    FP21-A: the prior implementation recorded a tiebreaker if it returned
+    ``< 0`` against *any* opponent, which over-reports because a later
+    comparator that incidentally also discriminates against an opponent
+    already settled by an earlier tier was still listed as "decisive."
     """
     cand_list = list(candidates)
     winner = pick_winner(cand_list, parent, ctx, cfg)
-    hits: list[TiebreakerHit] = []
     others = [c for c in cand_list if c.name != winner.name]
-    for name, cmp in _TIEBREAKERS:
-        decisive = any(cmp(winner, other, ctx, cfg, parent) < 0 for other in others)
-        if decisive:
-            hits.append(TiebreakerHit(name=name, detail=f"{winner.name} wins via {name}"))
-    return tuple(hits)
+    decisive_names: set[str] = set()
+    for other in others:
+        for name, cmp in _TIEBREAKERS:
+            if cmp(winner, other, ctx, cfg, parent) < 0:
+                decisive_names.add(name)
+                break
+    # Preserve chain order in the output so consumers can read top-down.
+    return tuple(
+        TiebreakerHit(name=name, detail=f"{winner.name} wins via {name}")
+        for name, _cmp in _TIEBREAKERS
+        if name in decisive_names
+    )

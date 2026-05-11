@@ -119,3 +119,46 @@ def test_explain_records_decisive_steps_only() -> None:
     assert "tier" in names
     # Region is identical for both — must NOT appear.
     assert "region" not in names
+
+
+def test_fp21_a_explain_only_first_decisive_per_opponent() -> None:
+    """FP21-A: per spec line 63 ``explain_pick`` reports the tiebreaker(s) that
+    *actually decided* the winner. For a single pairing that means the FIRST
+    non-zero comparator in the chain — any later comparators that also
+    discriminate are already-settled.
+
+    Failing-test shape: winner W beats sole opponent L on BOTH ``tier`` and
+    ``region``. ``tier`` comes first in ``_TIEBREAKERS`` so the pairing is
+    already decided before ``region`` is consulted. Pre-fix code records both
+    because each returns ``< 0`` against the lone opponent; post-fix records
+    only ``tier``. Parent matches neither candidate to neutralise
+    ``parent_over_clone``.
+    """
+    w = m(name="w", description="W (Japan)")
+    loser = m(name="l", description="L (USA)")
+    ctx = FilterContext(bestgames_tier={"w": "Best", "l": "Average"})
+    cfg = FilterConfig(region_priority=("Japan", "USA"))
+    chain = explain_pick([w, loser], parent="parent_not_here", ctx=ctx, cfg=cfg)
+    names = [hit.name for hit in chain]
+    assert names == ["tier"], f"expected only ['tier'], got {names!r}"
+
+
+def test_fp21_a_explain_union_across_opponents() -> None:
+    """FP21-A: when different tiebreakers decide DIFFERENT pairings, both are
+    recorded (union across opponents).
+
+    W vs A: ``tier`` (Best vs Average); ``region`` is tied (both Japan).
+    W vs B: ``tier`` is tied (both Best); ``region`` decides (Japan beats USA).
+    Result: {"tier", "region"} — neither subsumes the other. Parent matches
+    neither candidate to neutralise ``parent_over_clone``.
+    """
+    w = m(name="w", description="W (Japan)")
+    a = m(name="a", description="A (Japan)")
+    b = m(name="b", description="B (USA)")
+    ctx = FilterContext(
+        bestgames_tier={"w": "Best", "a": "Average", "b": "Best"},
+    )
+    cfg = FilterConfig(region_priority=("Japan", "USA"))
+    chain = explain_pick([w, a, b], parent="parent_not_here", ctx=ctx, cfg=cfg)
+    names = {hit.name for hit in chain}
+    assert names == {"tier", "region"}, f"expected tier+region union, got {names!r}"
