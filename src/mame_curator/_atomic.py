@@ -39,6 +39,16 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
             tmp_handle.flush()
             with contextlib.suppress(OSError):
                 os.fsync(tmp_handle.fileno())
+            # FP25-D: pin perms at 0o644 (world-readable). NamedTemporaryFile
+            # creates the tmp at 0o600 by default; the post-replace inode
+            # would inherit that, leaving config.yaml / overrides.yaml /
+            # manifest.json / .lpl owner-only while activity.jsonl is
+            # 0o644 (via os.open in copy/activity.py). The mismatch confused
+            # users inspecting the data directory; fchmod aligns the
+            # whole project on one mode. fchmod is best-effort on Windows
+            # — POSIX bits don't apply there anyway.
+            with contextlib.suppress(OSError):
+                os.fchmod(tmp_handle.fileno(), 0o644)
         finally:
             tmp_handle.close()
         os.replace(tmp_path, path)
@@ -101,6 +111,10 @@ def atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8") -> None
                 # it (e.g. tmpfs without O_DIRECT). Power-cut robustness is
                 # a defense-in-depth concern, not a hard contract.
                 os.fsync(tmp_handle.fileno())
+            # FP25-D: pin perms at 0o644 — see atomic_write_bytes for the
+            # full reasoning. Same suppress-OSError treatment for Windows.
+            with contextlib.suppress(OSError):
+                os.fchmod(tmp_handle.fileno(), 0o644)
         finally:
             tmp_handle.close()
         # Windows: must close before replace. Linux/macOS would tolerate
