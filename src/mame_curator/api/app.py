@@ -5,6 +5,7 @@ Per ``docs/specs/P04.md`` § Lifespan + ``app.state`` model.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -100,6 +101,17 @@ def create_app(config_path: Path) -> FastAPI:
         world = build_world(config_path)
         app.state.world = world
         app.state.job = JobManager(history_dir=world.data_dir / "copy-history")
+        # FP20-C: per-app asyncio.Lock guarding the read-merge-write
+        # path on app.state.world. Without this, two concurrent
+        # PATCH /api/config calls read the same base config and the
+        # later writer overwrites the earlier — silently losing a user
+        # edit. P04 spec lines 104-115 mandate the lock; FP20-C
+        # installs it across the five mutating routes (patch_config,
+        # restore_config_snapshot, import_config, fs_grant_root,
+        # fs_revoke_root). Other set_world callers (curate.py, games.py
+        # POST /override) carry an unguarded race today; defer to a
+        # follow-on once a real concurrency story emerges.
+        app.state.world_lock = asyncio.Lock()
         # FP09 B4: shared httpx.AsyncClient for the media proxy. Per-request
         # AsyncClient creation triggers a fresh TLS handshake on every R39
         # request — 50 thumbnails per browse view → 50 handshakes against

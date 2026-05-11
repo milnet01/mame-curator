@@ -86,44 +86,52 @@ def get_config(world: WorldState = Depends(get_world)) -> AppConfigResponse:
 
 
 @router.patch("/api/config", response_model=AppConfigResponse)
-def patch_config(
+async def patch_config(
     request: Request,
     body: dict[str, Any] = Body(...),
-    world: WorldState = Depends(get_world),
 ) -> AppConfigResponse:
-    base = world.config.model_dump(mode="json")
-    merged = deep_merge(base, body)
-    try:
-        new_config = AppConfig.model_validate(merged)
-    except ValidationError as exc:
-        from mame_curator.api.errors import field_errors_from_pydantic
+    """FP20-C: async + ``world_lock``-guarded read-merge-write-set_world.
 
-        raise ConfigError(
-            "config validation failed",
-            fields=field_errors_from_pydantic(exc.errors()),
-        ) from exc
+    The Depends(get_world) injection is dropped on purpose — under the
+    lock we re-read ``request.app.state.world`` so the merge sees the
+    most recent committed state, not whatever was current when FastAPI
+    started building the dependency graph.
+    """
+    async with request.app.state.world_lock:
+        world: WorldState = request.app.state.world
+        base = world.config.model_dump(mode="json")
+        merged = deep_merge(base, body)
+        try:
+            new_config = AppConfig.model_validate(merged)
+        except ValidationError as exc:
+            from mame_curator.api.errors import field_errors_from_pydantic
 
-    path_errs = _validate_paths(new_config)
-    if path_errs:
-        raise ConfigError("config validation failed", fields=path_errs)
+            raise ConfigError(
+                "config validation failed",
+                fields=field_errors_from_pydantic(exc.errors()),
+            ) from exc
 
-    # FP09 B6: short-circuit no-op PATCH so the world (and its
-    # filter_result / allowed_roots) preserves identity. Spec § "What does
-    # NOT trigger a re-run" plus the P01 hypothesis property.
-    if new_config == world.config:
-        return _to_response(world.config, restart_required=False)
+        path_errs = _validate_paths(new_config)
+        if path_errs:
+            raise ConfigError("config validation failed", fields=path_errs)
 
-    snapshots_dir = world.data_dir / "snapshots"
-    if world.config_path.exists():
-        snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
+        # FP09 B6: short-circuit no-op PATCH so the world (and its
+        # filter_result / allowed_roots) preserves identity. Spec § "What does
+        # NOT trigger a re-run" plus the P01 hypothesis property.
+        if new_config == world.config:
+            return _to_response(world.config, restart_required=False)
 
-    write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
+        snapshots_dir = world.data_dir / "snapshots"
+        if world.config_path.exists():
+            snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
 
-    server_changed = new_config.server != world.config.server
-    rerun = filter_relevant_changed(world.config, new_config)
-    new_world = replace_world(base=world, config=new_config, rerun_filter=rerun)
-    set_world(request, new_world)
-    return _to_response(new_config, restart_required=server_changed)
+        write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
+
+        server_changed = new_config.server != world.config.server
+        rerun = filter_relevant_changed(world.config, new_config)
+        new_world = replace_world(base=world, config=new_config, rerun_filter=rerun)
+        set_world(request, new_world)
+        return _to_response(new_config, restart_required=server_changed)
 
 
 @router.get("/api/config/snapshots", response_model=SnapshotsListing)
@@ -133,38 +141,40 @@ def list_config_snapshots(world: WorldState = Depends(get_world)) -> SnapshotsLi
 
 
 @router.post("/api/config/snapshots/{snap_id}/restore", response_model=AppConfigResponse)
-def restore_config_snapshot(
+async def restore_config_snapshot(
     snap_id: str,
     request: Request,
-    world: WorldState = Depends(get_world),
 ) -> AppConfigResponse:
-    snapshots_dir = world.data_dir / "snapshots"
-    snap_dir = snapshots_dir / snap_id
-    if not snap_dir.exists() or not snap_dir.is_dir():
-        raise SnapshotNotFoundError(f"snapshot id not found: {snap_id!r}")
+    """FP20-C: async + world_lock-guarded read-merge-write-set_world."""
+    async with request.app.state.world_lock:
+        world: WorldState = request.app.state.world
+        snapshots_dir = world.data_dir / "snapshots"
+        snap_dir = snapshots_dir / snap_id
+        if not snap_dir.exists() or not snap_dir.is_dir():
+            raise SnapshotNotFoundError(f"snapshot id not found: {snap_id!r}")
 
-    targets = {
-        "config.yaml": world.config_path,
-        "overrides.yaml": world.config_path.parent / "overrides.yaml",
-        "sessions.yaml": world.config_path.parent / "sessions.yaml",
-        "notes.json": world.data_dir / "notes.json",
-    }
-    restore_snapshot(snapshots_dir, snap_id, targets)
+        targets = {
+            "config.yaml": world.config_path,
+            "overrides.yaml": world.config_path.parent / "overrides.yaml",
+            "sessions.yaml": world.config_path.parent / "sessions.yaml",
+            "notes.json": world.data_dir / "notes.json",
+        }
+        restore_snapshot(snapshots_dir, snap_id, targets)
 
-    new_config = load_app_config(world.config_path)
-    new_overrides = load_overrides(targets["overrides.yaml"])
-    new_sessions = load_sessions(targets["sessions.yaml"])
-    new_notes = _read_json_dict(targets["notes.json"])
-    new_world = replace_world(
-        base=world,
-        config=new_config,
-        overrides=new_overrides,
-        sessions=new_sessions,
-        notes=new_notes,
-        rerun_filter=True,
-    )
-    set_world(request, new_world)
-    return _to_response(new_config)
+        new_config = load_app_config(world.config_path)
+        new_overrides = load_overrides(targets["overrides.yaml"])
+        new_sessions = load_sessions(targets["sessions.yaml"])
+        new_notes = _read_json_dict(targets["notes.json"])
+        new_world = replace_world(
+            base=world,
+            config=new_config,
+            overrides=new_overrides,
+            sessions=new_sessions,
+            notes=new_notes,
+            rerun_filter=True,
+        )
+        set_world(request, new_world)
+        return _to_response(new_config)
 
 
 @router.post("/api/config/export", response_model=ConfigExportBundle)
@@ -184,90 +194,92 @@ def export_config(world: WorldState = Depends(get_world)) -> ConfigExportBundle:
 
 
 @router.post("/api/config/import", response_model=AppConfigResponse)
-def import_config(
+async def import_config(
     bundle: ConfigExportBundle,
     request: Request,
-    world: WorldState = Depends(get_world),
 ) -> AppConfigResponse:
-    try:
-        new_config = AppConfig.model_validate(bundle.config)
-    except ValidationError as exc:
-        from mame_curator.api.errors import field_errors_from_pydantic
+    """FP20-C: async + world_lock-guarded read-merge-write-set_world."""
+    async with request.app.state.world_lock:
+        world: WorldState = request.app.state.world
+        try:
+            new_config = AppConfig.model_validate(bundle.config)
+        except ValidationError as exc:
+            from mame_curator.api.errors import field_errors_from_pydantic
 
-        raise ConfigError(
-            "config import: invalid config",
-            fields=field_errors_from_pydantic(exc.errors()),
-        ) from exc
+            raise ConfigError(
+                "config import: invalid config",
+                fields=field_errors_from_pydantic(exc.errors()),
+            ) from exc
 
-    try:
-        new_overrides = Overrides.model_validate(bundle.overrides)
-    except ValidationError as exc:
-        from mame_curator.api.errors import field_errors_from_pydantic
+        try:
+            new_overrides = Overrides.model_validate(bundle.overrides)
+        except ValidationError as exc:
+            from mame_curator.api.errors import field_errors_from_pydantic
 
-        raise ConfigError(
-            "config import: invalid overrides",
-            fields=field_errors_from_pydantic(exc.errors()),
-        ) from exc
+            raise ConfigError(
+                "config import: invalid overrides",
+                fields=field_errors_from_pydantic(exc.errors()),
+            ) from exc
 
-    try:
-        new_sessions = Sessions.model_validate(bundle.sessions)
-    except ValidationError as exc:
-        from mame_curator.api.errors import field_errors_from_pydantic
+        try:
+            new_sessions = Sessions.model_validate(bundle.sessions)
+        except ValidationError as exc:
+            from mame_curator.api.errors import field_errors_from_pydantic
 
-        raise ConfigError(
-            "config import: invalid sessions",
-            fields=field_errors_from_pydantic(exc.errors()),
-        ) from exc
+            raise ConfigError(
+                "config import: invalid sessions",
+                fields=field_errors_from_pydantic(exc.errors()),
+            ) from exc
 
-    # FP09 A3: R11 (POST /api/sessions) enforces `_SESSION_NAME_RE`; R19's
-    # import path was bypassing it, so a malicious bundle could write a
-    # session named `_deactivate` (or any reserved control name) into
-    # sessions.yaml. Re-apply the regex per session-name on import.
-    from mame_curator.api.errors import SessionNameInvalidError
-    from mame_curator.api.routes.curate import _SESSION_NAME_RE
+        # FP09 A3: R11 (POST /api/sessions) enforces `_SESSION_NAME_RE`; R19's
+        # import path was bypassing it, so a malicious bundle could write a
+        # session named `_deactivate` (or any reserved control name) into
+        # sessions.yaml. Re-apply the regex per session-name on import.
+        from mame_curator.api.errors import SessionNameInvalidError
+        from mame_curator.api.routes.curate import _SESSION_NAME_RE
 
-    for name in new_sessions.sessions:
-        if not _SESSION_NAME_RE.match(name):
-            raise SessionNameInvalidError(f"session name invalid in import: {name!r}")
+        for name in new_sessions.sessions:
+            if not _SESSION_NAME_RE.match(name):
+                raise SessionNameInvalidError(f"session name invalid in import: {name!r}")
 
-    snapshots_dir = world.data_dir / "snapshots"
-    snapshot_files(
-        snapshots_dir,
-        {
-            "config.yaml": world.config_path,
-            "overrides.yaml": world.config_path.parent / "overrides.yaml",
-            "sessions.yaml": world.config_path.parent / "sessions.yaml",
-            "notes.json": world.data_dir / "notes.json",
-        },
-    )
-
-    write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
-    write_yaml_atomic(
-        world.config_path.parent / "overrides.yaml",
-        {"overrides": dict(new_overrides.entries)},
-    )
-    write_yaml_atomic(
-        world.config_path.parent / "sessions.yaml",
-        {
-            "active": new_sessions.active,
-            "sessions": {
-                k: v.model_dump(mode="json", exclude_defaults=True)
-                for k, v in new_sessions.sessions.items()
+        snapshots_dir = world.data_dir / "snapshots"
+        snapshot_files(
+            snapshots_dir,
+            {
+                "config.yaml": world.config_path,
+                "overrides.yaml": world.config_path.parent / "overrides.yaml",
+                "sessions.yaml": world.config_path.parent / "sessions.yaml",
+                "notes.json": world.data_dir / "notes.json",
             },
-        },
-    )
-    write_json_atomic(world.data_dir / "notes.json", bundle.notes)
+        )
 
-    new_world = replace_world(
-        base=world,
-        config=new_config,
-        overrides=new_overrides,
-        sessions=new_sessions,
-        notes=bundle.notes,
-        rerun_filter=True,
-    )
-    set_world(request, new_world)
-    return _to_response(new_config)
+        write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
+        write_yaml_atomic(
+            world.config_path.parent / "overrides.yaml",
+            {"overrides": dict(new_overrides.entries)},
+        )
+        write_yaml_atomic(
+            world.config_path.parent / "sessions.yaml",
+            {
+                "active": new_sessions.active,
+                "sessions": {
+                    k: v.model_dump(mode="json", exclude_defaults=True)
+                    for k, v in new_sessions.sessions.items()
+                },
+            },
+        )
+        write_json_atomic(world.data_dir / "notes.json", bundle.notes)
+
+        new_world = replace_world(
+            base=world,
+            config=new_config,
+            overrides=new_overrides,
+            sessions=new_sessions,
+            notes=bundle.notes,
+            rerun_filter=True,
+        )
+        set_world(request, new_world)
+        return _to_response(new_config)
 
 
 def _config_to_yaml(config: AppConfig) -> dict[str, Any]:

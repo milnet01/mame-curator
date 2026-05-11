@@ -90,68 +90,74 @@ def fs_allowed_roots(world: WorldState = Depends(get_world)) -> FsAllowedRoots:
 
 
 @router.post("/api/fs/allowed-roots", response_model=FsAllowedRoots)
-def fs_grant_root(
+async def fs_grant_root(
     body: FsGrantRootRequest,
     request: Request,
-    world: WorldState = Depends(get_world),
 ) -> FsAllowedRoots:
-    candidate = resolve_path(body.path)
-    if not candidate.exists() or not candidate.is_dir():
-        raise FsPathInvalidError(f"path is not an existing directory: {str(candidate)!r}")
-    for root in world.allowed_roots:
-        try:
-            if candidate.is_relative_to(Path(root.path)):
-                raise FsAlreadyCoveredError(f"path already covered by allowlist root {root.path!r}")
-        except ValueError:
-            continue
+    """FP20-C: async + world_lock-guarded read-merge-write-set_world."""
+    async with request.app.state.world_lock:
+        world: WorldState = request.app.state.world
+        candidate = resolve_path(body.path)
+        if not candidate.exists() or not candidate.is_dir():
+            raise FsPathInvalidError(f"path is not an existing directory: {str(candidate)!r}")
+        for root in world.allowed_roots:
+            try:
+                if candidate.is_relative_to(Path(root.path)):
+                    raise FsAlreadyCoveredError(
+                        f"path already covered by allowlist root {root.path!r}"
+                    )
+            except ValueError:
+                continue
 
-    new_granted = (*world.config.fs.granted_roots, candidate)
-    new_fs = FsConfig(granted_roots=new_granted)
-    new_config = world.config.model_copy(update={"fs": new_fs})
+        new_granted = (*world.config.fs.granted_roots, candidate)
+        new_fs = FsConfig(granted_roots=new_granted)
+        new_config = world.config.model_copy(update={"fs": new_fs})
 
-    snapshots_dir = world.data_dir / "snapshots"
-    if world.config_path.exists():
-        snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
-    write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
+        snapshots_dir = world.data_dir / "snapshots"
+        if world.config_path.exists():
+            snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
+        write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
 
-    new_world = replace_world(base=world, config=new_config)
-    set_world(request, new_world)
-    return FsAllowedRoots(roots=new_world.allowed_roots)
+        new_world = replace_world(base=world, config=new_config)
+        set_world(request, new_world)
+        return FsAllowedRoots(roots=new_world.allowed_roots)
 
 
 @router.delete("/api/fs/allowed-roots/{root_id}", response_model=FsAllowedRoots)
-def fs_revoke_root(
+async def fs_revoke_root(
     root_id: str,
     request: Request,
-    world: WorldState = Depends(get_world),
 ) -> FsAllowedRoots:
-    target: FsAllowedRoot | None = None
-    for r in world.allowed_roots:
-        if r.id == root_id:
-            target = r
-            break
-    if target is None:
-        raise FsRootNotFoundError(f"allowlist root not found: {root_id!r}")
-    if target.source == "config":
-        raise FsConfigRootNotRevocableError(
-            f"config-derived roots are not user-revocable: {root_id!r}"
+    """FP20-C: async + world_lock-guarded read-merge-write-set_world."""
+    async with request.app.state.world_lock:
+        world: WorldState = request.app.state.world
+        target: FsAllowedRoot | None = None
+        for r in world.allowed_roots:
+            if r.id == root_id:
+                target = r
+                break
+        if target is None:
+            raise FsRootNotFoundError(f"allowlist root not found: {root_id!r}")
+        if target.source == "config":
+            raise FsConfigRootNotRevocableError(
+                f"config-derived roots are not user-revocable: {root_id!r}"
+            )
+
+        target_path = Path(target.path).resolve(strict=False)
+        new_granted = tuple(
+            p for p in world.config.fs.granted_roots if Path(p).resolve(strict=False) != target_path
         )
+        new_fs = FsConfig(granted_roots=new_granted)
+        new_config = world.config.model_copy(update={"fs": new_fs})
 
-    target_path = Path(target.path).resolve(strict=False)
-    new_granted = tuple(
-        p for p in world.config.fs.granted_roots if Path(p).resolve(strict=False) != target_path
-    )
-    new_fs = FsConfig(granted_roots=new_granted)
-    new_config = world.config.model_copy(update={"fs": new_fs})
+        snapshots_dir = world.data_dir / "snapshots"
+        if world.config_path.exists():
+            snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
+        write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
 
-    snapshots_dir = world.data_dir / "snapshots"
-    if world.config_path.exists():
-        snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
-    write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
-
-    new_world = replace_world(base=world, config=new_config)
-    set_world(request, new_world)
-    return FsAllowedRoots(roots=new_world.allowed_roots)
+        new_world = replace_world(base=world, config=new_config)
+        set_world(request, new_world)
+        return FsAllowedRoots(roots=new_world.allowed_roots)
 
 
 def _config_to_yaml(config: AppConfig) -> dict[str, Any]:

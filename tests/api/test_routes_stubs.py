@@ -67,6 +67,26 @@ def test_setup_check_retroarch_configured_false_by_default(client: Any) -> None:
     assert body["retroarch_configured"] is False
 
 
+def test_app_state_has_world_lock(client: Any) -> None:
+    """FP20-C: ``app.state.world_lock`` is an asyncio.Lock that mutating
+    routes (patch_config, restore_config_snapshot, import_config,
+    fs_grant_root, fs_revoke_root) must acquire before any
+    ``read-merge-write-snapshot-set_world`` block.
+
+    Without the lock, two concurrent PATCHes (frontend slider autosave
+    under retry) read the same base ``world.config``, each compute a
+    merged config, and the later writer overwrites the earlier — losing
+    one user edit silently. P04 spec lines 104-115 mandate the lock.
+    """
+    import asyncio
+
+    # The lifespan runs inside the TestClient context (entered by the
+    # fixture), so app.state.world_lock is populated by the time we
+    # query it through client.app.
+    lock = client.app.state.world_lock
+    assert isinstance(lock, asyncio.Lock)
+
+
 def _write_config_with_retroarch(
     tmp_path: Path,
     config_file: Path,
