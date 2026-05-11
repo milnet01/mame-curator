@@ -40,6 +40,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from mame_curator._atomic import fsync_parent_dir
 from mame_curator.copy.errors import ActivityLogError
 from mame_curator.copy.types import ActivityEvent
 
@@ -89,6 +90,14 @@ def append_activity(
     finally:
         with contextlib.suppress(OSError):
             os.close(fd)
+    # FP26-F: parent-dir fsync, best-effort. The file fsync above
+    # flushes the file content but does NOT make the dirent durable
+    # on the very first append (O_CREAT just brought the entry into
+    # the page cache). One more best-effort call closes the lacuna at
+    # near-zero cost. Re-uses the helper from ``_atomic.py`` (Rule of
+    # Three honoured — atomic_write_text + atomic_write_bytes already
+    # rely on it).
+    fsync_parent_dir(log_path)
 
 
 def read_activity(

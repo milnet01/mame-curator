@@ -11,10 +11,17 @@ vi.mock('sonner', () => ({
 import { toast } from 'sonner'
 
 import { ApiError } from '@/api/client'
+import { _resetApiErrorToastDedupForTests } from '../apiErrorToast'
 import { createAppQueryClient } from '../queryClient'
 
 beforeEach(() => {
   vi.mocked(toast.error).mockClear()
+  // FP26-I: reset the FP25-G dedup Map between tests. The dedup state
+  // is module-level — without this, two tests that happen to reuse
+  // the same `(code, detail)` key within 1.5 s would silently
+  // collapse the second toast and the `toHaveBeenCalledTimes(1)`
+  // assertion below would flip to 0 with a non-obvious cause.
+  _resetApiErrorToastDedupForTests()
 })
 
 describe('createAppQueryClient', () => {

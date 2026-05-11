@@ -40,7 +40,25 @@ class PlaylistError(CopyError):
 
 
 class RecycleError(CopyError):
-    """Filesystem read-only, permission denied, etc., during recycle move."""
+    """Filesystem read-only, permission denied, etc., during recycle move.
+
+    FP26-P: when the manifest write fails AND the rollback also fails,
+    the originating file sits orphaned at the recycle-target location.
+    ``recycled_orphan`` is set in that case so callers can render a
+    "manual cleanup needed at <path>" hint. In every other failure
+    shape it stays ``None``.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        path: Path | None = None,
+        recycled_orphan: Path | None = None,
+    ) -> None:
+        """Construct with the rollback-orphan path attached when applicable."""
+        super().__init__(message, path=path)
+        self.recycled_orphan = recycled_orphan
 
 
 class CopyExecutionError(CopyError):

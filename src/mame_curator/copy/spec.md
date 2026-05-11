@@ -252,7 +252,7 @@ def purge_recycle(
 
 `recycle_file` MUST be atomic on the same filesystem (same `os.replace` discipline as `copy_one`). On a cross-filesystem move (e.g. dest is on USB, project is on internal), it falls back to `shutil.move` which is `copy + unlink`; a crash mid-move on cross-FS leaves the source file intact — that's the right failure mode (no data loss).
 
-The accompanying `manifest.json` write is routed through `_atomic.atomic_write_text` (FP20-B): tmp+rename+fsync+cleanup so a crash mid-write leaves either the prior manifest or no manifest at all — never a half-written record. FP25-C is open to wrap the `atomic_write_text` `OSError` in `RecycleError` so it flows through the typed-exception envelope instead of propagating raw.
+The accompanying `manifest.json` write is routed through `_atomic.atomic_write_text` (FP20-B): tmp+rename+fsync+cleanup so a crash mid-write leaves either the prior manifest or no manifest at all — never a half-written record. FP25-C wraps the `atomic_write_text` call in a try/except that raises `RecycleError` (typed-error envelope) AND rolls the recycled file back to its original location (all-or-nothing invariant). If the rollback itself fails, a WARNING log names the orphan and the original `RecycleError` still propagates so the caller can surface a "manual cleanup needed" hint.
 
 `purge_recycle` runs only on explicit user opt-in (CLI `mame-curator copy --purge-recycle` or API `POST /api/copy/recycle/purge`). It is NOT automatic — the design's 30-day retention is a *minimum*; users can keep recycle indefinitely.
 
@@ -329,7 +329,7 @@ def append_activity(event: ActivityEvent, log_path: Path = Path("data/activity.j
     """Append one event line. Atomic at the per-line level via O_APPEND + single os.write."""
 ```
 
-Implementation (FP20-B + FP25-B): bypass Python's `BufferedWriter` (8 KiB default buffer would split logical writes > 4 KiB into multiple syscalls and break the POSIX claim for large events). Use `os.open(log_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)` + an `os.write(fd, line_bytes)` loop that retries on short writes. POSIX guarantees a single `write()` syscall on an `O_APPEND` fd is atomic regardless of size on local filesystems, so concurrent appenders never interleave bytes — even when a `copy_started` event with a long `plan_summary` exceeds the legacy `PIPE_BUF` (4 KiB Linux) limit. Local kernels under CPython virtually never short-write a regular file (CPython auto-retries on EINTR and the page cache absorbs the full buffer in one go); the loop is defensive against the spec-permitted edge case so a user edit never lands as a truncated, unparsable JSON line. **Atomicity + best-effort durability:** after the write loop completes, an `os.fsync` is issued and any resulting `OSError` is suppressed because tmpfs and some networked/container filesystems reject fsync. Power-cut durability is defense-in-depth, not a hard contract — a power loss between the page-cache write and the disk flush may still lose the most recent record(s). **Typed errors:** `os.open` and `os.write` failures wrap in `ActivityLogError` (a `CopyError` subclass) so the CLI/API boundary still catches them per § "Errors envelope" below.
+Implementation (FP20-B + FP25-B): bypass Python's `BufferedWriter` (8 KiB default buffer would split logical writes > 4 KiB into multiple syscalls and break the POSIX claim for large events). Use `os.open(log_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)` + an `os.write(fd, line_bytes)` loop that retries on short writes. POSIX guarantees a single `write()` syscall on an `O_APPEND` fd is atomic regardless of size on local filesystems, so concurrent appenders never interleave bytes — even when a `copy_started` event with a long `plan_summary` exceeds the legacy `PIPE_BUF` (4 KiB Linux) limit. Local kernels under CPython virtually never short-write a regular file (CPython auto-retries on EINTR and the page cache absorbs the full buffer in one go); the loop is defensive against the spec-permitted edge case so a user edit never lands as a truncated, unparsable JSON line. **Atomicity + best-effort durability:** after the write loop completes, an `os.fsync` is issued and any resulting `OSError` is suppressed because tmpfs and some networked/container filesystems reject fsync. Power-cut durability is defense-in-depth, not a hard contract — a power loss between the page-cache write and the disk flush may still lose the most recent record(s). **Typed errors:** `os.open`, `os.write`, and parent-`mkdir` failures wrap in `ActivityLogError` (a `CopyError` subclass) so the CLI/API boundary still catches them — see § Errors below for the full enumeration.
 
 Reader (for the future Activity API in Phase 4):
 
@@ -419,8 +419,9 @@ A `CopyPlan` is constructed by the CLI from parsed config + a `FilterResult`, or
 
 - `PreflightError` — destination not writable, free-space shortfall, source dir missing entirely.
 - `PlaylistError` — `append_decisions` missing for a conflicting winner; existing playlist file is corrupt JSON; write failure.
-- `RecycleError` — recycle move failed (filesystem readonly, permission denied).
+- `RecycleError` — recycle move failed (filesystem readonly, permission denied), or the manifest write failed and the rollback was attempted (FP25-C).
 - `CopyExecutionError` — wrapped `OSError` from `copy_one` that escaped retry (currently no retry; surfaces directly).
+- `ActivityLogError` — `os.open` / `os.write` / parent-`mkdir` failure inside `append_activity` (FP25-B + FP26-B). Wraps the originating `OSError` via `__cause__`.
 
 Per `coding-standards.md` § 9 and `cli/spec.md` "Errors the CLI catches but never raises", every `CopyError` carries:
 

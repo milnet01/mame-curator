@@ -85,6 +85,13 @@ class _TrackingLock:
     FP26-A — strengthens the L1-H1 / L1-H2 indie-review findings: the
     per-route tests now prove ``set_world`` runs INSIDE the
     ``async with`` block, not just that ``__aenter__`` fired.
+
+    FP26-N: deliberately NOT subclassing ``asyncio.Lock``. The lock's
+    internal state (waiters list, locked-flag manipulation) is private
+    and unstable across CPython minor versions; subclassing risks
+    breaking on a 3.13 → 3.14 upgrade. The duck-type pattern is enough
+    because no production code does ``isinstance(lock, asyncio.Lock)``
+    (verified by ``grep -rn 'isinstance.*Lock' src/``).
     """
 
     def __init__(self, inner: asyncio.Lock) -> None:

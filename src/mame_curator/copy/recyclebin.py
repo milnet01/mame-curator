@@ -74,20 +74,30 @@ def recycle_file(
     try:
         atomic_write_text(manifest, json.dumps(payload, indent=2))
     except OSError as exc:
+        recycled_orphan: Path | None = None
         try:
             shutil.move(str(target), str(path))
         except OSError as rollback_exc:
-            logger.warning(
-                "FP25-C: recycle manifest write failed AND rollback failed; "
-                "file remains at %s without manifest. rollback error: %s",
+            # FP26-P: escalate to ERROR (data sits in an unknown state)
+            # and attach the orphan path to RecycleError so the caller
+            # can render a "manual cleanup needed at <path>" hint
+            # without relying on log scraping.
+            logger.error(
+                "FP25-C / FP26-P: recycle manifest write failed AND rollback "
+                "failed; orphan file at %s without manifest. rollback error: %s",
                 target,
                 rollback_exc,
             )
+            recycled_orphan = target
         else:
             if not target_dir_existed:
                 with contextlib.suppress(OSError):
                     target_dir.rmdir()
-        raise RecycleError(f"failed to write recycle manifest: {exc}", path=manifest) from exc
+        raise RecycleError(
+            f"failed to write recycle manifest: {exc}",
+            path=manifest,
+            recycled_orphan=recycled_orphan,
+        ) from exc
     return target
 
 

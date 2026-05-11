@@ -14,9 +14,22 @@ import { strings } from '@/strings'
  * fire 9+ near-simultaneous query failures (six tile counts via the
  * LibraryPage `useQueries` fan-out + games + facets + config + sessions +
  * setupCheck), and `queryCache.onError` would emit one toast per failure.
- * Sonner doesn't dedup. The window collapses bursts of the same
+ * Sonner doesn't dedup implicitly. The window collapses bursts of the same
  * `(code, detail)` into a single toast while still surfacing distinct
  * errors and lets a *later* identical failure (>1.5 s later) toast again.
+ *
+ * FP26-J: `lastSeen` grows for the lifetime of the SPA — one entry per
+ * distinct `(code, detail)` ever seen. Memory cost is trivial (a few KB
+ * even at thousands of unique errors); accepted as deliberate
+ * unboundedness rather than wiring a sweep. The set is small in practice
+ * (the backend's enumerated error codes are a closed set).
+ *
+ * FP26-K: alternative `toast.error(msg, { id })` was considered and
+ * rejected — Sonner's id-replace keeps the existing toast visible
+ * indefinitely without resetting its auto-dismiss timer. UX desire is
+ * "fresh outage 1.6 s later draws the user's eye again" — the window-
+ * based dedup matches that intent; id-replace would let a stale toast
+ * linger past its useful moment.
  */
 const DEDUP_WINDOW_MS = 1500
 const lastSeen = new Map<string, number>()
@@ -32,9 +45,9 @@ function shouldSkipDuplicate(key: string): boolean {
 }
 
 /**
- * Test-only: clear the dedup state so cases that exercise the burst-
- * suppression don't bleed across tests. Production code never imports
- * this — there's no UI path that needs to reset the window.
+ * Test-only (`@internal`): clear the dedup state so cases that exercise
+ * the burst-suppression don't bleed across tests. Production code never
+ * imports this — there's no UI path that needs to reset the window.
  */
 export function _resetApiErrorToastDedupForTests(): void {
   lastSeen.clear()
