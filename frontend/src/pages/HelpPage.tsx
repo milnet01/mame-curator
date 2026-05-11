@@ -5,6 +5,76 @@ import { strings } from '@/strings'
 import { cn } from '@/lib/utils'
 import type { HelpTopic } from '@/api/types'
 
+// FP20-L: harden the DOMPurify config beyond the P07 baseline.
+//
+//   ALLOWED_URI_REGEXP — only http/https/mailto schemes survive on
+//     URI attributes (href, src). Strips data: payloads, javascript:
+//     (already gone by default, but pinned), and any future scheme
+//     that hasn't been explicitly allowlisted.
+//   FORBID_TAGS — <style> and <form> are removed. The first kills
+//     CSS-injection-based phishing/visual-spoofing inside help
+//     content; the second defends against credential-phishing
+//     forms that could otherwise auto-submit on render.
+//   FORBID_ATTR — inline ``style="..."`` is stripped on every
+//     element, complementing FORBID_TAGS for the same threat.
+const HELP_SANITIZE_CONFIG: DOMPurify.Config = {
+  ALLOWED_URI_REGEXP: /^(?:https?|mailto):/i,
+  FORBID_TAGS: ['style', 'form'],
+  FORBID_ATTR: ['style'],
+  // ``rel`` is added via ``ADD_ATTR`` so the afterSanitizeAttributes
+  // hook can write to it; ``target`` is force-kept via the
+  // uponSanitizeAttribute hook below (ADD_ATTR alone doesn't survive
+  // the attribute-level sanitiser in DOMPurify v3+).
+  ADD_ATTR: ['rel'],
+}
+
+// FP20-L: ``target="_blank"`` without ``rel="noopener"`` lets the new
+// tab navigate ``window.opener`` (reverse-tabnabbing). The hook is
+// installed once at module load; DOMPurify caches it globally.
+// Hook reads the attribute (not the property) so server-rendered
+// HTML strings — which never set the DOM property — are caught too.
+// FP20-L: ``target`` is not in DOMPurify's default ALLOWED_ATTR; ADD_ATTR
+// puts it in the set, but ``_isValidAttribute`` then strips it on a
+// later pass. ``forceKeepAttr = true`` in the per-attribute hook
+// bypasses both _isValidAttribute and the keepAttr default, so
+// ``target="_blank"`` survives all the way to afterSanitizeAttributes.
+DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
+  const el = node as Element
+  if (
+    data.attrName === 'target' &&
+    el.tagName === 'A' &&
+    data.attrValue === '_blank'
+  ) {
+    data.forceKeepAttr = true
+    return
+  }
+  // FP20-L: DOMPurify's default ``DATA_URI_TAGS`` allowlist includes
+  // ``img``, ``source``, ``audio``, ``video``, ``track`` — so a
+  // ``src="data:..."`` survives the ALLOWED_URI_REGEXP check via that
+  // special-case branch. The help content has no legitimate
+  // data-URL need (boxart and screenshots route through
+  // ``/media/...``), so strip data: srcs on those tags explicitly.
+  if (
+    data.attrName === 'src' &&
+    /^(IMG|SOURCE|AUDIO|VIDEO|TRACK)$/.test(el.tagName) &&
+    /^data:/i.test(data.attrValue)
+  ) {
+    data.keepAttr = false
+  }
+})
+
+// FP20-L: with target preserved, set rel="noopener noreferrer" on
+// every ``target="_blank"`` anchor to close the reverse-tabnabbing
+// vector (the new tab can navigate ``window.opener`` otherwise).
+// Duck-typed on tagName rather than ``instanceof Element`` so jsdom's
+// separate Element global doesn't skip the hook in vitest.
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  const el = node as Element
+  if (el.tagName === 'A' && el.getAttribute?.('target') === '_blank') {
+    el.setAttribute('rel', 'noopener noreferrer')
+  }
+})
+
 interface HelpPageProps {
   topics: HelpTopic[]
   selectedSlug: string | null
@@ -23,9 +93,15 @@ export function HelpPage({
 }: HelpPageProps) {
   // P07 § D: closes FP11 § H4 security debt. DOMPurify strips <script>,
   // javascript: URLs, and on-* event handlers before the HTML reaches
-  // dangerouslySetInnerHTML. Memoised so re-renders don't re-sanitize the
-  // same body — sanitization is the most expensive thing this page does.
-  const sanitizedHtml = useMemo(() => DOMPurify.sanitize(topicHtml), [topicHtml])
+  // dangerouslySetInnerHTML. FP20-L tightens the config (HELP_SANITIZE_
+  // CONFIG above) and installs a one-time rel="noopener noreferrer"
+  // hook against reverse-tabnabbing. Memoised so re-renders don't
+  // re-sanitize the same body — sanitization is the most expensive
+  // thing this page does.
+  const sanitizedHtml = useMemo(
+    () => DOMPurify.sanitize(topicHtml, HELP_SANITIZE_CONFIG),
+    [topicHtml],
+  )
 
   if (topics.length === 0) {
     return (
