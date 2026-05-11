@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | v1.2.0 shipped — FP20 (indie-review Tier 1 security + data-loss) underway since 2026-05-11; A/B/C landed (parser hardening, atomic writes, world_lock), D–L still pending |
-| **Active item ID** | FP20 — `/indie-review` Tier 1: security + data-loss (12 sub-bullets A–L, 3 of 12 landed) |
+| **Project phase** | v1.2.0 shipped — FP20 (indie-review Tier 1 security + data-loss) underway since 2026-05-11; A–F landed (backend complete), G–L (frontend) still pending |
+| **Active item ID** | FP20 — `/indie-review` Tier 1: security + data-loss (12 sub-bullets A–L, 6 of 12 landed; all backend done) |
 | **Active step** | 4 — implementation (TDD-driven, per-sub-bullet commits) |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-11 (FP20-A `c3ee50c`, FP20-B `6a12a93`, FP20-C `61fbc68`; 464 backend tests green at coverage 87.04%) |
-| **Next gate** | After FP20 closes (A–L all landed + `/audit` + `/indie-review` clean), queue continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. Inside FP20, next sub-bullets in order are **D** (`compose_allowlist` filter to `exists()/is_dir()`) → **E** (`help.py` env-override `.resolve()`) → **F** (`download()` URL scheme allowlist), all backend; then frontend sub-bullets G–L. FP22-D folds into FP21 § J. |
+| **Last update** | 2026-05-11 (FP20-D `52a112c`, FP20-E `73f2df8`, FP20-F `c49225b`; 473 backend tests green at coverage 87.10%) |
+| **Next gate** | After FP20 closes (A–L all landed + `/audit` + `/indie-review` clean), queue continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. Inside FP20, the backend trio D/E/F shipped this session; remaining work is frontend sub-bullets **G** (`useApiQuery` toast funnel) → **H** (`GameCard` aria-label) → **I** (`LibraryPage` error panel) → **J** (`SnapshotsTab` inline surface) → **K** (`FsBrowser` Esc) → **L** (`HelpPage` DOMPurify). FP22-D folds into FP21 § J. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -30,8 +30,9 @@ becomes active.
 - ✅ Step 3 — tests-first (XXE + Billion Laughs + zip-bomb; atomic
   `os.write`; `asyncio.Lock` instance — all failing-test scaffolding
   written before implementation)
-- 🚧 Step 4 — implementation (3 of 12 sub-bullets landed: A `c3ee50c`,
-  B `6a12a93`, C `61fbc68`; D/E/F backend next, then G–L frontend)
+- 🚧 Step 4 — implementation (6 of 12 sub-bullets landed: A `c3ee50c`,
+  B `6a12a93`, C `61fbc68`, D `52a112c`, E `73f2df8`, F `c49225b`;
+  backend complete, frontend G–L next)
 - ⬜ Step 5 — `/audit` (static analysis sweep across the FP20 surface)
 - ⬜ Step 6 — `/indie-review` (closing review of the FP20 fold-in itself)
 - ⬜ Step 7 — fix-pass against Step 5+6 findings (may spawn FP25)
@@ -51,13 +52,12 @@ failures). Sub-bullets landed so far:
   `copy/playlist.py`)
 - **C** `app.state.world_lock` install (`api/app.py`,
   `api/routes/config.py`, `api/routes/fs.py`)
+- **D** `compose_allowlist` drops stale granted_roots (`api/fs.py`)
+- **E** `_help_dir()` resolves at the source (`api/routes/help.py`)
+- **F** `download()` http/https scheme allowlist (`downloads.py`)
 
-Remaining:
+Remaining (all frontend):
 
-- **D** `compose_allowlist` filter to `exists()/is_dir()`
-  (`api/routes/fs.py`)
-- **E** `help.py` env-override `.resolve()` (`api/routes/help.py`)
-- **F** `download()` URL scheme allowlist (`downloads.py`)
 - **G** `useApiQuery` silent error path (frontend)
 - **H** `GameCard` `aria-label` clobbers accessible name (frontend)
 - **I** `LibraryPage` swallows query errors (frontend)
