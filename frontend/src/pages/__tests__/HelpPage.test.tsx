@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify'
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -156,8 +157,18 @@ describe('HelpPage', () => {
     expect(p?.getAttribute('style')).toBeNull()
   })
 
-  it('FP20-L: strips data: URLs on <img> (ALLOWED_URI_REGEXP — http/https/mailto only)', () => {
-    const html = '<img src="data:image/png;base64,iVBORw0KGgo=" />'
+  it('FP20-L / FP25-J: strips data: URLs on <img> with a deterministic outcome', () => {
+    /**
+     * FP25-J strengthens the original FP20-L assertion: the pre-FP25-J
+     * test only stated "if <img> survives, its src must not start with
+     * data:". That passed vacuously if a future config change happened
+     * to remove the <img> entirely AND would also pass if the
+     * sanitizer changed behaviour to keep <img> with the data: src
+     * stripped to empty — both branches are intended, but neither was
+     * pinned. The strengthened assertion: exactly one of two
+     * outcomes is acceptable, and we name them both.
+     */
+    const html = '<img src="data:image/png;base64,iVBORw0KGgo=" alt="x" />'
     const { container } = render(
       <HelpPage
         topics={topics}
@@ -167,12 +178,41 @@ describe('HelpPage', () => {
       />,
     )
     const img = container.querySelector('img')
-    // Either the img is removed entirely or its src is cleared — both
-    // satisfy the security property (no data: payload survives).
-    if (img !== null) {
-      const src = img.getAttribute('src') ?? ''
-      expect(src.toLowerCase()).not.toMatch(/^data:/)
+    // Deterministic outcome — exactly one of:
+    //   (a) the <img> is absent entirely, OR
+    //   (b) the <img> survives with NO src (data: stripped to empty).
+    if (img === null) {
+      // (a): img removed.
+      return
     }
+    // (b): img kept; the data: src must not survive.
+    const src = img.getAttribute('src')
+    expect(src).toBeNull()
+  })
+
+  // FP25-I: hooks isolation — the global DOMPurify must NOT inherit
+  // HelpPage's target="_blank" / rel-injection / data:-URL strip hooks.
+  it('FP25-I: global DOMPurify singleton does not inherit HelpPage hooks', () => {
+    // Render HelpPage so its module-load-time `addHook` calls run. If
+    // those hooks landed on the global, the global sanitizer would
+    // inject rel="noopener noreferrer" on target="_blank" anchors.
+    render(
+      <HelpPage
+        topics={topics}
+        selectedSlug="overrides"
+        topicHtml="<p>warm-up</p>"
+        onSelect={() => {}}
+      />,
+    )
+    // Use the global default profile (mirrors what an unrelated module
+    // would get from `import DOMPurify from 'dompurify'`).
+    const html = '<a href="https://example.com" target="_blank">click</a>'
+    const result = DOMPurify.sanitize(html)
+    // Without the leak, the global sanitizer either strips `target`
+    // entirely (DOMPurify's default behaviour) OR keeps it without
+    // injecting `rel`. Either is acceptable; the failure shape we're
+    // guarding against is "global silently inherits rel injection".
+    expect(result).not.toMatch(/rel="noopener noreferrer"/)
   })
 
   it('FP20-L: preserves https URLs on <a> (allowlist must not over-strip)', () => {

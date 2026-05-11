@@ -5,6 +5,22 @@ import { strings } from '@/strings'
 import { cn } from '@/lib/utils'
 import type { HelpTopic } from '@/api/types'
 
+// FP25-I: SCOPED DOMPurify INSTANCE — DO NOT EXPORT.
+//
+// Pre-FP25-I this module called ``DOMPurify.addHook(...)`` on the global
+// singleton. Every other ``DOMPurify.sanitize(...)`` site in the bundle
+// — current or future — silently inherited:
+//   - the ``target="_blank"`` ``forceKeepAttr`` (so target survives
+//     wherever the sanitizer is called),
+//   - the rel="noopener noreferrer" injection on those anchors,
+//   - the data:-URL strip on IMG/SOURCE/AUDIO/VIDEO/TRACK.
+//
+// No current victim, but the next developer adding a Markdown-rendered
+// notes field would have been surprised. ``DOMPurify(window)`` returns
+// a fresh, independent factory whose hooks don't touch the global; any
+// other consumer that imports ``dompurify`` gets the un-hooked default.
+const helpSanitizer = DOMPurify(window)
+
 // FP20-L: harden the DOMPurify config beyond the P07 baseline.
 //
 //   ALLOWED_URI_REGEXP — only http/https/mailto schemes survive on
@@ -30,15 +46,16 @@ const HELP_SANITIZE_CONFIG: Config = {
 
 // FP20-L: ``target="_blank"`` without ``rel="noopener"`` lets the new
 // tab navigate ``window.opener`` (reverse-tabnabbing). The hook is
-// installed once at module load; DOMPurify caches it globally.
-// Hook reads the attribute (not the property) so server-rendered
-// HTML strings — which never set the DOM property — are caught too.
+// installed once at module load on the HelpPage-scoped sanitizer
+// (see FP25-I above). Hook reads the attribute (not the property) so
+// server-rendered HTML strings — which never set the DOM property — are
+// caught too.
 // FP20-L: ``target`` is not in DOMPurify's default ALLOWED_ATTR; ADD_ATTR
 // puts it in the set, but ``_isValidAttribute`` then strips it on a
 // later pass. ``forceKeepAttr = true`` in the per-attribute hook
 // bypasses both _isValidAttribute and the keepAttr default, so
 // ``target="_blank"`` survives all the way to afterSanitizeAttributes.
-DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
+helpSanitizer.addHook('uponSanitizeAttribute', (node, data) => {
   const el = node as Element
   if (
     data.attrName === 'target' &&
@@ -68,7 +85,7 @@ DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
 // vector (the new tab can navigate ``window.opener`` otherwise).
 // Duck-typed on tagName rather than ``instanceof Element`` so jsdom's
 // separate Element global doesn't skip the hook in vitest.
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+helpSanitizer.addHook('afterSanitizeAttributes', (node) => {
   const el = node as Element
   if (el.tagName === 'A' && el.getAttribute?.('target') === '_blank') {
     el.setAttribute('rel', 'noopener noreferrer')
@@ -99,7 +116,7 @@ export function HelpPage({
   // re-sanitize the same body — sanitization is the most expensive
   // thing this page does.
   const sanitizedHtml = useMemo(
-    () => DOMPurify.sanitize(topicHtml, HELP_SANITIZE_CONFIG),
+    () => helpSanitizer.sanitize(topicHtml, HELP_SANITIZE_CONFIG),
     [topicHtml],
   )
 
