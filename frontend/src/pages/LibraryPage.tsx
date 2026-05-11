@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { useQueries } from '@tanstack/react-query'
 import { AlternativesDrawer } from '@/components/alternatives/AlternativesDrawer'
+import { LibraryErrorPanel } from '@/components/library/LibraryErrorPanel'
 import { LibraryGrid } from '@/components/library/LibraryGrid'
 import { LayoutSwitcher } from '@/components/library/LayoutSwitcher'
 import { ListxmlBanner } from '@/components/library/ListxmlBanner'
@@ -348,14 +349,22 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
           cloneofMapSize={setupCheck.data?.cloneof_map_size}
         />
         <ErrorBoundary>
-          <LibraryGrid
-            cards={cards}
-            layout={layout}
-            cardsPerRowHint={config.data?.ui.cards_per_row_hint}
-            isInCart={(s) => cart.has(s)}
-            onAdd={(s) => cart.add(s)}
-            onOpen={(card) => setOpenedShortName(card.short_name)}
-          />
+          {games.isError ? (
+            // FP20-I: query failure surfaces as an inline alert with
+            // a Retry affordance; the FP20-G global toast already
+            // flashed at error time, but it dismisses — this panel
+            // keeps the failure visible until the user retries.
+            <LibraryErrorPanel onRetry={() => games.refetch()} />
+          ) : (
+            <LibraryGrid
+              cards={cards}
+              layout={layout}
+              cardsPerRowHint={config.data?.ui.cards_per_row_hint}
+              isInCart={(s) => cart.has(s)}
+              onAdd={(s) => cart.add(s)}
+              onOpen={(card) => setOpenedShortName(card.short_name)}
+            />
+          )}
         </ErrorBoundary>
       </div>
 

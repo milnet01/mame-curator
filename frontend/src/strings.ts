@@ -76,7 +76,10 @@ export const strings = {
     emptyTitle: 'No games match your filters',
     emptyHint:
       'Adjust the filters in the sidebar or clear them to see your full library.',
-    flyerAlt: (name: string) => `Box art for ${name}`,
+    /** FP20-I — inline error panel when the games query fails. */
+    loadFailedTitle: 'Could not load the game library',
+    loadFailedHint:
+      'The backend may be down or unreachable. Check the server, then retry.',
     placeholderFlyer: 'No artwork available',
     countSummary: (n: number, gb: string, biosDeps: number) =>
       `${n.toLocaleString()} games · ${gb} · ${biosDeps} BIOS dep${biosDeps === 1 ? '' : 's'}`,
@@ -233,6 +236,7 @@ export const strings = {
       `Candidates considered: ${names.join(', ')}`,
     notesLabel: 'Notes',
     notesPlaceholder: 'Notes (saved automatically when you click away)…',
+    flyerAlt: (description: string) => `Box art for ${description}`,
     /** FP19 — Launch button + status copy. */
     launch: 'Launch in RetroArch',
     launching: 'Launching…',
