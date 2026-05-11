@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | FP25 Step 4 complete — all 11 sub-bullets A–K shipped across 8 commits on 2026-05-11. FP20 stays 🚧 pending FP25 close. |
-| **Active item ID** | FP25 — FP20 closing-review fold-in (11/11 sub-bullets A–K shipped) |
-| **Active step** | 5 — `/audit` (closing) + 6 — `/indie-review` (closing) pending; then triage (Step 7), CHANGELOG/ROADMAP flip (Step 8), tag (Step 9) |
-| **Blocked on** | nothing — ready for `/close-phase` orchestrator |
-| **Last update** | 2026-05-11 (FP25 sub-bullets A–K shipped across `d617cd6..19cc9b2`; 502 backend + 273 frontend tests green; ruff + mypy + ESLint + tsc clean) |
-| **Next gate** | Run `/close-phase` to orchestrate closing `/audit` + `/indie-review` in parallel. If clean → tag `FP25-complete` (annotated), update workflow.md + journal, then re-run `/close-phase FP20` to clean-close the parent and tag `FP20-complete`. If findings → spawn next `FP##`. Queue then continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. |
+| **Project phase** | FP25 closing `/audit` + `/indie-review` ran 2026-05-11; static tools all clean; 4-lane review surfaced 5 Tier 1 + 12 Tier 2 + 15+ Tier 3 findings batched into **FP26** + UX e2e walkthroughs. FP25 stays 🚧 until FP26 closes. |
+| **Active item ID** | FP26 — FP25 closing-review fold-in + UX e2e walkthroughs (21 sub-bullets A–U) |
+| **Active step** | 1 — spec (per `ROADMAP.md § FP26`); proceed through the standard 9-step loop |
+| **Blocked on** | nothing |
+| **Last update** | 2026-05-11 (FP26 spawned by `/close-phase`; static tools all clean; 4 indie-review lanes returned 5 Tier 1 + 12 Tier 2 + 15+ Tier 3 findings; user added Playwright UX walkthrough scope) |
+| **Next gate** | Work FP26 through the 9-step loop (Tier 1 test sufficiency + envelope hole + macOS fork hazard; Tier 2 doc/test polish incl. dropping K(12) no-op; Tier 3 Playwright e2e walkthroughs of FP25-G/H/I/J/K(12)). When FP26 closes ✅, re-run `/close-phase FP25` to clean-close FP25, then `/close-phase FP20` to clean-close the grandparent. Queue then continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,20 +21,27 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-**FP25 — FP20 closing-review fold-in (Step 4 complete, awaiting `/close-phase`)**
+**FP26 — FP25 closing-review fold-in + UX e2e walkthroughs (Step 1 — spec, freshly opened)**
 
-- ✅ Step 1 — spec (sub-bullets A–K enumerated in `ROADMAP.md § FP25`)
-- ✅ Step 2 — plan (per-sub-bullet TDD per FP20 cadence)
-- ✅ Step 3 — tests-first (failing tests landed for A, B, C, D, F, G, H, J)
-- ✅ Step 4 — implementation (all 11 sub-bullets shipped: A `d617cd6`,
-  B `87b32de`, C+F `f569953`, D `d210aa6`, E `efd6b6b`, G `32d66cb`,
-  H `84c55cb`, I+J `b21fe08`, K `19cc9b2`)
-- 🚧 Step 5 — `/audit` (pending — orchestrated by `/close-phase`)
-- 🚧 Step 6 — `/indie-review` (pending — orchestrated by `/close-phase`)
-- ⬜ Step 7 — fix-pass against Step 5+6 findings (only if needed)
+- 🚧 Step 1 — spec (sub-bullets A–U enumerated in `ROADMAP.md § FP26`,
+  sourced from FP25 closing `/audit` + 4-lane `/indie-review` on 2026-05-11
+  plus user's Playwright UX walkthrough scope-add)
+- ⬜ Step 2 — plan (per-sub-bullet TDD per FP20 / FP25 cadence)
+- ⬜ Step 3 — tests-first
+- ⬜ Step 4 — implementation
+- ⬜ Step 5 — `/audit`
+- ⬜ Step 6 — `/indie-review`
+- ⬜ Step 7 — fix-pass against Step 5+6 findings
 - ⬜ Step 8 — final five-gate green
-- ⬜ Step 9 — close: tag `FP25-complete`, update CHANGELOG/ROADMAP, then
-  re-run `/close-phase FP20` to clean-close the parent
+- ⬜ Step 9 — close: tag `FP26-complete`, update CHANGELOG/ROADMAP, then
+  re-run `/close-phase FP25` to clean-close FP25, then `/close-phase FP20`
+  to clean-close the grandparent
+
+**FP25 — parent phase (Step 4 complete, Step 5/6 ran, awaiting FP26):**
+Sub-bullets A–K all landed across 8 commits (`d617cd6..19cc9b2`).
+Closing `/audit` clean; 4-lane `/indie-review` surfaced 5 Tier 1 +
+12 Tier 2 + 15+ Tier 3 findings folded into FP26. Phase remains 🚧
+until FP26 closes.
 
 **FP20 — parent phase (Step 4 complete, Step 5/6 ran, awaiting FP25):**
 Sub-bullets A–L all landed across 14 commits (`c3ee50c..d819181`).

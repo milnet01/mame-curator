@@ -145,6 +145,19 @@ Tests at FP25 step 4 close: 502 backend (1 skipped) / 273 frontend /
 coverage 87.x% / ruff + ruff format + mypy + bandit / eslint + tsc
 clean. `frontend/dist/` rebuilt.
 
+Closing `/audit` returned clean across ruff + ruff format + mypy +
+bandit + semgrep (0 results on 65 Python files) + gitleaks (`[]`)
++ ESLint (errors=0 warnings=0) + tsc. **The 4-lane `/indie-review`
+surfaced 5 Tier 1, 12 Tier 2, and 15+ Tier 3 findings**, focused
+on test sufficiency (the FP25-A acceptance test passes even
+without the lock; FP25-F asserts inside an always-false branch),
+one typed-error envelope hole (`mkdir(parent)` in `activity.py`
+escapes `ActivityLogError`), and a macOS-fork hazard in FP25-E.
+User also added a fifth scope item: Playwright e2e walkthroughs
+that validate the FP25 user-facing changes end-to-end. All 5
+Tier 1 + 12 Tier 2 + Playwright walkthroughs batched into `FP26`;
+FP25 stays open until FP26 closes.
+
 ### FP22 — Launch button gates on RetroArch config (closed 2026-05-08)
 
 User reported a 422 on POST `/api/games/{name}/launch` after

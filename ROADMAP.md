@@ -1814,6 +1814,129 @@ closing-review precedent.
 
 ---
 
+## FP26 — FP25 closing-review fold-in + UX e2e walkthrough (planned)
+
+**Theme:** FP25's closing `/audit` returned clean across ruff +
+ruff format + mypy + bandit + semgrep (0 results, 65 files) +
+gitleaks + ESLint + tsc. The 4-lane `/indie-review` surfaced
+**5 Tier 1 findings (test sufficiency + envelope hole),
+12 Tier 2 findings (doc/test polish), 15+ Tier 3 polish items**.
+User added a fifth scope item: Playwright e2e walkthroughs that
+exercise the FP25 user-facing changes (toast dedup, retry-disable,
+help DOMPurify, settings restore retry) so the UX is validated
+end-to-end, not just unit-tested. FP25 cannot close until FP26
+closes.
+
+### 🐛 Bug fixes / test strengthening
+
+- 📋 **FP26** [mame-curator-1028] **FP25 closing-review fold-in + UX e2e walkthrough.**
+  Lanes: api, copy, frontend, tests, docs, e2e.
+
+  **Tier 1 — test sufficiency + envelope holes:**
+  - **A — L1-H1 + L1-H2: FP25-A world_lock tests don't prove the
+    contract.** `tests/api/test_fp25_world_lock.py` has no `await`
+    inside its critical sections, so the `asyncio.gather` "both
+    edits land" assertion passes even when the lock is removed.
+    The 7 per-route tests only prove `__aenter__` ran, not that
+    `set_world` ran inside the critical section. Fix: inject a
+    deliberate yield via a monkey-patched async `_persist_*` that
+    `await asyncio.sleep(0)`s mid-write; assert observed
+    serialization (read_world_id → wrote_world_id chain has no
+    fork). Tighten the per-route tests to track "set_world calls
+    while lock held == 1".
+  - **B — L2-H1: `mkdir(parent)` in `activity.py:54` escapes the
+    ActivityLogError envelope.** A permission error on `data/`
+    raises raw `OSError` and bypasses the `CopyError` CLI catch
+    boundary. Fix: move the `log_path.parent.mkdir` inside a
+    try/except that raises `ActivityLogError("failed to prepare
+    activity log directory", path=log_path.parent)`.
+  - **C — L2-H2: FP25-F tests are vacuously true.**
+    `tests/copy/test_fp25_recyclebin.py:142-146, 173-178` guard
+    their assertions inside `if target_dir.exists():`, but FP25-C's
+    successful rollback removes `target_dir` first. Fix: assert
+    outside the guard against `recycle_root.rglob("manifest.json*")`
+    being empty, OR additionally break the rollback for these two
+    tests so the target_dir survives.
+  - **D — L2-H3: FP25-E concurrent test will hang/fail on macOS CI.**
+    `tests/copy/test_fp25_activity_concurrent.py:82` forces
+    `mp.get_context("fork")` but `OBJC_DISABLE_INITIALIZE_FORK_SAFETY`
+    isn't set; macOS CoreFoundation post-init makes fork unsafe.
+    Fix: extend the skipif gate to `sys.platform not in ("linux",)`
+    (i.e. skip on darwin + win32), OR migrate to `spawn` with a
+    top-level worker function.
+
+  **Tier 2 — doc/test polish (12 items):**
+  - **E — L1-M3** P04 spec line 110 doesn't enumerate the
+    `_deactivate` route; add it for completeness.
+  - **F — L2-M2** activity log misses parent-dir fsync on first
+    create; add `_fsync_parent_dir(log_path)` post-write.
+  - **G — L2-M3** `copy/spec.md` drift: "FP25-C is open" stale text,
+    broken "§ Errors envelope below" reference, `ActivityLogError`
+    missing from the errors enumeration. Update inline.
+  - **H — L2-M4** add a test for the `written == 0` defensive
+    branch (monkey-patch `os.write` to return 0 without raising).
+  - **I — L3-M1** `queryClient.test.tsx` doesn't reset the
+    dedup Map across tests; add `_resetApiErrorToastDedupForTests()`
+    to its `beforeEach` to neutralise the latent pollution.
+  - **J — L3-M2** add a comment on `lastSeen` Map's deliberate
+    unboundedness in `apiErrorToast.ts`, OR a coarse prune at
+    size-threshold (5× window age). Comment is cheaper.
+  - **K — L3-M3** docblock improvements for `apiErrorToast` —
+    name the rejected `toast({id})` alternative for the next
+    maintainer.
+  - **L — L4-M1: drop the FP25-K(12) no-op.** React Query 5.x's
+    `useMutation` already clears `error` to null on `mutate()`;
+    the `restore.isPending ? null : ...` conditional is dead
+    defence. Either remove the conditional and the K(12) entry,
+    or rewrite the comment to be honest about why it's there
+    despite being redundant.
+  - **M — L4-M2** allowlist-004 line citation is stale
+    (`HelpPage.tsx:72` → current line 176), and the wording
+    quotes `DOMPurify.sanitize(...)` but post-FP25-I the call
+    is `helpSanitizer.sanitize(...)`. Refresh the entry; bump
+    "Confirmed by phase" to FP26.
+  - **N — L1-M1** `_TrackingLock` is a duck-type; document why
+    it's not subclassing `asyncio.Lock` (or convert).
+  - **O — L1-M2** FP25-A concurrent test's overrides assertion
+    is tautological (asserts the same response that did the
+    override). Re-GET `/api/overrides` after both writes complete
+    to make it symmetric with the sessions assertion.
+  - **P — L2-M1** double-failure user signal: when manifest write
+    AND rollback fail, attach the orphan path to `RecycleError`
+    as a machine-readable attribute; escalate the log to
+    `logger.error`.
+
+  **Tier 3 — UX e2e walkthroughs:**
+  - **Q — Playwright spec for FP25-G toast dedup.** Spin up the
+    dev server with `/api/games` failing; assert one toast fires
+    on cold start, not nine. Visual diff of the toast region.
+  - **R — Playwright spec for FP25-H Retry-disabled.** Force a
+    library error, click Retry, assert the button is disabled +
+    label reads "Retrying…"; assert mashed clicks don't queue
+    refetches.
+  - **S — Playwright spec for FP25-I HelpPage DOMPurify.** Navigate
+    to /help/getting-started, assert no `<script>` survives, assert
+    `target="_blank"` anchors carry `rel="noopener noreferrer"`,
+    assert `<img src="data:...">` is stripped per FP25-J's
+    deterministic outcome.
+  - **T — Playwright spec for FP25-K(12) settings restore retry
+    flow.** Trigger a restore failure, mash Retry, assert the
+    alert state is consistent (depending on **L** outcome —
+    either "no flash on retry" or "alert visible while pending").
+  - **U — LOW-tier polish batch.** Any remaining Tier 3 items
+    from the four indie-review lanes that didn't get their own
+    sub-bullet, plus the LOW findings from L1/L2/L3/L4 audits
+    that the user signs off on inline.
+
+  Source: FP25 closing `/audit` (clean) + 4-lane `/indie-review`
+  (api mutation lock / copy durability+atomicity / frontend
+  error+library surface / frontend help+settings+parser-doc-cleanup);
+  filed 2026-05-11.
+  Dependencies: FP25 (still 🚧). FP26 must close before FP25 can
+  flip ✅, which is what FP20 is waiting on.
+
+---
+
 ## FP21 — `/indie-review` Tier 2: hardening sweep (planned)
 
 **Theme:** Tier 2 fold-in from the 2026-05-04 multi-agent review.
