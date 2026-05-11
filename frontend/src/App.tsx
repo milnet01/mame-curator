@@ -8,7 +8,8 @@ import {
   useNavigate,
   useSearchParams,
 } from 'react-router'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { createAppQueryClient } from '@/lib/queryClient'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { AppShell } from '@/components/layout/AppShell'
@@ -59,11 +60,7 @@ const HelpPage = lazy(() =>
   import('@/pages/HelpPage').then((m) => ({ default: m.HelpPage })),
 )
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 1 },
-  },
-})
+const queryClient = createAppQueryClient()
 
 const PALETTE_ITEMS: CmdKItem[] = [
   { id: 'go-library', section: 'actions', label: 'Go to Library', value: 'nav:/' },
