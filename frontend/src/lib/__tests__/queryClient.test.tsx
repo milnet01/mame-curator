@@ -49,6 +49,11 @@ describe('createAppQueryClient', () => {
     )
 
     await waitFor(() => expect(vi.mocked(toast.error)).toHaveBeenCalled())
+    // FP25-K(8): lock the once-per-failure contract. The pre-FP25-K
+    // assertion (`toHaveBeenCalled`) would pass even if a regression
+    // re-emitted the same failure on every retry / refetch tick;
+    // `toHaveBeenCalledTimes(1)` pins the cache invariant.
+    expect(vi.mocked(toast.error)).toHaveBeenCalledTimes(1)
   })
 
   it('routes ApiError with code "network" through the network toast', async () => {

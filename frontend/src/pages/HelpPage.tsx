@@ -71,6 +71,14 @@ helpSanitizer.addHook('uponSanitizeAttribute', (node, data) => {
   // special-case branch. The help content has no legitimate
   // data-URL need (boxart and screenshots route through
   // ``/media/...``), so strip data: srcs on those tags explicitly.
+  // FP25-K(10): tagName casing — HTML elements expose ``tagName`` in
+  // uppercase (DOM Living Standard § 4.4); SVG elements expose it in
+  // its original case (e.g. ``circle``, not ``CIRCLE``). The uppercase
+  // regex here is safe because DOMPurify's DATA_URI_TAGS allowlist is
+  // HTML-only (no svg variants), so a hypothetical SVG ``<image>``
+  // with ``href="data:..."`` is already handled by the ALLOWED_URI_REGEXP
+  // path and never reaches this branch. If DOMPurify ever extends the
+  // allowlist to SVG tags, swap to a case-insensitive comparison.
   if (
     data.attrName === 'src' &&
     /^(IMG|SOURCE|AUDIO|VIDEO|TRACK)$/.test(el.tagName) &&
@@ -87,7 +95,10 @@ helpSanitizer.addHook('uponSanitizeAttribute', (node, data) => {
 // separate Element global doesn't skip the hook in vitest.
 helpSanitizer.addHook('afterSanitizeAttributes', (node) => {
   const el = node as Element
-  if (el.tagName === 'A' && el.getAttribute?.('target') === '_blank') {
+  // FP25-K(11): `Element.getAttribute` is part of the Element interface in
+  // every DOM/jsdom version we run on, so the optional-chain operator was
+  // dead — `el.getAttribute(...)` is callable unconditionally.
+  if (el.tagName === 'A' && el.getAttribute('target') === '_blank') {
     el.setAttribute('rel', 'noopener noreferrer')
   }
 })

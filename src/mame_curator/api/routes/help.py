@@ -57,7 +57,10 @@ def help_index() -> HelpIndex:
 def help_topic(topic: str) -> HelpContent:
     if not _SLUG_RE.match(topic):
         raise HelpTopicNotFoundError(f"help topic not found: {topic!r}")
-    base = _help_dir().resolve()
+    # FP25-K(5): `_help_dir()` already resolves at source (FP20-E), so the
+    # explicit `.resolve()` here was redundant. Drop it — `relative_to`
+    # below still operates on a fully-canonical base.
+    base = _help_dir()
     candidate = (base / f"{topic}.md").resolve()
     try:
         candidate.relative_to(base)

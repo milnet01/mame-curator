@@ -8,11 +8,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# bandit B410: lxml's iterparse defaults to no_network=True; we never parse XML from
-# untrusted network sources, only user-supplied listxml files from trusted MAME builds.
-# FP20-A: every iterparse below is wired through the hardened parser
-# (resolve_entities=False + no_network=True + huge_tree=False) defined
-# in dat.py, blocking XXE / Billion Laughs / file:// URI vectors.
+# bandit B410: lxml is wired through HARDENED_ITERPARSE_KWARGS (defined in
+# dat.py) at every iterparse call site — resolve_entities=False blocks
+# Billion Laughs, no_network=True blocks http(s)/ftp DTD fetches,
+# huge_tree=False refuses pathologically deep trees, load_dtd=False blocks
+# external-DTD fetches. FP25-K(1): the prior comment leaned on "trusted
+# source" framing — but Phase 4 exposes the parser through the API where
+# the upstream path is network-controlled, so the safety guarantee comes
+# from the iterparse kwargs alone, not from the source of the file.
 from lxml import etree  # nosec B410
 from pydantic import BaseModel, ConfigDict
 

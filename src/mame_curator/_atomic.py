@@ -24,6 +24,11 @@ from pathlib import Path
 def atomic_write_bytes(path: Path, data: bytes) -> None:
     """Atomically write `data` to `path`. Same protocol as `atomic_write_text`."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    # FP25-K(4): SIM115 normally requires `with NamedTemporaryFile(...)`; the
+    # close+replace ordering on Windows requires explicit close-before-replace
+    # which `__exit__` would defer until after the whole try-block — see the
+    # detailed comment in `atomic_write_text` below for the cross-platform
+    # rationale.
     tmp_handle = tempfile.NamedTemporaryFile(  # noqa: SIM115
         mode="wb",
         dir=path.parent,

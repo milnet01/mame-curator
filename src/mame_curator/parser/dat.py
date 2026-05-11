@@ -14,12 +14,15 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-# bandit B410: lxml's iterparse defaults to no_network=True; we never parse XML from
-# untrusted network sources, only user-supplied DAT files from trusted ROM aggregators.
-# defusedxml.lxml is deprecated upstream, so we use lxml directly with an explicit
-# hardened XMLParser (FP20-A): resolve_entities=False blocks Billion Laughs
-# internal-entity expansion, no_network=True blocks http(s)/ftp DTD fetches,
-# huge_tree=False refuses pathologically deep trees.
+# bandit B410: lxml is used with the hardened iterparse kwargs in
+# HARDENED_ITERPARSE_KWARGS below (resolve_entities=False blocks Billion
+# Laughs internal-entity expansion, no_network=True blocks http(s)/ftp DTD
+# fetches, huge_tree=False refuses pathologically deep trees, load_dtd=False
+# blocks external-DTD fetches). FP25-K(1): the previous comment leaned on
+# "trusted source" framing — but Phase 4 exposes parse_dat through the API
+# where the upstream path is network-controlled, so the safety guarantee
+# now comes from the iterparse kwargs alone. defusedxml.lxml is deprecated
+# upstream, so direct lxml + explicit kwargs is the supported path.
 from lxml import etree  # nosec B410
 from pydantic import ValidationError
 
@@ -32,6 +35,11 @@ logger = logging.getLogger(__name__)
 # FP20-A: cap zip-bomb decompressed size before extraction. The real
 # Pleasuredome DAT is ~50 MiB extracted, so 256 MiB leaves ~5x headroom
 # for legitimate growth without admitting a denial-of-disk attack.
+# FP25-K(2): the upstream contract is "one .xml inside the zip" — the
+# multi-member case is rejected earlier (DATError "contains multiple
+# .xml files"), so the cap only ever applies to that single member's
+# central-dir-declared decompressed size. Reading file_size is
+# metadata-only; the cap fires before any payload is decompressed.
 _MAX_DAT_BYTES = 256 * 1024 * 1024
 
 

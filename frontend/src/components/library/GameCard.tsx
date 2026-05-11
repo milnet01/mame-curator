@@ -53,6 +53,15 @@ export function GameCard({
   // inner heading, so the button's accessible name is exactly the
   // game description — not the screen-reader-clobbering aria-label
   // that used to live on the wrapper.
+  // FP25-K(7): uniqueness invariant — `short_name` must be unique
+  // within the rendered DOM. Inside a single MAME DAT the names are
+  // globally unique by spec, but a cart drawer and the main grid CAN
+  // render the same card concurrently. If a future surface composes
+  // two GameCards for the same short_name into one tree, the second
+  // `<heading id={titleId}>` collides with the first and assistive
+  // tech announces the wrong title. Mitigation when that happens:
+  // prefix `titleId` with the calling surface ("grid", "drawer") so
+  // duplicates differ across surfaces.
   const titleId = `gamecard-title-${card.short_name}`
 
   // FP24-E + Q: outer wrapper is role="button" div, not a native
