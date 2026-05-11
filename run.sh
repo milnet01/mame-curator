@@ -40,7 +40,16 @@ fi
 
 if ! command -v uv >/dev/null 2>&1; then
     echo "uv not found — installing via the official installer (https://astral.sh/uv)..."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+    # FP21-Q: pin curl transport security — `--proto '=https'` rejects
+    # any non-HTTPS redirect target, and `--tlsv1.2` rejects pre-TLS-1.2
+    # downgrades. Without these, a network attacker who can intercept
+    # the user's DNS or a captive-portal layer can swap in a malicious
+    # installer over plain HTTP. The official Astral installer publishes
+    # over HTTPS only, so these flags are no-ops on a clean network and
+    # a real defense on a hostile one. (Full integrity via a vendored
+    # release tarball + sha256 is tracked as a separate ADR — see
+    # docs/decisions/.)
+    curl --proto '=https' --tlsv1.2 -LsSf https://astral.sh/uv/install.sh | sh
     # The uv installer drops the binary in ~/.local/bin or ~/.cargo/bin.
     export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
     if ! command -v uv >/dev/null 2>&1; then

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 
 export interface KeyBinding {
   /** Either a single key (e.g. "k", "Escape", "?") or a chord like "g l". */
@@ -30,8 +30,26 @@ function isModifiable(target: EventTarget | null): boolean {
  * Bindings registered while a typing-capable element is focused are
  * skipped, EXCEPT when `meta: true` and the modifier key is held — Cmd-K
  * still opens the palette while typing in the search box.
+ *
+ * FP21-S: bindings are stored in a ref and read fresh on each event,
+ * so the document-level listener is registered ONCE per component
+ * lifetime. Previously the effect dep was `[bindings]`; call-sites
+ * pass a fresh array literal on every render, so the listener was
+ * torn down + reattached every render — and any pending chord state
+ * (`g` waiting for `l`) was wiped immediately. Chord shortcuts only
+ * worked when no re-render fired in the chord window.
  */
 export function useKeyboard(bindings: KeyBinding[]) {
+  const bindingsRef = useRef(bindings)
+  // Keep the ref current via `useLayoutEffect` so the update happens
+  // synchronously after render but BEFORE the browser paints — any
+  // keystroke arriving on the next event-loop tick sees the latest
+  // bindings. (`useEffect` would also work but fires after paint,
+  // making a same-frame keystroke after a re-render see stale bindings.)
+  useLayoutEffect(() => {
+    bindingsRef.current = bindings
+  }, [bindings])
+
   useEffect(() => {
     let pendingChord: string | null = null
     let pendingTimer: ReturnType<typeof setTimeout> | null = null
@@ -47,7 +65,7 @@ export function useKeyboard(bindings: KeyBinding[]) {
     const onKeyDown = (e: KeyboardEvent) => {
       const editing = isModifiable(e.target)
 
-      for (const binding of bindings) {
+      for (const binding of bindingsRef.current) {
         if (binding.meta) {
           if (!(e.metaKey || e.ctrlKey)) continue
           if (e.key.toLowerCase() === binding.combo.toLowerCase()) {
@@ -84,5 +102,8 @@ export function useKeyboard(bindings: KeyBinding[]) {
       document.removeEventListener('keydown', onKeyDown)
       clearPending()
     }
-  }, [bindings])
+    // Listener attaches once and reads from `bindingsRef.current` on
+    // every event — no dependency on `bindings` so chord state isn't
+    // reset on re-render.
+  }, [])
 }

@@ -76,6 +76,8 @@ export const strings = {
   },
 
   library: {
+    /** FP21-T — accessible name for the LibraryGrid composite. */
+    gridLabel: 'Game library grid',
     emptyTitle: 'No games match your filters',
     emptyHint:
       'Adjust the filters in the sidebar or clear them to see your full library.',

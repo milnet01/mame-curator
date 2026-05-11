@@ -69,6 +69,14 @@ class ManualFallback:
     reason: str
 
 
+# FP21-P: cap on download body size. Today's INI sources are < 1 MB; a
+# future listxml (~50 MB) needs streaming + a cap to prevent runaway
+# responses from a misbehaving mirror from blowing up worker memory.
+# 100 MB is generous for our use cases (DAT files, listxml, INIs) while
+# still defending against gigabyte-scale exfiltration attacks.
+DEFAULT_MAX_BYTES = 100 * 1024 * 1024
+
+
 async def download(
     *,
     url: str,
@@ -77,12 +85,18 @@ async def download(
     sha256: str | None = None,
     mirrors: Sequence[str] = (),
     max_attempts: int = 4,
+    max_bytes: int = DEFAULT_MAX_BYTES,
 ) -> Path | ManualFallback:
     """Download ``url`` to ``dest`` atomically.
 
     Verifies sha256 if given. Retries each URL with exponential backoff
     (1s, 2s, 4s before retries 1/2/3) up to ``max_attempts`` per URL. On a
     checksum mismatch, falls through to the next mirror immediately.
+
+    FP21-P: body bytes are streamed and summed against ``max_bytes``;
+    the request is aborted if the running total exceeds the cap. The
+    Content-Length header (when present) is also pre-checked so an
+    obviously oversized download fails fast without consuming bandwidth.
 
     Returns the dest ``Path`` on success or ``ManualFallback`` on total
     failure. The caller-supplied ``AsyncClient`` is reused; lifecycle is
@@ -101,9 +115,38 @@ async def download(
             if attempt > 0:
                 await asyncio.sleep(2 ** (attempt - 1))
             try:
-                response = await client.get(u)
-                response.raise_for_status()
-                body = response.content
+                # FP21-P: stream-mode request so we can enforce the
+                # byte cap incrementally and avoid buffering oversized
+                # bodies in memory.
+                async with client.stream("GET", u) as response:
+                    response.raise_for_status()
+                    declared = response.headers.get("Content-Length")
+                    if declared is not None:
+                        try:
+                            if int(declared) > max_bytes:
+                                last_error = (
+                                    f"BodyTooLarge: {u}: Content-Length "
+                                    f"{declared} exceeds cap {max_bytes}"
+                                )
+                                logger.warning("downloads: %s", last_error)
+                                break  # next mirror; same URL won't shrink
+                        except ValueError:
+                            pass  # malformed header; fall through to streaming cap
+                    chunks: list[bytes] = []
+                    total = 0
+                    async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
+                        total += len(chunk)
+                        if total > max_bytes:
+                            last_error = (
+                                f"BodyTooLarge: {u}: streamed {total} bytes exceeds cap {max_bytes}"
+                            )
+                            logger.warning("downloads: %s", last_error)
+                            chunks = []
+                            break
+                        chunks.append(chunk)
+                    if last_error.startswith("BodyTooLarge"):
+                        break  # next mirror
+                    body = b"".join(chunks)
             except httpx.HTTPError as e:
                 last_error = f"{type(e).__name__}: {e}"
                 logger.warning(

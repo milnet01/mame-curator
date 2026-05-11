@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiRequest } from '@/api/client'
+import { toastApiError } from '@/lib/apiErrorToast'
 import {
   AlternativesSchema,
   LaunchResponseSchema,
@@ -32,8 +33,9 @@ export function useAlternatives(shortName: string | null) {
 /**
  * POST a manual override (parent → winner). Invalidates the games listing
  * + the affected alternatives query so the UI re-renders with the picked
- * winner. Caller surfaces success / failure via the standard
- * ``toastApiError`` helper from ``lib/apiErrorToast``.
+ * winner. FP21-R: ``toastApiError`` baked into the hook so all call-sites
+ * surface failures via toast by default; an explicit ``onError`` override
+ * remains possible per ``useMutation``'s contract.
  */
 export function useOverride() {
   const qc = useQueryClient()
@@ -48,14 +50,16 @@ export function useOverride() {
       qc.invalidateQueries({ queryKey: KEY(req.winner) })
       qc.invalidateQueries({ queryKey: KEY(req.parent) })
     },
+    onError: toastApiError,
   })
 }
 
 /**
  * FP19: spawn RetroArch with the given game's ROM. Returns the spawned
  * pid + argv on success; the API surfaces 422 if RetroArch isn't
- * configured or 404 if the ROM file doesn't exist on disk. Caller
- * surfaces success / failure via toast.
+ * configured or 404 if the ROM file doesn't exist on disk. FP21-R:
+ * ``toastApiError`` baked into the hook so all call-sites get the
+ * friendly byCode-mapped copy out of the box.
  */
 export function useLaunchGame() {
   return useMutation({
@@ -65,5 +69,6 @@ export function useLaunchGame() {
         LaunchResponseSchema,
         { method: 'POST' },
       ),
+    onError: toastApiError,
   })
 }
