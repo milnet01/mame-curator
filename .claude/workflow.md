@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | v1.2.0 shipped — FP22 (Launch button gates on RetroArch config) closed 2026-05-08; queue advances to FP20 / FP21 / DS02 (indie-review tiered fold-in) → DS03 (dependency freshness) → P09 polish → P10/P11/P12 post-v1 ladder |
-| **Active item ID** | (none — FP22 closed; FP20 is queued next per user direction "FP20 / FP21 / DS02 indie-review tiered fold-in") |
-| **Active step** | n/a |
+| **Project phase** | v1.2.0 shipped — FP20 (indie-review Tier 1 security + data-loss) underway since 2026-05-11; A/B/C landed (parser hardening, atomic writes, world_lock), D–L still pending |
+| **Active item ID** | FP20 — `/indie-review` Tier 1: security + data-loss (12 sub-bullets A–L, 3 of 12 landed) |
+| **Active step** | 4 — implementation (TDD-driven, per-sub-bullet commits) |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-08 (FP22 closed clean; 458 backend / 246 frontend tests green at coverage 87.00%) |
-| **Next gate** | User-driven order is **FP20 → FP21 → DS02 → DS03 → P09 polish → post-v1**. FP20 (Tier 1 security + data-loss, 12 sub-bullets A–L) is the next item — wide surface across parser / copy / api / frontend, expect a multi-commit fix-pass with per-cluster TDD. FP22-D folds into FP21 § J (typed `RetroArchNotConfiguredError`). |
+| **Last update** | 2026-05-11 (FP20-A `c3ee50c`, FP20-B `6a12a93`, FP20-C `61fbc68`; 464 backend tests green at coverage 87.04%) |
+| **Next gate** | After FP20 closes (A–L all landed + `/audit` + `/indie-review` clean), queue continues **FP21 → DS02 → DS03 → P09 polish → post-v1**. Inside FP20, next sub-bullets in order are **D** (`compose_allowlist` filter to `exists()/is_dir()`) → **E** (`help.py` env-override `.resolve()`) → **F** (`download()` URL scheme allowlist), all backend; then frontend sub-bullets G–L. FP22-D folds into FP21 § J. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,18 +21,54 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-**No active item.** FP22 closed 2026-05-08. Next pickup per
-user direction is **FP20** (indie-review Tier 1) — see the
-**Next gate** row above and `ROADMAP.md § FP20`.
+**FP20 — `/indie-review` Tier 1 fold-in (Step 4 ongoing)**
+
+- ✅ Step 1 — spec (sub-bullets A–L enumerated in `ROADMAP.md § FP20`,
+  sourced from 2026-05-04 indie-review)
+- ✅ Step 2 — plan (per-sub-bullet TDD; one commit per cluster A/B/C,
+  D/E/F next as the remaining backend trio)
+- ✅ Step 3 — tests-first (XXE + Billion Laughs + zip-bomb; atomic
+  `os.write`; `asyncio.Lock` instance — all failing-test scaffolding
+  written before implementation)
+- 🚧 Step 4 — implementation (3 of 12 sub-bullets landed: A `c3ee50c`,
+  B `6a12a93`, C `61fbc68`; D/E/F backend next, then G–L frontend)
+- ⬜ Step 5 — `/audit` (static analysis sweep across the FP20 surface)
+- ⬜ Step 6 — `/indie-review` (closing review of the FP20 fold-in itself)
+- ⬜ Step 7 — fix-pass against Step 5+6 findings (may spawn FP25)
+- ⬜ Step 8 — final five-gate green
+- ⬜ Step 9 — close: tag `FP20-complete`, update CHANGELOG/ROADMAP
+
+### Active item details
+
+**FP20 — Tier 1 security + data-loss fold-in.** 12 sub-bullets
+identified in the 2026-05-04 `/indie-review` across 10 lanes; this
+fix-pass picks up the "ship-this-week" class (spec-mandated locks
+not installed, non-atomic writes, sandbox-escape vectors, silent
+failures). Sub-bullets landed so far:
+
+- **A** parser XXE + zip-bomb (`parser/dat.py`, `parser/listxml.py`)
+- **B** atomic writes (`copy/activity.py`, `copy/recyclebin.py`,
+  `copy/playlist.py`)
+- **C** `app.state.world_lock` install (`api/app.py`,
+  `api/routes/config.py`, `api/routes/fs.py`)
+
+Remaining:
+
+- **D** `compose_allowlist` filter to `exists()/is_dir()`
+  (`api/routes/fs.py`)
+- **E** `help.py` env-override `.resolve()` (`api/routes/help.py`)
+- **F** `download()` URL scheme allowlist (`downloads.py`)
+- **G** `useApiQuery` silent error path (frontend)
+- **H** `GameCard` `aria-label` clobbers accessible name (frontend)
+- **I** `LibraryPage` swallows query errors (frontend)
+- **J** `SnapshotsTab` restore failure no inline surface (frontend)
+- **K** `FsBrowser` Esc-closes-everything bug (frontend)
+- **L** `HelpPage` DOMPurify config hardening (frontend)
 
 (Prior step-progress blocks for FP12 / FP11 / P06 — preserved
 across earlier sessions as audit context — were retired during
 the P15 close. Their commit-level history lives in
 `docs/journal/` and the phase-history table below.)
-
-### Active item details
-
-(none — see status header)
 
 ### Phase history (App-Build mapping)
 
