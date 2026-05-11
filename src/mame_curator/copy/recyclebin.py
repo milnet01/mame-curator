@@ -12,6 +12,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from mame_curator._atomic import atomic_write_text
 from mame_curator.copy.errors import RecycleError
 
 
@@ -52,7 +53,11 @@ def recycle_file(
         "session_id": session_id,
         "original_path": str(path),
     }
-    manifest.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    # FP20-B: atomic_write_text via tmp+rename so a crash mid-write
+    # leaves the prior manifest intact (or no manifest at all) — never
+    # a half-written file. Rule-of-three honoured: copy/playlist.py and
+    # cli/__init__.py already use the same helper.
+    atomic_write_text(manifest, json.dumps(payload, indent=2))
     return target
 
 

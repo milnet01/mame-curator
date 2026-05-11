@@ -97,6 +97,63 @@ def test_read_activity_tolerates_corrupt_line(
     assert {e.session_id for e in events} == {"ok", "ok2"}
 
 
+def test_activity_log_append_uses_single_os_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FP20-B: a single ``append_activity`` call must produce exactly one
+    ``os.write`` syscall, regardless of line size.
+
+    Python's ``BufferedWriter.write`` may split a logical write across
+    multiple syscalls when the buffer fills (default 8 KiB), breaking
+    the spec's POSIX O_APPEND atomicity claim for >4 KiB events. The
+    fix bypasses the buffer with ``os.open(... O_APPEND ...)`` +
+    ``os.write(fd, line_bytes)`` so the kernel sees one atomic
+    record, no matter how large the JSON serialisation grew.
+    """
+    import os as os_mod
+
+    log_path = tmp_path / "activity.jsonl"
+    write_calls: list[tuple[int, int]] = []
+    real_write = os_mod.write
+
+    def tracking_write(fd: int, data: bytes) -> int:
+        write_calls.append((fd, len(data)))
+        return real_write(fd, data)
+
+    monkeypatch.setattr(os_mod, "write", tracking_write)
+
+    # Force a large event by stuffing a long summary string. Default
+    # buffered writer would split this across two os.write calls.
+    big_summary = "x" * 16_384
+    big_event = ActivityEvent(
+        timestamp=datetime(2026, 4, 30, tzinfo=UTC),
+        event_type=ActivityEventType.COPY_STARTED,
+        summary=big_summary,
+        session_id="big",
+        details=CopyStartedDetails(
+            plan_summary=PlanSummary(
+                winners_count=1,
+                bios_count=0,
+                conflict_strategy=ConflictStrategy.APPEND,
+                source_dir=Path("/s"),
+                dest_dir=Path("/d"),
+            ),
+            conflict_strategy=ConflictStrategy.APPEND,
+        ),
+    )
+    append_activity(big_event, log_path=log_path)
+
+    # Filter to writes that targeted *our* fd: tmp_path I/O would also
+    # show up here. The append-path writes the entire JSON in one go,
+    # so at least one of the recorded writes must be ≥ len(serialised).
+    body_size = len(big_event.model_dump_json().encode("utf-8"))
+    matching = [c for c in write_calls if c[1] >= body_size]
+    assert len(matching) == 1, (
+        f"expected exactly one os.write of ≥ {body_size} bytes (atomic "
+        f"line append), got {len(matching)}: {[c[1] for c in write_calls]}"
+    )
+
+
 def test_activity_event_discriminator_round_trip() -> None:
     """Each details type round-trips through serialisation."""
     e = ActivityEvent(

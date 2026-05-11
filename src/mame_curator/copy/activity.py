@@ -1,14 +1,19 @@
 """Activity log: append-only newline-delimited JSON at `data/activity.jsonl`.
 
-Atomic at the per-line level via O_APPEND (POSIX guarantees writes
-≤ PIPE_BUF (4 KiB on Linux) don't interleave). Each line is one
-`ActivityEvent`.
+FP20-B: each append goes through ``os.open(O_WRONLY|O_APPEND|O_CREAT)``
++ a single ``os.write(fd, line_bytes)`` call. POSIX guarantees a single
+``write()`` syscall on an O_APPEND fd is atomic regardless of size on
+local filesystems, so concurrent appenders never interleave. Python's
+``BufferedWriter.write`` may split a logical write across multiple
+syscalls when the buffer fills (8 KiB default), breaking the atomicity
+claim for large events; bypassing the buffer keeps the contract sound.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -25,8 +30,12 @@ def append_activity(
 ) -> None:
     """Append one event line to the activity log; creates parent dir if missing."""
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    with log_path.open("a", encoding="utf-8") as f:
-        f.write(event.model_dump_json() + "\n")
+    line_bytes = (event.model_dump_json() + "\n").encode("utf-8")
+    fd = os.open(log_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+    try:
+        os.write(fd, line_bytes)
+    finally:
+        os.close(fd)
 
 
 def read_activity(
