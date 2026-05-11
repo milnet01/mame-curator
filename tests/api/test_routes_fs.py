@@ -147,3 +147,71 @@ def test_fs_revoke_config_root_rejected(client: Any) -> None:
     assert config_roots, "config-derived roots must be present"
     response = client.delete(f"/api/fs/allowed-roots/{config_roots[0]['id']}")
     assert response.status_code == 400
+
+
+# ---- FP20-D: compose_allowlist drops stale granted_roots --------------------
+
+
+def test_compose_allowlist_drops_nonexistent_granted_roots(
+    config_file: Path, fake_home: Path, tmp_path: Path
+) -> None:
+    """FP20-D: granted_roots pointing at missing paths or non-dirs are dropped.
+
+    Threat: a config persisted to disk preserves ``granted_roots`` across
+    sessions. If the user (or another process) later deletes the
+    underlying directory, the allowlist entry survives ``resolve(strict=
+    False)``. If anything is then created at that name — file, symlink,
+    re-created directory — it is silently inside the sandbox without the
+    user re-granting it. The fix filters the allowlist build to entries
+    that satisfy both ``exists()`` and ``is_dir()`` at composition time.
+    """
+    from mame_curator.api.fs import compose_allowlist
+    from mame_curator.api.schemas import FsConfig
+    from mame_curator.api.state import load_app_config
+
+    existing = tmp_path / "exists"
+    existing.mkdir()
+    not_a_dir = tmp_path / "file.txt"
+    not_a_dir.write_text("hi")
+    nonexistent = tmp_path / "ghost"  # never created
+
+    base = load_app_config(config_file)
+    config = base.model_copy(
+        update={"fs": FsConfig(granted_roots=(existing, not_a_dir, nonexistent))}
+    )
+
+    roots = compose_allowlist(config)
+    granted_paths = {Path(r.path) for r in roots if r.source == "granted"}
+
+    assert existing.resolve() in granted_paths
+    assert not_a_dir.resolve() not in granted_paths
+    assert nonexistent.resolve() not in granted_paths
+
+
+def test_compose_allowlist_logs_info_on_dropped_granted_root(
+    config_file: Path,
+    fake_home: Path,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """FP20-D: dropped granted roots emit an INFO log naming the path.
+
+    The Settings UI surfaces "your granted root <path> is gone" using
+    these log records; without the log there is no audit trail and the
+    user has no signal that their config has drifted out of date.
+    """
+    from mame_curator.api.fs import compose_allowlist
+    from mame_curator.api.schemas import FsConfig
+    from mame_curator.api.state import load_app_config
+
+    nonexistent = tmp_path / "ghost-missing-dir"
+
+    base = load_app_config(config_file)
+    config = base.model_copy(update={"fs": FsConfig(granted_roots=(nonexistent,))})
+
+    with caplog.at_level("INFO", logger="mame_curator.api.fs"):
+        compose_allowlist(config)
+
+    assert any(str(nonexistent) in r.message for r in caplog.records), (
+        f"expected INFO log naming {nonexistent}; got {[r.message for r in caplog.records]}"
+    )

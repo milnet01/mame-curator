@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import logging
 import os
 import string
 from pathlib import Path
@@ -17,6 +18,8 @@ from mame_curator.api.errors import (
     FsSandboxError,
 )
 from mame_curator.api.schemas import AppConfig, FsAllowedRoot
+
+logger = logging.getLogger(__name__)
 
 
 def _hash_root_id(p: Path) -> str:
@@ -54,6 +57,19 @@ def compose_allowlist(config: AppConfig) -> tuple[FsAllowedRoot, ...]:
         try:
             resolved = Path(raw).resolve(strict=False)
         except OSError:
+            continue
+        # FP20-D: drop granted entries whose target is no longer an existing
+        # directory. ``resolve(strict=False)`` is happy with ghosts, but
+        # admitting a ghost means anything later created (file, symlink,
+        # re-made dir) is silently inside the sandbox without an explicit
+        # re-grant. The INFO log gives the Settings UI a signal to surface
+        # "your granted root ``<path>`` is gone" to the user.
+        if not resolved.exists() or not resolved.is_dir():
+            logger.info(
+                "compose_allowlist: dropping stale granted root %s "
+                "(no longer an existing directory)",
+                resolved,
+            )
             continue
         if resolved in config_roots or resolved in granted:
             continue
