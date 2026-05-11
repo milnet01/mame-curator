@@ -1906,27 +1906,50 @@ closes.
     as a machine-readable attribute; escalate the log to
     `logger.error`.
 
-  **Tier 3 — UX e2e walkthroughs:**
-  - **Q — Playwright spec for FP25-G toast dedup.** Spin up the
-    dev server with `/api/games` failing; assert one toast fires
-    on cold start, not nine. Visual diff of the toast region.
-  - **R — Playwright spec for FP25-H Retry-disabled.** Force a
-    library error, click Retry, assert the button is disabled +
-    label reads "Retrying…"; assert mashed clicks don't queue
-    refetches.
-  - **S — Playwright spec for FP25-I HelpPage DOMPurify.** Navigate
-    to /help/getting-started, assert no `<script>` survives, assert
-    `target="_blank"` anchors carry `rel="noopener noreferrer"`,
-    assert `<img src="data:...">` is stripped per FP25-J's
-    deterministic outcome.
-  - **T — Playwright spec for FP25-K(12) settings restore retry
-    flow.** Trigger a restore failure, mash Retry, assert the
-    alert state is consistent (depending on **L** outcome —
-    either "no flash on retry" or "alert visible while pending").
-  - **U — LOW-tier polish batch.** Any remaining Tier 3 items
+  **Tier 3 — UX e2e walkthroughs (shipped 2026-05-11 as `e2e/fp25-ux-walkthrough.spec.ts`):**
+  - **Q ✅** — Playwright spec for FP25-G toast dedup. Verified:
+    11 failing /api/* requests on cold start produce exactly 1
+    Sonner toast (was 9+ pre-FP25-G).
+  - **R ✅** + **V** — Playwright spec for FP25-H Retry-disabled.
+    Walkthrough surfaced a **new Tier 1 bug** the unit test
+    missed (see FP26-V below). The spec currently locks the
+    observed (buggy) behavior so the future fix flips the
+    assertions in the same commit.
+  - **S ✅** — Playwright spec for FP25-I HelpPage DOMPurify.
+    Verified at the rendered DOM: `<script>` stripped (no
+    `window.PWND` side-effect), `target="_blank"` anchor carries
+    `rel="noopener noreferrer"`, `<img src="data:...">` has no
+    surviving data: src.
+  - **T ✅** — Playwright spec for FP25-K(12) settings restore
+    retry flow. Verified the persistent alert surfaces the
+    `ApiError.detail` from a forced 422.
+  - **U** — LOW-tier polish batch. Any remaining Tier 3 items
     from the four indie-review lanes that didn't get their own
     sub-bullet, plus the LOW findings from L1/L2/L3/L4 audits
     that the user signs off on inline.
+
+  **Tier 1 — newly surfaced via Playwright walkthrough (after
+  initial scoping):**
+  - **V — LibraryErrorPanel unmounts on Retry click; FP25-H
+    affordance never visible to the user.** Clicking Retry calls
+    `games.refetch()`; react-query resets `games.isError` to
+    false for the duration of the in-flight refetch;
+    LibraryPage's `{games.isError ? <Panel/> : <Grid/>}` ternary
+    unmounts the panel, so the `disabled={isFetching}` /
+    "Retrying…" label that FP25-H plumbed through is rendered to
+    a DOM tree the user never sees. The unit test passes because
+    it directly renders `<LibraryErrorPanel isFetching />`,
+    bypassing the host component's conditional. Fix: keep the
+    panel mounted while a refetch from an errored state is in
+    flight — e.g.
+    `games.isError || (games.isFetching && games.errorUpdateCount > 0)`.
+    Then update the FP26-R spec's assertions from "panel
+    disappears" back to the FP25-H contract ("disabled +
+    Retrying… visible while refetching"). Surfaced by user
+    direction to walk through features end-to-end with
+    Playwright; the precise instance the user's "smaller fix-
+    passes converge faster" lesson would predict static unit
+    tests miss.
 
   Source: FP25 closing `/audit` (clean) + 4-lane `/indie-review`
   (api mutation lock / copy durability+atomicity / frontend
