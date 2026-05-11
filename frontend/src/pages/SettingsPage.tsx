@@ -77,6 +77,11 @@ interface SettingsPageProps {
   snapshots?: readonly Snapshot[]
   snapshotsLoading?: boolean
   snapshotsError?: string | null
+  /** FP20-J — surfaces a failed restore mutation as a persistent
+      alert above the snapshot list (the toastApiError flash already
+      fires; this is the inline counterpart so the failure stays
+      visible after the toast dismisses). */
+  snapshotRestoreError?: string | null
   /** FP12 § J — Backup tab callbacks. No-op defaults so callers without
       export/import wiring still compile. */
   onBackupExport?: () => void
@@ -93,6 +98,7 @@ export function SettingsPage({
   snapshots = [],
   snapshotsLoading = false,
   snapshotsError = null,
+  snapshotRestoreError = null,
   onBackupExport = () => {},
   onBackupImport = () => {},
   backupError = null,
@@ -385,6 +391,7 @@ export function SettingsPage({
             snapshots={snapshots}
             loading={snapshotsLoading}
             error={snapshotsError}
+            restoreError={snapshotRestoreError}
             onRestore={onSnapshotRestore}
           />
         </TabsContent>

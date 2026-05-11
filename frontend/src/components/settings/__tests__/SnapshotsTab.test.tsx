@@ -90,4 +90,52 @@ describe('SnapshotsTab (FP12 § I)', () => {
     await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
     expect(onRestore).not.toHaveBeenCalled()
   })
+
+  // ---- FP20-J: restoreError surfaces above the snapshot list -------------
+
+  it('renders restoreError as an inline alert above the snapshot list', () => {
+    /**
+     * FP20-J: a restore-mutation failure used to surface only as a
+     * dismissible toast — the confirmation dialog auto-closed and
+     * the user was left looking at an unchanged list with no signal
+     * that anything went wrong. The fix mirrors ``BackupTab.error``:
+     * a persistent ``<p role="alert">`` above the list so the user
+     * can read the failure reason after the toast has gone.
+     */
+    render(
+      <SnapshotsTab
+        snapshots={sample}
+        restoreError="Could not restore snapshot: server returned 500."
+        onRestore={() => {}}
+      />,
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(/could not restore/i)
+    // Critical: the list still renders below the alert. Earlier
+    // load-time ``error`` early-returns and hides the list, but a
+    // restoreError must not — the user needs the list visible to
+    // try a different snapshot.
+    expect(screen.getAllByRole('button', { name: /^Restore/ })).toHaveLength(2)
+  })
+
+  it('does not render an alert when restoreError is null', () => {
+    render(
+      <SnapshotsTab snapshots={sample} restoreError={null} onRestore={() => {}} />,
+    )
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('restoreError still allows opening the restore dialog (user can try another)', async () => {
+    render(
+      <SnapshotsTab
+        snapshots={sample}
+        restoreError="Last restore failed."
+        onRestore={() => {}}
+      />,
+    )
+    const buttons = screen.getAllByRole('button', { name: /^Restore/ })
+    await userEvent.click(buttons[1]!)
+    expect(
+      screen.getByRole('alertdialog', { name: /restore configuration/i }),
+    ).toBeInTheDocument()
+  })
 })

@@ -277,6 +277,18 @@ function SettingsRoute() {
       snapshotsError={
         snapshots.error ? strings.settings.snapshotsLoadError : null
       }
+      // FP20-J: surface the most recent restore failure as a persistent
+      // inline alert. ApiError.detail is preferred over a generic
+      // string so the user sees what specifically rejected (404 vs
+      // 422 vs 500). The toast (FP20-G) still flashes — this is the
+      // post-dismissal surface.
+      snapshotRestoreError={
+        restore.error
+          ? restore.error instanceof ApiError
+            ? restore.error.detail
+            : strings.settings.snapshotRestoreError
+          : null
+      }
       onSnapshotRestore={(id) => restore.mutate(id)}
       onBackupExport={handleExport}
       onBackupImport={handleImport}

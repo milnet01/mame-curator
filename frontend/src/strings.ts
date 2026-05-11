@@ -443,6 +443,8 @@ export const strings = {
     snapshotsTitle: 'Saved snapshots',
     snapshotsLoading: 'Loading snapshots…',
     snapshotsLoadError: 'Could not load snapshots.',
+    /** FP20-J — generic fallback when ``restore.error`` is non-ApiError. */
+    snapshotRestoreError: 'Could not restore that snapshot.',
     snapshotsEmpty: 'No snapshots yet — one is written automatically before each PATCH.',
     snapshotItemFiles: (count: number) =>
       `${count} file${count === 1 ? '' : 's'}`,

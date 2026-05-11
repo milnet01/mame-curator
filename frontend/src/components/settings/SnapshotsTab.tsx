@@ -8,6 +8,12 @@ interface SnapshotsTabProps {
   snapshots: readonly Snapshot[]
   loading?: boolean
   error?: string | null
+  /** FP20-J: persistent alert above the snapshot list when the most
+   * recent restore mutation failed. The dialog auto-closes on
+   * confirm, and the toastApiError flash dismisses — without this
+   * the user has no signal the restore actually failed and the
+   * config didn't change. Mirrors ``BackupTab.error``. */
+  restoreError?: string | null
   onRestore: (id: string) => void
 }
 
@@ -20,6 +26,7 @@ export function SnapshotsTab({
   snapshots,
   loading = false,
   error = null,
+  restoreError = null,
   onRestore,
 }: SnapshotsTabProps) {
   const [pending, setPending] = useState<Snapshot | null>(null)
@@ -49,6 +56,11 @@ export function SnapshotsTab({
   return (
     <div className="flex flex-col gap-2">
       <h2 className="text-sm font-medium">{strings.settings.snapshotsTitle}</h2>
+      {restoreError && (
+        <p role="alert" className="text-sm text-destructive">
+          {restoreError}
+        </p>
+      )}
       <ul className="flex flex-col gap-1">
         {snapshots.map((s) => (
           <li
