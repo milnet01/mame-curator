@@ -322,6 +322,21 @@ function ShellWithPalette() {
         setPaletteOpen((o) => !o)
       },
     },
+    {
+      // FP27 A6b: focus the library search input. `id="filters-search"`
+      // lives on the library FiltersSidebar; the global binding works
+      // even when the user is on a different route (the focus call
+      // no-ops if the element isn't mounted yet).
+      combo: '/',
+      handler: (e) => {
+        const el = document.getElementById('filters-search')
+        if (el instanceof HTMLInputElement) {
+          e.preventDefault()
+          el.focus()
+          el.select()
+        }
+      },
+    },
   ])
 
   // P07 § E: merge bundled help-topic items into the palette so users

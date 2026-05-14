@@ -246,8 +246,6 @@ export const strings = {
     launch: 'Launch in RetroArch',
     launching: 'Launching…',
     launchSuccess: (name: string) => `Launched ${name}.`,
-    launchNotConfigured:
-      'RetroArch not configured. Set paths.retroarch and paths.retroarch_core in config.yaml, then restart the server.',
     /** FP22-B — inline hint under the disabled Launch button. Split into
      *  prefix / link-label / suffix so the link in the middle is a real
      *  <Link> component and screen readers announce a normal sentence. */
@@ -519,9 +517,8 @@ export const strings = {
     progressLine: (done: number, total: number, currentFile: string) =>
       `${done.toLocaleString()} / ${total.toLocaleString()} — ${currentFile}`,
     conflictTitle: 'Existing playlist detected',
-    conflictKeepExisting: 'Keep existing',
-    conflictReplace: 'Replace',
-    conflictReplaceAndRecycle: 'Replace and recycle old',
+    conflictReadOnlyBanner:
+      'Restart the copy with updated append_decisions to change the conflict strategy.',
     sessionState: {
       running: 'Copying',
       paused: 'Paused',
@@ -529,7 +526,6 @@ export const strings = {
       finished: 'Finished',
       aborted: 'Cancelled',
     },
-    historyEmpty: 'No copy history yet.',
     /** Modal-close affordance shown in terminal states. */
     done: 'Done',
   },
@@ -545,8 +541,9 @@ export const strings = {
   cmdK: {
     placeholder: 'Type a command, game, or setting…',
     sections: {
-      games: 'Games',
-      settings: 'Settings',
+      // FP27 A5: dropped 'games' + 'settings'. Zero production
+      // producers ever populated those sections; only test fixtures
+      // did. See docs/specs/FP27.md § A5.
       actions: 'Actions',
       help: 'Help topics',
     },
@@ -558,7 +555,6 @@ export const strings = {
     clearMediaCache: (entries: number) => `Clear ${entries} cached image${entries === 1 ? '' : 's'}`,
     deleteSession: (name: string) => `Delete session "${name}"`,
     revokeRoot: (path: string) => `Revoke filesystem access to ${path}`,
-    resetConfig: 'Reset configuration to defaults',
   },
 
   errors: {

@@ -433,7 +433,6 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
           onPause={copySession.pause}
           onResume={copySession.resume}
           onAbort={copySession.abort}
-          onResolveConflict={copySession.resolveConflict}
         />
       )}
 

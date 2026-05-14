@@ -26,7 +26,6 @@ describe('CopyModal', () => {
         onPause={() => {}}
         onResume={() => {}}
         onAbort={() => {}}
-        onResolveConflict={() => {}}
       />,
     )
     expect(screen.getByText(/1 \/ 3/)).toBeInTheDocument()
@@ -44,7 +43,6 @@ describe('CopyModal', () => {
         onPause={onPause}
         onResume={onResume}
         onAbort={() => {}}
-        onResolveConflict={() => {}}
       />,
     )
     await userEvent.click(screen.getByRole('button', { name: /pause/i }))
@@ -58,7 +56,6 @@ describe('CopyModal', () => {
         onPause={onPause}
         onResume={onResume}
         onAbort={() => {}}
-        onResolveConflict={() => {}}
       />,
     )
     await userEvent.click(screen.getByRole('button', { name: /resume/i }))
@@ -75,7 +72,6 @@ describe('CopyModal', () => {
         onPause={() => {}}
         onResume={() => {}}
         onAbort={onAbort}
-        onResolveConflict={() => {}}
       />,
     )
     await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
@@ -99,7 +95,6 @@ describe('CopyModal', () => {
         onPause={() => {}}
         onResume={() => {}}
         onAbort={onAbort}
-        onResolveConflict={() => {}}
       />,
     )
     await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
@@ -119,7 +114,6 @@ describe('CopyModal', () => {
         onPause={() => {}}
         onResume={() => {}}
         onAbort={onAbort}
-        onResolveConflict={() => {}}
       />,
     )
     await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
@@ -139,7 +133,6 @@ describe('CopyModal', () => {
         onPause={() => {}}
         onResume={() => {}}
         onAbort={() => {}}
-        onResolveConflict={() => {}}
       />,
     )
     const done = screen.getByRole('button', { name: /^done$/i })
@@ -157,13 +150,17 @@ describe('CopyModal', () => {
         onPause={() => {}}
         onResume={() => {}}
         onAbort={() => {}}
-        onResolveConflict={() => {}}
       />,
     )
     expect(screen.getByRole('button', { name: /^done$/i })).toBeInTheDocument()
   })
 
-  it('renders the conflict prompt when the state carries one', () => {
+  it('renders the conflict prompt as a read-only banner (FP27 A4)', () => {
+    // The prior three Keep/Replace/Replace-and-recycle buttons were
+    // removed because there is no /api/copy/resolve-conflict endpoint
+    // — they silently dropped the user's choice. The banner now
+    // points at the only real resolution path: abort + restart with
+    // an updated append_decisions payload.
     render(
       <CopyModal
         open
@@ -179,16 +176,17 @@ describe('CopyModal', () => {
         onPause={() => {}}
         onResume={() => {}}
         onAbort={() => {}}
-        onResolveConflict={() => {}}
       />,
     )
+    expect(screen.getByText(/Existing playlist detected/i)).toBeInTheDocument()
     expect(
-      screen.getByText(/Existing playlist detected/i),
+      screen.getByText(/Restart the copy with updated append_decisions/i),
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /keep existing/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^replace$/i })).toBeInTheDocument()
+    // The prior three buttons are gone.
+    expect(screen.queryByRole('button', { name: /keep existing/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^replace$/i })).toBeNull()
     expect(
-      screen.getByRole('button', { name: /replace and recycle/i }),
-    ).toBeInTheDocument()
+      screen.queryByRole('button', { name: /replace and recycle/i }),
+    ).toBeNull()
   })
 })

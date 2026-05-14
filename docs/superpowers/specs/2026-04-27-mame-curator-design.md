@@ -589,17 +589,18 @@ This applies to: overwrite playlist, replace-and-delete-old version, clear media
 
 ### Keyboard shortcuts
 
-Built-in, listed in Help, partially shown as tooltips:
+Built-in, listed in Help, partially shown as tooltips. **Note:** the
+2026-05-14 indie-review found that most of the chord-style shortcuts
+(`?`, `g …`, `j`/`k`, `o`/`Enter`, `a`, `n`) had been advertised in
+the design spec but never wired into the frontend. FP27 (A6) trimmed
+the list to the three that are actually delivered today. A follow-up
+P14-class feature pass will redesign the chord cohort with a fresh
+focused-card / drawer-coordination model.
 
-- `⌘K` / `Ctrl-K` — global palette (search games, settings, actions, help)
+- `⌘K` / `Ctrl-K` — global palette (search actions, help)
 - `/` — focus the library search box
-- `?` — show all keyboard shortcuts
-- `g` then `l` / `s` / `a` / `t` / `g` / `h` — go to Library / Settings / Activity / Stats / seSsions / Help (Vim-style chord)
-- `j` / `k` — next / previous card in grid
-- `o` or `Enter` — open detail drawer for focused card
-- `a` — open alternatives drawer for focused card
-- `n` — edit notes for focused card
-- `Esc` — close drawer / dialog
+- `Esc` — close drawer / dialog (provided ambiently by Radix
+  `<Dialog>` / `<AlertDialog>` primitives)
 
 ## 9. Error handling
 

@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { strings } from '@/strings'
-import type { JobState, AppendDecisionKind } from '@/api/types'
+import type { JobState } from '@/api/types'
 
 export interface CopyModalConflict {
   short_name: string
@@ -36,7 +36,6 @@ interface CopyModalProps {
   onPause: () => void
   onResume: () => void
   onAbort: (req: { recycle_partial: boolean }) => void
-  onResolveConflict: (req: { kind: AppendDecisionKind; replaces: string }) => void
 }
 
 export function CopyModal({
@@ -46,16 +45,10 @@ export function CopyModal({
   onPause,
   onResume,
   onAbort,
-  onResolveConflict,
 }: CopyModalProps) {
   const [abortOpen, setAbortOpen] = useState(false)
 
   const pct = state.filesTotal === 0 ? 0 : (state.filesDone / state.filesTotal) * 100
-
-  const handleResolve = (kind: AppendDecisionKind) => {
-    if (!state.conflict) return
-    onResolveConflict({ kind, replaces: state.conflict.existing })
-  }
 
   return (
     <>
@@ -90,6 +83,14 @@ export function CopyModal({
           )}
 
           {state.conflict && (
+            // FP27 A4: read-only banner replaces the prior three
+            // interactive buttons (Keep/Replace/Replace-and-Recycle).
+            // There is no /api/copy/resolve-conflict endpoint; the
+            // buttons silently dropped the user's choice. The banner
+            // now states the only real path forward: restart the copy
+            // with an updated append_decisions payload. A real
+            // backend endpoint is post-v1 work (see docs/specs/FP27.md
+            // § A4 + "Deliberately not in scope").
             <div
               role="region"
               aria-label={strings.copy.conflictRegionAriaLabel}
@@ -101,25 +102,9 @@ export function CopyModal({
               <p className="text-xs">
                 {state.conflict.short_name} would replace {state.conflict.existing}.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleResolve('KEEP_EXISTING')}
-                >
-                  {strings.copy.conflictKeepExisting}
-                </Button>
-                <Button size="sm" onClick={() => handleResolve('REPLACE')}>
-                  {strings.copy.conflictReplace}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => handleResolve('REPLACE_AND_RECYCLE')}
-                >
-                  {strings.copy.conflictReplaceAndRecycle}
-                </Button>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                {strings.copy.conflictReadOnlyBanner}
+              </p>
             </div>
           )}
 

@@ -318,3 +318,36 @@ describe('useCopySession', () => {
     }
   })
 })
+
+// ---------------------------------------------------------------------------
+// FP27 A4 — useCopySession.resolveConflict removed
+//
+// At HEAD the hook exports a `resolveConflict(req)` callback that logs a
+// console.warn and locally clears the conflict state — there is no
+// /api/copy/resolve-conflict endpoint, so the user's choice is dropped on
+// the floor. The wired UI buttons (keep/replace/skip in LibraryPage) thus
+// appear interactive but actually do nothing. A4 removes the callback;
+// the conflict prompt becomes a read-only banner.
+//
+// Pre-fix: hook returns an object with `resolveConflict: Function`.
+// Post-fix: hook's returned object has no `resolveConflict` key.
+// ---------------------------------------------------------------------------
+
+describe('FP27 A4 — useCopySession.resolveConflict removed', () => {
+  beforeEach(() => {
+    MockEventSource.instances = []
+    ;(globalThis as unknown as { EventSource: typeof MockEventSource }).EventSource =
+      MockEventSource
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('hook return value has no resolveConflict key', () => {
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    })
+    expect(result.current).not.toHaveProperty('resolveConflict')
+  })
+})

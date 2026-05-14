@@ -51,3 +51,21 @@ test('More menu reveals secondary routes (Sessions / Activity / Stats)', async (
   await page.getByRole('menuitem', { name: 'Stats' }).click()
   await expect(page).toHaveURL(/\/stats$/)
 })
+
+test('FP27 A6b — `/` focuses the library search input', async ({ page }) => {
+  // Pre-fix: no useKeyboard binding for `/`; dispatching `/` types the
+  // literal character into whatever has focus (or does nothing).
+  // Post-fix: a useKeyboard binding at the LibraryPage level focuses
+  // `#filters-search` regardless of which element had focus before.
+  await page.goto('/')
+
+  // Make sure nothing relevant has focus going in. Click the body so the
+  // dispatch isn't already aimed at an input.
+  await page.locator('body').click()
+  await page.keyboard.press('/')
+
+  // Allow the focus handler to settle (useKeyboard binds via
+  // document.addEventListener('keydown'), the handler then synchronously
+  // calls .focus() — single tick).
+  await expect(page.locator('#filters-search')).toBeFocused()
+})

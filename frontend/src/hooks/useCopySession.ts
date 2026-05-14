@@ -4,7 +4,6 @@ import { apiRequest } from '@/api/client'
 import {
   JobAcceptedSchema,
   JobStatusSchema,
-  type AppendDecisionKind,
   type CopyJobRequest,
   type JobAccepted,
   type JobStatus,
@@ -25,10 +24,11 @@ interface JobEventMsg {
  * Event shape mirrors src/mame_curator/api/schemas.py JobEvent:
  *   { event: <literal>, payload: dict, ts: ISO8601 }
  *
- * NB: there is no /api/copy/resolve-conflict endpoint. Mid-flight
- * conflicts are reported via the modal's `state.conflict` field;
- * resolveConflict() clears the prompt locally. The only resolution
- * path is abort + restart with updated CopyJobRequest.append_decisions.
+ * FP27 A4: there is no /api/copy/resolve-conflict endpoint. Mid-flight
+ * conflicts surface via the modal's `state.conflict` field as a read-
+ * only banner; the only resolution path is abort + restart with an
+ * updated CopyJobRequest.append_decisions. The prior `resolveConflict`
+ * callback (silently dropped the user's choice) was removed.
  *
  * SSE source torn down on terminal state, reset(), or unmount.
  */
@@ -167,22 +167,6 @@ export function useCopySession() {
       }),
   })
 
-  // FP24-L: there is no /api/copy/resolve-conflict endpoint, so the
-  // user's choice is discarded — we just clear the prompt locally.
-  // The only way to pick a different conflict strategy is to abort
-  // and restart with updated CopyJobRequest.append_decisions. Log
-  // the discard so debugging surfaces a misuse.
-  const resolveConflict = useCallback(
-    (req: { kind: AppendDecisionKind; replaces: string }) => {
-      console.warn(
-        'useCopySession.resolveConflict: no backend endpoint, discarding decision',
-        req,
-      )
-      setState((prev) => (prev ? { ...prev, conflict: null } : prev))
-    },
-    [],
-  )
-
   const reset = useCallback(() => {
     closeStream()
     setState(null)
@@ -194,7 +178,6 @@ export function useCopySession() {
     pause: pauseMutation.mutate,
     resume: resumeMutation.mutate,
     abort: abortMutation.mutate,
-    resolveConflict,
     reset,
   }
 }

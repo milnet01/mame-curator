@@ -9,7 +9,10 @@ import {
 } from '@/components/ui/command'
 import { strings } from '@/strings'
 
-export type CmdKSection = 'games' | 'settings' | 'actions' | 'help'
+// FP27 A5: dropped 'games' and 'settings'. Zero production producers
+// ever populated those sections; only test fixtures did. Re-adding
+// them is a one-line per call-site change. See docs/specs/FP27.md § A5.
+export type CmdKSection = 'actions' | 'help'
 
 export interface CmdKItem {
   id: string
@@ -27,7 +30,8 @@ interface CmdKPaletteProps {
   onSelect: (value: string, item: CmdKItem) => void
 }
 
-const SECTION_ORDER: CmdKSection[] = ['games', 'settings', 'actions', 'help']
+// eslint-disable-next-line react-refresh/only-export-components -- SECTION_ORDER is the post-FP27 contract surface; A5 test imports it
+export const SECTION_ORDER: CmdKSection[] = ['actions', 'help']
 
 export function CmdKPalette({
   open,
@@ -41,8 +45,6 @@ export function CmdKPalette({
   // stable across renders.
   const grouped = useMemo(() => {
     const out: Record<CmdKSection, CmdKItem[]> = {
-      games: [],
-      settings: [],
       actions: [],
       help: [],
     }
