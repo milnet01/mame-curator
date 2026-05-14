@@ -15,7 +15,14 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from mame_curator._atomic import atomic_write_text
-from mame_curator.copy.errors import RecycleError
+from mame_curator.copy.activity import append_activity
+from mame_curator.copy.errors import ActivityLogError, RecycleError
+from mame_curator.copy.types import (
+    ActivityEvent,
+    ActivityEventType,
+    FileRecycledDetails,
+    RecyclePurgedDetails,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +104,25 @@ def recycle_file(
             with contextlib.suppress(OSError):
                 target_dir.rmdir()
         raise RecycleError(f"failed to move to recycle: {exc}", path=path) from exc
+
+    # FP27 A3: append a FILE_RECYCLED activity event so the Activity UI
+    # tab can show the audit trail promised at copy/spec.md:266. Activity
+    # log lives at `<recycle_root>.parent / "activity.jsonl"` — under the
+    # default `data/recycle/`, that's `data/activity.jsonl` (matches the
+    # canonical path append_activity defaults to). Append failures log
+    # but don't roll back the recycle: the FS state is the primary
+    # contract; missing audit-trail bytes are a soft failure.
+    event = ActivityEvent(
+        timestamp=now,
+        event_type=ActivityEventType.FILE_RECYCLED,
+        summary=f"recycled {path.name}",
+        session_id=session_id,
+        details=FileRecycledDetails(path=str(path), reason=reason),
+    )
+    try:
+        append_activity(event, log_path=recycle_root.parent / "activity.jsonl")
+    except ActivityLogError:
+        logger.exception("recycle_file: failed to append FILE_RECYCLED event")
     return target
 
 
@@ -190,4 +216,21 @@ def purge_recycle(
             continue
         bytes_freed += sub_bytes
         dirs_purged += 1
+
+    # FP27 A3: append a RECYCLE_PURGED activity event so the Activity UI
+    # tab can report retention-policy actions. Uses the sentinel
+    # session_id `_purge` (system-scoped action; not bound to any copy
+    # session). Append failures log but don't disturb the return value.
+    if dirs_purged > 0 or bytes_freed > 0:
+        event = ActivityEvent(
+            timestamp=datetime.now(UTC),
+            event_type=ActivityEventType.RECYCLE_PURGED,
+            summary=f"purged {dirs_purged} recycle dirs ({bytes_freed} bytes)",
+            session_id="_purge",
+            details=RecyclePurgedDetails(dirs_purged=dirs_purged, bytes_freed=bytes_freed),
+        )
+        try:
+            append_activity(event, log_path=recycle_root.parent / "activity.jsonl")
+        except ActivityLogError:
+            logger.exception("purge_recycle: failed to append RECYCLE_PURGED event")
     return (dirs_purged, bytes_freed)

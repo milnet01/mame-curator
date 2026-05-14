@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -222,11 +222,6 @@ def test_fp21_f_purge_uses_manifest_recycled_at_over_dir_mtime(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    reason="FP27 T1b — A3 implementation not yet landed; this test stays "
-    "RED until copy/recyclebin.py wires append_activity.",
-    strict=True,
-)
 def test_recycle_file_appends_file_recycled_activity_event(tmp_path: Path) -> None:
     """FP27 A3 — `recycle_file(...)` appends one `FILE_RECYCLED` event
     line to the per-data-dir activity log.
@@ -273,11 +268,6 @@ def test_recycle_file_appends_file_recycled_activity_event(tmp_path: Path) -> No
     assert event.details.reason == "REPLACE_AND_RECYCLE"
 
 
-@pytest.mark.xfail(
-    reason="FP27 T1b — A3 implementation not yet landed; this test stays "
-    "RED until copy/recyclebin.py wires append_activity.",
-    strict=True,
-)
 def test_purge_recycle_appends_recycle_purged_activity_event(tmp_path: Path) -> None:
     """FP27 A3 — `purge_recycle(...)` appends one `RECYCLE_PURGED`
     event line to the per-data-dir activity log.
@@ -287,7 +277,7 @@ def test_purge_recycle_appends_recycle_purged_activity_event(tmp_path: Path) -> 
     scoped operation; the sentinel signals 'system action' to the
     Activity UI).
     """
-    import os as _os
+    import json as _json
 
     data_dir = tmp_path / "data"
     recycle_root = data_dir / "recycle"
@@ -300,10 +290,13 @@ def test_purge_recycle_appends_recycle_purged_activity_event(tmp_path: Path) -> 
         src, reason="REPLACE_AND_RECYCLE", session_id="01OLD", recycle_root=recycle_root
     )
     target_dir = new_path.parent
-    old_time = time.time() - 40 * 86400
-    for child in target_dir.rglob("*"):
-        _os.utime(child, (old_time, old_time))
-    _os.utime(target_dir, (old_time, old_time))
+    # FP21-F: purge eligibility reads manifest['recycled_at'] (JSON
+    # content), not dir mtime. Rewrite the manifest with an old
+    # recycled_at so the dir qualifies.
+    manifest_path = target_dir / f"{src.name}.manifest.json"
+    payload = _json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["recycled_at"] = (datetime.now(UTC) - timedelta(days=40)).isoformat()
+    manifest_path.write_text(_json.dumps(payload), encoding="utf-8")
 
     # Truncate the log so the recycle_file event from setup doesn't
     # pollute the purge assertion (the recycle wrote one FILE_RECYCLED
