@@ -19,6 +19,7 @@ import yaml
 from rich.console import Console
 from rich.prompt import Prompt
 
+from mame_curator import __version__
 from mame_curator._atomic import atomic_write_text
 from mame_curator.copy import (
     ConflictStrategy,
@@ -63,6 +64,12 @@ def build_parser() -> argparse.ArgumentParser:
     `args.func(args)` instead of an if/elif chain.
     """
     parser = argparse.ArgumentParser(prog="mame-curator", description=__doc__)
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"mame-curator {__version__}",
+        help="show version and exit",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="enable DEBUG-level logging")
     sub = parser.add_subparsers(dest="command", required=True)
 

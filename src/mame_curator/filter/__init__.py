@@ -5,7 +5,6 @@ Public API surface — see spec.md for the full contract.
 
 from mame_curator.filter.config import FilterConfig
 from mame_curator.filter.errors import (
-    ConfigError,
     FilterError,
     OverridesError,
     SessionsError,
@@ -24,7 +23,6 @@ from mame_curator.filter.types import (
 )
 
 __all__ = [
-    "ConfigError",
     "ContestedGroup",
     "DroppedReason",
     "FilterConfig",

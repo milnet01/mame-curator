@@ -12,11 +12,17 @@ from mame_curator.parser.ini import (
     parse_mature,
     parse_series,
 )
-from mame_curator.parser.listxml import parse_listxml_cloneof, parse_listxml_disks
+from mame_curator.parser.listxml import (
+    BIOSChainEntry,
+    parse_listxml_bios_chain,
+    parse_listxml_cloneof,
+    parse_listxml_disks,
+)
 from mame_curator.parser.manufacturer import split_manufacturer
 from mame_curator.parser.models import BiosSet, DriverStatus, Machine, Rom
 
 __all__ = [
+    "BIOSChainEntry",
     "BiosSet",
     "DATError",
     "DriverStatus",
@@ -29,6 +35,7 @@ __all__ = [
     "parse_catver",
     "parse_dat",
     "parse_languages",
+    "parse_listxml_bios_chain",
     "parse_listxml_cloneof",
     "parse_listxml_disks",
     "parse_mature",

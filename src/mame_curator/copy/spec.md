@@ -424,17 +424,20 @@ A `CopyPlan` is constructed by the CLI from parsed config + a `FilterResult`, or
 
 `CopyError(Exception)` base. Subclasses:
 
-- `PreflightError` — destination not writable, free-space shortfall, source dir missing entirely.
 - `PlaylistError` — `append_decisions` missing for a conflicting winner; existing playlist file is corrupt JSON; write failure.
 - `RecycleError` — recycle move failed (filesystem readonly, permission denied), or the manifest write failed and the rollback was attempted (FP25-C).
 - `CopyExecutionError` — wrapped `OSError` from `copy_one` that escaped retry (currently no retry; surfaces directly).
 - `ActivityLogError` — `os.open` / `os.write` / parent-`mkdir` failure inside `append_activity` (FP25-B + FP26-B). Wraps the originating `OSError` via `__cause__`.
 
+(`PreflightError` retired in FP27 — never `raise`-d in `src/`; the
+deferred preflight-check feature will raise a fresh typed error when
+it lands post-v1.)
+
 Per `coding-standards.md` § 9 and `cli/spec.md` "Errors the CLI catches but never raises", every `CopyError` carries:
 
 - The originating short-name and/or path.
 - The cause sentence.
-- A user-actionable next-step pointer when one exists (e.g. `PreflightError` includes free-space shortfall).
+- A user-actionable next-step pointer when one exists.
 
 The CLI catches `CopyError` at the boundary and exits 1 with `error: ...` to stderr. It NEVER lets a Python traceback reach the user.
 

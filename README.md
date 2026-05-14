@@ -111,7 +111,6 @@ api/       ← all of the above                 (P04)
 media/     ← parser/                          (P05)
 frontend/  ← React 19 + Tailwind v4 + shadcn  (P06)
 updates/   ← parser/ + downloads.py           (P07)
-help/      ← filesystem only (bundled MD)     (P07)
 main.py    ← wires everything together
 ```
 

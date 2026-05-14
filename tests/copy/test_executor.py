@@ -160,3 +160,124 @@ def test_copy_one_exdev_raises_typed_error(
 
     with pytest.raises(CopyExecutionError):
         copy_one(src, dst, short_name="kof94", role="winner")
+
+
+# ---------------------------------------------------------------------------
+# FP27 B1 — copy_one fsync gap
+#
+# `copy_one` writes via two paths: `_chunked_copy` (when progress is set)
+# and `shutil.copy2` (when progress is None). At HEAD, neither path calls
+# `os.fsync(fout.fileno())` before `os.replace(tmp, dst)`. A power cut
+# inside the kernel writeback window (~30s) after the replace can leave
+# `dst` zero-byte or truncated on reboot.
+#
+# Fix shape:
+#   1. `_chunked_copy` ends with `fout.flush(); os.fsync(fout.fileno())`
+#      inside the `with` block.
+#   2. The `shutil.copy2` branch in `copy_one` is replaced with the
+#      chunked path unconditionally (eliminates the unprotected branch).
+#   3. `fsync_parent_dir(dst)` is called after `os.replace`.
+#
+# Pre-fix: no `os.fsync` call happens — the spy counter stays at 0.
+# Post-fix: both write paths fsync (counter ≥ 1 in both invocations).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.xfail(
+    reason="FP27 T2 — B1 implementation not yet landed; this test stays "
+    "RED until copy/executor.py adds os.fsync before os.replace.",
+    strict=True,
+)
+def test_copy_one_fsyncs_tmp_before_replace_chunked_path(
+    source_dir: Path,
+    dest_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`copy_one` with `progress=callback` (chunked path) must call
+    `os.fsync` on the tmp fd before `os.replace`.
+    """
+    import os
+
+    fsync_count = 0
+    replace_count = 0
+    fsync_count_at_first_replace: int | None = None
+
+    real_fsync = os.fsync
+    real_replace = os.replace
+
+    def _spy_fsync(fd: int) -> None:
+        nonlocal fsync_count
+        fsync_count += 1
+        real_fsync(fd)
+
+    def _spy_replace(src: object, dst: object, **kwargs: object) -> None:
+        nonlocal replace_count, fsync_count_at_first_replace
+        if fsync_count_at_first_replace is None:
+            fsync_count_at_first_replace = fsync_count
+        replace_count += 1
+        real_replace(src, dst, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr("os.fsync", _spy_fsync)
+    monkeypatch.setattr("os.replace", _spy_replace)
+
+    src = source_dir / "kof94.zip"
+    dst = dest_dir / "kof94.zip"
+    copy_one(
+        src,
+        dst,
+        short_name="kof94",
+        role="winner",
+        progress=lambda _d, _t: None,
+    )
+
+    assert replace_count >= 1, "os.replace must have been called"
+    assert fsync_count_at_first_replace is not None and fsync_count_at_first_replace >= 1, (
+        "FP27 B1 — `copy_one` (chunked path) must call os.fsync on the "
+        "tmp fd at least once before os.replace; see `docs/specs/FP27.md` § B1."
+    )
+
+
+@pytest.mark.xfail(
+    reason="FP27 T2 — B1 implementation not yet landed; this test stays "
+    "RED until copy_one funnels both write paths through _chunked_copy.",
+    strict=True,
+)
+def test_copy_one_fsyncs_tmp_before_replace_no_progress_path(
+    source_dir: Path,
+    dest_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`copy_one` with `progress=None` (post-fix: funneled through
+    `_chunked_copy` unconditionally) must also fsync.
+    """
+    import os
+
+    fsync_count = 0
+    fsync_count_at_first_replace: int | None = None
+
+    real_fsync = os.fsync
+    real_replace = os.replace
+
+    def _spy_fsync(fd: int) -> None:
+        nonlocal fsync_count
+        fsync_count += 1
+        real_fsync(fd)
+
+    def _spy_replace(src: object, dst: object, **kwargs: object) -> None:
+        nonlocal fsync_count_at_first_replace
+        if fsync_count_at_first_replace is None:
+            fsync_count_at_first_replace = fsync_count
+        real_replace(src, dst, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr("os.fsync", _spy_fsync)
+    monkeypatch.setattr("os.replace", _spy_replace)
+
+    src = source_dir / "kof94.zip"
+    dst = dest_dir / "kof94.zip"
+    copy_one(src, dst, short_name="kof94", role="winner")  # progress=None
+
+    assert fsync_count_at_first_replace is not None and fsync_count_at_first_replace >= 1, (
+        "FP27 B1 — `copy_one` (no-progress branch) must also call os.fsync "
+        "before os.replace post-fix (both branches funnel through "
+        "_chunked_copy); see `docs/specs/FP27.md` § B1."
+    )

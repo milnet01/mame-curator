@@ -220,3 +220,98 @@ async def test_download_rejects_bad_scheme_in_mirrors(tmp_path: Path) -> None:
         with pytest.raises(InvalidUrlError):
             await download(url=primary, dest=dest, client=client, mirrors=[bad_mirror])
     assert not dest.exists()
+
+
+# ---------------------------------------------------------------------------
+# FP27 B3 — download() chunk-list buffering
+#
+# `downloads.py:135-148` accumulates streamed chunks into a
+# `chunks: list[bytes]` then joins via `body = b"".join(chunks)` and
+# writes via `atomic_write_bytes(dest, body)`. Peak RAM at the join
+# call is ~2× the body size (chunks list still alive while the joined
+# buffer is built). For a 50 MB DAT, that's ~100 MB resident.
+#
+# Fix: stream each `aiter_bytes` chunk straight to a `.tmp` sibling of
+# `dest`, hashing incrementally; on success fsync + os.replace +
+# fsync_parent_dir; on sha256 mismatch or size-cap abort, close + unlink
+# the .tmp. No new parameter — preserves the existing `dest: Path` API.
+#
+# Pre-fix: large body causes tracemalloc peak > body_size/4 → fails.
+# Post-fix: peak stays under body_size/4.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.xfail(
+    reason="FP27 T2 — B3 implementation not yet landed; this test stays "
+    "RED until download() streams chunks straight to .tmp.",
+    strict=True,
+)
+async def test_download_streams_chunks_to_tmp_not_buffer(tmp_path: Path) -> None:
+    """A 10 MB body must NOT spike RAM peak above body_size/4 (≈2.5 MB)
+    plus httpx async-machinery overhead. Threshold is loose enough to
+    absorb the async noise without being so tight it flakes; tight
+    enough to fail the chunk-list buffering pre-fix shape (which lifts
+    peak to ~20 MB).
+    """
+    import tracemalloc
+
+    body = b"x" * (10 * 1024 * 1024)  # 10 MB
+    url = "https://example.com/big.dat"
+    dest = tmp_path / "big.dat"
+    body_sha = hashlib.sha256(body).hexdigest()
+
+    tracemalloc.start()
+    try:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(url).mock(return_value=httpx.Response(200, content=body))
+            async with httpx.AsyncClient() as client:
+                result = await download(url=url, dest=dest, client=client, sha256=body_sha)
+        # tracemalloc snapshots include all Python allocations during
+        # the await — chunk-list pre-fix would accumulate 10 MB here.
+        _current, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+
+    assert result == dest
+    assert dest.read_bytes() == body
+
+    # Post-fix: peak should be well under body_size/4 = 2.5 MB.
+    # 5 MB upper bound leaves headroom for httpx + respx + asyncio.
+    upper = 5 * 1024 * 1024
+    assert peak < upper, (
+        f"FP27 B3 — download must stream to disk, not buffer; "
+        f"tracemalloc peak {peak} ≥ {upper} suggests chunk-list "
+        f"buffering still present. See `docs/specs/FP27.md` § B3."
+    )
+
+
+@pytest.mark.asyncio
+async def test_download_sha256_mismatch_unlinks_tmp(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A sha256 mismatch during incremental verification must close +
+    unlink the `.tmp` sibling before falling through to the next mirror
+    (no orphan `.tmp` left on disk).
+    """
+    body = b"the served bytes"
+    expected_sha = "0" * 64  # deliberately wrong
+    url = "https://example.com/file.ini"
+    dest = tmp_path / "file.ini"
+
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(url).mock(return_value=httpx.Response(200, content=body))
+        async with httpx.AsyncClient() as client:
+            result = await download(url=url, dest=dest, client=client, sha256=expected_sha)
+
+    # Mismatch → ManualFallback returned (existing contract).
+    assert isinstance(result, ManualFallback)
+    # Dest must be absent (no half-written content survived).
+    assert not dest.exists(), "FP27 B3 — sha256 mismatch must leave no live file at dest."
+    # No orphan `.tmp` sibling left behind.
+    tmp_siblings = list(tmp_path.glob("file.ini*"))
+    assert tmp_siblings == [], (
+        f"FP27 B3 — sha256 mismatch must close and unlink the .tmp; "
+        f"orphans: {tmp_siblings!r}. See `docs/specs/FP27.md` § B3."
+    )

@@ -7,10 +7,6 @@ class FilterError(Exception):
     """Base for all filter-related errors."""
 
 
-class ConfigError(FilterError):
-    """Invalid FilterConfig values."""
-
-
 class OverridesError(FilterError):
     """Malformed overrides.yaml."""
 

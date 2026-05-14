@@ -248,3 +248,114 @@ async def test_fetch_with_cache_creates_cache_dir_on_demand(tmp_path: Path) -> N
     assert path is not None
     assert cache_dir.exists()
     assert path.parent == cache_dir
+
+
+# ---------------------------------------------------------------------------
+# FP27 B4 — fetch_with_cache size cap + scheme check + streaming
+#
+# `media/cache.py:43-79` calls `client.get(url)` (buffered full body)
+# and writes via `atomic_write_bytes(path, resp.content)`. Three gaps:
+#   (a) no max-bytes cap — a malicious or misconfigured upstream can
+#       OOM the server.
+#   (b) no scheme check — `file:///etc/passwd` would be processed by
+#       httpx and leak FS-path semantics. (`downloads.py` already has
+#       `_ALLOWED_URL_SCHEMES`; `media/cache.py` does not.)
+#   (c) full-RAM resident even though the eventual sink is on-disk.
+#
+# Fix: add `max_bytes` parameter (default 16 MiB); add scheme check;
+# stream via `client.stream("GET", url)` + `aiter_bytes(64*1024)` to
+# `.tmp` sibling; raise `MediaFetchError` with `"BodyTooLarge: ..."` on
+# overflow.
+#
+# Pre-fix: no scheme check (httpx would attempt the request) → fails.
+# Post-fix: scheme check raises MediaFetchError before any network call.
+# ---------------------------------------------------------------------------
+
+
+from mame_curator.media.cache import (  # noqa: E402  # FP27 T2 B4: tests sit after the existing module's tests for narrative grouping.
+    MediaFetchError,
+    fetch_with_cache,
+)
+
+
+@pytest.mark.asyncio
+async def test_fetch_with_cache_rejects_file_scheme(tmp_path: Path) -> None:
+    """A `file://` URL must raise `MediaFetchError` before any network
+    call — no FS-path leak via httpx.
+
+    Pre-fix: `client.get("file:///etc/passwd")` would be attempted →
+    test fails (likely with an httpx error or unintended FS read).
+    Post-fix: scheme check at the top of `fetch_with_cache` raises
+    `MediaFetchError(f"unsupported scheme: 'file'")` before any I/O.
+    """
+    cache_dir = tmp_path / "cache"
+    async with httpx.AsyncClient() as client:
+        with pytest.raises(MediaFetchError):
+            await fetch_with_cache("file:///etc/passwd", cache_dir, client=client)
+
+
+@pytest.mark.asyncio
+@pytest.mark.xfail(
+    reason="FP27 T2 — B4 implementation not yet landed; this test stays "
+    "RED until fetch_with_cache accepts max_bytes.",
+    strict=True,
+)
+async def test_fetch_with_cache_caps_body_size(tmp_path: Path) -> None:
+    """A body exceeding `max_bytes` must raise `MediaFetchError` with a
+    `BodyTooLarge:` prefix.
+
+    Pre-fix: no cap → the test sends a 32 MiB body, `client.get` buffers
+    it all, no error is raised → assertion fails. Post-fix: the
+    streaming loop aborts at the cap and `raise MediaFetchError(...)`.
+    """
+    body = b"y" * (32 * 1024 * 1024)  # 32 MiB
+    url = "https://raw.githubusercontent.com/.../oversize.png"
+    cache_dir = tmp_path / "cache"
+
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(url).mock(return_value=httpx.Response(200, content=body))
+        async with httpx.AsyncClient() as client:
+            with pytest.raises(MediaFetchError, match=r"BodyTooLarge"):
+                await fetch_with_cache(
+                    url,
+                    cache_dir,
+                    client=client,
+                    max_bytes=16 * 1024 * 1024,  # type: ignore[call-arg]  # FP27 T2 B4: max_bytes parameter lands in the B4 fix.
+                )
+
+
+@pytest.mark.asyncio
+async def test_fetch_with_cache_streams_to_disk(tmp_path: Path) -> None:
+    """A 5 MiB body must not lift `tracemalloc` peak above body_size/2
+    (≈2.5 MiB) — the streaming fix means at most one chunk plus httpx
+    overhead is RAM-resident at any time.
+
+    Pre-fix: `resp.content` buffers the full body → peak ≥ 5 MiB →
+    test fails. Post-fix: streaming via `client.stream(...)` plus
+    `aiter_bytes(...)` keeps peak well under the cap.
+    """
+    import tracemalloc
+
+    body = b"z" * (5 * 1024 * 1024)  # 5 MiB
+    url = "https://raw.githubusercontent.com/.../big.png"
+    cache_dir = tmp_path / "cache"
+
+    tracemalloc.start()
+    try:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(url).mock(return_value=httpx.Response(200, content=body))
+            async with httpx.AsyncClient() as client:
+                result = await fetch_with_cache(url, cache_dir, client=client)
+        _current, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+
+    assert result is not None
+    assert result.exists()
+    assert result.read_bytes() == body
+
+    upper = (5 * 1024 * 1024) // 2  # 2.5 MiB
+    assert peak < upper, (
+        f"FP27 B4 — fetch_with_cache must stream to disk, not buffer; "
+        f"tracemalloc peak {peak} ≥ {upper}. See `docs/specs/FP27.md` § B4."
+    )

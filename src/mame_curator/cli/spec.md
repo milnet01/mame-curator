@@ -34,7 +34,7 @@ The CLI MUST refuse to run with no subcommand (argparse `required=True` on the s
 | Flag | Action |
 |---|---|
 | `-v` / `--verbose` | Toggles `logging.basicConfig` level from `INFO` (default) to `DEBUG`. |
-| `--version` | (Future, not yet implemented.) Prints `mame_curator.__version__` and exits 0. |
+| `--version` | Prints `mame-curator <version>` and exits 0 (uses `mame_curator.__version__`; wired in FP27). |
 
 Subcommand-specific flags live on their respective subparsers, not here.
 

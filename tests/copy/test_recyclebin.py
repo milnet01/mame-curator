@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from mame_curator.copy import purge_recycle, recycle_file
+from mame_curator.copy.types import ActivityEvent, ActivityEventType
 
 
 def test_recycle_moves_file_into_timestamped_dir(tmp_path: Path) -> None:
@@ -196,3 +197,138 @@ def test_fp21_f_purge_uses_manifest_recycled_at_over_dir_mtime(
     )
     assert bytes_freed == 0
     assert target_dir.exists()
+
+
+# ---------------------------------------------------------------------------
+# FP27 A3 — recyclebin activity-log events
+#
+# `copy/spec.md:266` promises:
+#   "Each `recycle_file` call appends one `file_recycled` event to
+#   `data/activity.jsonl`; each `purge_recycle` call appends one
+#   `recycle_purged` event."
+#
+# At HEAD: `recycle_file` and `purge_recycle` perform their FS work and
+# return, but never write to the activity log. The Activity UI tab is
+# the user's only window onto what got recycled and when, so the
+# missing audit trail is a half-shipped contract per the
+# 2026-05-14 indie-review.
+#
+# A3 wires the existing `append_activity(event, log_path)` writer at
+# `copy/activity.py:50` into both functions. The activity log path is
+# derived from `recycle_root.parent / "activity.jsonl"` so a custom
+# recycle_root naturally drives a sibling activity log (and the default
+# `data/recycle/` recycle_root drives `data/activity.jsonl` —
+# matching the design promise).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.xfail(
+    reason="FP27 T1b — A3 implementation not yet landed; this test stays "
+    "RED until copy/recyclebin.py wires append_activity.",
+    strict=True,
+)
+def test_recycle_file_appends_file_recycled_activity_event(tmp_path: Path) -> None:
+    """FP27 A3 — `recycle_file(...)` appends one `FILE_RECYCLED` event
+    line to the per-data-dir activity log.
+
+    Pre-fix: no append happens; activity.jsonl absent → fails.
+    Post-fix: exactly one event line is present; parses to an
+    `ActivityEvent` whose outer + inner `event_type` are both
+    `FILE_RECYCLED`, whose `session_id` matches the call's
+    session_id, and whose `details.path` + `details.reason` carry the
+    recycle call's path + reason.
+    """
+    data_dir = tmp_path / "data"
+    recycle_root = data_dir / "recycle"
+    activity_log = data_dir / "activity.jsonl"
+
+    src = tmp_path / "sf2.zip"
+    src.write_bytes(b"some bytes")
+
+    new_path = recycle_file(
+        src,
+        reason="REPLACE_AND_RECYCLE",
+        session_id="01ABC123",
+        recycle_root=recycle_root,
+    )
+    assert new_path.exists()  # baseline (existing FS contract).
+
+    assert activity_log.exists(), (
+        "FP27 A3 — recycle_file must append a FILE_RECYCLED event to "
+        f"{activity_log!s}; see `docs/specs/FP27.md` § A3."
+    )
+    lines = [ln for ln in activity_log.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert len(lines) == 1, (
+        f"FP27 A3 — expected exactly one event line, got {len(lines)}: {lines!r}"
+    )
+
+    event = ActivityEvent.model_validate_json(lines[0])
+    assert event.event_type == ActivityEventType.FILE_RECYCLED
+    assert event.details.event_type == ActivityEventType.FILE_RECYCLED
+    assert event.session_id == "01ABC123"
+    # Inner FileRecycledDetails fields (verified against copy/types.py:286).
+    assert event.details.path == str(src), (
+        f"details.path expected {src!s}, got {event.details.path!r}"
+    )
+    assert event.details.reason == "REPLACE_AND_RECYCLE"
+
+
+@pytest.mark.xfail(
+    reason="FP27 T1b — A3 implementation not yet landed; this test stays "
+    "RED until copy/recyclebin.py wires append_activity.",
+    strict=True,
+)
+def test_purge_recycle_appends_recycle_purged_activity_event(tmp_path: Path) -> None:
+    """FP27 A3 — `purge_recycle(...)` appends one `RECYCLE_PURGED`
+    event line to the per-data-dir activity log.
+
+    The event records the dir + byte counts that the function returns.
+    `session_id` uses the sentinel `'_purge'` (purge isn't a session-
+    scoped operation; the sentinel signals 'system action' to the
+    Activity UI).
+    """
+    import os as _os
+
+    data_dir = tmp_path / "data"
+    recycle_root = data_dir / "recycle"
+    activity_log = data_dir / "activity.jsonl"
+
+    # Stage one recycled file dated 40 days ago so purge eats it.
+    src = tmp_path / "old.zip"
+    src.write_bytes(b"old bytes")
+    new_path = recycle_file(
+        src, reason="REPLACE_AND_RECYCLE", session_id="01OLD", recycle_root=recycle_root
+    )
+    target_dir = new_path.parent
+    old_time = time.time() - 40 * 86400
+    for child in target_dir.rglob("*"):
+        _os.utime(child, (old_time, old_time))
+    _os.utime(target_dir, (old_time, old_time))
+
+    # Truncate the log so the recycle_file event from setup doesn't
+    # pollute the purge assertion (the recycle wrote one FILE_RECYCLED
+    # event; we only want to assert on the new RECYCLE_PURGED event).
+    activity_log.write_text("", encoding="utf-8")
+
+    dirs_purged, bytes_freed = purge_recycle(
+        older_than=timedelta(days=30), recycle_root=recycle_root
+    )
+    assert dirs_purged == 1
+    assert bytes_freed > 0  # at least the "old bytes" payload + manifest.
+
+    assert activity_log.exists(), (
+        "FP27 A3 — purge_recycle must append a RECYCLE_PURGED event to "
+        f"{activity_log!s}; see `docs/specs/FP27.md` § A3."
+    )
+    lines = [ln for ln in activity_log.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert len(lines) == 1, (
+        f"FP27 A3 — expected one RECYCLE_PURGED event, got {len(lines)}: {lines!r}"
+    )
+
+    event = ActivityEvent.model_validate_json(lines[0])
+    assert event.event_type == ActivityEventType.RECYCLE_PURGED
+    assert event.details.event_type == ActivityEventType.RECYCLE_PURGED
+    # Sentinel session_id for system-scoped purge action.
+    assert event.session_id == "_purge"
+    assert event.details.dirs_purged == dirs_purged
+    assert event.details.bytes_freed == bytes_freed

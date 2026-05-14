@@ -31,10 +31,6 @@ class CopyError(Exception):
         return base
 
 
-class PreflightError(CopyError):
-    """Destination not writable, free-space shortfall, source missing."""
-
-
 class PlaylistError(CopyError):
     """Existing playlist corrupt; required append decisions missing; write failure."""
 

@@ -10,7 +10,6 @@ from mame_curator.copy.errors import (
     CopyError,
     CopyExecutionError,
     PlaylistError,
-    PreflightError,
     RecycleError,
 )
 from mame_curator.copy.executor import copy_one
@@ -58,7 +57,6 @@ __all__ = [
     "PlanSummary",
     "PlaylistEntry",
     "PlaylistError",
-    "PreflightError",
     "PreflightResult",
     "RecycleError",
     "RecycleRecord",

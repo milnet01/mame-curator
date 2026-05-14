@@ -201,9 +201,12 @@ The leading int is a **family rank** so different revision-encoding styles compa
 ## Errors
 
 `FilterError(Exception)` base. Subclasses:
-- `ConfigError` — invalid `FilterConfig` values (e.g. unknown region in `region_priority`).
 - `OverridesError` — malformed `overrides.yaml`.
 - `SessionsError` — malformed or empty session.
+
+(`ConfigError` retired in FP27 — invalid `FilterConfig` values are
+surfaced via Pydantic's `ValidationError` directly; no separate typed
+subclass was ever raised in `src/`.)
 
 ## Out of scope
 

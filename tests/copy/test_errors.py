@@ -8,7 +8,6 @@ from mame_curator.copy.errors import (
     CopyError,
     CopyExecutionError,
     PlaylistError,
-    PreflightError,
     RecycleError,
 )
 
@@ -22,7 +21,7 @@ def test_copy_error_str_quotes_path_with_control_byte() -> None:
     at `copy/errors.py:26`.
     """
     bad = Path("evil\nname.zip")
-    for cls in (CopyError, PreflightError, PlaylistError, RecycleError, CopyExecutionError):
+    for cls in (CopyError, PlaylistError, RecycleError, CopyExecutionError):
         exc = cls("test message", path=bad)
         rendered = str(exc)
         # Post-fix: repr-escaped form (Python source `\\n` = backslash + n).
@@ -45,3 +44,25 @@ def test_copy_error_path_attribute_preserved(tmp_path: Path) -> None:
     exc = RecycleError("test", path=bad)
     assert exc.path == bad
     assert isinstance(exc.path, Path)
+
+
+def test_copy_preflight_error_class_removed() -> None:
+    """FP27 A2 — `copy.PreflightError` must not be importable post-fix.
+
+    FP07's spec at `docs/specs/FP07.md:101` flagged this class as
+    "exported but never raised in `src/`". Three releases later, no
+    raise site has appeared. FP27 closes the dead surface.
+
+    Pre-fix: passes because `PreflightError` is still exported. This
+    assertion fails. Post-fix: the symbol is absent from the package
+    surface; assertion passes.
+    """
+    from mame_curator import copy as copy_mod
+
+    assert not hasattr(copy_mod, "PreflightError"), (
+        "copy.PreflightError should be removed from the public surface "
+        "(no non-test raise sites). See `docs/specs/FP27.md` § A2."
+    )
+    assert "PreflightError" not in copy_mod.__all__, (
+        "copy.__all__ should no longer list 'PreflightError' (see `docs/specs/FP27.md` § A2)."
+    )

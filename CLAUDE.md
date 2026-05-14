@@ -48,12 +48,15 @@ Layered, acyclic dependency graph (enforced by review):
 parser/    ← pure, no internal deps           (P01 ✅)
 filter/    ← parser/                          (P02 ✅)
 copy/      ← parser/ + filter/                (P03 ✅)
-api/       ← all of the above                 (P04 — next)
-media/     ← parser/                          (P05)
-updates/   ← parser/ + downloads.py           (P07)
-help/      ← filesystem only (bundled MD)     (P07)
-setup/     ← parser/ + downloads.py           (P08)
+api/       ← all of the above                 (P04 ✅)
+media/     ← parser/                          (P05 ✅)
+updates/   ← parser/ + downloads.py           (P07 ✅)
 main.py    ← wires everything together
+
+(Help docs are filesystem-only — served by `api/routes/help.py` from a
+repo-root `docs/help/` directory; setup-wizard endpoints live in
+`api/routes/stubs.py`. Neither is a Python package under
+`src/mame_curator/`.)
 ```
 
 CLI entry: `mame_curator.main:main`; subcommands dispatch in `cli/__init__.py` via `argparse.set_defaults(func=...)` per `cli/spec.md`.

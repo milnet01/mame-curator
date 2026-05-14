@@ -56,6 +56,13 @@ Values: `GOOD`, `IMPERFECT`, `PRELIMINARY`. String representation matches the DA
 
 The enum is **open-membership**: `<driver status="...">` values not in this set log a `logger.warning` and produce `Machine.driver_status = None`. They do *not* raise `DATError`. Rationale: MAME's schema has historically extended the set (`protection`, `palette`-style attributes); a closed enum would break parsing on every future MAME version. The warning is rate-limited to one log line per unique status string seen in a parse run (avoids log floods on a 43k-machine DAT).
 
+### `class BIOSChainEntry` (frozen Pydantic model)
+
+Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
+
+- `romof: str | None` — name of the immediate parent ROM (the `romof=` attribute on `<machine>`), or `None` for machines with no parent ROM dependency.
+- `biossets: tuple[str, ...]` — the `<biosset name="...">` children that this machine offers, in source order.
+
 ## Public functions
 
 ### `parse_dat(path: Path) -> dict[str, Machine]`
@@ -104,6 +111,12 @@ The enum is **open-membership**: `<driver status="...">` values not in this set 
 - Returns `{clone_short_name: parent_short_name}` for every machine with a non-empty `cloneof` attribute. Parents and standalone machines are absent from the map.
 - Used by `filter/` to reconstruct parent/clone relationships that the Pleasuredome DAT strips.
 - Same `lxml.iterparse` streaming pattern as `parse_listxml_disks` (clear element + detach previous siblings to keep memory bounded across the 43k-machine listxml). Every iterparse call site in `listxml.py` splats the same `HARDENED_ITERPARSE_KWARGS` (XXE / Billion Laughs / `file://` URI defence — see `parse_dat` above).
+
+### `parse_listxml_bios_chain(path: Path) -> dict[str, BIOSChainEntry]`
+
+- Returns `{machine_short_name: BIOSChainEntry}` joining the listxml's `romof` chain with the per-machine `<biosset>` children. Consumed by `copy/bios.py` (BIOS-dependency resolution), `copy/types.py` (`bios_chain` field of `CopyPlan`), `api/state.py` (WorldState assembly), and `cli/__init__.py` (the `copy` subcommand path).
+- The accompanying `BIOSChainEntry` Pydantic model carries `romof: str | None` + `biossets: tuple[str, ...]` — the per-machine view of the chain.
+- Streaming + hardening contract identical to the other `parse_listxml_*` functions above.
 
 ### `split_manufacturer(raw: str | None) -> tuple[str | None, str | None]`
 
