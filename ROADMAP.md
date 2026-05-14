@@ -43,13 +43,25 @@ wave lands.
   (skip-to-main link, `aria-label`s on landmarks, `aria-live` on
   loading states), Settings-tab URL state via `useSearchParams`, and
   documentation drift in `parser/spec.md` + `copy/spec.md`.
+  Scope expanded 2026-05-14 with the new sweep's Tier 3 additions
+  (roving-tabindex `.focus()`, duplicate `<h1>` on Help page,
+  markdown heading-level remap, `<article>` / `<aside>` landmark
+  labels, `revision_key_of` memoization in picker, `total_bytes`
+  cache in `WorldState`, `AlternativesDrawer` + `CopyModal` inside
+  `ErrorBoundary`, `ConfirmationDialog` render-time throw → dev
+  assert, `NotesEditor` save-on-blur cleanup) plus the matching
+  `/debt-sweep` mechanical drift (16 sites lacking inline
+  `# type: ignore` / `# noqa` reasons per coding-standards § 1,
+  stale `CHANGELOG.md` versioning-policy paragraph, frontend
+  `package.json` version lockstep break vs `pyproject.toml`).
   Layman: A tidy-up of code that's grown messy enough to slow future
   features down — splitting oversized files, removing dead branches,
   pulling hardcoded UI strings into the central translations file.
   Nothing changes for you as a user.
   Kind: refactor.
   Lanes: backend, frontend, docs.
-  Source: indie-review-2026-05-04 Tier 3.
+  Source: indie-review-2026-05-04 Tier 3 + indie-review-2026-05-14
+  Tier 3 + debt-sweep-2026-05-14 mechanical drift.
 
 - 📋 [mame-curator-1025] **DS03 — Dependency freshness sweep.**
   Walks every entry in `pyproject.toml`, `frontend/package.json`,
@@ -65,6 +77,91 @@ wave lands.
   Lanes: deps, build, ci.
   Source: user-2026-05-08 ("ensure that we are on the latest version
   of all dependencies"); reinforces global rule § 5.
+
+### 🔍 Indie-review fold-in (2026-05-14)
+
+- 📋 [mame-curator-1031] **FP27 — Tier 1 review fold-in: zombie
+  features + data integrity.**
+  Bundles ~14 findings from the 2026-05-14 11-lane `/indie-review`.
+  Dominant pattern: declared + exported + documented features with
+  zero non-test callers — `filter.ConfigError`
+  (`src/mame_curator/filter/errors.py:10`), `copy.PreflightError`
+  (`src/mame_curator/copy/errors.py:34`), `recycle_file` /
+  `purge_recycle` activity-log writes
+  (`src/mame_curator/copy/recyclebin.py:23,142` — audit trail
+  half-shipped per `copy/spec.md:266`), `useCopySession.resolveConflict`
+  (`frontend/src/hooks/useCopySession.ts:175` — three live buttons
+  silently dropping the user's conflict choice), CmdK palette `games`
+  + `settings` sections
+  (`frontend/src/components/CmdKPalette.tsx:30` — declared types,
+  zero producers), most advertised keyboard shortcuts (design spec
+  § "Keyboard shortcuts" promises `/` `?` `g …` `a` `n`, no
+  handlers), `useKeyboard` chord engine
+  (`frontend/src/hooks/useKeyboard.ts:80`), `--version` flag
+  (`src/mame_curator/cli/spec.md:38`), four dead `strings.ts`
+  entries, and `parse_listxml_bios_chain` + `BIOSChainEntry` not in
+  `parser/__init__.py.__all__` or `parser/spec.md` despite three
+  modules consuming them. Plus data-integrity gaps:
+  `executor.copy_one` chunked path never `fsync`s the `tmp` before
+  `os.replace` (`src/mame_curator/copy/executor.py:26` — power-cut
+  hazard on big ROM transfers); `persist.restore_snapshot` unlinks
+  live files before atomic-writes of restored ones
+  (`src/mame_curator/api/persist.py:103`); `downloads.download`
+  docstring promises streaming but body fully buffered
+  (`src/mame_curator/downloads.py:135` — ~3× RAM amplification);
+  `media/cache.py:fetch_with_cache` has no size cap, no scheme
+  check, no streaming; `GET /api/activity` reads + parses the
+  entire JSONL on every request
+  (`src/mame_curator/api/routes/activity.py:32`). Plus load-bearing
+  doc drift: `CLAUDE.md:51` says `api/ (P04 — next)` though P04
+  shipped 2026-05-01; the README + CLAUDE architecture diagrams
+  list `help/` + `setup/` modules that don't exist as packages.
+  Layman: A fresh-eyes code review found ~14 places where the docs
+  claim a feature exists but the code doesn't actually deliver —
+  buttons that do nothing, shortcuts that aren't wired, error types
+  that are never raised — plus a handful of "could lose data on a
+  crash" spots in the copy + snapshot paths. None are user-blocking
+  today but they're the kind of "looks like it works" bugs that
+  surprise people later. A fix-pass to burn them off before any new
+  feature lands.
+  Kind: review-fix.
+  Lanes: backend, frontend, docs.
+  Source: indie-review-2026-05-14 Tier 1.
+
+- 📋 [mame-curator-1032] **FP28 — Tier 2 review fold-in: hardening
+  + correctness.**
+  Bundles ~12 second-tier findings from the same sweep. Concurrency:
+  `JobManager._emit` mutates `lifecycle_history` + `subscribers`
+  without the lock (`src/mame_curator/api/jobs.py:282`); recyclebin
+  counter race on parallel sessions (`recyclebin.py:51`);
+  `target_dir_existed` rollback can `rmdir` a sibling's
+  just-created dir. Correctness: `_LICENSE_RE` breaks on
+  `"Atari (JSA III) (Williams license)"` (nested parens at
+  `src/mame_curator/parser/manufacturer.py:11`); `REGION_RE`
+  false-positives `World Heroes`-class titles
+  (`filter/heuristics.py:12`); `Machine.description` uses `.text`
+  only and loses mixed-content (`parser/dat.py:170`);
+  `filter.runner` declared `logger` is never called despite Phase C
+  spec line 71 requiring it; `_apply_session` raises raw `KeyError`
+  on stale post-`model_copy` `sessions.active`. Boundary hardening:
+  `_validate_paths` doesn't check `retroarch` / `retroarch_core`
+  paths (local-exec via `POST /api/config/import`); `media_proxy`
+  returns hardcoded `image/png` + no `Cache-Control` headers. CLI
+  exit-code drift: `serve` swallows `KeyboardInterrupt` and returns
+  0 instead of 130 (`src/mame_curator/cli/__init__.py:485`); bare
+  `except Exception` loses tracebacks; `refresh-inis` surfaces a
+  raw `ImportError` traceback when httpx is missing. Plus the
+  design § 6.6 deferral: mirrors + sha256 promised on every INI
+  refresh, current `updates/ini.py:42` delivers neither (decide vs
+  P12 deferral).
+  Layman: Same review found ~12 more places where the code
+  technically works but has hardening gaps — race conditions only
+  visible under heavy concurrent use, regex bugs that mis-tag a
+  small minority of games, wrong exit codes that break shell
+  scripts. Lower-urgency than FP27 but still bound for v1.3.
+  Kind: review-fix.
+  Lanes: backend, frontend, cli.
+  Source: indie-review-2026-05-14 Tier 2.
 
 ---
 

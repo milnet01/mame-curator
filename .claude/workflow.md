@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | FP21 closed 2026-05-11 (5 commits, 20 sub-bullets across filter / copy / api / downloads / run.sh / frontend lanes). Queue continues **DS02 → DS03 → P09 polish → post-v1**. ROADMAP format refactor (user request mid-session) is the next item before DS02. |
-| **Active item ID** | (none — ROADMAP format refactor + DS02 next) |
-| **Active step** | — |
+| **Project phase** | FP27 active (opened 2026-05-14). Sourced from the 2026-05-14 11-lane `/indie-review` Tier 1 partition: 16 sub-fixes (A1–A9 zombies + A6 split a/b/c → 11; B1–B5 data-integrity; C1–C2 doc drift). Spec at `docs/specs/FP27.md` cold-eyes-converged on loop 5 (0 findings). FP28 (Tier 2 cohort) + DS02 (Tier 3 cohort) queued behind. |
+| **Active item ID** | FP27 |
+| **Active step** | Step 3 — tests-first (per project TDD-by-default rule; Karpathy §(10) reproduce-before-fix) |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-11 (FP21 closed clean; 523 backend tests + 273 frontend tests green; coverage 86.79%; ruff + ruff format + mypy + bandit + eslint + tsc clean; FP22-D byCode closed inside J; L investigated and ruled non-reachable; FP25-C envelope superseded by D's write-first ordering) |
-| **Next gate** | User-requested ROADMAP format refactor — adopt the Ants_Terminal format (stable IDs, status emojis, theme sections, position-is-priority) with `mame-roadmap-format: 1` pragma. After that, DS02 (Tier 3 structural debt). |
+| **Last update** | 2026-05-14 (FP27 spec authored + cold-eyes-clean after 5 loops; 0 Critical/High in loop 5; ready to write 17 failing tests covering the 11 + 5 + 1 = 17 sub-bullets) |
+| **Next gate** | Step 3 — author 17 failing tests in TDD order (mechanical removals first → wire-promised-behavior → data-integrity). Step 4 implementation lands after Step 3 commits as RED. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -20,6 +20,25 @@
 While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
+
+**FP27 — Tier 1 review fold-in: zombie features + data integrity (opened 2026-05-14)**
+
+- ✅ Step 1 — spec at `docs/specs/FP27.md`; cold-eyes review loop ran 5
+  passes (29 findings loop 1 → 0 at loop 5). Sub-bullets A1–A9 (Tier 1,
+  with A6 split a/b/c = 11 sub-fixes), B1–B5 (Tier 2, 5 sub-fixes),
+  C1–C2 (Tier 3, 2 sub-fixes) — 16 cited findings → 18 implementable
+  sub-fixes.
+- ✅ Step 2 — plan inlined in spec body (FP05/07/08 precedent: scope +
+  "Tests to write first" + acceptance + architecture-notes serves as
+  the per-sub-bullet TDD plan).
+- 🚧 Step 3 — tests-first. 17 failing tests across `tests/filter/`,
+  `tests/copy/`, `tests/parser/`, `tests/api/`, `tests/cli/`,
+  `tests/docs/`, `tests/media/`, plus `frontend/src/**/__tests__/`.
+- ⬜ Step 4 — implementation
+- ⬜ Step 5/6 — closing `/audit` + `/indie-review`
+- ⬜ Step 7 — fix-pass fold-in (if needed)
+- ⬜ Step 8 — final five-gate green
+- ⬜ Step 9 — tag `FP27-complete` + push
 
 **FP26 — FP25 closing-review fold-in + UX e2e walkthroughs (closed 2026-05-11)**
 
