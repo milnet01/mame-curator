@@ -30,19 +30,22 @@ def test_copy_atomic_uses_tmp_then_replace(
     dst.write_bytes(b"OLD CONTENT")
     original_size = dst.stat().st_size
 
-    # Make shutil.copy2 raise mid-copy.
-    import shutil as _shutil
-
+    # FP27 B1: copy_one now funnels both write paths through
+    # `_chunked_copy`. Inject the mid-copy failure there instead of
+    # the legacy `shutil.copy2`.
     from mame_curator.copy import executor
 
-    def boom(src_arg: object, tmp_arg: object) -> None:
-        # Simulate a partial write of the .tmp first
+    def boom(
+        src_arg: object,
+        tmp_arg: object,
+        total: int,
+        progress: object,
+    ) -> None:
         tmp = Path(str(tmp_arg))
         tmp.write_bytes(b"PARTIAL")
         raise OSError("simulated mid-copy failure")
 
-    monkeypatch.setattr(_shutil, "copy2", boom)
-    monkeypatch.setattr(executor, "shutil", _shutil)
+    monkeypatch.setattr(executor, "_chunked_copy", boom)
 
     with pytest.raises(CopyExecutionError):
         copy_one(src, dst, short_name="kof94", role="winner")
@@ -183,11 +186,6 @@ def test_copy_one_exdev_raises_typed_error(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    reason="FP27 T2 — B1 implementation not yet landed; this test stays "
-    "RED until copy/executor.py adds os.fsync before os.replace.",
-    strict=True,
-)
 def test_copy_one_fsyncs_tmp_before_replace_chunked_path(
     source_dir: Path,
     dest_dir: Path,
@@ -237,11 +235,6 @@ def test_copy_one_fsyncs_tmp_before_replace_chunked_path(
     )
 
 
-@pytest.mark.xfail(
-    reason="FP27 T2 — B1 implementation not yet landed; this test stays "
-    "RED until copy_one funnels both write paths through _chunked_copy.",
-    strict=True,
-)
 def test_copy_one_fsyncs_tmp_before_replace_no_progress_path(
     source_dir: Path,
     dest_dir: Path,

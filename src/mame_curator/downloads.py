@@ -19,8 +19,10 @@ Contract:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import logging
+import os
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,7 +30,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-from mame_curator._atomic import atomic_write_bytes
+from mame_curator._atomic import fsync_parent_dir
 
 logger = logging.getLogger(__name__)
 
@@ -132,21 +134,40 @@ async def download(
                                 break  # next mirror; same URL won't shrink
                         except ValueError:
                             pass  # malformed header; fall through to streaming cap
-                    chunks: list[bytes] = []
+                    # FP27 B3: stream chunks straight into a `.tmp` sibling
+                    # of `dest` instead of buffering into RAM. Peak working
+                    # set drops from ~2x body size at the prior `b"".join`
+                    # call to ~chunk_size + httpx overhead. Sha256 is
+                    # verified incrementally as bytes flow past.
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    tmp = dest.with_suffix(dest.suffix + ".tmp")
+                    hasher = hashlib.sha256() if sha256 is not None else None
                     total = 0
-                    async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
-                        total += len(chunk)
-                        if total > max_bytes:
-                            last_error = (
-                                f"BodyTooLarge: {u}: streamed {total} bytes exceeds cap {max_bytes}"
-                            )
-                            logger.warning("downloads: %s", last_error)
-                            chunks = []
-                            break
-                        chunks.append(chunk)
-                    if last_error.startswith("BodyTooLarge"):
+                    aborted = False
+                    tmp_handle = tmp.open("wb")
+                    try:
+                        async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
+                            total += len(chunk)
+                            if total > max_bytes:
+                                last_error = (
+                                    f"BodyTooLarge: {u}: streamed {total} "
+                                    f"bytes exceeds cap {max_bytes}"
+                                )
+                                logger.warning("downloads: %s", last_error)
+                                aborted = True
+                                break
+                            tmp_handle.write(chunk)
+                            if hasher is not None:
+                                hasher.update(chunk)
+                        if not aborted:
+                            tmp_handle.flush()
+                            os.fsync(tmp_handle.fileno())
+                    finally:
+                        tmp_handle.close()
+                    if aborted:
+                        with contextlib.suppress(OSError):
+                            tmp.unlink(missing_ok=True)
                         break  # next mirror
-                    body = b"".join(chunks)
             except httpx.HTTPError as e:
                 last_error = f"{type(e).__name__}: {e}"
                 logger.warning(
@@ -156,17 +177,24 @@ async def download(
                     u,
                     last_error,
                 )
+                # Clean up any partial .tmp from this attempt so the
+                # next attempt doesn't see a stale sibling.
+                with contextlib.suppress(NameError, OSError):
+                    tmp.unlink(missing_ok=True)
                 continue
 
-            if sha256 is not None:
-                actual = hashlib.sha256(body).hexdigest()
+            if sha256 is not None and hasher is not None:
+                actual = hasher.hexdigest()
                 if actual != sha256:
                     last_error = f"ChecksumMismatch: {u}: expected {sha256}, got {actual}"
                     logger.warning("downloads: %s", last_error)
+                    with contextlib.suppress(OSError):
+                        tmp.unlink(missing_ok=True)
                     # Server is serving wrong content; same URL won't fix it.
                     break
 
-            atomic_write_bytes(dest, body)
+            os.replace(tmp, dest)
+            fsync_parent_dir(dest)
             return dest
 
     return ManualFallback(url=url, reason=last_error or "no attempts made")

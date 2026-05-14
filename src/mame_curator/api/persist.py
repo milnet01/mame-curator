@@ -5,8 +5,11 @@ Per ``docs/specs/P04.md`` § Atomic-write protocol.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
+import os
+import shutil
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
@@ -96,19 +99,59 @@ def restore_snapshot(snapshots_dir: Path, snap_id: str, targets: Mapping[str, Pa
 
     Files absent from the snapshot are deleted from the live targets so the
     restore reverts cleanly to the snapshot state.
+
+    FP27 B2: stage-then-promote. The previous per-iteration shape
+    (``atomic_write_bytes(dst, ...)`` then ``dst.unlink()``) read from
+    snap_dir and wrote to the live target in the same pass — a crash
+    mid-loop with N files left k restored and (M-k) unlinked, a
+    half-restored state. Now the snapshot bytes are first read into a
+    sibling staging directory; only after every stage-write succeeds
+    do the live-target promotes (``os.replace``) and absent-file
+    unlinks run. Mid-stage failures leave the live targets untouched.
+    A mid-promote failure can still produce a half-restored end state
+    (per-file ``os.replace`` is the POSIX atomic unit), but the
+    read-from-snapshot step is front-loaded so the snapshot dir can
+    vanish after staging without losing data.
     """
     snap_dir = snapshots_dir / snap_id
     if not snap_dir.exists() or not snap_dir.is_dir():
         raise SnapshotNotFoundError(f"snapshot id not found: {snap_id!r}")
-    for name, dst in targets.items():
-        src = snap_dir / name
-        if src.exists():
-            atomic_write_bytes(dst, src.read_bytes())
-        elif dst.exists():
-            try:
-                dst.unlink()
-            except OSError:
-                logger.exception("failed to remove %r during restore", str(dst))
+
+    # Stage every snapshot file into a sibling staging dir. The stage
+    # writes use the existing atomic-write helper, so a crash inside
+    # the stage step leaves no half-written staging file behind.
+    staging_dir = snap_dir / "_restore_staging"
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    stage_paths: dict[str, Path] = {}  # name → staging path
+    unlink_names: list[str] = []
+    try:
+        for name, _dst in targets.items():
+            src = snap_dir / name
+            if src.exists():
+                stage_path = staging_dir / name
+                atomic_write_bytes(stage_path, src.read_bytes())
+                stage_paths[name] = stage_path
+            else:
+                unlink_names.append(name)
+
+        # Promote: replace live targets, then unlink absentees. The
+        # order within each phase is best-effort; once we're here,
+        # every stage write succeeded and the bytes are safely on disk.
+        for name, stage_path in stage_paths.items():
+            os.replace(stage_path, targets[name])
+        for name in unlink_names:
+            dst = targets[name]
+            if dst.exists():
+                try:
+                    dst.unlink()
+                except OSError:
+                    logger.exception("failed to remove %r during restore", str(dst))
+    finally:
+        # Clean up the staging dir whether we succeeded or aborted.
+        # Any staging files still present (mid-failure) are orphans
+        # the next restore call would step on; remove them now.
+        with contextlib.suppress(OSError):
+            shutil.rmtree(staging_dir)
 
 
 def write_yaml_atomic(path: Path, data: Mapping[str, Any]) -> None:

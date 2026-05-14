@@ -9,8 +9,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 
 def test_route_r28_shape_activity(client: Any) -> None:
     response = client.get("/api/activity")
@@ -123,11 +121,6 @@ def _plant_50k_activity_log(client: Any) -> Path:
     return activity_log
 
 
-@pytest.mark.xfail(
-    reason="FP27 T2 — B5 implementation not yet landed; this test stays "
-    "RED until GET /api/activity streams the JSONL line-by-line.",
-    strict=True,
-)
 def test_activity_route_streams_log_does_not_buffer_full_file(client: Any) -> None:
     """A 10 MB JSONL log → GET /api/activity?page=1&page_size=20 must
     keep tracemalloc peak under 1 MB.

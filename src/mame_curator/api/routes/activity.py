@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections import deque
 from datetime import datetime
 from typing import Any
 
@@ -28,34 +29,45 @@ def get_activity(
     if not log_path.exists():
         return ActivityPage(items=(), page=page, page_size=page_size, total=0)
 
-    items: list[dict[str, Any]] = []
-    for line in log_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            obj = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event_type and obj.get("event_type") != event_type:
-            continue
-        if since is not None or until is not None:
-            ts_raw = obj.get("timestamp")
-            ts = _parse_ts(ts_raw)
-            if ts is None:
+    # FP27 B5: stream the file line-by-line and keep only the newest
+    # `page * page_size` matches in a bounded deque. Pre-fix the whole
+    # file landed in RAM via `read_text().splitlines()` then pagination
+    # sliced afterwards — request RAM scaled with the file regardless
+    # of which page was asked for. Post-fix: per-request RAM is
+    # `page * page_size * event_size` for the deque, independent of
+    # total log size.
+    window = deque[dict[str, Any]](maxlen=page * page_size)
+    total = 0
+    with log_path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
                 continue
-            if since is not None and ts < since:
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
                 continue
-            if until is not None and ts > until:
+            if event_type and obj.get("event_type") != event_type:
                 continue
-        items.append(obj)
+            if since is not None or until is not None:
+                ts_raw = obj.get("timestamp")
+                ts = _parse_ts(ts_raw)
+                if ts is None:
+                    continue
+                if since is not None and ts < since:
+                    continue
+                if until is not None and ts > until:
+                    continue
+            total += 1
+            window.append(obj)
 
-    items.reverse()  # newest first
-    total = len(items)
+    # `window` holds the newest `page * page_size` matches in file order
+    # (chronological). Reverse for newest-first, then slice to page N.
+    newest_first = list(reversed(window))
     start = (page - 1) * page_size
     end = start + page_size
     return ActivityPage(
-        items=tuple(items[start:end]),
+        items=tuple(newest_first[start:end]),
         page=page,
         page_size=page_size,
         total=total,

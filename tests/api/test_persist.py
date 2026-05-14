@@ -44,11 +44,6 @@ def _stage_snapshot(snapshots_dir: Path, snap_id: str, files: dict[str, bytes]) 
     return snap_dir
 
 
-@pytest.mark.xfail(
-    reason="FP27 T2 — B2 implementation not yet landed; this test stays "
-    "RED until restore_snapshot adds the _restore_staging stage-then-promote step.",
-    strict=True,
-)
 def test_restore_snapshot_atomic_writes_land_in_staging_area(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -9,6 +9,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
+from mame_curator._atomic import fsync_parent_dir
 from mame_curator.copy.errors import CopyExecutionError
 from mame_curator.copy.types import CopyOutcome, CopyOutcomeStatus
 
@@ -33,6 +34,14 @@ def _chunked_copy(src: Path, tmp: Path, total: int, progress: Callable[[int, int
             fout.write(chunk)
             done += len(chunk)
             progress(done, total)
+        # FP27 B1: fsync the tmp's bytes to disk BEFORE the implicit
+        # close (which is itself before os.replace at the caller).
+        # Without this, a power cut within the kernel writeback window
+        # (~30s default `dirty_expire_centisecs`) after os.replace
+        # returned leaves dst pointing at an inode whose bytes never
+        # reached the platter → zero-byte / truncated dst on reboot.
+        fout.flush()
+        os.fsync(fout.fileno())
     # Preserve mtime + permissions like shutil.copy2.
     shutil.copystat(src, tmp)
 
@@ -80,11 +89,20 @@ def copy_one(
     completed = False
     try:
         try:
-            if progress is not None:
-                _chunked_copy(src, tmp, total, progress)
-            else:
-                shutil.copy2(src, tmp)
+            # FP27 B1: both write paths now funnel through `_chunked_copy`
+            # so the fsync-before-close + parent-dir fsync sequence covers
+            # the no-progress branch too. The progress callback collapses
+            # to a no-op for the no-progress case.
+            _chunked_copy(
+                src,
+                tmp,
+                total,
+                progress if progress is not None else lambda _done, _total: None,
+            )
             os.replace(tmp, dst)
+            # FP27 B1: fsync the parent dir so the rename hits the
+            # journal — same protocol as `mame_curator._atomic`.
+            fsync_parent_dir(dst)
             completed = True
         except OSError as exc:
             raise CopyExecutionError(f"copy failed: {exc}", path=src) from exc

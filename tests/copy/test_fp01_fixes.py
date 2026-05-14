@@ -43,21 +43,22 @@ def _machine(short: str, desc: str | None = None) -> Machine:
 def test_copy_one_cleans_tmp_on_keyboard_interrupt(
     source_dir: Path, dest_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Spec § Atomic copy step 6: KeyboardInterrupt mid-copy cleans up `.tmp`."""
+    """Spec § Atomic copy step 6: KeyboardInterrupt mid-copy cleans up `.tmp`.
+
+    FP27 B1: both write paths in `copy_one` now funnel through
+    `_chunked_copy`; the test patches that target instead of the legacy
+    `shutil.copy2`.
+    """
     src = source_dir / "kof94.zip"
     dst = dest_dir / "kof94.zip"
 
-    import shutil as _shutil
-
     from mame_curator.copy import executor
 
-    def boom(_src: object, tmp_arg: object) -> None:
-        # Partial-write the .tmp before raising.
+    def boom(_src: object, tmp_arg: object, _total: int, _progress: object) -> None:
         Path(str(tmp_arg)).write_bytes(b"PARTIAL")
         raise KeyboardInterrupt
 
-    monkeypatch.setattr(_shutil, "copy2", boom)
-    monkeypatch.setattr(executor, "shutil", _shutil)
+    monkeypatch.setattr(executor, "_chunked_copy", boom)
 
     with pytest.raises(KeyboardInterrupt):
         copy_one(src, dst, short_name="kof94", role="winner")

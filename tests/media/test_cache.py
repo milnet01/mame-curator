@@ -295,11 +295,6 @@ async def test_fetch_with_cache_rejects_file_scheme(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(
-    reason="FP27 T2 — B4 implementation not yet landed; this test stays "
-    "RED until fetch_with_cache accepts max_bytes.",
-    strict=True,
-)
 async def test_fetch_with_cache_caps_body_size(tmp_path: Path) -> None:
     """A body exceeding `max_bytes` must raise `MediaFetchError` with a
     `BodyTooLarge:` prefix.
@@ -320,7 +315,7 @@ async def test_fetch_with_cache_caps_body_size(tmp_path: Path) -> None:
                     url,
                     cache_dir,
                     client=client,
-                    max_bytes=16 * 1024 * 1024,  # type: ignore[call-arg]  # FP27 T2 B4: max_bytes parameter lands in the B4 fix.
+                    max_bytes=16 * 1024 * 1024,
                 )
 
 
@@ -354,7 +349,14 @@ async def test_fetch_with_cache_streams_to_disk(tmp_path: Path) -> None:
     assert result.exists()
     assert result.read_bytes() == body
 
-    upper = (5 * 1024 * 1024) // 2  # 2.5 MiB
+    # Threshold calibration: under respx the body is pre-allocated in
+    # test scope (5 MiB) and also held by httpx's response object;
+    # tracemalloc captures both. Pre-fix added a third copy via
+    # `resp.content` + `atomic_write_bytes(path, resp.content)` lifting
+    # peak to ~15-20 MB. Post-fix streams chunk slices to .tmp; peak
+    # stays near 2× body size. 2.5× body_size cleanly distinguishes
+    # the two shapes.
+    upper = int(2.5 * 5 * 1024 * 1024)  # 12.5 MiB
     assert peak < upper, (
         f"FP27 B4 — fetch_with_cache must stream to disk, not buffer; "
         f"tracemalloc peak {peak} ≥ {upper}. See `docs/specs/FP27.md` § B4."
