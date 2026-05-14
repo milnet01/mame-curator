@@ -24,6 +24,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ConfirmationDialog } from '../ConfirmationDialog'
 
 afterEach(() => {
@@ -53,6 +59,27 @@ describe('FP27 A6a — Radix overlays close on Esc', () => {
     // `onEscapeKeyDown` → close, so `onOpenChange(false)` must fire.
     await userEvent.keyboard('{Escape}')
 
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('plain Dialog closes when Esc is dispatched', async () => {
+    // The design-spec line credits BOTH primitives (Dialog +
+    // AlertDialog). Cover plain Dialog too so a future Radix upgrade
+    // that regresses one primitive without the other gets caught.
+    const onOpenChange = vi.fn()
+    render(
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Plain dialog under test</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>,
+    )
+    expect(
+      screen.getByRole('dialog', { name: 'Plain dialog under test' }),
+    ).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 })

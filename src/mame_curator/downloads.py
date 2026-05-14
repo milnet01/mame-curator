@@ -112,6 +112,13 @@ async def download(
 
     last_error = ""
 
+    # FP27 B3 (closing-review cluster R1): `tmp` is bound once outside
+    # the attempt loop so every cleanup path can reach it (including a
+    # flush/fsync OSError that escapes the streaming `try`). dest is
+    # required + stable across attempts, so the `.tmp` sibling path
+    # is the same for every retry.
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_suffix(dest.suffix + ".tmp")
     for u in urls_to_try:
         for attempt in range(max_attempts):
             if attempt > 0:
@@ -134,13 +141,12 @@ async def download(
                                 break  # next mirror; same URL won't shrink
                         except ValueError:
                             pass  # malformed header; fall through to streaming cap
-                    # FP27 B3: stream chunks straight into a `.tmp` sibling
-                    # of `dest` instead of buffering into RAM. Peak working
-                    # set drops from ~2x body size at the prior `b"".join`
-                    # call to ~chunk_size + httpx overhead. Sha256 is
-                    # verified incrementally as bytes flow past.
-                    dest.parent.mkdir(parents=True, exist_ok=True)
-                    tmp = dest.with_suffix(dest.suffix + ".tmp")
+                    # FP27 B3: stream chunks straight into the `.tmp`
+                    # sibling instead of buffering into RAM. Peak
+                    # working set drops from ~2x body size at the
+                    # prior `b"".join` call to ~chunk_size + httpx
+                    # overhead. Sha256 is verified incrementally as
+                    # bytes flow past.
                     hasher = hashlib.sha256() if sha256 is not None else None
                     total = 0
                     aborted = False
@@ -168,7 +174,11 @@ async def download(
                         with contextlib.suppress(OSError):
                             tmp.unlink(missing_ok=True)
                         break  # next mirror
-            except httpx.HTTPError as e:
+            except (httpx.HTTPError, OSError) as e:
+                # FP27 B3 cluster R1: include OSError so a flush/fsync
+                # failure on the streaming-write success path is caught
+                # here too — without this, a partial `.tmp` outlived
+                # the failure and orphaned on disk.
                 last_error = f"{type(e).__name__}: {e}"
                 logger.warning(
                     "downloads: attempt %d/%d for %s failed: %s",
@@ -179,7 +189,7 @@ async def download(
                 )
                 # Clean up any partial .tmp from this attempt so the
                 # next attempt doesn't see a stale sibling.
-                with contextlib.suppress(NameError, OSError):
+                with contextlib.suppress(OSError):
                     tmp.unlink(missing_ok=True)
                 continue
 

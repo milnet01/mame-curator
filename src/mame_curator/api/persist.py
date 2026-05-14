@@ -59,8 +59,6 @@ def snapshot_files(snapshots_dir: Path, files: Mapping[str, Path]) -> str:
 
 def _prune_old_snapshots(snapshots_dir: Path) -> None:
     """FP21-M: enforce ``MAX_SNAPSHOTS`` cap by removing oldest siblings."""
-    import shutil
-
     try:
         all_dirs = [p for p in snapshots_dir.iterdir() if p.is_dir()]
     except OSError:

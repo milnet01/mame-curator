@@ -324,14 +324,17 @@ function ShellWithPalette() {
     },
     {
       // FP27 A6b: focus the library search input. `id="filters-search"`
-      // lives on the library FiltersSidebar; the global binding works
-      // even when the user is on a different route (the focus call
-      // no-ops if the element isn't mounted yet).
+      // lives on the library FiltersSidebar. The binding fires globally;
+      // preventDefault is hoisted to the first line so Firefox's
+      // typeahead-find ("quick find on /") never wins regardless of
+      // whether the search input is mounted. Off-route the focus call
+      // no-ops silently — wiring "navigate-to-library-then-focus" is a
+      // post-v1 enhancement (see FP27 spec § A6b "off-route behavior").
       combo: '/',
       handler: (e) => {
+        e.preventDefault()
         const el = document.getElementById('filters-search')
         if (el instanceof HTMLInputElement) {
-          e.preventDefault()
           el.focus()
           el.select()
         }
