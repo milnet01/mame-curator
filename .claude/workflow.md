@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | FP27 active (opened 2026-05-14). Sourced from the 2026-05-14 11-lane `/indie-review` Tier 1 partition: 16 sub-fixes (A1–A9 zombies + A6 split a/b/c → 11; B1–B5 data-integrity; C1–C2 doc drift). Spec at `docs/specs/FP27.md` cold-eyes-converged on loop 5 (0 findings). FP28 (Tier 2 cohort) + DS02 (Tier 3 cohort) queued behind. |
-| **Active item ID** | FP27 |
-| **Active step** | Step 3 — tests-first (per project TDD-by-default rule; Karpathy §(10) reproduce-before-fix) |
+| **Project phase** | FP27 closed 2026-05-14 (5 commits `cfe612c..976b119`; 18 sub-fixes across T1a/T1b/T1c/T2 + cluster R1; 551 backend + 279 frontend tests green). Queue continues **FP28 → DS02 → DS03 → P09 polish → post-v1**. |
+| **Active item ID** | (none — FP28 next) |
+| **Active step** | — |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-14 (FP27 spec authored + cold-eyes-clean after 5 loops; 0 Critical/High in loop 5; ready to write 17 failing tests covering the 11 + 5 + 1 = 17 sub-bullets) |
-| **Next gate** | Step 3 — author 17 failing tests in TDD order (mechanical removals first → wire-promised-behavior → data-integrity). Step 4 implementation lands after Step 3 commits as RED. |
+| **Last update** | 2026-05-14 (FP27 closed clean; 5 commits; cold-eyes spec converged loop 5; closing /indie-review surfaced 2 HIGH on the changeset itself → folded inline as cluster R1; final five-gate green) |
+| **Next gate** | FP28 (Tier 2 cohort from same 2026-05-14 indie-review: concurrency / regex / exit-code drift; ~12 sub-bullets per `[mame-curator-1032]`). |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,24 +21,34 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-**FP27 — Tier 1 review fold-in: zombie features + data integrity (opened 2026-05-14)**
+**FP27 — Tier 1 review fold-in: zombie features + data integrity (closed 2026-05-14)**
 
 - ✅ Step 1 — spec at `docs/specs/FP27.md`; cold-eyes review loop ran 5
-  passes (29 findings loop 1 → 0 at loop 5). Sub-bullets A1–A9 (Tier 1,
-  with A6 split a/b/c = 11 sub-fixes), B1–B5 (Tier 2, 5 sub-fixes),
-  C1–C2 (Tier 3, 2 sub-fixes) — 16 cited findings → 18 implementable
-  sub-fixes.
-- ✅ Step 2 — plan inlined in spec body (FP05/07/08 precedent: scope +
-  "Tests to write first" + acceptance + architecture-notes serves as
-  the per-sub-bullet TDD plan).
-- 🚧 Step 3 — tests-first. 17 failing tests across `tests/filter/`,
-  `tests/copy/`, `tests/parser/`, `tests/api/`, `tests/cli/`,
-  `tests/docs/`, `tests/media/`, plus `frontend/src/**/__tests__/`.
-- ⬜ Step 4 — implementation
-- ⬜ Step 5/6 — closing `/audit` + `/indie-review`
-- ⬜ Step 7 — fix-pass fold-in (if needed)
-- ⬜ Step 8 — final five-gate green
-- ⬜ Step 9 — tag `FP27-complete` + push
+  passes (29 findings loop 1 → 0 at loop 5).
+- ✅ Step 2 — plan inlined in spec body (FP05/07/08 precedent).
+- ✅ Step 3 — tests-first. 19 new + 1 modified tests across
+  `tests/filter/`, `tests/copy/`, `tests/parser/`, `tests/api/`,
+  `tests/cli/`, `tests/docs/` (new), `tests/media/`, plus
+  `frontend/src/**/__tests__/`. RED batched into per-tier
+  `@pytest.mark.xfail(strict=True)` markers; each batch's
+  implementation drops its own xfail.
+- ✅ Step 4 — implementation across 4 commits + cluster R1 fold-in:
+  T1a `cfe612c` (A1/A2/A7/A9/C1/C2), T1b `65615fb` (A3),
+  T1c `4c54be4` (frontend A4-A8), T2 `2d9078e` (B1-B5),
+  R1 `976b119` (closing-review cluster).
+- ✅ Step 5/6 — closing `/audit` already green from pre-commit
+  pipeline; closing `/indie-review` ran 2 lanes (backend + frontend)
+  on the FP27 surface. Surfaced 2 HIGH on the changeset itself
+  (downloads.py OSError gap; frontend `/` preventDefault hoist) +
+  2 minor regression-lock tightening — all folded as Cluster R1.
+- ✅ Step 7 — Cluster R1 fold-in (`976b119`): 4 sub-fixes on the
+  FP27 surface itself (R1a downloads.py OSError; R1b frontend `/`
+  preventDefault; R1c drive-by inner `import shutil`; R1d
+  EscOverlayBehavior plain-Dialog regression-lock).
+- ✅ Step 8 — final five-gate green: 551 backend / 0 ruff /
+  0 ruff-format / 0 mypy / 0 bandit; 279 frontend / 0 eslint /
+  0 tsc.
+- ✅ Step 9 — closed (tag `FP27-complete` annotated at this commit).
 
 **FP26 — FP25 closing-review fold-in + UX e2e walkthroughs (closed 2026-05-11)**
 

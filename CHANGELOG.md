@@ -17,6 +17,121 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP27 — Tier 1 review fold-in: zombie features + data integrity (closed 2026-05-14)
+
+16 sub-bullets sourced from the 2026-05-14 11-lane `/indie-review`
+Tier 1 partition: 9 zombie-feature reconciliations (with A6 split
+a/b/c = 11 sub-fixes), 5 data-integrity hardening fixes, 2 doc-drift
+fixes, plus closing-review Cluster R1 (4 fixes on the FP27 surface
+itself). Spec at [`docs/specs/FP27.md`](docs/specs/FP27.md);
+cold-eyes review converged on loop 5 (0 residual findings). Shipped
+across 5 commits (`cfe612c..976b119`).
+
+**T1a — A1/A2/A7/A9/C1/C2 mechanical batch** `cfe612c`:
+
+- A1: `filter.ConfigError` deleted (no `raise` sites in `src/`;
+  Pydantic `ValidationError` covers reachable validation).
+- A2: `copy.PreflightError` deleted (FP07:101 flagged it three
+  releases ago; no `raise` sites have appeared).
+- A7: `--version` wired (`argparse action="version"`); `cli/spec.md`
+  caveat dropped.
+- A9: `parse_listxml_bios_chain` + `BIOSChainEntry` exported via
+  `parser.__all__`; `parser/spec.md` documents both.
+- C1: `CLAUDE.md` arch diagram drops stale `(P04 — next)`; P04 +
+  P05 + P07 marked ✅.
+- C2: `help/` + `setup/` ghost-module rows removed from `CLAUDE.md`
+  + `README.md` diagrams; one-line annotation points at the real
+  surfaces (`api/routes/help.py` and `api/routes/stubs.py`).
+
+**T1b — A3 recyclebin activity events** `65615fb`: `recycle_file` +
+`purge_recycle` append `FILE_RECYCLED` / `RECYCLE_PURGED`
+`ActivityEvent` rows via the existing `copy.activity.append_activity`
+writer + typed `*Details` constructors. Sentinel
+`session_id="_purge"` for system-scoped purge action. Append
+failures `logger.exception` (soft failure; FS state is primary
+contract).
+
+**T1c — Frontend Tier 1 batch** `4c54be4`:
+
+- A4: `useCopySession.resolveConflict` removed; `CopyModal`'s three
+  conflict buttons become a single read-only banner pointing at
+  abort + restart with updated `append_decisions` (the only real
+  resolution path — there is no `/api/copy/resolve-conflict`
+  endpoint and post-v1 work would add one).
+- A5: CmdK `'games'` + `'settings'` sections dropped at four
+  lockstep call-sites (type union, `SECTION_ORDER`, `grouped`
+  initializer, `strings.cmdK.sections`); palette hosts only
+  `'actions'` + `'help'`.
+- A6a: design-spec `Esc` bullet credits Radix `<Dialog>` /
+  `<AlertDialog>` primitives (which deliver the behavior
+  ambiently). Regression-lock at `EscOverlayBehavior.test.tsx`
+  pins the empirical behavior for both primitives.
+- A6b: `/` wired in `App.tsx`; second `useKeyboard` binding focuses
+  `#filters-search` on the library FiltersSidebar.
+- A6c: design-spec chord cohort (`?`, `g …`, `j`/`k`, `o`/`Enter`,
+  `a`, `n`) struck with a note pointing at a P14-class follow-up
+  for the chord engine + focused-card model.
+- A8: `strings.ts` orphan-key sweep cleared. Deleted
+  `historyEmpty`, `resetConfig`, `launchNotConfigured`. New
+  `frontend/src/__tests__/strings.test.ts` runs the sweep with a
+  `DYNAMIC_ACCESS_PARENTS` allowlist enumerating 20 legitimate
+  `strings.<parent>[<var>]` patterns so future drift gets caught.
+
+**T2 — Tier 2 data integrity** `2d9078e`:
+
+- B1: `copy_one` fsync gap closed. `_chunked_copy` adds
+  `fout.flush(); os.fsync(fout.fileno())` inside the `with` block;
+  both write paths funnel through `_chunked_copy`; adds
+  `fsync_parent_dir(dst)` after `os.replace`.
+- B2: `restore_snapshot` stage-then-promote. Snapshot bytes land in
+  `<snap_dir>/_restore_staging/<name>` first; live-target replaces
+  run only after every staging write succeeds.
+- B3: `download()` streams chunks straight to `.tmp` sibling of
+  `dest`. Sha256 incremental; on cap-abort or mismatch, close-then-
+  unlink the `.tmp` (Windows-safe order); `fsync` + parent-dir
+  fsync wrap the `os.replace`.
+- B4: `fetch_with_cache` rejects non-http(s) schemes before any
+  network call; adds `max_bytes` cap (default 16 MiB) via
+  `client.stream("GET", url)` + `aiter_bytes(64*1024)` writing to
+  `.tmp` sibling.
+- B5: `GET /api/activity` streams the JSONL line-by-line. Replaces
+  `read_text(...).splitlines()` with `open()` +
+  `deque(maxlen=page * page_size)`; slice formula
+  `list(reversed(deque))[start:start+page_size]`. Per-request RAM
+  scales with the deque, not the file size.
+
+**Cluster R1 — closing-review fold-in** `976b119`: closing
+`/indie-review` on the FP27 surface surfaced four findings on the
+changeset itself.
+
+- R1a: `downloads.py` — hoisted `tmp` binding above the attempt
+  loop + widened the cleanup `except` to `(httpx.HTTPError,
+  OSError)` so a flush/fsync OSError on the success path can't
+  orphan a `.tmp`.
+- R1b: frontend `/` binding — `e.preventDefault()` hoisted to the
+  first handler line so Firefox's typeahead-find never wins
+  off-route (`/help`, `/settings`, …).
+- R1c: drive-by — removed a redundant inner `import shutil` in
+  `api/persist.py:_prune_old_snapshots` (the top-level `import
+  shutil` added for B2 made it ruff F811-adjacent dead code).
+- R1d: `EscOverlayBehavior.test.tsx` regression-lock tightened to
+  cover plain `<Dialog>` in addition to `<AlertDialog>` — the
+  design-spec line credits both Radix primitives.
+
+Deferred (filed for follow-up, not Tier 1):
+
+- `/api/activity` deque preallocation DoS on unbounded `page`
+  parameter — file for FP28 / DS02.
+- `ActivityLogError` observability — caller can't see audit-trail
+  drop on append failure (spec acknowledged as soft failure;
+  post-v1 follow-up if needed).
+- `--version` subparser propagation — currently top-level only,
+  matches A7 spec; subparser inheritance is a follow-up.
+
+Gate at close: 551 backend tests + 279 frontend tests + ruff + ruff
+format + mypy + bandit + eslint + tsc all green. Tag:
+`FP27-complete`.
+
 ### FP21 — `/indie-review` Tier 2 hardening sweep (closed 2026-05-11)
 
 20 sub-bullets across `filter/`, `copy/`, `api/`, `downloads.py`,

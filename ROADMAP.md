@@ -80,8 +80,12 @@ wave lands.
 
 ### 🔍 Indie-review fold-in (2026-05-14)
 
-- 📋 [mame-curator-1031] **FP27 — Tier 1 review fold-in: zombie
-  features + data integrity.**
+- ✅ [mame-curator-1031] **FP27 — Tier 1 review fold-in: zombie
+  features + data integrity.** Closed 2026-05-14
+  (`cfe612c..976b119`). 16 sub-bullets across 5 commits + cluster
+  R1 fold-in; spec converged on cold-eyes loop 5 (0 residual
+  findings); 551 backend + 279 frontend tests green at close. See
+  [`CHANGELOG.md`](CHANGELOG.md) for the per-bullet breakdown.
   Bundles ~14 findings from the 2026-05-14 11-lane `/indie-review`.
   Dominant pattern: declared + exported + documented features with
   zero non-test callers — `filter.ConfigError`
