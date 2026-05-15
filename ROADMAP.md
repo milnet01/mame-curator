@@ -36,7 +36,7 @@ wave lands.
 
 ### 🧹 Cleanup / debt
 
-- 🚧 [mame-curator-1033] **DS04 — Test-suite quality sweep.**
+- ✅ [mame-curator-1033] **DS04 — Test-suite quality sweep.**
   Triaged fold-in from the 5-lane test-suite audit 2026-05-15 on
   commit `06fe3b8` (post-FP27). 51 sub-fixes across three tiers:
   Tier 1 (14 items) clears dead-spec coverage (FP25-C rollback

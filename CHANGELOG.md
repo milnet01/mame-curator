@@ -17,6 +17,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### DS04 — Test-suite quality sweep (closed 2026-05-15)
+
+37 sub-fixes sourced from the 2026-05-15 5-lane test-suite audit
+(parser+filter / copy / api+media+downloads / frontend components /
+frontend pages+e2e) on commit `06fe3b8` (post-FP27). Spec at
+[`docs/specs/DS04.md`](docs/specs/DS04.md); cold-eyes loop converged
+on a single pass (10 findings folded inline); closing review surfaced
+3 comment-drift findings folded as Cluster R1. Shipped across
+5 commits (`dca57b2..d5918a0`).
+
+Patterns addressed: dead-spec coverage (FP25-C rollback tests
+contradicting `copy/spec.md:260`'s FP21-D supersession), vitest
+prototype / global-state pollution leaks, unnecessary I/O (50k JSONL
+twice, 6 MiB string allocations, 2.5 s Playwright sleep, 2 MB YAML
+writes), FP##-named duplicate tests subsumed by canonical files, an
+empty Hypothesis strategy, 11 redundant `afterEach(() => cleanup())`
+calls under vitest auto-cleanup, and a hardcoded `/tmp/` path with
+`# noqa: S108`.
+
+**T1a — Tier 1 backend mechanical batch** `dca57b2`:
+
+- T1.1: deleted two FP25-C rollback tests in `tests/copy/test_fp25_recyclebin.py`. The "rollback returns file to original" premise was retired by FP21-D's manifest-first ordering (`copy/spec.md:260`); the tests passed today only because `src.exists()` was trivially true on the post-FP21-D path. Two FP25-F tests remain.
+- T1.4: replaced `JobManager(history_dir=Path("/tmp/unused"))  # noqa: S108` in `tests/api/test_fp21_fixes.py:233` with `tmp_path`.
+- T1.5: collapsed three iterparse-OSError tests in `tests/parser/test_listxml.py` (one per `parse_listxml_*` callable) to one `@pytest.mark.parametrize`.
+- T1.6: relocated `test_listxml_cloneof.py` + `listxml_cloneof.xml` fixture from `tests/filter/` to `tests/parser/`; added a `listxml_cloneof` fixture to `tests/parser/conftest.py`.
+- T1.7: removed the dead `monkeypatch.setattr(executor, "copy_one", ...)` in `tests/copy/test_runner.py`. `runner.py:17` imports `copy_one` at module level, so only the runner-module patch is load-bearing.
+- T1.9: dropped a bare `time.sleep(0.1)` after copy abort in `tests/api/test_routes_copy.py`; no assertion was gating the wait. Removed the now-unused `import time`.
+- T1.10: hoisted `_plant_50k_activity_log` from per-test helper to a `@pytest.fixture` in `tests/api/test_routes_activity.py`; dropped a stale comment that claimed the planter wrote `f"/tmp/{i}"` (actual format is `f"sample://{i}"`).
+- T1.13: parametrized two `retroarch_configured` setup-check tests in `tests/api/test_routes_stubs.py` over `(has_retroarch, has_core, expected)`; added the missing `core_only` case for completeness.
+
+**T1c — Tier 1 frontend batch** `908df0c`:
+
+- T1.2: `LibraryGrid.test.tsx` `beforeAll` now captures original `clientHeight`/`clientWidth`/`getBoundingClientRect` descriptors and restores them in a new `afterAll`. The prior stub leaked the 1200×600 dimensions into every later-running test file.
+- T1.3: dropped a nested `beforeEach`/`afterEach` in `useCopySession.test.tsx` that bypassed `vi.stubGlobal` (so `vi.unstubAllGlobals` couldn't restore) and added a redundant cleanup. The file-level setup at line 57 already covers nested describes.
+- T1.8: collapsed three `LibraryGrid` `data-columns` formula tests to one `it.each` table over `(layout, hint, expected)`, adding the `'auto'` case the original rerender-based test exercised inline.
+- T1.11: dropped `page.waitForTimeout(2500)` in `frontend/e2e/fp25-ux-walkthrough.spec.ts`. Playwright's `expect(toasts).toHaveCount(1)` auto-polls up to 5 s — comfortably covers the 1500 ms dedup window without a hardcoded sleep.
+- T1.12: `BackupTab.test.tsx` size-cap test stubs `File.size` via `Object.defineProperty` instead of allocating a 6 MiB string.
+- T1.14: replaced the tautological `querySelectorAll('[role="button"]').length < 3000` assertion in the `LibraryGrid` virtualization test with a non-vacuous spacer-height check (≥ 10,000 px for a 3,000-card grid at 280 px row pitch / 5 cols).
+
+**T2a — Tier 2 backend batch** `9817c56`:
+
+- T2.9: deleted `test_copy_one_cleans_tmp_on_keyboard_interrupt` from `tests/copy/test_fp01_fixes.py`. The equivalent at `test_fp02_fixes.py:317` uses a `progress=` callback and exercises the same `_chunked_copy` write path; post-FP27 B1 both branches funnel through it.
+- T2.10: deleted `test_recycle_same_name_same_second_does_not_clobber` from `test_fp01_fixes.py`. The equivalent at `test_fp02_fixes.py:158` exercises a stronger `session_id`-distinguishing assertion; the canonical `test_recyclebin.py:95` pins the dir-uniqueness contract.
+- T2.11: deleted `test_copy_error_str_renders_path_suffix` + `test_copy_error_str_without_path` from `test_fp01_fixes.py`. Subsumed by `tests/copy/test_errors.py:15-46` which iterates over every `CopyError` subclass and additionally locks the FP07 A4 control-byte repr contract.
+- T2.14: dropped the `@given(st.fixed_dictionaries({}))` decorator in `tests/api/test_routes_config.py:126`. The strategy only ever generated `{}`, so the test wasn't actually Hypothesis-driven. Removed four unused Hypothesis imports.
+- T2.16: `test_overrides_oversized_yaml_rejected` + `test_sessions_oversized_yaml_rejected` swap 2 MB valid-YAML payloads for `b"0" * (1024 * 1024 + 1)`. The 1 MiB pre-parse cap fires on byte count alone.
+- T2.17: dropped the `elapsed < 5.0` defence-in-depth checks in `tests/parser/test_dat.py`'s billion-laughs test. The `len(desc) < 1000` length assertion is the strong signal; wall-time thresholds on CI flake.
+- T2.19: `test_copy_progress_callback_emits_chunks` writes its 3 MiB source file into `tmp_path` instead of the module-scoped `source_dir`, so `big.zip` doesn't leak into other tests that iterate over the shared fixture.
+
+**T2b + T3 — Tier 2 frontend dedup + Tier 3 polish** `0011eb8`:
+
+- T2.12: collapsed two near-identical 70-line `retroarch_configured` tests in `SettingsPage.test.tsx` to one `it.each` table over `(configured, expectedText)`.
+- T2.13: dropped three unit-duplicate tests from `frontend/e2e/cart-flow.spec.ts` (expand chevron, remove row, Copy-disabled). All covered deterministically at unit level by `CartBar.test.tsx` + `CartPanel.test.tsx`. Kept only the +Add → footer-updates → ✓Added → banner-dismiss integration scenario. Also removed the surviving test's `page.waitForSelector` (locator auto-wait covers it).
+- T3.1: removed 11 redundant `afterEach(() => cleanup())` blocks across `FiltersSidebar.test.tsx`, `ChipListEditor.test.tsx`, `DragReorderList.test.tsx`, `BackupTab.test.tsx`, `FsBrowser.test.tsx`, `SnapshotsTab.test.tsx`, `YearRangeEditor.test.tsx`, `useConfig.test.tsx`, `useFs.test.tsx`, `useCopySession.test.tsx`, `useValidateCart.test.tsx`. Vitest `globals: true` enables RTL auto-cleanup. Where the `afterEach` was load-bearing for other work (mock-clear), kept the block and dropped only the redundant cleanup line.
+- T3.2: `FeaturedTilesRow.test.tsx` swapped `getByText('Capcom Classics').closest('button')` for `getByRole('button', { name: 'Capcom Classics' })` — RTL idiom + a11y-regression detector.
+- T3.3: deleted the `pytest.skip` placeholder `test_no_listxml_self_parents_every_machine` in `tests/api/test_routes_games.py`. A skip-only body inflates the test count without proving anything; the canonical coverage lives directly above at `test_cloneof_map_collapses_winners` (FP23 regression).
+- T3.4: tagged four tracemalloc-based streaming tests (`test_routes_activity.py` × 2, `test_cache.py`, `test_downloads.py`) with `@pytest.mark.slow`; registered the marker in `pyproject.toml`.
+- T3.5: deleted `frontend/src/test/fixtures.ts` — 7-line doc-only stub promising a fixture that didn't exist.
+- T3.6: `CmdKPalette.test.tsx` SECTION_ORDER export check now uses `expect(...).toBeDefined()` instead of `throw new Error(...)`.
+- T3.7: dropped the tautological `cart.getAttribute('href')` assertion in `AppShell.test.tsx`.
+- T3.8: `AppShell.test.tsx` active-link assertion switched from a `font-medium` Tailwind class check to `aria-current="page"` (a11y contract).
+- T3.9: deleted `frontend/src/components/__tests__/EscOverlayBehavior.test.tsx`. The suite regression-locked Radix's built-in `<Dialog>`/`<AlertDialog>` Escape-key behaviour — library-coverage, not project code.
+- T3.11: `playwright.config.ts` switched `trace: 'retain-on-failure'` to `trace: 'on-first-retry'`.
+- T3.12: pinned the surviving outcome in `HelpPage.test.tsx:160` FP25-J test (sanitizer keeps `<img>` with `src=null`); dropped the early-return branch that made the assertion vacuous on the alternate outcome.
+- T3.13: clarified the legacy-mtime fallback docstring in `tests/copy/test_recyclebin.py`'s `test_recycle_retention_purges_old_entries`.
+
+**Cluster R1 — closing-review fold-in** `d5918a0`: three comment-only corrections from the post-DS04 review on the changeset itself.
+
+- R1a: rewrote T3.3's `audit-trail` comment to point at the actual canonical test (`test_cloneof_map_collapses_winners` in the same file) instead of a non-existent `api/routes/spec.md`.
+- R1b: fixed the row-pitch number in `LibraryGrid.test.tsx`'s spacer-height comment (`280` px, not `~320` px).
+- R1c: corrected the HTML rationale in `AppShell.test.tsx` (`href` is inert on `<button>`, not "doesn't exist").
+
+**Out of scope / deferred:**
+
+- **T1.15** (audit's `_os.utime` legacy-fallback rewording) reframed to T3.13 — the legacy-mtime code path is still live and correctly exercised.
+- **T2.1–T2.4** (helper hoisting `_machine` / `_plan` / `_seed_existing_playlist` / `_entry` / `_make_job` to conftest) — the helpers are duplicated across 2–4 sites each, but file-cap acceptance criterion isn't met by helper hoisting alone (the two over-cap files need structural splits). Deferred to a future sweep.
+- **T2.7** (extract 50-line YAML literal from `tests/api/conftest.py` to a fixture file) — same rationale.
+- **T2.18** (remove 6 Linux-only OSError-skip clauses) — audit was incorrect; CI matrix is multi-OS (`ubuntu-latest, macos-latest, windows-latest` per `.github/workflows/ci.yml:20`). The OSError-skip clauses defend against Windows/macOS filesystem behaviour and are load-bearing. Dropped from scope.
+- **T3.10** (collapse `SettingsPage.test.tsx:506-587` DAT-confirm cluster) — the four tests assert different aspects of the confirm-flow and a structural collapse risks regression. The file remains over the hard cap and is covered by the conditional `[mame-curator-1034]` roadmap follow-up.
+- **Three conditional roadmap follow-ups** (`[mame-curator-1034/1035/1036]`) opened at DS04-spec-time for files that might stay over-cap after the sweep. Post-DS04 sizes: `SettingsPage.test.tsx` 686→665, `tests/copy/test_runner.py` 528→526, `tests/parser/test_dat.py` 453→447. All three stay over-cap (685 → 665 still > 500; 526 still > 500; 447 still > 300 soft cap). Entries remain `📋` for a future sweep.
+
+**Acceptance result:** 552 backend tests → 546 (-6 net: -2 FP25-C, -2 from parametrize collapses, -1 dup KeyboardInterrupt, -2 dup CopyError __str__, -1 pytest.skip placeholder, +2 from added retroarch core_only case + various). Frontend 280 → 278 (-2 from EscOverlayBehavior deletion; T1.8 + T2.12 + T3 net neutral). Coverage 86.94% (unchanged within tolerance). Three file caps still over hard cap, tracked as conditional follow-ups.
+
 ### FP27 — Tier 1 review fold-in: zombie features + data integrity (closed 2026-05-14)
 
 16 sub-bullets sourced from the 2026-05-14 11-lane `/indie-review`

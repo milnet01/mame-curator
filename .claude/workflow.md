@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | DS04 🚧 active (opened 2026-05-15; test-suite quality sweep, 51 sub-fixes across Tier 1/2/3 from the 5-lane test-audit on `06fe3b8`). FP27 closed 2026-05-14 (18 sub-fixes). Queue: **DS04 (this) → FP28 → DS02 → DS03 → P09 polish → post-v1**. |
-| **Active item ID** | DS04 |
-| **Active step** | Step 1 ✅ (spec + 1-pass cold-eyes; 10 findings folded) → Step 2 ✅ (baseline: 551 pytest + 1 skip, 279 vitest, 9 e2e) → Step 3+4 🚧 |
+| **Project phase** | DS04 closed 2026-05-15 (5 commits `dca57b2..d5918a0`; 37 sub-fixes across T1a/T1c/T2a/T2b+T3 + cluster R1; 546 backend / 278 frontend tests green). FP27 closed 2026-05-14 (18 sub-fixes). Queue continues **FP28 → DS02 → DS03 → P09 polish → post-v1**. Three conditional follow-ups `[mame-curator-1034/1035/1036]` for files still over-cap. |
+| **Active item ID** | (none — FP28 next) |
+| **Active step** | — |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-15 (DS04 opened; spec at `docs/specs/DS04.md`; queue reordered so the test sweep lands before the existing source-code structural DS02; conditional follow-up roadmap entries `[mame-curator-1034/1035/1036]` opened for files that may stay over-cap after DS04's helper hoisting) |
-| **Next gate** | DS04 close (then resume FP28 → DS02 → DS03 queue). |
+| **Last update** | 2026-05-15 (DS04 closed clean; 5 commits; cold-eyes spec converged loop 1; closing review surfaced 3 LOW/MEDIUM comment-drift findings on the changeset → folded as cluster R1; final five-gate green) |
+| **Next gate** | FP28 (Tier 2 hardening cohort from 2026-05-14 indie-review per `[mame-curator-1032]`). |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
