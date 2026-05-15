@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router'
 
 import { SettingsPage } from '../SettingsPage'
 import type { AppConfigResponse } from '@/api/types'
@@ -661,5 +662,68 @@ describe('SettingsPage', () => {
         ui: expect.objectContaining({ cart_clear_on_copy: 'never' }),
       }),
     )
+  })
+
+  // DS02 D1 — Settings active-tab persists in the URL `?tab=…`.
+  //
+  // Pre-fix: the active tab lives in `useState` (or Radix
+  // `defaultValue`), so reloading drops back to the default tab and
+  // copy-paste-share of a deep-link to a non-default tab is
+  // impossible. The Settings page should route the active tab
+  // through `useSearchParams` so `?tab=backup` reloads on the
+  // Backup & restore tab and clicking another tab rewrites the URL.
+  describe('DS02 D1 — tab state lives in URL ?tab=', () => {
+    function LocationSpy({ onLocation }: { onLocation: (s: string) => void }) {
+      const loc = useLocation()
+      onLocation(loc.pathname + loc.search)
+      return null
+    }
+
+    function renderSettings(initialPath: string, onLocation = () => {}) {
+      return render(
+        <MemoryRouter initialEntries={[initialPath]}>
+          <Routes>
+            <Route
+              path="/settings"
+              element={
+                <>
+                  <LocationSpy onLocation={onLocation} />
+                  <SettingsPage
+                    config={config}
+                    onPatch={() => {}}
+                    onSnapshotRestore={() => {}}
+                  />
+                </>
+              }
+            />
+          </Routes>
+        </MemoryRouter>,
+      )
+    }
+
+    it('?tab=backup activates the Backup & restore tab on load', () => {
+      renderSettings('/settings?tab=backup')
+      const tab = screen.getByRole('tab', { name: /^Backup & restore$/ })
+      // Radix Tabs sets data-state="active" on the selected trigger.
+      expect(tab.getAttribute('data-state')).toBe('active')
+    })
+
+    it('clicking a different tab rewrites the URL search param', async () => {
+      const seen: string[] = []
+      renderSettings('/settings', (s) => seen.push(s))
+      await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
+      // After click, the URL must include ?tab=filters (or equivalent
+      // canonical encoding). Assert via the captured location stream.
+      const last = seen[seen.length - 1]
+      expect(last).toMatch(/[?&]tab=filters\b/i)
+    })
+
+    it('default tab loads when ?tab= is absent', () => {
+      renderSettings('/settings')
+      // Pre-existing default is `paths`. Lock that behaviour so the
+      // useSearchParams wiring doesn't accidentally change defaults.
+      const tab = screen.getByRole('tab', { name: /^Paths$/ })
+      expect(tab.getAttribute('data-state')).toBe('active')
+    })
   })
 })

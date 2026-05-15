@@ -6,10 +6,10 @@
 |-------|-------|
 | **Project phase** | FP28 closed 2026-05-15 (Tier 2 hardening cohort; 14 sub-fixes + 3 closing-review corrections across 6 commits `cb35f26..72505d8`; tag `FP28-complete`). DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **DS02 → DS03 → P09 polish → post-v1**. Three conditional follow-ups `[mame-curator-1034/1035/1036]` for files still over-cap. |
 | **Active item ID** | DS02 |
-| **Active step** | 3 ⬜ (next: tests-first RED batch). Steps 1+2 ✅. |
+| **Active step** | 4 ⬜ (next: implementation). Steps 1+2+3 ✅. |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-15 (DS02 Step 1 + Step 2 shipped: spec at `docs/specs/DS02.md` with plan inlined; cold-eyes review loop ran 2 passes — Loop 1 caught 1 HIGH (`revision_key_of` wrongly dismissed) + 1 MED (arithmetic), Loop 2 clean. Scope: 18 sub-items across 7 clusters; 6 of the original 17 verified stale and dropped). |
-| **Next gate** | DS02 Step 3 — tests-first. Land RED batch for Clusters B (strings), C (a11y), D (Settings URL state), E (ErrorBoundary), F (CHANGELOG + version lockstep), G (revision_key_of memo + WorldState.bytes_by_machine). Cluster A (file splits) covered by existing tests at import paths. |
+| **Last update** | 2026-05-15 (DS02 Step 3 shipped: 11 test files (10 new + 2 extended), 29 RED tests failing on contract, 36 pre-existing tests still GREEN. Backend: F1 changelog + F2 version-lockstep + G1 lru_cache + G2 bytes_by_machine — 8 RED. Frontend: B1/B2 strings.loading + C1 skip-link + C2 main aria-label + C3 aria-live + C4 landmarks + D1 ?tab= URL state + E1/E2 ErrorBoundary nesting — 21 RED across 6 new test files + 2 extensions). |
+| **Next gate** | DS02 Step 4 — implementation. Order: Cluster A file-splits (mechanical) → B (strings) → C (a11y) → D (URL state) → E (ErrorBoundary nesting) → F (CHANGELOG + package.json + bump recipe) → G (lru_cache + bytes_by_machine). Drive all RED tests GREEN; keep pre-existing GREEN tests GREEN. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -36,7 +36,19 @@ All 9 steps ✅. 14 contract sub-fixes + 3 closing-review corrections shipped ac
   original 17 sub-items as verified-stale; final actionable count: 18
   across 7 clusters (A1-A5 + B1-B2 + C1-C4 + D1 + E1-E2 + F1-F2 + G1-G2).
 - ✅ Step 2 — plan inlined in spec body (FP05/07/08 precedent).
-- ⬜ Step 3 — tests-first.
+- ✅ Step 3 — tests-first RED batch: 10 new + 2 extended test files;
+  29 RED tests; 36 pre-existing tests still GREEN. Backend tests in
+  `tests/docs/test_changelog_versioning_paragraph.py`,
+  `tests/docs/test_version_lockstep.py`,
+  `tests/filter/test_picker_revision_memoization.py`,
+  `tests/api/test_world_state_bytes_cache.py`. Frontend in
+  `frontend/src/__tests__/strings_loading.test.ts`,
+  `frontend/src/__tests__/loading_announce.test.ts`,
+  `frontend/src/__tests__/landmark_labels.test.tsx`,
+  `frontend/src/__tests__/LibraryPage_error_boundary.test.ts`,
+  `frontend/src/components/layout/__tests__/AppShell.skip_link.test.tsx`,
+  plus extensions to `AppShell.test.tsx` (C2) and
+  `pages/__tests__/SettingsPage.test.tsx` (D1).
 - ⬜ Step 4 — implementation.
 - ⬜ Step 5/6 — closing `/audit` + `/indie-review`.
 - ⬜ Step 7 — closing-review cluster fold-in (if any).

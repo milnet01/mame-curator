@@ -54,4 +54,15 @@ describe('AppShell', () => {
     const cart = screen.getByRole('button', { name: /cart/i })
     expect(cart.getAttribute('aria-current')).not.toBe('page')
   })
+
+  // DS02 C2 — the <main> landmark must carry an aria-label so screen
+  // readers announce something more useful than "main, region". Per
+  // spec the value lives at `strings.a11y.mainLandmark`; the assertion
+  // anchors on the rendered text rather than the catalogue path so a
+  // future namespace move (e.g. landmarks/) does not break the test.
+  it('main landmark has aria-label "Main content"', () => {
+    renderShell()
+    const main = screen.getByRole('main')
+    expect(main.getAttribute('aria-label')).toMatch(/main content/i)
+  })
 })
