@@ -17,6 +17,140 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP28 — Tier 2 review fold-in: hardening + correctness (closed 2026-05-15)
+
+14 sub-fixes sourced from the 2026-05-14 11-lane `/indie-review` (Tier 2
+partition). Spec at [`docs/specs/FP28.md`](docs/specs/FP28.md); cold-eyes
+review converged through 3 loops (33 verified findings folded inline);
+closing `/indie-review` surfaced 3 findings (1 HIGH + 2 MEDIUM) folded
+as Cluster R1. Shipped across 6 commits (`cb35f26..72505d8`).
+
+Patterns addressed: concurrency invariants under non-loop-thread or
+parallel-session entry (`JobManager._emit`, `recycle_file`), regex
+mis-capture on nested parens (`_LICENSE_RE`) and false-positive on
+parenthetical-title region words (`REGION_RE`), mixed-content text
+truncation in `Machine.description`, half-wired dual-channel
+warnings in `filter.runner`, raw `KeyError` leaking past the typed-
+error boundary in `_apply_session`, missing boundary validation for
+`paths.retroarch` / `paths.retroarch_core` (PATCH → launch chain),
+missing browser-cache headers in `/media/*` proxy, wrong POSIX exit
+code from `serve` on Ctrl-C, bare `except Exception` around
+`create_app`, raw `ImportError` traceback from `refresh-inis`, and
+the wizard-vs-runtime trust-model split for INI refresh.
+
+**A — Concurrency hardening (A1/A2/A3)** `cb35f26`:
+
+- **A1:** hoisted `JobManager._loop` assignment from `start()` to
+  `__init__` (with optional `loop` parameter + fallback for sync
+  test fixtures), then enforced the loop-thread invariant at the top
+  of `_emit` via `RuntimeError` (so `python -O` cannot strip the
+  guard). Check sits after the existing `_current-is-None` early
+  return so FP21-L's no-op-on-cleared-current contract is preserved.
+- **A2:** wrapped the `recycle_file` critical section in a stdlib
+  `os.O_EXCL` lockfile at `recycle_root / f"{session_id}.lock"` —
+  serialises parallel sessions in the same `session_id` without
+  pulling a `filelock` dep. Orphan recovery threshold 60 s (~1200x
+  the same-fs p99); same-process contention falls through to a 10 ms
+  retry-sleep.
+- **A3:** under A2's lock, the `target_dir_existed` snapshot is
+  race-free; neither rollback path (manifest-write OSError, post-
+  move OSError) can rmdir a directory another session relies on.
+  Inline comments at the snapshot site and the lock-acquire credit
+  the invariant.
+
+**B — Correctness regex + extraction + typed errors (B1–B5)** `a85307d`:
+
+- **B1:** rewrote `_LICENSE_RE`'s developer capture from `.+?` to
+  `[^()]+?` — nested-parens inputs like `"Atari (JSA III) (Williams license)"`
+  now correctly bind publisher=`"Atari (JSA III)"`, developer=`"Williams"`
+  instead of mis-binding to `"Atari"` / `"JSA III) (Williams"`.
+- **B2:** tightened `REGION_RE` with a two-branch form — after the
+  region token, allow either (whitespace + comma/close-paren/EOL —
+  `(World)`, `(USA, Set 2)`) or (whitespace + non-uppercase char —
+  `(World 910411)`, `(Europe v2.1)`). Rejects `(World Heroes 2)`
+  because `Heroes` starts with an uppercase H. The lookahead branch
+  was added during testing after the initial single-branch form
+  broke real MAME `(Region YearOrVersion)` patterns.
+- **B3:** switched `Machine.description`'s source from
+  `description_elem.text` to `"".join(description_elem.itertext()).strip()`
+  — mixed-content `<description>Foo <i>bar</i> baz</description>`
+  now yields `"Foo bar baz"` rather than truncating at `"Foo "`.
+  Defensive (MAME DATs don't currently ship mixed-content).
+- **B4:** wired `logger.warning(msg)` alongside the existing
+  `FilterResult.warnings.append(msg)` at the three override-
+  rejection paths in `filter/runner.py`. Dual-channel contract per
+  `filter/spec.md` § Phase C.
+- **B5:** wrapped the `sessions.sessions[sessions.active]` subscript
+  in `_apply_session` and re-raised bare `KeyError` as
+  `SessionsError(FilterError)`. Reachable only via Pydantic v2
+  `model_copy` (which skips validators); direct construction is
+  blocked by the existing `model_validator`.
+
+**C — Boundary hardening (C1/C2)** `0281695`:
+
+- **C1:** extended `_validate_paths` to gate `paths.retroarch` (POSIX
+  `os.access(p, os.X_OK)` / Windows `shutil.which`) and
+  `paths.retroarch_core` (`.exists()` on both platforms — cores are
+  `dlopen`/`LoadLibrary`'d, not directly executable). Closes the
+  PATCH-config → launch chain — pre-fix a malicious PATCH could land
+  `paths.retroarch=/usr/bin/evil-thing` which `api/routes/games.py:275`
+  would then hand to `subprocess.run`.
+- **C2:** replaced `media_proxy`'s hardcoded `media_type="image/png"`
+  with `mimetypes.guess_type(str(path))[0] or "image/png"` (suffix-
+  sniffed) and added `Cache-Control: public, max-age=2592000, immutable`
+  per design § 6.3 ("Cache is permanent by default"). Pre-fix every
+  page-load re-fetched libretro thumbnails despite the permanent
+  on-disk cache.
+
+**D — CLI exit-code + error-surface drift (D1/D2/D3)** `8fe7641`:
+
+- **D1:** wrapped `uvicorn.run` in `try/except KeyboardInterrupt:
+  return 130` (defence-in-depth — uvicorn currently catches Ctrl-C
+  internally) and changed the trailing return from 0 to 130 so the
+  function honours POSIX convention regardless of which side ends up
+  catching the signal.
+- **D2:** narrowed the bare `except Exception` around `create_app()`
+  to `(ConfigError, ParserError, FilterError)`. Programmer errors
+  (RuntimeError, AttributeError, ...) now propagate as tracebacks
+  instead of being squashed into a one-line stderr message. Per
+  coding-standards § 9 typed-error hierarchy: the traceback IS the
+  actionable signal.
+- **D3:** lifted the three inline imports (asyncio, httpx,
+  mame_curator.updates) in `_cmd_refresh_inis` into a `try/except
+  ImportError` mirroring `_cmd_serve`'s guard. Defence-in-depth
+  pattern consistency — httpx is a top-level dep so the ImportError
+  path only fires in exotic install states (pip install --no-deps,
+  broken wheel, partial editable install).
+
+**E — Design § 6.7 deferral (E1)** `8dcae9d`:
+
+- **E1:** new ADR at
+  [`docs/decisions/0004-ini-refresh-trust-model.md`](docs/decisions/0004-ini-refresh-trust-model.md)
+  recording the wizard-vs-refresh split (§ 6.6 promised mirrors +
+  sha256 for the wizard bootstrap; § 6.7 runtime refresh stays
+  silent on integrity), current refresh trust posture (HTTPS-only,
+  AntoPISA repo, no per-file sha256), and the post-v1 hardening
+  path. One-line cross-link added to design.md § 6.7 so the next
+  reviewer doesn't re-raise the conflated flag.
+
+**R1 — Closing-review fold-in (3 corrections)** `72505d8`:
+
+- **R1.1:** C2 tests were dead — `if status != 200: return` short-
+  circuited the cache-control assertion without raising, and the
+  sniff test was a bare `pytest.xfail` with no body (both would
+  have passed against pre-fix code, failing acceptance criterion 9's
+  red-pre-fix / green-post-fix demand). Rewrote both tests using
+  the existing `tests/api/test_routes_media.py` respx mock pattern.
+- **R1.2:** D2's narrowed-except is semantically dead at the
+  immediate call site — `create_app` is currently a pure FastAPI
+  factory and config validation happens inside the async lifespan.
+  Amended the inline comment to name the dead-code constraint as
+  defence-in-depth for a future refactor.
+- **R1.3:** FP28.md § B2 spec text described a single-branch regex
+  tightening; updated the spec body to document the two-branch
+  lookahead form that shipped, naming the regression that drove
+  the refinement.
+
 ### DS04 — Test-suite quality sweep (closed 2026-05-15)
 
 37 sub-fixes sourced from the 2026-05-15 5-lane test-suite audit

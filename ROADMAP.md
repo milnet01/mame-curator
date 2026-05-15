@@ -192,7 +192,7 @@ wave lands.
   Lanes: backend, frontend, docs.
   Source: indie-review-2026-05-14 Tier 1.
 
-- 📋 [mame-curator-1032] **FP28 — Tier 2 review fold-in: hardening
+- ✅ [mame-curator-1032] **FP28 — Tier 2 review fold-in: hardening
   + correctness.**
   Bundles ~12 second-tier findings from the same sweep. Concurrency:
   `JobManager._emit` mutates `lifecycle_history` + `subscribers`
