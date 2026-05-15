@@ -42,6 +42,7 @@ The Rule of Three: **extract a helper on the third call-site, not the first or s
 - **`src/` layout, single `pyproject.toml`.** Created with `uv init --package`. Tests in `tests/`, never inside `src/`.
 - **Backend Python file size:** soft cap **300 lines**, hard cap **500 lines**. Hitting the hard cap means the file does too much — split it before adding more.
 - **Frontend React component file size:** soft cap **200 lines**, hard cap **350 lines**. Hitting the hard cap means the component has too many responsibilities — extract sub-components or hooks.
+- **Test files follow the same caps as the layer they live in** (Python tests: 500/300; frontend test files: 500/300 — relaxed from the React component cap to acknowledge that test files don't carry render responsibilities). Test-file caps are explicit because §15 applies the precedence rule across the whole document and the test-cap question was unresolved at DS04 close. (Added in DS05 Cluster D2.)
 - **Function size:** soft cap **50 lines**, hard cap **80 lines**. A function over 80 lines almost always wants to be 2-3 functions with intent-revealing names.
 - **One concept per file.** A module named `parser.py` parses things. If you find yourself adding a `notify_user()` helper to it, it belongs elsewhere.
 

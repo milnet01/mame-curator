@@ -47,17 +47,6 @@ _CLUSTER_C = (
 _ALL_TARGETS = _CLUSTER_A + _CLUSTER_B + _CLUSTER_C
 
 
-# DS05 Step 3 RED batch — xfail-strict-false until Step 4 splits land.
-# `strict=False` tolerates per-case XPASS as the clusters land
-# incrementally; the marker is removed entirely when all four clusters
-# are GREEN. Pattern mirrors FP27 Tier 1's per-batch xfail discipline.
-_DS05_RED = pytest.mark.xfail(
-    strict=False,
-    reason="DS05 Step 3 RED batch — GREEN after Step 4 splits land.",
-)
-
-
-@_DS05_RED
 @pytest.mark.parametrize(("rel_path", "max_lines"), _ALL_TARGETS)
 def test_ds05_split_target_under_cap(rel_path: str, max_lines: int) -> None:
     """Every DS05 split target exists and respects its line cap."""
@@ -74,7 +63,6 @@ def test_ds05_split_target_under_cap(rel_path: str, max_lines: int) -> None:
     )
 
 
-@_DS05_RED
 @pytest.mark.parametrize(("rel_path", "_cap"), _ALL_TARGETS)
 def test_ds05_split_target_has_test_bodies(rel_path: str, _cap: int) -> None:
     """No DS05 split target is an empty husk — each has at least one test."""

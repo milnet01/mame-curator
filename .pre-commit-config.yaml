@@ -60,3 +60,16 @@ repos:
         language: system
         pass_filenames: false
         types: [python]
+
+      # DS05 Cluster D — permanent fix for the DS02 R2 lesson
+      # (CI-only api-type-sync gate caught what local missed
+      # after DS02 A5 split schemas.py into sibling modules).
+      # Runs on every commit because TS-side changes can also
+      # introduce drift; the script discovers its own inputs via
+      # PYTHON_SOURCES so pass_filenames adds nothing.
+      - id: check-api-types-sync
+        name: check-api-types-sync
+        entry: python3 tools/check_api_types_sync.py
+        language: system
+        pass_filenames: false
+        always_run: true
