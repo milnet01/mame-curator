@@ -28,9 +28,9 @@ describe('AppShell', () => {
   it('renders Cart as a button, not a navigation link', () => {
     renderShell({ cartCount: 3 })
     const cart = screen.getByRole('button', { name: /cart/i })
-    // DS04 T3.7: dropped the redundant `cart.getAttribute('href')` check.
-    // `getByRole('button')` already proves the element is a <button>;
-    // <button> elements don't have an `href` attribute, so the prior
+    // DS04 T3.7 + R1c: dropped the redundant `cart.getAttribute('href')`
+    // check. `getByRole('button')` already proves the element is a
+    // <button>, and `href` is inert on <button> elements, so the prior
     // assertion was tautological.
     expect(cart.tagName).toBe('BUTTON')
   })

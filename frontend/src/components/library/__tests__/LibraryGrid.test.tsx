@@ -105,9 +105,11 @@ describe('LibraryGrid', () => {
     )
     expect(spacer).toBeTruthy()
     expect((spacer as HTMLElement).style.height).toMatch(/^\d+px$/)
-    // For a 3,000-card masonry grid at 5 columns × ~320 px row pitch,
-    // the spacer height should be ≥ ~190,000 px (well above the 600 px
-    // visible viewport stubbed in beforeAll). Anything under that
+    // For a 3,000-card masonry grid at 5 columns × 280 px row pitch
+    // (LAYOUT_DEFAULTS.masonry.rowHeightPx in `LibraryGrid.tsx:36`),
+    // the spacer height should be ≈ 168,000 px (well above the 600 px
+    // visible viewport stubbed in beforeAll). Anything under
+    // 10,000 px (two orders of magnitude below the expected value)
     // means the virtualizer is rendering the whole list inline (no
     // virtualization) or measuring against the wrong source.
     const heightPx = parseInt((spacer as HTMLElement).style.height, 10)

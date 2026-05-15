@@ -212,12 +212,16 @@ def test_fp21_j_launch_returns_typed_game_not_found_for_unknown(client: Any) -> 
     assert resp.json()["code"] == "game_not_found"
 
 
-# DS04 T3.3: deleted `test_no_listxml_self_parents_every_machine`. The
-# function body was a pure `pytest.skip(...)` documenting that the
-# coverage lived at `tests/filter/test_runner.py:156` (runner-level
-# `cloneof_map={}` self-parent invariant). A skip-only placeholder
-# inflates the test count without proving anything; the cross-reference
-# now lives at `src/mame_curator/api/routes/spec.md` instead.
+# DS04 T3.3 + R1a: deleted `test_no_listxml_self_parents_every_machine`.
+# The function body was a pure `pytest.skip(...)` and its rationale
+# pointed at a line in `tests/filter/test_runner.py` that did not pin
+# the contract it claimed (line 156 is `test_override_target_must_be_
+# same_parent_clone_group`, populated cloneof_map only). The actual
+# inverse coverage — "non-empty cloneof_map ⇒ winners < machines" —
+# lives directly above this comment at `test_cloneof_map_collapses_
+# winners`, which exercises the FP23 regression invariant. A
+# regression that empties cloneof_map (the no-listxml symptom) makes
+# that test fail because winners would equal machines.
 
 
 def test_validate_round_trip(client: Any) -> None:
