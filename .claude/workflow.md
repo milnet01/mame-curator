@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | DS04 closed 2026-05-15 (5 commits `dca57b2..d5918a0`; 37 sub-fixes across T1a/T1c/T2a/T2b+T3 + cluster R1; 546 backend / 278 frontend tests green). FP27 closed 2026-05-14 (18 sub-fixes). Queue continues **FP28 → DS02 → DS03 → P09 polish → post-v1**. Three conditional follow-ups `[mame-curator-1034/1035/1036]` for files still over-cap. |
-| **Active item ID** | (none — FP28 next) |
-| **Active step** | — |
+| **Project phase** | FP28 opened 2026-05-15 (Tier 2 hardening cohort from 2026-05-14 indie-review per `[mame-curator-1032]`; 14 sub-fixes across 5 clusters: A1–A3 concurrency, B1–B5 correctness, C1–C2 boundary, D1–D3 CLI, E1 deferral-via-ADR). DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **FP28 → DS02 → DS03 → P09 polish → post-v1**. Three conditional follow-ups `[mame-curator-1034/1035/1036]` for files still over-cap. |
+| **Active item ID** | FP28 |
+| **Active step** | 1 ✅ → 2 ✅ → 3 ✅ → 4 (implementation) pending. |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-15 (DS04 closed clean; 5 commits; cold-eyes spec converged loop 1; closing review surfaced 3 LOW/MEDIUM comment-drift findings on the changeset → folded as cluster R1; final five-gate green) |
-| **Next gate** | FP28 (Tier 2 hardening cohort from 2026-05-14 indie-review per `[mame-curator-1032]`). |
+| **Last update** | 2026-05-15 (FP28 Step 1 closed: spec at `docs/specs/FP28.md` converged through 3 cold-eyes loops — loop 1 surfaced 21 verified findings; loop 2 surfaced 11 more (including 2 critical test-construction bugs caught by Lane 4: Test 8 FieldError shape `body["fields"]` not `body["errors"]`, and Test 12 monkeypatch over-engineered since httpx imports inline); loop 3 surfaced 1 HIGH (A1 self._loop already exists at L154; fix is move from start() to __init__, not "new attribute") + 2 LOW, all folded. Spec at 184 lines, implementer-ready). |
+| **Next gate** | FP28 Step 2 — plan (likely inlined in spec body per FP05/07/08/27 precedent). |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -20,6 +20,53 @@
 While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
+
+**FP28 — Tier 2 review fold-in: hardening + correctness (opened 2026-05-15)**
+
+- ✅ Step 1 — spec at `docs/specs/FP28.md` (184 lines); 14 cited
+  findings grep-verified against HEAD; cold-eyes review converged
+  through 3 loops (33 total verified findings folded: 21 in loop 1,
+  11 in loop 2, 1 + 2 LOW in loop 3). Notable late-loop catches:
+  Lane 4 loop 2 caught Test 8 wrong FieldError shape and Test 12
+  over-engineered monkeypatch (inline `import httpx` at L575 is
+  the trigger; transitive importer invalidation not needed);
+  Lane 1 loop 3 caught A1 "new attribute" framing that conflicted
+  with existing `self._loop` at `api/jobs.py:154`.
+- ✅ Step 2 — plan inlined in spec body as `## Implementation plan (Step 2)`
+  section: five commit batches (A concurrency / B correctness /
+  C boundary / D CLI / E ADR) plus batch 0 for RED tests; per-batch
+  five-gate verification; phase-closing commit pattern documented.
+- ✅ Step 3 — tests-first. 27 test functions (parametrised across the 14
+  contract bullets) across 11 new files + 1 extension to existing
+  `tests/docs/test_design_spec_consistency.py`. Per FP27 precedent
+  the project does NOT use xfail markers — tests fail naturally in
+  RED state and pass post-fix. Verified: B1 nested-paren case red;
+  B2 `(World Heroes 2)` red; B3 mixed-content red; B4 three branches
+  red (zero logger.warning records); B5 raw KeyError observed; C1
+  PATCH returns 200 not 422; C2 missing Cache-Control header; D3
+  raw ModuleNotFoundError; E1a/E1b ADR + cross-link both missing.
+  Test files: `tests/api/test_fp28_jobs_loop_thread.py`,
+  `tests/copy/test_fp28_recyclebin_lock.py`,
+  `tests/parser/test_fp28_license_re.py`,
+  `tests/filter/test_fp28_region_re.py`,
+  `tests/parser/test_fp28_description_mixed_content.py`,
+  `tests/filter/test_fp28_runner_logger.py`,
+  `tests/filter/test_fp28_apply_session_error.py`,
+  `tests/api/test_fp28_validate_paths_retroarch.py`,
+  `tests/api/test_fp28_media_proxy_headers.py` (C2 sniff is xfail
+  placeholder pending Step 4 fixture wiring),
+  `tests/cli/test_fp28_serve_signal.py`,
+  `tests/cli/test_fp28_refresh_inis_imports.py`.
+- 🚧 Step 4 — implementation across 5 commit batches per spec
+  § Implementation plan (A concurrency → B correctness → C boundary
+  → D CLI → E ADR).
+- ⬜ Step 3 — tests-first (14 tests numbered 1–14 in spec § Tests).
+- ⬜ Step 4 — implementation across 5 clusters: A (concurrency),
+  B (correctness), C (boundary hardening), D (CLI), E (ADR).
+- ⬜ Step 5/6 — closing `/audit` + `/indie-review`.
+- ⬜ Step 7 — closing-review cluster fold-in (if any).
+- ⬜ Step 8 — final five-gate green.
+- ⬜ Step 9 — close + tag `FP28-complete` (annotated).
 
 **FP27 — Tier 1 review fold-in: zombie features + data integrity (closed 2026-05-14)**
 
