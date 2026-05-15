@@ -587,6 +587,10 @@ export const strings = {
     networkTitle: 'Connection problem',
     networkBody:
       'The backend did not respond. Make sure `mame-curator serve` is running.',
+    /** DS02 E1: fallback shown when the alternatives drawer's render tree throws. */
+    alternativesFailed: 'Alternatives unavailable',
+    /** DS02 E2: fallback shown when the copy modal's render tree throws. */
+    copyModalFailed: 'Copy options unavailable',
     /** Map of `ApiError.code` → friendly message. Unmapped codes fall back to `detail`.
      *
      * Keys MUST exist as `code = "..."` ClassVar values in

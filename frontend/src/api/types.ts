@@ -3,7 +3,7 @@
  *
  * The `interface` declarations stay here because `tools/check_api_types_sync.py`
  * (the CI gate) parses this file for field parity against the Pydantic side.
- * The zod runtime validators were lifted to `./schemas.ts` in DS02 A3 to keep
+ * The zod runtime validators were lifted to `./schemas.ts` in DS02 A1 to keep
  * both files under the 500-line cap; this file re-exports them at the bottom
  * so call-sites can keep importing `{ FooType, FooSchema }` from `@/api/types`
  * unchanged. See `docs/specs/P06.md` § "API contract surface".

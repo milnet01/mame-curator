@@ -389,7 +389,25 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
       </div>
 
       {openedWinner && (
-        <ErrorBoundary resetKey={openedShortName}>
+        <ErrorBoundary
+          resetKey={openedShortName}
+          fallback={(error, retry) => (
+            <div
+              role="alert"
+              className="flex flex-col items-center gap-2 rounded border border-destructive/40 bg-destructive/10 p-4 text-sm"
+            >
+              <p className="font-semibold">{strings.errors.alternativesFailed}</p>
+              <p className="text-xs text-muted-foreground">{error.message}</p>
+              <button
+                type="button"
+                onClick={retry}
+                className="rounded border bg-background px-3 py-1 text-xs hover:bg-muted"
+              >
+                {strings.common.retry}
+              </button>
+            </div>
+          )}
+        >
           <AlternativesDrawer
             open={openedShortName !== null}
             onOpenChange={(o) => !o && setOpenedShortName(null)}
@@ -428,7 +446,24 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
       )}
 
       {copySession.state && (
-        <ErrorBoundary>
+        <ErrorBoundary
+          fallback={(error, retry) => (
+            <div
+              role="alert"
+              className="flex flex-col items-center gap-2 rounded border border-destructive/40 bg-destructive/10 p-4 text-sm"
+            >
+              <p className="font-semibold">{strings.errors.copyModalFailed}</p>
+              <p className="text-xs text-muted-foreground">{error.message}</p>
+              <button
+                type="button"
+                onClick={retry}
+                className="rounded border bg-background px-3 py-1 text-xs hover:bg-muted"
+              >
+                {strings.common.retry}
+              </button>
+            </div>
+          )}
+        >
           <CopyModal
             open={true}
             onOpenChange={(open) => !open && copySession.reset()}

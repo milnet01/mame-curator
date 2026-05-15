@@ -61,4 +61,14 @@ describe('DS02 E1/E2 — modal ErrorBoundary nesting', () => {
       `CopyModal is enclosed by <${lastOpen?.[1]}>, expected ErrorBoundary`,
     ).toBe('ErrorBoundary')
   })
+
+  // R1b: spec § E1/E2 names specific fallback strings — assert they're wired,
+  // not the generic boundary fallback.
+  it('AlternativesDrawer boundary uses the alternativesFailed fallback string', () => {
+    expect(libraryPageSource).toMatch(/strings\.errors\.alternativesFailed/)
+  })
+
+  it('CopyModal boundary uses the copyModalFailed fallback string', () => {
+    expect(libraryPageSource).toMatch(/strings\.errors\.copyModalFailed/)
+  })
 })
