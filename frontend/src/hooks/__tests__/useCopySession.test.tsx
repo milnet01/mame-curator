@@ -334,15 +334,13 @@ describe('useCopySession', () => {
 // ---------------------------------------------------------------------------
 
 describe('FP27 A4 — useCopySession.resolveConflict removed', () => {
-  beforeEach(() => {
-    MockEventSource.instances = []
-    ;(globalThis as unknown as { EventSource: typeof MockEventSource }).EventSource =
-      MockEventSource
-  })
-
-  afterEach(() => {
-    cleanup()
-  })
+  // DS04 T1.3: the file-level `beforeEach` at line 57 already stubs
+  // globalThis.EventSource via `vi.stubGlobal` (with matching
+  // `vi.unstubAllGlobals` in afterEach), and RTL's auto-cleanup covers
+  // teardown. The nested hooks that were here bypassed `vi.stubGlobal`
+  // (direct globalThis mutation that the file-level
+  // `vi.unstubAllGlobals` couldn't see) and added redundant cleanup.
+  // Both removed; the file-level setup applies to nested describes too.
 
   it('hook return value has no resolveConflict key', () => {
     const { result } = renderHook(() => useCopySession(), {

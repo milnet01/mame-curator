@@ -41,12 +41,13 @@ test('FP26-Q: cold-start backend outage produces one toast (FP25-G dedup window)
 
   await page.goto('/')
 
-  // The dedup window is 1500 ms — wait long enough for the burst to
-  // complete and the deduper to skip duplicates.
-  await page.waitForTimeout(2500)
-
-  // Sonner renders each toast as a `<li data-sonner-toast>` inside
-  // `[data-sonner-toaster]`. After FP25-G dedup, exactly one survives.
+  // DS04 T1.11: Sonner renders each toast as a `<li data-sonner-toast>`
+  // inside `[data-sonner-toaster]`. After the FP25-G dedup window
+  // (1500 ms) exactly one survives. Playwright's locator auto-polls up
+  // to its default 5 s timeout, comfortably covering the dedup window —
+  // no fixed `waitForTimeout` needed. If a regression breaks dedup, the
+  // count stays > 1 and the assertion fails at the timeout instead of
+  // racing on a hardcoded sleep.
   const toasts = page.locator('[data-sonner-toast]')
   await expect(toasts).toHaveCount(1)
 })

@@ -117,11 +117,13 @@ describe('BackupTab (FP12 § J + FP13 § B1/B3)', () => {
     const onImport = vi.fn()
     render(<BackupTab onExport={() => {}} onImport={onImport} />)
     const input = screen.getByLabelText(/^Import/) as HTMLInputElement
-    // Build a 6 MB blob — over the 5 MB cap. Content can be empty padding;
-    // size check happens before parse, so the body never matters.
-    const huge = new File(['x'.repeat(6 * 1024 * 1024)], 'huge.json', {
-      type: 'application/json',
-    })
+    // DS04 T1.12: stub `File.size` instead of allocating 6 MiB of bytes.
+    // The size check is the only thing the cap branch reads — the body
+    // never matters — so backing the File with a single-byte payload
+    // and forcing a 6 MiB size keeps the assertion semantics identical
+    // without burning ~12 MB of jsdom RAM per test run.
+    const huge = new File(['x'], 'huge.json', { type: 'application/json' })
+    Object.defineProperty(huge, 'size', { value: 6 * 1024 * 1024 })
     await userEvent.upload(input, huge)
     expect(screen.getByRole('alert')).toHaveTextContent(/too large/i)
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
