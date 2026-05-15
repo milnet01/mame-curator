@@ -1,0 +1,24 @@
+{
+  "lanes": [
+    {
+      "name": "ds05-spec",
+      "doc_paths": [
+        "docs/specs/DS05.md"
+      ],
+      "cross_reference_docs": [
+        "CLAUDE.md",
+        "docs/standards/coding-standards.md",
+        "docs/journal/DS02.md",
+        "docs/specs/DS02.md"
+      ],
+      "cited_code_paths": [
+        "frontend/src/pages/__tests__/SettingsPage.test.tsx",
+        "tests/copy/test_runner.py",
+        "tests/parser/test_dat.py",
+        "tests/parser/conftest.py",
+        "tools/check_api_types_sync.py"
+      ],
+      "summary": "DS05 — Test-file seam-split sweep (single-spec review lane)"
+    }
+  ]
+}

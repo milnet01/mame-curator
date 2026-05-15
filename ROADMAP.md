@@ -61,40 +61,40 @@ wave lands.
   api+media+downloads / frontend components+hooks+lib / frontend
   pages+e2e+strings).
 
-- 📋 [mame-curator-1034] **`SettingsPage.test.tsx` seam-split.**
-  Conditional follow-up opened during DS04. If DS04's T2.6 (config
-  fixture extract) + T2.12 (retroarch parametrize) + T3.10
-  (triple-test collapse) don't bring the file under the project's
-  500-line hard cap, this opens to split it along the
-  config-tab / backup-tab / sessions-tab seam. **Closes
-  immediately at DS04 close-phase if the file fits.**
-  Layman: A potential follow-up to split a long test file into
-  pieces if a smaller cleanup pass doesn't shrink it enough.
+- 🚧 [mame-curator-1037] **DS05 — Test-file seam-split sweep.**
+  Bundles three conditional follow-ups from DS04 (1034 / 1035 /
+  1036) into a single sweep per the FP27 / FP28 / DS02 precedent
+  of consolidating similar work. Four clusters at Step 1:
+  Cluster A splits `SettingsPage.test.tsx` (742 → ≤500) into
+  three files along an L72-L349 + L520-602 seam; Cluster B splits
+  `tests/copy/test_runner.py` (526 → ≤500) into two files along
+  the existing `# --- Section ---` headers; Cluster C splits
+  `tests/parser/test_dat.py` (447 → ≤300) into three files along
+  basic / security / validation; Cluster D wires
+  `tools/check_api_types_sync.py` into `.pre-commit-config.yaml`
+  as a permanent fix for the DS02 R2 lesson ("CI-only gate caught
+  what local missed"), plus a one-line `coding-standards.md` § 2
+  extension stating test-file caps explicitly. Two cold-eyes
+  review loops converged on the current spec (loop 1: 3 HIGH +
+  3 MED + 1 LOW folded; loop 2: 2 HIGH + 4 MED + 3 LOW folded).
+  Layman: A tidy-up of three oversized test files (splitting
+  them into smaller themed files) plus a permanent fix that
+  prevents the next "CI catches what local missed" embarrassment.
+  Nothing changes for you as a user; the same tests still run
+  after, just organised across more files.
   Kind: refactor.
-  Lanes: frontend tests.
-  Source: test-audit-2026-05-15.
+  Lanes: backend tests, frontend tests, build.
+  Source: test-audit-2026-05-15 (1034/1035/1036) +
+  DS02-R2-post-mortem (Cluster D).
 
-- 📋 [mame-curator-1035] **`tests/copy/test_runner.py` seam-split.**
-  Conditional follow-up opened during DS04. If DS04's T1.7 (dead
-  monkeypatch removal) + T2 helper hoisting don't bring the file
-  under 500 lines, this opens to split it along the
-  preflight / executor / runner seam. **Closes immediately at
-  DS04 close-phase if the file fits.**
-  Layman: Same as 1034, for a different test file.
-  Kind: refactor.
-  Lanes: backend tests.
-  Source: test-audit-2026-05-15.
+- 🚧 [mame-curator-1034] **`SettingsPage.test.tsx` seam-split** —
+  folded into DS05 (Cluster A). Status flips to ✅ on DS05 close.
 
-- 📋 [mame-curator-1036] **`tests/parser/test_dat.py` split.**
-  Conditional follow-up: split the 453-line file along the
-  basic / security / validation seam. The audit flagged this as
-  pure-structural polish; not closed inside DS04 because the file
-  is below the 500-line *hard* cap (over the 300-line *soft* cap).
-  Layman: A future tidy-up to split one of the bigger test files
-  into themed chunks. Cosmetic; doesn't change behavior.
-  Kind: refactor.
-  Lanes: backend tests.
-  Source: test-audit-2026-05-15.
+- 🚧 [mame-curator-1035] **`tests/copy/test_runner.py` seam-split** —
+  folded into DS05 (Cluster B). Status flips to ✅ on DS05 close.
+
+- 🚧 [mame-curator-1036] **`tests/parser/test_dat.py` split** —
+  folded into DS05 (Cluster C). Status flips to ✅ on DS05 close.
 
 - ✅ [mame-curator-1021] **DS02 — Tier 3 structural debt sweep.**
   Closed 2026-05-15 (`c0a6ad6..eb000e4`). 18 sub-bullets across 7
