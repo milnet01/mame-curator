@@ -1,0 +1,20 @@
+{
+  "version_source": "pyproject.toml",
+  "version_pattern": "^version\\s*=\\s*\"([0-9]+\\.[0-9]+\\.[0-9]+)\"",
+  "files": [
+    {
+      "path": "pyproject.toml",
+      "pattern": "version = \"{OLD}\"",
+      "replace": "version = \"{NEW}\""
+    },
+    {
+      "path": "frontend/package.json",
+      "pattern": "\"version\": \"{OLD}\"",
+      "replace": "\"version\": \"{NEW}\""
+    }
+  ],
+  "post_check": "uv run pytest tests/docs/test_version_lockstep.py -q",
+  "todos": [
+    "Add `## [{NEW}] — {TODAY}` section to CHANGELOG.md with the body of phase changes since the previous tag"
+  ]
+}

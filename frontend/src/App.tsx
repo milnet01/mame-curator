@@ -96,7 +96,11 @@ function SessionsRoute() {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
 
   if (sessions.isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading sessions…</div>
+    return (
+      <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+        {strings.loading.sessions}
+      </div>
+    )
   }
   if (sessions.error) {
     return <div className="p-4 text-sm text-destructive">{strings.sessions.loadError}</div>
@@ -145,7 +149,11 @@ function ActivityRoute() {
   const activity = useActivity(page, ACTIVITY_PAGE_SIZE)
 
   if (activity.isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading activity…</div>
+    return (
+      <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+        {strings.loading.activity}
+      </div>
+    )
   }
   if (activity.error) {
     return <div className="p-4 text-sm text-destructive">{strings.activity.loadError}</div>
@@ -164,7 +172,11 @@ function ActivityRoute() {
 function StatsRoute() {
   const stats = useStats()
   if (stats.isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading stats…</div>
+    return (
+      <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+        {strings.loading.stats}
+      </div>
+    )
   }
   if (stats.error || !stats.data) {
     return <div className="p-4 text-sm text-destructive">{strings.stats.loadError}</div>
@@ -186,7 +198,11 @@ function HelpRoute() {
   const topic = useHelpTopic(selectedSlug)
 
   if (index.isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading help…</div>
+    return (
+      <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+        {strings.loading.help}
+      </div>
+    )
   }
   if (index.error) {
     return <div className="p-4 text-sm text-destructive">{strings.help.loadError}</div>
@@ -264,7 +280,9 @@ function SettingsRoute() {
 
   if (!config.data) {
     return (
-      <div className="p-4 text-sm text-muted-foreground">Loading settings…</div>
+      <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+        {strings.loading.settings}
+      </div>
     )
   }
 
@@ -383,7 +401,11 @@ function ShellWithPalette() {
             their consumer sites (LibraryPage's drawer, CopyModal). */}
         <ErrorBoundary resetKey={location.pathname}>
           <Suspense
-            fallback={<div className="p-8 text-sm text-muted-foreground">Loading…</div>}
+            fallback={
+              <div role="status" aria-live="polite" className="p-8 text-sm text-muted-foreground">
+                {strings.loading.generic}
+              </div>
+            }
           >
             <Routes>
               <Route

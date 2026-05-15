@@ -141,7 +141,10 @@ def list_games(
 
     filtered = [s for s in winners if keep(s)]
     total = len(filtered)
-    total_bytes = sum(sum(r.size or 0 for r in world.machines[s].roms) for s in filtered)
+    # DS02 G2: use the precomputed `bytes_by_machine` mapping rather
+    # than walking every ROM in every selected Machine. Drops the
+    # per-request cost from O(M * R) to O(|filtered|).
+    total_bytes = sum(world.bytes_by_machine.get(s, 0) for s in filtered)
     start = (page - 1) * page_size
     end = start + page_size
     page_items = tuple(_card(world.machines[s], world) for s in filtered[start:end])
@@ -381,7 +384,8 @@ def get_stats(world: WorldState = Depends(get_world)) -> Stats:
             by_decade[f"{(m.year // 10) * 10}s"] += 1
         by_publisher[m.publisher or ""] += 1
         by_driver_status[m.driver_status.value if m.driver_status else "unknown"] += 1
-        total_bytes += sum(r.size or 0 for r in m.roms)
+        # DS02 G2: use the precomputed cache.
+        total_bytes += world.bytes_by_machine.get(short, 0)
     top_publishers = dict(sorted(by_publisher.items(), key=lambda x: -x[1])[:10])
     return Stats(
         by_genre=dict(by_genre),

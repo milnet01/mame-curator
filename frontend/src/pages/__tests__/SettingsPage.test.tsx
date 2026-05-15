@@ -1,10 +1,23 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import type { RenderOptions } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router'
 
 import { SettingsPage } from '../SettingsPage'
 import type { AppConfigResponse } from '@/api/types'
+
+// DS02 D1 — SettingsPage now calls `useSearchParams()` and therefore
+// must render inside a Router. Wrap `@testing-library/react`'s render
+// so every existing test (which expects a bare `render(<SettingsPage
+// …/>)` to work) keeps working without per-site edits.
+function render(
+  ui: React.ReactElement,
+  options?: RenderOptions & { initialPath?: string },
+) {
+  const { initialPath = '/settings', ...rtlOptions } = options ?? {}
+  return rtlRender(<MemoryRouter initialEntries={[initialPath]}>{ui}</MemoryRouter>, rtlOptions)
+}
 
 const config: AppConfigResponse = {
   paths: {
@@ -679,8 +692,8 @@ describe('SettingsPage', () => {
       return null
     }
 
-    function renderSettings(initialPath: string, onLocation = () => {}) {
-      return render(
+    function renderWithSpy(initialPath: string, onLocation: (s: string) => void = () => {}) {
+      return rtlRender(
         <MemoryRouter initialEntries={[initialPath]}>
           <Routes>
             <Route
@@ -702,7 +715,7 @@ describe('SettingsPage', () => {
     }
 
     it('?tab=backup activates the Backup & restore tab on load', () => {
-      renderSettings('/settings?tab=backup')
+      renderWithSpy('/settings?tab=backup')
       const tab = screen.getByRole('tab', { name: /^Backup & restore$/ })
       // Radix Tabs sets data-state="active" on the selected trigger.
       expect(tab.getAttribute('data-state')).toBe('active')
@@ -710,7 +723,7 @@ describe('SettingsPage', () => {
 
     it('clicking a different tab rewrites the URL search param', async () => {
       const seen: string[] = []
-      renderSettings('/settings', (s) => seen.push(s))
+      renderWithSpy('/settings', (s) => seen.push(s))
       await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
       // After click, the URL must include ?tab=filters (or equivalent
       // canonical encoding). Assert via the captured location stream.
@@ -719,7 +732,7 @@ describe('SettingsPage', () => {
     })
 
     it('default tab loads when ?tab= is absent', () => {
-      renderSettings('/settings')
+      renderWithSpy('/settings')
       // Pre-existing default is `paths`. Lock that behaviour so the
       // useSearchParams wiring doesn't accidentally change defaults.
       const tab = screen.getByRole('tab', { name: /^Paths$/ })

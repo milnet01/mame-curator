@@ -12,6 +12,7 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 
 import { FiltersSidebar } from '../library/FiltersSidebar'
 import { LayoutSwitcher } from '../library/LayoutSwitcher'
@@ -105,12 +106,16 @@ describe('no-checkbox-for-prefs invariant', () => {
   })
 
   it('SettingsPage prefs tabs use Switch, never Checkbox', async () => {
+    // DS02 D1: SettingsPage now reads its active tab via
+    // `useSearchParams`, so it must render inside a Router.
     render(
-      <SettingsPage
-        config={config}
-        onPatch={() => {}}
-        onSnapshotRestore={() => {}}
-      />,
+      <MemoryRouter>
+        <SettingsPage
+          config={config}
+          onPatch={() => {}}
+          onSnapshotRestore={() => {}}
+        />
+      </MemoryRouter>,
     )
     // Visit each prefs tab and verify no Checkbox shows.
     for (const tab of ['Filters', 'Picker', 'Interface', 'Updates', 'Media']) {

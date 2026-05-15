@@ -63,6 +63,31 @@ export const strings = {
     retrying: 'Retrying…',
   },
 
+  // DS02 B1 — route-level Suspense / data-fetch loading labels. Until
+  // DS02 these strings were hardcoded JSX text inside App.tsx; the
+  // catalogue is the only acceptable source per design § "Strings".
+  loading: {
+    sessions: 'Loading sessions…',
+    activity: 'Loading activity…',
+    stats: 'Loading stats…',
+    help: 'Loading help…',
+    settings: 'Loading settings…',
+    generic: 'Loading…',
+  },
+
+  // DS02 Cluster C — a11y labels for landmarks + skip-link. Kept in
+  // a dedicated namespace so the audit can grep `strings.a11y.` and
+  // know it's screen-reader-only copy; visual labels live in `nav` /
+  // `library` / `help` per their domain.
+  a11y: {
+    skipToMain: 'Skip to main content',
+    mainLandmark: 'Main content',
+    helpTopicsLandmark: 'Help topics',
+    helpContentLandmark: 'Help content',
+    filtersLandmark: 'Filters',
+    cartLandmark: 'Cart',
+  },
+
   nav: {
     library: 'Library',
     sessions: 'Sessions',
@@ -144,7 +169,6 @@ export const strings = {
       removeFromCart: (gameName: string) => `Remove ${gameName} from cart`,
       added: '✓ Added',
       add: '+Add',
-      contentsRegionLabel: 'Cart contents',
       bulkAdd: (n: number) => `Add all ${n.toLocaleString()}`,
       expand: 'Expand cart',
       collapse: 'Collapse cart',

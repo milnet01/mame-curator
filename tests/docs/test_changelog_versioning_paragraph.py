@@ -25,8 +25,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CHANGELOG = REPO_ROOT / "CHANGELOG.md"
 
@@ -56,7 +54,6 @@ def _versioning_paragraph(text: str) -> str:
     return "\n".join(out)
 
 
-@pytest.mark.xfail(strict=True, reason="DS02 F1 — RED until CHANGELOG paragraph rewrite")
 def test_versioning_paragraph_names_p09_in_past_tense() -> None:
     """Post-fix wording must mention v1.0.0 shipping (past tense) at P09."""
     text = CHANGELOG.read_text(encoding="utf-8")
@@ -83,7 +80,6 @@ def test_versioning_paragraph_names_p09_in_past_tense() -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, reason="DS02 F1 — RED until CHANGELOG paragraph rewrite")
 def test_versioning_paragraph_drops_pre_alpha_claim() -> None:
     """Stale "pre-alpha" / "stays under [Unreleased] until v1.0.0" wording is gone."""
     text = CHANGELOG.read_text(encoding="utf-8")

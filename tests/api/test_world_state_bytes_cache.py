@@ -31,7 +31,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -39,9 +38,12 @@ def _expected_bytes(machine: Any) -> int:
     return sum((r.size or 0) for r in machine.roms)
 
 
-@pytest.mark.xfail(strict=True, reason="DS02 G2 — RED until WorldState.bytes_by_machine lands")
-def test_world_state_exposes_bytes_by_machine(app: Any) -> None:
+def test_world_state_exposes_bytes_by_machine(client: TestClient, app: Any) -> None:
     """The world state must carry a `bytes_by_machine` mapping."""
+    # `client` is required so the TestClient context manager fires the
+    # FastAPI lifespan that builds WorldState; without it `app.state.world`
+    # never gets attached.
+    del client
     world = app.state.world
     assert hasattr(world, "bytes_by_machine"), (
         "WorldState is missing `bytes_by_machine`; "
@@ -55,9 +57,9 @@ def test_world_state_exposes_bytes_by_machine(app: Any) -> None:
     assert len(bbm) > 0
 
 
-@pytest.mark.xfail(strict=True, reason="DS02 G2 — RED until bytes_by_machine populated")
-def test_bytes_by_machine_matches_sum_over_roms(app: Any) -> None:
+def test_bytes_by_machine_matches_sum_over_roms(client: TestClient, app: Any) -> None:
     """Every machine's cache entry equals the live recompute."""
+    del client  # see test_world_state_exposes_bytes_by_machine for rationale
     world = app.state.world
     bbm = world.bytes_by_machine
     mismatches: list[str] = []
@@ -69,7 +71,6 @@ def test_bytes_by_machine_matches_sum_over_roms(app: Any) -> None:
     assert not mismatches, "bytes_by_machine drift:\n" + "\n".join(mismatches)
 
 
-@pytest.mark.xfail(strict=True, reason="DS02 G2 — RED until /api/games uses bytes_by_machine")
 def test_games_endpoint_total_bytes_unchanged(client: TestClient, app: Any) -> None:
     """`GET /api/games` reports the same total_bytes the cache implies.
 

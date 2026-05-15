@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
@@ -134,6 +135,31 @@ export function SettingsPage({
     onPatch({ updates: { ...config.updates, [key]: value } })
   }
 
+  // DS02 D1 — Settings active-tab persists in the URL `?tab=…` so
+  // deep-linking + browser-back move between tabs. The URL is the
+  // source of truth; we read from it on every render and write to it
+  // via setSearchParams when the user clicks a new tab. Default tab
+  // (`paths`) holds when the param is absent or names an unknown
+  // section.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedTab = searchParams.get('tab')
+  const activeTab =
+    requestedTab !== null && (SECTION_KEYS as readonly string[]).includes(requestedTab)
+      ? requestedTab
+      : 'paths'
+  const setActiveTab = (next: string) => {
+    const params = new URLSearchParams(searchParams)
+    if (next === 'paths') {
+      // Keep the default tab implicit in the URL — drop the ?tab=
+      // param so the address bar stays clean when the user returns
+      // to the default tab.
+      params.delete('tab')
+    } else {
+      params.set('tab', next)
+    }
+    setSearchParams(params, { replace: false })
+  }
+
   // FP12 § H — DAT swap is destructive (replaces the whole library);
   // hold the pending value here until the user confirms.
   const [pendingDat, setPendingDat] = useState<string | null>(null)
@@ -206,7 +232,7 @@ export function SettingsPage({
         </p>
       )}
 
-      <Tabs defaultValue="paths">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           {SECTION_KEYS.map((key) => (
             <TabsTrigger key={key} value={key}>

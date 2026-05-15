@@ -21,8 +21,6 @@ import re
 import tomllib
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 PACKAGE_JSON = REPO_ROOT / "frontend" / "package.json"
@@ -50,7 +48,6 @@ def test_pyproject_version_is_semver() -> None:
     assert SEMVER_RE.match(version), f"pyproject version {version!r} is not semver"
 
 
-@pytest.mark.xfail(strict=True, reason="DS02 F2 — RED until frontend/package.json bumped to 1.2.0")
 def test_frontend_package_json_version_matches_pyproject() -> None:
     """Both files must report the same semver string."""
     py = _pyproject_version()

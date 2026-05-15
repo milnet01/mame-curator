@@ -63,6 +63,12 @@ class WorldState(BaseModel):
     notes: dict[str, str]
     allowed_roots: tuple[FsAllowedRoot, ...]
     data_dir: Path
+    # DS02 G2: precomputed `name -> sum(rom.size)` so `GET /api/games`
+    # (and the cart endpoint) sums O(|filtered|) per request instead
+    # of walking every ROM in every Machine on every call. Built at
+    # WorldState construction; replaced wholesale on world swap so
+    # the frozen-state invariant holds.
+    bytes_by_machine: Mapping[str, int]
 
 
 def load_app_config(config_path: Path) -> AppConfig:
@@ -148,7 +154,19 @@ def build_world(config_path: Path) -> WorldState:
         notes=notes,
         allowed_roots=allowed_roots,
         data_dir=data_dir,
+        bytes_by_machine=_compute_bytes_by_machine(machines),
     )
+
+
+def _compute_bytes_by_machine(machines: dict[str, Machine]) -> Mapping[str, int]:
+    """DS02 G2: precompute `name -> sum(rom.size or 0)` for every machine.
+
+    One-pass walk at WorldState construction (~43k machines * ~10
+    ROMs each ≈ a few hundred ms on first parse). The dict is then
+    frozen with WorldState's `model_config = ConfigDict(frozen=True)`
+    so downstream calls cannot mutate it.
+    """
+    return {name: sum((r.size or 0) for r in machine.roms) for name, machine in machines.items()}
 
 
 def _load_notes(path: Path) -> dict[str, str]:
@@ -215,6 +233,10 @@ def replace_world(
         notes=new_notes,
         allowed_roots=allowed_roots,
         data_dir=base.data_dir,
+        # DS02 G2: machines are immutable post-parse, so the precomputed
+        # `bytes_by_machine` mapping is unchanged across PATCH /api/config
+        # / sessions / notes swaps — pass through.
+        bytes_by_machine=base.bytes_by_machine,
     )
 
 

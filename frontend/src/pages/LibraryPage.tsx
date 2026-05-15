@@ -316,7 +316,7 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
 
   return (
     <div className="grid h-full grid-cols-[16rem_1fr] grid-rows-[auto_1fr_auto]">
-      <aside className="row-span-2 overflow-y-auto">
+      <aside aria-label={strings.a11y.filtersLandmark} className="row-span-2 overflow-y-auto">
         <FiltersSidebar
           value={filters}
           onChange={setFilters}
@@ -389,31 +389,33 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
       </div>
 
       {openedWinner && (
-        <AlternativesDrawer
-          open={openedShortName !== null}
-          onOpenChange={(o) => !o && setOpenedShortName(null)}
-          winner={openedWinner}
-          alternatives={alternatives.data?.items ?? []}
-          onOverride={(req) => {
-            override.mutate(req, {
-              onSuccess: () => {
-                // P15 § 5.2 — cart-aware variant tracking.
-                if (cart.has(req.parent)) cart.setVariant(req.parent, req.winner)
-                toast.success(strings.library.overrideApplied)
-                setOpenedShortName(null)
-              },
-              onError: toastApiError,
-            })
-          }}
-          onLaunch={(short) => {
-            launch.mutate(short, {
-              onSuccess: () => toast.success(strings.alternatives.launchSuccess(short)),
-              onError: toastApiError,
-            })
-          }}
-          launching={launch.isPending}
-          retroarchConfigured={setupCheck.data?.retroarch_configured}
-        />
+        <ErrorBoundary resetKey={openedShortName}>
+          <AlternativesDrawer
+            open={openedShortName !== null}
+            onOpenChange={(o) => !o && setOpenedShortName(null)}
+            winner={openedWinner}
+            alternatives={alternatives.data?.items ?? []}
+            onOverride={(req) => {
+              override.mutate(req, {
+                onSuccess: () => {
+                  // P15 § 5.2 — cart-aware variant tracking.
+                  if (cart.has(req.parent)) cart.setVariant(req.parent, req.winner)
+                  toast.success(strings.library.overrideApplied)
+                  setOpenedShortName(null)
+                },
+                onError: toastApiError,
+              })
+            }}
+            onLaunch={(short) => {
+              launch.mutate(short, {
+                onSuccess: () => toast.success(strings.alternatives.launchSuccess(short)),
+                onError: toastApiError,
+              })
+            }}
+            launching={launch.isPending}
+            retroarchConfigured={setupCheck.data?.retroarch_configured}
+          />
+        </ErrorBoundary>
       )}
 
       {dryRunReport && (
@@ -426,14 +428,16 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
       )}
 
       {copySession.state && (
-        <CopyModal
-          open={true}
-          onOpenChange={(open) => !open && copySession.reset()}
-          state={copySession.state}
-          onPause={copySession.pause}
-          onResume={copySession.resume}
-          onAbort={copySession.abort}
-        />
+        <ErrorBoundary>
+          <CopyModal
+            open={true}
+            onOpenChange={(open) => !open && copySession.reset()}
+            state={copySession.state}
+            onPause={copySession.pause}
+            onResume={copySession.resume}
+            onAbort={copySession.abort}
+          />
+        </ErrorBoundary>
       )}
 
       <div className="col-span-2">

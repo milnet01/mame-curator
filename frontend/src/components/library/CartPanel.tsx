@@ -23,9 +23,12 @@ export function CartPanel({ open, items, onRemove, onClearAll }: CartPanelProps)
   return (
     <aside
       // FP24-W: id anchors CartBar's aria-controls disclosure pattern.
+      // DS02 C4: aria-label moved to the dedicated `a11y.cartLandmark`
+      // namespace so the screen-reader copy travels with the other
+      // landmark labels.
       id="cart-panel"
       role="region"
-      aria-label={strings.library.cart.contentsRegionLabel}
+      aria-label={strings.a11y.cartLandmark}
       className="max-h-80 overflow-y-auto border-t bg-background px-4 py-3"
     >
       <ul className="flex flex-col gap-1">

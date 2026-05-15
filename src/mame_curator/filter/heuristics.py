@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from enum import StrEnum
+from functools import lru_cache
 
 # FP28 B2: after the region token, allow either (a) whitespace then comma/
 # close-paren/EOL (e.g. "(World)", "(USA, Set 2)") or (b) whitespace then a
@@ -57,6 +58,16 @@ def region_of(description: str) -> Region:
     return Region(match.group("region"))
 
 
+# DS02 G1: cache descriptions on the way through. `_cmp_revision` in
+# `filter.picker` calls this twice per pair during the picker
+# comparator sort, so a candidate-group of N machines drives
+# ~N log N comparisons * 2 regex chains each. Sizing: the largest
+# DAT carries ~43k machines, and a single sort touches at most the
+# machines in one candidate group (parent + clones), so 8 K covers
+# any realistic workload without risking unbounded growth. Pure
+# function of `description: str` → keys + values are hashable +
+# immutable, safe to cache across calls.
+@lru_cache(maxsize=8192)
 def revision_key_of(description: str) -> tuple[int, ...]:
     """Return a tuple sortable lexicographically; higher = later revision.
 

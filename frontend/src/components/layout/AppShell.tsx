@@ -54,6 +54,15 @@ const MORE: NavItem[] = [
 export function AppShell({ children, cartCount, onCmdK, onOpenCart }: AppShellProps) {
   return (
     <div className="grid h-screen grid-rows-[auto_1fr] bg-background text-foreground">
+      {/* DS02 C1 — WCAG skip-link. Visually hidden by default; revealed
+          on keyboard focus via the sr-only / focus:not-sr-only pair so
+          Tab-key users hit it first and can jump past the nav. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-primary focus:px-3 focus:py-1 focus:text-primary-foreground"
+      >
+        {strings.a11y.skipToMain}
+      </a>
       <header className="flex items-center gap-4 border-b px-4 py-2">
         <h1 className="text-lg font-semibold">{strings.app.name}</h1>
         <nav className="flex items-center gap-1 text-sm">
@@ -133,7 +142,14 @@ export function AppShell({ children, cartCount, onCmdK, onOpenCart }: AppShellPr
           </Button>
         </div>
       </header>
-      <main className="overflow-auto">{children}</main>
+      <main
+        id="main"
+        tabIndex={-1}
+        aria-label={strings.a11y.mainLandmark}
+        className="overflow-auto"
+      >
+        {children}
+      </main>
     </div>
   )
 }

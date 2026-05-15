@@ -25,12 +25,9 @@ from __future__ import annotations
 
 import random
 
-import pytest
-
 from mame_curator.filter import heuristics
 
 
-@pytest.mark.xfail(strict=True, reason="DS02 G1 — RED until @lru_cache wraps revision_key_of")
 def test_revision_key_of_exposes_lru_cache_attribute() -> None:
     """Post-fix the function is wrapped with `functools.lru_cache`."""
     assert hasattr(heuristics.revision_key_of, "cache_info"), (
@@ -40,7 +37,6 @@ def test_revision_key_of_exposes_lru_cache_attribute() -> None:
     assert hasattr(heuristics.revision_key_of, "cache_clear")
 
 
-@pytest.mark.xfail(strict=True, reason="DS02 G1 — RED until @lru_cache wraps revision_key_of")
 def test_revision_key_of_caches_duplicate_calls() -> None:
     """Calling twice with the same input registers a cache hit."""
     heuristics.revision_key_of.cache_clear()
@@ -51,7 +47,6 @@ def test_revision_key_of_caches_duplicate_calls() -> None:
     assert info.misses >= 1
 
 
-@pytest.mark.xfail(strict=True, reason="DS02 G1 — RED until @lru_cache wraps revision_key_of")
 def test_revision_key_of_miss_count_bounded_by_unique_inputs() -> None:
     """Sorting a 1000-pair workload over K unique descriptions
 

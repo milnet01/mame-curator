@@ -143,7 +143,7 @@ export function HelpPage({
 
   return (
     <section className="grid grid-cols-[16rem_1fr] gap-4 p-4">
-      <aside>
+      <aside aria-label={strings.a11y.helpTopicsLandmark}>
         <h1 className="mb-3 text-2xl font-semibold">{strings.help.pageTitle}</h1>
         <ul className="flex flex-col gap-1">
           {topics.map((t) => {
@@ -169,7 +169,10 @@ export function HelpPage({
         </ul>
       </aside>
 
-      <article className="prose prose-sm max-w-none dark:prose-invert">
+      <article
+        aria-label={strings.a11y.helpContentLandmark}
+        className="prose prose-sm max-w-none dark:prose-invert"
+      >
         {topicLoading ? (
           <p className="text-sm text-muted-foreground">{strings.help.loadingTopic}</p>
         ) : (

@@ -5,15 +5,15 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> **Versioning policy.** This project is pre-alpha. **All shipped
-> work stays under `[Unreleased]` until the v1.0.0 cut at P09.**
-> No intermediate `v0.0.X` / `v0.Y.0` tags are produced — the
-> first git release tag will be `v1.0.0`. Phase-closing
-> `<ID>-complete` annotated tags (`P00-complete`, `P01-complete`,
-> `P02-complete`, …) mark per-phase ship landmarks but are
-> distinct from semver-versioned releases. The CHANGELOG is the
-> authoritative record of what shipped per phase; consult
-> `git tag --list 'P*-complete'` to map phases to commits.
+> **Versioning policy.** v1.0.0 shipped at P09 (2026-05-04).
+> Subsequent minor releases (`v1.1.0`, `v1.2.0`, …) accumulate
+> phase-closing `<ID>-complete` annotated tags between them —
+> phase tags mark per-phase ship landmarks but are distinct
+> from semver-versioned releases. The CHANGELOG remains the
+> authoritative per-phase record; consult
+> `git tag --list 'P*-complete' 'FP*-complete' 'DS*-complete'`
+> to map phases to commits. Pre-v1 backwards-compatibility
+> shims remain explicitly out of scope per coding-standards § 7.
 
 ## [Unreleased]
 

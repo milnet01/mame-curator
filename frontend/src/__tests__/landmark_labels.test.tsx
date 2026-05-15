@@ -19,9 +19,8 @@
  * `DS02 C3` / `FP27 A6c` approach.
  *
  * Pre-fix: HelpPage's aside + article and FiltersSidebar's aside have
- * no aria-label. CartPanel has `aria-label={strings.library.cart.
- * contentsRegionLabel}` — the label value may or may not contain
- * "Cart" today, so the test asserts a future-stable "Cart"-ish label.
+ * no aria-label. CartPanel had a `strings.library.cart.*`-namespaced
+ * label which DS02 C4 relocates to the shared `strings.a11y` family.
  */
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
