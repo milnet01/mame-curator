@@ -9,8 +9,10 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import os
 import shutil
 import time
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -25,6 +27,56 @@ from mame_curator.copy.types import (
 )
 
 logger = logging.getLogger(__name__)
+
+# FP28-A2 lockfile staleness threshold: ~1200x the targeted same-fs p99
+# (50 ms per § Scope A2 perf budget). A lockfile older than this is
+# assumed to be from a crashed process and is reclaimed.
+_LOCK_STALE_SECONDS = 60.0
+# Same-process contention sleep between O_EXCL retry attempts. Short
+# enough that the test's ThreadPoolExecutor barrier converges fast
+# (~ms), long enough not to busy-loop the CPU.
+_LOCK_RETRY_SLEEP = 0.01
+
+
+@contextlib.contextmanager
+def _session_lock(recycle_root: Path, session_id: str) -> Iterator[None]:
+    """FP28-A2: O_EXCL atomic lockfile serialising the recycle critical section.
+
+    Wraps the counter walk + ``target_dir.mkdir`` + manifest write + move
+    so two parallel ``recycle_file`` calls with the same ``session_id``
+    cannot both pass ``target_dir.exists()`` at the same counter value.
+    Avoids a ``filelock`` dependency (which pulls ``portalocker`` on
+    Windows) by using stdlib ``os.O_EXCL``.
+
+    Orphan recovery: a lockfile older than ``_LOCK_STALE_SECONDS`` is
+    assumed crash-orphaned and reclaimed. Same-process contention falls
+    through to a short sleep + retry.
+    """
+    recycle_root.mkdir(parents=True, exist_ok=True)
+    lock_path = recycle_root / f"{session_id}.lock"
+    fd: int | None = None
+    while fd is None:
+        try:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            try:
+                age = time.time() - lock_path.stat().st_mtime
+            except OSError:
+                # The holder released the lock between the failed open and
+                # our stat. Retry immediately.
+                continue
+            if age > _LOCK_STALE_SECONDS:
+                with contextlib.suppress(OSError):
+                    lock_path.unlink()
+                continue
+            time.sleep(_LOCK_RETRY_SLEEP)
+    try:
+        yield
+    finally:
+        with contextlib.suppress(OSError):
+            os.close(fd)
+        with contextlib.suppress(OSError):
+            lock_path.unlink()
 
 
 def recycle_file(
@@ -48,62 +100,73 @@ def recycle_file(
         raise RecycleError("source path does not exist", path=path)
 
     now = datetime.now(UTC)
-    base = recycle_root / session_id
-    # Same session, same filename (pathological — recycling identical paths
-    # twice in one session): walk a `-1`, `-2`, ... counter on the parent
-    # directory. Different basenames share the same dir per FP21-D (each
-    # gets its own `<basename>.manifest.json`).
-    target_dir = base
-    counter = 0
-    while (target_dir / path.name).exists():
-        counter += 1
-        target_dir = base.with_name(f"{base.name}-{counter}")
-    # Remember whether target_dir was created by this call so we can
-    # rm it on cleanup without disturbing a sibling session's dir.
-    target_dir_existed = target_dir.exists()
-    target_dir.mkdir(parents=True, exist_ok=True)
+    # FP28-A2: serialise the counter walk + mkdir + manifest write + move
+    # via _session_lock so two parallel calls in the same session_id can't
+    # both pass target_dir.exists() at the same counter value. A3 — the
+    # two rollback paths below (manifest-write OSError and post-move
+    # OSError) both rmdir(target_dir) when target_dir_existed was False;
+    # with the lock held, that snapshot can't be invalidated by a sibling
+    # call's mkdir(exist_ok=True), so neither rollback can rmdir a dir
+    # another session relies on.
+    with _session_lock(recycle_root, session_id):
+        base = recycle_root / session_id
+        # Same session, same filename (pathological — recycling identical paths
+        # twice in one session): walk a `-1`, `-2`, ... counter on the parent
+        # directory. Different basenames share the same dir per FP21-D (each
+        # gets its own `<basename>.manifest.json`).
+        target_dir = base
+        counter = 0
+        while (target_dir / path.name).exists():
+            counter += 1
+            target_dir = base.with_name(f"{base.name}-{counter}")
+        # FP28-A3: target_dir_existed snapshot is race-free under the
+        # _session_lock above; the two rollback sites (L below) that
+        # rmdir when this is False can no longer touch another session's
+        # directory.
+        target_dir_existed = target_dir.exists()
+        target_dir.mkdir(parents=True, exist_ok=True)
 
-    target = target_dir / path.name
-    # FP21-D: per-file manifest name. Two recycle_file calls with
-    # different basenames coexist; the FP02 counter-on-collision rule
-    # still applies for the (rare) same-basename-twice case.
-    manifest = target_dir / f"{path.name}.manifest.json"
-    payload = {
-        "recycled_at": now.isoformat(),
-        "reason": reason,
-        "session_id": session_id,
-        "original_path": str(path),
-    }
+        target = target_dir / path.name
+        # FP21-D: per-file manifest name. Two recycle_file calls with
+        # different basenames coexist; the FP02 counter-on-collision rule
+        # still applies for the (rare) same-basename-twice case.
+        manifest = target_dir / f"{path.name}.manifest.json"
+        payload = {
+            "recycled_at": now.isoformat(),
+            "reason": reason,
+            "session_id": session_id,
+            "original_path": str(path),
+        }
 
-    # FP21-D: write manifest first. If this fails the source file is
-    # untouched (never moved), so there is no rollback to perform — the
-    # filesystem is in the same state as before the call. atomic_write_text
-    # itself is tmp+rename+fsync (FP20-B) so a crash mid-write leaves no
-    # half-written manifest either.
-    try:
-        atomic_write_text(manifest, json.dumps(payload, indent=2))
-    except OSError as exc:
-        if not target_dir_existed:
+        # FP21-D: write manifest first. If this fails the source file is
+        # untouched (never moved), so there is no rollback to perform — the
+        # filesystem is in the same state as before the call. atomic_write_text
+        # itself is tmp+rename+fsync (FP20-B) so a crash mid-write leaves no
+        # half-written manifest either.
+        try:
+            atomic_write_text(manifest, json.dumps(payload, indent=2))
+        except OSError as exc:
+            if not target_dir_existed:
+                with contextlib.suppress(OSError):
+                    target_dir.rmdir()
+            raise RecycleError(
+                f"failed to write recycle manifest: {exc}",
+                path=manifest,
+            ) from exc
+
+        # FP21-D: move after manifest is durable. On move failure, unlink
+        # the manifest so the recycle tree doesn't accumulate metadata for
+        # files that don't exist. The source file remains at its original
+        # location either way.
+        try:
+            shutil.move(str(path), str(target))
+        except OSError as exc:
             with contextlib.suppress(OSError):
-                target_dir.rmdir()
-        raise RecycleError(
-            f"failed to write recycle manifest: {exc}",
-            path=manifest,
-        ) from exc
-
-    # FP21-D: move after manifest is durable. On move failure, unlink
-    # the manifest so the recycle tree doesn't accumulate metadata for
-    # files that don't exist. The source file remains at its original
-    # location either way.
-    try:
-        shutil.move(str(path), str(target))
-    except OSError as exc:
-        with contextlib.suppress(OSError):
-            manifest.unlink()
-        if not target_dir_existed:
-            with contextlib.suppress(OSError):
-                target_dir.rmdir()
-        raise RecycleError(f"failed to move to recycle: {exc}", path=path) from exc
+                manifest.unlink()
+            if not target_dir_existed:
+                with contextlib.suppress(OSError):
+                    target_dir.rmdir()
+            raise RecycleError(f"failed to move to recycle: {exc}", path=path) from exc
 
     # FP27 A3: append a FILE_RECYCLED activity event so the Activity UI
     # tab can show the audit trail promised at copy/spec.md:266. Activity

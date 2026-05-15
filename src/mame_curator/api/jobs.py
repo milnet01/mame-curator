@@ -146,12 +146,28 @@ class _ProgressSynthesizer:
 class JobManager:
     """Singleton: owns ``app.state.job``."""
 
-    def __init__(self, history_dir: Path) -> None:
-        """Initialize the manager. ``history_dir`` is where job reports persist."""
+    def __init__(
+        self,
+        history_dir: Path,
+        *,
+        loop: AbstractEventLoop | None = None,
+    ) -> None:
+        """Initialize the manager. ``history_dir`` is where job reports persist.
+
+        ``loop`` underpins the FP28-A1 loop-thread invariant for ``_emit``.
+        Defaults to ``asyncio.get_running_loop()``; falls back to ``None``
+        when constructed outside a running loop (sync test fixtures) — in
+        that case ``start()`` captures the loop on first invocation.
+        """
         self._history_dir = history_dir
         self._lock = asyncio.Lock()
         self._current: Job | None = None
-        self._loop: AbstractEventLoop | None = None
+        if loop is None:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+        self._loop: AbstractEventLoop | None = loop
 
     @property
     def current(self) -> Job | None:
@@ -283,6 +299,13 @@ class JobManager:
         """Loop-thread: append to history, fan out to subscribers."""
         if self._current is None:
             return
+        # FP28-A1: loop-thread invariant — every state mutation below
+        # (lifecycle_history append, files_done bump, subscriber fan-out)
+        # is unsynchronised; calling _emit from a worker thread instead of
+        # via call_soon_threadsafe would corrupt the lists. Raise rather
+        # than assert so python -O cannot strip the guard.
+        if asyncio.get_running_loop() is not self._loop:
+            raise RuntimeError("JobManager._emit must run on the manager's loop thread")
         # FP09 Cluster R H1: lifecycle goes to the unbounded list so a
         # subscriber that connects late always sees `job_started` etc.;
         # `file_progress` goes to the bounded deque (drop-oldest under

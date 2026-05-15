@@ -180,6 +180,11 @@ def test_fp21_k_subscriber_registered_before_history_drain(
     manager._current = job
 
     async def _drive() -> list[str]:
+        # FP28-A1: _emit asserts the running loop matches self._loop.
+        # JobManager was constructed sync (no running loop), so _loop is
+        # None at this point — bind it to the test's running loop before
+        # the direct _emit call below.
+        manager._loop = asyncio.get_running_loop()
         iter_obj = manager._events_iterator()
         events: list[str] = []
         first = await iter_obj.__anext__()
