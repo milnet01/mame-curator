@@ -6,7 +6,7 @@
 |-------|-------|
 | **Project phase** | FP28 opened 2026-05-15 (Tier 2 hardening cohort from 2026-05-14 indie-review per `[mame-curator-1032]`; 14 sub-fixes across 5 clusters: A1–A3 concurrency, B1–B5 correctness, C1–C2 boundary, D1–D3 CLI, E1 deferral-via-ADR). DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **FP28 → DS02 → DS03 → P09 polish → post-v1**. Three conditional follow-ups `[mame-curator-1034/1035/1036]` for files still over-cap. |
 | **Active item ID** | FP28 |
-| **Active step** | 1 ✅ → 2 ✅ → 3 ✅ → 4 (implementation) pending. |
+| **Active step** | 1 ✅ → 2 ✅ → 3 🚧 (test files drafted on disk; will commit per-cluster with Step 4 implementation per FP27 convention — see below) → 4 pending. |
 | **Blocked on** | nothing |
 | **Last update** | 2026-05-15 (FP28 Step 1 closed: spec at `docs/specs/FP28.md` converged through 3 cold-eyes loops — loop 1 surfaced 21 verified findings; loop 2 surfaced 11 more (including 2 critical test-construction bugs caught by Lane 4: Test 8 FieldError shape `body["fields"]` not `body["errors"]`, and Test 12 monkeypatch over-engineered since httpx imports inline); loop 3 surfaced 1 HIGH (A1 self._loop already exists at L154; fix is move from start() to __init__, not "new attribute") + 2 LOW, all folded. Spec at 184 lines, implementer-ready). |
 | **Next gate** | FP28 Step 2 — plan (likely inlined in spec body per FP05/07/08/27 precedent). |
@@ -36,16 +36,18 @@ becomes active.
   section: five commit batches (A concurrency / B correctness /
   C boundary / D CLI / E ADR) plus batch 0 for RED tests; per-batch
   five-gate verification; phase-closing commit pattern documented.
-- ✅ Step 3 — tests-first. 27 test functions (parametrised across the 14
-  contract bullets) across 11 new files + 1 extension to existing
-  `tests/docs/test_design_spec_consistency.py`. Per FP27 precedent
-  the project does NOT use xfail markers — tests fail naturally in
-  RED state and pass post-fix. Verified: B1 nested-paren case red;
-  B2 `(World Heroes 2)` red; B3 mixed-content red; B4 three branches
-  red (zero logger.warning records); B5 raw KeyError observed; C1
-  PATCH returns 200 not 422; C2 missing Cache-Control header; D3
-  raw ModuleNotFoundError; E1a/E1b ADR + cross-link both missing.
-  Test files: `tests/api/test_fp28_jobs_loop_thread.py`,
+- 🚧 Step 3 — tests-first. 27 test functions (parametrised across the
+  14 contract bullets) drafted on disk across 11 new files + 1
+  extension to existing `tests/docs/test_design_spec_consistency.py`.
+  Per FP27 precedent the project ships **tests + implementation
+  together per cluster commit** — the pre-commit `pytest-fast`
+  hook would otherwise block a RED-state tests-only commit. The
+  drafted files stay uncommitted locally until Step 4 picks each
+  cluster up (e.g. `fix(fp28): A — concurrency hardening (A1/A2/A3)`
+  carries both the A-cluster tests AND the A-cluster source-code
+  fix in one commit).
+  Test files drafted (uncommitted at HEAD = 8bdc0b5):
+  `tests/api/test_fp28_jobs_loop_thread.py`,
   `tests/copy/test_fp28_recyclebin_lock.py`,
   `tests/parser/test_fp28_license_re.py`,
   `tests/filter/test_fp28_region_re.py`,
@@ -53,10 +55,16 @@ becomes active.
   `tests/filter/test_fp28_runner_logger.py`,
   `tests/filter/test_fp28_apply_session_error.py`,
   `tests/api/test_fp28_validate_paths_retroarch.py`,
-  `tests/api/test_fp28_media_proxy_headers.py` (C2 sniff is xfail
-  placeholder pending Step 4 fixture wiring),
+  `tests/api/test_fp28_media_proxy_headers.py` (C2 sniff sub-test
+  is xfail placeholder pending Step 4 fixture wiring),
   `tests/cli/test_fp28_serve_signal.py`,
-  `tests/cli/test_fp28_refresh_inis_imports.py`.
+  `tests/cli/test_fp28_refresh_inis_imports.py`,
+  plus E1a/E1b additions to `tests/docs/test_design_spec_consistency.py`.
+  RED state verified locally — every cited contract bullet fails
+  for the right reason (B1 nested-paren, B2 `(World Heroes 2)`,
+  B3 mixed-content, B4 zero logger records, B5 raw KeyError, C1
+  PATCH-200-not-422, C2 missing Cache-Control, D3 raw
+  ModuleNotFoundError, E1a/b missing ADR + cross-link).
 - 🚧 Step 4 — implementation across 5 commit batches per spec
   § Implementation plan (A concurrency → B correctness → C boundary
   → D CLI → E ADR).
