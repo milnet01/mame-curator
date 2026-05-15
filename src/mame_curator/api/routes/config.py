@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import contextlib
 import json
+import os
+import shutil
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -78,6 +81,40 @@ def _validate_paths(config: AppConfig) -> tuple[FieldError, ...]:
                 loc="paths.retroarch_playlist",
                 msg="parent directory does not exist",
                 type="path_not_found",
+            )
+        )
+    # FP28 C1: gates the launch-RetroArch path at games.py:275 — any PATCH
+    # that lands a non-executable retroarch path here would otherwise hit
+    # subprocess.run with a bad arg. retroarch_core is a shared library
+    # (.so / .dll / .dylib) loaded via dlopen / LoadLibrary, so only
+    # existence is checked.
+    if p.retroarch is not None:
+        if sys.platform == "win32":
+            # Windows: os.X_OK semantics differ (.exe / .bat / .cmd are
+            # marked executable by extension, not POSIX mode bits).
+            # shutil.which performs the Windows-correct extension check.
+            if shutil.which(str(p.retroarch)) is None:
+                errs.append(
+                    FieldError(
+                        loc="paths.retroarch",
+                        msg="path is not an executable file",
+                        type="path_invalid",
+                    )
+                )
+        elif not (p.retroarch.exists() and os.access(p.retroarch, os.X_OK)):
+            errs.append(
+                FieldError(
+                    loc="paths.retroarch",
+                    msg="path is not an executable file",
+                    type="path_invalid",
+                )
+            )
+    if p.retroarch_core is not None and not p.retroarch_core.exists():
+        errs.append(
+            FieldError(
+                loc="paths.retroarch_core",
+                msg="path does not exist",
+                type="path_invalid",
             )
         )
     return tuple(errs)

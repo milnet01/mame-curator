@@ -6,6 +6,8 @@ and lazy-fetch cache via ``mame_curator.media``. URL surface unchanged.
 
 from __future__ import annotations
 
+import mimetypes
+
 import httpx
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse, Response
@@ -58,4 +60,12 @@ async def media_proxy(
     # async handler. Under fan-out (50 thumbnails on a Library view) the
     # sync read serialised against the event loop; streaming lets the
     # asyncio scheduler interleave the I/O. Same wire-bytes contract.
-    return FileResponse(path, media_type="image/png")
+    # FP28 C2: sniff content-type from the cached file's suffix so JPGs
+    # don't get served as image/png. 30-day immutable Cache-Control per
+    # design § 6.3 ("Cache is permanent by default") — without this header
+    # browsers re-fetched every page-load.
+    return FileResponse(
+        path,
+        media_type=mimetypes.guess_type(str(path))[0] or "image/png",
+        headers={"Cache-Control": "public, max-age=2592000, immutable"},
+    )
