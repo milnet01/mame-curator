@@ -137,3 +137,60 @@ def test_app_tsx_use_keyboard_bindings_match_post_fix_set() -> None:
         f"{sorted(canonical)} (raw combos: {raw_combos!r}). "
         f"See `docs/specs/FP27.md` § A6b + A6c."
     )
+
+
+# ---------------------------------------------------------------------------
+# FP28 E1 — INI refresh trust-model ADR + design.md § 6.7 cross-link
+# ---------------------------------------------------------------------------
+
+ADR_PATH = REPO_ROOT / "docs" / "decisions" / "0004-ini-refresh-trust-model.md"
+ADR_BASENAME = "0004-ini-refresh-trust-model"
+
+
+def test_ini_refresh_trust_model_adr_exists() -> None:
+    """FP28 E1a — ``docs/decisions/0004-ini-refresh-trust-model.md`` must exist post-fix.
+
+    Pre-fix: file is absent → ``ADR_PATH.is_file()`` returns False → assertion fails.
+    Post-fix: ADR drafted with wizard-vs-refresh split + current trust posture
+    + post-v1 hardening path; required substrings present.
+
+    See ``docs/specs/FP28.md`` § E1.
+    """
+    assert ADR_PATH.is_file(), (
+        f"FP28 E1a — expected ADR at {ADR_PATH} (not found). See `docs/specs/FP28.md` § E1."
+    )
+    body = ADR_PATH.read_text(encoding="utf-8")
+    for needle in ("wizard", "refresh", "sha256"):
+        assert needle in body.lower(), (
+            f"FP28 E1a — ADR body must mention '{needle}' (wizard-vs-refresh "
+            f"split + trust posture); see `docs/specs/FP28.md` § E1."
+        )
+
+
+def test_design_spec_section_6_7_cross_links_trust_model_adr() -> None:
+    """FP28 E1b — design.md § 6.7 must cross-link the FP28 E1 ADR by basename.
+
+    The locator is heading-text-anchored (not line-number) so future edits to
+    earlier sections don't break the test.
+
+    Pre-fix: § 6.7 body has no reference to ``0004-ini-refresh-trust-model``.
+    Post-fix: a one-line "See ADR-0004 for the runtime refresh trust model."
+    sits within § 6.7.
+
+    See ``docs/specs/FP28.md`` § E1.
+    """
+    text = DESIGN_SPEC.read_text(encoding="utf-8")
+    section_pattern = re.compile(
+        r"^### 6\.7 `updates/`.*?(?=^### |^## |\Z)",
+        re.MULTILINE | re.DOTALL,
+    )
+    match = section_pattern.search(text)
+    assert match is not None, (
+        f"FP28 E1b — could not locate `### 6.7 \\`updates/\\`...` section in "
+        f"{DESIGN_SPEC!s}; spec author may have renamed it."
+    )
+    section_body = match.group(0)
+    assert ADR_BASENAME in section_body, (
+        f"FP28 E1b — design.md § 6.7 body must cross-link {ADR_BASENAME!r}; "
+        f"see `docs/specs/FP28.md` § E1."
+    )

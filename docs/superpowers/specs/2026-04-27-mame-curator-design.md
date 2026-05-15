@@ -370,6 +370,8 @@ Two independent update channels, both manual-trigger and both checked at startup
 - INI refreshes never touch user files; they only update `data/*.ini` plus the in-memory model.
 - "Roll back to previous version" is one click in Settings (uses `git reset --hard <prev-tag>` for clones, swap-in for downloads).
 
+See [ADR-0004 (`0004-ini-refresh-trust-model`)](../../decisions/0004-ini-refresh-trust-model.md) for the runtime refresh trust model — why mirrors + sha256 (promised in § 6.6 for the wizard bootstrap) are deferred for the refresh path until the wizard ships.
+
 ### 6.8 `help/` — in-app help
 
 A `Help` page (always reachable from the top nav) renders bundled markdown from `docs/help/*.md`. Topics:
