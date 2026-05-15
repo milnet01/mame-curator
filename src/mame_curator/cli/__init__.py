@@ -485,6 +485,10 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     # create_app actually raises on bad inputs. Programmer errors
     # (RuntimeError, AttributeError, ...) propagate as tracebacks per
     # coding-standards.md § 9 — the trace is the actionable signal.
+    # NOTE: create_app is currently a pure FastAPI factory; config
+    # validation happens inside the async lifespan and surfaces during
+    # uvicorn.run, not here. This catch is defence-in-depth in case a
+    # future refactor moves validation up into the factory body.
     try:
         app = create_app(args.config)
     except (ConfigError, ParserError, FilterError) as exc:
