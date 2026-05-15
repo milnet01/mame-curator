@@ -116,7 +116,14 @@ const consumerSources = import.meta.glob<string>(
 )
 
 const EXCLUDED_PATH_FRAGMENTS = [
+  // DS02 A3 — the catalogue itself moved to `strings_internal.ts`;
+  // its own definition file is naturally a "consumer" of every leaf
+  // key (the assignment `loading: { sessions: 'Loading sessions…' }`
+  // contains the substring `strings.loading.sessions` after dotted
+  // flattening), which would defeat the orphan sweep. Excluding both
+  // halves of the re-export pair keeps the sweep strict.
   '/strings.ts',
+  '/strings_internal.ts',
   '/__tests__/',
   '.test.tsx',
   '.test.ts',

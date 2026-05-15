@@ -102,8 +102,12 @@ ignore = [
 "src/mame_curator/api/schemas.py" = ["D101", "D106"]
 # FP24-EE: schemas.py extracted Setup/Updates/Help and Filesystem into
 # sibling modules; the pure-type-definition rule applies to them too.
+# DS02 A5: further split into Games / Copy / Overrides siblings.
 "src/mame_curator/api/schemas_setup.py" = ["D101", "D106"]
 "src/mame_curator/api/schemas_fs.py" = ["D101", "D106"]
+"src/mame_curator/api/schemas_games.py" = ["D101", "D106"]
+"src/mame_curator/api/schemas_copy.py" = ["D101", "D106"]
+"src/mame_curator/api/schemas_overrides.py" = ["D101", "D106"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

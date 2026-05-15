@@ -180,7 +180,7 @@ def test_cmd_copy_oserror_on_directory_input(tmp_path: Path) -> None:
 
 def test_cmd_copy_exit_130_on_cancelled(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """B10a — `CopyReportStatus.CANCELLED` (SIGINT-family user-stop) → 130."""
-    import mame_curator.cli as cli_module
+    import mame_curator.cli.commands.copy as cli_module
     from mame_curator.copy.types import CopyReportStatus
 
     monkeypatch.setattr(
@@ -201,7 +201,7 @@ def test_cmd_copy_exit_3_on_cancelled_playlist_conflict(
 ) -> None:
     """B10b — `CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT` (deliberate
     user-prompt-cancel, distinct from SIGINT) → 3."""
-    import mame_curator.cli as cli_module
+    import mame_curator.cli.commands.copy as cli_module
     from mame_curator.copy.types import CopyReportStatus
 
     monkeypatch.setattr(
@@ -276,7 +276,7 @@ def test_cmd_copy_purge_recycle_oserror_surfaces_clean(
     the early-return is wrapped in its own `try/except OSError` and surfaces
     a clean `error:` line with exit 1.
     """
-    monkeypatch.setattr("mame_curator.cli.purge_recycle", _raise_oserror)
+    monkeypatch.setattr("mame_curator.cli.commands.copy.purge_recycle", _raise_oserror)
     parser = build_parser()
     args = parser.parse_args(
         [

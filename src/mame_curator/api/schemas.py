@@ -3,26 +3,24 @@
 Every model is ``frozen=True, extra="forbid"`` per project convention. Where a
 type comes from ``parser/`` / ``filter/`` / ``copy/`` we re-export rather than
 re-declare; see ``docs/specs/P04.md`` § Schemas.
+
+**DS02 A5 — file split.** This module now holds only the Config schema +
+small per-route request bodies. Games / Overrides / Copy / Activity /
+Filesystem / Setup / Help models live in sibling modules and are
+re-exported below so existing
+``from mame_curator.api.schemas import GameCard, ...`` callers keep
+working unchanged.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from mame_curator.copy.types import (
-    AppendDecision,
-    ConflictStrategy,
-    CopyReportStatus,
-)
 from mame_curator.filter.config import FilterConfig
-from mame_curator.filter.sessions import Session
-from mame_curator.filter.types import TiebreakerHit
-from mame_curator.parser.models import Machine
 
 # ---------------------------------------------------------------------------
 # Config schema
@@ -151,158 +149,6 @@ class AppConfigPatch(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Games + metadata
-# ---------------------------------------------------------------------------
-
-
-class Badge(StrEnum):
-    CONTESTED = "contested"
-    OVERRIDDEN = "overridden"
-    CHD_MISSING = "chd_missing"
-    BIOS_MISSING = "bios_missing"
-    HAS_NOTES = "has_notes"
-
-
-class GameCard(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    short_name: str
-    description: str
-    year: int | None
-    manufacturer: str | None
-    publisher: str | None
-    developer: str | None
-    badges: tuple[Badge, ...]
-
-
-class GamesPage(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    items: tuple[GameCard, ...]
-    page: int
-    page_size: int
-    total: int
-    total_bytes: int
-
-
-class ValidateRequest(BaseModel):
-    """FP24-F: bounded to cap user-controlled memory pressure.
-
-    10,000 items matches the frontend cart's MAX_CART_SIZE; the 64-char
-    per-item cap sits comfortably above real MAME shortnames (max ~24)
-    without admitting pathological input.
-    """
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    short_names: Annotated[
-        tuple[Annotated[str, Field(max_length=64)], ...],
-        Field(max_length=10_000),
-    ]
-
-
-class ValidateResponse(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    existing: tuple[str, ...]
-    missing: tuple[str, ...]
-
-
-class GameDetail(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    short_name: str
-    machine: Machine
-    category: str | None
-    languages: tuple[str, ...]
-    bestgames_tier: str | None
-    mature: bool
-    chd_required: bool
-    badges: tuple[Badge, ...]
-    override: str | None
-    parent: str
-
-
-class Alternatives(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    items: tuple[GameCard, ...]
-
-
-class Explanation(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    short_name: str
-    parent: str
-    candidates: tuple[str, ...]
-    hits: tuple[TiebreakerHit, ...]
-
-
-class Notes(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    notes: str = Field(max_length=4096)
-
-
-class Stats(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    by_genre: dict[str, int]
-    by_decade: dict[str, int]
-    by_publisher: dict[str, int]
-    by_driver_status: dict[str, int]
-    total_bytes: int
-
-
-class LibraryFacets(BaseModel):
-    """Discrete facet values for FiltersSidebar dropdowns (FP17).
-
-    Each list is sorted ascending and deduped. ``letters`` covers the
-    first-character bucket of every winner's description; ``'#'`` is
-    used for digit-prefixed games.
-    """
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    genres: tuple[str, ...]
-    publishers: tuple[str, ...]
-    developers: tuple[str, ...]
-    letters: tuple[str, ...]
-
-
-# ---------------------------------------------------------------------------
-# Overrides + sessions
-# ---------------------------------------------------------------------------
-
-
-class OverridesEntry(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    parent: str
-    winner: str
-
-
-class OverridesView(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    entries: dict[str, str]
-    warnings: tuple[str, ...] = ()
-
-
-class SessionsListing(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    active: str | None
-    sessions: dict[str, Session]
-
-
-class SessionUpsertRequest(BaseModel):
-    """Body for R11 POST /api/sessions.
-
-    The ``name`` regex is enforced in the route handler (raising
-    ``SessionNameInvalidError``) rather than via a Pydantic ``Field(pattern=...)``
-    so the wire-level error code is ``session_name_invalid`` rather than the
-    generic ``validation_error``.
-
-    FP11 § G3: frozen=True flipped on to match the rest of `schemas.py`.
-    The route handler reads `body.name` / `body.session` and never mutates,
-    so the freeze is purely a consistency fix — every public input/output
-    surface in this module is `frozen=True, extra="forbid"`.
-    """
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    name: str
-    session: Session
-
-
-# ---------------------------------------------------------------------------
 # Config snapshots / export-import
 # ---------------------------------------------------------------------------
 
@@ -342,103 +188,41 @@ class AppConfigResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Copy
+# Per-route request bodies (small singletons).
 # ---------------------------------------------------------------------------
 
 
-class CopyJobRequest(BaseModel):
+class NotesPutRequest(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
-    selected_names: tuple[str, ...]
-    conflict_strategy: ConflictStrategy = ConflictStrategy.CANCEL
-    append_decisions: dict[str, AppendDecision] = Field(default_factory=dict)
+    notes: str = Field(max_length=4096)
 
 
-class DryRunReport(BaseModel):
+class OverridePostRequest(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
-    counts: dict[str, int]
-    summary: dict[str, Any]
+    parent: str
+    winner: str
 
 
-class JobAccepted(BaseModel):
+class EmptyBody(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
-    job_id: str
-
-
-class JobStatus(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    job_id: str
-    state: Literal["running", "paused", "terminating", "finished", "aborted"]
-    started_at: datetime
-    files_done: int
-    files_total: int
-    bytes_done: int
-    bytes_total: int
-
-
-class JobEvent(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    event: Literal[
-        "job_started",
-        "file_started",
-        "file_progress",
-        "file_finished",
-        "paused",
-        "resumed",
-        "bios_warning",
-        "job_finished",
-        "job_aborted",
-    ]
-    payload: dict[str, Any]
-    ts: datetime
-
-
-class CopyAbortRequest(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    recycle_partial: bool = False
-
-
-class HistoryItem(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    job_id: str
-    started_at: datetime
-    finished_at: datetime
-    status: CopyReportStatus
-    succeeded: int
-    failed: int
-    bytes_copied: int
-
-
-class HistoryListing(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    items: tuple[HistoryItem, ...]
-    page: int
-    page_size: int
-    total: int
 
 
 # ---------------------------------------------------------------------------
-# Activity
+# Filesystem / Setup / Updates / Help — re-exported from sibling modules.
+# Extracted by FP24-EE; further sibling-modules added in DS02 A5.
 # ---------------------------------------------------------------------------
 
-
-class ActivityPage(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    items: tuple[dict[str, Any], ...]
-    page: int
-    page_size: int
-    total: int
-
-
-# ---------------------------------------------------------------------------
-# Filesystem / Setup / Updates / Help — extracted per FP24-EE.
-# ---------------------------------------------------------------------------
-#
-# Re-exported here so existing
-# ``from mame_curator.api.schemas import SetupCheck, FsListing, ...``
-# callers keep working without changes.
-
-
-# above so the module is read top-to-bottom in dependency order.
+from mame_curator.api.schemas_copy import (  # noqa: E402
+    ActivityPage,
+    CopyAbortRequest,
+    CopyJobRequest,
+    DryRunReport,
+    HistoryItem,
+    HistoryListing,
+    JobAccepted,
+    JobEvent,
+    JobStatus,
+)
 from mame_curator.api.schemas_fs import (  # noqa: E402
     FsAllowedRoot,
     FsAllowedRoots,
@@ -447,6 +231,25 @@ from mame_curator.api.schemas_fs import (  # noqa: E402
     FsGrantRootRequest,
     FsListing,
     FsPath,
+)
+from mame_curator.api.schemas_games import (  # noqa: E402
+    Alternatives,
+    Badge,
+    Explanation,
+    GameCard,
+    GameDetail,
+    GamesPage,
+    LibraryFacets,
+    Notes,
+    Stats,
+    ValidateRequest,
+    ValidateResponse,
+)
+from mame_curator.api.schemas_overrides import (  # noqa: E402
+    OverridesEntry,
+    OverridesView,
+    SessionsListing,
+    SessionUpsertRequest,
 )
 from mame_curator.api.schemas_setup import (  # noqa: E402
     AppUpdateInfo,
@@ -463,53 +266,64 @@ from mame_curator.api.schemas_setup import (  # noqa: E402
 
 # Explicit __all__ so mypy --strict's no_implicit_reexport flags this
 # module as a public re-export point. Existing callers of
-# `from mame_curator.api.schemas import SetupCheck, FsListing, ...`
+# `from mame_curator.api.schemas import SetupCheck, GameCard, ...`
 # keep working unchanged.
 __all__ = (
+    "ActivityPage",
+    "Alternatives",
+    "AppConfig",
+    "AppConfigPatch",
+    "AppConfigResponse",
     "AppUpdateInfo",
+    "Badge",
+    "ConfigExportBundle",
+    "CopyAbortRequest",
+    "CopyJobRequest",
+    "DryRunReport",
+    "EmptyBody",
+    "Explanation",
     "FsAllowedRoot",
     "FsAllowedRoots",
+    "FsConfig",
     "FsDriveRoots",
     "FsEntry",
     "FsGrantRootRequest",
     "FsListing",
     "FsPath",
+    "GameCard",
+    "GameDetail",
+    "GamesPage",
     "HelpContent",
     "HelpIndex",
     "HelpTopic",
+    "HistoryItem",
+    "HistoryListing",
+    "JobAccepted",
+    "JobEvent",
+    "JobStatus",
+    "LaunchResponse",
+    "LibraryFacets",
+    "MediaConfig",
+    "Notes",
+    "NotesPutRequest",
+    "OverridePostRequest",
+    "OverridesEntry",
+    "OverridesView",
+    "PathsConfig",
+    "ServerConfig",
+    "SessionUpsertRequest",
+    "SessionsListing",
     "SetupCheck",
     "SetupPathStatus",
     "SetupPaths",
     "SetupReferenceFiles",
     "SetupReferenceStatus",
+    "Snapshot",
+    "SnapshotsListing",
+    "Stats",
+    "UiConfig",
     "UpdatesCheck",
+    "UpdatesConfig",
+    "ValidateRequest",
+    "ValidateResponse",
 )
-
-# ---------------------------------------------------------------------------
-# Notes-write request
-# ---------------------------------------------------------------------------
-
-
-class NotesPutRequest(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    notes: str = Field(max_length=4096)
-
-
-# ---------------------------------------------------------------------------
-# Override-post request
-# ---------------------------------------------------------------------------
-
-
-class OverridePostRequest(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    parent: str
-    winner: str
-
-
-# ---------------------------------------------------------------------------
-# Session activate request (empty body)
-# ---------------------------------------------------------------------------
-
-
-class EmptyBody(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")

@@ -34,6 +34,7 @@ from mame_curator.copy.types import (
     OverwriteRecord,
     PlanSummary,
     PlaylistEntry,
+    PreflightResult,
     RecycleRecord,
     ReportSummary,
 )
@@ -57,6 +58,110 @@ def _make_plan_summary(plan: CopyPlan, bios_count: int) -> PlanSummary:
 
 def _chd_missing(plan: CopyPlan) -> tuple[str, ...]:
     return tuple(sorted(short for short in plan.winners if short in plan.chd_required))
+
+
+def _should_cancel_for_playlist_conflict(plan: CopyPlan, pre: PreflightResult) -> bool:
+    """True iff CANCEL strategy + existing playlist + not fully idempotent.
+
+    Idempotent rerun = every winner already at dest (matching size+mtime) AND
+    no extra zips at dest beyond winners + bios. Per design § 6.4 we want
+    such a rerun to proceed as a no-op without requiring the user to
+    re-invoke with ``--conflict append``.
+    """
+    if not (
+        pre.existing_playlist
+        and not plan.dry_run
+        and plan.conflict_strategy is ConflictStrategy.CANCEL
+    ):
+        return False
+    return not (set(pre.already_copied) >= set(plan.winners))
+
+
+def _build_playlist_entries(
+    plan: CopyPlan,
+    succeeded: list[CopyOutcome],
+    skipped: list[CopyOutcome],
+    existing_items: list[dict[str, str]],
+    replaced_shorts: frozenset[str],
+) -> list[PlaylistEntry]:
+    """Compose the final mame.lpl entry list for write_lpl.
+
+    Only winners *definitely present at dst* become entries (SUCCEEDED or
+    SKIPPED_IDEMPOTENT); SKIPPED_MISSING_SOURCE / SKIPPED_EXISTING_VERSION
+    / FAILED outcomes have no file at ``dst`` per spec § "Which winners
+    become entries". For APPEND, pre-existing entries are carried forward
+    unless they are being replaced or overlap a same-name winner.
+    """
+    entries: list[PlaylistEntry] = []
+    winner_set = set(plan.winners)
+    present_basenames: set[str] = set()
+    present_statuses = {CopyOutcomeStatus.SUCCEEDED, CopyOutcomeStatus.SKIPPED_IDEMPOTENT}
+    for o in (*succeeded, *skipped):
+        if o.role != "winner" or o.status not in present_statuses:
+            continue
+        machine = plan.machines.get(o.short_name)
+        if machine is None:
+            continue
+        entries.append(
+            PlaylistEntry(
+                short_name=o.short_name,
+                description=machine.description,
+                abs_path=o.dst.resolve(),
+            )
+        )
+        present_basenames.add(o.dst.name)
+
+    if plan.conflict_strategy is ConflictStrategy.APPEND and existing_items:
+        replaced_basenames = {f"{s}.zip" for s in replaced_shorts}
+        winner_basenames = {f"{w}.zip" for w in winner_set}
+        for it in existing_items:
+            # FP05 L5: skip empty paths; Path("") resolves to Path(".") and
+            # would carry the dest dir itself into mame.lpl.
+            raw_path = it.get("path", "")
+            if not raw_path:
+                continue
+            ipath = Path(raw_path)
+            if (
+                ipath.name in present_basenames
+                or ipath.name in replaced_basenames
+                or ipath.name in winner_basenames
+            ):
+                continue
+            entries.append(
+                PlaylistEntry(
+                    short_name=ipath.stem,
+                    description=str(it.get("label", ipath.stem)),
+                    abs_path=ipath,
+                )
+            )
+    return entries
+
+
+def _resolve_conflicts(
+    plan: CopyPlan, pre: PreflightResult, warnings: list[str]
+) -> tuple[list[dict[str, str]], frozenset[str]]:
+    """Return (existing_items, replaced_shorts) for an APPEND copy.
+
+    ``existing_items`` is the destination playlist's pre-existing
+    entries (carried forward by ``write_lpl``), or ``[]`` for non-APPEND
+    paths. A parse failure appends a warning (mutating ``warnings``) and
+    returns ``[]`` — never silently discards. ``replaced_shorts`` is the
+    set of names targeted by REPLACE / REPLACE_AND_RECYCLE decisions.
+    """
+    existing_items: list[dict[str, str]] = []
+    if pre.existing_playlist and plan.conflict_strategy is ConflictStrategy.APPEND:
+        try:
+            existing_items = read_lpl(plan.dest_dir / "mame.lpl")
+        except PlaylistError as exc:
+            warnings.append(f"existing playlist could not be parsed (will be overwritten): {exc}")
+            logger.warning("playlist parse failed; existing entries discarded: %s", exc)
+    replaced_shorts = frozenset(
+        d.replaces
+        for d in plan.append_decisions.values()
+        if d.kind in (AppendDecisionKind.REPLACE, AppendDecisionKind.REPLACE_AND_RECYCLE)
+        and d.replaces is not None
+    )
+    return existing_items, replaced_shorts
 
 
 def run_copy(
@@ -95,27 +200,17 @@ def run_copy(
     # grep because this site uses the list-comprehension form.
     warnings: list[str] = [f"{w.name!r}: {w.kind}" for w in bios_warnings]
 
-    # Playlist conflict resolution. CANCEL is a safety-rail for genuine
-    # conflicts; an idempotent rerun (every winner-zip already at dest with
-    # matching size+mtime, AND no extra zips at dest beyond winners + bios)
-    # is not a conflict — proceed as no-op so the design § 6.4 idempotency
-    # contract holds without requiring the user to specify `--conflict append`.
-    if (
-        pre.existing_playlist
-        and not plan.dry_run
-        and plan.conflict_strategy is ConflictStrategy.CANCEL
-    ):
-        all_winners_idempotent = set(pre.already_copied) >= set(plan.winners)
-        if not all_winners_idempotent:
-            return _finalize(
-                plan=plan,
-                started_at=started_at,
-                session_id=session_id,
-                status=CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT,
-                plan_summary=plan_summary,
-                bios_set=bios_set,
-                warnings=warnings,
-            )
+    # DS02 A4: CANCEL idempotency guard extracted; see helper docstring.
+    if _should_cancel_for_playlist_conflict(plan, pre):
+        return _finalize(
+            plan=plan,
+            started_at=started_at,
+            session_id=session_id,
+            status=CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT,
+            plan_summary=plan_summary,
+            bios_set=bios_set,
+            warnings=warnings,
+        )
 
     succeeded: list[CopyOutcome] = []
     skipped: list[CopyOutcome] = []
@@ -131,28 +226,10 @@ def run_copy(
     ]
     work += [(b, "bios") for b in sorted(bios_set)]
 
-    # Read existing playlist items if APPEND.
-    # A failed read (corrupt or legacy 6-line format per spec § "read_lpl
-    # input scope") falls back to empty-but-warns rather than silently
-    # discarding the user's old playlist; the warning surfaces in
-    # CopyReport.warnings and is logged.
-    existing_items: list[dict[str, str]] = []
-    if pre.existing_playlist and plan.conflict_strategy is ConflictStrategy.APPEND:
-        try:
-            existing_items = read_lpl(plan.dest_dir / "mame.lpl")
-        except PlaylistError as exc:
-            warnings.append(f"existing playlist could not be parsed (will be overwritten): {exc}")
-            logger.warning("playlist parse failed; existing entries discarded: %s", exc)
-
-    # Names being replaced — from caller-supplied AppendDecision.replaces.
-    # Used both to drive the recycle path and to prune the existing-entry
-    # carry-over when building mame.lpl.
-    replaced_shorts: set[str] = {
-        d.replaces
-        for d in plan.append_decisions.values()
-        if d.kind in (AppendDecisionKind.REPLACE, AppendDecisionKind.REPLACE_AND_RECYCLE)
-        and d.replaces is not None
-    }
+    # DS02 A4: pull existing-playlist load + replaced-shorts computation
+    # into a module-level helper. See `_resolve_conflicts` doc for the
+    # contract; warnings are mutated in place on parse failure.
+    existing_items, replaced_shorts = _resolve_conflicts(plan, pre, warnings)
 
     # Cancellation check before any work.
     if ctl.should_cancel():
@@ -359,62 +436,7 @@ def run_copy(
 
     # Write playlist (skip when dry-run or cancelled-mid-flight).
     if not plan.dry_run and not cancelled_mid:
-        # Build entries: only winners that are *definitely present at dst*
-        # (SUCCEEDED or SKIPPED_IDEMPOTENT) — see spec § "Which winners
-        # become entries". SKIPPED_MISSING_SOURCE / SKIPPED_EXISTING_VERSION
-        # / FAILED outcomes have no file at `dst` and must not get an entry.
-        entries: list[PlaylistEntry] = []
-        winner_set = set(plan.winners)
-        present_basenames: set[str] = set()
-        present_statuses = {
-            CopyOutcomeStatus.SUCCEEDED,
-            CopyOutcomeStatus.SKIPPED_IDEMPOTENT,
-        }
-        for o in (*succeeded, *skipped):
-            if o.role != "winner":
-                continue
-            if o.status not in present_statuses:
-                continue
-            machine = plan.machines.get(o.short_name)
-            if machine is None:
-                continue
-            entries.append(
-                PlaylistEntry(
-                    short_name=o.short_name,
-                    description=machine.description,
-                    abs_path=o.dst.resolve(),
-                )
-            )
-            present_basenames.add(o.dst.name)
-
-        # APPEND: keep existing entries that aren't being replaced and aren't
-        # already-written winners.
-        if plan.conflict_strategy is ConflictStrategy.APPEND and existing_items:
-            replaced_basenames = {f"{s}.zip" for s in replaced_shorts}
-            winner_basenames = {f"{w}.zip" for w in winner_set}
-            for it in existing_items:
-                # FP05 L5: skip entries with empty/missing path; otherwise
-                # `Path("")` resolves to `Path(".")` and gets carried into
-                # `mame.lpl` as an entry pointing at the dest dir itself.
-                raw_path = it.get("path", "")
-                if not raw_path:
-                    continue
-                ipath = Path(raw_path)
-                if ipath.name in present_basenames:
-                    continue
-                if ipath.name in replaced_basenames:
-                    continue
-                if ipath.name in winner_basenames:
-                    # Same-short overlap covered by the winner outcome above.
-                    continue
-                entries.append(
-                    PlaylistEntry(
-                        short_name=ipath.stem,
-                        description=str(it.get("label", ipath.stem)),
-                        abs_path=ipath,
-                    )
-                )
-
+        entries = _build_playlist_entries(plan, succeeded, skipped, existing_items, replaced_shorts)
         write_lpl(plan.dest_dir / "mame.lpl", entries)
 
     finished_at = datetime.now(UTC)

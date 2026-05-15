@@ -138,7 +138,7 @@ def test_filter_cmd_unset_overrides_uses_empty_model(
     `load_sessions` to fail loudly if they're called at all when the flags
     are unset.
     """
-    import mame_curator.cli as cli_module
+    import mame_curator.cli.commands.filter as cli_module
 
     def _boom_overrides(_path: Path):  # type: ignore[no-untyped-def]
         raise AssertionError("load_overrides must not be called when --overrides is unset")
@@ -168,16 +168,16 @@ def test_cmd_filter_quotes_out_path_with_control_byte(
     """FP07 A2 — `--out` path with a control byte must surface via `repr()`
     in the atomic-write OSError message.
 
-    Patch the cli-side binding `mame_curator.cli.atomic_write_text` (NOT the
-    source `mame_curator._atomic.atomic_write_text`) — `cli/__init__.py:18`
-    binds the name into the cli namespace at import time; the call site
-    looks up the cli-side binding.
+    Patch the cli-side binding `mame_curator.cli.commands.filter.atomic_write_text`
+    (NOT the source `mame_curator._atomic.atomic_write_text`) — DS02 A2 moved
+    `_cmd_filter` into `cli/commands/filter.py`, which binds the name into its
+    own namespace at import time; the call site looks up the commands-side binding.
     """
 
     def _raise_oserror(*_a: object, **_kw: object) -> None:
         raise OSError("disk full")
 
-    monkeypatch.setattr("mame_curator.cli.atomic_write_text", _raise_oserror)
+    monkeypatch.setattr("mame_curator.cli.commands.filter.atomic_write_text", _raise_oserror)
     out = tmp_path / "evil\nname.json"
     parser = build_parser()
     args = parser.parse_args(_filter_args(fixtures_dir, out))
