@@ -17,6 +17,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### DS05 — Test-file seam-split sweep (closed 2026-05-16)
+
+Three test files breaching their size caps split along stable seams;
+one permanent fix for the DS02 R2 lesson wired into pre-commit.
+Spec at [`docs/specs/DS05.md`](docs/specs/DS05.md); two cold-eyes
+review loops converged on the implementation; closing `/audit`
+returned clean (10/10 gates pass); closing `/indie-review` 5/5
+lanes PASS with 2 LOW spec-history nits folded as Cluster R1.
+Shipped across 7 commits (`738b418..d9c6817`).
+
+Patterns addressed: three test files over their layer's hard cap
+split into siblings + helper modules so the entire test suite
+respects `coding-standards.md` § 2; one CI-only gate
+(`tools/check_api_types_sync.py`) wired into `.pre-commit-config.yaml`
+so the DS02 R2 "CI catches what local missed" gap is closed
+permanently. No production-code changes; same tests run before
+and after, just organised across more files.
+
+**A — `SettingsPage.test.tsx` split (742 → 336 + 301 + 104)** `2e1f754`:
+
+- New `_settingsPageFixtures.tsx` hoists the `render` wrapper +
+  `config: AppConfigResponse` literal so all three test files
+  import one source.
+- `SettingsPage_render.test.tsx` (was L72-L349 of the original)
+  carries the 9-tab headers + RetroArch Setup-banner `it.each`
+  + Updates R36 banner + Filters/Picker chip-lists +
+  Updates/Interface dropdown render-and-patch pairs.
+- `SettingsPage_destructive_confirm.test.tsx` (was L520-L602)
+  carries the FP12 § H + FP13 § B2 destructive-DAT-confirm
+  cluster (4 `it` blocks).
+- Main `SettingsPage.test.tsx` retains year-range, region-priority,
+  snapshots, media-cache, paths, backup-export, restart-banner,
+  cart_clear_on_copy + the DS02 D1 `?tab=` URL-state nested
+  describe.
+
+**B — `test_runner.py` split (526 → 240 + 277)** `1ed6d3f`:
+
+- New `tests/copy/_runner_helpers.py` hoists `_machine` + `_plan`
+  factory helpers so both test files import them.
+- `test_runner_lifecycle.py` (was L274-L526) carries Pause /
+  resume / cancel + DS01 + FP05 clusters.
+- Main `test_runner.py` retains Dry-run + Apply + Playlist
+  conflict tests.
+
+**C — `test_dat.py` split (447 → 112 + 121 + 255)** `7b565f2`:
+
+- `test_dat_basic.py` (was L13-L105): happy-path parsing.
+- `test_dat_security.py` (was L107-L211): XXE entity
+  exfiltration, billion-laughs DoS, zip-bomb member-size cap.
+- `test_dat_validation.py` (was L212-L447): structural
+  well-formedness, value-range checks, file-typing, driver-
+  status rate-limiting, FP04 OSError surfacing.
+- `mini_dat` fixture in `tests/parser/conftest.py` auto-inherited
+  via pytest's conftest scoping; no fixture duplication.
+
+**D — Permanent fix for the DS02 R2 lesson** `aa2ded0`:
+
+- **D1:** `.pre-commit-config.yaml` gains a local
+  `check-api-types-sync` hook (`pass_filenames: false`,
+  `always_run: true`). The hook now fires on every commit so
+  the Python ↔ TS drift gate runs locally, not just in CI.
+- **D1-test:** `tests/tools/test_check_api_types_sync.py` pins
+  two invariants: the script exits 0 at HEAD; `PYTHON_SOURCES`
+  covers every `api/schemas*.py` sibling at HEAD (exact DS02 R2
+  root-cause regression-lock — a future split that adds another
+  sibling fires this test in the same commit).
+- **D2:** `docs/standards/coding-standards.md` § 2 extended with
+  an explicit test-file caps row (Python tests 500/300, frontend
+  test files 500/300). Closes the test-cap ambiguity DS04 left
+  unresolved.
+- **D3:** `docs/journal/DS02.md` "What was learned" updated to
+  cross-reference DS05 Cluster D as the closing fix for the
+  R2 post-mortem follow-up.
+
+**R1 — Closing-review fold-in (2 spec-history corrections)** `d9c6817`:
+
+- **R1a:** `docs/specs/DS05.md` § "Tests to write first" said
+  "three structural-assertion tests"; HEAD has 18 cases across
+  two files. Spec updated.
+- **R1b:** spec named `_settingsPageFixtures.ts`; HEAD is `.tsx`
+  (JSX requirement). Spec note added.
+
+Five backend gates green at close: 605 pytest pass / 87% coverage /
+0 ruff / 0 ruff-format / 0 mypy / 0 bandit. Frontend gates green:
+301 vitest pass / 0 eslint / 0 tsc. New pre-commit gate green:
+`check_api_types_sync.py` exits 0 at HEAD (89 models scanned across
+12 files; 61 TS interfaces match).
+
 ### DS02 — Tier 3 structural debt sweep (closed 2026-05-15)
 
 18 sub-bullets across 7 clusters sourced from the 2026-05-04 +

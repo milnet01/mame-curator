@@ -61,7 +61,14 @@ wave lands.
   api+media+downloads / frontend components+hooks+lib / frontend
   pages+e2e+strings).
 
-- 🚧 [mame-curator-1037] **DS05 — Test-file seam-split sweep.**
+- ✅ [mame-curator-1037] **DS05 — Test-file seam-split sweep.**
+  Closed 2026-05-16 (`738b418..d9c6817`). 7 commits: opener +
+  RED batch + 4 cluster splits + R1 closing-review fold-in.
+  Spec converged on cold-eyes loop 2 (16 findings total folded);
+  closing `/audit` clean (10/10 gates); closing `/indie-review`
+  5/5 lanes PASS with 2 LOW spec-history nits. 605 backend +
+  301 frontend tests green at close. See
+  [`CHANGELOG.md`](CHANGELOG.md) for the per-cluster breakdown.
   Bundles three conditional follow-ups from DS04 (1034 / 1035 /
   1036) into a single sweep per the FP27 / FP28 / DS02 precedent
   of consolidating similar work. Four clusters at Step 1:
@@ -87,14 +94,14 @@ wave lands.
   Source: test-audit-2026-05-15 (1034/1035/1036) +
   DS02-R2-post-mortem (Cluster D).
 
-- 🚧 [mame-curator-1034] **`SettingsPage.test.tsx` seam-split** —
-  folded into DS05 (Cluster A). Status flips to ✅ on DS05 close.
+- ✅ [mame-curator-1034] **`SettingsPage.test.tsx` seam-split** —
+  closed in DS05 Cluster A (2026-05-16).
 
-- 🚧 [mame-curator-1035] **`tests/copy/test_runner.py` seam-split** —
-  folded into DS05 (Cluster B). Status flips to ✅ on DS05 close.
+- ✅ [mame-curator-1035] **`tests/copy/test_runner.py` seam-split** —
+  closed in DS05 Cluster B (2026-05-16).
 
-- 🚧 [mame-curator-1036] **`tests/parser/test_dat.py` split** —
-  folded into DS05 (Cluster C). Status flips to ✅ on DS05 close.
+- ✅ [mame-curator-1036] **`tests/parser/test_dat.py` split** —
+  closed in DS05 Cluster C (2026-05-16).
 
 - ✅ [mame-curator-1021] **DS02 — Tier 3 structural debt sweep.**
   Closed 2026-05-15 (`c0a6ad6..eb000e4`). 18 sub-bullets across 7

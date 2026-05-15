@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | DS05 opened 2026-05-15 (Test-file seam-split sweep; folds 1034/1035/1036 + adds Cluster D as DS02-R2 permanent fix; spec converged on cold-eyes loop 2). DS02 closed 2026-05-15 (Tier 3 structural debt sweep; tag `DS02-complete`) + R2 hot-fix `ccb90a6`. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **DS05 → DS03 → P09 polish → post-v1**. |
-| **Active item ID** | DS05 |
-| **Active step** | 1/9 🚧 — spec drafted; two cold-eyes loops folded; awaiting user sign-off before Step 2 (plan). |
-| **Blocked on** | user sign-off on revised spec |
-| **Last update** | 2026-05-15 (DS05 Step 1: spec at `docs/specs/DS05.md` (Clusters A/B/C test-file splits + Cluster D pre-commit wiring for `tools/check_api_types_sync.py`); cold-eyes loop 1 dispatched as general-purpose subagent, 3 HIGH + 3 MED + 1 LOW folded; loop 2 dispatched independently, 2 HIGH + 4 MED + 3 LOW folded; `mcp__ants__cold_eyes_cross_doc_diff` corroborated 1 finding at `docs/specs/DS05.md:94` across both loops. ROADMAP entry added at 1037; `.roadmap-counter` bumped 1032→1037 (was stale by 5).) |
-| **Next gate** | DS05 Step 2 — user sign-off on the revised spec; then plan inlined per FP05/07/08 precedent; then Step 3 tests-first RED batch (state-pin tests for file-tree post-conditions). |
+| **Project phase** | DS05 closed 2026-05-16 (Test-file seam-split sweep; 4 clusters + R1 closing-review fold-in across 7 commits `738b418..d9c6817`; tag `DS05-complete`). DS02 closed 2026-05-15 + R2 hot-fix `ccb90a6`. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **DS03 → P09 polish → post-v1**. |
+| **Active item ID** | DS03 |
+| **Active step** | 1/9 ⬜ — spec. |
+| **Blocked on** | nothing |
+| **Last update** | 2026-05-16 (DS05 closed by `/close-phase`: closing `/audit` clean (10/10 gates including new `check-api-types-sync` pre-commit hook); closing `/indie-review` 5/5 lanes PASS with 2 LOW spec-history nits folded as Cluster R1 in commit `d9c6817`. Five backend gates green at close (605 pytest / 87% coverage / 0 ruff / 0 ruff-format / 0 mypy / 0 bandit); frontend gates green (301 vitest / 0 eslint / 0 tsc). Tag `DS05-complete` annotated. Windows-3.13 lockfile flake in `test_recycle_file_serializes_parallel_sessions` re-surfaced once during closing CI; rerun green; tracked as FP28 A2 follow-up.) |
+| **Next gate** | DS03 Step 1 — spec for the dependency-freshness sweep. Walks every entry in `pyproject.toml`, `frontend/package.json`, and `.github/workflows/ci.yml`, comparing pinned version against current latest stable. Ships a single coordinated bump commit so the CI matrix re-runs once for the whole set instead of dep-by-dep. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -25,25 +25,15 @@ becomes active.
 
 All 9 steps ✅. 14 contract sub-fixes + 3 closing-review corrections shipped across 6 commits (`cb35f26..72505d8`). Journal at `docs/journal/FP28.md`. Tag `FP28-complete`. Two follow-ups deferred to DS02 / later hardening pass (C2-sibling negative-cache headers; A2 lockfile timeout cap).
 
-**DS05 — Test-file seam-split sweep (opened 2026-05-15)**
+**DS05 — Test-file seam-split sweep (closed 2026-05-16)**
 
-- 🚧 Step 1 — spec at `docs/specs/DS05.md`; cold-eyes review
-  loop 1 (general-purpose subagent) returned 7 findings (3
-  HIGH + 3 MED + 1 LOW) — all folded into the revised spec.
-  Loop 2 (independent general-purpose subagent) returned 9
-  findings (2 HIGH + 4 MED + 3 LOW) — all folded into the
-  revised spec. `mcp__ants__cold_eyes_cross_doc_diff`
-  corroborated 1 hotspot at `docs/specs/DS05.md:94`
-  (different specific concerns, same line area). Final
-  actionable count: 4 clusters (A1-A2, B1, C1-C3, D1-D3)
-  + state-pin tests. **Awaiting user sign-off before Step 2.**
-- ⬜ Step 2 — plan inlined per FP05/07/08 precedent.
-- ⬜ Step 3 — tests-first RED batch (state-pin tests).
-- ⬜ Step 4 — implementation (3 cluster splits + pre-commit).
-- ⬜ Step 5/6 — closing `/audit` + `/indie-review`.
-- ⬜ Step 7 — closing-review cluster fold-in (if any).
-- ⬜ Step 8 — final five-gate green + pre-commit gate green.
-- ⬜ Step 9 — close + tag `DS05-complete` (annotated).
+All 9 steps ✅. 4 clusters (A: SettingsPage 742→336+301+104;
+B: test_runner 526→240+277; C: test_dat 447→112+121+255;
+D: pre-commit wiring for the DS02 R2 permanent fix) + R1
+closing-review fold-in across 7 commits (`738b418..d9c6817`).
+Journal at `docs/journal/DS05.md`. Tag `DS05-complete`. New
+`check-api-types-sync` local pre-commit hook fires on every
+commit since `aa2ded0`.
 
 **DS02 — Tier 3 structural debt sweep (closed 2026-05-15)**
 
