@@ -168,7 +168,14 @@ def _machine_from_element(elem: Any, seen_unknown_statuses: set[str]) -> Machine
     if not name:
         raise DATError("machine element missing required 'name' attribute")
     description_elem = elem.find("description")
-    if description_elem is None or not description_elem.text:
+    if description_elem is None:
+        raise DATError(f"machine '{name}' missing required <description>")
+    # FP28 B3: itertext() walks child element text + tails, so a
+    # mixed-content <description>Foo <i>bar</i> baz</description> yields
+    # the full "Foo bar baz" rather than only ".text" ("Foo "). MAME DATs
+    # don't currently ship mixed-content, but the fix is defensive.
+    description = "".join(description_elem.itertext()).strip()
+    if not description:
         raise DATError(f"machine '{name}' missing required <description>")
 
     raw_manufacturer = _text(elem, "manufacturer")
@@ -176,7 +183,7 @@ def _machine_from_element(elem: Any, seen_unknown_statuses: set[str]) -> Machine
 
     return Machine(
         name=name,
-        description=description_elem.text,
+        description=description,
         year=_year_or_none(_text(elem, "year")),
         manufacturer_raw=raw_manufacturer,
         publisher=publisher,

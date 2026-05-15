@@ -8,7 +8,12 @@ import re
 # word inside the trailing parenthetical, and we keep the publisher = everything before.
 # MAME's <manufacturer> field uses the US "license" spelling consistently across DAT
 # versions; "licence" (UK) does not appear in real DATs and is deliberately not handled.
-_LICENSE_RE = re.compile(r"^\s*(?P<publisher>.+?)\s*\((?P<developer>.+?)\s+license\)\s*$")
+# FP28 B1: developer is `[^()]+?` (no nested parens) so on
+# "Atari (JSA III) (Williams license)" the engine backtracks past the inner
+# parenthetical and anchors on the LAST `(` — publisher = "Atari (JSA III)",
+# developer = "Williams". With the old `.+?` the close-paren bled into
+# developer.
+_LICENSE_RE = re.compile(r"^\s*(?P<publisher>.+?)\s*\((?P<developer>[^()]+?)\s+license\)\s*$")
 
 
 def split_manufacturer(raw: str | None) -> tuple[str | None, str | None]:

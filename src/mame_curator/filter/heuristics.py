@@ -9,11 +9,18 @@ from __future__ import annotations
 import re
 from enum import StrEnum
 
+# FP28 B2: after the region token, allow either (a) whitespace then comma/
+# close-paren/EOL (e.g. "(World)", "(USA, Set 2)") or (b) whitespace then a
+# non-uppercase char — typically a digit (year/set/build like "(World 910411)",
+# "(Germany 1998)") or a lowercase letter (version like "(Europe v2.1)").
+# Rejects "(World Heroes 2)" because "Heroes" starts with an uppercase H —
+# real region parentheticals never have Title-cased continuations, only
+# modifiers introduced by a comma.
 REGION_RE = re.compile(
     r"\(\s*(?P<region>"
     r"World|USA|Europe|Japan|Asia|Brazil|Korea|Spain|Italy|"
     r"Germany|France|UK|Australia|Taiwan|Hong Kong"
-    r")\b"
+    r")(?:\s*(?:,|\)|$)|\s+(?=[^A-Z]))"
 )
 
 _REV_LETTER_RE = re.compile(r"\(\s*rev\s+(?P<letter>[A-Z])\s*\)")

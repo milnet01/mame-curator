@@ -9,6 +9,7 @@ from fnmatch import fnmatchcase
 
 from mame_curator.filter.config import FilterConfig
 from mame_curator.filter.drops import drop_reason
+from mame_curator.filter.errors import SessionsError
 from mame_curator.filter.overrides import Overrides
 from mame_curator.filter.picker import explain_pick, pick_winner
 from mame_curator.filter.sessions import Session, Sessions
@@ -61,19 +62,29 @@ def run_filter(
             )
 
     warnings: list[str] = []
+    # FP28 B4: dual-channel contract per filter/spec.md § Phase C — each
+    # override-rejection both logs at WARNING and appends to FilterResult.
+    # warnings. Prior to FP28 only the latter half was wired despite the
+    # logger being declared at module top.
     for parent, override_name in overrides.entries.items():
         if parent not in groups:
-            warnings.append(f"override key '{parent}' is not a known parent; ignored")
+            msg = f"override key '{parent}' is not a known parent; ignored"
+            logger.warning(msg)
+            warnings.append(msg)
             continue
         if override_name not in machines:
-            warnings.append(f"override target '{override_name}' is not in the DAT; ignored")
+            msg = f"override target '{override_name}' is not in the DAT; ignored"
+            logger.warning(msg)
+            warnings.append(msg)
             continue
         target_parent = ctx.cloneof_map.get(override_name, override_name)
         if target_parent != parent:
-            warnings.append(
+            msg = (
                 f"override '{parent} -> {override_name}': target belongs to "
                 "a different group; ignored"
             )
+            logger.warning(msg)
+            warnings.append(msg)
             continue
         winners[parent] = override_name
         dropped.pop(override_name, None)
@@ -97,7 +108,17 @@ def _apply_session(
     """Slice winners to those matching the active session, if any."""
     if sessions.active is None:
         return list(winners.values())
-    session = sessions.sessions[sessions.active]
+    # FP28 B5: Sessions' model_validator blocks direct construction with
+    # stale active, but model_copy(update=...) skips validators in
+    # Pydantic v2 — so a previously-valid instance can reach here with
+    # active pointing at a missing key. Translate the KeyError into the
+    # project's typed FilterError hierarchy.
+    try:
+        session = sessions.sessions[sessions.active]
+    except KeyError as exc:
+        raise SessionsError(
+            f"sessions.active = {sessions.active!r} but session not in sessions.sessions"
+        ) from exc
     return [
         name for name in winners.values() if _machine_matches_session(machines[name], session, ctx)
     ]
