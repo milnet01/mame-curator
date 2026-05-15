@@ -34,10 +34,17 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # FP24-EE: schemas.py extracted Setup/Updates/Help into schemas_setup.py and
 # Filesystem into schemas_fs.py; both are re-exported by schemas.py for
 # back-compat but the parity walk needs to scan the new files directly.
+# DS02 A5: schemas.py further split into per-domain siblings — Copy models to
+# schemas_copy.py, Games models to schemas_games.py, Overrides models to
+# schemas_overrides.py. Same back-compat re-export; same parity-walk-needs-
+# direct-scan requirement.
 PYTHON_SOURCES = (
     "src/mame_curator/api/schemas.py",
     "src/mame_curator/api/schemas_setup.py",
     "src/mame_curator/api/schemas_fs.py",
+    "src/mame_curator/api/schemas_copy.py",
+    "src/mame_curator/api/schemas_games.py",
+    "src/mame_curator/api/schemas_overrides.py",
     "src/mame_curator/api/errors.py",
     "src/mame_curator/copy/types.py",
     "src/mame_curator/parser/models.py",
