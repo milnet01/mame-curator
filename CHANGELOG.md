@@ -17,6 +17,142 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### DS02 — Tier 3 structural debt sweep (closed 2026-05-15)
+
+18 sub-bullets across 7 clusters sourced from the 2026-05-04 +
+2026-05-14 indie-review Tier 3 partitions and the 2026-05-14
+debt-sweep mechanical-drift batch, scoped down by Step 1
+verification (6 of 17 original sub-items dropped as verified stale).
+Spec at [`docs/specs/DS02.md`](docs/specs/DS02.md); cold-eyes review
+converged through 2 loops; closing `/audit` returned clean; closing
+`/indie-review` surfaced 3 MED + 1 LOW on the DS02 surface itself,
+folded as Cluster R1. Shipped across 4 commits (`c0a6ad6..eb000e4`).
+
+Patterns addressed: five source files over the 500-line hard cap
+split into smaller modules; six hardcoded "Loading…" JSX strings
+moved into `strings.loading.*`; skip-to-main link + `<main>` label
++ `aria-live` polite regions on route-level loading fallbacks +
+sibling-landmark labels on Help / Library / Cart asides; Settings-tab
+URL state via `useSearchParams`; AlternativesDrawer + CopyModal
+wrapped in `ErrorBoundary` with named-string fallbacks; CHANGELOG
+versioning-policy paragraph refreshed to current truth +
+`frontend/package.json` lockstep with `pyproject.toml` at v1.2.0 +
+new `.claude/bump.json` recipe entry; `revision_key_of` memoization
+via `@functools.lru_cache(8192)`; `WorldState.bytes_by_machine`
+precomputed at construction so `GET /api/games` per-request bytes-sum
+drops from O(M × R) to O(|filtered|).
+
+**A — Oversized source file splits (A1–A5)** `8bf3844`:
+
+- **A1:** `frontend/src/api/types.ts` 1032 → 493 lines; zod validators
+  extracted to sibling `frontend/src/api/schemas.ts` (591 lines —
+  acknowledged "Deliberately not in scope" exception, see R1c).
+  Public import surface preserved via re-export.
+- **A2:** `src/mame_curator/cli/__init__.py` 631 → 187 lines; one
+  module per subcommand under `cli/commands/{parse,filter,copy,setup,
+  serve,refresh_inis}.py`; dispatching `build_parser()` + `main()`
+  stay in `cli/__init__.py`. `argparse.set_defaults(func=...)`
+  dispatch shape unchanged.
+- **A3:** `frontend/src/strings.ts` 622 → 14 lines (re-export barrel);
+  body extracted to `frontend/src/strings_internal.ts` (646 lines —
+  pre-approved as "Deliberately not in scope": per-domain folder
+  split would force every call-site to update its import path).
+- **A4:** `src/mame_curator/copy/runner.py` 518 → 540 lines (file
+  still over cap); `_resolve_conflicts` (~80 lines) extracted as
+  module-level helper. Full per-phase decomposition of `run_copy`
+  remains deferred per spec § Deliberately not in scope (warrants
+  its own focused spec).
+- **A5:** `src/mame_curator/api/schemas.py` 515 → 329 lines (re-export
+  facade); 40 Pydantic models split into 5 sibling modules
+  (`schemas_copy.py`, `schemas_fs.py`, `schemas_games.py`,
+  `schemas_overrides.py`, `schemas_setup.py`). Sibling-file layout
+  preferred over the originally-named `schemas/` package directory
+  (functionally equivalent, one fewer directory).
+
+**B — Hardcoded UI strings (B1/B2)** `eeaff05`:
+
+- **B1:** added six `strings.loading.*` entries (`sessions`, `activity`,
+  `stats`, `help`, `settings`, `generic`) matching the existing
+  `error.*` / `confirm.*` namespacing.
+- **B2:** replaced six literal "Loading…" JSX strings in
+  `frontend/src/App.tsx` with `strings.loading.*` references.
+
+**C — Accessibility polish (C1–C4)** `eeaff05`:
+
+- **C1:** "Skip to main content" link added at the top of
+  `AppShell.tsx` (standard `sr-only focus:not-sr-only` pattern);
+  `<main>` gains `id="main"` + `tabIndex={-1}`.
+- **C2:** `<main>` landmark labelled via `strings.a11y.mainLandmark`
+  so screen readers announce "Main content, region" not just
+  "main, region".
+- **C3:** five route-level loading fallbacks in `App.tsx` wrapped
+  in `<div role="status" aria-live="polite">` so screen readers
+  announce route transitions.
+- **C4:** four sibling-landmark `aria-label`s on `<aside>` / `<article>`
+  in `HelpPage.tsx` (topic list + rendered topic), `LibraryPage.tsx`
+  (FiltersSidebar), and `CartPanel.tsx`.
+
+**D — Settings-tab URL state (D1)** `eeaff05`:
+
+- **D1:** `SettingsPage.tsx` now persists the active tab via
+  `useSearchParams` (`?tab=…`). Deep-linking a tab works; back-button
+  moves between tabs; default-tab behaviour preserved when the param
+  is absent.
+
+**E — ErrorBoundary nesting (E1/E2)** `eeaff05`:
+
+- **E1:** `AlternativesDrawer` wrapped in `<ErrorBoundary>` so a
+  render error stays scoped to the drawer subtree instead of
+  crashing the library page.
+- **E2:** `CopyModal` wrapped in `<ErrorBoundary>` for the same
+  reason. Named fallback strings wired in R1b.
+
+**F — Mechanical drift (F1/F2)** `eeaff05`:
+
+- **F1:** `CHANGELOG.md` versioning-policy paragraph rewritten to
+  current truth ("v1.0.0 shipped at P09 (2026-05-04). Subsequent
+  minor releases accumulate phase-closing tags between them…").
+- **F2:** `frontend/package.json` bumped 0.0.1 → 1.2.0 to match
+  `pyproject.toml`; `.claude/bump.json` recipe entry added so future
+  `/bump` runs roll both versions in lockstep.
+
+**G — Perf micro-fixes (G1/G2)** `eeaff05`:
+
+- **G1:** `revision_key_of` in `filter/heuristics.py` decorated with
+  `@functools.lru_cache(maxsize=8192)`. Each call inside
+  `_cmp_revision` (twice per pair × N log N comparisons per
+  candidate-group sort) now hits the cache instead of redoing the
+  regex-and-tuple work. Tests in
+  `tests/filter/test_picker_revision_memoization.py` call
+  `cache_clear()` before each stateful assertion so process-wide
+  state doesn't leak between tests.
+- **G2:** `bytes_by_machine: Mapping[str, int]` precomputed on
+  `WorldState` at construction (`api/state.py`); call sites in
+  `api/routes/games.py` now do `O(|filtered|)` instead of
+  `O(M × R)` per request.
+
+**R1 — Closing-review fold-in (3 corrections)** `eb000e4`:
+
+- **R1a:** `frontend/src/api/types.ts:6` comment mis-cited the DS02
+  cluster id for the zod extraction ("A3" — the strings split;
+  the types/schemas split is A1). One-line correction.
+- **R1b:** DS02 spec § E1/E2 promised named fallbacks on the two
+  modal `ErrorBoundary` wraps; HEAD wrapped both modals
+  structurally but passed no `fallback` prop. Added
+  `strings.errors.alternativesFailed` + `strings.errors.copyModalFailed`
+  and wired `fallback` props on both boundaries using the project's
+  existing alert-panel pattern. Test extended with two source-text
+  grep assertions (RED pre-fix, GREEN post-fix).
+- **R1c:** DS02 spec amendments — § A5 acknowledges the sibling-file
+  layout that actually shipped (vs originally-named `schemas/`
+  package directory); § "Deliberately not in scope" adds
+  `frontend/src/api/schemas.ts` (591 lines) entry with the per-domain
+  split rationale.
+
+Five backend gates green at close: 583 pytest pass / 87.27% coverage
+/ 0 ruff / 0 ruff-format / 0 mypy / 0 bandit. Frontend gates green:
+301 vitest pass / 0 eslint / 0 tsc.
+
 ### FP28 — Tier 2 review fold-in: hardening + correctness (closed 2026-05-15)
 
 14 sub-fixes sourced from the 2026-05-14 11-lane `/indie-review` (Tier 2

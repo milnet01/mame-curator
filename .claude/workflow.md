@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | FP28 closed 2026-05-15 (Tier 2 hardening cohort; 14 sub-fixes + 3 closing-review corrections across 6 commits `cb35f26..72505d8`; tag `FP28-complete`). DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **DS02 → DS03 → P09 polish → post-v1**. Three conditional follow-ups `[mame-curator-1034/1035/1036]` for files still over-cap. |
-| **Active item ID** | DS02 |
-| **Active step** | 5/6 ⬜ (next: closing `/audit` + `/indie-review`). Steps 1+2+3+4 ✅. |
+| **Project phase** | DS02 closed 2026-05-15 (Tier 3 structural debt sweep; 18 sub-bullets across 7 clusters + 3 closing-review corrections across 4 commits `c0a6ad6..eb000e4`; tag `DS02-complete`). FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **DS03 → P09 polish → post-v1**, plus three conditional follow-ups `[mame-curator-1034/1035/1036]` for test files still over-cap. |
+| **Active item ID** | mame-curator-1034 |
+| **Active step** | 1/9 ⬜ — spec. |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-15 (DS02 Step 4 shipped: Clusters B-G all GREEN (commit `eeaff05`) + Cluster A splits (commit `8bf3844`). Final test count: 583 pytest passed (all 9 DS02 xfail markers dropped after their GREEN landed) + 299 vitest passed. Five backend gates clean + tsc/eslint clean. Two follow-ups opened per spec § "Deliberately not in scope": `copy/runner.py` 540 > 500 lines (full per-phase decomposition deferred); `strings_internal.ts` 646 > 500 lines (per-domain folder split deferred). All other Cluster A targets under hard cap.) |
-| **Next gate** | DS02 Steps 5/6 — closing `/audit` + `/indie-review`. Run `/close-phase` orchestrator: dispatches both reviews in parallel against the DS02 surface (`c0a6ad6..8bf3844`), triages findings via `audit-fold.md`, either closes cleanly with tag `DS02-complete` or spawns Cluster R1 fold-in (Step 7). |
+| **Last update** | 2026-05-15 (DS02 closed by `/close-phase`: closing `/audit` clean; closing `/indie-review` surfaced 3 MED + 1 LOW on the DS02 surface itself, folded as Cluster R1 in commit `eb000e4` per the FP02 precedent. Five backend gates green at close (583 pytest / 87.27% coverage / 0 ruff / 0 ruff-format / 0 mypy / 0 bandit); frontend gates green (301 vitest / 0 eslint / 0 tsc). Tag `DS02-complete` annotated.) |
+| **Next gate** | mame-curator-1034 Step 1 — spec for `SettingsPage.test.tsx` seam-split (742 lines at HEAD, over the 500 hard cap). Three test-file seam-split follow-ups (1034/1035/1036) are a natural similar-work bundle after DS02 — opt for one consolidated spec or three? User to confirm before Step 1 spec write. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -25,51 +25,15 @@ becomes active.
 
 All 9 steps ✅. 14 contract sub-fixes + 3 closing-review corrections shipped across 6 commits (`cb35f26..72505d8`). Journal at `docs/journal/FP28.md`. Tag `FP28-complete`. Two follow-ups deferred to DS02 / later hardening pass (C2-sibling negative-cache headers; A2 lockfile timeout cap).
 
-**DS02 — Tier 3 structural debt sweep (opened 2026-05-15)**
+**DS02 — Tier 3 structural debt sweep (closed 2026-05-15)**
 
-- ✅ Step 1 — spec at `docs/specs/DS02.md`; cold-eyes review loop ran
-  2 passes (1 HIGH + 1 MED loop 1 → 0 at loop 2). Loop 1 caught two
-  scope items the first verification pass wrongly dismissed
-  (`revision_key_of` memoization in `filter/picker.py:119`;
-  `bytes_by_machine` precompute on `WorldState`); both folded back in
-  as **Cluster G — Perf micro-fixes**. Surface dropped 6 of the
-  original 17 sub-items as verified-stale; final actionable count: 18
-  across 7 clusters (A1-A5 + B1-B2 + C1-C4 + D1 + E1-E2 + F1-F2 + G1-G2).
-- ✅ Step 2 — plan inlined in spec body (FP05/07/08 precedent).
-- ✅ Step 3 — tests-first RED batch: 10 new + 2 extended test files;
-  29 RED tests; 36 pre-existing tests still GREEN. Backend tests in
-  `tests/docs/test_changelog_versioning_paragraph.py`,
-  `tests/docs/test_version_lockstep.py`,
-  `tests/filter/test_picker_revision_memoization.py`,
-  `tests/api/test_world_state_bytes_cache.py`. Frontend in
-  `frontend/src/__tests__/strings_loading.test.ts`,
-  `frontend/src/__tests__/loading_announce.test.ts`,
-  `frontend/src/__tests__/landmark_labels.test.tsx`,
-  `frontend/src/__tests__/LibraryPage_error_boundary.test.ts`,
-  `frontend/src/components/layout/__tests__/AppShell.skip_link.test.tsx`,
-  plus extensions to `AppShell.test.tsx` (C2) and
-  `pages/__tests__/SettingsPage.test.tsx` (D1).
-- ✅ Step 4 — implementation across two commits:
-  • `eeaff05` Clusters B-G GREEN (5 clusters, 13 sub-bullets):
-    strings.loading + App.tsx scrub (B); skip-link / main label /
-    aria-live / landmarks (C); SettingsPage `?tab=` URL state (D);
-    AlternativesDrawer + CopyModal ErrorBoundary nesting (E);
-    CHANGELOG paragraph + frontend/package.json 0.0.1→1.2.0 +
-    `.claude/bump.json` recipe (F); revision_key_of @lru_cache(8192)
-    + WorldState.bytes_by_machine precompute + games.py + stats
-    callers (G).
-  • `8bf3844` Cluster A splits (5 sub-bullets):
-    A1 `api/types.ts` 1032→493 + `api/schemas.ts` 591;
-    A2 `cli/__init__.py` 631→187 + `cli/commands/*` (6 files);
-    A3 `strings.ts` 646→14 + `strings_internal.ts` 646 (follow-up);
-    A4 `copy/runner.py` 518→540 (3 helpers extracted; full
-    per-phase decomposition deferred per spec);
-    A5 `api/schemas.py` 515→329 + 3 sibling modules.
-- ⬜ Step 5/6 — closing `/audit` + `/indie-review`.
-- ⬜ Step 5/6 — closing `/audit` + `/indie-review`.
-- ⬜ Step 7 — closing-review cluster fold-in (if any).
-- ⬜ Step 8 — final five-gate green.
-- ⬜ Step 9 — close + tag `DS02-complete` (annotated).
+All 9 steps ✅. 18 sub-bullets across 7 clusters (A1-A5 + B1-B2 +
+C1-C4 + D1 + E1-E2 + F1-F2 + G1-G2) + 3 closing-review corrections
+shipped across 4 commits (`c0a6ad6..eb000e4`). Journal at
+`docs/journal/DS02.md`. Tag `DS02-complete`. Three exceptions
+acknowledged in spec § "Deliberately not in scope":
+`copy/runner.py` 540 > 500, `strings_internal.ts` 646 > 500,
+`frontend/src/api/schemas.ts` 591 > 500 (R1c spec amendment).
 
 **FP27 — Tier 1 review fold-in: zombie features + data integrity (closed 2026-05-14)**
 

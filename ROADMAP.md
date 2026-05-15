@@ -96,7 +96,12 @@ wave lands.
   Lanes: backend tests.
   Source: test-audit-2026-05-15.
 
-- 📋 [mame-curator-1021] **DS02 — Tier 3 structural debt sweep.**
+- ✅ [mame-curator-1021] **DS02 — Tier 3 structural debt sweep.**
+  Closed 2026-05-15 (`c0a6ad6..eb000e4`). 18 sub-bullets across 7
+  clusters + 3 closing-review corrections (Cluster R1) shipped across
+  4 commits. Spec converged on cold-eyes loop 2 (0 residual findings);
+  583 backend + 301 frontend tests green at close. See
+  [`CHANGELOG.md`](CHANGELOG.md) for the per-bullet breakdown.
   Sweeps the Tier 3 fold-in from the 2026-05-04 multi-agent review:
   five files over the hard-cap split into smaller modules, hardcoded
   UI strings pulled into `strings.ts`, accessibility polish
