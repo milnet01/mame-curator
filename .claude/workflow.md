@@ -6,10 +6,10 @@
 |-------|-------|
 | **Project phase** | FP28 closed 2026-05-15 (Tier 2 hardening cohort; 14 sub-fixes + 3 closing-review corrections across 6 commits `cb35f26..72505d8`; tag `FP28-complete`). DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **DS02 → DS03 → P09 polish → post-v1**. Three conditional follow-ups `[mame-curator-1034/1035/1036]` for files still over-cap. |
 | **Active item ID** | DS02 |
-| **Active step** | 4 ⬜ (next: implementation). Steps 1+2+3 ✅. |
+| **Active step** | 5/6 ⬜ (next: closing `/audit` + `/indie-review`). Steps 1+2+3+4 ✅. |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-15 (DS02 Step 3 shipped: 11 test files (10 new + 2 extended), 29 RED tests failing on contract, 36 pre-existing tests still GREEN. Backend: F1 changelog + F2 version-lockstep + G1 lru_cache + G2 bytes_by_machine — 8 RED. Frontend: B1/B2 strings.loading + C1 skip-link + C2 main aria-label + C3 aria-live + C4 landmarks + D1 ?tab= URL state + E1/E2 ErrorBoundary nesting — 21 RED across 6 new test files + 2 extensions). |
-| **Next gate** | DS02 Step 4 — implementation. Order: Cluster A file-splits (mechanical) → B (strings) → C (a11y) → D (URL state) → E (ErrorBoundary nesting) → F (CHANGELOG + package.json + bump recipe) → G (lru_cache + bytes_by_machine). Drive all RED tests GREEN; keep pre-existing GREEN tests GREEN. |
+| **Last update** | 2026-05-15 (DS02 Step 4 shipped: Clusters B-G all GREEN (commit `eeaff05`) + Cluster A splits (commit `8bf3844`). Final test count: 583 pytest passed (all 9 DS02 xfail markers dropped after their GREEN landed) + 299 vitest passed. Five backend gates clean + tsc/eslint clean. Two follow-ups opened per spec § "Deliberately not in scope": `copy/runner.py` 540 > 500 lines (full per-phase decomposition deferred); `strings_internal.ts` 646 > 500 lines (per-domain folder split deferred). All other Cluster A targets under hard cap.) |
+| **Next gate** | DS02 Steps 5/6 — closing `/audit` + `/indie-review`. Run `/close-phase` orchestrator: dispatches both reviews in parallel against the DS02 surface (`c0a6ad6..8bf3844`), triages findings via `audit-fold.md`, either closes cleanly with tag `DS02-complete` or spawns Cluster R1 fold-in (Step 7). |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -49,7 +49,23 @@ All 9 steps ✅. 14 contract sub-fixes + 3 closing-review corrections shipped ac
   `frontend/src/components/layout/__tests__/AppShell.skip_link.test.tsx`,
   plus extensions to `AppShell.test.tsx` (C2) and
   `pages/__tests__/SettingsPage.test.tsx` (D1).
-- ⬜ Step 4 — implementation.
+- ✅ Step 4 — implementation across two commits:
+  • `eeaff05` Clusters B-G GREEN (5 clusters, 13 sub-bullets):
+    strings.loading + App.tsx scrub (B); skip-link / main label /
+    aria-live / landmarks (C); SettingsPage `?tab=` URL state (D);
+    AlternativesDrawer + CopyModal ErrorBoundary nesting (E);
+    CHANGELOG paragraph + frontend/package.json 0.0.1→1.2.0 +
+    `.claude/bump.json` recipe (F); revision_key_of @lru_cache(8192)
+    + WorldState.bytes_by_machine precompute + games.py + stats
+    callers (G).
+  • `8bf3844` Cluster A splits (5 sub-bullets):
+    A1 `api/types.ts` 1032→493 + `api/schemas.ts` 591;
+    A2 `cli/__init__.py` 631→187 + `cli/commands/*` (6 files);
+    A3 `strings.ts` 646→14 + `strings_internal.ts` 646 (follow-up);
+    A4 `copy/runner.py` 518→540 (3 helpers extracted; full
+    per-phase decomposition deferred per spec);
+    A5 `api/schemas.py` 515→329 + 3 sibling modules.
+- ⬜ Step 5/6 — closing `/audit` + `/indie-review`.
 - ⬜ Step 5/6 — closing `/audit` + `/indie-review`.
 - ⬜ Step 7 — closing-review cluster fold-in (if any).
 - ⬜ Step 8 — final five-gate green.
