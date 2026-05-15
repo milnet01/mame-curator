@@ -20,6 +20,12 @@ def listxml_with_disks() -> Path:
 
 
 @pytest.fixture
+def listxml_cloneof() -> Path:
+    """Path to a tiny listxml fixture exercising the cloneof join (DS04 T1.6)."""
+    return FIXTURES / "listxml_cloneof.xml"
+
+
+@pytest.fixture
 def catver_ini() -> Path:
     """Path to the catver.ini fixture."""
     return FIXTURES / "catver.ini"

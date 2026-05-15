@@ -8,6 +8,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 
 def test_route_r35_shape_setup_check(client: Any) -> None:
     response = client.get("/api/setup/check")
@@ -112,50 +114,43 @@ def _write_config_with_retroarch(
     return out
 
 
-def test_setup_check_retroarch_configured_requires_both_paths(
+@pytest.mark.parametrize(
+    "has_retroarch, has_core, expected",
+    [
+        (True, False, False),
+        (False, True, False),
+        (True, True, True),
+    ],
+    ids=["retroarch_only", "core_only", "both_set"],
+)
+def test_setup_check_retroarch_configured(
     tmp_path: Path,
     config_file: Path,
     fake_home: Path,
+    has_retroarch: bool,
+    has_core: bool,
+    expected: bool,
 ) -> None:
-    """FP22-A: only ``retroarch`` set without ``retroarch_core`` (or
-    vice versa) keeps ``retroarch_configured`` false — the launch
-    route requires both.
+    """FP22-A: ``retroarch_configured`` is true only when both
+    ``retroarch`` and ``retroarch_core`` are set — the launch route
+    requires both. DS04 T1.13 parametrized two original tests + added
+    the missing ``core_only`` case for completeness.
     """
     from fastapi.testclient import TestClient
 
     from mame_curator.api import create_app
 
-    binary = tmp_path / "retroarch"
-    binary.write_text("#!/bin/sh\nexit 0\n")
-    binary.chmod(0o755)
+    binary: Path | None = None
+    if has_retroarch:
+        binary = tmp_path / "retroarch"
+        binary.write_text("#!/bin/sh\nexit 0\n")
+        binary.chmod(0o755)
+    core: Path | None = None
+    if has_core:
+        core = tmp_path / "mame_libretro.so"
+        core.write_text("")
 
-    only_retro = _write_config_with_retroarch(
-        tmp_path, config_file, retroarch=binary, retroarch_core=None
-    )
-    with TestClient(create_app(only_retro)) as c:
+    cfg = _write_config_with_retroarch(tmp_path, config_file, retroarch=binary, retroarch_core=core)
+    with TestClient(create_app(cfg)) as c:
         body = c.get("/api/setup/check").json()
-    assert body["retroarch_configured"] is False
-
-
-def test_setup_check_retroarch_configured_true_when_both_set(
-    tmp_path: Path,
-    config_file: Path,
-    fake_home: Path,
-) -> None:
-    """FP22-A: both ``retroarch`` and ``retroarch_core`` set → True."""
-    from fastapi.testclient import TestClient
-
-    from mame_curator.api import create_app
-
-    binary = tmp_path / "retroarch"
-    binary.write_text("#!/bin/sh\nexit 0\n")
-    binary.chmod(0o755)
-    core = tmp_path / "mame_libretro.so"
-    core.write_text("")
-
-    both = _write_config_with_retroarch(
-        tmp_path, config_file, retroarch=binary, retroarch_core=core
-    )
-    with TestClient(create_app(both)) as c:
-        body = c.get("/api/setup/check").json()
-    assert body["retroarch_configured"] is True
+    assert body["retroarch_configured"] is expected

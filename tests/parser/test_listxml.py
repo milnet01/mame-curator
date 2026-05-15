@@ -1,11 +1,16 @@
 """Tests for parse_listxml_disks."""
 
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
 from mame_curator.parser.errors import ListxmlError
-from mame_curator.parser.listxml import parse_listxml_disks
+from mame_curator.parser.listxml import (
+    parse_listxml_bios_chain,
+    parse_listxml_cloneof,
+    parse_listxml_disks,
+)
 
 
 def test_returns_machines_with_disk_elements(listxml_with_disks: Path) -> None:
@@ -37,38 +42,19 @@ def _raise_oserror(*_args: object, **_kwargs: object) -> object:
     raise OSError("simulated EIO during iterparse")
 
 
-def test_disks_iterparse_oserror_raises_ListxmlError(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize(
+    "parse_fn",
+    [parse_listxml_disks, parse_listxml_cloneof, parse_listxml_bios_chain],
+    ids=["disks", "cloneof", "bios_chain"],
+)
+def test_iterparse_oserror_raises_ListxmlError(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    parse_fn: Callable[[Path], object],
 ) -> None:
-    """FP04 A4 — OSError mid-iteration in parse_listxml_disks → ListxmlError."""
+    """FP04 A4/A5/A6 — OSError mid-iteration in any parse_listxml_* → ListxmlError."""
     src = tmp_path / "valid.xml"
     src.write_text("<mame><machine name='x'/></mame>")
     monkeypatch.setattr("lxml.etree.iterparse", _raise_oserror)
     with pytest.raises(ListxmlError, match="read listxml"):
-        parse_listxml_disks(src)
-
-
-def test_cloneof_iterparse_oserror_raises_ListxmlError(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """FP04 A5 — OSError mid-iteration in parse_listxml_cloneof → ListxmlError."""
-    from mame_curator.parser.listxml import parse_listxml_cloneof
-
-    src = tmp_path / "valid.xml"
-    src.write_text("<mame><machine name='x'/></mame>")
-    monkeypatch.setattr("lxml.etree.iterparse", _raise_oserror)
-    with pytest.raises(ListxmlError, match="read listxml"):
-        parse_listxml_cloneof(src)
-
-
-def test_bios_chain_iterparse_oserror_raises_ListxmlError(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """FP04 A6 — OSError mid-iteration in parse_listxml_bios_chain → ListxmlError."""
-    from mame_curator.parser.listxml import parse_listxml_bios_chain
-
-    src = tmp_path / "valid.xml"
-    src.write_text("<mame><machine name='x'/></mame>")
-    monkeypatch.setattr("lxml.etree.iterparse", _raise_oserror)
-    with pytest.raises(ListxmlError, match="read listxml"):
-        parse_listxml_bios_chain(src)
+        parse_fn(src)

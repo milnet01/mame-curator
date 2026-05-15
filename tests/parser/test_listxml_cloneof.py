@@ -8,8 +8,8 @@ from mame_curator.parser.errors import ListxmlError
 from mame_curator.parser.listxml import parse_listxml_cloneof
 
 
-def test_returns_clone_to_parent_map(fixtures_dir: Path) -> None:
-    cloneof = parse_listxml_cloneof(fixtures_dir / "listxml_cloneof.xml")
+def test_returns_clone_to_parent_map(listxml_cloneof: Path) -> None:
+    cloneof = parse_listxml_cloneof(listxml_cloneof)
     assert cloneof == {
         "sf2ce": "sf2",
         "sf2t": "sf2",
@@ -17,9 +17,9 @@ def test_returns_clone_to_parent_map(fixtures_dir: Path) -> None:
     }
 
 
-def test_parents_and_standalones_excluded(fixtures_dir: Path) -> None:
+def test_parents_and_standalones_excluded(listxml_cloneof: Path) -> None:
     """Machines without a cloneof attribute do not appear in the map."""
-    cloneof = parse_listxml_cloneof(fixtures_dir / "listxml_cloneof.xml")
+    cloneof = parse_listxml_cloneof(listxml_cloneof)
     for parent in ("sf2", "pacman", "standalone"):
         assert parent not in cloneof
 

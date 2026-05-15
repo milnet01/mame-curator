@@ -9,6 +9,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 
 def test_route_r28_shape_activity(client: Any) -> None:
     response = client.get("/api/activity")
@@ -76,11 +78,18 @@ def test_activity_log_paginated(client: Any, tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _plant_50k_activity_log(client: Any) -> Path:
+@pytest.fixture
+def planted_50k_activity_log(client: Any) -> Path:
     """Write a 50,000-event JSONL log under the test world's data_dir.
 
-    Each event carries a monotonic `details.index` field so newest-first
-    pagination can be audited byte-precisely.
+    Each event carries a monotonic `details.report_path` (``sample://N``)
+    so newest-first pagination can be audited byte-precisely.
+
+    Function-scoped — the underlying ``client`` fixture is too, so each
+    test gets its own world. DS04 T1.10 hoisted this from a per-test
+    helper to a shared fixture for the audit trail; the I/O cost stays
+    one plant per test until the client fixture itself moves to a
+    broader scope.
     """
     # `client.app.state.world.data_dir` is typed Any (Starlette
     # app.state is untyped); cast to Path for the helper return.
@@ -108,12 +117,6 @@ def _plant_50k_activity_log(client: Any) -> Path:
                             "report_path": f"sample://{i}",
                             "outcome": "ok",
                         },
-                        # Outer-level marker (Pydantic's ActivityEvent
-                        # has `extra="forbid"` on `details` but not the
-                        # outer model — check schema before relying on
-                        # this; if forbidden, replace with another
-                        # parseable marker).
-                        "index": i,
                     }
                 )
                 + "\n"
@@ -121,7 +124,9 @@ def _plant_50k_activity_log(client: Any) -> Path:
     return activity_log
 
 
-def test_activity_route_streams_log_does_not_buffer_full_file(client: Any) -> None:
+def test_activity_route_streams_log_does_not_buffer_full_file(
+    client: Any, planted_50k_activity_log: Path
+) -> None:
     """A 10 MB JSONL log → GET /api/activity?page=1&page_size=20 must
     keep tracemalloc peak under 1 MB.
 
@@ -132,7 +137,7 @@ def test_activity_route_streams_log_does_not_buffer_full_file(client: Any) -> No
     """
     import tracemalloc
 
-    _plant_50k_activity_log(client)
+    _ = planted_50k_activity_log  # fixture seeds the log
 
     tracemalloc.start()
     try:
@@ -156,14 +161,14 @@ def test_activity_route_streams_log_does_not_buffer_full_file(client: Any) -> No
     )
 
 
-def test_activity_route_page2_slice_correct(client: Any) -> None:
+def test_activity_route_page2_slice_correct(client: Any, planted_50k_activity_log: Path) -> None:
     """Page 2 of the newest-first ordering must contain entries
     49,979 .. 49,960 (by file order), in newest-first order.
 
     Pins the deque-slice formula against off-by-one regressions
     on pages > 1.
     """
-    _plant_50k_activity_log(client)
+    _ = planted_50k_activity_log  # fixture seeds the log
 
     response = client.get("/api/activity?page=2&page_size=20")
     assert response.status_code == 200
@@ -173,11 +178,9 @@ def test_activity_route_page2_slice_correct(client: Any) -> None:
     # Newest-first: page 2 holds index 49979..49960 (chronologically
     # second-most-recent 20). The route emits the parsed-via-Pydantic
     # view; check the inner `details.report_path` which carries the
-    # original index. Falls back to raw if the post-fix re-emits the
-    # JSONL row.
+    # original index encoded as ``sample://N`` (set by the planter).
     indexes: list[int] = []
     for item in items:
-        # `report_path` is `f"/tmp/{i}"` per the planter; extract i.
         rp = item.get("details", {}).get("report_path", "")
         if rp.startswith("sample://"):
             indexes.append(int(rp[len("sample://") :]))

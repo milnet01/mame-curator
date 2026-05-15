@@ -1,23 +1,19 @@
-"""FP25-C + FP25-F: recyclebin manifest atomicity envelope + tests.
+"""FP25-F: recyclebin atomic-write crash-safety contract.
 
-Pre-FP25-C, ``copy/recyclebin.py:recycle_file`` moved the file with
-``shutil.move`` and then wrote the manifest via ``atomic_write_text``.
-If the manifest write raised ``OSError`` (disk full, permission denied,
-EROFS), the move had already succeeded — the file sat in the recycle
-directory with no ``manifest.json``, and the raw ``OSError`` bypassed
-the ``RecycleError`` envelope established earlier in the function.
+``copy/recyclebin.py:recycle_file`` writes a per-file
+``<basename>.manifest.json`` via ``_atomic.atomic_write_text``
+**before** the source is moved (FP21-D ordering — see
+``src/mame_curator/copy/spec.md:260``). The atomic helper's
+``tmp+rename+fsync`` envelope means a crash mid-write leaves either
+the prior manifest or no manifest at all — never a half-written
+record. These tests monkeypatch ``os.replace`` to fail mid-write and
+assert no ``*.manifest.json`` and no ``*.manifest.json.*.tmp``
+siblings linger in the recycle tree.
 
-FP25-C wraps the manifest write in a try/except that:
-
-- raises ``RecycleError`` (preserves the typed-error envelope);
-- attempts to roll the move back so the file ends up at its original
-  location (the all-or-nothing invariant). If the rollback itself
-  fails, the error is logged so forensics can find the orphan, but
-  the original ``RecycleError`` still propagates.
-
-FP25-F additionally locks the crash-safety contract by monkeypatching
-``os.replace`` to fail mid-``atomic_write_text`` and asserting no
-``manifest.json`` and no ``manifest.json.*.tmp`` survive.
+(The pre-FP21-D move-then-write-then-rollback envelope tracked by
+FP25-C was retired when manifest-first ordering landed. DS04 T1.1
+removed the matching rollback tests; the contract they locked is
+no longer live behaviour.)
 """
 
 from __future__ import annotations
@@ -28,69 +24,7 @@ from pathlib import Path
 import pytest
 
 from mame_curator.copy import recycle_file
-from mame_curator.copy.errors import CopyError, RecycleError
-
-
-def test_fp25_c_recycle_error_raised_when_manifest_write_fails(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """``OSError`` from the manifest write wraps as ``RecycleError``.
-
-    The pre-FP25-C path let the raw ``OSError`` propagate, bypassing the
-    ``RecycleError`` envelope used for the move-failure case at the top
-    of the function. Now both failure modes share the same typed error.
-    """
-    src = tmp_path / "sf2.zip"
-    src.write_bytes(b"some content")
-    recycle_root = tmp_path / "recycle"
-
-    def failing_atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8") -> None:
-        raise OSError("simulated ENOSPC during manifest write")
-
-    monkeypatch.setattr("mame_curator.copy.recyclebin.atomic_write_text", failing_atomic_write_text)
-
-    with pytest.raises(RecycleError) as exc_info:
-        recycle_file(
-            src,
-            reason="REPLACE_AND_RECYCLE",
-            session_id="01HZZ",
-            recycle_root=recycle_root,
-        )
-    assert isinstance(exc_info.value, CopyError)
-
-
-def test_fp25_c_recycle_rollback_returns_file_to_original_on_manifest_failure(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """On manifest failure, the recycled file is moved back to its original location.
-
-    All-or-nothing: callers that catch ``RecycleError`` should see the
-    filesystem in the same state it was in before the call.
-    """
-    src = tmp_path / "sf2.zip"
-    original_content = b"some content"
-    src.write_bytes(original_content)
-    recycle_root = tmp_path / "recycle"
-
-    def failing_atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8") -> None:
-        raise OSError("simulated ENOSPC during manifest write")
-
-    monkeypatch.setattr("mame_curator.copy.recyclebin.atomic_write_text", failing_atomic_write_text)
-
-    with pytest.raises(RecycleError):
-        recycle_file(
-            src,
-            reason="REPLACE_AND_RECYCLE",
-            session_id="01HZZ",
-            recycle_root=recycle_root,
-        )
-
-    # Rollback puts the file back at its original location.
-    assert src.exists(), "rollback must restore the source file"
-    assert src.read_bytes() == original_content
-    # No half-recycled file lingering in the target dir.
-    target = recycle_root / "01HZZ" / "sf2.zip"
-    assert not target.exists(), "rolled-back file must not remain in recycle dir"
+from mame_curator.copy.errors import RecycleError
 
 
 def _install_failing_manifest_replace(
@@ -139,12 +73,10 @@ def test_fp25_f_no_manifest_json_on_atomic_replace_failure(
             recycle_root=recycle_root,
         )
 
-    # FP26-C: assert against the WHOLE recycle root, not just the
-    # target_dir — FP25-C's rollback succeeds in this test path and
-    # removes the target_dir entirely. The L2-H2 indie-review caught
-    # the prior `if target_dir.exists():` guard making the assertion
-    # vacuously true. The crash-safety contract is "no half-written
-    # manifest.json ANYWHERE in the recycle tree".
+    # Glob over the entire recycle root: post-FP21-D the manifest writes
+    # before the move, so on failure the target_dir may not even exist.
+    # The crash-safety contract is "no half-written manifest.json
+    # ANYWHERE in the recycle tree".
     # FP21-D: glob matches both the legacy `manifest.json` shape and
     # the per-file `<basename>.manifest.json` shape.
     leftover_manifests = list(recycle_root.rglob("*manifest.json"))
@@ -178,8 +110,8 @@ def test_fp25_f_no_tmp_files_remain_on_atomic_replace_failure(
             recycle_root=recycle_root,
         )
 
-    # FP26-C: glob over the entire recycle tree, not just target_dir
-    # (which the rollback may have removed). The contract being
+    # Glob over the entire recycle tree (target_dir may not exist
+    # post-FP21-D when manifest writes first). The contract being
     # locked here is `_atomic.atomic_write_text`'s `if not completed:
     # tmp_path.unlink(missing_ok=True)` cleanup path — proving no
     # `.tmp` siblings linger anywhere.

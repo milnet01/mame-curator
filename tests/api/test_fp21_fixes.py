@@ -210,7 +210,7 @@ def test_fp21_k_subscriber_registered_before_history_drain(
 # ---- L — late-progress-after-terminal (analysed; preserved guard) -----------
 
 
-def test_fp21_l_emit_after_current_cleared_is_a_noop() -> None:
+def test_fp21_l_emit_after_current_cleared_is_a_noop(tmp_path: Path) -> None:
     """FP21-L: ``JobManager._emit`` is a no-op when ``self._current`` is
     ``None``. This is the existing guard that prevents a stray
     ``file_progress`` from being dispatched after ``_on_worker_done``
@@ -228,9 +228,11 @@ def test_fp21_l_emit_after_current_cleared_is_a_noop() -> None:
     from mame_curator.api.jobs import JobManager
     from mame_curator.api.schemas import JobEvent
 
-    # S108: any path is fine since _emit short-circuits on _current=None
-    # before touching history_dir.
-    manager = JobManager(history_dir=Path("/tmp/unused"))  # noqa: S108
+    # DS04 T1.4: history_dir is unused in this test (the _emit guard
+    # short-circuits on _current=None before touching it), but a fresh
+    # tmp_path keeps the constructor signature honest without world-
+    # writable /tmp paths or # noqa: S108.
+    manager = JobManager(history_dir=tmp_path)
     # _current starts None; _emit must be a clean no-op.
     assert manager._current is None
     manager._emit(

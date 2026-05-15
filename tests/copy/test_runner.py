@@ -392,18 +392,16 @@ def test_runner_logs_exception_on_copy_one_failure(
     """
     import logging
 
-    from mame_curator.copy import executor
-
     # Use OSError (typed family) so the FP05 A3-narrowed except clause
     # `except (OSError, CopyError)` catches it. RuntimeError post-A3
     # propagates by design (e.g. MemoryError must not be swallowed).
     def _boom(*_args: object, **_kwargs: object) -> None:
         raise OSError("synthetic failure for A5 test")
 
-    monkeypatch.setattr(executor, "copy_one", _boom)
-    # The runner imports `copy_one` at module level via `from .executor import
-    # copy_one`; patching the executor module also requires patching the
-    # runner's own binding.
+    # `runner` imports `copy_one` at module level via `from .executor
+    # import copy_one`, so the load-bearing patch target is the runner
+    # module's binding — not the executor's. (DS04 T1.7 removed a
+    # parallel patch on `executor.copy_one` that never fired.)
     from mame_curator.copy import runner as runner_module
 
     monkeypatch.setattr(runner_module, "copy_one", _boom)

@@ -36,6 +36,66 @@ wave lands.
 
 ### 🧹 Cleanup / debt
 
+- 🚧 [mame-curator-1033] **DS04 — Test-suite quality sweep.**
+  Triaged fold-in from the 5-lane test-suite audit 2026-05-15 on
+  commit `06fe3b8` (post-FP27). 51 sub-fixes across three tiers:
+  Tier 1 (14 items) clears dead-spec coverage (FP25-C rollback
+  tests contradicting `copy/spec.md:260`), vitest prototype /
+  global-state pollution leaks, unnecessary I/O (50k-line JSONL
+  twice, 6 MiB string allocations, 2.5 s Playwright sleep,
+  hardcoded `/tmp/` path with `# noqa: S108`), parametrize wins,
+  one mis-located test file. Tier 2 (19 items) hoists `_machine`,
+  `_plan`, `renderWithClient`, and a 47-line `config` fixture into
+  shared conftest / helpers, deletes FP##-named duplicate tests
+  subsumed by canonical module coverage, and fixes a Hypothesis
+  empty-strategy. Tier 3 (13 items) drops redundant
+  `afterEach(() => cleanup())` under auto-cleanup-on, fixes a11y
+  query patterns, tags brittle tracemalloc tests `@pytest.mark.slow`.
+  Layman: A spring-clean of the project's own tests — removing
+  ones that test code that no longer exists, deleting duplicates,
+  and pulling repeated boilerplate into shared helpers so future
+  test-writing is faster. Nothing changes for you as a user.
+  Kind: refactor.
+  Lanes: backend tests, frontend tests, e2e tests.
+  Source: test-audit-2026-05-15 (5 lanes: parser+filter / copy /
+  api+media+downloads / frontend components+hooks+lib / frontend
+  pages+e2e+strings).
+
+- 📋 [mame-curator-1034] **`SettingsPage.test.tsx` seam-split.**
+  Conditional follow-up opened during DS04. If DS04's T2.6 (config
+  fixture extract) + T2.12 (retroarch parametrize) + T3.10
+  (triple-test collapse) don't bring the file under the project's
+  500-line hard cap, this opens to split it along the
+  config-tab / backup-tab / sessions-tab seam. **Closes
+  immediately at DS04 close-phase if the file fits.**
+  Layman: A potential follow-up to split a long test file into
+  pieces if a smaller cleanup pass doesn't shrink it enough.
+  Kind: refactor.
+  Lanes: frontend tests.
+  Source: test-audit-2026-05-15.
+
+- 📋 [mame-curator-1035] **`tests/copy/test_runner.py` seam-split.**
+  Conditional follow-up opened during DS04. If DS04's T1.7 (dead
+  monkeypatch removal) + T2 helper hoisting don't bring the file
+  under 500 lines, this opens to split it along the
+  preflight / executor / runner seam. **Closes immediately at
+  DS04 close-phase if the file fits.**
+  Layman: Same as 1034, for a different test file.
+  Kind: refactor.
+  Lanes: backend tests.
+  Source: test-audit-2026-05-15.
+
+- 📋 [mame-curator-1036] **`tests/parser/test_dat.py` split.**
+  Conditional follow-up: split the 453-line file along the
+  basic / security / validation seam. The audit flagged this as
+  pure-structural polish; not closed inside DS04 because the file
+  is below the 500-line *hard* cap (over the 300-line *soft* cap).
+  Layman: A future tidy-up to split one of the bigger test files
+  into themed chunks. Cosmetic; doesn't change behavior.
+  Kind: refactor.
+  Lanes: backend tests.
+  Source: test-audit-2026-05-15.
+
 - 📋 [mame-curator-1021] **DS02 — Tier 3 structural debt sweep.**
   Sweeps the Tier 3 fold-in from the 2026-05-04 multi-agent review:
   five files over the hard-cap split into smaller modules, hardcoded

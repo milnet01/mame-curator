@@ -5,7 +5,6 @@ Per ``docs/specs/P04.md`` § Routes (Copy) and § Tests.
 
 from __future__ import annotations
 
-import time
 from typing import Any
 
 # ---- Per-route shape tests --------------------------------------------------
@@ -105,7 +104,3 @@ def test_pause_resume_abort_copy(client: Any) -> None:
     abort = client.post("/api/copy/abort", json={"recycle_partial": True})
     # Same race: if the worker already finished, abort returns 404.
     assert abort.status_code in (200, 404)
-    # Wait briefly for the worker thread to wind down (event-driven check is
-    # in test_sse.py; here a single sleep is sufficient because abort is the
-    # terminal transition).
-    time.sleep(0.1)
