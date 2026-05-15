@@ -170,27 +170,21 @@ def test_billion_laughs_internal_entity_does_not_expand(tmp_path: Path) -> None:
         f'<manufacturer>x</manufacturer><driver status="good"/>'
         f"</machine></datafile>"
     )
-    import time
-
-    start = time.perf_counter()
+    # DS04 T2.17: dropped the secondary `time.perf_counter() < 5.0`
+    # defence-in-depth assertions. The length check below is the
+    # load-bearing one (a non-expanded description fits in <1000 chars;
+    # the expanded form would be >100 KB), and wall-time thresholds on
+    # CI runners flake — the pre-FP25-K 1.0 s threshold was already
+    # bumped to 5 s once; either we trust the length check or we don't.
     try:
         machines = parse_dat(bomb)
     except DATError:
-        # FP25-K(3): expansion would produce a multi-GB string; even a
-        # slow CI runner that takes 5s to parse the un-expanded ~1 KB
-        # fixture is fine. The pre-FP25-K 1.0s threshold flaked on
-        # under-provisioned CI runners. The length check below remains
-        # the load-bearing assertion ("did entities actually expand").
-        elapsed = time.perf_counter() - start
-        assert elapsed < 5.0, f"parse_dat took {elapsed:.2f}s — expansion happened despite raise"
+        # FP25-K(3): expansion would produce a multi-GB string; the
+        # raise itself is the strong signal that the parser rejected
+        # the bomb without expanding entities.
         return
-    elapsed = time.perf_counter() - start
     desc = machines["lol"].description or ""
-    # FP25-K(3): a non-expanded description fits in <1000 chars; the
-    # expanded form (10^5 lols) is >100 KB. Length is the sufficient
-    # condition; elapsed is bounded loosely as a defence-in-depth.
     assert len(desc) < 1000, f"description has {len(desc)} chars — entities were expanded"
-    assert elapsed < 5.0, f"parse_dat took {elapsed:.2f}s — entity expansion ran"
 
 
 def test_zip_member_size_capped(tmp_path: Path) -> None:

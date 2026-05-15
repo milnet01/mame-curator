@@ -101,11 +101,15 @@ def test_sessions_active_validator_rejects_unknown_in_programmatic_construction(
 
 def test_sessions_oversized_yaml_rejected(tmp_path: Path) -> None:
     """C3 — file size cap of 1 MB before `yaml.safe_load`. Defends against
-    YAML alias-bomb DoS when P07's `setup/` ships preset downloads."""
+    YAML alias-bomb DoS when P07's `setup/` ships preset downloads.
+
+    DS04 T2.16: the cap fires on byte length *before* parse, so a
+    cheap just-over-1-MiB byte payload triggers the same code path
+    as the prior 2 MB valid-YAML string at half the I/O. Same
+    pattern as ``tests/filter/test_io.py:16``'s ``_OVER_CAP``.
+    """
     f = tmp_path / "huge.yaml"
-    # 2 MB of valid YAML (just a giant single key-value).
-    payload = "active: null\nsessions:\n  big:\n    include_genres: ['" + ("X" * 2_000_000) + "']\n"
-    f.write_text(payload)
+    f.write_bytes(b"0" * (1024 * 1024 + 1))  # > 1 MiB
     with pytest.raises(SessionsError):
         load_sessions(f)
 

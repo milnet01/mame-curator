@@ -7,9 +7,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from hypothesis import HealthCheck, given, settings
-from hypothesis import strategies as st
-
 # ---- Per-route shape tests --------------------------------------------------
 
 
@@ -120,19 +117,18 @@ def test_config_export_import_round_trip(client: Any) -> None:
     ]
 
 
-# ---- Property test ----------------------------------------------------------
+# ---- No-op PATCH idempotence ------------------------------------------------
 
 
-@given(st.fixed_dictionaries({}))
-@settings(
-    max_examples=5,
-    deadline=None,
-    suppress_health_check=[HealthCheck.function_scoped_fixture],
-)
-def test_filter_recompute_idempotent_under_no_op_patch(client: Any, _: dict[str, Any]) -> None:
+def test_filter_recompute_idempotent_under_no_op_patch(client: Any) -> None:
     """P01 — PATCH with no fields → 200 + filter result unchanged.
 
-    Hypothesis-driven so a future expansion (random no-op shapes) plugs in.
+    DS04 T2.14: dropped the `@given(st.fixed_dictionaries({}))` decorator
+    — the strategy only ever generated `{}`, so the test wasn't actually
+    Hypothesis-driven. If a real random-no-op-shape strategy is wanted
+    in the future, re-add `@given` with a non-trivial strategy
+    (`st.dictionaries(st.text(min_size=1), st.none(), max_size=0)` or
+    similar).
     """
     pre = client.get("/api/games").json()
     response = client.patch("/api/config", json={})

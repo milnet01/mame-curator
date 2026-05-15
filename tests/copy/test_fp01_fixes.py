@@ -9,18 +9,16 @@ keeping the FP origin visible in the test layout per
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 from mame_curator.copy import (
-    copy_one,
     recycle_file,
     run_copy,
 )
-from mame_curator.copy.errors import CopyError, CopyExecutionError, RecycleError
+from mame_curator.copy.errors import CopyExecutionError, RecycleError
 from mame_curator.copy.types import (
     AppendDecision,
     AppendDecisionKind,
@@ -38,35 +36,11 @@ def _machine(short: str, desc: str | None = None) -> Machine:
 
 
 # --- Tier 1 #2: KeyboardInterrupt cleanup ---------------------------------
-
-
-def test_copy_one_cleans_tmp_on_keyboard_interrupt(
-    source_dir: Path, dest_dir: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Spec § Atomic copy step 6: KeyboardInterrupt mid-copy cleans up `.tmp`.
-
-    FP27 B1: both write paths in `copy_one` now funnel through
-    `_chunked_copy`; the test patches that target instead of the legacy
-    `shutil.copy2`.
-    """
-    src = source_dir / "kof94.zip"
-    dst = dest_dir / "kof94.zip"
-
-    from mame_curator.copy import executor
-
-    def boom(_src: object, tmp_arg: object, _total: int, _progress: object) -> None:
-        Path(str(tmp_arg)).write_bytes(b"PARTIAL")
-        raise KeyboardInterrupt
-
-    monkeypatch.setattr(executor, "_chunked_copy", boom)
-
-    with pytest.raises(KeyboardInterrupt):
-        copy_one(src, dst, short_name="kof94", role="winner")
-
-    # Tmp removed by the try/finally in copy_one.
-    assert not list(dest_dir.glob("*.tmp"))
-    # Original dst (absent) still absent — never half-written.
-    assert not dst.exists()
+# DS04 T2.9: deleted `test_copy_one_cleans_tmp_on_keyboard_interrupt` — the
+# equivalent test at `tests/copy/test_fp02_fixes.py:317` uses a `progress=`
+# callback to trigger the interrupt and exercises the same `_chunked_copy`
+# write path. Both paths funnel through `_chunked_copy` post-FP27-B1; one
+# test is enough.
 
 
 # --- Tier 1 #3: OverwriteRecord populated ---------------------------------
@@ -242,31 +216,11 @@ def test_replace_keep_existing_skips_winner(
 
 
 # --- Tier 1 #5: recycle collision logic -----------------------------------
-
-
-def test_recycle_same_name_same_second_does_not_clobber(tmp_path: Path) -> None:
-    """Two recycles of files named the same in the same second land in distinct dirs."""
-    (tmp_path / "a").mkdir()
-    (tmp_path / "b").mkdir()
-    same_name_a = tmp_path / "a" / "sf2.zip"
-    same_name_a.write_bytes(b"AAA")
-    same_name_b = tmp_path / "b" / "sf2.zip"
-    same_name_b.write_bytes(b"BBB")
-    recycle_root = tmp_path / "recycle"
-
-    # Force both calls to use the same timestamp via a fixed datetime.
-    fixed_now = datetime(2026, 4, 30, 12, 0, 0, tzinfo=UTC)
-    with patch("mame_curator.copy.recyclebin.datetime") as mock_dt:
-        mock_dt.now.return_value = fixed_now
-        mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
-        p1 = recycle_file(same_name_a, reason="x", session_id="s", recycle_root=recycle_root)
-        p2 = recycle_file(same_name_b, reason="x", session_id="s", recycle_root=recycle_root)
-
-    # Both files preserved with their original content; neither clobbered.
-    assert p1.read_bytes() == b"AAA"
-    assert p2.read_bytes() == b"BBB"
-    # Distinct parent directories (the second got a -1 suffix).
-    assert p1.parent != p2.parent
+# DS04 T2.10: deleted `test_recycle_same_name_same_second_does_not_clobber`
+# — the equivalent at `tests/copy/test_fp02_fixes.py:158` exercises a
+# stronger `session_id`-distinguishing assertion, and the canonical
+# `tests/copy/test_recyclebin.py:95` already pins the dir-uniqueness
+# contract.
 
 
 # --- Tier 2: FAILED branch coverage ---------------------------------------
@@ -327,19 +281,11 @@ def test_overwrite_with_delete_existing_zips_recycles_old_zips(
 
 
 # --- Tier 3: errors __str__ round-trip ------------------------------------
-
-
-def test_copy_error_str_renders_path_suffix() -> None:
-    p = Path("/x/y.zip")
-    err = CopyError("simulated", path=p)
-    # FP07 A4: path is rendered via repr() to defend the single-line
-    # error contract against control bytes in user-controlled paths.
-    assert str(err) == f"simulated (path={p!r})"
-
-
-def test_copy_error_str_without_path() -> None:
-    err = CopyError("simulated")
-    assert str(err) == "simulated"
+# DS04 T2.11: deleted `test_copy_error_str_renders_path_suffix` +
+# `test_copy_error_str_without_path` — both subsumed by
+# `tests/copy/test_errors.py:15-37`, which iterates over every
+# `CopyError` subclass and additionally locks the FP07 A4 control-byte
+# repr contract.
 
 
 # --- Tier 3: playlist error branches --------------------------------------

@@ -92,10 +92,16 @@ def test_copy_preserves_mtime(source_dir: Path, dest_dir: Path) -> None:
     assert abs(dst.stat().st_mtime - src_mtime) < 1.0
 
 
-def test_copy_progress_callback_emits_chunks(source_dir: Path, dest_dir: Path) -> None:
-    """progress callback is invoked at least once for a real copy."""
+def test_copy_progress_callback_emits_chunks(dest_dir: Path, tmp_path: Path) -> None:
+    """progress callback is invoked at least once for a real copy.
+
+    DS04 T2.19: writes the larger source into ``tmp_path`` instead of
+    the module-scoped ``source_dir`` fixture, so the 3 MiB file
+    doesn't leak into other tests in the module that iterate over
+    ``source_dir``.
+    """
     # Make a larger source so chunked copy emits multiple progress events.
-    src = source_dir / "big.zip"
+    src = tmp_path / "big.zip"
     src.write_bytes(b"X" * (3 * 1024 * 1024))  # 3 MiB
     dst = dest_dir / "big.zip"
 
