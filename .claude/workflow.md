@@ -6,10 +6,10 @@
 |-------|-------|
 | **Project phase** | FP28 closed 2026-05-15 (Tier 2 hardening cohort; 14 sub-fixes + 3 closing-review corrections across 6 commits `cb35f26..72505d8`; tag `FP28-complete`). DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **DS02 → DS03 → P09 polish → post-v1**. Three conditional follow-ups `[mame-curator-1034/1035/1036]` for files still over-cap. |
 | **Active item ID** | DS02 |
-| **Active step** | 1 ⬜ (next: open spec at `docs/specs/DS02.md`). |
+| **Active step** | 3 ⬜ (next: tests-first RED batch). Steps 1+2 ✅. |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-15 (FP28 closed by `/close-phase`: closing audit clean across ruff/bandit/semgrep/gitleaks; closing indie-review surfaced 1 HIGH + 2 MEDIUM folded as R1 (`72505d8`); 2 follow-ups deferred to DS02 / later hardening pass. Tag `FP28-complete` lands at the closing commit). |
-| **Next gate** | DS02 Step 1 — open spec for Tier 3 structural debt sweep (roving-tabindex, duplicate `<h1>`, landmark labels, memoization, cache, ErrorBoundary nesting, ConfirmationDialog throw, `# type: ignore` / `# noqa` audit, stale CHANGELOG paragraph, frontend `package.json` 0.0.1 vs pyproject 1.2.0 lockstep). |
+| **Last update** | 2026-05-15 (DS02 Step 1 + Step 2 shipped: spec at `docs/specs/DS02.md` with plan inlined; cold-eyes review loop ran 2 passes — Loop 1 caught 1 HIGH (`revision_key_of` wrongly dismissed) + 1 MED (arithmetic), Loop 2 clean. Scope: 18 sub-items across 7 clusters; 6 of the original 17 verified stale and dropped). |
+| **Next gate** | DS02 Step 3 — tests-first. Land RED batch for Clusters B (strings), C (a11y), D (Settings URL state), E (ErrorBoundary), F (CHANGELOG + version lockstep), G (revision_key_of memo + WorldState.bytes_by_machine). Cluster A (file splits) covered by existing tests at import paths. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -27,8 +27,15 @@ All 9 steps ✅. 14 contract sub-fixes + 3 closing-review corrections shipped ac
 
 **DS02 — Tier 3 structural debt sweep (opened 2026-05-15)**
 
-- ⬜ Step 1 — spec.
-- ⬜ Step 2 — plan.
+- ✅ Step 1 — spec at `docs/specs/DS02.md`; cold-eyes review loop ran
+  2 passes (1 HIGH + 1 MED loop 1 → 0 at loop 2). Loop 1 caught two
+  scope items the first verification pass wrongly dismissed
+  (`revision_key_of` memoization in `filter/picker.py:119`;
+  `bytes_by_machine` precompute on `WorldState`); both folded back in
+  as **Cluster G — Perf micro-fixes**. Surface dropped 6 of the
+  original 17 sub-items as verified-stale; final actionable count: 18
+  across 7 clusters (A1-A5 + B1-B2 + C1-C4 + D1 + E1-E2 + F1-F2 + G1-G2).
+- ✅ Step 2 — plan inlined in spec body (FP05/07/08 precedent).
 - ⬜ Step 3 — tests-first.
 - ⬜ Step 4 — implementation.
 - ⬜ Step 5/6 — closing `/audit` + `/indie-review`.
