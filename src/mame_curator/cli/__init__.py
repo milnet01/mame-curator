@@ -473,6 +473,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         import uvicorn
 
         from mame_curator.api import create_app
+        from mame_curator.api.errors import ConfigError
     except ImportError as exc:
         err_console.print(
             f"[red]error:[/red] API extras not installed ({exc}); "
@@ -480,9 +481,13 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         )
         return 1
 
+    # FP28 D2: narrowed from bare `except Exception` to the typed errors
+    # create_app actually raises on bad inputs. Programmer errors
+    # (RuntimeError, AttributeError, ...) propagate as tracebacks per
+    # coding-standards.md § 9 — the trace is the actionable signal.
     try:
         app = create_app(args.config)
-    except Exception as exc:
+    except (ConfigError, ParserError, FilterError) as exc:
         err_console.print(f"[red]error:[/red] failed to create app: {exc}")
         return 1
 
@@ -493,7 +498,16 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     except OSError as exc:
         err_console.print(f"[red]error:[/red] failed to bind {host}:{port}: {exc}")
         return 1
-    return 0
+    except KeyboardInterrupt:
+        # FP28 D1: uvicorn catches Ctrl-C internally and returns normally
+        # in the current version; this except is defence-in-depth for a
+        # future re-raise. POSIX convention for SIGINT is exit 130.
+        return 130
+    # FP28 D1: fall-through is also 130, not 0 — uvicorn's internal
+    # KeyboardInterrupt catch means the function reaches here when the
+    # user Ctrl-C'd a healthy server. The visible exit code must reflect
+    # the signal, not a clean shutdown.
+    return 130
 
 
 _INI_FILE_TO_CONFIG_FIELD: dict[str, str] = {
@@ -570,14 +584,26 @@ def _cmd_refresh_inis(args: argparse.Namespace) -> int:
     files. Surfaces a per-file outcome line: green ✓ for success, red ✗
     for failure with the manual-fallback URL the user can grab themselves.
     """
-    import asyncio
-
-    import httpx
-
-    from mame_curator.updates import refresh_inis
-
     console = Console()
     err_console = Console(stderr=True, soft_wrap=True)
+
+    # FP28 D3: defence-in-depth import guard mirroring _cmd_serve's shape.
+    # httpx is a top-level dep, so the ImportError path is only reachable
+    # in exotic install states (pip install --no-deps, broken wheel,
+    # partial editable install) — but the consistency with _cmd_serve's
+    # guard avoids a raw traceback in those rare cases.
+    try:
+        import asyncio
+
+        import httpx
+
+        from mame_curator.updates import refresh_inis
+    except ImportError as exc:
+        err_console.print(
+            f"[red]error:[/red] failed to import dependencies ({exc}); "
+            "reinstall the project (uv sync, or pip install -e .)"
+        )
+        return 1
 
     async def _run() -> int:
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
