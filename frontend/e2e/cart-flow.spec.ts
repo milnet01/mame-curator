@@ -8,6 +8,17 @@ import { expect, test } from '@playwright/test'
  * the featured tiles' catver-keyed counts are likely 0 here
  * — we lean on clicking a card's +Add directly to populate
  * the cart instead of bulk-add.
+ *
+ * DS04 T2.13: dropped three unit-duplicate e2e tests that
+ * `CartBar.test.tsx` + `CartPanel.test.tsx` already covered:
+ * "expand chevron toggles cart panel; remove ✕ drops the row"
+ * and "Copy button is disabled when cart is empty". Both were
+ * pure component-level behaviour the unit tests pin
+ * deterministically. The integration scenario below ('first visit
+ * shows onboarding banner; +Add populates the cart') stays — it
+ * exercises the wiring from add-button click → onboarding-banner
+ * dismiss → cart-bar-count update → card-✓-Added flip, none of
+ * which is covered at the unit level.
  */
 
 test.beforeEach(async ({ context }) => {
@@ -33,10 +44,8 @@ test('first visit shows onboarding banner; +Add populates the cart', async ({
   // Cart bar shows empty (footer-scoped to avoid ambiguity)
   await expect(page.locator('footer').getByText('Cart empty')).toBeVisible()
 
-  // Wait for at least one Add button — the virtualizer needs to render cards.
-  await page.waitForSelector('button[aria-label*="to cart"]', { timeout: 10000 })
-
-  // Click an Add button — pick the first card on the grid
+  // Click an Add button — pick the first card on the grid. Locator
+  // auto-waits, so no explicit `waitForSelector` is needed.
   const addButton = page
     .getByRole('button', { name: /add .+ to cart/i })
     .first()
@@ -51,40 +60,4 @@ test('first visit shows onboarding banner; +Add populates the cart', async ({
 
   // Card flips to ✓ Added (the same card we just clicked)
   await expect(page.getByText('✓ Added')).toBeVisible()
-})
-
-test('expand chevron toggles cart panel; remove ✕ drops the row', async ({
-  page,
-}) => {
-  await page.goto('/')
-
-  // Wait for cards to render, then add one game
-  await page.waitForSelector('button[aria-label*="to cart"]', { timeout: 10000 })
-  await page.getByRole('button', { name: /add .+ to cart/i }).first().click()
-  await expect(page.getByText(/^1 game/)).toBeVisible()
-
-  // Expand the cart
-  await page.getByRole('button', { name: 'Expand cart' }).click()
-  const panel = page.getByRole('region', { name: 'Cart contents' })
-  await expect(panel).toBeVisible()
-
-  // Remove the only row (the CartPanel aria-label is per-shortName, e.g.
-  // "Remove pacman from cart"; the footer sticky bar also has a Copy button
-  // labelled "Copy" — target the remove button inside the panel explicitly)
-  await panel
-    .getByRole('button', { name: /^remove .+ from cart$/i })
-    .first()
-    .click()
-
-  // Cart bar back to empty — use the footer locator to be precise
-  await expect(page.locator('footer').getByText('Cart empty')).toBeVisible()
-})
-
-test('Copy button is disabled when cart is empty', async ({ page }) => {
-  await page.goto('/')
-  // Locate the bottom-bar Copy button (not the "Copy" tab anywhere else).
-  // It's inside a <footer>; use a footer-scoped role query.
-  const footer = page.locator('footer').first()
-  const copyBtn = footer.getByRole('button', { name: /^copy$/i })
-  await expect(copyBtn).toBeDisabled()
 })

@@ -124,6 +124,7 @@ def planted_50k_activity_log(client: Any) -> Path:
     return activity_log
 
 
+@pytest.mark.slow
 def test_activity_route_streams_log_does_not_buffer_full_file(
     client: Any, planted_50k_activity_log: Path
 ) -> None:
@@ -161,6 +162,7 @@ def test_activity_route_streams_log_does_not_buffer_full_file(
     )
 
 
+@pytest.mark.slow
 def test_activity_route_page2_slice_correct(client: Any, planted_50k_activity_log: Path) -> None:
     """Page 2 of the newest-first ordering must contain entries
     49,979 .. 49,960 (by file order), in newest-first order.

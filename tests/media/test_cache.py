@@ -319,6 +319,7 @@ async def test_fetch_with_cache_caps_body_size(tmp_path: Path) -> None:
                 )
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_fetch_with_cache_streams_to_disk(tmp_path: Path) -> None:
     """A 5 MiB body must not lift `tracemalloc` peak above body_size/2

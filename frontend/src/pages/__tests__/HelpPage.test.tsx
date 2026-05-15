@@ -157,16 +157,19 @@ describe('HelpPage', () => {
     expect(p?.getAttribute('style')).toBeNull()
   })
 
-  it('FP20-L / FP25-J: strips data: URLs on <img> with a deterministic outcome', () => {
+  it('FP20-L / FP25-J: strips data: URLs on <img> (no src survives)', () => {
     /**
      * FP25-J strengthens the original FP20-L assertion: the pre-FP25-J
      * test only stated "if <img> survives, its src must not start with
      * data:". That passed vacuously if a future config change happened
-     * to remove the <img> entirely AND would also pass if the
-     * sanitizer changed behaviour to keep <img> with the data: src
-     * stripped to empty — both branches are intended, but neither was
-     * pinned. The strengthened assertion: exactly one of two
-     * outcomes is acceptable, and we name them both.
+     * to remove the <img> entirely.
+     *
+     * DS04 T3.12: collapsed the two-outcome branching to one pinned
+     * outcome — the current sanitizer keeps the <img> element but
+     * strips the src to null. If a sanitizer upgrade ever removes the
+     * <img> entirely, this assertion fails clearly and we update the
+     * test to match the new behaviour (rather than silently passing
+     * via a vacuous early-return).
      */
     const html = '<img src="data:image/png;base64,iVBORw0KGgo=" alt="x" />'
     const { container } = render(
@@ -178,16 +181,8 @@ describe('HelpPage', () => {
       />,
     )
     const img = container.querySelector('img')
-    // Deterministic outcome — exactly one of:
-    //   (a) the <img> is absent entirely, OR
-    //   (b) the <img> survives with NO src (data: stripped to empty).
-    if (img === null) {
-      // (a): img removed.
-      return
-    }
-    // (b): img kept; the data: src must not survive.
-    const src = img.getAttribute('src')
-    expect(src).toBeNull()
+    expect(img).not.toBeNull()
+    expect(img!.getAttribute('src')).toBeNull()
   })
 
   // FP25-I: hooks isolation — the global DOMPurify must NOT inherit

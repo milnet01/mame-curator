@@ -20,7 +20,11 @@ export default defineConfig({
   reporter: [['html', { open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    trace: 'retain-on-failure',
+    // DS04 T3.11: `on-first-retry` only captures a trace on the first
+    // retry attempt of a failed test, halving the storage cost compared
+    // to `retain-on-failure` (which captures on every retry — up to
+    // 2 in CI per the `retries` setting above).
+    trace: 'on-first-retry',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

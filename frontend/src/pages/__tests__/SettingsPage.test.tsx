@@ -74,75 +74,54 @@ describe('SettingsPage', () => {
     expect(screen.getByText(/^About$/)).toBeInTheDocument()
   })
 
-  it('shows "RetroArch: not configured" in the Setup banner when retroarch_configured is false (FP22-C)', () => {
-    render(
-      <SettingsPage
-        config={config}
-        onPatch={() => {}}
-        onSnapshotRestore={() => {}}
-        setupInfo={{
-          config_present: true,
-          paths: {
-            source_roms: { path: '/mnt/roms', exists: true, readable: true, writable: true, dat_parses: null },
-            source_dat: {
-              path: '/mnt/dat.xml',
-              exists: true,
-              readable: true,
-              writable: false,
-              dat_parses: true,
-            },
-            dest_roms: { path: '/mnt/dest', exists: true, readable: true, writable: true, dat_parses: null },
-          },
-          reference_files: {
-            catver: { path: '', exists: false },
-            languages: { path: '', exists: false },
-            bestgames: { path: '', exists: false },
-            mature: { path: '', exists: false },
-            series: { path: '', exists: false },
-            listxml: { path: '', exists: false },
-          },
-          cloneof_map_size: 0,
-          retroarch_configured: false,
-        }}
-      />,
-    )
-    expect(screen.getByText(/RetroArch: not configured/i)).toBeInTheDocument()
-  })
+  // DS04 T2.12: collapsed two near-identical 70-line tests for
+  // `retroarch_configured` true / false into one `it.each` table over
+  // `(configured, expected)`. The full `setupInfo` shape lives in a
+  // local helper so both branches share one literal.
+  function makeSetupInfo(retroarch_configured: boolean) {
+    return {
+      config_present: true,
+      paths: {
+        source_roms: { path: '/mnt/roms', exists: true, readable: true, writable: true, dat_parses: null },
+        source_dat: {
+          path: '/mnt/dat.xml',
+          exists: true,
+          readable: true,
+          writable: false,
+          dat_parses: true,
+        },
+        dest_roms: { path: '/mnt/dest', exists: true, readable: true, writable: true, dat_parses: null },
+      },
+      reference_files: {
+        catver: { path: '', exists: false },
+        languages: { path: '', exists: false },
+        bestgames: { path: '', exists: false },
+        mature: { path: '', exists: false },
+        series: { path: '', exists: false },
+        listxml: { path: '', exists: false },
+      },
+      cloneof_map_size: 0,
+      retroarch_configured,
+    }
+  }
 
-  it('shows "RetroArch: configured" in the Setup banner when retroarch_configured is true (FP22-C)', () => {
-    render(
-      <SettingsPage
-        config={config}
-        onPatch={() => {}}
-        onSnapshotRestore={() => {}}
-        setupInfo={{
-          config_present: true,
-          paths: {
-            source_roms: { path: '/mnt/roms', exists: true, readable: true, writable: true, dat_parses: null },
-            source_dat: {
-              path: '/mnt/dat.xml',
-              exists: true,
-              readable: true,
-              writable: false,
-              dat_parses: true,
-            },
-            dest_roms: { path: '/mnt/dest', exists: true, readable: true, writable: true, dat_parses: null },
-          },
-          reference_files: {
-            catver: { path: '', exists: false },
-            languages: { path: '', exists: false },
-            bestgames: { path: '', exists: false },
-            mature: { path: '', exists: false },
-            series: { path: '', exists: false },
-            listxml: { path: '', exists: false },
-          },
-          cloneof_map_size: 0,
-          retroarch_configured: true,
-        }}
-      />,
-    )
-    expect(screen.getByText(/RetroArch: configured/i)).toBeInTheDocument()
-  })
+  it.each<[boolean, RegExp]>([
+    [false, /RetroArch: not configured/i],
+    [true, /RetroArch: configured/i],
+  ])(
+    'shows the RetroArch Setup-banner line for retroarch_configured=%s (FP22-C)',
+    (configured, expectedText) => {
+      render(
+        <SettingsPage
+          config={config}
+          onPatch={() => {}}
+          onSnapshotRestore={() => {}}
+          setupInfo={makeSetupInfo(configured)}
+        />,
+      )
+      expect(screen.getByText(expectedText)).toBeInTheDocument()
+    },
+  )
 
   it('renders the R36 update banner when updateInfo is provided (FP11 § B3)', async () => {
     render(

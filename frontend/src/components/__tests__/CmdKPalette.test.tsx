@@ -91,14 +91,10 @@ describe('FP27 A5 — CmdK games/settings sections removed', () => {
     const mod = await import('../CmdKPalette')
     const sectionOrder = (mod as unknown as { SECTION_ORDER?: readonly string[] })
       .SECTION_ORDER
-    if (!sectionOrder) {
-      // SECTION_ORDER not exported today; lift the export as part of A5
-      // (one-line change). Fail clearly until then.
-      throw new Error(
-        'SECTION_ORDER must be exported from CmdKPalette.tsx so this test ' +
-          "can assert it; see `docs/specs/FP27.md` § A5.",
-      )
-    }
+    // DS04 T3.6: `expect(...).toBeDefined()` surfaces an expected-vs-actual
+    // diagnostic if `SECTION_ORDER` ever drops off the export surface,
+    // instead of the previous bespoke `throw new Error(...)`.
+    expect(sectionOrder).toBeDefined()
     expect(sectionOrder).not.toContain('games')
     expect(sectionOrder).not.toContain('settings')
     expect(new Set(sectionOrder)).toEqual(new Set(['actions', 'help']))

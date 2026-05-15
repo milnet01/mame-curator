@@ -28,8 +28,11 @@ describe('AppShell', () => {
   it('renders Cart as a button, not a navigation link', () => {
     renderShell({ cartCount: 3 })
     const cart = screen.getByRole('button', { name: /cart/i })
+    // DS04 T3.7: dropped the redundant `cart.getAttribute('href')` check.
+    // `getByRole('button')` already proves the element is a <button>;
+    // <button> elements don't have an `href` attribute, so the prior
+    // assertion was tautological.
     expect(cart.tagName).toBe('BUTTON')
-    expect(cart.getAttribute('href')).toBeNull()
   })
 
   it('fires onOpenCart when the Cart button is clicked', () => {
@@ -41,10 +44,14 @@ describe('AppShell', () => {
 
   it('Cart and Library do not both appear active on /', () => {
     renderShell({ cartCount: 1 }, '/')
+    // DS04 T3.8: assert on `aria-current="page"` — the semantically
+    // correct active-link signal — instead of the Tailwind
+    // `font-medium` class (implementation detail; a future style
+    // refactor could swap the visual indicator without breaking the
+    // a11y contract).
     const library = screen.getByRole('link', { name: /library/i })
-    expect(library.className).toMatch(/font-medium/)
+    expect(library.getAttribute('aria-current')).toBe('page')
     const cart = screen.getByRole('button', { name: /cart/i })
-    // The Cart button must not pick up the active-style font-medium class.
-    expect(cart.className).not.toMatch(/font-medium/)
+    expect(cart.getAttribute('aria-current')).not.toBe('page')
   })
 })

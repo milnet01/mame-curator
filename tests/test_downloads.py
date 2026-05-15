@@ -241,6 +241,7 @@ async def test_download_rejects_bad_scheme_in_mirrors(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_download_streams_chunks_to_tmp_not_buffer(tmp_path: Path) -> None:
     """A 10 MB body must NOT spike RAM peak above body_size/4 (≈2.5 MB)

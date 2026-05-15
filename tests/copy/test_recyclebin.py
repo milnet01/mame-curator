@@ -48,7 +48,19 @@ def test_recycle_writes_manifest(tmp_path: Path) -> None:
 
 
 def test_recycle_retention_purges_old_entries(tmp_path: Path) -> None:
-    """purge_recycle removes subdirs older than the threshold."""
+    """purge_recycle removes subdirs older than the threshold.
+
+    DS04 T3.13: this test exercises the **legacy-mtime fallback** path
+    in ``purge_recycle``. Post-FP21-F (see ``copy/spec.md:262``), the
+    canonical eligibility signal is ``manifest['recycled_at']`` — the
+    fallback to directory mtime fires only when no readable manifest is
+    present in the subdir (legacy single-`manifest.json` layouts pre-
+    dating FP21-D, or recycle dirs from older releases). The setup
+    below forces the mtime back 40 days *and* does not write a
+    manifest, so the fallback is what's measured. The manifest-driven
+    eligibility path is covered separately at
+    ``test_recyclebin.py:test_fp21_f_*``.
+    """
     recycle_root = tmp_path / "recycle"
     recycle_root.mkdir()
     # Old subdir (40 days ago).

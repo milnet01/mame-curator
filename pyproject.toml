@@ -172,6 +172,14 @@ addopts = [
     "--cov-fail-under=85",  # backend overall — per-module floors enforced via per-phase acceptance (see standards §6)
 ]
 asyncio_mode = "auto"
+# DS04 T3.4: register the `slow` marker. Tracemalloc-based streaming
+# tests (api/test_routes_activity, media/test_cache, test_downloads)
+# carry it so a future `pytest -m "not slow"` shard can skip them when
+# wall-time is the bottleneck. Marker enabled via `--strict-markers`
+# above; unregistered marker names error out at collection.
+markers = [
+    "slow: tracemalloc / heavy-I/O test that may flake on under-provisioned CI; deselect with `-m 'not slow'`",
+]
 
 # ---------------------------------------------------------------------------
 # coverage

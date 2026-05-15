@@ -29,9 +29,12 @@ describe('FeaturedTilesRow', () => {
     render(
       <FeaturedTilesRow counts={{}} activeTileId={null} onTileSelect={onTileSelect} />,
     )
-    const button = screen.getByText('Capcom Classics').closest('button')
-    expect(button).not.toBeNull()
-    fireEvent.click(button!)
+    // DS04 T3.2: query by accessible role + name rather than
+    // `.closest('button')` from a label text node — RTL idiom that
+    // also surfaces an a11y regression if the tile stops being a
+    // proper button.
+    const button = screen.getByRole('button', { name: 'Capcom Classics' })
+    fireEvent.click(button)
     expect(onTileSelect).toHaveBeenCalledWith('capcom-classics')
   })
 

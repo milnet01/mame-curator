@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, cleanup, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
@@ -7,7 +7,8 @@ import { FsBrowser } from '../FsBrowser'
 import { strings } from '@/strings'
 import { server, http, HttpResponse } from '@/test/handlers'
 
-afterEach(() => cleanup())
+// DS04 T3.1: removed redundant `afterEach(() => cleanup())` — vitest
+// `globals: true` enables RTL's auto-cleanup.
 
 const HOME = '/home/test'
 const SUB = '/home/test/projects'

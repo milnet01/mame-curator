@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { YearRangeEditor } from '../YearRangeEditor'
 
-afterEach(() => cleanup())
+// DS04 T3.1: removed redundant `afterEach(() => cleanup())` — vitest
+// `globals: true` enables RTL's auto-cleanup.
 
 const bounds = { minYear: 1971, maxYear: 2026 }
 

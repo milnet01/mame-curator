@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, cleanup, within } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { DragReorderList } from '../DragReorderList'
 
-afterEach(() => cleanup())
+// DS04 T3.1: removed redundant `afterEach(() => cleanup())` — vitest
+// `globals: true` enables RTL's auto-cleanup.
 
 describe('DragReorderList', () => {
   it('exposes the list with the supplied ariaLabel and renders items in order', () => {

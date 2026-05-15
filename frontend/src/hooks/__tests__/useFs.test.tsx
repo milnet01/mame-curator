@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
@@ -14,8 +14,9 @@ vi.mock('sonner', () => ({
 
 import { toast } from 'sonner'
 
+// DS04 T3.1: vitest `globals: true` auto-cleanup handles RTL teardown;
+// only the mock-clear is load-bearing here.
 afterEach(() => {
-  cleanup()
   vi.mocked(toast.error).mockClear()
 })
 

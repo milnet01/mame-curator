@@ -10,8 +10,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
-
 # ---- Per-route shape tests (R01–R07) ----------------------------------------
 
 
@@ -214,23 +212,12 @@ def test_fp21_j_launch_returns_typed_game_not_found_for_unknown(client: Any) -> 
     assert resp.json()["code"] == "game_not_found"
 
 
-def test_no_listxml_self_parents_every_machine() -> None:
-    """When paths.listxml is null, every machine self-parents — the
-    pre-FP23 symptom. Confirms the cloneof_map dependency is the
-    actual cause of post-collapse winner counts.
-
-    The runner-level invariant is already covered by
-    tests/filter/test_runner.py (line 156: ctx = FilterContext(
-    cloneof_map={"b": "a"}); plus the populated-case at line 62).
-    Re-implementing the same coverage at the API layer would be
-    duplicative; this skip-with-rationale documents the choice for
-    future readers. Re-enable if API surface changes.
-    """
-    pytest.skip(
-        "API-level no-listxml regression covered transitively by "
-        "tests/filter/test_runner.py:156 (runner-level cloneof_map={} "
-        "⇒ self-parent invariant)."
-    )
+# DS04 T3.3: deleted `test_no_listxml_self_parents_every_machine`. The
+# function body was a pure `pytest.skip(...)` documenting that the
+# coverage lived at `tests/filter/test_runner.py:156` (runner-level
+# `cloneof_map={}` self-parent invariant). A skip-only placeholder
+# inflates the test count without proving anything; the cross-reference
+# now lives at `src/mame_curator/api/routes/spec.md` instead.
 
 
 def test_validate_round_trip(client: Any) -> None:

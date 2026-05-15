@@ -1,12 +1,13 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, renderHook, waitFor } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
 import { server, http, HttpResponse } from '@/test/handlers'
 import { useValidateCart } from '@/hooks/useValidateCart'
 
-afterEach(() => cleanup())
+// DS04 T3.1: removed redundant `afterEach(() => cleanup())` — vitest
+// `globals: true` enables RTL's auto-cleanup.
 
 const renderWithClient = () => {
   const qc = new QueryClient({

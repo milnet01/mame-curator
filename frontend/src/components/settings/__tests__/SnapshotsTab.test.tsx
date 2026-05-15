@@ -1,11 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { SnapshotsTab } from '../SnapshotsTab'
 import type { Snapshot } from '@/api/types'
 
-afterEach(() => cleanup())
+// DS04 T3.1: removed redundant `afterEach(() => cleanup())` — vitest
+// `globals: true` enables RTL's auto-cleanup.
 
 const sample: readonly Snapshot[] = [
   {
