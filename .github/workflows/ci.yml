@@ -72,7 +72,7 @@ jobs:
       # is fast for our size and has no event-payload edge cases.
       - name: Install gitleaks
         env:
-          GITLEAKS_VERSION: "8.24.3"
+          GITLEAKS_VERSION: "8.30.1"
         run: |
           curl -sSfL "https://github.com/zricethezav/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
             | sudo tar -xz -C /usr/local/bin gitleaks
