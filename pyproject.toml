@@ -119,6 +119,16 @@ indent-style = "space"
 # ---------------------------------------------------------------------------
 # mypy: strict type checking
 # (Pinned to mypy initially; switch to Astral's Ty when 1.0 stable.)
+#
+# Note (DS03, 2026-05-16): mypy 2.0 introduced new strict defaults that this
+# config silently inherits under `strict = true`:
+#   - --strict-bytes (PEP 688): bytearray / memoryview no longer assignable
+#     to bytes. The project's bytes-handling code (parser/, _atomic.py) was
+#     verified clean under this; future contributors passing bytearray views
+#     into bytes parameters will hit the stricter check.
+#   - --local-partial-types: the legacy global-partial-types behavior is gone;
+#     no opt-out flag set here.
+#   - Other mypy-2.x default tightenings are accepted as-is.
 # ---------------------------------------------------------------------------
 [tool.mypy]
 python_version = "3.12"

@@ -53,6 +53,9 @@ jobs:
       - name: pytest
         run: uv run pytest
 
+      - name: API type sync (Python ↔ TS)
+        run: python3 tools/check_api_types_sync.py
+
   frontend-lint-types-test:
     name: Frontend lint, type-check, test at tag
     runs-on: ubuntu-latest
