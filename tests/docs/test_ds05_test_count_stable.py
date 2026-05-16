@@ -25,7 +25,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Pinned counts at DS05 Step 3 (pre-impl). Step 4's seam splits MUST
 # preserve both numbers. Step 4 commits that touch test counts MUST
 # bump these pins in the same commit, with a journal-cited reason.
-EXPECTED_PYTEST_DECLARATIONS = 504
+#
+# Bumped 2026-05-16 (DS03 Cluster D): +3 pytest declarations for the
+# two new docs-tests landing in this commit (test_dep_pin_coupling +
+# test_no_pre_release_pins). 504 → 507.
+EXPECTED_PYTEST_DECLARATIONS = 507
 EXPECTED_VITEST_DECLARATIONS = 289
 
 _PYTEST_DEF_RE = re.compile(r"^def test_", re.MULTILINE)
