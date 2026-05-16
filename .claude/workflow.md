@@ -4,11 +4,11 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | DS03 closed 2026-05-16 (Dependency freshness sweep; 8 clusters + R1 closing-review fold-in across 10 commits `1916cd7..f9be074`; tag `DS03-complete`). DS05 closed 2026-05-16. DS02 closed 2026-05-15 + R2 hot-fix `ccb90a6`. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **P14 → README hero shot → CONTRIBUTING.md → post-v1**. |
+| **Project phase** | Docs bundle (mame-curator-1029 + 1030) closed 2026-05-16 — README hero shot + Screenshots section + CONTRIBUTING.md. DS03 closed 2026-05-16. DS05 closed 2026-05-16. DS02 closed 2026-05-15 + R2 hot-fix. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **P14 → post-v1**. |
 | **Active item ID** | P14 |
 | **Active step** | 1/9 ⬜ — spec. |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-16 (DS03 closed by `/close-phase`: closing `/audit` clean (trivy/gitleaks/semgrep/ruff/bandit/mypy all zero findings); closing `/indie-review` 4-lane sweep surfaced 7 actionable findings folded as Cluster R1 in commit `f9be074`. Five backend gates green at close (670 pytest / 0 ruff / 0 ruff-format / 0 mypy / 0 bandit); frontend gates green (301 vitest / 0 eslint / 0 tsc). Tag `DS03-complete` annotated. Cross-pin coupling test `test_dep_pin_coupling.py` GREEN at close; will fire CI from this point if any future bump drifts the pair. Deferred to per-dep follow-up phases: pydantic v3, fastapi 1.0, react 20, vite 9, mypy 3.x, @types/node 25, actions/upload-artifact v5+, actions/download-artifact v5+, gh-release v3, pre-commit-hooks v6.) |
+| **Last update** | 2026-05-16 (Docs bundle closed in one session: mame-curator-1029 (README hero shot) + mame-curator-1030 (CONTRIBUTING.md). New `frontend/screenshots/` (playwright.config.ts + capture.spec.ts) regenerates `docs/screenshots/*.png` against the real `config.yaml` so the hero shot shows real games and real cover art. 4 captures featured in README (library, alternatives-drawer, settings-filters, sessions). settings-paths capture intentionally dropped to avoid surfacing the user's personal `/mnt/...` mount paths. Frontend gates re-confirmed green: 301 vitest / 0 eslint / 0 tsc. No backend code touched. Items are `kind: doc`, so no `/audit`+`/indie-review` close pass and no phase tag.) |
 | **Next gate** | P14 Step 1 — spec for the per-game review state feature. Per-game enum (pending/reviewed/skipped/needs-decision) persisted under `data/state/`; new badge on `GameCard` when state is non-default; "Only pending" filter toggle; keyboard shortcuts (R/S/?) while a card is focused or alternatives drawer is open; progress chip in /library header. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
@@ -243,6 +243,82 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-16 — Docs bundle closed (mame-curator-1029 + 1030)
+
+User said "continue with the next bundle of similar roadmap items"
+followed by "use Ants MCP where appropriate." `roadmap_query` (active
+filter) returned three queued bullets: P14 (large feature, single
+item) and two `kind: doc` items deferred from P09 slim. The natural
+"bundle of similar items" was the two doc bullets — paired and
+closed together.
+
+**Shipped:**
+
+- `CONTRIBUTING.md` — top-level contributor guide covering local-dev
+  quickstart, bug-report template, the local CI gate (backend five
+  + frontend three), the TDD policy with per-module coverage floors,
+  the per-feature `spec.md` requirement, Conventional Commits, a
+  summary of the App-Build 9-step phase loop, and a "things this
+  project deliberately does not do" section.
+- `README.md` hero shot at the top + new `## Screenshots` 2×2 grid
+  (alternatives drawer, filters tab, sessions panel, capture-recipe
+  pointer). README's short Contributing stub now points at the new
+  CONTRIBUTING.md.
+- `frontend/screenshots/` — dedicated Playwright config + capture
+  spec independent of the e2e suite. Points at the real `config.yaml`
+  so screenshots show real games / real cover art. Regen recipe:
+  `cd frontend && npx playwright test --config screenshots/playwright.config.ts`.
+
+**Mid-session decisions:**
+
+- **User said "use Ants MCP where appropriate"** — switched the
+  ROADMAP read from a Bash `grep ROADMAP.md` to
+  `roadmap_query(status="active")`, which returned the same three
+  bullets in ~150 tokens vs ~12K for the raw file.
+- **User said "Let's try a Playwright session to capture the
+  screenshots"** — created a dedicated config + spec rather than
+  bolting onto `frontend/e2e/` (the e2e suite uses the 6-machine
+  fixture DAT for determinism; the hero shot wants real data).
+  Reused the existing `npm run preview` pattern + bumped Chromium
+  to 1223 via `npx playwright install chromium` (one-time download).
+- **Dropped settings-paths capture.** First pass produced
+  `settings-paths.png` showing the user's real `/mnt/Games/...` and
+  `/mnt/Emulators/Multi-System/RetroArch/...` paths. Removed the
+  test rather than commit a personal-paths image to a public repo;
+  README is fine without it. Decision noted in the spec body + the
+  CHANGELOG Notes section so future re-captures don't quietly add
+  it back.
+- **`?tab=` URL param didn't switch the tab in the first pass.** The
+  initial spec used `goto('/settings?tab=filters')` and asserted the
+  tab trigger was *visible* (always true). The shot rendered the
+  default Paths tab. Fix: navigate to `/settings` then click the
+  target tab — robust against React Router hydration timing.
+
+**Workflow lessons:**
+
+- **"Bundle of similar items" = same kind + same lanes.** The natural
+  pairing of mame-curator-1029 (`kind: doc / lanes: docs`) and
+  mame-curator-1030 (`kind: doc / lanes: docs`) was obvious from the
+  `roadmap_query` output without needing the long-form READMEs.
+  Pattern saved: when the user asks for a bundle, sort the active
+  queue by `kind` + `lanes` first.
+- **`fullPage: false` + a `waitForTimeout` beat for lazy-loaded
+  images.** The library hero shot needed ~3s after first card
+  visibility for cover-art lazy-fetch to populate tiles — without
+  the wait, every tile shows a blank placeholder. Pattern saved:
+  for hero shots of UIs with async media, treat "first widget
+  visible" as the start of capture wait, not the end.
+- **Doc items skip `/audit` + `/indie-review`.** `kind: doc` items
+  don't have a `spec.md` contract and don't ship code with security
+  surface, so the multi-agent closing audit returns near-zero
+  findings. Closed on five-gate green (frontend gates only; no
+  backend code touched). No `<ID>-complete` tag since these are
+  per-bullet docs, not phase IDs.
+
+Frontend gates at close: 301 vitest passed (48 files) / 0 eslint /
+0 tsc. Backend untouched, no Python files changed. No tag — these
+are individual `mame-curator-NNNN` bullets, not phase IDs.
 
 ### 2026-05-11 — FP21 closed (Tier 2 hardening sweep, 20 sub-bullets)
 

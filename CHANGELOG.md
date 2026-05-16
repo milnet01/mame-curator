@@ -17,6 +17,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation bundle — README hero shot + CONTRIBUTING.md (closed 2026-05-16)
+
+Two queued documentation items from 1.4.0 closed together as a single
+docs bundle.
+
+**Added**
+
+- Hero shot at the top of `README.md` (`docs/screenshots/library.png`)
+  and a new `## Screenshots` section showing the alternatives drawer
+  (parent/clone picker), the filters tab in Settings, and the named-
+  sessions panel.
+- `CONTRIBUTING.md` covering local-dev quickstart, bug-report template,
+  the local CI gate (backend five + frontend three), the TDD policy
+  with per-module coverage floors, the per-feature `spec.md`
+  requirement, Conventional Commits, a summary of the App-Build
+  9-step phase loop, and a "what this project deliberately does not
+  do" section.
+- `frontend/screenshots/` directory holding a dedicated Playwright
+  config (`playwright.config.ts`) + capture spec (`capture.spec.ts`)
+  that regenerates `docs/screenshots/*.png` against the real
+  `config.yaml`. Independent of `frontend/e2e/` so the regression
+  suite continues to use the deterministic 6-machine fixture.
+
+**Changed**
+
+- `README.md`'s short "Contributing" section now points at the new
+  `CONTRIBUTING.md` instead of restating commit conventions inline.
+
+**Notes**
+
+- The `settings — paths tab` capture was deliberately omitted from
+  the spec — it renders the user's real `/mnt/...` mount paths, which
+  isn't a good first-impression image for the README. Re-add behind a
+  redaction step if it's wanted later.
+
 ### DS03 — Dependency freshness sweep (closed 2026-05-16)
 
 8 clusters folding every direct dep + GitHub Actions pin + pre-commit

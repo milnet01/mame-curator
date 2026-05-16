@@ -12,6 +12,8 @@ required BIOSes) to a separate destination — leaving the source
 untouched and writing a RetroArch playlist (`mame.lpl`) on the way
 out.
 
+![MAME Curator library page](docs/screenshots/library.png)
+
 ## Quickstart
 
 ```bash
@@ -99,6 +101,15 @@ uv run pytest && uv run ruff check && uv run ruff format --check \
 ( cd frontend && npx vitest run && npx tsc --noEmit && npm run build )
 ```
 
+## Screenshots
+
+| | |
+|--|--|
+| ![Alternatives drawer — parent/clone picker](docs/screenshots/alternatives-drawer.png) | ![Filters tab in Settings](docs/screenshots/settings-filters.png) |
+| **Alternatives drawer.** Click any game to inspect parent/clone siblings, see the auto-picked version, and override it with one click. | **Filters.** Toggle which games get dropped before they reach the library — BIOSes, Japanese-only text adventures, mature content, year ranges, specific publishers. |
+| ![Named sessions](docs/screenshots/sessions.png) | _Want more shots?_ |
+| **Sessions.** Save the current filter set as a named session (e.g. `80s shooters`, `co-op only`) and switch between them without losing context. | The capture spec at [`frontend/screenshots/capture.spec.ts`](frontend/screenshots/capture.spec.ts) regenerates everything in `docs/screenshots/` — run `npx playwright test --config screenshots/playwright.config.ts` from `frontend/`. |
+
 ## Project structure
 
 Layered, acyclic dependency graph:
@@ -132,9 +143,6 @@ main.py    ← wires everything together
 
 ## Contributing
 
-Issues and PRs welcome. The project uses [Conventional
-Commits](https://www.conventionalcommits.org/) (`feat:` / `fix:` /
-`docs:` / `chore:` / `test:` / `refactor:` / `ci:`); cite roadmap IDs
-(e.g. `P07`, `FP15`) in the commit body when relevant, not the
-subject. See [`docs/standards/commits.md`](docs/standards/commits.md)
-for details.
+Issues and PRs welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the
+local CI gate, TDD policy, commit conventions, and the per-feature `spec.md`
+requirement.
