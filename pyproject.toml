@@ -48,8 +48,7 @@ dev = [
     "hypothesis>=6.152",
     "respx>=0.22",
     "ruff>=0.15",
-    # mypy 1.x kept; 2.x major bump deferred to a dedicated phase (DS03 Step 4 finding).
-    "mypy>=1.13",
+    "mypy>=2.1",
     "bandit>=1.8",
     "pre-commit>=4.0",
     "types-PyYAML>=6.0",
