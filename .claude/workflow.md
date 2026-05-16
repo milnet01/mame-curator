@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | DS05 closed 2026-05-16 (Test-file seam-split sweep; 4 clusters + R1 closing-review fold-in across 7 commits `738b418..d9c6817`; tag `DS05-complete`). DS02 closed 2026-05-15 + R2 hot-fix `ccb90a6`. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **DS03 → P09 polish → post-v1**. |
-| **Active item ID** | DS03 |
-| **Active step** | 3/9 ⬜ — tests-first. Two new docs-tests scoped at `tests/docs/test_dep_pin_coupling.py` + `tests/docs/test_no_pre_release_pins.py`. |
+| **Project phase** | DS03 closed 2026-05-16 (Dependency freshness sweep; 8 clusters + R1 closing-review fold-in across 10 commits `1916cd7..f9be074`; tag `DS03-complete`). DS05 closed 2026-05-16. DS02 closed 2026-05-15 + R2 hot-fix `ccb90a6`. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **P14 → README hero shot → CONTRIBUTING.md → post-v1**. |
+| **Active item ID** | P14 |
+| **Active step** | 1/9 ⬜ — spec. |
 | **Blocked on** | nothing |
-| **Last update** | 2026-05-16 (DS03 Step 1 ✅ + Step 2 ✅. User signed off on amended 8-cluster spec (A=Python pins, B=frontend pins, C=Actions+gitleaks-version, D=pre-commit revs+coupling, E=engines.node firm, F=transitive lockfile refresh, G=frontend CI lane, H=pnpm→npm spec correction). Step 2 DAG check trivial — DS05 ✅ + DS02 ✅ both confirmed in shipped-ROADMAP query; no transitive blockers across any of the 8 clusters.) |
-| **Next gate** | DS03 Step 3 — write the two docs-tests. `test_dep_pin_coupling.py` is RED at HEAD (pre-commit `gitleaks v8.21.0` ≠ CI `GITLEAKS_VERSION=8.24.3`); `test_no_pre_release_pins.py` GREEN at HEAD (no current pin matches `(?i)(alpha|beta|rc|preview|next|dev)(\d|$)`). Both land in commit #6 of the per-cluster cadence (alongside Cluster D's coupling-fix), per spec § Architecture notes. |
+| **Last update** | 2026-05-16 (DS03 closed by `/close-phase`: closing `/audit` clean (trivy/gitleaks/semgrep/ruff/bandit/mypy all zero findings); closing `/indie-review` 4-lane sweep surfaced 7 actionable findings folded as Cluster R1 in commit `f9be074`. Five backend gates green at close (670 pytest / 0 ruff / 0 ruff-format / 0 mypy / 0 bandit); frontend gates green (301 vitest / 0 eslint / 0 tsc). Tag `DS03-complete` annotated. Cross-pin coupling test `test_dep_pin_coupling.py` GREEN at close; will fire CI from this point if any future bump drifts the pair. Deferred to per-dep follow-up phases: pydantic v3, fastapi 1.0, react 20, vite 9, mypy 3.x, @types/node 25, actions/upload-artifact v5+, actions/download-artifact v5+, gh-release v3, pre-commit-hooks v6.) |
+| **Next gate** | P14 Step 1 — spec for the per-game review state feature. Per-game enum (pending/reviewed/skipped/needs-decision) persisted under `data/state/`; new badge on `GameCard` when state is non-default; "Only pending" filter toggle; keyboard shortcuts (R/S/?) while a card is focused or alternatives drawer is open; progress chip in /library header. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -21,30 +21,17 @@ While an item is active, Claude marks the current step 🚧;
 completed steps flip to ✅. Resets to all ⬜ when a new item
 becomes active.
 
-**DS03 — Dependency freshness sweep (active, opened 2026-05-16)**
+**DS03 — Dependency freshness sweep (closed 2026-05-16)**
 
-- ✅ Step 1 — spec at `docs/specs/DS03.md` drafted + amended on
-  user-2026-05-16 feedback. **Eight clusters** scoped:
-  A (Python runtime+dev pins), B (frontend runtime+dev pins),
-  C (GitHub Actions pins + `GITLEAKS_VERSION`), D (pre-commit revs +
-  ruff/mypy/bandit/gitleaks cross-pin coupling), E (`engines.node` →
-  current Active LTS, firm), F (transitive `uv lock --upgrade` +
-  `npm update`), G (new `frontend-lint-types-test` CI job),
-  H (`pnpm` → `npm` spec-text correction).
-  Major-version breakers defer to per-dep `P##`.
-  User signed off.
-- ✅ Step 2 — DAG check clean. DS05 ✅ + DS02 ✅ confirmed via
-  `roadmap_query(status="shipped")` (both present); no transitive
-  blockers on any of A/B/C/D/E/F/G/H.
-- ⬜ Step 3 — two new docs-tests (`tests/docs/test_dep_pin_coupling.py`
-  + `tests/docs/test_no_pre_release_pins.py`). Coupling test is RED at
-  HEAD (pre-commit gitleaks `v8.21.0` ≠ CI `8.24.3`).
-- ⬜ Step 4 — per-cluster bumps via `uv pip list --outdated` +
-  `npm outdated` + `gh api releases/latest`. Commit cadence
-  A→B→E→C→G→D+tests→F→H so each commit lands with monotonically
-  improving CI gates. Breaking-change deferrals logged as Step 9
-  conditional follow-ups.
-- ⬜ Steps 5–9 — `/close-phase` orchestrates.
+All 9 steps ✅. 8 clusters (A: Python pins; B: frontend pins;
+C: GitHub Actions GITLEAKS_VERSION; D: pre-commit revs + coupling
++ Step 3 docs-tests; E: engines.node 20→24 LTS; F: transitive
+refresh + opportunistic mypy 1→2; G: new frontend-lint-types-test
+CI job; H: pnpm→npm spec corrections) + R1 closing-review fold-in
+(7 corrections across 6 files) across 10 commits
+(`1916cd7..f9be074`). Journal at `docs/journal/DS03.md`. Tag
+`DS03-complete`. Cross-pin coupling test `test_dep_pin_coupling.py`
+fires on every commit since `02a80e4` (Cluster D).
 
 **FP28 — Tier 2 review fold-in: hardening + correctness (closed 2026-05-15)**
 

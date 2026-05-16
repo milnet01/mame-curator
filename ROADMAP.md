@@ -135,7 +135,21 @@ wave lands.
   Source: indie-review-2026-05-04 Tier 3 + indie-review-2026-05-14
   Tier 3 + debt-sweep-2026-05-14 mechanical drift.
 
-- 📋 [mame-curator-1025] **DS03 — Dependency freshness sweep.**
+- ✅ [mame-curator-1025] **DS03 — Dependency freshness sweep.**
+  Closed 2026-05-16 (`1916cd7..f9be074`). 8 clusters + R1 closing-
+  review fold-in across 10 commits. Python pins (Cluster A) +
+  frontend pins (B) + GitHub Actions GITLEAKS_VERSION (C) +
+  pre-commit hook revs with cross-pin coupling test (D) +
+  engines.node 20→24 LTS (E) + transitive lockfile refresh
+  including opportunistic mypy 1→2 (F) + new frontend-lint-types-
+  test CI job (G) + pnpm→npm spec corrections (H) + R1 (7
+  closing-review fixes). Two new docs-tests
+  (`test_dep_pin_coupling.py`, `test_no_pre_release_pins.py`)
+  CI-enforce the cross-pin invariants. Deferred to follow-up
+  phases: pydantic v3, fastapi 1.0, react 20, vite 9, upload/
+  download-artifact v5+, gh-release v3, pre-commit-hooks v6,
+  @types/node v25 — all major-version breakers per the spec's
+  non-breaking-only rule.
   Walks every entry in `pyproject.toml`, `frontend/package.json`,
   and `.github/workflows/ci.yml`, comparing the pinned version
   against the current latest stable. Ships a single coordinated

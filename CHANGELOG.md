@@ -17,6 +17,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### DS03 — Dependency freshness sweep (closed 2026-05-16)
+
+8 clusters folding every direct dep + GitHub Actions pin + pre-commit
+hook rev forward to its current latest stable, plus a new frontend CI
+lane that gates `npm run lint` / `tsc --noEmit` / `npm test` on every
+push. Spec at [`docs/specs/DS03.md`](docs/specs/DS03.md); closing
+`/audit` returned clean (trivy/gitleaks/semgrep/ruff/bandit all zero
+findings); closing `/indie-review` 4-lane sweep surfaced 7 actionable
+findings folded as Cluster R1. Shipped across 10 commits
+(`1916cd7..f9be074`).
+
+Two new docs-tests at `tests/docs/` (`test_dep_pin_coupling.py`,
+`test_no_pre_release_pins.py`) make the cross-pin invariants
+(uv.lock ↔ pre-commit hook revs; ci.yml/release.yml ↔ pre-commit
+gitleaks rev) CI-enforceable so the DS02-R2-shape "CI catches what
+local missed" gap cannot recur for dep pins.
+
+**Highlights (user-visible deliverables):**
+
+- **Latest stable across the dependency tree.** Five Python runtime
+  + dev floors bumped (`pydantic >=2.13`, `uvicorn[standard] >=0.47`,
+  `sse-starlette >=3.4`, `hypothesis >=6.152`, `ruff >=0.15`).
+  Eighteen frontend floors bumped (React 19.2.6, Vite 8.0.13,
+  Vitest 4.1.6, Tailwind 4.3.0, TypeScript 6.0.3, ESLint 10.4.0,
+  Playwright 1.60.0, etc.). Five pre-commit hook revs aligned.
+- **Node 24 LTS.** `engines.node: "20.x"` → `"24.x"` (Node 20 reached
+  End-of-Life April 2026; Node 24 is the current Active LTS).
+- **New frontend CI lane.** `frontend-lint-types-test` job in
+  `ci.yml` + `release.yml` (Linux-only matrix; reads
+  `node-version-file: frontend/package.json` for the LTS floor;
+  gates `npm ci` → `eslint` → `tsc --noEmit` → `vitest`). Closes the
+  gap where every prior release shipped trusting local pre-commit
+  for the frontend.
+- **Opportunistic mypy 1 → 2.** The `>=1.13` constraint was unbounded
+  so `uv lock --upgrade` pulled the major; `uv run mypy` returned
+  clean on all 175 source files under `strict = true` unchanged, so
+  the bump qualified under the spec's "non-breaking only" test. The
+  mypy 2.0 strict-mode default-shifts (`--strict-bytes`,
+  `--local-partial-types`) are documented inline in `pyproject.toml`
+  so future contributors aren't surprised.
+- **Cross-pin lockstep enforced.** New `tests/docs/test_dep_pin_
+  coupling.py` asserts `uv.lock` ↔ `.pre-commit-config.yaml` parity
+  for ruff/mypy/bandit and triple parity (`ci.yml` ↔ `release.yml` ↔
+  `.pre-commit-config.yaml`) on `GITLEAKS_VERSION`. The HEAD-visible
+  drift surfaced at Step 1 (pre-commit gitleaks `v8.21.0` vs CI
+  `8.24.3`) is closed and the test prevents recurrence.
+- **Spec-text drift caught.** Cluster H corrected `pnpm` →
+  `npm` command samples in `docs/specs/{DS02,DS05}.md` that had
+  diverged from `P06.md`'s source-of-truth ("npm not pnpm/yarn/bun").
+
+**Deferred to follow-up phases (per the spec's non-breaking-only
+rule):** pydantic v3, fastapi 1.0, react 20, vite 9, mypy 3.x,
+`actions/upload-artifact` v5+, `actions/download-artifact` v5+,
+`softprops/action-gh-release` v3, `pre-commit-hooks` v6,
+`@types/node` v25.
+
 ### DS05 — Test-file seam-split sweep (closed 2026-05-16)
 
 Three test files breaching their size caps split along stable seams;
