@@ -17,6 +17,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P14 — Per-game review state (closed 2026-05-17)
+
+Per-game `pending` / `reviewed` / `skipped` / `needs-decision` state
+persists across sessions in `data/state.yaml` (sparse store —
+absence = pending). Surfaces in the library grid via R / S / ?
+keyboard shortcuts, a segmented filter in the sidebar, a frontend-
+only badge on each card, and a header progress chip with a
+walkthrough auto-advance toggle.
+
+**Added**
+
+- `src/mame_curator/filter/review_state.py` — frozen `ReviewState`
+  Pydantic + two enums (`ReviewStateValue` storage 3-value,
+  `ReviewStateFilter` query 5-value) + `load_review_state` loader
+  mirroring `load_overrides`. `ReviewStateError` joins the typed-
+  error hierarchy in `filter/errors.py`.
+- Three routes on `api/routes/curate.py`: `GET /api/state`,
+  `POST /api/state`, `DELETE /api/state/{short}`. Sparse-store
+  enforced at the wire layer (`StatePostRequest.state: ReviewStateValue`
+  rejects `pending` with 422 before the handler runs). No-op-write
+  skip on both POST and DELETE.
+- Per-request `?review_state=` filter on `GET /api/games`, applied
+  in the route handler after the existing `keep()` slice (NOT in
+  `run_filter()` — review state does not gate eligibility, so
+  `world.filter_result` stays cached at world-build cost).
+- `ActivityEvent` tagged union extended with a `REVIEW_STATE` arm +
+  `ReviewStateDetails` payload. `state` and `previous` are plain
+  `str` so the log records the sparse-store sentinel `"pending"`;
+  `session_id` is the empty string per spec.
+- `WorldState.review_state` field + `replace_world(review_state=)`
+  kwarg as a **passive field swap** (INV-4 — review-state-only
+  swaps leave `filter_result` `is`-identical to the base).
+- Optimistic-UI `useReviewState` hook (React Query `onMutate` /
+  `onError` rollback / `onSettled`; cache key `['reviewState']`).
+- `useGameGridFocus` hook extracted from `LibraryGrid`'s existing
+  FP21-T roving-tabindex, adds `focusNextPending(startIndex)` and
+  `setActive(idx)`. The parameterised signature is load-bearing
+  for the race the spec calls out (caller passes
+  `activeIndex + 1` so the just-marked card is skipped regardless
+  of when its state propagates).
+- Frontend-only review-state badge on `GameCard` (parallel maps
+  keyed by `ReviewBadgeKind`; lucide-react icons; tints
+  `text-emerald-500` / `text-rose-500` / `text-amber-500`).
+- Segmented review-state filter in `FiltersSidebar` (shadcn
+  `RadioGroup`; `ToggleGroup` isn't in the project per spec).
+- Grid R / S / ? handlers on `LibraryGrid` — toggle-on-same-key
+  returns to pending; walkthrough auto-advance (default on) calls
+  `focusNextPending(activeIndex + 1)` after a non-pending mutation;
+  end-of-list surfaces a `walkthroughCaughtUp` toast.
+- Drawer R / S / ? + ArrowUp / ArrowDown on `AlternativesDrawer`
+  via `useKeyboard`. INV-7 — drawer mutations do NOT auto-advance
+  regardless of walkthrough setting.
+- LibraryPage header chip (`{handled}/{total} handled · {pct}%`)
+  + walkthrough toggle persisted to
+  `localStorage['mame-curator:walkthrough-mode']` (default `true`).
+- 19 backend tests + 7 hook tests + 4 GameCard badge tests + 1
+  cross-side parity contract test (INV-12) covering all 13
+  invariants in `docs/specs/P14.md`.
+
+**Notes**
+
+- `data/state.yaml` does NOT snapshot (high-frequency keypress
+  writes would churn the 200-entry shared snapshot pool); recovery
+  is via `data/activity.jsonl` replay only.
+- `frontend/src/pages/ActivityPage.tsx` already displays each
+  event's human-readable `summary` — the chunk-4 emitter's
+  `"marked sf2 as reviewed"` / `"cleared sf2"` summaries surface
+  without a dedicated switch-case. The planned chunk-8 dedicated
+  renderer folded into the generic path.
+- US-keyboard-layout assumption for `?` (Shift+/ →
+  `event.key === '?'`); R / S work on any layout. Follow-up could
+  match `event.code === 'Slash' && event.shiftKey`.
+- E2E Playwright spec deferred to a follow-up; per-test coverage
+  in vitest + pytest pins behaviour against drift.
+
 ### Documentation bundle — README hero shot + CONTRIBUTING.md (closed 2026-05-16)
 
 Two queued documentation items from 1.4.0 closed together as a single

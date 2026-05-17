@@ -263,24 +263,20 @@ P14 (per-game review state).
 
 ### 🎨 Features
 
-- 📋 [mame-curator-1014] **P14 — Per-game review state.**
-  Per-game enum (`pending` / `reviewed` / `skipped` / `needs-decision`)
-  persisted under `data/state/`. New badge on GameCard when state
-  is non-default; "Only pending" filter toggle in the sidebar;
-  keyboard shortcuts (R = reviewed, S = skipped, ? = needs decision)
-  while a card is focused or the alternatives drawer is open;
-  progress chip in the /library header ("1,234 / 26,539 reviewed").
-  Optional cluster: per-letter / per-decade walkthrough mode.
-  Layman: Sessions today let you save a filter view ("80s
-  shooters") but don't track which games you've personally
-  reviewed. P14 adds a pending / reviewed / skipped state per game,
-  with one-key shortcuts and a "1,234 / 26,539 reviewed" progress
-  chip so you can pick up where you left off.
-  Kind: implement.
-  Lanes: api, frontend, persist, tests.
-  Source: user-2026-05-04 ("When I mentioned sessions I meant more
-  in terms of I went through all games A to C").
-  Dependencies: P06 ✅, P04 ✅.
+- ✅ [mame-curator-1014] **P14 — Per-game review state (closed 2026-05-17).**
+  Shipped: per-game enum (`pending` / `reviewed` / `skipped` /
+  `needs-decision`) persisted under `data/state.yaml` (single file
+  rather than `data/state/` per Step-1 design call — see spec
+  §"Open design calls"). Frontend-only badge on GameCard when state
+  is non-default; segmented review-state filter (`RadioGroup`)
+  above the existing sidebar switches; keyboard shortcuts (R / S /
+  ?) wired both inside the library grid and inside the alternatives
+  drawer; progress chip + walkthrough toggle in the /library
+  header; walkthrough auto-advance on by default, persisted in
+  localStorage. Activity log gains a `review_state` event for every
+  mutation (state/previous as plain strings so the log records the
+  sparse-store sentinel `"pending"`). 13 INVs codified in
+  `docs/specs/P14.md`. Lanes: api, frontend, persist, tests.
 
 ### 📚 Documentation
 
