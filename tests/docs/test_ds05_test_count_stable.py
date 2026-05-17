@@ -44,7 +44,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-05-17 (P14 chunk 5): +5 pytest declarations for the
 # per-request review_state filter on GET /api/games (INV-10 + stage
 # composition). 529 → 534.
-EXPECTED_PYTEST_DECLARATIONS = 534
+# Bumped 2026-05-17 (P14 chunk 6): +1 pytest declaration for the
+# INV-12 frontend/backend pending-predicate parity contract test.
+# 534 → 535.
+EXPECTED_PYTEST_DECLARATIONS = 535
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
