@@ -54,7 +54,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # import-side; the net +5 reflects the 4 rate-limit `def test_*`
 # declarations + 1 cache-text `def test_default_text_max_bytes_*`).
 # 535 → 540.
-EXPECTED_PYTEST_DECLARATIONS = 540
+# Bumped 2026-05-17 (P10 chunk 2 LibretroSource refactor): +4 pytest
+# declarations in `tests/media/test_sources.py` — 4 sync (`url_for`
+# three kinds / `disabled_reason` default / Protocol compliance via
+# isinstance / ClassVars pin); the 5th test (`test_libretro_source_prepare_is_noop`)
+# is async (`async def`) and so doesn't match the `^def test_` regex.
+# 540 → 544.
+EXPECTED_PYTEST_DECLARATIONS = 544
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

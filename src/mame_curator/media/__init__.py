@@ -17,6 +17,12 @@ P10 chunk 1 (foundations for the source-chain expansion):
 - ``MediaRateLimited`` — typed exception sources raise on empty bucket.
 - ``fetch_text_with_cache`` — text/JSON sibling of ``fetch_with_cache``.
 - ``DEFAULT_TEXT_MAX_BYTES`` — public cap (256 KiB) callers may override.
+
+P10 chunk 2 (source protocol + libretro carried under it):
+
+- ``Kind`` — the source-chain kind literal ("boxart" | "title" | "snap").
+- ``MediaSource`` — Protocol every source implements (runtime_checkable).
+- ``LibretroSource`` — P05 baseline, re-homed under the new shape.
 """
 
 from __future__ import annotations
@@ -32,13 +38,17 @@ from mame_curator.media.cache_text import (
     fetch_text_with_cache,
 )
 from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
+from mame_curator.media.sources import Kind, LibretroSource, MediaSource
 from mame_curator.media.urls import MediaUrls, escape_libretro, urls_for
 
 __all__ = [
     "DEFAULT_TEXT_MAX_BYTES",
+    "Kind",
+    "LibretroSource",
     "MediaError",
     "MediaFetchError",
     "MediaRateLimited",
+    "MediaSource",
     "MediaUrls",
     "TokenBucket",
     "cache_path_for",
