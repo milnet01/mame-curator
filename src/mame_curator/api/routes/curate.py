@@ -1,12 +1,14 @@
-"""R08-R13b — overrides + sessions."""
+"""R08-R13b — overrides + sessions. P14 — per-game review state routes."""
 
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Request
 
 from mame_curator.api.errors import (
+    GameNotFoundError,
     OverrideNotFoundError,
     SessionNameInvalidError,
     SessionNotFoundError,
@@ -19,9 +21,17 @@ from mame_curator.api.schemas import (
     OverridesView,
     SessionsListing,
     SessionUpsertRequest,
+    StatePostRequest,
+    StateView,
 )
 from mame_curator.api.state import WorldState, replace_world
-from mame_curator.filter import Overrides, Sessions
+from mame_curator.copy.activity import append_activity
+from mame_curator.copy.types import (
+    ActivityEvent,
+    ActivityEventType,
+    ReviewStateDetails,
+)
+from mame_curator.filter import Overrides, ReviewState, Sessions
 
 _SESSION_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 
@@ -182,3 +192,120 @@ async def activate_session(
         new_world = replace_world(base=world, sessions=new_sessions)
         set_world(request, new_world)
         return _listing(new_sessions)
+
+
+# P14 — per-game review state ------------------------------------------------
+
+
+def _persist_review_state(world: WorldState, review_state: ReviewState) -> None:
+    """Atomic YAML write — no per-change snapshot (spec §"Snapshot policy").
+
+    State writes are keypress-frequency; snapshotting would churn the 200-entry
+    LRU pool and evict every overrides / sessions / config snapshot in minutes.
+    Recovery is via ``data/activity.jsonl`` replay.
+    """
+    path = world.config_path.parent / "data" / "state.yaml"
+    write_yaml_atomic(path, {"state": dict(review_state.entries)})
+
+
+def _build_review_event(
+    short_name: str,
+    state: str,
+    previous: str,
+) -> ActivityEvent:
+    """Construct the ``review_state`` ActivityEvent for a single transition.
+
+    ``state`` / ``previous`` are plain strings — the activity log records the
+    literal transition including the sparse-store sentinel ``"pending"``,
+    which the storage enum (:class:`ReviewStateValue`) excludes by design.
+
+    ``session_id`` is the empty string per spec — review state is a global
+    per-game annotation, not a job-scoped event.
+    """
+    summary = f"cleared {short_name}" if state == "pending" else f"marked {short_name} as {state}"
+    return ActivityEvent(
+        timestamp=datetime.now(UTC),
+        event_type=ActivityEventType.REVIEW_STATE,
+        summary=summary,
+        session_id="",
+        details=ReviewStateDetails(
+            short_name=short_name,
+            state=state,
+            previous=previous,
+        ),
+    )
+
+
+@router.get("/api/state", response_model=StateView)
+def get_state(world: WorldState = Depends(get_world)) -> StateView:
+    """Full review-state map — hydrated by the frontend on page load."""
+    return StateView(entries=dict(world.review_state.entries))
+
+
+@router.post("/api/state", response_model=StateView)
+async def post_state(body: StatePostRequest, request: Request) -> StateView:
+    """Set a non-pending state on a known game.
+
+    INV-13 — a same-value re-post is a no-op: no YAML write, no activity
+    event, returns current state at 200.
+    """
+    async with request.app.state.world_lock:
+        world: WorldState = request.app.state.world
+        if body.short_name not in world.machines:
+            raise GameNotFoundError(f"game not found: {body.short_name!r}")
+
+        previous_enum = world.review_state.entries.get(body.short_name)
+        if previous_enum == body.state:
+            # INV-13: no-op write skip.
+            return StateView(entries=dict(world.review_state.entries))
+
+        entries = dict(world.review_state.entries)
+        entries[body.short_name] = body.state
+        new_state = ReviewState.model_validate({"entries": entries})
+
+        # Disk-write order: persist YAML before activity append before world
+        # swap. A YAML failure raises 500 with state unchanged. An activity
+        # failure after a successful YAML write leaves on-disk state ahead
+        # of the log; recovery walks the YAML (source of truth).
+        _persist_review_state(world, new_state)
+        previous_str = previous_enum.value if previous_enum is not None else "pending"
+        append_activity(
+            _build_review_event(body.short_name, body.state.value, previous_str),
+            log_path=world.data_dir / "activity.jsonl",
+        )
+
+        new_world = replace_world(base=world, review_state=new_state)
+        set_world(request, new_world)
+        return StateView(entries=dict(new_state.entries))
+
+
+@router.delete("/api/state/{short_name}", response_model=StateView)
+async def delete_state(short_name: str, request: Request) -> StateView:
+    """Clear a game's review state back to pending.
+
+    INV-13 — DELETE on a game already at pending is a no-op: no YAML write,
+    no activity event, returns current state at 200.
+    """
+    async with request.app.state.world_lock:
+        world: WorldState = request.app.state.world
+        if short_name not in world.machines:
+            raise GameNotFoundError(f"game not found: {short_name!r}")
+
+        previous_enum = world.review_state.entries.get(short_name)
+        if previous_enum is None:
+            # INV-13: no-op write skip (entry already absent).
+            return StateView(entries=dict(world.review_state.entries))
+
+        entries = dict(world.review_state.entries)
+        del entries[short_name]
+        new_state = ReviewState.model_validate({"entries": entries})
+
+        _persist_review_state(world, new_state)
+        append_activity(
+            _build_review_event(short_name, "pending", previous_enum.value),
+            log_path=world.data_dir / "activity.jsonl",
+        )
+
+        new_world = replace_world(base=world, review_state=new_state)
+        set_world(request, new_world)
+        return StateView(entries=dict(new_state.entries))

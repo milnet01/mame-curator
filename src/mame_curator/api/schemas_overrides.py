@@ -3,12 +3,18 @@
 Re-exported from ``mame_curator.api.schemas`` so existing
 ``from mame_curator.api.schemas import OverridesView, ...`` callers keep
 working unchanged.
+
+P14 — also hosts the StateView / StatePostRequest pair for the
+``/api/state`` routes. Same module because they share the shape
+(``entries: dict[str, ...]``) and stay close to the existing
+Overrides surface.
 """
 
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
+from mame_curator.filter.review_state import ReviewStateValue
 from mame_curator.filter.sessions import Session
 
 
@@ -22,6 +28,30 @@ class OverridesView(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     entries: dict[str, str]
     warnings: tuple[str, ...] = ()
+
+
+# P14 — per-game review state ----------------------------------------------
+
+
+class StateView(BaseModel):
+    """Full review-state map returned by GET /api/state + the write routes."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    entries: dict[str, ReviewStateValue]
+
+
+class StatePostRequest(BaseModel):
+    """Body for POST /api/state.
+
+    ``state`` is typed ``ReviewStateValue`` (NOT ``ReviewStateFilter``):
+    Pydantic rejects ``pending`` at validation time with a 422 before
+    the handler runs, so the sparse-store invariant (INV-1) is
+    enforced at the wire layer.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    short_name: str
+    state: ReviewStateValue
 
 
 class SessionsListing(BaseModel):

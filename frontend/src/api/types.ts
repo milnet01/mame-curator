@@ -291,6 +291,36 @@ export interface SessionUpsertRequest {
   session: Session
 }
 
+// === P14 — per-game review state ===========================================
+export type ReviewStateValue = 'reviewed' | 'skipped' | 'needs-decision'
+
+/** Query-param values for ?review_state=; adds two sentinels. */
+export type ReviewStateFilter =
+  | 'all'
+  | 'pending'
+  | 'reviewed'
+  | 'skipped'
+  | 'needs-decision'
+
+export interface StateView {
+  entries: Record<string, ReviewStateValue>
+}
+
+export interface StatePostRequest {
+  short_name: string
+  state: ReviewStateValue
+}
+
+/**
+ * Frontend-only badge kind for the review-state badges (mirror of the
+ * three storage values). Distinct from `Badge` because the existing
+ * five-value enum is emitted by the backend and policed by the
+ * bidirectional type-sync gate; review-state badges are rendered from
+ * the locally cached `StateView`, so adding them to `Badge` would fail
+ * the gate (no backend emitter).
+ */
+export type ReviewBadgeKind = 'reviewed' | 'skipped' | 'needs-decision'
+
 // === Snapshots / export-import =============================================
 export interface Snapshot {
   id: string

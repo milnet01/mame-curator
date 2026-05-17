@@ -250,6 +250,8 @@ from mame_curator.api.schemas_overrides import (  # noqa: E402
     OverridesView,
     SessionsListing,
     SessionUpsertRequest,
+    StatePostRequest,
+    StateView,
 )
 from mame_curator.api.schemas_setup import (  # noqa: E402
     AppUpdateInfo,
@@ -320,6 +322,8 @@ __all__ = (
     "SetupReferenceStatus",
     "Snapshot",
     "SnapshotsListing",
+    "StatePostRequest",
+    "StateView",
     "Stats",
     "UiConfig",
     "UpdatesCheck",

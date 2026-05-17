@@ -124,6 +124,10 @@ export const strings = {
       bios_missing: 'BIOS dependency missing',
       has_notes: 'Has user notes',
     },
+    // P14 — toast copy for the optimistic mutation rollback path
+    // (`useReviewState` onError). Other P14 strings land in their
+    // consuming chunks to avoid orphan-key churn.
+    stateUpdateFailed: "Couldn't update review state — try again.",
     featured: {
       heading: 'Featured',
       tiles: [

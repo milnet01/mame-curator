@@ -38,8 +38,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-05-17 (P14 chunk 3): +2 pytest declarations for the new
 # tests/api/test_state.py (replace_world passive-swap + omit-default
 # pass-through; INV-4). 516 → 518.
-EXPECTED_PYTEST_DECLARATIONS = 518
-EXPECTED_VITEST_DECLARATIONS = 289
+# Bumped 2026-05-17 (P14 chunk 4): +11 pytest declarations for the new
+# tests/api/test_state_routes.py (POST happy + write effects,
+# POST/DELETE error paths, GET, INV-5/8/13). 518 → 529.
+EXPECTED_PYTEST_DECLARATIONS = 529
+# Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
+# frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
+# update + rollback + clear). 289 → 292.
+EXPECTED_VITEST_DECLARATIONS = 292
 
 _PYTEST_DEF_RE = re.compile(r"^def test_", re.MULTILINE)
 _VITEST_IT_RE = re.compile(r"^\s*it\s*\(", re.MULTILINE)

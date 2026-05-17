@@ -365,6 +365,17 @@ export const SessionUpsertRequestSchema = z
   .object({ name: z.string(), session: SessionSchema })
   .strict()
 
+// === P14 — per-game review state ===========================================
+export const ReviewStateValueSchema = z.enum(['reviewed', 'skipped', 'needs-decision'])
+
+export const StateViewSchema = z
+  .object({ entries: z.record(z.string(), ReviewStateValueSchema) })
+  .strict()
+
+export const StatePostRequestSchema = z
+  .object({ short_name: z.string(), state: ReviewStateValueSchema })
+  .strict()
+
 // === Snapshots / export-import =============================================
 export const SnapshotSchema = z
   .object({
