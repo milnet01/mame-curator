@@ -6,10 +6,10 @@
 |-------|-------|
 | **Project phase** | P10 active 2026-05-17 — Media coverage expansion (Step 1: spec). FP29 closed 2026-05-17 (RetroArch executable + core PathRows on Settings → Paths; ships the UI half of FP22-C). P14 closed 2026-05-17 — per-game review state. Docs bundle (mame-curator-1029 + 1030) closed 2026-05-16. DS03 closed 2026-05-16. DS05 closed 2026-05-16. DS02 closed 2026-05-15 + R2 hot-fix. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **post-v1**. |
 | **Active item ID** | P10 (mame-curator-1005) |
-| **Active step** | 2 — plan inlined in spec body (FP05/07/08 precedent). Step 1 ✅. |
-| **Blocked on** | nothing. |
-| **Last update** | 2026-05-17 (FP29 shipped 4b6e6d0 + tag `FP29-complete`; CI green. **P10 Step 1 ✅** — spec at `docs/specs/P10.md` (568 lines), cold-eyes review 3 loops (loop 1: 2 critical + 5 high + 6 medium; loop 2: 0 critical + 3 high + 5 medium; loop 3: 0 critical + 0 high + 1 medium + 2 low — all verified findings fixed). User sign-off received. Spec adds four fallback art sources (progettoSnaps, ArcadeDB, Wikipedia, MobyGames) beyond libretro-thumbnails per ROADMAP `mame-curator-1005`; new `media.sources` + two rate-limit fields; new `GET /media/{name}/wiki` endpoint for Alternatives drawer flavor text. Step 2 (plan) next.) |
-| **Next gate** | Step 2 plan inline in `docs/specs/P10.md`. |
+| **Active step** | 3 — tests-first per App-Build. Step 1 ✅, Step 2 ✅. |
+| **Blocked on** | nothing. (Pre-impl prep step: resolve 5 § Open verification items by capturing upstream fixtures before chunk 1 mocks land.) |
+| **Last update** | 2026-05-17 (FP29 shipped 4b6e6d0 + tag `FP29-complete`; CI green. **P10 Step 1 ✅** — spec at `docs/specs/P10.md` (568→726 lines after readiness-surface amendment), cold-eyes review 3 loops converged; user sign-off received. **P10 Step 1 amendment** 5efd511 — readiness API + paste-key UI for config-bearing sources, generalises `disabled_reason` on the MediaSource Protocol so any future config-needy source benefits automatically. **P10 Step 2 ✅** — 11-chunk implementation plan inlined under § "Implementation plan (Step 2)"; spec now 799 lines. Convergence checkpoint at chunk 7. **Queued post-P10:** FP30 (save-indicator on Settings; mame-curator-1038) + P15 (UI polish + theme expansion; mame-curator-1039) — logged 57bd38a.) |
+| **Next gate** | Pre-impl prep (upstream fixture capture + FastAPI compat verification) then Step 3 chunk 1 foundations (`rate_limit.py` + `cache_text.py` + tests). |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
