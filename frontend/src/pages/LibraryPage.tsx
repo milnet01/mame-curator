@@ -497,6 +497,11 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
             }}
             launching={launch.isPending}
             retroarchConfigured={setupCheck.data?.retroarch_configured}
+            reviewState={reviewState.data}
+            onSetReviewState={(shortName, state) =>
+              setReviewState.mutate({ short_name: shortName, state })
+            }
+            onClearReviewState={(shortName) => clearReviewState.mutate(shortName)}
           />
         </ErrorBoundary>
       )}

@@ -9,9 +9,15 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { useKeyboard } from '@/hooks/useKeyboard'
 import { cn } from '@/lib/utils'
 import { strings } from '@/strings'
-import type { GameCard, OverridePostRequest } from '@/api/types'
+import type {
+  GameCard,
+  OverridePostRequest,
+  ReviewStateValue,
+  StateView,
+} from '@/api/types'
 
 interface AlternativesDrawerProps {
   open: boolean
@@ -31,23 +37,43 @@ interface AlternativesDrawerProps {
    *  ``undefined`` → setupCheck query still loading; treat as gated so a
    *  fast-clicker can't race the query into a 422. */
   retroarchConfigured?: boolean
+  /** P14 — review-state cache for the drawer's per-row state read +
+   *  R/S/? mutation callbacks. Optional so callers that don't wire
+   *  review state (rare) render an unaltered drawer. */
+  reviewState?: StateView
+  onSetReviewState?: (shortName: string, state: ReviewStateValue) => void
+  onClearReviewState?: (shortName: string) => void
+}
+
+const DRAWER_KEY_TO_STATE: Record<string, ReviewStateValue> = {
+  r: 'reviewed',
+  s: 'skipped',
+  '?': 'needs-decision',
 }
 
 function AlternativeRow({
   alt,
   isWinner,
   onPick,
+  highlighted = false,
 }: {
   alt: GameCard
   isWinner: boolean
   onPick: () => void
+  highlighted?: boolean
 }) {
   const [imgFailed, setImgFailed] = useState(false)
   const buttonName = isWinner
     ? strings.alternatives.selectedAriaLabel(alt.description)
     : strings.alternatives.useAriaLabel(alt.description)
   return (
-    <Card className={cn(isWinner && 'border-primary')}>
+    <Card
+      data-highlighted={highlighted || undefined}
+      className={cn(
+        isWinner && 'border-primary',
+        highlighted && 'ring-2 ring-ring',
+      )}
+    >
       <CardContent className="flex items-center gap-3 p-3">
         {/* FP11 § B6: design §8 demands "side-by-side strip of parent +
             clones with media". 64×80 thumbnails per row keep the drawer
@@ -100,6 +126,9 @@ export function AlternativesDrawer({
   onLaunch,
   launching = false,
   retroarchConfigured,
+  reviewState,
+  onSetReviewState,
+  onClearReviewState,
 }: AlternativesDrawerProps) {
   const parent = winner.short_name
   const handleClick = (alt: GameCard) => {
@@ -112,6 +141,48 @@ export function AlternativesDrawer({
   // "This is the only version" and skip the row list entirely. With
   // multiple, show the count line and the rows.
   const onlyOne = alternatives.length === 1
+
+  // P14 — highlight + R/S/? on drawer rows. Independent of grid focus.
+  const [highlightedRowIndex, setHighlightedRowIndex] = useState(0)
+
+  useKeyboard(
+    open && !onlyOne
+      ? [
+          {
+            combo: 'ArrowDown',
+            handler: (e) => {
+              e.preventDefault()
+              setHighlightedRowIndex((prev) =>
+                Math.min(alternatives.length - 1, prev + 1),
+              )
+            },
+          },
+          {
+            combo: 'ArrowUp',
+            handler: (e) => {
+              e.preventDefault()
+              setHighlightedRowIndex((prev) => Math.max(0, prev - 1))
+            },
+          },
+          ...(['r', 's', '?'] as const).map((key) => ({
+            combo: key,
+            handler: (e: KeyboardEvent) => {
+              if (!onSetReviewState) return
+              const row = alternatives[highlightedRowIndex]
+              if (!row) return
+              e.preventDefault()
+              const target = DRAWER_KEY_TO_STATE[key]!
+              const current = reviewState?.entries[row.short_name]
+              // INV-7 — drawer mutations do NOT auto-advance regardless
+              // of walkthrough setting; the user typically opens the
+              // drawer to compare clones individually.
+              if (current === target) onClearReviewState?.(row.short_name)
+              else onSetReviewState(row.short_name, target)
+            },
+          })),
+        ]
+      : [],
+  )
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -127,12 +198,13 @@ export function AlternativesDrawer({
 
         {!onlyOne && (
           <ul className="flex flex-col gap-2">
-            {alternatives.map((alt) => (
+            {alternatives.map((alt, idx) => (
               <li key={alt.short_name}>
                 <AlternativeRow
                   alt={alt}
                   isWinner={alt.short_name === winner.short_name}
                   onPick={() => handleClick(alt)}
+                  highlighted={idx === highlightedRowIndex}
                 />
               </li>
             ))}
