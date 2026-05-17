@@ -219,6 +219,7 @@ class ActivityEventType(StrEnum):
     APP_UPDATED = "app_updated"
     FILE_RECYCLED = "file_recycled"
     RECYCLE_PURGED = "recycle_purged"
+    REVIEW_STATE = "review_state"
 
 
 class CopyStartedDetails(BaseModel):
@@ -301,6 +302,22 @@ class RecyclePurgedDetails(BaseModel):
     bytes_freed: int
 
 
+class ReviewStateDetails(BaseModel):
+    """`review_state` event payload (P14 emitter).
+
+    `state` and `previous` are plain `str` rather than `ReviewStateValue`
+    so the activity log can record the literal transition including the
+    sentinel `"pending"` value, which is excluded from the storage enum
+    by design (sparse-store invariant).
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    event_type: Literal[ActivityEventType.REVIEW_STATE] = ActivityEventType.REVIEW_STATE
+    short_name: str
+    state: str
+    previous: str
+
+
 ActivityDetails = Annotated[
     CopyStartedDetails
     | CopyFinishedDetails
@@ -310,7 +327,8 @@ ActivityDetails = Annotated[
     | IniRefreshedDetails
     | AppUpdatedDetails
     | FileRecycledDetails
-    | RecyclePurgedDetails,
+    | RecyclePurgedDetails
+    | ReviewStateDetails,
     Discriminator("event_type"),
 ]
 

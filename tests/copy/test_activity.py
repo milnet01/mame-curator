@@ -16,6 +16,7 @@ from mame_curator.copy.types import (
     CopyStartedDetails,
     FileRecycledDetails,
     PlanSummary,
+    ReviewStateDetails,
 )
 
 
@@ -168,3 +169,26 @@ def test_activity_event_discriminator_round_trip() -> None:
     assert revived.event_type == ActivityEventType.FILE_RECYCLED
     assert isinstance(revived.details, FileRecycledDetails)
     assert revived.details.path == "/dst/sf2.zip"
+
+
+def test_review_state_event_round_trip() -> None:
+    """P14 — the `review_state` discriminator round-trips through JSON."""
+    e = ActivityEvent(
+        timestamp=datetime(2026, 5, 17, tzinfo=UTC),
+        event_type=ActivityEventType.REVIEW_STATE,
+        summary="marked sf2 as reviewed",
+        session_id="",
+        details=ReviewStateDetails(
+            short_name="sf2",
+            state="reviewed",
+            previous="pending",
+        ),
+    )
+    raw = e.model_dump_json()
+    revived = ActivityEvent.model_validate_json(raw)
+    assert revived.event_type == ActivityEventType.REVIEW_STATE
+    assert isinstance(revived.details, ReviewStateDetails)
+    assert revived.details.short_name == "sf2"
+    assert revived.details.state == "reviewed"
+    assert revived.details.previous == "pending"
+    assert revived.session_id == ""
