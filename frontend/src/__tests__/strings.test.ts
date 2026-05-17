@@ -97,6 +97,8 @@ const DYNAMIC_ACCESS_PARENTS = new Set<string>([
   'settings.pickerChipPlaceholders',
   // UpdatesTab.tsx — channel options accessed by key
   'settings.updateChannelOptions',
+  // P14 — FiltersSidebar.tsx: `strings.library.reviewState[opt.labelKey]`
+  'library.reviewState',
 ])
 
 function isDynamicAllowlisted(leafPath: string): boolean {

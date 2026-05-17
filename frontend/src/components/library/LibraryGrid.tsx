@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { toast } from 'sonner'
 import { GameCard } from './GameCard'
 import { strings } from '@/strings'
 import { cn } from '@/lib/utils'
@@ -8,6 +9,7 @@ import type {
   CardsPerRowHint,
   GameCard as GameCardType,
   LayoutName,
+  ReviewStateValue,
   StateView,
 } from '@/api/types'
 
@@ -24,6 +26,19 @@ interface LibraryGridProps {
    *  per-card badge slot. Optional so callers that don't care about
    *  review state (rare in v1, common in tests) need not plumb it. */
   reviewState?: StateView
+  /** P14 — mutation callbacks for the R / S / ? keys. Optional so the
+   *  grid renders read-only in surfaces that don't wire mutations. */
+  onSetReviewState?: (shortName: string, state: ReviewStateValue) => void
+  onClearReviewState?: (shortName: string) => void
+  /** P14 — when true, R/S/? on a card that ends up non-pending also
+   *  advances focus to the next pending card. Default true. */
+  walkthrough?: boolean
+}
+
+const KEY_TO_STATE: Record<string, ReviewStateValue> = {
+  r: 'reviewed',
+  s: 'skipped',
+  '?': 'needs-decision',
 }
 
 /**
@@ -63,6 +78,9 @@ export function LibraryGrid({
   isInCart,
   onAdd,
   reviewState,
+  onSetReviewState,
+  onClearReviewState,
+  walkthrough = true,
 }: LibraryGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const columns = resolveColumns(layout, cardsPerRowHint)
@@ -88,7 +106,7 @@ export function LibraryGrid({
   // The component still owns the key→action wiring (below); the hook
   // owns `activeIndex` and the move() / setActive() / focusNextPending()
   // setters.
-  const { activeIndex, move, setActive } = useGameGridFocus(
+  const { activeIndex, move, setActive, focusNextPending } = useGameGridFocus(
     cards,
     reviewState,
     columns,
@@ -134,9 +152,47 @@ export function LibraryGrid({
           }
           break
         }
+        case 'r':
+        case 's':
+        case '?': {
+          // P14 chunk 12 — toggle on same-key press; walkthrough auto-advance.
+          if (!onSetReviewState) break
+          const card = cards[activeIndex]
+          if (!card) break
+          e.preventDefault()
+          const target = KEY_TO_STATE[e.key]!
+          const current = reviewState?.entries[card.short_name]
+          const startedAt = activeIndex
+          if (current === target) {
+            // Toggle back to pending; no walkthrough advance (the just-
+            // cleared card is itself pending now).
+            onClearReviewState?.(card.short_name)
+          } else {
+            onSetReviewState(card.short_name, target)
+            if (walkthrough) {
+              const nextIdx = focusNextPending(startedAt + 1)
+              if (nextIdx === null) toast.success(strings.library.walkthroughCaughtUp)
+              else setActive(nextIdx)
+            }
+          }
+          break
+        }
       }
     },
-    [activeIndex, cards, cardsLen, columns, move, onOpen, setActive],
+    [
+      activeIndex,
+      cards,
+      cardsLen,
+      columns,
+      focusNextPending,
+      move,
+      onClearReviewState,
+      onOpen,
+      onSetReviewState,
+      reviewState,
+      setActive,
+      walkthrough,
+    ],
   )
 
   if (cards.length === 0) {
@@ -206,6 +262,7 @@ export function LibraryGrid({
                       inCart={isInCart(card.short_name)}
                       onOpen={() => onOpen(card)}
                       onAdd={onAdd}
+                      reviewState={reviewState?.entries[card.short_name]}
                     />
                   </div>
                 )

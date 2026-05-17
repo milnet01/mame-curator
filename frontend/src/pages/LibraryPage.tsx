@@ -26,6 +26,11 @@ import { useCopySession } from '@/hooks/useCopySession'
 import { useDryRun } from '@/hooks/useDryRun'
 import { useFacets } from '@/hooks/useFacets'
 import { useGames, type GamesQuery } from '@/hooks/useGames'
+import {
+  useReviewState,
+  useReviewStateClear,
+  useReviewStateSet,
+} from '@/hooks/useReviewState'
 import { useValidateCart } from '@/hooks/useValidateCart'
 import { useConfig, useConfigPatch } from '@/hooks/useConfig'
 import { useSessions, useSessionUpsert } from '@/hooks/useSessions'
@@ -47,6 +52,20 @@ const DEFAULT_FILTERS: FilterSidebarState = {
   onlyOverridden: false,
   onlyChdMissing: false,
   onlyBiosMissing: false,
+  reviewState: 'all',
+}
+
+// P14 — walkthrough-mode toggle persists across reloads.
+const WALKTHROUGH_KEY = 'mame-curator:walkthrough-mode'
+
+function readWalkthroughPref(): boolean {
+  try {
+    const raw = localStorage.getItem(WALKTHROUGH_KEY)
+    if (raw === null) return true
+    return raw === 'true'
+  } catch {
+    return true
+  }
 }
 
 // Module-level helper so useQueries queryFn doesn't close over any reactive
@@ -84,6 +103,11 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
   const [openedShortName, setOpenedShortName] = useState<string | null>(null)
   const [dryRunReport, setDryRunReport] = useState<DryRunReport | null>(null)
   const [activeTileId, setActiveTileId] = useState<string | null>(null)
+  // P14 — walkthrough toggle (default on; persisted to localStorage).
+  const [walkthrough, setWalkthrough] = useState<boolean>(() => readWalkthroughPref())
+  const reviewState = useReviewState()
+  const setReviewState = useReviewStateSet()
+  const clearReviewState = useReviewStateClear()
   // FP24-O: Clear-all is destructive (cart has no undo) — coding-
   // standards § 4 mandates AlertDialog confirm for destructive ops.
   const [clearAllOpen, setClearAllOpen] = useState(false)
@@ -119,6 +143,7 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
     onlyOverridden: filters.onlyOverridden,
     onlyChdMissing: filters.onlyChdMissing,
     onlyBiosMissing: filters.onlyBiosMissing,
+    reviewState: filters.reviewState,
   }
   const games = useGames(query)
   // FP24-V: stable refs so downstream useMemo/useEffect deps don't
@@ -333,6 +358,40 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
         >
           {activeSession ? strings.library.activeSessionPill(activeSession) : strings.library.noActiveSessionPill}
         </Link>
+        {/* P14 — progress chip + walkthrough toggle. */}
+        {(() => {
+          const totalSlice = cards.length
+          const entries = reviewState.data?.entries ?? {}
+          const handled = cards.reduce(
+            (n, c) => n + (c.short_name in entries ? 1 : 0),
+            0,
+          )
+          const pct = totalSlice === 0 ? '0' : ((handled / totalSlice) * 100).toFixed(1)
+          return (
+            <span
+              data-testid="library-progress-chip"
+              className="rounded border bg-muted/50 px-2 py-1 text-xs text-muted-foreground"
+            >
+              {strings.library.progressChip(handled, totalSlice, pct)}
+            </span>
+          )
+        })()}
+        <label className="flex items-center gap-1 rounded border bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            data-testid="library-walkthrough-toggle"
+            checked={walkthrough}
+            onChange={(e) => {
+              setWalkthrough(e.target.checked)
+              try {
+                localStorage.setItem(WALKTHROUGH_KEY, String(e.target.checked))
+              } catch {
+                /* localStorage unavailable; in-memory state still updates. */
+              }
+            }}
+          />
+          {strings.library.walkthroughToggle}
+        </label>
         <LayoutSwitcher value={layout} onChange={handleLayout} />
         <ThemeSwitcher value={theme} onChange={handleTheme} />
       </header>
@@ -382,6 +441,12 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
                 isInCart={(s) => cart.has(s)}
                 onAdd={(s) => cart.add(s)}
                 onOpen={(card) => setOpenedShortName(card.short_name)}
+                reviewState={reviewState.data}
+                walkthrough={walkthrough}
+                onSetReviewState={(shortName, state) =>
+                  setReviewState.mutate({ short_name: shortName, state })
+                }
+                onClearReviewState={(shortName) => clearReviewState.mutate(shortName)}
               />
             )
           })()}

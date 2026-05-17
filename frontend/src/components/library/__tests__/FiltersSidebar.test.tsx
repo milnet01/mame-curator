@@ -22,6 +22,7 @@ describe('FiltersSidebar', () => {
           onlyOverridden: false,
           onlyChdMissing: false,
           onlyBiosMissing: false,
+          reviewState: 'all',
         }}
         onChange={() => {}}
         onSaveSession={() => {}}
@@ -47,6 +48,7 @@ describe('FiltersSidebar', () => {
           onlyOverridden: false,
           onlyChdMissing: false,
           onlyBiosMissing: false,
+          reviewState: 'all',
         }}
         onChange={onChange}
         onSaveSession={() => {}}
@@ -78,6 +80,7 @@ describe('FiltersSidebar', () => {
           onlyOverridden: false,
           onlyChdMissing: false,
           onlyBiosMissing: false,
+          reviewState: 'all',
         }}
         onChange={() => {}}
         onSaveSession={onSaveSession}

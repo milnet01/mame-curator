@@ -20,9 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
 import { strings } from '@/strings'
-import type { LibraryFacets } from '@/api/types'
+import type { LibraryFacets, ReviewStateFilter } from '@/api/types'
 
 const DEBOUNCE_MS = 200
 
@@ -45,7 +46,17 @@ export interface FilterSidebarState {
   onlyOverridden: boolean
   onlyChdMissing: boolean
   onlyBiosMissing: boolean
+  /** P14 — segmented review-state filter. Default `all`. */
+  reviewState: ReviewStateFilter
 }
+
+const REVIEW_STATE_OPTIONS: { value: ReviewStateFilter; labelKey: keyof typeof strings.library.reviewState }[] = [
+  { value: 'all', labelKey: 'optionAll' },
+  { value: 'pending', labelKey: 'optionPending' },
+  { value: 'reviewed', labelKey: 'optionReviewed' },
+  { value: 'skipped', labelKey: 'optionSkipped' },
+  { value: 'needs-decision', labelKey: 'optionNeedsDecision' },
+]
 
 interface FiltersSidebarProps {
   value: FilterSidebarState
@@ -220,6 +231,35 @@ export function FiltersSidebar({
           />
         </div>
       )}
+
+      {/* P14 — segmented review-state filter (above the Only* switches). */}
+      <fieldset className="flex flex-col gap-2" data-testid="filters-review-state">
+        <legend className="text-sm font-medium">
+          {strings.library.reviewState.legendLabel}
+        </legend>
+        <RadioGroup
+          value={value.reviewState}
+          onValueChange={(next) =>
+            onChange({ ...value, reviewState: next as ReviewStateFilter })
+          }
+          className="flex flex-wrap gap-2"
+        >
+          {REVIEW_STATE_OPTIONS.map((opt) => (
+            <div key={opt.value} className="flex items-center gap-1.5">
+              <RadioGroupItem
+                id={`filters-review-state-${opt.value}`}
+                value={opt.value}
+              />
+              <Label
+                htmlFor={`filters-review-state-${opt.value}`}
+                className="cursor-pointer text-sm"
+              >
+                {strings.library.reviewState[opt.labelKey]}
+              </Label>
+            </div>
+          ))}
+        </RadioGroup>
+      </fieldset>
 
       <div className="flex flex-col gap-3">
         {SWITCH_KEYS.map((key) => (

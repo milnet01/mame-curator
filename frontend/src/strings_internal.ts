@@ -132,6 +132,19 @@ export const strings = {
     // P14 — toast copy for the optimistic mutation rollback path
     // (`useReviewState` onError).
     stateUpdateFailed: "Couldn't update review state — try again.",
+    /** P14 — segmented review-state filter (chunk 11) + walkthrough chip (chunk 13). */
+    reviewState: {
+      legendLabel: 'Review state',
+      optionAll: 'All',
+      optionPending: 'Pending',
+      optionReviewed: 'Reviewed',
+      optionSkipped: 'Skipped',
+      optionNeedsDecision: 'Needs decision',
+    },
+    progressChip: (handled: number, total: number, pct: string) =>
+      `${handled.toLocaleString()} / ${total.toLocaleString()} handled · ${pct}%`,
+    walkthroughToggle: 'Walkthrough mode',
+    walkthroughCaughtUp: 'All caught up in this view.',
     featured: {
       heading: 'Featured',
       tiles: [

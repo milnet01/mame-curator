@@ -40,8 +40,13 @@ export function useGameGridFocus(
   const cardsLen = cards.length
 
   // Clamp activeIndex when `cards` shrinks (filter change, pagination).
+  // Effect-set is intentional here: the derive-in-render alternative
+  // would render an out-of-bounds index for one frame before
+  // settling, defeating the FP21-T roving-tabindex (the gridcell at
+  // the old index no longer exists, so focus would be lost).
   useEffect(() => {
     if (activeIndex >= cardsLen && cardsLen > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveIndex(cardsLen - 1)
     }
   }, [activeIndex, cardsLen])

@@ -1,4 +1,8 @@
-import { GamesPageSchema, type GamesPage } from '@/api/types'
+import {
+  GamesPageSchema,
+  type GamesPage,
+  type ReviewStateFilter,
+} from '@/api/types'
 import { useApiQuery } from './useApi'
 
 export interface GamesQuery {
@@ -17,6 +21,8 @@ export interface GamesQuery {
   onlyOverridden?: boolean
   onlyChdMissing?: boolean
   onlyBiosMissing?: boolean
+  /** P14 — review-state visibility filter. Default `all` on the backend. */
+  reviewState?: ReviewStateFilter
 }
 
 function toQueryString(q: GamesQuery): string {
@@ -37,6 +43,7 @@ function toQueryString(q: GamesQuery): string {
   if (q.onlyOverridden) params.set('only_overridden', '1')
   if (q.onlyChdMissing) params.set('only_chd_missing', '1')
   if (q.onlyBiosMissing) params.set('only_bios_missing', '1')
+  if (q.reviewState && q.reviewState !== 'all') params.set('review_state', q.reviewState)
   return params.toString()
 }
 

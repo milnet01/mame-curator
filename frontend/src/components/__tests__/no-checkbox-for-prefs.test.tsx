@@ -84,6 +84,7 @@ describe('no-checkbox-for-prefs invariant', () => {
           onlyOverridden: false,
           onlyChdMissing: false,
           onlyBiosMissing: false,
+          reviewState: 'all',
         }}
         onChange={() => {}}
         onSaveSession={() => {}}
