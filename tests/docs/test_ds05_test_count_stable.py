@@ -29,7 +29,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-05-16 (DS03 Cluster D): +3 pytest declarations for the
 # two new docs-tests landing in this commit (test_dep_pin_coupling +
 # test_no_pre_release_pins). 504 → 507.
-EXPECTED_PYTEST_DECLARATIONS = 507
+# Bumped 2026-05-17 (P14 chunk 1): +8 pytest declarations for the new
+# tests/filter/test_review_state.py (6 spec-listed tests + 2
+# coverage-gate tests to hit the filter/ ≥ 95% bar). 507 → 515.
+EXPECTED_PYTEST_DECLARATIONS = 515
 EXPECTED_VITEST_DECLARATIONS = 289
 
 _PYTEST_DEF_RE = re.compile(r"^def test_", re.MULTILINE)

@@ -13,3 +13,7 @@ class OverridesError(FilterError):
 
 class SessionsError(FilterError):
     """Malformed or empty session configuration."""
+
+
+class ReviewStateError(FilterError):
+    """Malformed state.yaml."""
