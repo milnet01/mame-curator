@@ -451,6 +451,11 @@ export const strings = {
       destination: 'Destination',
       dat: 'DAT',
       retroarchPlaylist: 'RetroArch playlist',
+      /** FP29 — paired Launch-button gate (FP19 + FP22-B). Empty input
+          round-trips to ``null`` so the backend ``str | None`` schema
+          stays clean. */
+      retroarchExecutable: 'RetroArch executable',
+      retroarchCore: 'RetroArch core',
     },
     /** FP12 § H — DAT swap is destructive (replaces the entire library). */
     datSwapConfirmTitle: 'Swap DAT?',

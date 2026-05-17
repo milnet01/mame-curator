@@ -58,7 +58,11 @@ EXPECTED_PYTEST_DECLARATIONS = 535
 # review-state badge tests in GameCard.test.tsx (an `it()` for the
 # undefined-prop case; the `it.each` covering 3 states isn't counted
 # by the `^\s*it\s*\(` regex). 299 → 300.
-EXPECTED_VITEST_DECLARATIONS = 300
+# Bumped 2026-05-17 (FP29): +4 vitest declarations in
+# SettingsPage_render.test.tsx pinning the new RetroArch executable
+# and core PathRows (banner pointed users to a UI that didn't render
+# the two fields). 300 → 304.
+EXPECTED_VITEST_DECLARATIONS = 304
 
 _PYTEST_DEF_RE = re.compile(r"^def test_", re.MULTILINE)
 _VITEST_IT_RE = re.compile(r"^\s*it\s*\(", re.MULTILINE)

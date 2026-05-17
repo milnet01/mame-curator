@@ -271,6 +271,28 @@ export function SettingsPage({
             mode="file"
             onChange={(next) => updatePaths('retroarch_playlist', next)}
           />
+          {/* FP29 — Launch-button gate (FP22-B) reads
+              ``retroarch_configured = retroarch && retroarch_core``;
+              both fields are nullable on the backend, so blank input
+              round-trips to ``null`` rather than ``""``. */}
+          <PathRow
+            id="paths-retroarch"
+            label={strings.settings.pathRowLabels.retroarchExecutable}
+            value={config.paths.retroarch ?? ''}
+            mode="file"
+            onChange={(next) =>
+              updatePaths('retroarch', next === '' ? null : next)
+            }
+          />
+          <PathRow
+            id="paths-retroarch-core"
+            label={strings.settings.pathRowLabels.retroarchCore}
+            value={config.paths.retroarch_core ?? ''}
+            mode="file"
+            onChange={(next) =>
+              updatePaths('retroarch_core', next === '' ? null : next)
+            }
+          />
           {pendingDat !== null && (
             <ConfirmationDialog
               open

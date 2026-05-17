@@ -298,4 +298,86 @@ describe('SettingsPage — render', () => {
       }),
     )
   })
+
+  // FP29 — the FP22-C setup banner directs users to "set paths.retroarch
+  // and paths.retroarch_core in the Paths tab to enable launching", but
+  // the tab shipped without inputs for either field — leaving the
+  // Launch-in-RetroArch button (FP19) gated behind a config.yaml hand-
+  // edit. These four tests pin the inputs on the Paths tab and the
+  // nullable round-trip: empty string round-trips to `null` so the
+  // backend schema (`retroarch: str | None`) stays clean.
+  it('renders the RetroArch executable + core PathRows on the Paths tab (FP29)', () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    expect(screen.getByLabelText('RetroArch executable')).toBeInTheDocument()
+    expect(screen.getByLabelText('RetroArch core')).toBeInTheDocument()
+  })
+
+  it('patches paths.retroarch when the executable PathRow blurs (FP29)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    const input = screen.getByLabelText('RetroArch executable')
+    await userEvent.type(input, '/usr/bin/retroarch')
+    await userEvent.tab()
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paths: expect.objectContaining({ retroarch: '/usr/bin/retroarch' }),
+      }),
+    )
+  })
+
+  it('patches paths.retroarch_core when the core PathRow blurs (FP29)', async () => {
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    const input = screen.getByLabelText('RetroArch core')
+    await userEvent.type(input, '/path/to/mame_libretro.so')
+    await userEvent.tab()
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paths: expect.objectContaining({
+          retroarch_core: '/path/to/mame_libretro.so',
+        }),
+      }),
+    )
+  })
+
+  it('saves an empty RetroArch executable as null (FP29 nullable round-trip)', async () => {
+    const onPatch = vi.fn()
+    const seededConfig = {
+      ...config,
+      paths: { ...config.paths, retroarch: '/old/retroarch' },
+    }
+    render(
+      <SettingsPage
+        config={seededConfig}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    const input = screen.getByLabelText('RetroArch executable')
+    await userEvent.clear(input)
+    await userEvent.tab()
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paths: expect.objectContaining({ retroarch: null }),
+      }),
+    )
+  })
 })
