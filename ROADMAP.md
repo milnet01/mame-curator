@@ -316,7 +316,7 @@ through.
 
 ### 🎨 Features
 
-- 💭 [mame-curator-1005] **P10 — Media coverage expansion.**
+- 🚧 [mame-curator-1005] **P10 — Media coverage expansion.**
   Add fallback art sources beyond libretro-thumbnails:
   progettoSnaps (~60–70% gap-closer, no auth, ~1 day),
   ArcadeDB JSON API (highest-quality images, rate-limited, ~2
