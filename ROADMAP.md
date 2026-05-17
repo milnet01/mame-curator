@@ -278,6 +278,50 @@ P14 (per-game review state).
   sparse-store sentinel `"pending"`). 13 INVs codified in
   `docs/specs/P14.md`. Lanes: api, frontend, persist, tests.
 
+- 📋 [mame-curator-1038] **FP30 — Auto-save indicator on Settings page.**
+  Settings page already auto-saves on every change via
+  `useConfigPatch` (`frontend/src/hooks/useConfig.ts:21`), but
+  `onSuccess` emits no UI feedback — only `onError` toasts. Users
+  edit RetroArch paths (or any other field), the PATCH succeeds
+  silently, and there's no signal the save happened. Fix: wire a
+  brief success toast or a subtle inline "Saved ✓" pill on every
+  successful PATCH, mirroring the `useReviewState` hook's pattern.
+  Layman: When you change a setting it saves automatically right
+  now, but the page doesn't say anything — so it feels like nothing
+  happened. Add a small "Saved" indicator that flashes briefly each
+  time.
+  Kind: fix.
+  Lanes: frontend, tests.
+  Source: user-2026-05-17 ("the settings page seems to save in
+  'real time' (as you make changes, they are saved automatically.
+  This is awesome but there is no indication that this is
+  happening").
+  Dependencies: none.
+
+- 📋 [mame-curator-1039] **P15 — UI polish + theme expansion.**
+  Visual-polish pass across the app for end-user perception of
+  professionalism. Tactical surface: typography (font choice,
+  weights, sizing rhythm), spacing rhythm (padding / margins /
+  vertical-rhythm consistency), color depth (hover / focus / active
+  state polish across themes), iconography (button hierarchy, icon
+  density), loading / empty states (skeleton screens, empty-list
+  illustrations), information density. Existing four arcade themes
+  (`double_dragon`, `pacman`, `sf2`, `neogeo`) get a quality pass
+  + possibly two more (Galaga, Donkey Kong, CPS-2 — user to
+  confirm at Step 1). Scope-firewall: visual polish only; no new
+  features.
+  Layman: Pass over every screen for visual quality —
+  fonts, spacing, colors, loading screens. Also improve the existing
+  arcade-themed colour schemes (Pac-Man, Street Fighter II, Neo Geo,
+  Double Dragon) and maybe add a couple more.
+  Kind: implement.
+  Lanes: frontend, tests.
+  Source: user-2026-05-17 ("I would also like the whole site to be
+  made more professional looking too please. Also, add in themes
+  too please. Maybe base the themes on some popular arcade / MAME
+  games").
+  Dependencies: none.
+
 ### 📚 Documentation
 
 - ✅ [mame-curator-1029] **README hero shot + 4 screenshots (closed 2026-05-16).**
