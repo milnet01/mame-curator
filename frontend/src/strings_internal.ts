@@ -123,10 +123,14 @@ export const strings = {
       chd_missing: 'CHD file missing',
       bios_missing: 'BIOS dependency missing',
       has_notes: 'Has user notes',
+      // P14 — review-state badges (chunk 10), rendered frontend-side from
+      // the cached review-state map (NOT emitted by backend `_badges()`).
+      reviewed: 'Reviewed',
+      skipped: 'Skipped',
+      needsDecision: 'Needs decision',
     },
     // P14 — toast copy for the optimistic mutation rollback path
-    // (`useReviewState` onError). Other P14 strings land in their
-    // consuming chunks to avoid orphan-key churn.
+    // (`useReviewState` onError).
     stateUpdateFailed: "Couldn't update review state — try again.",
     featured: {
       heading: 'Featured',

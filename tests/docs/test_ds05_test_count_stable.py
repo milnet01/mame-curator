@@ -54,7 +54,11 @@ EXPECTED_PYTEST_DECLARATIONS = 535
 # Bumped 2026-05-17 (P14 chunk 9): +7 vitest declarations for the new
 # frontend/src/hooks/__tests__/useGameGridFocus.test.tsx (FP21-T
 # preservation + focusNextPending). 292 → 299.
-EXPECTED_VITEST_DECLARATIONS = 299
+# Bumped 2026-05-17 (P14 chunk 10): +1 vitest declaration for the new
+# review-state badge tests in GameCard.test.tsx (an `it()` for the
+# undefined-prop case; the `it.each` covering 3 states isn't counted
+# by the `^\s*it\s*\(` regex). 299 → 300.
+EXPECTED_VITEST_DECLARATIONS = 300
 
 _PYTEST_DEF_RE = re.compile(r"^def test_", re.MULTILINE)
 _VITEST_IT_RE = re.compile(r"^\s*it\s*\(", re.MULTILINE)

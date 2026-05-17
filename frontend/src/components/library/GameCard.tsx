@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import {
   AlertTriangle,
+  Ban,
+  CheckCircle,
   Disc,
   GitBranch,
+  HelpCircle,
   Pencil,
   StickyNote,
   type LucideIcon,
@@ -10,7 +13,12 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { strings } from '@/strings'
-import type { Badge, GameCard as GameCardType } from '@/api/types'
+import type {
+  Badge,
+  GameCard as GameCardType,
+  ReviewBadgeKind,
+  ReviewStateValue,
+} from '@/api/types'
 
 interface GameCardProps {
   card: GameCardType
@@ -18,6 +26,9 @@ interface GameCardProps {
   inCart: boolean
   onOpen: () => void
   onAdd: (shortName: string) => void
+  /** P14 — per-card review state, rendered as a frontend-only badge in
+   *  the same top-right slot as the existing backend-emitted badges. */
+  reviewState?: ReviewStateValue
 }
 
 const BADGE_LABELS: Record<Badge, string> = {
@@ -40,12 +51,35 @@ const BADGE_ICONS: Record<Badge, LucideIcon> = {
   has_notes: StickyNote,
 }
 
+// P14 — parallel maps for the frontend-only review-state badges. NOT
+// merged into BADGE_LABELS / BADGE_ICONS because those are typed
+// `Record<Badge, ...>` and the TS exhaustiveness check across the five
+// backend-emitted values is load-bearing for the type-sync gate.
+const REVIEW_BADGE_LABELS: Record<ReviewBadgeKind, string> = {
+  reviewed: strings.library.badges.reviewed,
+  skipped: strings.library.badges.skipped,
+  'needs-decision': strings.library.badges.needsDecision,
+}
+
+const REVIEW_BADGE_ICONS: Record<ReviewBadgeKind, LucideIcon> = {
+  reviewed: CheckCircle,
+  skipped: Ban,
+  'needs-decision': HelpCircle,
+}
+
+const REVIEW_BADGE_TINT: Record<ReviewBadgeKind, string> = {
+  reviewed: 'text-emerald-500',
+  skipped: 'text-rose-500',
+  'needs-decision': 'text-amber-500',
+}
+
 export function GameCard({
   card,
   focused = false,
   inCart,
   onOpen,
   onAdd,
+  reviewState,
 }: GameCardProps) {
   const [imgFailed, setImgFailed] = useState(false)
   const flyerSrc = `/media/${encodeURIComponent(card.short_name)}/boxart`
@@ -132,7 +166,7 @@ export function GameCard({
               className="h-full w-full object-contain"
             />
           )}
-          {card.badges.length > 0 && (
+          {(card.badges.length > 0 || reviewState !== undefined) && (
             <ul className="absolute right-1 top-1 flex flex-col gap-1">
               {card.badges.map((b) => {
                 const Icon = BADGE_ICONS[b]
@@ -147,6 +181,25 @@ export function GameCard({
                   </li>
                 )
               })}
+              {reviewState !== undefined && (
+                <li
+                  key={`review-${reviewState}`}
+                  data-testid={`review-badge-${reviewState}`}
+                  aria-label={REVIEW_BADGE_LABELS[reviewState]}
+                  title={REVIEW_BADGE_LABELS[reviewState]}
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-background/90 shadow-sm"
+                >
+                  {(() => {
+                    const ReviewIcon = REVIEW_BADGE_ICONS[reviewState]
+                    return (
+                      <ReviewIcon
+                        className={cn('h-3.5 w-3.5', REVIEW_BADGE_TINT[reviewState])}
+                        aria-hidden="true"
+                      />
+                    )
+                  })()}
+                </li>
+              )}
             </ul>
           )}
         </div>

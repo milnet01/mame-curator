@@ -168,3 +168,42 @@ describe('GameCard +Add', () => {
     expect(onOpen).toHaveBeenCalled()
   })
 })
+
+  // ---- P14 — review-state badge (chunk 10) -------------------------------
+
+  it('renders no review-state badge when prop is undefined (pending)', () => {
+    render(
+      <GameCard
+        card={baseCard}
+        inCart={false}
+        onOpen={() => {}}
+        onAdd={() => {}}
+      />,
+    )
+    expect(screen.queryByTestId('review-badge-reviewed')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('review-badge-skipped')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('review-badge-needs-decision')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['reviewed', strings.library.badges.reviewed, 'text-emerald-500'],
+    ['skipped', strings.library.badges.skipped, 'text-rose-500'],
+    ['needs-decision', strings.library.badges.needsDecision, 'text-amber-500'],
+  ] as const)(
+    'renders the %s badge with the correct label + tint',
+    (state, label, tint) => {
+      render(
+        <GameCard
+          card={baseCard}
+          inCart={false}
+          onOpen={() => {}}
+          onAdd={() => {}}
+          reviewState={state}
+        />,
+      )
+      const badge = screen.getByTestId(`review-badge-${state}`)
+      expect(badge).toHaveAttribute('aria-label', label)
+      // tint is applied to the inner icon (svg child).
+      expect(badge.querySelector('svg')).toHaveClass(tint)
+    },
+  )
