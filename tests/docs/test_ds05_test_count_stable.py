@@ -35,7 +35,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-05-17 (P14 chunk 2): +1 pytest declaration for
 # test_review_state_event_round_trip (ActivityEvent tagged-union
 # extension). 515 → 516.
-EXPECTED_PYTEST_DECLARATIONS = 516
+# Bumped 2026-05-17 (P14 chunk 3): +2 pytest declarations for the new
+# tests/api/test_state.py (replace_world passive-swap + omit-default
+# pass-through; INV-4). 516 → 518.
+EXPECTED_PYTEST_DECLARATIONS = 518
 EXPECTED_VITEST_DECLARATIONS = 289
 
 _PYTEST_DEF_RE = re.compile(r"^def test_", re.MULTILINE)

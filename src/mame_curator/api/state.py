@@ -21,8 +21,10 @@ from mame_curator.filter import (
     FilterContext,
     FilterResult,
     Overrides,
+    ReviewState,
     Sessions,
     load_overrides,
+    load_review_state,
     load_sessions,
     run_filter,
 )
@@ -59,6 +61,7 @@ class WorldState(BaseModel):
     ctx: FilterContext
     overrides: Overrides
     sessions: Sessions
+    review_state: ReviewState
     filter_result: FilterResult
     notes: dict[str, str]
     allowed_roots: tuple[FsAllowedRoot, ...]
@@ -135,6 +138,7 @@ def build_world(config_path: Path) -> WorldState:
 
     data_dir = config_path.parent / "data"
     notes = _load_notes(data_dir / "notes.json")
+    review_state = load_review_state(data_dir / "state.yaml")
 
     filter_result = run_filter(machines, ctx, config.filters, overrides, sessions)
 
@@ -150,6 +154,7 @@ def build_world(config_path: Path) -> WorldState:
         ctx=ctx,
         overrides=overrides,
         sessions=sessions,
+        review_state=review_state,
         filter_result=filter_result,
         notes=notes,
         allowed_roots=allowed_roots,
@@ -189,17 +194,25 @@ def replace_world(
     overrides: Overrides | None = None,
     sessions: Sessions | None = None,
     notes: Mapping[str, str] | None = None,
+    review_state: ReviewState | None = None,
     rerun_filter: bool = False,
 ) -> WorldState:
     """Build a new WorldState from ``base`` with the given mutations applied.
 
     Recomputes ``filter_result`` and ``allowed_roots`` per the spec's
     re-computation triggers.
+
+    P14 INV-4 — ``review_state`` is a **passive field swap**: it does NOT
+    appear in the filter-recompute trigger set, because review state does
+    not gate machine eligibility (every machine in the DAT is eligible
+    regardless of whether it has been reviewed). The visibility filter
+    is applied per-request inside ``api/routes/games.py``.
     """
     new_config = config if config is not None else base.config
     new_overrides = overrides if overrides is not None else base.overrides
     new_sessions = sessions if sessions is not None else base.sessions
     new_notes = dict(notes) if notes is not None else dict(base.notes)
+    new_review_state = review_state if review_state is not None else base.review_state
 
     if rerun_filter or config is not None or overrides is not None or sessions is not None:
         filter_result = run_filter(
@@ -229,6 +242,7 @@ def replace_world(
         ctx=base.ctx,
         overrides=new_overrides,
         sessions=new_sessions,
+        review_state=new_review_state,
         filter_result=filter_result,
         notes=new_notes,
         allowed_roots=allowed_roots,
