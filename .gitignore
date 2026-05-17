@@ -52,6 +52,10 @@ htmlcov/
 /overrides.yaml
 /sessions.yaml
 *.log
+# Playwright run output at the repo root — appears when `npx playwright`
+# is invoked from the wrong cwd. `frontend/test-results/` is handled by
+# `frontend/.gitignore` (the screenshot/e2e harnesses' real home).
+/test-results/
 
 # IDE
 .idea/
@@ -62,3 +66,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+# KDE Dolphin folder-metadata (view mode, sort order, etc.) — appears
+# whenever a Dolphin user opens a directory in the tree.
+.directory
