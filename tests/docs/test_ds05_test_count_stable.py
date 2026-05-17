@@ -47,7 +47,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-05-17 (P14 chunk 6): +1 pytest declaration for the
 # INV-12 frontend/backend pending-predicate parity contract test.
 # 534 → 535.
-EXPECTED_PYTEST_DECLARATIONS = 535
+# Bumped 2026-05-17 (P10 chunk 1 foundations): +5 pytest declarations
+# split across `tests/media/test_rate_limit.py` (4 — burst-cap, refill,
+# capacity-cap, error-hierarchy) and `tests/media/test_cache_text.py`
+# (extra 1 not counted by the count regex since most are async and
+# import-side; the net +5 reflects the 4 rate-limit `def test_*`
+# declarations + 1 cache-text `def test_default_text_max_bytes_*`).
+# 535 → 540.
+EXPECTED_PYTEST_DECLARATIONS = 540
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
