@@ -51,7 +51,10 @@ EXPECTED_PYTEST_DECLARATIONS = 535
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
-EXPECTED_VITEST_DECLARATIONS = 292
+# Bumped 2026-05-17 (P14 chunk 9): +7 vitest declarations for the new
+# frontend/src/hooks/__tests__/useGameGridFocus.test.tsx (FP21-T
+# preservation + focusNextPending). 292 → 299.
+EXPECTED_VITEST_DECLARATIONS = 299
 
 _PYTEST_DEF_RE = re.compile(r"^def test_", re.MULTILINE)
 _VITEST_IT_RE = re.compile(r"^\s*it\s*\(", re.MULTILINE)
