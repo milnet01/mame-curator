@@ -41,7 +41,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-05-17 (P14 chunk 4): +11 pytest declarations for the new
 # tests/api/test_state_routes.py (POST happy + write effects,
 # POST/DELETE error paths, GET, INV-5/8/13). 518 → 529.
-EXPECTED_PYTEST_DECLARATIONS = 529
+# Bumped 2026-05-17 (P14 chunk 5): +5 pytest declarations for the
+# per-request review_state filter on GET /api/games (INV-10 + stage
+# composition). 529 → 534.
+EXPECTED_PYTEST_DECLARATIONS = 534
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

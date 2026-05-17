@@ -33,6 +33,7 @@ from mame_curator.api.schemas import (
     ValidateResponse,
 )
 from mame_curator.api.state import WorldState, replace_world
+from mame_curator.filter import ReviewStateFilter, ReviewStateValue
 from mame_curator.filter.picker import explain_pick
 from mame_curator.parser.models import Machine
 
@@ -93,8 +94,16 @@ def list_games(
     only_overridden: bool = False,
     only_chd_missing: bool = False,
     only_bios_missing: bool = False,
+    review_state: ReviewStateFilter = ReviewStateFilter.ALL,
     world: WorldState = Depends(get_world),
 ) -> GamesPage:
+    """P14 — `?review_state=` narrows the visible set per request.
+
+    Applied **after** the existing keep() slice, NOT inside `run_filter()` —
+    review state does not gate machine eligibility (every machine in the DAT
+    is eligible), so folding it into run_filter would force a full re-filter
+    per keypress (`world.filter_result` is cached at world-build cost).
+    """
     winners = list(world.filter_result.winners)
     contested_parents = {g.parent for g in world.filter_result.contested_groups}
 
@@ -140,6 +149,17 @@ def list_games(
         return not (only_bios_missing and short in world.bios_chain)
 
     filtered = [s for s in winners if keep(s)]
+
+    # P14 INV-10 — review-state visibility filter (per-request, post-keep).
+    if review_state != ReviewStateFilter.ALL:
+        entries = world.review_state.entries
+        if review_state == ReviewStateFilter.PENDING:
+            # Sparse-store: absence from the map IS pending.
+            filtered = [s for s in filtered if s not in entries]
+        else:
+            target = ReviewStateValue(review_state.value)
+            filtered = [s for s in filtered if entries.get(s) == target]
+
     total = len(filtered)
     # DS02 G2: use the precomputed `bytes_by_machine` mapping rather
     # than walking every ROM in every selected Machine. Drops the

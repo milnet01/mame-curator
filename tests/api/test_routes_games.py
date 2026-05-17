@@ -271,3 +271,49 @@ def test_validate_rejects_oversized_item(client: Any) -> None:
     payload = {"short_names": ["a" * 65]}
     resp = client.post("/api/games/validate", json=payload)
     assert resp.status_code == 422
+
+
+# ---- P14 — review_state per-request filter (chunk 5) ------------------------
+
+
+def test_review_state_query_param_pending_excludes_marked(client: Any) -> None:
+    """INV-10 — ?review_state=pending excludes any game in the sparse state map."""
+    client.post("/api/state", json={"short_name": "pacman", "state": "reviewed"})
+    response = client.get("/api/games?review_state=pending&page_size=500")
+    assert response.status_code == 200
+    names = {item["short_name"] for item in response.json()["items"]}
+    assert "pacman" not in names
+
+
+def test_review_state_query_param_filters_to_marked(client: Any) -> None:
+    """INV-10 — ?review_state=reviewed returns only games with that state."""
+    client.post("/api/state", json={"short_name": "pacman", "state": "reviewed"})
+    response = client.get("/api/games?review_state=reviewed&page_size=500")
+    assert response.status_code == 200
+    names = {item["short_name"] for item in response.json()["items"]}
+    assert names == {"pacman"}
+
+
+def test_review_state_query_param_all_is_default(client: Any) -> None:
+    """?review_state=all (the default) returns the same set as no query param."""
+    baseline = client.get("/api/games?page_size=500").json()["total"]
+    all_explicit = client.get("/api/games?review_state=all&page_size=500").json()["total"]
+    assert all_explicit == baseline
+
+
+def test_review_state_query_param_invalid_value_returns_422(client: Any) -> None:
+    """INV-10 — Pydantic enum rejects unknown values."""
+    response = client.get("/api/games?review_state=approved")
+    assert response.status_code == 422
+
+
+def test_review_state_per_request_filter_composes_with_other_filters(client: Any) -> None:
+    """Review-state filter composes with the existing keep() slice.
+
+    Marking a game `skipped` then filtering by another facet still drops the
+    marked one when filtered to `reviewed` -- the two layers AND together.
+    """
+    client.post("/api/state", json={"short_name": "pacman", "state": "skipped"})
+    response = client.get("/api/games?review_state=reviewed&page_size=500")
+    assert response.status_code == 200
+    assert {item["short_name"] for item in response.json()["items"]} == set()
