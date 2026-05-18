@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | P10 active 2026-05-17 — Media coverage expansion (Step 1: spec). FP29 closed 2026-05-17 (RetroArch executable + core PathRows on Settings → Paths; ships the UI half of FP22-C). P14 closed 2026-05-17 — per-game review state. Docs bundle (mame-curator-1029 + 1030) closed 2026-05-16. DS03 closed 2026-05-16. DS05 closed 2026-05-16. DS02 closed 2026-05-15 + R2 hot-fix. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **post-v1**. |
+| **Project phase** | P10 active 2026-05-17 — Media coverage expansion (Step 3: chunks 3a + 3b shipped 2026-05-18 — progettoSnaps pair). FP29 closed 2026-05-17 (RetroArch executable + core PathRows on Settings → Paths; ships the UI half of FP22-C). P14 closed 2026-05-17 — per-game review state. Docs bundle (mame-curator-1029 + 1030) closed 2026-05-16. DS03 closed 2026-05-16. DS05 closed 2026-05-16. DS02 closed 2026-05-15 + R2 hot-fix. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **post-v1**. |
 | **Active item ID** | P10 (mame-curator-1005) |
-| **Active step** | 3 — tests-first per App-Build. Step 1 ✅, Step 2 ✅. |
-| **Blocked on** | nothing. (Pre-impl prep step: resolve 5 § Open verification items by capturing upstream fixtures before chunk 1 mocks land.) |
-| **Last update** | 2026-05-17 (FP29 shipped 4b6e6d0 + tag `FP29-complete`; CI green. **P10 Step 1 ✅** — spec at `docs/specs/P10.md` (568→726 lines after readiness-surface amendment), cold-eyes review 3 loops converged; user sign-off received. **P10 Step 1 amendment** 5efd511 — readiness API + paste-key UI for config-bearing sources, generalises `disabled_reason` on the MediaSource Protocol so any future config-needy source benefits automatically. **P10 Step 2 ✅** — 11-chunk implementation plan inlined under § "Implementation plan (Step 2)"; spec now 799 lines. Convergence checkpoint at chunk 7. **Queued post-P10:** FP30 (save-indicator on Settings; mame-curator-1038) + P15 (UI polish + theme expansion; mame-curator-1039) — logged 57bd38a.) |
-| **Next gate** | Pre-impl prep (upstream fixture capture + FastAPI compat verification) then Step 3 chunk 1 foundations (`rate_limit.py` + `cache_text.py` + tests). |
+| **Active step** | 3 — tests-first per App-Build. Step 1 ✅, Step 2 ✅, Step 3 in progress (chunks 1 + 2 + 3a + 3b ✅; next is chunk 4 ArcadeDB). |
+| **Blocked on** | nothing. |
+| **Last update** | 2026-05-18 (**P10 step 1 amendment** ac010fe — progettoSnaps shrunk to `kinds=frozenset({"snap"})` after the chunk-3a fixture-capture probe found Flyers / Titles / Marquees / VideoSnaps disabled in upstream navigation and the historic `pS_titles_fullset_<NNN>.zip` placeholder sized "(000Mb)". User picked option A (snap-only) over snap+cabinet-via-manual-paste or defer-chunk-3. **P10 chunk 3a** 487b30e — new `mame-curator refresh-snaps` CLI + `updates/snaps.py` (discovery → download via existing P07 primitive → flat-layout ZIP extraction; 9 tests; pack URL pinned: `https://www.progettosnaps.net/snapshots/packs/full_sets/pS_snap_fullset_<NNN>.zip`). **P10 chunk 3b** b43d450 — `ProgettoSnapsSource` (file:// model, snap kind only, per-instance existence cache, disabled_reason on empty/absent dir; 10 tests). Bundle pushed; CI watching.) |
+| **Next gate** | P10 chunk 4 (ArcadeDB source) — fixture `tests/fixtures/arcadedb_pacman.json` already captured at the 2026-05-17 prep step. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -243,6 +243,126 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-18 — P10 chunk 3 bundle (3a + 3b — progettoSnaps pair)
+
+User said "continue with the next bundle of similar roadmap items"
+and "use Ants MCP where appropriate." `roadmap_query(status="active")`
+returned four bullets — P10 in-progress with chunks queued, plus three
+post-P10 items (mame-curator-1040 test-audit FP01, FP30, P15). The
+natural bundle was the next pair inside the in-progress P10 — chunks
+3a + 3b are the only serial pair in the dependency graph (everything
+else 3b-onwards fans out), and together they ship end-to-end
+progettoSnaps support: 3a downloads the pack, 3b consumes it from
+disk.
+
+**Mid-bundle drift surfaced and re-scoped:**
+
+Pre-impl prep for chunk 3a probed the live progettoSnaps site to pin
+the pack-URL discovery method (the last unresolved Open Verification
+Item). The probe surfaced a second pivot beyond what commit a25cadc
+caught: Flyers, Marquees, VideoSnaps are `toolbar_item_disabled` in
+the site navigation (no href; legacy-pulled); Titles isn't in the
+toolbar at all; the historic `pS_titles_fullset_287.zip` filename
+shows up on the Snapshots index but is sized "(000Mb)" — placeholder
+for an unmaintained pack; Cabinets are hosted externally on terabox
+(not CLI-fetchable). Only `pS_snap_fullset_<NNN>.zip` is actively
+published per MAME release.
+
+Stopped before writing code (App-Build hard rule #1: never silently
+drift) and surfaced three options to the user. User picked (A): shrink
+progettoSnaps to `kinds = frozenset({"snap"})`. The chain's kind
+filter (chunk 7 `MediaSourceRegistry`) routes boxart + title to
+ArcadeDB / Wikipedia / MobyGames naturally; no special-cases needed.
+
+**Shipped — 3 commits:**
+
+- **ac010fe** `feat(media): P10 step 1 amendment — progettoSnaps
+  shrinks to snap kind (upstream pivot)` — surgical edits to § 1
+  progettoSnaps (`kinds` shrinks, local layout collapses to
+  `data/snaps/snap/`, estimate halves), § refresh-snaps CLI (drops
+  `--kinds`, pins pack URL + discovery, adds `--url` override,
+  600 MB body cap), § Source-layer tests, § Chunk table 3a/3b, §
+  Open verification items (item 4 marked resolved). Pre-impl-prep
+  status note added.
+
+- **487b30e** `feat(media): P10 chunk 3a — refresh-snaps CLI +
+  snap-pack downloader` — new `mame_curator.updates.snaps`
+  (`INDEX_URL`, `PACK_URL_PATTERN`, `SNAP_PACK_MAX_BYTES`,
+  `SnapsRefreshReport`, `discover_snap_pack_url`, `refresh_snaps`),
+  new `cli/commands/refresh_snaps.py` handler (FP28-D3 import-guard
+  pattern; rich-console output), `cli/__init__.py` subparser
+  registration with `--dest --url --force`. Disk-space gate (HEAD
+  probe + `shutil.disk_usage`, refuses if free < 2× content-length);
+  ZIP extraction with flat-layout guard (subdirectory entries
+  ignored) and `.png` filter; force-or-skip collision handling. 9
+  tests under `tests/updates/test_snaps.py` including the
+  `PACK_URL_PATTERN` regression-lock.
+
+- **b43d450** `feat(media): P10 chunk 3b — ProgettoSnapsSource
+  (file:// model, snap kind only)` — `ProgettoSnapsSource` class
+  added to `media/sources.py` + re-exported from `media/__init__.py`.
+  Per-instance existence cache (`_present` + `_missing` sets); URL
+  via `Path.as_uri()` resolved to absolute path so the chunk-7
+  orchestrator file:// short-circuit works regardless of CWD;
+  `disabled_reason` set at construction if dir absent or empty
+  (registry filter drops disabled sources before any
+  prepare/url_for call). 10 tests under `tests/media/test_sources.py`.
+
+**Mid-session decisions:**
+
+- **User said "use Ants MCP where appropriate"** — routed
+  `roadmap_query(status="active")` for the queue read,
+  `git_state(op=status/log)` for VCS state, and `session_memory`
+  for cache surface. Cost was ~200 tokens vs ~12K for the
+  equivalent Bash read of ROADMAP.md + git status + git log.
+- **Followed precedent for spec amendment as standalone commit** —
+  P10 step 1 had already been amended once (commit 5efd511), so
+  the snap-only pivot landed as its own commit before any code.
+  Keeps the spec-vs-code commit graph clean: each amendment is a
+  surgical contract change reviewable in isolation.
+- **HEAD-probe disk-space gate refactored to a `_mount_pack` test
+  helper** — first run hit `AllMockedAssertionError` because the
+  HEAD probe wasn't mocked. Added a 3-line helper that mounts both
+  HEAD and GET routes at once; cleaner than per-test boilerplate.
+- **`shutil.disk_usage` monkey-patched via the module object, not
+  via the dotted-string path through `snaps_mod.shutil.disk_usage`** —
+  the latter triggers mypy `attr-defined` (snaps.py has no `__all__`
+  exporting `shutil`); patching the `shutil` module attribute
+  directly is cleaner and effective the same way (since
+  `snaps.shutil is shutil`).
+- **Two test-count pin bumps in this bundle** (580 → 589 in chunk 3a,
+  589 → 599 in chunk 3b). Per `docs/standards/testing.md` the pin
+  enforces "tests added intentionally bump the constant in the same
+  commit" — both bumps include a `# Bumped 2026-05-18 (P10 chunk
+  Nx):` rationale line.
+
+**Workflow lessons:**
+
+- **"Next bundle of similar roadmap items" inside an in-progress
+  phase = the next paired chunks in the dependency graph.** When an
+  item is already 🚧 (here P10) with chunks queued, the bundle is
+  the next chunks that ship together logically — not the *next
+  planned roadmap item*. Memory's "same kind + same lanes"
+  heuristic applies to the *planned queue*; for in-progress work
+  the chunk graph wins. 3a→3b is the only serial pair in the P10
+  graph (everything else is parallel), so the pair is the natural
+  unit.
+- **Live-probe Open Verification Items before assuming spec is
+  current.** Commit a25cadc resolved 4 of 5 items but deferred the
+  progettoSnaps pack-URL discovery "to chunk 3." That deferral is a
+  trap if the implementer doesn't actually run the probe — the spec
+  reads complete and the assumed contract looks shippable. The
+  probe surfaced a substantive scope change that *would* have
+  shipped silently otherwise (writing `flyers/<name>.png` paths
+  that never resolve). Pattern: any pre-impl-prep item with status
+  "Pending" or "deferred" must be probed before tests-first.
+- **App-Build hard rule #1 (never silently drift) saves a rewrite
+  cycle.** The cheap stop-and-ask cost ~5 minutes of probing + one
+  AskUserQuestion round-trip. The avoided cost is the next session
+  realising progettoSnaps's chain falls through silently for two
+  of three kinds and needing to rip out three test files + amend
+  the registry + amend the orchestrator short-circuit logic.
 
 ### 2026-05-16 — Docs bundle closed (mame-curator-1029 + 1030)
 
