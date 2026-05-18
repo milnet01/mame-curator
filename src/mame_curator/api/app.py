@@ -22,6 +22,7 @@ from mame_curator.api.errors import install_handlers
 from mame_curator.api.jobs import JobManager
 from mame_curator.api.routes import router as api_router
 from mame_curator.api.state import build_world
+from mame_curator.media import TokenBucket, _build_user_agent
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,26 @@ def create_app(config_path: Path) -> FastAPI:
         # a per-call timeout= argument.
         # FP10 A1: follow_redirects=True so a libretro CDN 301/302 transits
         # transparently instead of surfacing as MediaFetchError("upstream 301").
-        app.state.media_client = httpx.AsyncClient(timeout=10.0, follow_redirects=True)
+        # P10 chunk 5: descriptive User-Agent header per Wikipedia's
+        # API:Etiquette page — single helper in media/__init__.py so the
+        # version + repo URL live in one place.
+        app.state.media_client = httpx.AsyncClient(
+            timeout=10.0,
+            follow_redirects=True,
+            headers={"User-Agent": _build_user_agent()},
+        )
+        # P10 chunk 4 + 5: per-source token buckets, constructed once at
+        # startup and shared across all per-request source instances. Rate
+        # values match the spec's "courtesy cap" choices — ArcadeDB at
+        # 30 req/min (configurable via media.arcadedb_rate_limit_per_min),
+        # Wikipedia at a hardcoded 60 req/min (well under any plausible
+        # upstream limit per spec § "3. Wikipedia (image)").
+        arcadedb_per_min = world.config.media.arcadedb_rate_limit_per_min
+        app.state.arcadedb_limiter = TokenBucket(
+            rate=arcadedb_per_min / 60.0,
+            capacity=arcadedb_per_min,
+        )
+        app.state.wikipedia_limiter = TokenBucket(rate=60.0 / 60.0, capacity=60)
         try:
             yield
         finally:

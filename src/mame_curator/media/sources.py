@@ -5,8 +5,9 @@ lands the protocol, the ``Kind`` literal, and ``LibretroSource`` (the
 P05 baseline carried under the new shape). Chunk 3b adds
 ``ProgettoSnapsSource`` (file:// model, snap kind only — upstream no
 longer publishes flyers / titles; see 2026-05-18 spec amendment).
-Later chunks add ``ArcadeDBSource``, ``WikipediaImageSource``,
-``MobyGamesSource``.
+Chunk 4 adds ``ArcadeDBSource`` (two-step JSON lookup with
+parse-before-trust). Chunk 5 adds ``WikipediaImageSource`` (REST
+summary endpoint, boxart only, title canonicalisation).
 
 Every concrete source implements two methods:
 
@@ -26,11 +27,17 @@ ever attempting a fetch.
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 from typing import ClassVar, Literal, Protocol, runtime_checkable
+from urllib.parse import quote
 
 import httpx
 
+from mame_curator.media.cache import MediaFetchError, cache_path_for
+from mame_curator.media.cache_text import fetch_text_with_cache
+from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
 from mame_curator.media.urls import urls_for
 from mame_curator.parser.models import Machine
 
@@ -197,3 +204,186 @@ class ProgettoSnapsSource:
                 return None
 
         return (self._snap_dir / f"{name}.png").as_uri()
+
+
+# P10 chunk 4 — ArcadeDB JSON scraper. Two-step lookup; parse-before-trust
+# guards against cache-poisoning when upstream returns truncated TLS bodies
+# or mid-deploy HTML-instead-of-JSON. See spec § "2. ArcadeDB" step 3.
+_ARCADEDB_SCRAPER_BASE = "http://adb.arcadeitalia.net/service_scraper.php"
+
+
+class ArcadeDBSource:
+    """ArcadeDB scraper — JSON-driven URL lookups for boxart/title/snap.
+
+    ``prepare`` acquires one token from the per-source ``TokenBucket``,
+    fetches the scraper response via ``fetch_text_with_cache`` (HTTP 301 →
+    HTTPS handled by the lifespan client's ``follow_redirects=True``),
+    parses ``{"release": N, "result": [...]}``, and stashes the
+    redirector-form URLs from ``result[0]`` (``url_image_flyer`` →
+    ``boxart``, ``url_image_title`` → ``title``, ``url_image_ingame`` →
+    ``snap``). Empty ``result`` array leaves ``_url_cache[name]`` absent
+    — uniform negative-cache shape, ``url_for`` returns ``None``.
+
+    Parse-before-trust: ``json.JSONDecodeError`` unlinks the offending
+    cache slot via ``cache_path_for(url, cache_dir).unlink(missing_ok=True)``
+    and raises ``MediaFetchError`` chained from the original exception.
+    The next request re-fetches; transient bad upstream doesn't
+    permanently disable the source.
+    """
+
+    name: ClassVar[str] = "arcadeDB"
+    license_compatible: ClassVar[bool] = True
+    kinds: ClassVar[frozenset[Kind]] = frozenset({"boxart", "title", "snap"})
+
+    def __init__(self, *, limiter: TokenBucket, cache_dir: Path) -> None:
+        """Bind to ``limiter`` (rate-limit) + ``cache_dir`` (JSON slot).
+
+        ``disabled_reason`` is permanently ``None`` — ArcadeDB has no
+        config that could be missing.
+        """
+        self._limiter = limiter
+        self._cache_dir = cache_dir
+        self._url_cache: dict[str, dict[str, str]] = {}
+        self.disabled_reason: str | None = None
+
+    @staticmethod
+    def _scraper_url(machine: Machine) -> str:
+        return f"{_ARCADEDB_SCRAPER_BASE}?ajax=query_mame&game_name={machine.name}"
+
+    async def prepare(
+        self,
+        machine: Machine,
+        *,
+        client: httpx.AsyncClient,
+    ) -> None:
+        """Populate the per-machine URL triple from one scraper hit.
+
+        Raises ``MediaRateLimited`` on empty bucket; ``MediaFetchError``
+        on JSON parse failure (cache slot unlinked first).
+        """
+        if not self._limiter.acquire():
+            raise MediaRateLimited(f"arcadeDB rate-limit exceeded for {machine.name!r}")
+        url = self._scraper_url(machine)
+        text = await fetch_text_with_cache(url, self._cache_dir, client=client)
+        if text is None:
+            return
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as exc:
+            cache_path_for(url, self._cache_dir).unlink(missing_ok=True)
+            raise MediaFetchError(
+                f"arcadeDB returned unparseable JSON for {machine.name!r}"
+            ) from exc
+        result = data.get("result") or []
+        if not result:
+            return
+        first = result[0]
+        urls: dict[str, str] = {}
+        flyer = first.get("url_image_flyer")
+        title = first.get("url_image_title")
+        ingame = first.get("url_image_ingame")
+        if flyer:
+            urls["boxart"] = flyer
+        if title:
+            urls["title"] = title
+        if ingame:
+            urls["snap"] = ingame
+        if urls:
+            self._url_cache[machine.name] = urls
+
+    def url_for(self, machine: Machine, kind: Kind) -> str | None:
+        """Return the cached URL for ``(machine, kind)`` or ``None``."""
+        return self._url_cache.get(machine.name, {}).get(kind)
+
+
+# P10 chunk 5 — Wikipedia REST summary endpoint. One-step lookup; the only
+# image field with a documented location is ``thumbnail.source`` (the
+# infobox image). Title / snap aren't reliably present and would require
+# HTML scraping — explicitly out of scope per spec § "3. Wikipedia (image)".
+_WIKIPEDIA_REST_SUMMARY_BASE = "https://en.wikipedia.org/api/rest_v1/page/summary"
+_TRAILING_PARENS = re.compile(r"\s*\([^)]*\)\s*$")
+
+
+def _canonicalise_wikipedia_title(description: str) -> str:
+    """Strip trailing parenthesised qualifier + outer whitespace.
+
+    ``"Pac-Man (Midway)"`` → ``"Pac-Man"``. No fuzzy match, no second
+    attempt — the source's value is the head of the catalog (Pac-Man,
+    Tetris, Donkey Kong), not full coverage.
+    """
+    return _TRAILING_PARENS.sub("", description).strip()
+
+
+class WikipediaImageSource:
+    """Wikipedia REST summary — boxart only, title canonicalised.
+
+    ``prepare`` acquires from the per-source ``TokenBucket``, canonicalises
+    ``machine.description`` (drops trailing parenthesised qualifier),
+    URL-quotes the result, fetches the REST summary, parses
+    ``thumbnail.source``, and stashes it. ``url_for(m, "boxart")`` returns
+    the cached URL. ``title`` / ``snap`` always return ``None`` — the
+    REST summary has no analogous field for those, and silently degrading
+    to the infobox image would let the wrong-shaped image win over a
+    legit downstream candidate.
+
+    ``license_compatible = False``: Wikipedia hosts mixed-license images;
+    P10 only displays the image, never redistributes. P11's contribute-back
+    flow would need per-image inspection if it ever consumed this source.
+    """
+
+    name: ClassVar[str] = "wikipediaImage"
+    license_compatible: ClassVar[bool] = False
+    kinds: ClassVar[frozenset[Kind]] = frozenset({"boxart"})
+
+    def __init__(self, *, limiter: TokenBucket, cache_dir: Path) -> None:
+        """Bind to ``limiter`` + ``cache_dir``. Never self-disables."""
+        self._limiter = limiter
+        self._cache_dir = cache_dir
+        self._url_cache: dict[str, str] = {}
+        self.disabled_reason: str | None = None
+
+    @staticmethod
+    def _summary_url(title: str) -> str:
+        return f"{_WIKIPEDIA_REST_SUMMARY_BASE}/{quote(title)}"
+
+    async def prepare(
+        self,
+        machine: Machine,
+        *,
+        client: httpx.AsyncClient,
+    ) -> None:
+        """Populate ``_url_cache[name]`` from the REST summary's thumbnail.
+
+        Raises ``MediaRateLimited`` on empty bucket; ``MediaFetchError`` on
+        JSON parse failure (cache slot unlinked first). 404 / missing
+        thumbnail leave the cache entry absent — ``url_for`` returns ``None``.
+        """
+        if not self._limiter.acquire():
+            raise MediaRateLimited(f"wikipediaImage rate-limit exceeded for {machine.name!r}")
+        title = _canonicalise_wikipedia_title(machine.description)
+        if not title:
+            return
+        url = self._summary_url(title)
+        text = await fetch_text_with_cache(url, self._cache_dir, client=client)
+        if text is None:
+            return
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as exc:
+            cache_path_for(url, self._cache_dir).unlink(missing_ok=True)
+            raise MediaFetchError(
+                f"wikipediaImage returned unparseable JSON for {machine.name!r}"
+            ) from exc
+        thumb = (data.get("thumbnail") or {}).get("source")
+        if isinstance(thumb, str) and thumb:
+            self._url_cache[machine.name] = thumb
+
+    def url_for(self, machine: Machine, kind: Kind) -> str | None:
+        """Return the cached thumbnail URL or ``None``.
+
+        Returns ``None`` for ``kind != "boxart"`` (this source's vocabulary
+        is boxart-only — see ``kinds`` ClassVar).
+        """
+        if kind != "boxart":
+            return None
+        return self._url_cache.get(machine.name)

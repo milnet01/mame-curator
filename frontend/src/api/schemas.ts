@@ -159,7 +159,11 @@ export const FsConfigSchema = z
   .strict()
 
 export const MediaConfigSchema = z
-  .object({ fetch_videos: z.boolean(), cache_dir: z.string() })
+  .object({
+    fetch_videos: z.boolean(),
+    cache_dir: z.string(),
+    arcadedb_rate_limit_per_min: z.number(),
+  })
   .strict()
 
 export const ThemeNameSchema = z.enum([

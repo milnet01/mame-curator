@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from mame_curator.media import TokenBucket
 from mame_curator.parser.models import Machine
 
 
@@ -252,3 +253,294 @@ async def test_progettosnaps_source_prepare_is_noop(
 
     async with httpx.AsyncClient() as client:
         await src.prepare(_machine(), client=client)
+
+
+# --- ArcadeDBSource (P10 chunk 4) -----------------------------------------
+#
+# Per ``docs/specs/P10.md`` § "2. ArcadeDB". Two-step lookup: ``prepare``
+# acquires from the per-source ``TokenBucket``, calls
+# ``fetch_text_with_cache`` against the scraper endpoint, parses
+# ``{"release": N, "result": [...]}`` (parse-before-trust — invalid JSON
+# unlinks the cache slot and raises ``MediaFetchError``), and stashes
+# the first-result URL triple in an instance ``_url_cache`` keyed by
+# ``machine.name``. ``url_for`` reads from that cache.
+
+_ARCADEDB_SCRAPER_URL = (
+    "http://adb.arcadeitalia.net/service_scraper.php?ajax=query_mame&game_name=pacman"
+)
+
+
+def _arcadedb_fixture_text() -> str:
+    """Return the captured pre-impl-prep ArcadeDB fixture as JSON text."""
+    return (Path(__file__).resolve().parents[1] / "fixtures" / "arcadedb_pacman.json").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_arcadedb_source_classvars() -> None:
+    """ClassVars pin identity / coverage / license."""
+    from mame_curator.media import ArcadeDBSource
+
+    assert ArcadeDBSource.name == "arcadeDB"
+    assert ArcadeDBSource.license_compatible is True
+    assert ArcadeDBSource.kinds == frozenset({"boxart", "title", "snap"})
+
+
+def _make_unbounded_limiter() -> TokenBucket:
+    """Return a TokenBucket with capacity high enough for one prepare call."""
+    return TokenBucket(rate=10.0, capacity=10)
+
+
+def test_arcadedb_source_url_for_returns_none_before_prepare(tmp_path: Path) -> None:
+    """``url_for`` returns ``None`` when ``prepare`` has never populated
+    the per-machine entry — pins the empty-cache shape."""
+    from mame_curator.media import ArcadeDBSource
+
+    src = ArcadeDBSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    assert src.url_for(_machine(), "boxart") is None
+    assert src.url_for(_machine(), "title") is None
+    assert src.url_for(_machine(), "snap") is None
+
+
+@pytest.mark.asyncio
+async def test_arcadedb_source_prepare_populates_url_cache(tmp_path: Path) -> None:
+    """Happy path: scraper returns a non-empty ``result``; ``prepare``
+    stashes the three URLs; ``url_for`` returns the redirector-form URL
+    per ArcadeDB's documented field shape."""
+    import httpx
+    import respx
+
+    from mame_curator.media import ArcadeDBSource
+
+    src = ArcadeDBSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    body = _arcadedb_fixture_text()
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(_ARCADEDB_SCRAPER_URL).mock(return_value=httpx.Response(200, text=body))
+            await src.prepare(_machine(), client=client)
+
+    boxart = src.url_for(_machine(), "boxart")
+    title = src.url_for(_machine(), "title")
+    snap = src.url_for(_machine(), "snap")
+    assert boxart is not None and "type=flyer" in boxart
+    assert title is not None and "type=title" in title
+    assert snap is not None and "type=ingame" in snap
+
+
+@pytest.mark.asyncio
+async def test_arcadedb_source_prepare_empty_release_caches_no_match(tmp_path: Path) -> None:
+    """An empty ``result`` array → uniform negative-cache shape:
+    ``_url_cache[machine.name]`` stays absent, ``url_for`` returns ``None``."""
+    import httpx
+    import respx
+
+    from mame_curator.media import ArcadeDBSource
+
+    src = ArcadeDBSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    body = '{"release":0,"result":[]}'
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(_ARCADEDB_SCRAPER_URL).mock(return_value=httpx.Response(200, text=body))
+            await src.prepare(_machine(), client=client)
+
+    assert src.url_for(_machine(), "boxart") is None
+    assert src.url_for(_machine(), "title") is None
+    assert src.url_for(_machine(), "snap") is None
+
+
+@pytest.mark.asyncio
+async def test_arcadedb_source_prepare_rate_limit_raises(tmp_path: Path) -> None:
+    """Empty bucket → ``MediaRateLimited`` before any upstream I/O.
+    No respx mock — any actual HTTP would 502 against the unmocked client,
+    so passing the test proves we short-circuited."""
+    import httpx
+
+    from mame_curator.media import ArcadeDBSource, MediaRateLimited, TokenBucket
+
+    # rate is required positive; drain the only token by acquire() once
+    # before prepare runs.
+    bucket = TokenBucket(rate=1.0, capacity=1)
+    assert bucket.acquire() is True  # drain
+    src = ArcadeDBSource(limiter=bucket, cache_dir=tmp_path)
+
+    async with httpx.AsyncClient() as client:
+        with pytest.raises(MediaRateLimited):
+            await src.prepare(_machine(), client=client)
+
+
+@pytest.mark.asyncio
+async def test_arcadedb_source_prepare_unparseable_body_unlinks_cache(tmp_path: Path) -> None:
+    """Parse-before-trust: invalid JSON → cache slot unlinked + ``MediaFetchError``
+    chained from ``JSONDecodeError``. Next call re-fetches; transient bad
+    upstream doesn't permanently disable the source for this machine."""
+    import httpx
+    import respx
+
+    from mame_curator.media import (
+        ArcadeDBSource,
+        MediaFetchError,
+        cache_path_for,
+    )
+
+    src = ArcadeDBSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    cache_file = cache_path_for(_ARCADEDB_SCRAPER_URL, tmp_path)
+
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(_ARCADEDB_SCRAPER_URL).mock(
+                return_value=httpx.Response(200, text="<html>oops, html not json</html>")
+            )
+            with pytest.raises(MediaFetchError) as exc_info:
+                await src.prepare(_machine(), client=client)
+
+    import json
+
+    assert isinstance(exc_info.value.__cause__, json.JSONDecodeError)
+    assert not cache_file.exists(), "bad cache slot should be unlinked"
+
+
+def test_arcadedb_source_satisfies_media_source_protocol(tmp_path: Path) -> None:
+    """Runtime-checkable Protocol — attribute presence."""
+    from mame_curator.media import ArcadeDBSource, MediaSource
+
+    src = ArcadeDBSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    assert isinstance(src, MediaSource)
+
+
+# --- WikipediaImageSource (P10 chunk 5) -----------------------------------
+#
+# Per ``docs/specs/P10.md`` § "3. Wikipedia (image)". One-step lookup
+# against the REST summary endpoint; ``thumbnail.source`` is the only
+# image field. ``boxart`` kind only; ``machine.description`` passes
+# through ``re.sub(r"\s*\([^)]*\)\s*$", "", desc).strip()`` before being
+# URL-quoted into the endpoint path. License is per-image (mixed) so
+# ``license_compatible = False`` conservatively.
+
+
+def _wikipedia_url_for(title: str) -> str:
+    from urllib.parse import quote
+
+    return f"https://en.wikipedia.org/api/rest_v1/page/summary/{quote(title)}"
+
+
+def _wikipedia_fixture_text() -> str:
+    return (Path(__file__).resolve().parents[1] / "fixtures" / "wikipedia_pacman.json").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_wikipedia_image_source_classvars() -> None:
+    """ClassVars: name=wikipediaImage, license_compatible=False, kinds={boxart}."""
+    from mame_curator.media import WikipediaImageSource
+
+    assert WikipediaImageSource.name == "wikipediaImage"
+    assert WikipediaImageSource.license_compatible is False
+    assert WikipediaImageSource.kinds == frozenset({"boxart"})
+
+
+def test_wikipedia_image_source_only_covers_boxart(tmp_path: Path) -> None:
+    """``url_for(m, "title")`` and ``..."snap"`` always return ``None``."""
+    from mame_curator.media import WikipediaImageSource
+
+    src = WikipediaImageSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    # Even after a populated cache (sidestep prepare by writing directly),
+    # title/snap return None — the source vocabulary excludes them.
+    src._url_cache["pacman"] = "https://example.com/x.png"
+    assert src.url_for(_machine(), "title") is None
+    assert src.url_for(_machine(), "snap") is None
+    assert src.url_for(_machine(), "boxart") == "https://example.com/x.png"
+
+
+def test_wikipedia_image_source_url_for_returns_none_before_prepare(tmp_path: Path) -> None:
+    """Empty per-machine cache → ``url_for(m, "boxart")`` returns ``None``."""
+    from mame_curator.media import WikipediaImageSource
+
+    src = WikipediaImageSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    assert src.url_for(_machine(), "boxart") is None
+
+
+@pytest.mark.asyncio
+async def test_wikipedia_image_source_canonicalises_parens(tmp_path: Path) -> None:
+    """``description="Pac-Man (Midway)"`` hits the endpoint for ``Pac-Man``,
+    not the unqualified form. Pinned against the spec's canonicalisation
+    rule (``re.sub(r"\\s*\\([^)]*\\)\\s*$", "", desc).strip()``)."""
+    import httpx
+    import respx
+
+    from mame_curator.media import WikipediaImageSource
+
+    src = WikipediaImageSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    body = _wikipedia_fixture_text()
+    quoted_url = _wikipedia_url_for("Pac-Man")
+    parens_url = _wikipedia_url_for("Pac-Man (Midway)")
+
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=False) as mock:
+            canonical_route = mock.get(quoted_url).mock(return_value=httpx.Response(200, text=body))
+            uncanon_route = mock.get(parens_url).mock(
+                return_value=httpx.Response(404, text="never hit")
+            )
+            await src.prepare(_machine(description="Pac-Man (Midway)"), client=client)
+
+    assert canonical_route.called, "canonicalised title should be the requested URL"
+    assert not uncanon_route.called, "raw description must not hit the REST endpoint"
+
+
+@pytest.mark.asyncio
+async def test_wikipedia_image_source_prepare_populates_thumbnail_url(tmp_path: Path) -> None:
+    """Happy path: REST summary returns ``thumbnail.source``; ``url_for``
+    returns that URL for ``boxart``."""
+    import httpx
+    import respx
+
+    from mame_curator.media import WikipediaImageSource
+
+    src = WikipediaImageSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    body = _wikipedia_fixture_text()
+
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(_wikipedia_url_for("Pac-Man")).mock(
+                return_value=httpx.Response(200, text=body)
+            )
+            await src.prepare(_machine(description="Pac-Man"), client=client)
+
+    url = src.url_for(_machine(), "boxart")
+    assert url is not None
+    assert url.endswith("Pac_flyer.png") or "Pac_flyer.png" in url
+
+
+@pytest.mark.asyncio
+async def test_wikipedia_image_source_prepare_rate_limit_raises(tmp_path: Path) -> None:
+    """Empty bucket → ``MediaRateLimited`` before any upstream I/O."""
+    import httpx
+
+    from mame_curator.media import MediaRateLimited, TokenBucket, WikipediaImageSource
+
+    bucket = TokenBucket(rate=1.0, capacity=1)
+    assert bucket.acquire() is True
+    src = WikipediaImageSource(limiter=bucket, cache_dir=tmp_path)
+
+    async with httpx.AsyncClient() as client:
+        with pytest.raises(MediaRateLimited):
+            await src.prepare(_machine(), client=client)
+
+
+def test_wikipedia_image_source_satisfies_media_source_protocol(tmp_path: Path) -> None:
+    """Runtime-checkable Protocol — attribute presence."""
+    from mame_curator.media import MediaSource, WikipediaImageSource
+
+    src = WikipediaImageSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    assert isinstance(src, MediaSource)
+
+
+def test_build_user_agent_contains_version_and_repo() -> None:
+    """``_build_user_agent`` returns the descriptive UA Wikipedia's API
+    etiquette page requests: package + version + repo link."""
+    from mame_curator import __version__
+    from mame_curator.media import _build_user_agent
+
+    ua = _build_user_agent()
+    assert "mame-curator" in ua
+    assert __version__ in ua
+    assert "github.com" in ua

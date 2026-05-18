@@ -77,7 +77,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # protocol-conformance, file:// URL on hit, None on miss, non-snap kinds
 # rejected, disabled_reason on empty-dir + absent-dir, per-instance
 # existence cache, no-op prepare. 589 → 599.
-EXPECTED_PYTEST_DECLARATIONS = 599
+# Bumped 2026-05-18 (P10 chunks 4 + 5 bundle): +15 declarations in
+# tests/media/test_sources.py — ArcadeDBSource (7: classvars, url-before-
+# prepare, happy-path populate, empty-release negative-cache, rate-limit
+# raises, parse-before-trust unlinks cache slot, protocol conformance),
+# WikipediaImageSource (7: classvars, boxart-only, url-before-prepare,
+# parens canonicalisation, happy-path thumbnail, rate-limit raises,
+# protocol conformance), and one _build_user_agent helper test. 599 → 614.
+EXPECTED_PYTEST_DECLARATIONS = 614
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

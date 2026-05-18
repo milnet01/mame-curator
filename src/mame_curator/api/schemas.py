@@ -79,6 +79,11 @@ class MediaConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     fetch_videos: bool = False
     cache_dir: Path = Path("./data/media-cache")
+    # P10 chunk 4 — ArcadeDB scraper rate-limit knob. Default 30 req/min;
+    # the public service has no documented hard cap but is a hobby site,
+    # so we cap ourselves at a courteous rate. Configurable so ops can
+    # tune without a spec rev if upstream policy changes.
+    arcadedb_rate_limit_per_min: int = 30
 
 
 class UiConfig(BaseModel):
