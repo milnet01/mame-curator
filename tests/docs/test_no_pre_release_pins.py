@@ -65,7 +65,15 @@ def _gitleaks_env_pins() -> list[tuple[str, str]]:
     pins: list[tuple[str, str]] = []
     for name in ("ci.yml", "release.yml"):
         path = REPO_ROOT / ".github" / "workflows" / name
-        match = pattern.search(path.read_text(encoding="utf-8"))
+        # FP31: catch per-file so a stripped CI image missing one workflow
+        # (e.g. release.yml in a docs-only PR runner) still reports the
+        # other file's pin instead of discarding the whole reader.
+        try:
+            text = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            pins.append((f"{_MISSING_FILE_SENTINEL}{name}", f"{path} not present"))
+            continue
+        match = pattern.search(text)
         if match:
             value = match.group(1)
             pins.append((f".github/workflows/{name} GITLEAKS_VERSION:{value}", value))

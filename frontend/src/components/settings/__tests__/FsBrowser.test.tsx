@@ -80,6 +80,11 @@ function renderWithClient(ui: React.ReactElement) {
 
 describe('FsBrowser (FP12 § G)', () => {
   it('does not render when open=false', () => {
+    // FP31 follow-up: an attempt to spy on `request:start` here surfaced
+    // that the component fires its useQuery handlers on mount regardless
+    // of `open`. That's a SUT design question (prefetch on close vs gate
+    // via `enabled: open`), not a test-only fix — deferred to a separate
+    // ROADMAP item for the FsBrowser prefetch policy.
     renderWithClient(
       <FsBrowser open={false} onOpenChange={() => {}} onPick={() => {}} />,
     )

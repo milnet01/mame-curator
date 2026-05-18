@@ -20,11 +20,15 @@ import httpx
 import pytest
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_sse_copy_progress_streams_events(app: Any, source_dir: Path) -> None:
     """L01 — full SSE event sequence on a 3-file plan."""
     # Per the L01 fixture note: real source files must be ≥ 2 MiB so that
     # _chunked_copy (1 MiB chunks) emits multiple file_progress ticks per file.
+    # FP31: marked @pytest.mark.slow — writes ~9 MiB and copies it back
+    # through the worker, ~18 MiB total I/O per invocation. Belongs in the
+    # slow-tier alongside the @pytest.mark.slow tests in test_routes_activity.
     for short in ("pacman", "neogeo", "pacmanf"):
         zip_path = source_dir / f"{short}.zip"
         zip_path.write_bytes(b"PK\x05\x06" + b"\0" * (3 * 1024 * 1024))  # ~3 MiB

@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from mame_curator.filter._io import read_capped_text
-from tests.filter.conftest import OVER_CAP as _OVER_CAP
+from tests.filter.conftest import OVER_CAP as OVER_CAP
 
 
 def test_read_capped_text_path_with_newline_in_error_is_quoted(tmp_path: Path) -> None:
@@ -26,7 +26,7 @@ def test_read_capped_text_path_with_newline_in_error_is_quoted(tmp_path: Path) -
     """
     bad = tmp_path / "evil\nname.yaml"
     try:
-        bad.write_bytes(_OVER_CAP)
+        bad.write_bytes(OVER_CAP)
     except OSError:  # pragma: no cover
         pytest.skip("filesystem rejects \\n in path names")
     with pytest.raises(ValueError) as exc_info:
@@ -45,7 +45,7 @@ def test_read_capped_text_size_cap_error_quotes_path_with_escape(tmp_path: Path)
     """
     bad = tmp_path / "evil\x1b[31m.yaml"
     try:
-        bad.write_bytes(_OVER_CAP)
+        bad.write_bytes(OVER_CAP)
     except OSError:  # pragma: no cover
         pytest.skip("filesystem rejects ESC in path names")
     with pytest.raises(ValueError) as exc_info:

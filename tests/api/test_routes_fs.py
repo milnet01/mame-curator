@@ -93,18 +93,27 @@ def test_fs_list_sandboxed(client: Any, tmp_path: Path) -> None:
     relative = client.get("/api/fs/list?path=../../etc/passwd")
     assert relative.status_code in (403, 404)
 
-    # Symlink traversal — allowed root contains a symlink to /etc.
+    # Symlink traversal — grant the parent directory as a root, drop a
+    # symlink to /etc inside it, and verify the route still refuses to
+    # follow the symlink out of the sandbox. FP31: previous version of
+    # this block created the symlink but never issued an HTTP request,
+    # so the security property went un-asserted.
     symlink = tmp_path / "evil_link"
     try:
         symlink.symlink_to("/etc")
     except OSError:
         pytest.skip("symlink creation not supported on this platform")
-    # Note: the symlink itself is in tmp_path, not in an allowlist root, so
-    # listing tmp_path/evil_link would already 403. The case is covered by
-    # the allowlist resolution rule in the spec.
+    grant = client.post("/api/fs/allowed-roots", json={"path": str(tmp_path)})
+    if grant.status_code != 200:
+        pytest.skip(f"could not grant tmp_path as allowlist root: {grant.text}")
+    symlink_traversal = client.get(f"/api/fs/list?path={symlink}")
+    assert symlink_traversal.status_code in (403, 404), (
+        f"FP31: symlink traversal must be refused via 403 (sandbox) or 404 "
+        f"(non-existent post-resolution); got {symlink_traversal.status_code}"
+    )
 
 
-def test_fs_roots_per_platform(client: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_fs_roots_per_platform(client: Any) -> None:
     """L13 — Linux returns ('/'); Windows returns drive letters."""
     response = client.get("/api/fs/roots")
     assert response.status_code == 200

@@ -34,8 +34,9 @@ describe('SessionsPage', () => {
     )
     expect(screen.getByText('fighters')).toBeInTheDocument()
     expect(screen.getByText('shooters')).toBeInTheDocument()
-    // The Active badge appears once, on `fighters`.
-    expect(screen.getAllByText(/active/i).length).toBeGreaterThan(0)
+    // FP31: pin the active-badge count at exactly 1 — `toBeGreaterThan(0)`
+    // would have passed a regression that mistakenly badged every session.
+    expect(screen.getAllByText(/active/i)).toHaveLength(1)
   })
 
   it('calls onActivate when the user activates a session', async () => {

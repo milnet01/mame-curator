@@ -35,7 +35,10 @@ def _proxy_boxart(client: Any) -> Any:
     but typed as ``Any`` because Starlette's ``TestClient.get`` is ``Any``-typed).
     """
     body = b"\x89PNG\r\n\x1a\n" + b"cached-image-bytes"
-    with respx.mock(assert_all_called=False) as mock:
+    # FP31: assert_all_called=True so a regression that bypasses the upstream
+    # (e.g. silently serving a stale cache) surfaces as "registered mock not
+    # called", not as an undetected cache hit.
+    with respx.mock(assert_all_called=True) as mock:
         mock.get(_PACMAN_BOXART_URL).mock(return_value=httpx.Response(200, content=body))
         return client.get("/media/pacman/boxart")
 

@@ -25,17 +25,19 @@ from mame_curator.parser.manufacturer import split_manufacturer
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        # Single-license case — unchanged behaviour pre/post fix.
-        ("Capcom (Sega license)", ("Capcom", "Sega")),
-        # Nested-parens case — the FP28 B1 regression-lock.
+        # FP28 B1 regression-lock: nested-parens case (the actual bug shape).
         ("Atari (JSA III) (Williams license)", ("Atari (JSA III)", "Williams")),
-        # Negative controls — no-license inputs preserve current semantics.
+        # Closest-shape negative control absent from test_manufacturer.py: a
+        # publisher-only string adjacent to the nested-parens grammar must
+        # still resolve developer=publisher (not None).
         ("Capcom", ("Capcom", "Capcom")),
-        ("", (None, None)),
-        (None, (None, None)),
     ],
 )
 def test_split_manufacturer_handles_nested_parens(
     raw: str | None, expected: tuple[str | None, str | None]
 ) -> None:
+    # FP31: stripped duplicate cases that already live verbatim in
+    # tests/parser/test_manufacturer.py (the canonical home for
+    # split_manufacturer parametrize coverage). The two cases above are the
+    # ones that pin THIS file's FP28-specific contract.
     assert split_manufacturer(raw) == expected

@@ -28,30 +28,18 @@ from mame_curator.filter.overrides import Overrides
 from mame_curator.filter.runner import run_filter
 from mame_curator.filter.sessions import Sessions
 from mame_curator.parser.models import Machine
+from tests.filter.conftest import m
 from tests.filter.conftest import make_empty_ctx as _empty_ctx
 
 LOGGER_NAME = "mame_curator.filter.runner"
 
 
+# FP31: prior `_make_machine` was a 19-line builder that hand-set every
+# Machine field to its Machine-default value (year=1990, publisher=Acme).
+# The conftest `m(**kwargs)` helper produces the same object — pass the
+# fields that actually matter; rely on defaults for the rest.
 def _make_machine(name: str) -> Machine:
-    return Machine(
-        name=name,
-        description=name,
-        year=1990,
-        manufacturer_raw="Acme",
-        publisher="Acme",
-        developer="Acme",
-        cloneof=None,
-        romof=None,
-        is_bios=False,
-        is_device=False,
-        is_mechanical=False,
-        runnable=True,
-        roms=(),
-        biossets=(),
-        driver_status=None,
-        sample_of=None,
-    )
+    return m(name=name, year=1990, manufacturer_raw="Acme", publisher="Acme", developer="Acme")
 
 
 def test_filter_runner_logs_parent_not_in_groups(caplog: pytest.LogCaptureFixture) -> None:

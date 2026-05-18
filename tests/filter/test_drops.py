@@ -134,6 +134,19 @@ def test_year_after_dropped() -> None:
     assert drop_reason(m(name="x", year=2011), FilterContext(), cfg) is DroppedReason.YEAR_AFTER
 
 
+def test_year_none_survives_year_range_filter() -> None:
+    """FP31: machines with unknown year MUST survive year-range filters.
+
+    ``drops.py`` guards both year comparisons with ``m.year is not None``.
+    Real-world MAME catalogs have many machines with no year (parser sets it
+    to None when the DAT omits ``<year>``); dropping them would clobber ~half
+    the catalog. This test pins the ``year is None`` short-circuit so a
+    refactor that removes the guard fails immediately.
+    """
+    cfg = FilterConfig(drop_year_before=1980, drop_year_after=2010)
+    assert drop_reason(m(name="x", year=None), FilterContext(), cfg) is None
+
+
 def test_drop_bios_devices_mechanical_false_keeps_them() -> None:
     """Per filter/spec.md FilterConfig: `drop_bios_devices_mechanical: bool = True`
     is a togglable filter. When set to False, BIOS / device / mechanical machines

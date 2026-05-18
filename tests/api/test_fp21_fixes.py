@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import Thread
 from typing import Any
@@ -57,12 +57,15 @@ def test_fp21_k_events_iterator_snapshots_history_before_replay(
     )
     # Pre-populate with replay-able history. Use 500 entries so the
     # mutating thread has time to fire mid-iteration on most machines.
+    # FP31: stagger timestamps by 1µs so heapq.merge has unambiguous
+    # ordering — equal-ts tie-breaks are implementation-defined and the
+    # sibling test at line ~145 already uses this idiom.
     for i in range(500):
         job.progress_history.append(
             JobEvent(
                 event="file_progress",
                 payload={"short_name": "kof94", "bytes_done": i, "bytes_total": 100},
-                ts=now,
+                ts=now + timedelta(microseconds=i),
             )
         )
     job.lifecycle_history.append(

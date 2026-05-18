@@ -58,10 +58,17 @@ def test_a2_r27_corrupt_report_json_returns_typed_error(client: Any, tmp_path: P
     (history_dir / "report.json").write_text("{not valid json")
 
     response = client.get("/api/copy/history/fake_job_id/report")
-    # Expect either 404 (file unreadable as CopyReport) or 502 (corrupt-but-readable).
-    # Either way: NOT a raw 200 with invalid JSON.
-    assert response.status_code in (404, 502), (
-        f"A2: corrupt report should be a typed error, got {response.status_code}"
+    # FP31: the corrupt-but-existing branch is specifically 502
+    # (`CopyReportCorruptError`); the route's 404 path is reserved for
+    # missing-id lookups (the `path.exists()` short-circuit at copy.py:153).
+    # Accepting 404 here would silently mask a regression that turns the
+    # corrupt-content branch into a "file missing" report.
+    assert response.status_code == 502, (
+        "A2: corrupt report must surface as 502 (CopyReportCorruptError); "
+        f"got {response.status_code}"
+    )
+    assert response.json()["code"] == "copy_report_corrupt", (
+        "A2: 502 envelope must carry the typed `copy_report_corrupt` code"
     )
 
 
@@ -359,4 +366,7 @@ def test_c1_subscriber_after_start_sees_job_started_via_history_replay(
                     "C1: subscriber-after-start must see job_started via history replay"
                 )
 
-    asyncio.run(_drive())
+    # Bound the SSE wait — if a regression breaks history-replay or the
+    # terminal-state sentinel, `aiter_lines` would hang forever waiting
+    # for a `job_finished` / `job_aborted` event that never lands.
+    asyncio.run(asyncio.wait_for(_drive(), timeout=15))

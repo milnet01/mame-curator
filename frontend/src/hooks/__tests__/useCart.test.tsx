@@ -1,10 +1,19 @@
 import { renderHook, act } from '@testing-library/react'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCart, MAX_CART_SIZE } from '@/hooks/useCart'
 
 describe('useCart', () => {
   beforeEach(() => {
     localStorage.clear()
+  })
+
+  // FP31: restore any spy left over from the storage-failure tests so a
+  // crashing test body cannot poison `Storage.prototype.setItem` for the
+  // next test. Previously the two storage-failure tests used `try/finally`
+  // with direct prototype reassignment; vi.spyOn + restoreAllMocks is the
+  // safer idiom — Vitest restores even on uncaught rejections in act().
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('starts empty', () => {
@@ -114,18 +123,13 @@ describe('useCart', () => {
   })
 
   it('falls back to in-memory when localStorage write throws', () => {
-    const setItem = Storage.prototype.setItem
-    Storage.prototype.setItem = () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('QuotaExceededError', 'QuotaExceededError')
-    }
-    try {
-      const { result } = renderHook(() => useCart())
-      // Should not throw despite storage failure
-      expect(() => act(() => result.current.add('pacman'))).not.toThrow()
-      expect(result.current.items).toEqual([{ shortName: 'pacman' }])
-    } finally {
-      Storage.prototype.setItem = setItem
-    }
+    })
+    const { result } = renderHook(() => useCart())
+    // Should not throw despite storage failure
+    expect(() => act(() => result.current.add('pacman'))).not.toThrow()
+    expect(result.current.items).toEqual([{ shortName: 'pacman' }])
   })
 
   // FP24-G: caller needs visibility into the "storage is broken" state
@@ -133,18 +137,13 @@ describe('useCart', () => {
   // the useRef was set internally but never returned so the toast
   // never fired even though the spec mandates it.
   it('isStorageBroken flips true after a write throws', () => {
-    const setItem = Storage.prototype.setItem
-    Storage.prototype.setItem = () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('QuotaExceededError', 'QuotaExceededError')
-    }
-    try {
-      const { result } = renderHook(() => useCart())
-      expect(result.current.isStorageBroken).toBe(false)
-      act(() => result.current.add('pacman'))
-      expect(result.current.isStorageBroken).toBe(true)
-    } finally {
-      Storage.prototype.setItem = setItem
-    }
+    })
+    const { result } = renderHook(() => useCart())
+    expect(result.current.isStorageBroken).toBe(false)
+    act(() => result.current.add('pacman'))
+    expect(result.current.isStorageBroken).toBe(true)
   })
 
   it('isStorageBroken stays false on healthy storage', () => {

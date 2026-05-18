@@ -47,9 +47,15 @@ def test_world_state_exposes_bytes_by_machine(app_started: Any) -> None:
         "O(M * R) sum in api/routes/games.py."
     )
     bbm = world.bytes_by_machine
-    # Mapping-shape, not list. Keys are machine short names.
-    assert hasattr(bbm, "__getitem__")
-    assert hasattr(bbm, "__iter__")
+    # FP31: pin the Mapping protocol directly — `hasattr __getitem__` /
+    # `__iter__` were both true for a plain `list`, so a regression that
+    # made `bytes_by_machine` a list would have passed the shape check
+    # and only failed at the call-site of `.get(short_name)` below.
+    from collections.abc import Mapping
+
+    assert isinstance(bbm, Mapping), (
+        f"bytes_by_machine must be a Mapping (got {type(bbm).__name__})"
+    )
     assert len(bbm) > 0
 
 

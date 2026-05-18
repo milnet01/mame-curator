@@ -25,18 +25,6 @@ def test_parse_command_prints_summary(mini_dat: Path, capsys: pytest.CaptureFixt
     assert "mechanical: 1" in output
 
 
-def test_parse_command_unknown_path_returns_nonzero(tmp_path: Path) -> None:
-    """Argparse reserves exit 2 for usage errors; runtime/data errors return 1.
-
-    Equivalent assertion lives in ``test_runtime_error_returns_exit_code_1_not_2``;
-    this test asserts the strict ``== 1`` form rather than ``!= 0`` so the
-    argparse-2 collision can't sneak past either entry point.
-    """
-    parser = build_parser()
-    args = parser.parse_args(["parse", str(tmp_path / "nope.xml")])
-    assert run(args) == 1
-
-
 def test_verbose_flag_is_accepted() -> None:
     """`--verbose` (and `-v`) toggle DEBUG logging; default is INFO.
 

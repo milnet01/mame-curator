@@ -6,6 +6,7 @@ import pytest
 
 from mame_curator.filter.errors import SessionsError
 from mame_curator.filter.sessions import Session, load_sessions
+from tests.filter.conftest import OVER_CAP
 
 
 def test_session_requires_at_least_one_include_rule() -> None:
@@ -108,8 +109,6 @@ def test_sessions_oversized_yaml_rejected(tmp_path: Path) -> None:
     as the prior 2 MB valid-YAML string at half the I/O. The byte
     constant lives in ``tests/filter/conftest.py`` (``OVER_CAP``).
     """
-    from tests.filter.conftest import OVER_CAP
-
     f = tmp_path / "huge.yaml"
     f.write_bytes(OVER_CAP)
     with pytest.raises(SessionsError):

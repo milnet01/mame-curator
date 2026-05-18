@@ -35,11 +35,15 @@ def test_route_r17_shape_snapshot_restore(client: Any) -> None:
     # Trigger a snapshot via PATCH first.
     client.patch("/api/config", json={"ui": {"theme": "light"}})
     snaps = client.get("/api/config/snapshots").json()
-    items = snaps.get("items") or snaps.get("snapshots") or []
-    if items:
-        snapshot_id = items[0]["id"]
-        response = client.post(f"/api/config/snapshots/{snapshot_id}/restore")
-        assert response.status_code == 200
+    # FP31: SnapshotsListing pins the key as `items` per the API schema; the
+    # old `or snaps.get("snapshots")` fallback would have silently masked a
+    # contract drift, and the `if items:` guard would have swallowed the
+    # empty-list case so the restore-200 branch went untested.
+    items = snaps["items"]
+    assert len(items) >= 1, "PATCH /api/config must produce a restorable snapshot"
+    snapshot_id = items[0]["id"]
+    response = client.post(f"/api/config/snapshots/{snapshot_id}/restore")
+    assert response.status_code == 200
 
     not_found = client.post("/api/config/snapshots/nonexistent/restore")
     assert not_found.status_code == 404

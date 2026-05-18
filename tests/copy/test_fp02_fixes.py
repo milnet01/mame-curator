@@ -27,11 +27,9 @@ from mame_curator.copy.types import (
     CopyReportStatus,
 )
 from mame_curator.parser.listxml import BIOSChainEntry
-from mame_curator.parser.models import Machine
 
-
-def _machine(short: str, desc: str | None = None) -> Machine:
-    return Machine(name=short, description=desc or short, runnable=True)
+# FP31: `_machine` lifted to the shared `_runner_helpers` module.
+from tests.copy._runner_helpers import _machine
 
 
 def _seed_existing_playlist(dest_dir: Path, items: list[dict[str, str]]) -> None:

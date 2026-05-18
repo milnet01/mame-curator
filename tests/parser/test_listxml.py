@@ -24,19 +24,42 @@ def test_machines_without_disk_excluded(listxml_with_disks: Path) -> None:
     assert "pacman" not in chd_required
 
 
-def test_missing_file_raises(tmp_path: Path) -> None:
+# ---- FP04 — parser hardening sweep ----
+
+
+@pytest.mark.parametrize(
+    "parse_fn",
+    [parse_listxml_disks, parse_listxml_cloneof, parse_listxml_bios_chain],
+    ids=["disks", "cloneof", "bios_chain"],
+)
+def test_missing_file_raises(
+    tmp_path: Path,
+    parse_fn: Callable[[Path], object],
+) -> None:
+    """FP31: each parse_listxml_* must raise ListxmlError when the file is absent."""
     with pytest.raises(ListxmlError, match="not exist"):
-        parse_listxml_disks(tmp_path / "nope.xml")
+        parse_fn(tmp_path / "nope.xml")
 
 
-def test_malformed_xml_raises(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "parse_fn",
+    [parse_listxml_disks, parse_listxml_cloneof, parse_listxml_bios_chain],
+    ids=["disks", "cloneof", "bios_chain"],
+)
+def test_malformed_xml_raises(
+    tmp_path: Path,
+    parse_fn: Callable[[Path], object],
+) -> None:
+    """FP31: each parse_listxml_* must raise ListxmlError on malformed XML.
+
+    The match string ``"parse"`` pins the implementation's message prefix so
+    a ListxmlError raised for an unrelated reason (e.g. file-not-found being
+    re-checked after parser entry) doesn't satisfy the assertion.
+    """
     bad = tmp_path / "bad.xml"
     bad.write_text("<mame><machine name='x'>")
-    with pytest.raises(ListxmlError):
-        parse_listxml_disks(bad)
-
-
-# ---- FP04 — parser hardening sweep ----
+    with pytest.raises(ListxmlError, match="parse"):
+        parse_fn(bad)
 
 
 @pytest.mark.parametrize(

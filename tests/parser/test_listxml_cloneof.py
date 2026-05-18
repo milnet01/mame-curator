@@ -1,10 +1,12 @@
-"""Tests for parse_listxml_cloneof."""
+"""Tests for parse_listxml_cloneof.
+
+FP31: the missing-file / malformed-XML error-path tests for ALL three
+``parse_listxml_*`` functions live in ``test_listxml.py`` as a single
+parametrized pair. Keeping `cloneof`-specific behavioural tests here.
+"""
 
 from pathlib import Path
 
-import pytest
-
-from mame_curator.parser.errors import ListxmlError
 from mame_curator.parser.listxml import parse_listxml_cloneof
 
 
@@ -22,15 +24,3 @@ def test_parents_and_standalones_excluded(listxml_cloneof: Path) -> None:
     cloneof = parse_listxml_cloneof(listxml_cloneof)
     for parent in ("sf2", "pacman", "standalone"):
         assert parent not in cloneof
-
-
-def test_missing_file_raises(tmp_path: Path) -> None:
-    with pytest.raises(ListxmlError, match="not exist"):
-        parse_listxml_cloneof(tmp_path / "nope.xml")
-
-
-def test_malformed_xml_raises(tmp_path: Path) -> None:
-    bad = tmp_path / "bad.xml"
-    bad.write_text("<mame><machine name='x' cloneof='y'>")
-    with pytest.raises(ListxmlError):
-        parse_listxml_cloneof(bad)

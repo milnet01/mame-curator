@@ -239,6 +239,32 @@ Do not delete revoked entries — the history is the value.
 - **Confirmed by phase:** test-audit fold-in (2026-05-18).
 
 
+## allowlist-014 — test-audit:`assert not done.wait(timeout=0.2)` in test_runner_lifecycle.py:51
+
+- **Status:** active
+- **Tool / rule:** test-audit chunk-5 (2026-05-18 FP31 sweep) flagged HIGH "timing-based negative assertion".
+- **Location:** `tests/copy/test_runner_lifecycle.py:51` (`assert not done.wait(timeout=0.2)`).
+- **Why this is a false positive:** same shape and reasoning as allowlist-008.
+  The chunk's worry was that BIOS resolution + plan summary construction +
+  `append_activity` + preflight inside `run_copy` could exceed 200 ms on a
+  slow CI runner, racing the pause-gate check. Analysed: `done` is only
+  set INSIDE the runner function AFTER `run_copy()` returns. For
+  `done.set()` to fire within 200 ms, `run_copy` must have RETURNED — but
+  if the controller is paused, `wait_if_paused()` blocks `run_copy` from
+  returning, so `done` cannot be set. The slow-runner scenario the chunk
+  imagined doesn't make the test fail; the worker just takes longer to
+  REACH the pause gate, where it then blocks. The bug-detection direction
+  still works: if `wait_if_paused()` is broken and doesn't block, `run_copy`
+  returns and `done` is set within 200 ms → `event.wait()` returns True →
+  negative-wait fails → bug detected.
+- **Suppression applied:** none — the test pattern is the correct shape for a
+  blocking-behaviour assertion absent an explicit "worker reached
+  `wait_if_paused()`" hook (which would require modifying the SUT for
+  testability — same trade-off as allowlist-008).
+- **Logged:** 2026-05-18
+- **Confirmed by phase:** FP31 test-audit fold-in (2026-05-18).
+
+
 ## What does NOT belong here
 
 - **Findings that are real but blocked by a missing feature.**

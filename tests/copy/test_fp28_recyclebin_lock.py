@@ -27,6 +27,8 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import pytest
+
 from mame_curator.copy.recyclebin import recycle_file
 
 
@@ -46,7 +48,10 @@ def test_recycle_file_serializes_parallel_sessions(tmp_path: Path) -> None:
 
     def _worker(path: Path) -> Path:
         barrier.wait()
-        return recycle_file(
+        # FP31: pre-commit isolated mypy infers `Any` for `recycle_file`
+        # (no source package on its path). Suppress + companion-marker per
+        # the established pattern (see 1f3d9ab).
+        return recycle_file(  # type: ignore[no-any-return, unused-ignore]
             path, reason="REPLACE_AND_RECYCLE", session_id="s1", recycle_root=recycle_root
         )
 
@@ -62,7 +67,7 @@ def test_recycle_file_serializes_parallel_sessions(tmp_path: Path) -> None:
 
 
 def test_recycle_file_rollback_does_not_rmdir_parallel_session_dir(
-    tmp_path: Path, monkeypatch: object
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A3 — manifest-write failure must not rmdir a sibling's just-made dir.
 
@@ -89,9 +94,15 @@ def test_recycle_file_rollback_does_not_rmdir_parallel_session_dir(
         call_count["n"] += 1
         if call_count["n"] == 2:
             raise OSError("simulated manifest failure on worker 2")
-        return real_atomic_write_text(*args, **kwargs)  # type: ignore[arg-type]
+        # FP31: pre-commit isolated mypy infers `Any` for atomic_write_text
+        # (full mypy sees the real `-> None`). Suppress no-any-return for
+        # the isolated case + arg-type for the full case (it sees
+        # `*args: object` spread vs the real `(path: Path, content: str)`
+        # signature) + unused-ignore companion for whichever rule didn't
+        # fire in the current pass. Established pattern (see 1f3d9ab).
+        return real_atomic_write_text(*args, **kwargs)  # type: ignore[no-any-return, arg-type, unused-ignore]
 
-    monkeypatch.setattr(  # type: ignore[attr-defined]
+    monkeypatch.setattr(
         "mame_curator.copy.recyclebin.atomic_write_text", _failing_atomic_write_text
     )
 
@@ -109,12 +120,17 @@ def test_recycle_file_rollback_does_not_rmdir_parallel_session_dir(
         except Exception as exc:
             results.append(exc)
 
-    t1 = threading.Thread(target=_worker, args=(file_a,))
-    t2 = threading.Thread(target=_worker, args=(file_b,))
+    t1 = threading.Thread(target=_worker, args=(file_a,), daemon=True)
+    t2 = threading.Thread(target=_worker, args=(file_b,), daemon=True)
     t1.start()
     t2.start()
-    t1.join()
-    t2.join()
+    # FP31: bound the join so a regression that leaves the O_EXCL lockfile
+    # held doesn't hang the whole test runner. Recycle of a tiny test file
+    # completes in well under a second.
+    t1.join(timeout=10)
+    t2.join(timeout=10)
+    assert not t1.is_alive(), "t1 stuck — recycle_file lockfile not released?"
+    assert not t2.is_alive(), "t2 stuck — recycle_file lockfile not released?"
 
     # One worker succeeded, one failed. The successful one's recycle dir must
     # still exist post-call — the failing worker's rollback must not have

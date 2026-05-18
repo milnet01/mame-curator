@@ -20,8 +20,13 @@ from typing import Any
 
 def test_pending_predicate_equals_backend_filter(client: Any) -> None:
     # Build a mixed review-state fixture against the mini DAT.
-    client.post("/api/state", json={"short_name": "pacman", "state": "reviewed"})
-    client.post("/api/state", json={"short_name": "pacmanf", "state": "skipped"})
+    # FP31: guard the setup POSTs — if a regression returns 404/422 from
+    # /api/state, both `frontend_pending` and `backend_pending` collapse
+    # to "all games pending" and the parity assertion trivially passes.
+    setup_a = client.post("/api/state", json={"short_name": "pacman", "state": "reviewed"})
+    assert setup_a.status_code == 200, setup_a.text
+    setup_b = client.post("/api/state", json={"short_name": "pacmanf", "state": "skipped"})
+    assert setup_b.status_code == 200, setup_b.text
 
     # Frontend predicate: walk the full games slice and exclude any short_name
     # present in the entries map.

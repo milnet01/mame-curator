@@ -31,14 +31,21 @@ SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.+-]+)?$")
 def _pyproject_version() -> str:
     data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = data["project"]["version"]
-    assert isinstance(version, str)
+    # FP31: failure messages name the file + observed type so a regression
+    # changing the field type produces a useful CI log instead of bare
+    # "AssertionError".
+    assert isinstance(version, str), (
+        f"pyproject.toml [project].version expected str, got {type(version).__name__}: {version!r}"
+    )
     return version
 
 
 def _package_json_version() -> str:
     data = json.loads(PACKAGE_JSON.read_text(encoding="utf-8"))
     version = data["version"]
-    assert isinstance(version, str)
+    assert isinstance(version, str), (
+        f"frontend/package.json .version expected str, got {type(version).__name__}: {version!r}"
+    )
     return version
 
 

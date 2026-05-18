@@ -84,7 +84,18 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # WikipediaImageSource (7: classvars, boxart-only, url-before-prepare,
 # parens canonicalisation, happy-path thumbnail, rate-limit raises,
 # protocol conformance), and one _build_user_agent helper test. 599 → 614.
-EXPECTED_PYTEST_DECLARATIONS = 614
+# Bumped 2026-05-18 (FP31 test-audit fold-in): net -3 declarations.
+#   • -1 `test_parse_command_unknown_path_returns_nonzero` (duplicate of
+#     test_runtime_error_returns_exit_code_1_not_2 — chunk c-008 MED).
+#   • -1 `test_package_imports` (tautology — chunk c-009 LOW).
+#   • -2 `test_missing_file_raises` + `test_malformed_xml_raises` standalones
+#     in test_listxml_cloneof.py (now covered by parametrized parent — chunk
+#     c-009 MED). Note: test_listxml.py also lost 2 standalones but gained
+#     2 parametrized siblings, so net is 0 in that file.
+#   • +1 `test_year_none_survives_year_range_filter` (FP31 year=None coverage
+#     gap — chunk c-006 LOW).
+# 614 → 611.
+EXPECTED_PYTEST_DECLARATIONS = 611
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -99,7 +110,10 @@ EXPECTED_PYTEST_DECLARATIONS = 614
 # SettingsPage_render.test.tsx pinning the new RetroArch executable
 # and core PathRows (banner pointed users to a UI that didn't render
 # the two fields). 300 → 304.
-EXPECTED_VITEST_DECLARATIONS = 304
+# Bumped 2026-05-18 (FP31 test-audit fold-in): +1 declaration in
+# useValidateCart.test.tsx — server-error coverage gap (`isError flips
+# true when the server returns 500`). chunk fc-002 MED. 304 → 305.
+EXPECTED_VITEST_DECLARATIONS = 305
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

@@ -54,5 +54,9 @@ def test_snapshot_matches(fixtures_dir: Path) -> None:
     if os.environ.get("UPDATE_SNAPSHOTS") == "1":
         SNAPSHOT_PATH.parent.mkdir(parents=True, exist_ok=True)
         SNAPSHOT_PATH.write_text(json.dumps(actual, indent=2, sort_keys=True) + "\n")
+        # FP31: exit before the comparison so update mode doesn't trivially
+        # assert the just-written snapshot equals itself. A regression in
+        # `model_dump_json()` would otherwise silently poison the baseline.
+        return
     expected: Any = json.loads(SNAPSHOT_PATH.read_text())
     assert actual == expected, "Snapshot drift — re-run with UPDATE_SNAPSHOTS=1 if intentional."

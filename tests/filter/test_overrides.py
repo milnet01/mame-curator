@@ -6,6 +6,7 @@ import pytest
 
 from mame_curator.filter.errors import OverridesError
 from mame_curator.filter.overrides import Overrides, load_overrides
+from tests.filter.conftest import OVER_CAP
 
 
 def test_empty_overrides_is_valid() -> None:
@@ -65,8 +66,6 @@ def test_overrides_oversized_yaml_rejected(tmp_path: Path) -> None:
     as the prior 2 MB valid-YAML string at half the I/O. The byte
     constant lives in ``tests/filter/conftest.py`` (``OVER_CAP``).
     """
-    from tests.filter.conftest import OVER_CAP
-
     f = tmp_path / "huge.yaml"
     f.write_bytes(OVER_CAP)
     with pytest.raises(OverridesError):

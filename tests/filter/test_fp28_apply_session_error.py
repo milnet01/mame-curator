@@ -31,6 +31,7 @@ from mame_curator.filter.errors import FilterError, SessionsError
 from mame_curator.filter.overrides import Overrides
 from mame_curator.filter.runner import run_filter
 from mame_curator.filter.sessions import Session, Sessions
+from tests.filter.conftest import make_empty_ctx
 
 
 def test_apply_session_raises_typed_error_on_stale_active() -> None:
@@ -44,8 +45,6 @@ def test_apply_session_raises_typed_error_on_stale_active() -> None:
     stale = valid.model_copy(update={"sessions": {}})
     assert stale.active == "real"
     assert stale.sessions == {}
-
-    from tests.filter.conftest import make_empty_ctx
 
     ctx = make_empty_ctx()
 

@@ -28,12 +28,11 @@ from mame_curator.copy.types import (
     CopyReportStatus,
 )
 from mame_curator.parser.listxml import BIOSChainEntry
-from mame_curator.parser.models import Machine
 
-
-def _machine(short: str, desc: str | None = None) -> Machine:
-    return Machine(name=short, description=desc or short, runnable=True)
-
+# FP31: `_machine` lifted to the shared `_runner_helpers` module (DS05
+# Cluster B established the seam pattern). Was byte-for-byte duplicated
+# here and in test_fp02_fixes.py + test_preflight.py.
+from tests.copy._runner_helpers import _machine
 
 # --- Tier 1 #2: KeyboardInterrupt cleanup ---------------------------------
 # DS04 T2.9: deleted `test_copy_one_cleans_tmp_on_keyboard_interrupt` — the

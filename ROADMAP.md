@@ -164,6 +164,324 @@ wave lands.
   Source: user-2026-05-08 ("ensure that we are on the latest version
   of all dependencies"); reinforces global rule § 5.
 
+### 🧪 Test Audit 2026-05-18 (FP31 — second sweep)
+
+Framework: pytest (backend) + vitest (frontend) · Files scanned: 163
+(113 backend + 50 frontend) · Dimensions: all 18 · Raw findings: 106 ·
+Actionable after triage: ~40 (6 HIGH fixed inline, 18 MEDIUM fixed
+inline, 1 reverted SUT-design item below, ~14 LOW + 3 INFO deferred as
+follow-ups below) · Suite green at fold-in: 758 backend + 320 frontend
+tests at 87.51 % coverage. Allowlist gained 1 new entry (014) for the
+test_runner_lifecycle.py negative-wait pattern (same shape as 008).
+
+**Fixed inline (no roadmap entry needed) — HIGH:**
+
+- ✅ `tests/api/test_fp09_fixes.py:362` — wrapped the SSE history-replay
+  `asyncio.run(_drive())` in `asyncio.wait_for(timeout=15)`. Without this
+  bound, a regression that breaks `history_replay` or the terminal-state
+  sentinel would hang the suite forever waiting for a `job_finished`
+  event that never lands.
+- ✅ `tests/api/test_fp09_fixes.py:64` — tightened the corrupt-report
+  assertion from `status_code in (404, 502)` to `== 502` with a typed
+  code check. The 404 fallback masked the actual contract (corrupt
+  content must surface as `CopyReportCorruptError`, not "missing file").
+- ✅ `tests/copy/test_fp28_recyclebin_lock.py:116-117` — added 10-second
+  timeouts + `is_alive()` checks to the dual-worker thread joins. A
+  regression that leaves the O_EXCL lockfile held would otherwise hang
+  the test runner indefinitely (threads were not daemons; joins were
+  unbounded).
+- ✅ `tests/media/test_cache.py:275` — hoisted the late `from
+  mame_curator.media.cache import …` (behind `# noqa: E402`) to the
+  top, alongside the public `from mame_curator.media import …` imports
+  used by the rest of the file. Added an `is`-identity assert so a
+  regression where the public re-export silently diverges from the
+  internal module fails loudly. Previously: a public re-export break
+  would have left half the file's tests silently passing.
+- ✅ `frontend/src/hooks/__tests__/useValidateCart.test.tsx` — hoisted
+  the byte-for-byte MSW handler (3 verbatim copies) into a single
+  `beforeEach`. Also added a 4th test that exercises the
+  500-error path (`isError flips true when the server returns 500`),
+  closing the chunk fc-002 coverage gap.
+- ✅ `frontend/src/hooks/__tests__/useCart.test.tsx` — migrated the
+  two `Storage.prototype.setItem` failure tests from direct prototype
+  reassignment in `try/finally` to `vi.spyOn(...).mockImplementation(...)`
+  + a file-level `afterEach(() => vi.restoreAllMocks())`. Storage
+  prototype no longer poisonable across tests.
+
+**Fixed inline (no roadmap entry needed) — MEDIUM:**
+
+- ✅ `test_fp21_fixes.py:60-67` — staggered the 500 progress-event
+  timestamps by `timedelta(microseconds=i)` so `heapq.merge` has
+  unambiguous ordering (chunk c-001 MED).
+- ✅ `test_fp28_media_proxy_headers.py:38` — flipped `respx.mock(
+  assert_all_called=True)` so a regression that bypasses the upstream
+  surfaces as "registered mock not called" (chunk c-001 MED).
+- ✅ `test_fp25_world_lock.py` — added `releases == acquires` assertions
+  to the four route tests that previously only checked `acquires >= 1`
+  (chunk c-001 MED). A route that acquires but never releases
+  (production deadlock) now fails the test.
+- ✅ `test_review_state_parity.py:23-24` — guarded the `/api/state`
+  setup POSTs with 200-checks so a regression returning 404/422 from
+  state-set doesn't collapse both predicates to "all pending" and
+  trivially pass (chunk c-001 MED).
+- ✅ `test_routes_config.py:38` — dropped the `or snaps.get("snapshots")`
+  fallback (silently masking schema drift), tightened to `len(items) >= 1`
+  (chunk c-002 MED).
+- ✅ `test_sse.py:23` — added `@pytest.mark.slow` to the 18 MiB-I/O SSE
+  end-to-end test (chunk c-002 MED).
+- ✅ `test_routes_fs.py:96-104` — added an actual HTTP assertion to the
+  symlink-traversal sandbox case (chunk c-002 MED — the case had been
+  set up but never executed).
+- ✅ `test_routes_fs.py:107` — removed unused `monkeypatch:
+  pytest.MonkeyPatch` parameter from `test_fs_roots_per_platform`
+  (chunk c-002 LOW).
+- ✅ `test_world_state_bytes_cache.py:51-53` — replaced
+  `hasattr(__getitem__) + hasattr(__iter__)` with `isinstance(bbm,
+  Mapping)` (chunk c-003 MED — a `list` satisfied the old shape check).
+- ✅ `test_filter_snapshot.py:54` — added an early `return` after the
+  `UPDATE_SNAPSHOTS=1` write so update mode doesn't trivially assert
+  the just-written snapshot equals itself (chunk c-007 MED).
+- ✅ `test_filter/conftest.py`-anchored `OVER_CAP` — hoisted the
+  in-body `from tests.filter.conftest import OVER_CAP` to module level
+  in `test_overrides.py:8` + `test_sessions.py:8`; dropped the
+  underscore alias in `test_io.py:15` (chunk c-007 LOW/MED).
+- ✅ `test_listxml.py` + `test_listxml_cloneof.py` — folded the duplicated
+  `test_missing_file_raises` + `test_malformed_xml_raises` standalones
+  into a single parametrized pair in `test_listxml.py` covering all
+  three `parse_listxml_*` functions; removed both standalones from
+  `test_listxml_cloneof.py`; added a `match="parse"` guard on the
+  malformed-XML case (chunk c-009 MED + LOW).
+- ✅ `test_smoke.py:8` — removed the tautological `assert mame_curator
+  is not None`; collapsed into the `test_version_is_set` test whose
+  attribute lookup already proves importability (chunk c-009 LOW).
+- ✅ `test_parser/test_cli_parse.py:28-37` — removed
+  `test_parse_command_unknown_path_returns_nonzero` (byte-for-byte
+  duplicate of `test_runtime_error_returns_exit_code_1_not_2`; chunk
+  c-008 MED).
+- ✅ `test_parser/test_fp28_license_re.py` — stripped the three
+  parametrize cases already covered verbatim in `test_manufacturer.py`;
+  kept only the FP28 nested-parens regression-lock and the closest-shape
+  negative control (chunk c-009 MED).
+- ✅ `test_filter/test_drops.py` — added
+  `test_year_none_survives_year_range_filter` to close the year-None
+  guard coverage gap (chunk c-006 LOW).
+- ✅ `test_docs/test_no_pre_release_pins.py:67-73` — `FileNotFoundError`
+  caught per-file inside `_gitleaks_env_pins` so a stripped CI image
+  missing one workflow still reports the other file's pin (chunk c-006
+  LOW).
+- ✅ `test_docs/test_version_lockstep.py:34,41` — added message args to
+  the `isinstance(version, str)` assertions naming the file + observed
+  type (chunk c-006 LOW).
+- ✅ `tests/copy/_runner_helpers._machine` — moved as the canonical
+  `_machine` for `test_fp01_fixes.py` / `test_fp02_fixes.py` /
+  `test_preflight.py`; deleted the three byte-for-byte duplicates
+  (chunks c-004 / c-005 MED).
+- ✅ `tests/filter/test_fp28_runner_logger.py` — replaced 19-line
+  `_make_machine` builder with conftest `m(**kwargs)` helper (chunk
+  c-006 LOW).
+- ✅ `tests/filter/test_fp28_apply_session_error.py:48` — hoisted
+  in-body `make_empty_ctx` import to module top (chunk c-006 LOW).
+- ✅ `tests/copy/test_fp28_recyclebin_lock.py:65` — `monkeypatch: object`
+  → `monkeypatch: pytest.MonkeyPatch`; removed accompanying
+  `type: ignore[attr-defined]` (chunk c-004 MED).
+- ✅ `tests/updates/test_snaps.py:109` — replaced set-membership
+  assertion with per-file equality so a loop-variable-capture
+  regression that wrote the same bytes to every output path is caught
+  (chunk c-010 MED).
+- ✅ `frontend/src/pages/__tests__/SessionsPage.test.tsx:38` —
+  `toBeGreaterThan(0)` → `toHaveLength(1)` for the Active badge
+  (chunk fc-003 MED).
+- ✅ `frontend/src/components/library/__tests__/LibraryGrid.test.tsx:103-106`
+  — `expect(spacer).toBeTruthy()` → typed `querySelector<HTMLElement>` +
+  `.toBeInTheDocument()`; removed two `as HTMLElement` casts (chunk
+  fc-004 MED).
+- ✅ `frontend/src/hooks/__tests__/useCopySession.test.tsx:99` — removed
+  redundant `cleanup()` in `afterEach`; vitest `globals: true` auto-cleans
+  via RTL (chunk fc-002 MED).
+- ✅ `frontend/src/hooks/__tests__/useCopySession.test.tsx:300-310` —
+  emit `job_started` before sending the malformed payload so the
+  "state is running; bad message must not crash it back to null"
+  precondition is explicit (chunk fc-002 MED).
+
+**Reverted MEDIUM (deferred to roadmap as separate item):**
+
+- ⚠ `FsBrowser.test.tsx open=false` request-spy: surfaced that the
+  component fires its `useQuery` handlers on mount regardless of `open`.
+  That's a SUT design question (prefetch on close vs `enabled: open`
+  gating), not a test-only fix — see [mame-curator-1047] below.
+
+**Deferred to roadmap (this sub-section):**
+
+- 📋 [mame-curator-1046] **FP31 follow-up — file-size cap splits in
+  `tests/media/test_sources.py` + `tests/copy/test_fp01_fixes.py`.**
+  `tests/media/test_sources.py` is 546 lines (over the 500-line hard
+  cap) — covers four independent source implementations (Libretro,
+  ProgettoSnaps, ArcadeDB, Wikipedia) separated by section comments.
+  `tests/copy/test_fp01_fixes.py` is 424 lines (over the 300 soft cap)
+  — 7 logical groups. Both need DS05-style seam splits; tests/sources
+  extract `_machine()` + `_make_unbounded_limiter()` to a new
+  `tests/media/conftest.py` during the split.
+  Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
+  FP31 chunks c-004 + c-008 (HIGH for c-008's hard-cap violation).
+
+- 📋 [mame-curator-1047] **FP31 follow-up — FsBrowser prefetch policy
+  when dialog is closed.** Surfaced when adding a request-spy assertion
+  to `FsBrowser.test.tsx`'s "does not render when open=false" test:
+  the spy caught 3 requests (home / roots / allowed-roots) even though
+  the component renders nothing. Either gate the queries with
+  `enabled: open` or document the prefetch-on-mount choice. Test was
+  reverted to the original "no dialog" assertion; the SUT decision
+  needs to happen first.
+  Kind: fix. Lanes: frontend, frontend tests. Source:
+  test-audit-2026-05-18 FP31 chunk fc-003 MED.
+
+- 📋 [mame-curator-1048] **FP31 follow-up — frontend
+  `fireEvent.click` → `userEvent.click` migration sweep.** Across at
+  least 8 files (`CartPanel`, `CartBar`, `GameCard`, `FeaturedTilesRow`,
+  `AppShell`, `OnboardingBanner`, `DryRunModal`, `CopyModal`,
+  `YearRangeEditor`) — `fireEvent` skips the pointer/hover synthetic
+  events `userEvent` fires. Highest-risk case is
+  `GameCard.test.tsx:154` which tests Add-button `stopPropagation`
+  vs the row's `onOpen` (the mechanism is exactly the pointer-event
+  chain that `fireEvent` skips). One-shot sweep; mechanical.
+  Kind: refactor. Lanes: frontend tests. Source:
+  test-audit-2026-05-18 FP31 chunks fc-001/fc-002/fc-003/fc-004/fc-005
+  (LOW/MED across the suite).
+
+- 📋 [mame-curator-1049] **FP31 follow-up — `userEvent` static API →
+  `userEvent.setup()` migration in 3 components**
+  (`CmdKPalette.test.tsx`, `ConfirmationDialog.test.tsx`,
+  `no-checkbox-for-prefs.test.tsx`). The static API is deprecated in
+  `@testing-library/user-event` v14; the setup-instance form shares
+  pointer/keyboard state and delay config across calls in a test.
+  Kind: refactor. Lanes: frontend tests. Source:
+  test-audit-2026-05-18 FP31 chunk fc-001 MED.
+
+- 📋 [mame-curator-1050] **FP31 follow-up — `@pytest.mark.asyncio`
+  decorator cleanup under `asyncio_mode = "auto"`.** Redundant
+  decorators identified in `test_fp28_jobs_loop_thread.py` (1),
+  `test_downloads.py` (11), and `test_ini.py` (3). Auto mode collects
+  every `async def test_*` as a coroutine without the decorator — the
+  decorator is cargo-cult noise. Mechanical sweep across the suite.
+  Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
+  FP31 chunks c-001 / c-009 / c-010 LOW.
+
+- 📋 [mame-curator-1051] **FP31 follow-up — broaden
+  `pytest.raises((SessionsError, ValueError))` unions in
+  `test_filter/test_sessions.py` (4 sites) + `test_filter/test_types.py`
+  (1 site).** Now that the FP06 B2 migration is shipped, the precise
+  post-fix exception is known: `ValidationError` (Pydantic) for direct
+  construction paths, `SessionsError` for loader paths. Pin each to the
+  specific type and add `match=` patterns (chunk c-007 LOW).
+  Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
+  FP31 chunk c-007 LOW.
+
+- 📋 [mame-curator-1052] **FP31 follow-up — `test_routes_copy.py:79`
+  pause/resume/abort test passes vacuously on fast runners.** Both
+  `pause` and `abort` accept `status_code in (200, 404)`; on fast CI
+  the tiny fixture files complete in microseconds and both return 404,
+  so the test passes having exercised nothing. Decision needed:
+  guard with skip-if-both-404, slow the fixture, or delete in favour
+  of the `test_sse.py` coverage. Kind: fix. Lanes: backend tests.
+  Source: test-audit-2026-05-18 FP31 chunk c-002 MED.
+
+- 📋 [mame-curator-1053] **FP31 follow-up — coverage gaps in `test_routes_media.py`
+  (no `httpx.TransportError` mock), `test_activity.py` (7 of 10
+  `ActivityEventType` variants have no round-trip test), and
+  `test_useFs.test.tsx` (success-path of `useFsGrantRoot` untested).**
+  Three small additive coverage items grouped by theme: "happy path
+  tested, error/alternate branch in same file untested."
+  Kind: fix. Lanes: backend tests, frontend tests. Source:
+  test-audit-2026-05-18 FP31 chunks c-002 / c-003 / fc-002 LOW.
+
+- 📋 [mame-curator-1054] **FP31 follow-up — refactoring & dedup nits:**
+  (a) `tests/api/test_static_mount.py` extract `_rebuilt_client(stub,
+      monkeypatch, config_file)` helper (4 duplicated app-rebuild
+      blocks). chunk c-003 MED.
+  (b) `tests/cli/test_fp28_serve_signal.py:45-67` —
+      `_build_minimal_config` duplicates `tests/api/conftest.py`'s
+      `config_file` fixture; move the fixture to the top-level
+      `tests/conftest.py` so both trees share it. chunk c-003 LOW.
+  (c) `tests/copy/test_fp01_fixes.py` + `test_fp02_fixes.py` — extract
+      `_seed_existing_playlist` 12-line helper to
+      `tests/copy/conftest.py`. chunk c-004 MED.
+  (d) `tests/filter/test_runner.py:98,112,156` — add an
+      `o(**entries)` factory in `tests/filter/conftest.py` to absorb
+      the 3 repeated `Overrides(entries={...})` constructions and
+      drop the matching `# type: ignore[call-arg, unused-ignore]`
+      suppressions. chunk c-007 MED.
+  (e) `tests/copy/test_fp01_fixes.py:34,49` — `_machine` lifted in
+      the inline pass; `_seed_existing_playlist` deferred to (c).
+  (f) `tests/updates/conftest.py` — replace per-file `_no_sleep`
+      passthroughs in `test_ini.py` + `test_snaps.py` with a
+      subdirectory autouse fixture. chunk c-010 LOW.
+  Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
+  FP31 chunks c-003/c-004/c-007/c-010 MEDIUM/LOW.
+
+- 📋 [mame-curator-1055] **FP31 follow-up — assorted LOW/INFO test polish:**
+  (a) `tests/api/test_fp25_world_lock.py:47-73` — parametrize 7
+      structurally-identical per-route world-lock tests. chunk c-001
+      LOW.
+  (b) `tests/api/test_fp28_validate_paths_retroarch.py` — add
+      "exists but not executable" (`chmod 0o644`) test for the
+      `os.X_OK` branch. chunk c-001 LOW.
+  (c) `tests/cli/test_cli_setup.py` + `tests/copy/test_activity.py` —
+      add docstrings to 4 named tests (`test_setup_overwrites_with_force`,
+      `test_setup_errors_on_missing_source_dat`,
+      `test_activity_log_append_writes_one_line`,
+      `test_read_activity_yields_newest_first`). chunk c-003 LOW.
+  (d) `tests/api/test_fp21_fixes.py:254` — rename
+      `test_under_pressure` to
+      `test_fp21_l_progress_history_deque_has_finite_maxlen` (no
+      pressure is applied). chunk c-001 LOW.
+  (e) `tests/test_downloads.py:241-286` — calibrate the tracemalloc
+      threshold comment against the active respx/httpx version pin.
+      chunk c-009 LOW.
+  (f) `tests/parser/test_exports.py:65,75` — add a `pyproject.toml`
+      sentinel check before resolving `parents[2]` for `spec.md`
+      lookup. chunk c-009 LOW.
+  (g) `tests/copy/test_preflight.py:159` — tighten
+      `free_space_gap_bytes >= -sf2_size` to a two-run gap-difference
+      check (chunk c-005 LOW).
+  (h) `tests/media/test_escape.py:47` — fix misleading inline
+      parametrize comment. chunk c-008 LOW.
+  (i) `tests/media/test_sources.py:448` — fold the private
+      `_url_cache` write into the `prepare()`-mocked test (deferred
+      until the file-split lands per [mame-curator-1046]). chunk
+      c-008 MED.
+  (j) `tests/media/test_sources.py:509` — replace dead
+      `url.endswith("Pac_flyer.png")` branch with `"Pac_flyer.png" in
+      url`. chunk c-008 LOW.
+  (k) `frontend/src/components/library/__tests__/{DryRunModal,CopyModal,
+      CartBar}.test.tsx` — `toHaveBeenCalled()` →
+      `toHaveBeenCalledOnce()` on `onConfirm` / `onPause` / `onResume`
+      / `onBulkAdd` (chunk fc-004 LOW).
+  (l) `frontend/src/lib/__tests__/queryClient.test.tsx` — add
+      `{ timeout: 3000 }` to `waitFor` calls (chunk fc-001 LOW).
+  (m) `frontend/src/components/__tests__/{ErrorBoundary,Confirmation
+      Dialog}.test.tsx` — add file-level `afterEach(() =>
+      vi.restoreAllMocks())` so `console.error` spies survive
+      assertion failures (chunk fc-001 LOW).
+  (n) `frontend/src/components/alternatives/__tests__/AlternativesDrawer.test.tsx`
+      — add missing `manufacturer_raw`/`bytes`/`parent` to fixture
+      objects or extract a `makeGameCard()` factory (chunk fc-002
+      MED).
+  (o) `frontend/src/components/library/__tests__/OnboardingBanner.test.tsx`
+      — switch hardcoded regex fragments to `strings.library.onboarding.body`
+      references (chunk fc-005 LOW).
+  Kind: refactor. Lanes: backend tests, frontend tests. Source:
+  test-audit-2026-05-18 FP31 chunks c-001/c-003/c-005/c-008/c-009 +
+  fc-001/fc-002/fc-004/fc-005 LOW.
+
+- 📋 [mame-curator-1056] **FP31 follow-up — `tests/api/test_fp09_fixes.py:159-177`
+  convert `asyncio.run()` sync wrapper to `@pytest.mark.asyncio async def`.**
+  Today the test manages the lifespan context manually inside a sync
+  function. Benign under `asyncio_mode = "auto"` but
+  incompatible with the strict-mode opt-in some teams adopt later.
+  Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
+  FP31 chunk c-001 MEDIUM.
+
+
 ### 🧪 Test Audit 2026-05-18
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 152

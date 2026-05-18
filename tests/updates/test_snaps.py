@@ -105,8 +105,13 @@ async def test_refresh_snaps_extracts_zip_into_snap_dir(tmp_path: Path) -> None:
             report = await refresh_snaps(dest_dir=tmp_path, url=pack_url, client=client)
 
     assert report.files_extracted == 3
-    for name in ("pacman.png", "dkong.png", "galaga.png"):
-        assert (tmp_path / "snap" / name).read_bytes() in {b"pac", b"dk", b"gal"}
+    # FP31: pin per-file content equality so a loop-variable-capture
+    # regression that wrote the same bytes to every output path is caught.
+    # Previous `in {b"pac", b"dk", b"gal"}` set-membership would have passed
+    # if all three files were identical.
+    assert (tmp_path / "snap" / "pacman.png").read_bytes() == b"pac"
+    assert (tmp_path / "snap" / "dkong.png").read_bytes() == b"dk"
+    assert (tmp_path / "snap" / "galaga.png").read_bytes() == b"gal"
 
 
 async def test_refresh_snaps_verifies_disk_space_before_download(

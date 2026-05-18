@@ -14,6 +14,21 @@ import httpx
 import pytest
 import respx
 
+# FP31: hoisted both public re-export and internal-module imports up here so
+# every test exercises the same import surface. Previously the FP27 T2 B4
+# tests imported `MediaFetchError` / `fetch_with_cache` from
+# `mame_curator.media.cache` mid-file behind `# noqa: E402` while the
+# earlier tests imported them from `mame_curator.media`. If the public
+# re-export broke, one half of the suite would silently keep passing.
+from mame_curator.media import MediaFetchError as _MediaFetchError_public
+from mame_curator.media import cache_path_for as _cache_path_for_public  # noqa: F401
+from mame_curator.media import fetch_with_cache as _fetch_with_cache_public  # noqa: F401
+from mame_curator.media.cache import MediaFetchError, fetch_with_cache
+
+# Public/internal re-exports must point at the same object — if this fails the
+# `mame_curator.media` __init__ has dropped or renamed the re-export.
+assert MediaFetchError is _MediaFetchError_public
+
 _URL = "https://raw.githubusercontent.com/libretro-thumbnails/MAME/master/Named_Boxarts/Pac-Man.png"
 
 
@@ -270,12 +285,6 @@ async def test_fetch_with_cache_creates_cache_dir_on_demand(tmp_path: Path) -> N
 # Pre-fix: no scheme check (httpx would attempt the request) → fails.
 # Post-fix: scheme check raises MediaFetchError before any network call.
 # ---------------------------------------------------------------------------
-
-
-from mame_curator.media.cache import (  # noqa: E402  # FP27 T2 B4: tests sit after the existing module's tests for narrative grouping.
-    MediaFetchError,
-    fetch_with_cache,
-)
 
 
 @pytest.mark.asyncio

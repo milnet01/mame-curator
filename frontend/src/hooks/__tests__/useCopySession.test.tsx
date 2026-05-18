@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 
 import { server, http, HttpResponse } from '@/test/handlers'
 import { makeClientWrapper } from '@/test/renderWithClient'
@@ -96,7 +96,9 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  cleanup()
+  // FP31: removed redundant explicit `cleanup()` — vitest `globals: true`
+  // enables RTL's auto-cleanup. The sibling hook-test files dropped this
+  // during DS04 T3.1; useCopySession.test.tsx was missed in that pass.
   vi.unstubAllGlobals()
 })
 
@@ -297,6 +299,24 @@ describe('useCopySession', () => {
       })
       await waitFor(() => expect(MockEventSource.instances).toHaveLength(1))
       const es = MockEventSource.instances[0]
+      // FP31: emit job_started first so `state.state === 'running'` is
+      // the established precondition, not an implicit side effect of
+      // `start()`. The malformed-payload contract is then unambiguous:
+      // a bad message after a real running state must not flip state to
+      // null / 'idle' / 'errored'.
+      act(() =>
+        es.emit({
+          event: 'job_started',
+          payload: {
+            job_id: 'j1',
+            files_total: 1,
+            bytes_total: 1024,
+            started_at: new Date().toISOString(),
+          },
+          ts: new Date().toISOString(),
+        }),
+      )
+      await waitFor(() => expect(result.current.state?.state).toBe('running'))
       // Send raw garbage that JSON.parse throws on
       act(() => es.emitRaw('{not_json'))
       // State stays running (it never crashed)

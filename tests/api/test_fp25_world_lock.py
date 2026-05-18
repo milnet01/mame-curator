@@ -185,6 +185,9 @@ def test_fp25_a_upsert_session_acquires_world_lock(tracking_client: Any) -> None
     )
     assert resp.status_code == 200
     assert tracker.acquires >= 1, "upsert_session must acquire world_lock"
+    # FP31: also pin releases==acquires so a route that acquires but never
+    # releases (production deadlock) cannot silently pass this test.
+    assert tracker.releases == tracker.acquires
 
 
 def test_fp25_a_delete_session_acquires_world_lock(tracking_client: Any) -> None:
@@ -198,6 +201,7 @@ def test_fp25_a_delete_session_acquires_world_lock(tracking_client: Any) -> None
     resp = client.delete("/api/sessions/s1")
     assert resp.status_code == 200
     assert tracker.acquires >= 1, "delete_session must acquire world_lock"
+    assert tracker.releases == tracker.acquires
 
 
 def test_fp25_a_activate_session_acquires_world_lock(tracking_client: Any) -> None:
@@ -211,6 +215,7 @@ def test_fp25_a_activate_session_acquires_world_lock(tracking_client: Any) -> No
     resp = client.post("/api/sessions/s1/activate", json={})
     assert resp.status_code == 200
     assert tracker.acquires >= 1, "activate_session must acquire world_lock"
+    assert tracker.releases == tracker.acquires
 
 
 def test_fp25_a_deactivate_session_acquires_world_lock(tracking_client: Any) -> None:
@@ -225,6 +230,7 @@ def test_fp25_a_deactivate_session_acquires_world_lock(tracking_client: Any) -> 
     resp = client.post("/api/sessions/_deactivate", json={})
     assert resp.status_code == 200
     assert tracker.acquires >= 1, "deactivate_session must acquire world_lock"
+    assert tracker.releases == tracker.acquires
 
 
 def test_fp25_a_put_notes_acquires_world_lock(tracking_client: Any) -> None:
@@ -232,6 +238,7 @@ def test_fp25_a_put_notes_acquires_world_lock(tracking_client: Any) -> None:
     resp = client.put("/api/games/pacman/notes", json={"notes": "test note"})
     assert resp.status_code == 200
     assert tracker.acquires >= 1, "put_notes must acquire world_lock"
+    assert tracker.releases == tracker.acquires
 
 
 def test_fp25_a_concurrent_cross_route_mutations_both_land(
