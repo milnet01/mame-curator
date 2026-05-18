@@ -96,7 +96,7 @@ The Rule of Three: **extract a helper on the third call-site, not the first or s
   - `copy/`: **≥85%** (filesystem-heavy, integration tests carry weight).
   - `api/`: **≥80%**.
   - Frontend components: **≥70%** (visual concerns harder to test).
-- **Every feature ships with a `spec.md` next to its code.** The spec states the contract in prose; the tests in `tests/<feature>/` enforce every clause in it. The spec is the audit surface — a reviewer reads it and verifies the test file covers each clause. See §7.
+- **Every feature ships with a `spec.md` next to its code.** The spec states the contract in prose; the tests in `tests/<feature>/` enforce every clause in it. The spec is the audit surface — a reviewer reads it and verifies the test file covers each clause. See §7. (Open gap: `api/`, `media/`, and `updates/` ship without an in-tree `spec.md` — tracked as a roadmap follow-up.)
 - **Test types:**
   - **Unit:** pure functions, fast, no I/O. Default tier.
   - **Integration:** modules + filesystem in `tmp_path`. Slower but representative.
@@ -148,7 +148,7 @@ Spec template (kept short — it is documentation, not prose):
 - **Pinned and locked.** `uv.lock` (Python) and `package-lock.json` (frontend) are committed. CI fails if they drift.
 - **Phase-staged dependency declaration.** Runtime deps for not-yet-implemented phases live in `[project.optional-dependencies].<feature>` (e.g. `api = ["fastapi", ...]`) until the importing code ships. Promote to `[project.dependencies]` in the same commit as the first `import` of the package. Rationale: declaring deps before any `import` confuses dependency-audit tools, surfaces deprecation warnings against unused code, and inflates fresh-install footprint for users who only need an early-phase subcommand. The exception is anything imported by Phase 0 tooling itself (test/lint/type/security), which lives in `[project.optional-dependencies].dev`.
 - **No deprecated APIs.** Pre-commit + CI run a deprecation scanner. If a dep announces deprecation, file an issue tagged `deprecation` with the migration deadline.
-- **Weekly automated dep audit.** `pip-audit` + `npm audit` + Dependabot.
+- **Weekly automated dep audit.** `pip-audit` + `npm audit` + Dependabot. (Scheduled for the Phase 9 polish pass — see §12; not enforced in CI yet.)
 - **Tooling stack (locked):**
   - **uv** — Python project + dependency management.
   - **Ruff** — Python linter + formatter (replaces black, flake8, isort, pyupgrade).
@@ -189,16 +189,15 @@ Spec template (kept short — it is documentation, not prose):
   - `media/` — depends on `parser/` (for descriptions).
   - `copy/` — depends on `parser/` + `filter/`.
   - `updates/` — depends on `parser/` (for INI re-parse on refresh) + a shared `downloads.py` primitive.
-  - `help/` — depends on filesystem only (loads bundled markdown).
-  - `api/` — depends on all of the above.
-  - `setup/` — orchestrates downloads + config; depends on `parser/` (for filter preview) + `downloads.py`.
+  - `api/` — depends on all of the above. Help docs (`api/routes/help.py`) and setup-wizard endpoints (`api/routes/stubs.py`) live as routes under `api/`, not as separate top-level packages — see `CLAUDE.md` § Architecture.
+  - `cli/` — argparse dispatch; depends on `parser/`, `filter/`, `copy/`, `api/`.
   - `main.py` — wires it all together.
 
 ## 12. Git, commits, and CI
 
 - **Conventional Commits** for commit messages: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, `perf:`, `ci:`. Subject ≤ 72 chars; body explains *why*, not *what*.
 - **Semantic versioning** (`MAJOR.MINOR.PATCH`). v0.x.y while pre-release.
-- **Branches:** `main` is always green. Feature work in branches; PR with checks before merge.
+- **Branches:** `main` is always green. Feature work may land directly on `main` under the solo-dev default; projects opting in via `CODEOWNERS` / branch protection use a per-feature branch + PR flow. See `CLAUDE.md` for the project-specific stance.
 - **CI matrix:**
   - Lint: `ruff check`, `ruff format --check`, frontend `eslint`.
   - Types: `mypy`, `tsc --noEmit`.

@@ -42,7 +42,8 @@ private, a minimal anonymised XML excerpt that triggers the bug is enough.
 ## The local CI gate
 
 Run this before every commit. All five backend checks plus the three
-frontend checks must be green or `main` rejects your push:
+frontend checks must be green before you push; CI on `main` fails
+loudly if it has to repeat the run:
 
 ```bash
 # Backend
@@ -141,7 +142,7 @@ Larger pieces of work (anything that ships under its own phase ID
 6. **`/indie-review`** — independent multi-agent code review. Runs in
    parallel with step 5.
 7. **Fold findings** from steps 5 and 6 into a single fix-pass
-   (`FP##` / `DOC##`) that goes through this same loop.
+   (`FP##` / `DS##`) that goes through this same loop.
 8. **Update** `CHANGELOG.md` (under `[Unreleased]`) + `ROADMAP.md` (flip
    the status emoji) + write `docs/journal/<ID>.md`.
 9. **Commit, tag** the close (annotated tag `<ID>-complete`), and ask

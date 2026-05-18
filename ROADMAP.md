@@ -719,6 +719,113 @@ documenting test-audit-specific false positives.
   Lanes: backend, frontend, cli.
   Source: indie-review-2026-05-14 Tier 2.
 
+### 📝 Cold-eyes 2026-05-18
+
+**Theme:** Docs reviewed: 12 lanes (contracts, standards, decisions,
+spec/P10, spec/P14, spec/FP27, spec/FP28, spec/DS02..DS05,
+per-feature-specs). Single-pass with all severities folded inline;
+items below are the verified deferrals that couldn't be auto-fixed
+under a docs-review skill.
+
+- 📋 [mame-curator-1057] **Author `src/mame_curator/api/spec.md`.**
+  Shipped P04 API module ships without a co-located `spec.md`,
+  violating the project rule in `coding-standards.md § 7` + `CLAUDE.md`
+  ("No feature merges without a `spec.md` next to its code"). Three
+  cold-eyes lanes flagged the gap.
+  Layman: We have a contract document for some shipped modules but
+  not all — fill in the missing ones so reviewers can audit the
+  whole codebase by reading the contracts.
+  Kind: doc.
+  Lanes: api, docs.
+  Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs + decisions.
+
+- 📋 [mame-curator-1058] **Author `src/mame_curator/media/spec.md`.**
+  Shipped P05 module (with P10 still in flight) ships without a
+  co-located `spec.md`. Same rule violation as 1057. Wait for P10 to
+  close before drafting so the spec captures the full source surface
+  (libretro + progettoSnaps + ArcadeDB + Wikipedia + MobyGames).
+  Layman: Same fill-in-the-gap as 1057 but for the media-cover module.
+  Kind: doc.
+  Lanes: media, docs.
+  Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs.
+
+- 📋 [mame-curator-1059] **Author `src/mame_curator/updates/spec.md`.**
+  Shipped P07 module ships without a co-located `spec.md`. Same rule
+  violation as 1057. ADR-0004 § "Post-v1 hardening path" already
+  identifies this as the first step; lift it from a buried footnote to
+  a tracked bullet.
+  Layman: Same fill-in-the-gap as 1057 but for the auto-update module.
+  Kind: doc.
+  Lanes: updates, docs.
+  Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs + decisions.
+
+- 📋 [mame-curator-1060] **Author `docs/journal/P14.md`.**
+  P14 closed 2026-05-17 with tag `P14-complete` but no journal entry.
+  Every other closed phase has one (`DS02`, `DS03`, `DS04`, `DS05`,
+  `FP27`, `FP28`). Standalone fix; scrape the close commit body +
+  CHANGELOG `### P14` section for the journal body.
+  Layman: Missing diary entry for the per-game-review-state phase.
+  Kind: doc.
+  Lanes: docs.
+  Source: cold-eyes-2026-05-18 lane spec/P14.
+
+- 📋 [mame-curator-1061] **Promote P14 review-state contract to a
+  module-co-located spec.** P14 spec § Files-touched lists
+  `src/mame_curator/filter/review_state_spec.md` as the close-time
+  promotion target; it doesn't exist on disk and the contract lives
+  inside `filter/spec.md` for now. Extract the review-state clauses
+  into the co-located file (or merge them into the larger module spec
+  if the project prefers one-spec-per-module).
+  Layman: Optional restructure — split the review-state contract into
+  its own document, mirroring how parser, copy, cli already have
+  per-feature specs.
+  Kind: doc.
+  Lanes: filter, docs.
+  Source: cold-eyes-2026-05-18 lane spec/P14.
+
+- 📋 [mame-curator-1062] **Re-introduce a Radix-Esc regression lock
+  for FP27 A6a.** `frontend/src/components/__tests__/EscOverlayBehavior.test.tsx`
+  was deleted by DS04 ("-2 from EscOverlayBehavior deletion") but
+  FP27 § A6a / R1d depend on it as the lock that ambient Esc handling
+  in Radix `Dialog` + `AlertDialog` is honored. If Radix ever drops
+  the ambient handler, A6a silently regresses. Restore the assertion
+  somewhere — either as a slim regression test or merged into an
+  existing Dialog test.
+  Layman: A safety-net test that ensures pressing Esc closes overlays
+  was deleted; restore it so a future library upgrade can't quietly
+  break this.
+  Kind: test.
+  Lanes: frontend, tests.
+  Source: cold-eyes-2026-05-18 lane spec/FP27.
+
+- 📋 [mame-curator-1063] **Resolve `docs/help/` build-tooling gap.**
+  FP27 pre-spec verification noted that `docs/help/` doesn't exist
+  at repo root; running help routes in dev returns 404 unless
+  `MAME_CURATOR_HELP_DIR` is set. Either build tooling that populates
+  `docs/help/` ships, or the help routes need a graceful in-tree
+  fallback. Currently a load-bearing ghost feature.
+  Layman: The in-app Help pages route silently 404s on a fresh
+  checkout — wire up the missing piece that populates the help
+  directory.
+  Kind: fix.
+  Lanes: api, docs.
+  Source: cold-eyes-2026-05-18 lane spec/FP27.
+
+- 📋 [mame-curator-1064] **Reconcile `CLAUDE.md` "fix-passes don't
+  get specs" rule with the FP05/FP25/FP27/FP28 precedent.** CLAUDE.md
+  states *"Fix-passes (`FP##` / `DS##`) don't get specs — they
+  correct code against the existing module spec."* In practice every
+  recent multi-tier fold-in (FP05, FP25, FP27, FP28, DS02–DS05) has
+  shipped a full spec, and the journal entries explicitly credit the
+  spec for catching highest-leverage drift before implementation. Pick
+  one — either amend CLAUDE.md to allow long-form specs for multi-tier
+  fold-ins, or trim those specs and move the body into journals.
+  Layman: The project rules say fix-pass passes don't need a spec,
+  but in practice every big one does — line up rules and reality.
+  Kind: doc.
+  Lanes: docs.
+  Source: cold-eyes-2026-05-18 lane spec/FP27 (H1).
+
 ---
 
 ## 1.4.0 — Library polish (target: 2026-Q3)
@@ -764,7 +871,7 @@ P14 (per-game review state).
   happening").
   Dependencies: none.
 
-- 📋 [mame-curator-1039] **P15 — UI polish + theme expansion.**
+- 📋 [mame-curator-1039] **P16 — UI polish + theme expansion.**
   Visual-polish pass across the app for end-user perception of
   professionalism. Tactical surface: typography (font choice,
   weights, sizing rhythm), spacing rhythm (padding / margins /
@@ -947,5 +1054,5 @@ deferred on an unbuilt dependency go to
 
 Closed phases and fix-passes move out of this file and into
 [`CHANGELOG.md`](CHANGELOG.md). The full per-phase history (P00 →
-P15 + FP01 → FP26 + DS01) plus shipped releases (v1.0.0 →
-v1.2.0) live there.
+P15 + FP01 → FP28 + DS01 → DS05) plus shipped releases
+(v1.0.0 → v1.2.0) live there.

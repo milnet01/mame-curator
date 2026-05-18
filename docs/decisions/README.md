@@ -56,3 +56,6 @@ even if superseded.
 - [ADR-0003](0003-listxml-tiered-acquisition.md) — Tiered
   acquisition for `mame -listxml` (no checksum pinning).
   **Accepted.**
+- [ADR-0004](0004-ini-refresh-trust-model.md) — INI refresh trust
+  model (wizard-installed baseline retained via content-addressed
+  paths). **Accepted.**

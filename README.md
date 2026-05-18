@@ -4,13 +4,13 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-MAME Curator turns a ~26,000-machine MAME DAT into a small,
-human-usable arcade library: it drops the BIOS-and-device cruft, picks
-the best version of each game from parent/clone groups, lets you
-override picks through a browser UI, and copies the chosen ROMs (plus
-required BIOSes) to a separate destination — leaving the source
-untouched and writing a RetroArch playlist (`mame.lpl`) on the way
-out.
+MAME Curator turns a ~43,000-machine MAME DAT (about 26,000 of those
+are arcade games after BIOS / device / non-arcade entries are dropped)
+into a small, human-usable arcade library: it picks the best version
+of each game from parent/clone groups, lets you override picks through
+a browser UI, and copies the chosen ROMs (plus required BIOSes) to a
+separate destination — leaving the source untouched and writing a
+RetroArch playlist (`mame.lpl`) on the way out.
 
 ![MAME Curator library page](docs/screenshots/library.png)
 

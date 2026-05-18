@@ -52,7 +52,7 @@
 
 ### `class DriverStatus` (str enum)
 
-Values: `GOOD`, `IMPERFECT`, `PRELIMINARY`. String representation matches the DAT attribute exactly.
+Member names: `GOOD`, `IMPERFECT`, `PRELIMINARY`. Underlying string values are lower-case (`"good"`, `"imperfect"`, `"preliminary"`) to match the DAT attribute verbatim — comparisons against the raw DAT string use the lower-case form; comparisons against the enum member use `DriverStatus.GOOD` etc.
 
 The enum is **open-membership**: `<driver status="...">` values not in this set log a `logger.warning` and produce `Machine.driver_status = None`. They do *not* raise `DATError`. Rationale: MAME's schema has historically extended the set (`protection`, `palette`-style attributes); a closed enum would break parsing on every future MAME version. The warning is rate-limited to one log line per unique status string seen in a parse run (avoids log floods on a 43k-machine DAT).
 

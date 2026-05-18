@@ -7,7 +7,7 @@ Given parsed Phase-1 data (`dict[str, Machine]`), an INI-augmented context (catv
 - `winners: tuple[str, ...]` — short names of machines that survived all four phases, alphabetically sorted.
 - `dropped: tuple[tuple[str, DroppedReason], ...]` — one entry per dropped machine, with the typed reason it was dropped; **sort key is the short name** (first element of each pair), enforced by `tuple(sorted(dropped.items()))` at construction in `runner.py` for deterministic byte-identical output across runs. Immutable: tuple-of-tuples on a `frozen=True` model (DS01 C2 closed the prior `dict[str, DroppedReason]` shape that was mutable in-place despite the model's `frozen=True`). Read sites use `dict(result.dropped)["short"]` for O(1) lookup or `len(result.dropped)` for the count.
 - `contested_groups: tuple[ContestedGroup, ...]` — one entry per parent/clone group where Phase B had to choose between ≥2 candidates; records the winner, the candidates, and the tiebreaker chain that produced the result. Used by `/api/games/{name}/explanation` (Phase 4).
-- `warnings: tuple[str, ...]` — non-fatal advisories from Phase C overrides (unknown parent, target outside its parent's group, target machine not in the parsed DAT). Never empty by validation; sorted in canonical order.
+- `warnings: tuple[str, ...]` — non-fatal advisories from Phase C overrides (unknown parent, target outside its parent's group, target machine not in the parsed DAT). May be empty when no override produced an advisory; populated entries are sorted in canonical order.
 
 Re-running the filter on the same input produces byte-identical output (verified by `test_idempotency` and a hypothesis property test).
 
@@ -26,7 +26,7 @@ Each rule is a small predicate `(machine, ctx, config) -> bool`. Predicates are 
 | 3 | `MECHANICAL` | `machine.is_mechanical` and `config.drop_bios_devices_mechanical` |
 | 4 | `CATEGORY` | `ctx.category[name]` matches any pattern in `config.drop_categories` (fnmatch, case-sensitive) |
 | 5 | `MATURE` | `name in ctx.mature` and `config.drop_mature` (default `True`). Membership is the sole signal — `mature.ini` is the authoritative list. The `Mature*` category prefix is independent and reaches Phase A rule 4 via `drop_categories` (which by default includes `"Mature*"` per `config.example.yaml`). |
-| 6 | `JAPANESE_ONLY` | `ctx.languages[name] == ["Japanese"]` and `config.drop_japanese_only_text` |
+| 6 | `JAPANESE_ONLY` | `ctx.languages[name] == ("Japanese",)` and `config.drop_japanese_only_text` (note: `ctx.languages` is `dict[str, tuple[str, ...]]`, hence the tuple equality) |
 | 7 | `PRELIMINARY_DRIVER` | `machine.driver_status is DriverStatus.PRELIMINARY` and `config.drop_preliminary_emulation` |
 | 8 | `CHD_REQUIRED` | `name in ctx.chd_required` and `config.drop_chd_required` |
 | 9 | `GENRE` | derived genre matches any `config.drop_genres` pattern (genre = part after last `/` in category) |
@@ -203,6 +203,7 @@ The leading int is a **family rank** so different revision-encoding styles compa
 `FilterError(Exception)` base. Subclasses:
 - `OverridesError` — malformed `overrides.yaml`.
 - `SessionsError` — malformed or empty session.
+- `ReviewStateError` — malformed `data/state.yaml` (P14 per-game review state loader; see also `copy/spec.md` ActivityEventType `review_state` row).
 
 (`ConfigError` retired in FP27 — invalid `FilterConfig` values are
 surfaced via Pydantic's `ValidationError` directly; no separate typed

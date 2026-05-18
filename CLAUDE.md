@@ -49,9 +49,11 @@ parser/    ← pure, no internal deps           (P01 ✅)
 filter/    ← parser/                          (P02 ✅)
 copy/      ← parser/ + filter/                (P03 ✅)
 api/       ← all of the above                 (P04 ✅)
-media/     ← parser/                          (P05 ✅)
+media/     ← parser/                          (P05 ✅, P10 🚧)
 updates/   ← parser/ + downloads.py           (P07 ✅)
+cli/       ← parser/ + filter/ + copy/ + api/ (subcommand dispatch)
 main.py    ← wires everything together
+frontend/  ← React/Vite SPA, separate JS tree (P06 ✅, P14 ✅)
 
 (Help docs are filesystem-only — served by `api/routes/help.py` from a
 repo-root `docs/help/` directory; setup-wizard endpoints live in
