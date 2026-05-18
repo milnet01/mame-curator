@@ -23,7 +23,12 @@ def m(**kw: object) -> Machine:
     """
     name = str(kw.pop("name", "x"))
     description = str(kw.pop("description", name))
-    return Machine(name=name, description=description, **kw)
+    # `arg-type` silences the CI mypy (which sees Machine's full field
+    # types and can't prove `**kw: object` is field-compatible);
+    # `unused-ignore` lets the pre-commit isolated mypy (which can't
+    # resolve `mame_curator.parser.models` and infers `Any`) skip the
+    # arg-type check without complaining the ignore is unused.
+    return Machine(name=name, description=description, **kw)  # type: ignore[arg-type, unused-ignore]
 
 
 def make_empty_ctx() -> FilterContext:

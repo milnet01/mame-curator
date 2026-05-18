@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import cast
 
 import pytest
 
@@ -20,11 +19,12 @@ def bios_chain() -> dict[str, BIOSChainEntry]:
     ~25 consumer tests, and parsing a static fixture XML is wasted
     work to repeat per test (chunk-2 audit, 2026-05-18).
     """
-    # The `cast` is for pre-commit mypy, which runs without the
-    # source package on its path and would otherwise infer `Any` from
-    # the cross-package import; the function's actual signature is
-    # `dict[str, BIOSChainEntry]` (see `parser/listxml.py:106`).
-    return cast(dict[str, BIOSChainEntry], parse_listxml_bios_chain(FIXTURES / "listxml_bios.xml"))
+    # `no-any-return` silences the pre-commit isolated mypy (which
+    # can't resolve `mame_curator.parser.listxml` and infers `Any`
+    # from the import); `unused-ignore` lets the CI mypy (which sees
+    # the real `dict[str, BIOSChainEntry]` return) skip the
+    # no-any-return check without complaining the ignore is unused.
+    return parse_listxml_bios_chain(FIXTURES / "listxml_bios.xml")  # type: ignore[no-any-return, unused-ignore]
 
 
 @pytest.fixture(scope="module")
