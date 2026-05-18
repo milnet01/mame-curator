@@ -153,6 +153,92 @@ Do not delete revoked entries — the history is the value.
 - **Confirmed by phase:** FP19 audit-triage.
 
 
+## allowlist-008 — test-audit:`assert not event.wait(timeout=0.1/0.2)` negative-wait pattern
+
+- **Status:** active
+- **Tool / rule:** test-audit chunk-2 (2026-05-18) flagged HIGH "negative-wait timing assertion" in `tests/copy/test_controller.py:63, 83`.
+- **Location:** `tests/copy/test_controller.py:63, 83` (`assert not unblocked.wait(timeout=0.2)`, `assert not released.wait(timeout=0.1)`).
+- **Why this is a false positive:** the chunk's rationale was that a CPU-loaded CI runner could delay the worker thread's entry into `wait_if_paused()` and thus make the negative-wait return False "for the wrong reason." Analysed: when scheduling delay does occur, the worker has NOT yet set the event → `event.wait(timeout=…)` returns False → negative-wait still passes. The test's actual flake mode is in the false-pass direction (test passes even if the worker is blocked at the wrong point), not in the test-failure direction. The bug the test is designed to catch — `wait_if_paused()` failing to block when the controller is paused — would set the event during the timeout window and cause `event.wait()` to return True → negative-wait fails → bug detected. The pattern is correct as written; the chunk's HIGH rating mis-identified the failure mode.
+- **Suppression applied:** none — the test pattern itself is the correct shape for a blocking-behaviour assertion absent an explicit "worker reached `wait_if_paused()`" hook (which would require modifying the SUT for testability).
+- **Logged:** 2026-05-18
+- **Confirmed by phase:** test-audit fold-in (2026-05-18).
+
+
+## allowlist-009 — test-audit:`new Date().toISOString()` in `useCopySession.test.tsx` SSE mocks
+
+- **Status:** active
+- **Tool / rule:** grep "Determinism — wall-clock in test" pre-pass + test-audit chunk-7 (2026-05-18).
+- **Location:** `frontend/src/hooks/__tests__/useCopySession.test.tsx:144, 171, 176, 181, 207` (the `ts` field of `MockEventSource.emit(...)` event payloads).
+- **Why this is a false positive:** the `ts` field is passed to the mock as part of the SSE event envelope but is never asserted on. `useCopySession` itself only reads `msg.event` and `msg.payload` (confirmed by reading `useCopySession.ts`); the timestamp is unused state. No flake risk because the value is never compared to anything.
+- **Suppression applied:** none — the call sites are obviously inside mock-event setup, not assertions, and the chunk agent already confirms this on a per-call-site read.
+- **Logged:** 2026-05-18
+- **Confirmed by phase:** test-audit fold-in (2026-05-18).
+
+
+## allowlist-010 — test-audit:`regex.exec(...)` in `strings_loading.test.ts` + `LibraryPage_error_boundary.test.ts`
+
+- **Status:** active
+- **Tool / rule:** grep "Dangerous patterns (eval/exec)" pre-pass.
+- **Location:** `frontend/src/__tests__/strings_loading.test.ts:53`, `frontend/src/__tests__/LibraryPage_error_boundary.test.ts:42, 57`.
+- **Why this is a false positive:** these are `RegExp.prototype.exec(...)` calls, not `eval(...)` or `exec(...)` on test data. The pre-pass grep `\beval\(|\bexec\(` is over-broad. Both call-sites use `exec` on a source-code regex (`re.exec(appTsxSource)` / `openTagRe.exec(before)`) — pure string scanning, no JavaScript evaluation.
+- **Suppression applied:** none — the call-site context makes the false positive obvious to a human reader. Tightening the grep pattern to `(?<![A-Za-z_])exec\(` would still match `RegExp.prototype.exec`; the right pattern would require AST-level disambiguation.
+- **Logged:** 2026-05-18
+- **Confirmed by phase:** test-audit fold-in (2026-05-18).
+
+
+## allowlist-011 — test-audit:`@pytest.mark.parametrize(..., _COUPLED_TOOLS)` on `test_dep_pin_coupling.py:54`
+
+- **Status:** active
+- **Tool / rule:** test-audit chunk-6 (2026-05-18) flagged "collection-time file read" as part of FP04 (HIGH).
+- **Location:** `tests/docs/test_dep_pin_coupling.py:54` (the `@pytest.mark.parametrize(("tool", "repo"), _COUPLED_TOOLS)` decorator).
+- **Why this is a false positive:** `_COUPLED_TOOLS` is a module-level
+  static tuple literal (lines 28–32) — `(("ruff", "..."), ("mypy", "..."),
+  ("bandit", "..."))`. No I/O happens at parametrize-collection time. The
+  reader functions `_read_uv_lock_versions()` / `_read_precommit_revs()`
+  ARE called inside the test body (lines 57–58), which would surface a
+  named test failure on missing files — not the unhandled collection
+  exception the FP04 grouping warned about. The chunk lumped both files
+  together because both live under `tests/docs/`; the real finding
+  applied only to `test_no_pre_release_pins.py` (fixed in FP04).
+- **Suppression applied:** none — the parametrize source IS a static tuple, which is the canonical "safe at collection" pattern.
+- **Logged:** 2026-05-18
+- **Confirmed by phase:** test-audit fold-in (2026-05-18).
+
+
+## allowlist-012 — test-audit:`_seed_existing_playlist` + `_machine` 2-place in `test_fp01_fixes.py` / `test_fp02_fixes.py`
+
+- **Status:** active
+- **Tool / rule:** test-audit chunk-2/4 (2026-05-18) flagged as part of FP05 (MEDIUM) "fixture / handler dedup follow-ups".
+- **Location:** `tests/api/test_fp01_fixes.py`, `tests/api/test_fp02_fixes.py` (cited locations).
+- **Why this is a false positive:** neither file exists in the repository.
+  `find tests/api -name "test_fp01*"` and `find tests/api -name "test_fp02*"`
+  both return empty. The chunk may have hallucinated the file names from
+  the FP## phase-ID convention common elsewhere in the project (`test_fp09_fixes.py`,
+  `test_fp21_fixes.py`, etc. DO exist). There is nothing to extract.
+- **Suppression applied:** none — no source to suppress against.
+- **Logged:** 2026-05-18
+- **Confirmed by phase:** test-audit fold-in (2026-05-18).
+
+
+## allowlist-013 — test-audit:"pacman GameCard fixture 2+ copies" across frontend tests
+
+- **Status:** active
+- **Tool / rule:** test-audit chunk-7/8 (2026-05-18) flagged as part of FP05 (MEDIUM) "fixture / handler dedup follow-ups".
+- **Location:** `frontend/src/components/library/__tests__/GameCard.test.tsx` (`baseCard`
+  with `short_name: 'pacman'`) and `frontend/src/components/library/__tests__/CopyModal.test.tsx`
+  (an unrelated `conflict: { short_name: 'pacman', existing: 'pacmanf' }` shape).
+- **Why this is a false positive:** the `baseCard` `GameCardType` value in
+  `GameCard.test.tsx:9-17` appears in exactly ONE file. The `'pacman'`
+  occurrences in `CopyModal.test.tsx` are inside a `conflict` envelope on a
+  copy-job event, not a card fixture — different type, different field
+  layout, different test surface. Conflating them on the string `'pacman'`
+  is a false grouping; below the Rule-of-Three threshold either way.
+- **Suppression applied:** none — fixtures are correctly scoped to where
+  they're used; no shared-fixture extraction is warranted.
+- **Logged:** 2026-05-18
+- **Confirmed by phase:** test-audit fold-in (2026-05-18).
+
+
 ## What does NOT belong here
 
 - **Findings that are real but blocked by a missing feature.**

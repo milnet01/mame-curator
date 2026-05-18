@@ -19,9 +19,13 @@ describe('NotesEditor', () => {
     const textarea = screen.getByRole('textbox')
     await userEvent.type(textarea, 'updated note')
     textarea.blur()
-    // Wait one microtask for the blur handler.
-    await Promise.resolve()
-    expect(onSave).toHaveBeenCalledWith('updated note')
+    // Use waitFor instead of `await Promise.resolve()` so the test
+    // tolerates additional async steps in the blur handler — a future
+    // refactor that adds a setTimeout/queueMicrotask wouldn't silently
+    // pass without firing the assertion.
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith('updated note'),
+    )
   })
 
   it('does not save when the content has not changed', () => {

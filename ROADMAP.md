@@ -164,6 +164,154 @@ wave lands.
   Source: user-2026-05-08 ("ensure that we are on the latest version
   of all dependencies"); reinforces global rule § 5.
 
+### 🧪 Test Audit 2026-05-18
+
+Framework: pytest (backend) + vitest (frontend) · Files scanned: 152
+(102 backend + 50 frontend) · Dimensions: all 18 · Raw findings: 102 ·
+Actionable after triage: ~20 (top 4 fixed inline, 16 retained as
+follow-ups below) · Suite green at fold-in: 726 backend + 319 frontend
+tests at 87.78 % coverage. Allowlist gained 3 new entries (008–010)
+documenting test-audit-specific false positives.
+
+**Fixed inline (no roadmap entry needed):**
+
+- ✅ Orphaned `it()` blocks in `GameCard.test.tsx:174,188` (outside
+  `describe()`, reported as anonymous top-level tests). Hoisted into the
+  closing `})` of the parent describe.
+- ✅ `vi.useFakeTimers()` without try/finally in `FiltersSidebar.test.tsx`
+  (a failing assertion would leak fake timers into the next test).
+  Wrapped in try/finally so cleanup always runs.
+- ✅ Tautological / disjunction assertions in `test_routes_copy.py:21,65`,
+  `test_routes_curate.py:108`, `test_routes_activity.py:54,58`,
+  `test_error_quoting.py:47`, `test_routes_games.py:125` — replaced with
+  schema-anchored `and` conjunctions or `assert response.status_code in
+  (...); if 404: pytest.skip(...)`.
+- ✅ Byte-for-byte duplicate test (`test_b6_no_op_patch_preserves_filter
+  _result` in `test_fp09_fixes.py:221` duplicated
+  `test_filter_recompute_idempotent_under_no_op_patch` in
+  `test_routes_config.py:123`). Deleted the duplicate; pin bumped in
+  `test_ds05_test_count_stable.py` (and the regex now matches `async
+  def test_…` too — previously 37 async tests escaped the count guard).
+- ✅ Builder-/fixture-duplication: `m(**kw)` Machine builder (3 filter
+  test files), `_empty_ctx()` (3 files), `_raise_oserror` (2 parser
+  files), `_no_sleep` autouse fixture (2 root/updates files),
+  `renderWithClient()` (5 hook test files), `_OVER_CAP` byte constant
+  (3 filter files). All hoisted to the relevant `conftest.py` /
+  `frontend/src/test/renderWithClient.tsx`.
+- ✅ Loop-over-cases anti-patterns: `test_static_mount.py:180` (10
+  cases), `test_sessions.py:117` (3 cases). Both now use
+  `@pytest.mark.parametrize` so the first failure doesn't hide the rest.
+- ✅ Hypothesis `@settings(deadline=None)` in `test_property.py` lacked
+  `suppress_health_check=[HealthCheck.too_slow]` — added; prevents the
+  cold-CI flake mode.
+- ✅ `pytest.raises(RuntimeError)` without `match=` in
+  `test_fp28_jobs_loop_thread.py:58` — added match pattern so the test
+  fires for the right RuntimeError source.
+- ✅ Stale RED-phase docstring drift in `test_world_state_bytes_cache.py:25`
+  (claimed `@pytest.mark.xfail(strict=True)` markers exist; they
+  don't). Docstring updated to reflect GREEN status.
+- ✅ `tracemalloc` baseline pollution in `test_routes_activity.py:148` —
+  added `tracemalloc.clear_traces()` immediately before the request so
+  fixture-setup allocations don't inflate the baseline.
+- ✅ Microtask hack in `NotesEditor.test.tsx:23` (`await Promise.resolve()`
+  after `blur()`) — replaced with `await waitFor(...)`.
+- ✅ Redundant `cleanup()` calls in `no-checkbox-for-prefs.test.tsx`
+  (4 sites) — vitest `globals: true` already auto-cleans (DS04 T3.1
+  pattern); removed.
+- ✅ Dead conftest fixtures in `tests/copy/conftest.py`
+  (`machine_kof94`, `machine_sf2ce`, `make_zip` — declared, never
+  consumed). Removed; bumped `bios_chain` to module scope.
+- ✅ Parser CLI assertion strength: `test_cli_parse.py:20-22` was
+  label-only (`"bios:" in output`); fixture has known counts so changed
+  to `"bios: 1" in output`. Same file's `exit_code != 0` tightened to
+  `== 1` so argparse-2 collision can't slip past.
+
+**Retained as roadmap follow-ups:**
+
+- 📋 [mame-curator-1040] **Test-audit FP01 — fixture-scope optimisation for
+  `api/conftest.py::client`.** Verified 2026-05-18: actually **117 api
+  tests** (not 37 as the chunk reported) consume `client`/`app` across
+  19 files, totalling 169 api tests in 15.43 s locally. Microbench shows
+  `create_app + TestClient lifespan` costs **~48 ms warm (~82 ms cold)**
+  per call — `~8 s` aggregate over the suite, not the 30–60 s the chunk
+  estimated. The proposed split into `app_readonly` (session-scoped) +
+  `app` (function-scoped) is still real engineering work, but it
+  requires:
+  (1) classifying every api test as read-only vs mutation (almost every
+      non-GET route mutates `app.state.world` via `replace_world` — the
+      read-only set is narrower than the chunk implied);
+  (2) hoisting `tmp_path` → `tmp_path_factory` for the session-scoped
+      branch, plus `monkeypatch.MonkeyPatch` context for `fake_home`;
+  (3) deciding whether to snapshot+restore `app.state.world` between
+      tests (alternative to a strict read-only-only split).
+  Deferred to a dedicated phase with that classification pass up front —
+  fixing it as a one-shot fold-in risks subtle cross-test pollution. See
+  `tests/api/conftest.py` and the `app_started` fixture (added by FP06,
+  2026-05-18) as the foundation.
+  Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
+  chunk-3 (HIGH); verification 2026-05-18 fold-in.
+
+- ✅ [mame-curator-1041] **Test-audit FP02 — eliminate file-size timing
+  trick in SSE C1 test.** Closed 2026-05-18 in the FP-fold-in commit:
+  `test_c1_subscriber_after_start_sees_job_started_via_history_replay`
+  no longer writes 3-MiB fake zips. Verified that `_events_iterator`'s
+  register-then-snapshot ordering (FP21-K) plus the post-replay sentinel
+  for terminal-state jobs covers every interleaving, including "worker
+  already finished before subscriber connected." Test now runs in 0.61 s
+  (down from a `@pytest.mark.slow`-marked outlier) and the file-size
+  crutch is gone.
+  Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
+  chunk-4 (HIGH).
+
+- ✅ [mame-curator-1042] **Test-audit FP03 — SettingsPage invariant
+  coverage gap.** Closed 2026-05-18 in the FP-fold-in commit. Test no
+  longer iterates a hardcoded subset of 5 tab labels; instead it queries
+  `screen.getAllByRole('tab')` and visits every tab the page renders,
+  so a future preference landing on Paths/Snapshots/Backup/About is
+  guarded by the same invariant. Lifts the dependency on the tab-label
+  string list staying in sync with `SECTION_KEYS` in SettingsPage.tsx.
+  Kind: refactor. Lanes: frontend tests. Source: test-audit-2026-05-18
+  chunk-8 (MEDIUM).
+
+- ✅ [mame-curator-1043] **Test-audit FP04 — collection-time file reads
+  in parametrized docs tests.** Closed 2026-05-18 in the FP-fold-in
+  commit. Verified: `test_dep_pin_coupling.py:54` parametrizes over the
+  static `_COUPLED_TOOLS` tuple (no I/O) and was a false positive (now
+  in `docs/audit-allowlist.md` allowlist-011). The real finding —
+  `test_no_pre_release_pins.py::_all_pins()` reading 5 manifest files
+  at parametrize-collection time — is fixed: each reader is wrapped in
+  `try/except FileNotFoundError` and missing-file cases emit a named
+  `pytest.skip` sentinel instead of an unhandled collection-time
+  exception.
+  Kind: refactor. Lanes: backend tests, ci. Source:
+  test-audit-2026-05-18 chunk-6 (HIGH).
+
+- ✅ [mame-curator-1044] **Test-audit FP05 — fixture / handler dedup
+  follow-ups.** Closed 2026-05-18 in the FP-fold-in commit. Verified
+  the five sub-claims and extracted the two clear Rule-of-Three wins:
+  (1) `FsBrowser` sandbox-error MSW handler (5 inlined copies) →
+  `makeSandboxedListHandler(home, homeListing)` in
+  `frontend/src/test/handlers.ts`; (2) `FilterSidebarState` 11-field
+  neutral value object (4 copies across 2 files) → `baseFiltersValue`
+  in new `frontend/src/test/fixtures.ts`. Three sub-claims false-
+  positive: `test_fp01_fixes.py` / `test_fp02_fixes.py` don't exist
+  (allowlist-012); pacman GameCard fixture appears in only one file
+  (allowlist-013); `CopyPlan+JobManager+Job` setup is 2-place in a
+  single file (below Rule-of-Three).
+  Kind: refactor. Lanes: backend tests, frontend tests. Source:
+  test-audit-2026-05-18 chunks 2/4/7/8 (MEDIUM).
+
+- ✅ [mame-curator-1045] **Test-audit FP06 — `del client` antipattern
+  in api tests.** Closed 2026-05-18 in the FP-fold-in commit. New
+  `app_started` fixture in `tests/api/conftest.py` yields `app` after
+  the FastAPI lifespan has fired, without exposing an unused
+  `TestClient`. Migrated the 4 cited call-sites in `test_state.py` and
+  `test_world_state_bytes_cache.py`. The fixture is also the foundation
+  for the larger 1040 (FP01) split when that phase lands.
+  Kind: refactor. Lanes: backend tests. Source:
+  test-audit-2026-05-18 chunk-3 (MEDIUM).
+
+
 ### 🔍 Indie-review fold-in (2026-05-14)
 
 - ✅ [mame-curator-1031] **FP27 — Tier 1 review fold-in: zombie

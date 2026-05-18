@@ -101,11 +101,16 @@ def test_overrides_post_persists_to_yaml(client: Any, tmp_path: Path) -> None:
     assert detail.status_code == 200
     assert detail.json()["override"] == "pacmanf"
 
-    # Snapshot directory exists and contains the prior overrides.yaml.
+    # Snapshot endpoint returns the SnapshotsListing shape. The actual
+    # ``items`` may be empty on the very first PUT because ``snapshot_files``
+    # only writes a snapshot of the *prior* overrides.yaml — and on a fresh
+    # client there is no prior file. Shape assertion only.
     snapshots = client.get("/api/config/snapshots")
     assert snapshots.status_code == 200
     snap_list = snapshots.json()
-    assert "items" in snap_list or "snapshots" in snap_list
+    # SnapshotsListing schema (schemas.py:163) — only ``items`` is in scope.
+    assert "items" in snap_list, snap_list
+    assert isinstance(snap_list["items"], list), snap_list
 
 
 def test_sessions_crud(client: Any) -> None:

@@ -51,12 +51,17 @@ def test_activity_log_paginated(client: Any, tmp_path: Path) -> None:
 
     page1 = client.get("/api/activity?page=1&page_size=10")
     assert page1.status_code == 200
-    assert len(page1.json()["items"]) <= 10
+    page1_items = page1.json()["items"]
+    # 50 valid events written above, page_size=10 → exactly 10.
+    assert len(page1_items) == 10, f"expected 10 items on page 1, got {len(page1_items)}"
 
     filtered = client.get("/api/activity?event_type=copy_finished")
     assert filtered.status_code == 200
-    if filtered.json()["items"]:
-        assert all(e["event_type"] == "copy_finished" for e in filtered.json()["items"])
+    filtered_items = filtered.json()["items"]
+    # 25 of the 50 fixture events are copy_finished — assert non-empty before
+    # checking the type filter so a zero-items regression cannot pass silently.
+    assert len(filtered_items) >= 1, "expected at least one copy_finished event after filter"
+    assert all(e["event_type"] == "copy_finished" for e in filtered_items)
 
 
 # ---------------------------------------------------------------------------
@@ -142,6 +147,11 @@ def test_activity_route_streams_log_does_not_buffer_full_file(
 
     tracemalloc.start()
     try:
+        # Reset traces right before the request so fixture-setup
+        # allocations don't inflate the baseline. Without this clear,
+        # a heavy prior test can leave the tracemalloc state above
+        # the 1 MB threshold even if the request itself is streaming.
+        tracemalloc.clear_traces()
         response = client.get("/api/activity?page=1&page_size=20")
         _current, peak = tracemalloc.get_traced_memory()
     finally:

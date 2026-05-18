@@ -17,8 +17,9 @@ def test_route_r20_shape_dry_run(client: Any) -> None:
     )
     assert response.status_code == 200
     body = response.json()
-    for key in ("counts", "summary"):
-        assert key in body or "new" in body or "skip" in body
+    # DryRunReport schema (schemas_copy.py) — both fields are required.
+    assert "counts" in body, body
+    assert "summary" in body, body
 
 
 def test_route_r21_shape_start(client: Any) -> None:
@@ -35,21 +36,21 @@ def test_route_r21_shape_start(client: Any) -> None:
 def test_route_r22_shape_pause(client: Any) -> None:
     """R22 POST /api/copy/pause — 404 when no job running."""
     response = client.post("/api/copy/pause")
-    # No job → 404 with code job_not_found.
-    if response.status_code == 404:
-        assert response.json()["code"] == "job_not_found"
+    # Fresh client → no job → contract is 404 with code job_not_found.
+    assert response.status_code == 404, response.text
+    assert response.json()["code"] == "job_not_found"
 
 
 def test_route_r23_shape_resume(client: Any) -> None:
     response = client.post("/api/copy/resume")
-    if response.status_code == 404:
-        assert response.json()["code"] == "job_not_found"
+    assert response.status_code == 404, response.text
+    assert response.json()["code"] == "job_not_found"
 
 
 def test_route_r24_shape_abort(client: Any) -> None:
     response = client.post("/api/copy/abort", json={"recycle_partial": False})
-    if response.status_code == 404:
-        assert response.json()["code"] == "job_not_found"
+    assert response.status_code == 404, response.text
+    assert response.json()["code"] == "job_not_found"
 
 
 def test_route_r25_shape_status_no_job(client: Any) -> None:
@@ -62,7 +63,9 @@ def test_route_r26_shape_history(client: Any) -> None:
     response = client.get("/api/copy/history")
     assert response.status_code == 200
     body = response.json()
-    assert "items" in body or "page" in body
+    # HistoryListing schema (schemas_copy.py) — all four fields required.
+    for key in ("items", "page", "page_size", "total"):
+        assert key in body, f"missing {key!r} in {body!r}"
 
 
 def test_route_r27_shape_history_report_not_found(client: Any) -> None:

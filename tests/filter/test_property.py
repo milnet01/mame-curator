@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hypothesis import given, settings
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from mame_curator.filter.config import FilterConfig
@@ -30,7 +30,11 @@ short_names = st.text(
 )
 
 
-@settings(max_examples=100, deadline=None)
+@settings(
+    max_examples=100,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow],
+)
 @given(names=st.lists(short_names, min_size=1, max_size=15, unique=True))
 def test_determinism_same_input_same_output(names: list[str]) -> None:
     machines = {n: _machine(n, 1980 + i) for i, n in enumerate(names)}
@@ -39,7 +43,11 @@ def test_determinism_same_input_same_output(names: list[str]) -> None:
     assert a == b
 
 
-@settings(max_examples=50, deadline=None)
+@settings(
+    max_examples=50,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow],
+)
 @given(names=st.lists(short_names, min_size=2, max_size=10, unique=True))
 def test_idempotent(names: list[str]) -> None:
     """Re-running on the prior result's winners (as new machines) yields the same winners."""

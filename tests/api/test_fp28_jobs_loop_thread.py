@@ -55,5 +55,10 @@ async def test_job_manager_emit_raises_off_loop_thread(tmp_path: Path) -> None:
         manager._emit(fake_event)
 
     loop = asyncio.get_running_loop()
-    with pytest.raises(RuntimeError):
+    # match= pins the assertion to *which* RuntimeError fires — either the
+    # explicit comparator string (post-fix happy path) or asyncio's own
+    # "no running event loop" (pre-fix path, no comparator). Without
+    # match=, an unrelated RuntimeError could let this test pass for the
+    # wrong reason.
+    with pytest.raises(RuntimeError, match=r"manager's loop thread|no running event loop"):
         await loop.run_in_executor(None, _call_emit_off_thread)

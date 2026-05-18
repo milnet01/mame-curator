@@ -15,5 +15,24 @@ from __future__ import annotations
 # desktop hosting the test runner. `setdefault` lets a CI override
 # (e.g. QT_QPA_PLATFORM=minimal) still win.
 import os
+from typing import Any
+
+import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+
+@pytest.fixture
+def no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Replace ``mame_curator.downloads.asyncio.sleep`` with a no-op coroutine.
+
+    Tests that exercise retry-backoff paths in ``downloads.download`` (and
+    transitively ``updates.refresh_inis``) opt into this fixture so the
+    backoff sleeps don't actually wait. Not autouse — only test modules
+    that touch the retry path should request it.
+    """
+
+    async def _instant(*_args: Any, **_kwargs: Any) -> None:
+        return None
+
+    monkeypatch.setattr("mame_curator.downloads.asyncio.sleep", _instant)

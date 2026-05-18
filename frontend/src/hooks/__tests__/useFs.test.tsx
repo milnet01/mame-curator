@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
 
 import { server, http, HttpResponse } from '@/test/handlers'
+import { makeClientWrapper } from '@/test/renderWithClient'
 import { useFsGrantRoot } from '../useFs'
 
 vi.mock('sonner', () => ({
@@ -20,17 +19,7 @@ afterEach(() => {
   vi.mocked(toast.error).mockClear()
 })
 
-const renderWithClient = () => {
-  const qc = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  })
-  return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={qc}>{children}</QueryClientProvider>
-  )
-}
+const renderWithClient = makeClientWrapper
 
 describe('useFsGrantRoot onError → toast (FP13 § A3)', () => {
   it('toasts byCode-friendly copy when grant POST returns 422 fs_path_invalid', async () => {

@@ -64,14 +64,31 @@ async def test_sse_copy_progress_streams_events(app: Any, source_dir: Path) -> N
     assert "file_started" in event_types
     assert "file_progress" in event_types, "≥2 MiB fixture must emit file_progress"
     assert "file_finished" in event_types
-    # The order: every file_started precedes its matching file_finished.
+    # The invariant: every file_started precedes its matching file_finished,
+    # AND each short_name appears in both start and finish event sets.
+    # Don't lock in sequential file processing — a concurrent implementation
+    # is equally valid as long as start-before-matching-finish holds.
     file_started_shorts = [
         e["payload"]["short_name"] for e in events if e["event"] == "file_started"
     ]
     file_finished_shorts = [
         e["payload"]["short_name"] for e in events if e["event"] == "file_finished"
     ]
-    assert file_started_shorts == file_finished_shorts, "file_started/finished mis-ordered"
+    assert set(file_started_shorts) == set(file_finished_shorts), (
+        "file_started and file_finished must cover the same set of files"
+    )
+    for short in set(file_started_shorts):
+        start_idx = next(
+            i
+            for i, e in enumerate(events)
+            if e["event"] == "file_started" and e["payload"]["short_name"] == short
+        )
+        finish_idx = next(
+            i
+            for i, e in enumerate(events)
+            if e["event"] == "file_finished" and e["payload"]["short_name"] == short
+        )
+        assert start_idx < finish_idx, f"{short}: file_started must precede file_finished"
 
     # FP24-A: job_started payload keys must match the typed JobStartedPayload
     # contract (frontend api/types.ts:721-723 + JobStatus model). Earlier

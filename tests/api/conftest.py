@@ -212,3 +212,19 @@ def client(app: Any) -> Iterator[Any]:
 
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture
+def app_started(app: Any) -> Iterator[Any]:
+    """Yield ``app`` AFTER the FastAPI lifespan has run.
+
+    Some tests only want the lifespan side effect (``app.state.world``
+    populated) and never actually issue HTTP requests. Pre-FP06 these
+    requested ``client: TestClient`` and immediately ``del client`` —
+    the spelling read like a leak, not the lifespan-only contract it
+    actually was. This fixture states the intent in its name.
+    """
+    from fastapi.testclient import TestClient
+
+    with TestClient(app):
+        yield app

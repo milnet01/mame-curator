@@ -11,6 +11,7 @@ from mame_curator.parser.listxml import (
     parse_listxml_cloneof,
     parse_listxml_disks,
 )
+from tests.parser.conftest import raise_oserror as _raise_oserror
 
 
 def test_returns_machines_with_disk_elements(listxml_with_disks: Path) -> None:
@@ -36,10 +37,6 @@ def test_malformed_xml_raises(tmp_path: Path) -> None:
 
 
 # ---- FP04 — parser hardening sweep ----
-
-
-def _raise_oserror(*_args: object, **_kwargs: object) -> object:
-    raise OSError("simulated EIO during iterparse")
 
 
 @pytest.mark.parametrize(

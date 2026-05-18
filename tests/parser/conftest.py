@@ -7,6 +7,14 @@ import pytest
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
+def raise_oserror(*_args: object, **_kwargs: object) -> object:
+    """Helper for FP04 hardening tests — used via ``monkeypatch.setattr`` to
+    simulate ``OSError`` mid-iteration (EIO / file-disappeared race / perms
+    revoked between ``exists()`` and read).
+    """
+    raise OSError("simulated EIO during iterparse")
+
+
 @pytest.fixture
 def mini_dat() -> Path:
     """Path to the 6-machine mini DAT fixture."""

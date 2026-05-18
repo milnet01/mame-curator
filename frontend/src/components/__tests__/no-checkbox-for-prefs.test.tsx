@@ -10,15 +10,19 @@
  *   git grep -l "Checkbox" frontend/src/ | grep -v src/components/ui
  */
 import { describe, expect, it } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
+
+// DS04 T3.1 pattern: vitest `globals: true` enables RTL's auto-cleanup;
+// no need for manual `cleanup()` calls in this file.
 
 import { FiltersSidebar } from '../library/FiltersSidebar'
 import { LayoutSwitcher } from '../library/LayoutSwitcher'
 import { ThemeSwitcher } from '../library/ThemeSwitcher'
 import { SettingsPage } from '@/pages/SettingsPage'
 import type { AppConfigResponse } from '@/api/types'
+import { baseFiltersValue } from '@/test/fixtures'
 
 const config: AppConfigResponse = {
   paths: {
@@ -73,37 +77,22 @@ describe('no-checkbox-for-prefs invariant', () => {
   it('FiltersSidebar prefs surface uses Switch, never Checkbox', () => {
     render(
       <FiltersSidebar
-        value={{
-          search: '',
-          yearRange: [1980, 2010],
-          letter: null,
-          genre: null,
-          publisher: null,
-          developer: null,
-          onlyContested: false,
-          onlyOverridden: false,
-          onlyChdMissing: false,
-          onlyBiosMissing: false,
-          reviewState: 'all',
-        }}
+        value={baseFiltersValue}
         onChange={() => {}}
         onSaveSession={() => {}}
       />,
     )
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
-    cleanup()
   })
 
   it('LayoutSwitcher uses no Checkbox', () => {
     render(<LayoutSwitcher value="masonry" onChange={() => {}} />)
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
-    cleanup()
   })
 
   it('ThemeSwitcher uses no Checkbox', () => {
     render(<ThemeSwitcher value="dark" onChange={() => {}} />)
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
-    cleanup()
   })
 
   it('SettingsPage prefs tabs use Switch, never Checkbox', async () => {
@@ -118,14 +107,21 @@ describe('no-checkbox-for-prefs invariant', () => {
         />
       </MemoryRouter>,
     )
-    // Visit each prefs tab and verify no Checkbox shows.
-    for (const tab of ['Filters', 'Picker', 'Interface', 'Updates', 'Media']) {
-      await userEvent.click(screen.getByRole('tab', { name: tab }))
+    // Visit EVERY tab the page renders, not a hardcoded subset — test-audit
+    // FP03 (2026-05-18) flagged that the 5-tab subset would let a future
+    // checkbox-shaped preference landing on Paths/Snapshots/Backup/About
+    // slip past this invariant. Enumerating `role="tab"` at runtime keeps
+    // the test in lockstep with `SECTION_KEYS` in SettingsPage.tsx without
+    // a hand-maintained mirror.
+    const tabs = screen.getAllByRole('tab')
+    expect(tabs.length, 'SettingsPage rendered zero tabs').toBeGreaterThan(0)
+    for (const tab of tabs) {
+      const label = tab.textContent ?? '<no label>'
+      await userEvent.click(tab)
       expect(
         screen.queryAllByRole('checkbox'),
-        `Tab "${tab}" leaked a Checkbox`,
+        `Tab "${label}" leaked a Checkbox`,
       ).toHaveLength(0)
     }
-    cleanup()
   })
 })

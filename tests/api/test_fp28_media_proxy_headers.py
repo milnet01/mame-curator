@@ -26,13 +26,23 @@ _BASE = "https://raw.githubusercontent.com/libretro-thumbnails/MAME/master"
 _PACMAN_BOXART_URL = f"{_BASE}/Named_Boxarts/Pac-Man%20%28Midway%29.png"
 
 
-def test_media_proxy_emits_cache_control_header(client: Any) -> None:
-    """30-day immutable Cache-Control on successful proxy hits."""
+def _proxy_boxart(client: Any) -> Any:
+    """Mock the libretro upstream, GET ``/media/pacman/boxart``, return response.
+
+    Extracted helper — both tests below need the same mock+request setup,
+    differing only in which response header they assert. Returns the
+    ``client.get`` response (TestClient ``Response``, which is httpx-shaped
+    but typed as ``Any`` because Starlette's ``TestClient.get`` is ``Any``-typed).
+    """
     body = b"\x89PNG\r\n\x1a\n" + b"cached-image-bytes"
     with respx.mock(assert_all_called=False) as mock:
         mock.get(_PACMAN_BOXART_URL).mock(return_value=httpx.Response(200, content=body))
-        response = client.get("/media/pacman/boxart")
+        return client.get("/media/pacman/boxart")
 
+
+def test_media_proxy_emits_cache_control_header(client: Any) -> None:
+    """30-day immutable Cache-Control on successful proxy hits."""
+    response = _proxy_boxart(client)
     assert response.status_code == 200, response.text
     assert response.headers["Cache-Control"] == "public, max-age=2592000, immutable", (
         f"FP28 C2 — expected 30-day immutable Cache-Control, got "
@@ -56,11 +66,7 @@ def test_media_proxy_content_type_matches_cache_suffix(client: Any) -> None:
     """
     import mimetypes
 
-    body = b"\x89PNG\r\n\x1a\n" + b"cached-image-bytes"
-    with respx.mock(assert_all_called=False) as mock:
-        mock.get(_PACMAN_BOXART_URL).mock(return_value=httpx.Response(200, content=body))
-        response = client.get("/media/pacman/boxart")
-
+    response = _proxy_boxart(client)
     assert response.status_code == 200, response.text
     expected, _ = mimetypes.guess_type("dummy.png")
     assert response.headers["content-type"] == expected, (

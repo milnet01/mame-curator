@@ -6,13 +6,7 @@ from mame_curator.filter.config import FilterConfig
 from mame_curator.filter.drops import drop_reason
 from mame_curator.filter.types import DroppedReason, FilterContext
 from mame_curator.parser.models import DriverStatus, Machine
-
-
-def m(**kw: object) -> Machine:
-    """Minimal Machine builder; description defaults to name."""
-    name = str(kw.pop("name", "x"))
-    description = str(kw.pop("description", name))
-    return Machine(name=name, description=description, **kw)  # type: ignore[arg-type]
+from tests.filter.conftest import m
 
 
 def test_bios_dropped() -> None:

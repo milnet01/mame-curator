@@ -1,9 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
-import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { server, http, HttpResponse } from '@/test/handlers'
+import { renderWithClient as _renderWithClient } from '@/test/renderWithClient'
 import { useReviewStateClear, useReviewStateSet } from '../useReviewState'
 
 vi.mock('sonner', () => ({
@@ -17,20 +16,10 @@ afterEach(() => {
 })
 
 const renderWithClient = () => {
-  const qc = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  })
+  const { qc, wrapper } = _renderWithClient()
   // Seed the cache so onMutate can capture `prev`.
   qc.setQueryData(['reviewState'], { entries: {} })
-  return {
-    qc,
-    wrapper: ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={qc}>{children}</QueryClientProvider>
-    ),
-  }
+  return { qc, wrapper }
 }
 
 describe('useReviewStateSet — optimistic update', () => {

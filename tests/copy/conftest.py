@@ -2,61 +2,29 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 import pytest
 
 from mame_curator.parser.listxml import BIOSChainEntry, parse_listxml_bios_chain
-from mame_curator.parser.models import Machine
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def bios_chain() -> dict[str, BIOSChainEntry]:
-    """Parsed BIOS chain map from the fixture listxml."""
-    return parse_listxml_bios_chain(FIXTURES / "listxml_bios.xml")
+    """Parsed BIOS chain map from the fixture listxml.
 
-
-@pytest.fixture
-def machine_kof94() -> Machine:
-    return Machine(
-        name="kof94",
-        description="The King of Fighters '94 (Set 1)",
-        is_bios=False,
-        is_device=False,
-        is_mechanical=False,
-        runnable=True,
-    )
-
-
-@pytest.fixture
-def machine_sf2ce() -> Machine:
-    return Machine(
-        name="sf2ce",
-        description="Street Fighter II' - Champion Edition (World 920313)",
-        is_bios=False,
-        is_device=False,
-        is_mechanical=False,
-        runnable=True,
-    )
-
-
-@pytest.fixture
-def make_zip(tmp_path: Path) -> Callable[..., Path]:
-    """Factory: create a fake zip file with given content; returns the Path."""
-
-    def _make(
-        name: str, content: bytes = b"PK\x05\x06" + b"\0" * 18, in_dir: Path | None = None
-    ) -> Path:
-        target_dir = in_dir or tmp_path
-        target_dir.mkdir(parents=True, exist_ok=True)
-        path = target_dir / name
-        path.write_bytes(content)
-        return path
-
-    return _make
+    Module-scoped: the parsed result is treated as read-only by all
+    ~25 consumer tests, and parsing a static fixture XML is wasted
+    work to repeat per test (chunk-2 audit, 2026-05-18).
+    """
+    # The `cast` is for pre-commit mypy, which runs without the
+    # source package on its path and would otherwise infer `Any` from
+    # the cross-package import; the function's actual signature is
+    # `dict[str, BIOSChainEntry]` (see `parser/listxml.py:106`).
+    return cast(dict[str, BIOSChainEntry], parse_listxml_bios_chain(FIXTURES / "listxml_bios.xml"))
 
 
 @pytest.fixture(scope="module")

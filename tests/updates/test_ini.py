@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import httpx
 import pytest
@@ -12,14 +11,10 @@ import respx
 from mame_curator.updates import refresh_inis
 
 
+# Autouse the shared ``no_sleep`` fixture from tests/conftest.py.
 @pytest.fixture(autouse=True)
-def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Replace ``asyncio.sleep`` so retry-path tests don't actually wait."""
-
-    async def _instant(*_a: Any, **_kw: Any) -> None:
-        return None
-
-    monkeypatch.setattr("mame_curator.downloads.asyncio.sleep", _instant)
+def _no_sleep(no_sleep: None) -> None:
+    pass
 
 
 @pytest.mark.asyncio

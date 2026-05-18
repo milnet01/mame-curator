@@ -218,16 +218,10 @@ def test_b6_notes_only_skips_recompute(app: Any, monkeypatch: Any) -> None:
         )
 
 
-def test_b6_no_op_patch_preserves_filter_result(client: Any) -> None:
-    """B6 — A no-op PATCH (empty body) must yield identical games listing.
-
-    Was P01 (xfailed); FP09 closes it.
-    """
-    pre = client.get("/api/games").json()
-    response = client.patch("/api/config", json={})
-    assert response.status_code == 200
-    post = client.get("/api/games").json()
-    assert post == pre, "B6: no-op PATCH must not change games listing"
+# NOTE: B6's "no-op PATCH yields identical games listing" assertion moved to
+# `tests/api/test_routes_config.py::test_filter_recompute_idempotent_under_no_op_patch`
+# (canonical location since P01 closed). FP09 deletion avoids byte-for-byte
+# duplicate.
 
 
 # ---- B7 — fs_list parent escapes sandbox ------------------------------------
@@ -325,14 +319,14 @@ def test_c1_subscriber_after_start_sees_job_started_via_history_replay(
 
     Pins the JobManager § Multi-subscriber fan-out contract: history-replay
     covers the gap between `start()` returning and the SSE handler
-    subscribing.
+    subscribing. The earlier version of this test inflated source files to
+    3 MiB each to keep the worker running until the subscriber connected;
+    that was a timing crutch (test-audit FP02 2026-05-18). Replay covers
+    every interleaving — including "worker already terminated" — because
+    ``_events_iterator`` snapshots ``lifecycle_history`` after adding the
+    subscriber (or pushes a sentinel post-replay when state is terminal).
+    The conftest source-dir already writes tiny zips; nothing else needed.
     """
-    # Make source files large enough that the worker doesn't terminate before
-    # the subscriber connects.
-    for short in ("pacman", "neogeo", "pacmanf"):
-        zip_path = source_dir / f"{short}.zip"
-        zip_path.write_bytes(b"PK\x05\x06" + b"\0" * (3 * 1024 * 1024))
-
     import asyncio
 
     import httpx

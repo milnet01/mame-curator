@@ -15,6 +15,7 @@ import pytest
 
 from mame_curator.parser.dat import parse_dat
 from mame_curator.parser.errors import DATError
+from tests.parser.conftest import raise_oserror as _raise_oserror
 
 
 def test_duplicate_machine_names_raise(tmp_path: Path) -> None:
@@ -237,10 +238,6 @@ def test_zip_oserror_raises_DATError(tmp_path: Path) -> None:
     bad.mkdir()
     with pytest.raises(DATError, match="open DAT zip"):
         parse_dat(bad)
-
-
-def _raise_oserror(*_args: object, **_kwargs: object) -> object:
-    raise OSError("simulated EIO during iterparse")
 
 
 def test_iterparse_oserror_raises_DATError(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

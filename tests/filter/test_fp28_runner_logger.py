@@ -27,8 +27,8 @@ from mame_curator.filter.config import FilterConfig
 from mame_curator.filter.overrides import Overrides
 from mame_curator.filter.runner import run_filter
 from mame_curator.filter.sessions import Sessions
-from mame_curator.filter.types import FilterContext
 from mame_curator.parser.models import Machine
+from tests.filter.conftest import make_empty_ctx as _empty_ctx
 
 LOGGER_NAME = "mame_curator.filter.runner"
 
@@ -51,15 +51,6 @@ def _make_machine(name: str) -> Machine:
         biossets=(),
         driver_status=None,
         sample_of=None,
-    )
-
-
-def _empty_ctx() -> FilterContext:
-    return FilterContext(
-        cloneof_map={},
-        category={},
-        chd_required=frozenset(),
-        mature=frozenset(),
     )
 
 

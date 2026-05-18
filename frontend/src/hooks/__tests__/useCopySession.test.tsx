@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
 
 import { server, http, HttpResponse } from '@/test/handlers'
+import { makeClientWrapper } from '@/test/renderWithClient'
 import { useCopySession } from '../useCopySession'
 
 // ---------------------------------------------------------------------------
@@ -101,17 +100,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function renderWithClient() {
-  const qc = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  })
-  return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={qc}>{children}</QueryClientProvider>
-  )
-}
+const renderWithClient = makeClientWrapper
 
 // ---------------------------------------------------------------------------
 // Tests

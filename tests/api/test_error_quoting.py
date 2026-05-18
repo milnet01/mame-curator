@@ -44,4 +44,8 @@ def test_session_name_validation_quotes_input(client: Any) -> None:
     )
     assert response.status_code == 422
     detail = response.json()["detail"]
+    # The input must appear in the detail (proves we interpolated it at all),
+    # AND the raw LF must be escaped (proves repr-quoting happened, not
+    # input-stripping). Either omission would silently turn this guard off.
     assert "\n" not in detail, "session-name validation must repr-quote input"
+    assert "bad\\nname" in detail or "'bad\\nname'" in detail, detail

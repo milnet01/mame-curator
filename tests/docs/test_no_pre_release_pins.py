@@ -72,13 +72,33 @@ def _gitleaks_env_pins() -> list[tuple[str, str]]:
     return pins
 
 
+_MISSING_FILE_SENTINEL = "__missing__:"
+
+
 def _all_pins() -> list[tuple[str, str]]:
-    return _python_pins() + _frontend_pins() + _precommit_pins() + _gitleaks_env_pins()
+    """Collect every pin string across the five manifests.
+
+    Each reader is wrapped in ``try`` so a stripped CI image (where one of
+    the workflow files is missing, say, because the runner is a docs-only
+    job) emits a named skip-entry instead of an unhandled collection-time
+    exception (test-audit FP04, 2026-05-18).
+    """
+    pins: list[tuple[str, str]] = []
+    for reader in (_python_pins, _frontend_pins, _precommit_pins, _gitleaks_env_pins):
+        try:
+            pins.extend(reader())
+        except FileNotFoundError as exc:
+            # Sentinel entry: the test below converts these to pytest.skip
+            # so the missing file shows up by name in the test report.
+            pins.append((f"{_MISSING_FILE_SENTINEL}{reader.__name__}", str(exc)))
+    return pins
 
 
 @pytest.mark.parametrize(("label", "value"), _all_pins())
 def test_pin_is_not_pre_release(label: str, value: str) -> None:
     """No pin string carries a PEP 440 / npm pre-release suffix."""
+    if label.startswith(_MISSING_FILE_SENTINEL):
+        pytest.skip(f"manifest reader skipped: {label[len(_MISSING_FILE_SENTINEL) :]} → {value}")
     match = _PRE_RELEASE_RE.search(value)
     assert match is None, (
         f"{label} appears to pin a pre-release ({match.group(0)!r}). "

@@ -1,25 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
 
 import { server, http, HttpResponse } from '@/test/handlers'
+import { makeClientWrapper } from '@/test/renderWithClient'
 import { useValidateCart } from '@/hooks/useValidateCart'
 
 // DS04 T3.1: removed redundant `afterEach(() => cleanup())` — vitest
 // `globals: true` enables RTL's auto-cleanup.
 
-const renderWithClient = () => {
-  const qc = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  })
-  return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={qc}>{children}</QueryClientProvider>
-  )
-}
+const renderWithClient = makeClientWrapper
 
 const REAL = new Set(['pacman', 'pacmanf', '1942'])
 

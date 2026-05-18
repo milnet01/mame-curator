@@ -10,12 +10,7 @@ from mame_curator.filter.runner import run_filter
 from mame_curator.filter.sessions import Session, Sessions
 from mame_curator.filter.types import DroppedReason, FilterContext
 from mame_curator.parser.models import DriverStatus, Machine
-
-
-def m(**kw: object) -> Machine:
-    name = str(kw.pop("name", "x"))
-    description = str(kw.pop("description", name))
-    return Machine(name=name, description=description, **kw)  # type: ignore[arg-type, unused-ignore]
+from tests.filter.conftest import m
 
 
 @pytest.fixture

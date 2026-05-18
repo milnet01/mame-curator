@@ -105,29 +105,37 @@ def test_sessions_oversized_yaml_rejected(tmp_path: Path) -> None:
 
     DS04 T2.16: the cap fires on byte length *before* parse, so a
     cheap just-over-1-MiB byte payload triggers the same code path
-    as the prior 2 MB valid-YAML string at half the I/O. Same
-    pattern as ``tests/filter/test_io.py:16``'s ``_OVER_CAP``.
+    as the prior 2 MB valid-YAML string at half the I/O. The byte
+    constant lives in ``tests/filter/conftest.py`` (``OVER_CAP``).
     """
+    from tests.filter.conftest import OVER_CAP
+
     f = tmp_path / "huge.yaml"
-    f.write_bytes(b"0" * (1024 * 1024 + 1))  # > 1 MiB
+    f.write_bytes(OVER_CAP)
     with pytest.raises(SessionsError):
         load_sessions(f)
 
 
-def test_sessions_top_level_sessions_key_falsy_rejects(tmp_path: Path) -> None:
-    """C4 — explicit-None semantics: `sessions: null` is the legitimate empty
-    default; `sessions: 0`, `sessions: ""`, `sessions: []` are malformed and
-    must raise. Currently `or {}` silently coerces all four to an empty map."""
-    cases = [
+@pytest.mark.parametrize(
+    "payload",
+    [
         "active: null\nsessions: 0\n",
         "active: null\nsessions: ''\n",
         "active: null\nsessions: []\n",
-    ]
-    for i, payload in enumerate(cases):
-        f = tmp_path / f"falsy_{i}.yaml"
-        f.write_text(payload)
-        with pytest.raises(SessionsError):
-            load_sessions(f)
+    ],
+    ids=["sessions=0", "sessions=''", "sessions=[]"],
+)
+def test_sessions_top_level_sessions_key_falsy_rejects(tmp_path: Path, payload: str) -> None:
+    """C4 — explicit-None semantics: `sessions: null` is the legitimate empty
+    default; `sessions: 0`, `sessions: ""`, `sessions: []` are malformed and
+    must raise. Currently `or {}` silently coerces all four to an empty map.
+
+    Parametrized so the first failure doesn't hide the rest.
+    """
+    f = tmp_path / "falsy.yaml"
+    f.write_text(payload)
+    with pytest.raises(SessionsError):
+        load_sessions(f)
 
 
 def test_sessions_null_active_and_null_sessions_ok(tmp_path: Path) -> None:

@@ -5,13 +5,8 @@ from __future__ import annotations
 from mame_curator.filter.config import FilterConfig
 from mame_curator.filter.picker import explain_pick, pick_winner
 from mame_curator.filter.types import FilterContext
-from mame_curator.parser.models import DriverStatus, Machine
-
-
-def m(**kw: object) -> Machine:
-    name = str(kw.pop("name", "x"))
-    description = str(kw.pop("description", name))
-    return Machine(name=name, description=description, **kw)  # type: ignore[arg-type, unused-ignore]
+from mame_curator.parser.models import DriverStatus
+from tests.filter.conftest import m
 
 
 def test_tier_tiebreaker_wins() -> None:

@@ -7,15 +7,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi.testclient import TestClient
-
 from mame_curator.api.state import replace_world
 from mame_curator.filter import ReviewState, ReviewStateValue
 
 
-def test_replace_world_review_state_param_passes_through_field(
-    client: TestClient, app: Any
-) -> None:
+def test_replace_world_review_state_param_passes_through_field(app_started: Any) -> None:
     """P14 INV-4 — ``replace_world(review_state=...)`` is a passive swap.
 
     The returned world's ``review_state`` reflects the new value, AND
@@ -23,9 +19,7 @@ def test_replace_world_review_state_param_passes_through_field(
     state does NOT gate machine eligibility, so the filter never
     needs to re-run for a review-state-only swap.
     """
-    # `client` triggers FastAPI lifespan that attaches `world` to `app.state`.
-    del client
-    base = app.state.world
+    base = app_started.state.world
     new_state = ReviewState.model_validate({"entries": {"pacman": ReviewStateValue.REVIEWED}})
 
     new_world = replace_world(base=base, review_state=new_state)
@@ -38,10 +32,9 @@ def test_replace_world_review_state_param_passes_through_field(
     assert new_world.filter_result is base.filter_result
 
 
-def test_replace_world_review_state_default_preserves_base(client: TestClient, app: Any) -> None:
+def test_replace_world_review_state_default_preserves_base(app_started: Any) -> None:
     """Omitting ``review_state`` carries through the existing field unchanged."""
-    del client
-    base = app.state.world
+    base = app_started.state.world
 
     # Other-input swap (notes-only) must not lose the review state.
     new_world = replace_world(base=base, notes={"pacman": "yum"})

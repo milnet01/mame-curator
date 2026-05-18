@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { FsBrowser } from '../FsBrowser'
 import { strings } from '@/strings'
-import { server, http, HttpResponse } from '@/test/handlers'
+import { server, http, HttpResponse, makeSandboxedListHandler } from '@/test/handlers'
 
 // DS04 T3.1: removed redundant `afterEach(() => cleanup())` — vitest
 // `globals: true` enables RTL's auto-cleanup.
@@ -152,20 +152,7 @@ describe('FsBrowser (FP12 § G)', () => {
   })
 
   it('surfaces a grant prompt when listing returns fs_sandboxed', async () => {
-    server.use(
-      http.get('/api/fs/list', ({ request }) => {
-        const path = new URL(request.url).searchParams.get('path')
-        if (path === HOME) return HttpResponse.json(homeListing)
-        return HttpResponse.json(
-          {
-            code: 'fs_sandboxed',
-            detail: `${path} outside allowlist`,
-            fields: [],
-          },
-          { status: 403 },
-        )
-      }),
-    )
+    server.use(makeSandboxedListHandler(HOME, homeListing))
     renderWithClient(
       <FsBrowser
         open
@@ -226,20 +213,7 @@ describe('FsBrowser (FP12 § G)', () => {
      * FP13 § C2 behaviour (cancelling the grant closes FsBrowser) is
      * preserved by the AlertDialog's own onOpenChange.
      */
-    server.use(
-      http.get('/api/fs/list', ({ request }) => {
-        const path = new URL(request.url).searchParams.get('path')
-        if (path === HOME) return HttpResponse.json(homeListing)
-        return HttpResponse.json(
-          {
-            code: 'fs_sandboxed',
-            detail: `${path} outside allowlist`,
-            fields: [],
-          },
-          { status: 403 },
-        )
-      }),
-    )
+    server.use(makeSandboxedListHandler(HOME, homeListing))
     renderWithClient(
       <FsBrowser
         open
@@ -262,20 +236,7 @@ describe('FsBrowser (FP12 § G)', () => {
 
   it('closes the modal when the grant prompt is cancelled (FP13 § C2)', async () => {
     const onOpenChange = vi.fn()
-    server.use(
-      http.get('/api/fs/list', ({ request }) => {
-        const path = new URL(request.url).searchParams.get('path')
-        if (path === HOME) return HttpResponse.json(homeListing)
-        return HttpResponse.json(
-          {
-            code: 'fs_sandboxed',
-            detail: `${path} outside allowlist`,
-            fields: [],
-          },
-          { status: 403 },
-        )
-      }),
-    )
+    server.use(makeSandboxedListHandler(HOME, homeListing))
     renderWithClient(
       <FsBrowser
         open
@@ -312,18 +273,7 @@ describe('FsBrowser (FP12 § G)', () => {
   it('POSTs a grant when the prompt is confirmed', async () => {
     let granted: string | null = null
     server.use(
-      http.get('/api/fs/list', ({ request }) => {
-        const path = new URL(request.url).searchParams.get('path')
-        if (path === HOME) return HttpResponse.json(homeListing)
-        return HttpResponse.json(
-          {
-            code: 'fs_sandboxed',
-            detail: `${path} outside allowlist`,
-            fields: [],
-          },
-          { status: 403 },
-        )
-      }),
+      makeSandboxedListHandler(HOME, homeListing),
       http.post('/api/fs/allowed-roots', async ({ request }) => {
         const body = (await request.json()) as { path: string }
         granted = body.path

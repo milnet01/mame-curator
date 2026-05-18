@@ -22,9 +22,9 @@ Test contract:
 4. `GET /api/games` reports the same ``total_bytes`` post-refactor —
    purely a caching change, no behaviour delta.
 
-RED markers: each test carries `@pytest.mark.xfail(strict=True)` so
-the pre-commit `pytest-fast` hook passes during the RED phase. Step 4
-implementation drops each marker as its assertion becomes GREEN.
+Status: GREEN since DS02 G2 Step 4 landed. The RED-phase
+``@pytest.mark.xfail(strict=True)`` markers were removed when each
+assertion went green and have not returned. Live regression-lock tests.
 """
 
 from __future__ import annotations
@@ -38,13 +38,9 @@ def _expected_bytes(machine: Any) -> int:
     return sum((r.size or 0) for r in machine.roms)
 
 
-def test_world_state_exposes_bytes_by_machine(client: TestClient, app: Any) -> None:
+def test_world_state_exposes_bytes_by_machine(app_started: Any) -> None:
     """The world state must carry a `bytes_by_machine` mapping."""
-    # `client` is required so the TestClient context manager fires the
-    # FastAPI lifespan that builds WorldState; without it `app.state.world`
-    # never gets attached.
-    del client
-    world = app.state.world
+    world = app_started.state.world
     assert hasattr(world, "bytes_by_machine"), (
         "WorldState is missing `bytes_by_machine`; "
         "DS02 G2 adds this precomputed mapping to drop the per-request "
@@ -57,10 +53,9 @@ def test_world_state_exposes_bytes_by_machine(client: TestClient, app: Any) -> N
     assert len(bbm) > 0
 
 
-def test_bytes_by_machine_matches_sum_over_roms(client: TestClient, app: Any) -> None:
+def test_bytes_by_machine_matches_sum_over_roms(app_started: Any) -> None:
     """Every machine's cache entry equals the live recompute."""
-    del client  # see test_world_state_exposes_bytes_by_machine for rationale
-    world = app.state.world
+    world = app_started.state.world
     bbm = world.bytes_by_machine
     mismatches: list[str] = []
     for short, machine in world.machines.items():

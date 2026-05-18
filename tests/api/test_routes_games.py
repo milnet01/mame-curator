@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 # ---- Per-route shape tests (R01–R07) ----------------------------------------
 
 
@@ -120,10 +122,12 @@ def test_explanation_returns_chain(client: Any) -> None:
 
     # A machine that's solo in its group → hits=()
     # neogeo is a BIOS so it should be filtered out before Phase B; instead
-    # check for "brokensim" which is solo (preliminary, but if it survived).
+    # check for "3bagfull" which is solo (mechanical — may be filtered).
     solo = client.get("/api/games/3bagfull/explanation")
-    if solo.status_code == 200:
-        assert solo.json()["hits"] == []
+    assert solo.status_code in (200, 404), solo.text
+    if solo.status_code == 404:
+        pytest.skip("3bagfull filtered out of mini DAT — solo-hits invariant uncoverable here")
+    assert solo.json()["hits"] == []
 
 
 def test_stats_aggregations(client: Any) -> None:

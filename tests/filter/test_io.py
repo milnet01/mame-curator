@@ -12,8 +12,7 @@ from pathlib import Path
 import pytest
 
 from mame_curator.filter._io import read_capped_text
-
-_OVER_CAP = b"0" * (1024 * 1024 + 1)  # > 1 MiB
+from tests.filter.conftest import OVER_CAP as _OVER_CAP
 
 
 def test_read_capped_text_path_with_newline_in_error_is_quoted(tmp_path: Path) -> None:

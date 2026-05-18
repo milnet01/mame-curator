@@ -31,7 +31,6 @@ from mame_curator.filter.errors import FilterError, SessionsError
 from mame_curator.filter.overrides import Overrides
 from mame_curator.filter.runner import run_filter
 from mame_curator.filter.sessions import Session, Sessions
-from mame_curator.filter.types import FilterContext
 
 
 def test_apply_session_raises_typed_error_on_stale_active() -> None:
@@ -46,12 +45,9 @@ def test_apply_session_raises_typed_error_on_stale_active() -> None:
     assert stale.active == "real"
     assert stale.sessions == {}
 
-    ctx = FilterContext(
-        cloneof_map={},
-        category={},
-        chd_required=frozenset(),
-        mature=frozenset(),
-    )
+    from tests.filter.conftest import make_empty_ctx
+
+    ctx = make_empty_ctx()
 
     with pytest.raises(SessionsError) as excinfo:
         run_filter({}, ctx, FilterConfig(), Overrides(), stale)

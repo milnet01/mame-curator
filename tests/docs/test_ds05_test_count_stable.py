@@ -60,7 +60,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # isinstance / ClassVars pin); the 5th test (`test_libretro_source_prepare_is_noop`)
 # is async (`async def`) and so doesn't match the `^def test_` regex.
 # 540 → 544.
-EXPECTED_PYTEST_DECLARATIONS = 544
+# Bumped 2026-05-18 (test-audit fold-in): regex now also matches
+# `async def test_…` declarations so silently-dropped async tests
+# trigger the guard (37 async tests previously uncounted). One
+# regression-pin test (`test_b6_no_op_patch_preserves_filter_result`
+# in test_fp09_fixes.py) was deleted as a byte-for-byte duplicate of
+# `test_filter_recompute_idempotent_under_no_op_patch` in
+# test_routes_config.py — see commit body for the rationale.
+# Net: 544 - 1 (delete) + 37 (newly counted async tests) = 580.
+EXPECTED_PYTEST_DECLARATIONS = 580
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -77,7 +85,9 @@ EXPECTED_PYTEST_DECLARATIONS = 544
 # the two fields). 300 → 304.
 EXPECTED_VITEST_DECLARATIONS = 304
 
-_PYTEST_DEF_RE = re.compile(r"^def test_", re.MULTILINE)
+# Match both ``def test_…`` and ``async def test_…`` so async tests can't
+# be silently dropped by a typo'd import without firing this guard.
+_PYTEST_DEF_RE = re.compile(r"^(?:async\s+)?def test_", re.MULTILINE)
 _VITEST_IT_RE = re.compile(r"^\s*it\s*\(", re.MULTILINE)
 
 

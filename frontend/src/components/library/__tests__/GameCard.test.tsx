@@ -167,7 +167,6 @@ describe('GameCard +Add', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pac-Man (Midway)' }))
     expect(onOpen).toHaveBeenCalled()
   })
-})
 
   // ---- P14 — review-state badge (chunk 10) -------------------------------
 
@@ -207,3 +206,4 @@ describe('GameCard +Add', () => {
       expect(badge.querySelector('svg')).toHaveClass(tint)
     },
   )
+})
