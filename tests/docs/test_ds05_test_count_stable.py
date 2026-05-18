@@ -68,7 +68,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # `test_filter_recompute_idempotent_under_no_op_patch` in
 # test_routes_config.py — see commit body for the rationale.
 # Net: 544 - 1 (delete) + 37 (newly counted async tests) = 580.
-EXPECTED_PYTEST_DECLARATIONS = 580
+# Bumped 2026-05-18 (P10 chunk 3a): +9 declarations in
+# tests/updates/test_snaps.py covering discovery, download, extraction,
+# disk-space gate, force/no-force overwrite, url override, non-PNG skip,
+# and the PACK_URL_PATTERN regression-lock. 580 → 589.
+EXPECTED_PYTEST_DECLARATIONS = 589
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

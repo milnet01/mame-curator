@@ -6,6 +6,8 @@ Subcommands (added incrementally as phases land):
     copy <args>        — copy winners + BIOS deps and write mame.lpl (Phase 3)
     serve <args>       — run the HTTP API server (Phase 4)
     setup <args>       — interactive bootstrap wizard for config.yaml
+    refresh-inis <args>  — download progettoSnaps reference INIs (P07)
+    refresh-snaps <args> — download + extract progettoSnaps snap pack (P10 3a)
 """
 
 from __future__ import annotations
@@ -27,6 +29,7 @@ from mame_curator.cli.commands.copy import _cmd_copy as _cmd_copy
 from mame_curator.cli.commands.filter import _cmd_filter as _cmd_filter
 from mame_curator.cli.commands.parse import _cmd_parse as _cmd_parse
 from mame_curator.cli.commands.refresh_inis import _cmd_refresh_inis as _cmd_refresh_inis
+from mame_curator.cli.commands.refresh_snaps import _cmd_refresh_snaps as _cmd_refresh_snaps
 from mame_curator.cli.commands.serve import _cmd_serve as _cmd_serve
 from mame_curator.cli.commands.setup import _cmd_setup as _cmd_setup
 
@@ -156,6 +159,36 @@ def build_parser() -> argparse.ArgumentParser:
         help="Don't auto-patch config.yaml.",
     )
     refresh.set_defaults(func=_cmd_refresh_inis)
+
+    refresh_snaps = sub.add_parser(
+        "refresh-snaps",
+        help=(
+            "Download the progettoSnaps snap pack and extract PNGs into "
+            "<dest>/snap/ (snap kind only — progettoSnaps no longer "
+            "publishes flyers / titles upstream)."
+        ),
+    )
+    refresh_snaps.add_argument(
+        "--dest",
+        type=Path,
+        default=Path("./data/snaps"),
+        help="Destination root (the pack lands under <dest>/snap/). Default: ./data/snaps",
+    )
+    refresh_snaps.add_argument(
+        "--url",
+        type=str,
+        default=None,
+        help=(
+            "Override the discovered pack URL. Use this if upstream restructures "
+            "or you want to pin an older MAME version."
+        ),
+    )
+    refresh_snaps.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing PNG files in <dest>/snap/ (default: skip).",
+    )
+    refresh_snaps.set_defaults(func=_cmd_refresh_snaps)
 
     sub_serve = sub.add_parser("serve", help="Run the HTTP API server.")
     sub_serve.add_argument("--host", default=None, help="Bind address (overrides config).")
