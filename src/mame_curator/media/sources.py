@@ -1,9 +1,11 @@
 """Media-source protocol + concrete implementations for the P10 fallback chain.
 
 Per ``docs/specs/P10.md`` § "Public API" + § "Source contracts". Chunk 2
-lands only the protocol, the ``Kind`` literal, and ``LibretroSource``
-(the P05 baseline carried under the new shape). Later chunks add
-``ProgettoSnapsSource``, ``ArcadeDBSource``, ``WikipediaImageSource``,
+lands the protocol, the ``Kind`` literal, and ``LibretroSource`` (the
+P05 baseline carried under the new shape). Chunk 3b adds
+``ProgettoSnapsSource`` (file:// model, snap kind only — upstream no
+longer publishes flyers / titles; see 2026-05-18 spec amendment).
+Later chunks add ``ArcadeDBSource``, ``WikipediaImageSource``,
 ``MobyGamesSource``.
 
 Every concrete source implements two methods:
@@ -24,6 +26,7 @@ ever attempting a fetch.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import ClassVar, Literal, Protocol, runtime_checkable
 
 import httpx
@@ -107,3 +110,90 @@ class LibretroSource:
         # by construction (P05 spec). ``Kind`` is the exact same set.
         url: str = getattr(urls, kind)
         return url
+
+
+# P10 chunk 3b — progettoSnaps local-pack source. Snap kind only; flyers
+# and titles aren't published upstream anymore (see 2026-05-18 spec
+# amendment in ``docs/specs/P10.md`` § "1. progettoSnaps — local pack
+# model"). The pack is downloaded by ``mame-curator refresh-snaps``
+# (chunk 3a) into ``<dest>/snap/<name>.png``.
+
+
+class ProgettoSnapsSource:
+    """Serves progettoSnaps snap PNGs from a local pack directory.
+
+    Never hits the network; ``prepare`` is a no-op. ``url_for`` returns a
+    ``file://`` URL when ``<snap_dir>/<machine.name>.png`` exists, else
+    ``None``. The orchestrator's ``file://`` short-circuit (P10 spec §
+    "Orchestrator amendment") returns the path directly without routing
+    through ``fetch_with_cache`` (whose ``_ALLOWED_URL_SCHEMES`` guard
+    rejects ``file://`` by design).
+
+    ``disabled_reason`` is set at construction if ``snap_dir`` doesn't
+    exist or is empty — the registry filters disabled sources out of the
+    chain, and the readiness endpoint surfaces the reason to the UI as
+    a prompt to run ``mame-curator refresh-snaps``.
+
+    Existence checks against per-machine PNGs are cached on the instance
+    so repeated ``url_for`` calls within one request don't ``stat()``
+    repeatedly. Cache lifetime matches the per-request source-instance
+    model (see § Architecture notes).
+    """
+
+    name: ClassVar[str] = "progettoSnaps"
+    license_compatible: ClassVar[bool] = True
+    kinds: ClassVar[frozenset[Kind]] = frozenset({"snap"})
+
+    _DISABLED_REASON = (
+        "Pack not downloaded. Run `mame-curator refresh-snaps` to fetch "
+        "the latest progettoSnaps snap pack."
+    )
+
+    def __init__(self, *, snap_dir: Path) -> None:
+        """Bind the source to ``snap_dir`` (typically ``data/snaps/snap``).
+
+        Construction probes the directory once; if absent or empty, the
+        source self-disables via ``disabled_reason``. The path is
+        resolved to an absolute form so the produced ``file://`` URLs are
+        unambiguous regardless of the caller's CWD.
+        """
+        self._snap_dir = snap_dir.resolve() if snap_dir.exists() else snap_dir
+        self._present: set[str] = set()
+        self._missing: set[str] = set()
+
+        if not snap_dir.exists() or not any(snap_dir.iterdir()):
+            self.disabled_reason: str | None = self._DISABLED_REASON
+        else:
+            self.disabled_reason = None
+
+    async def prepare(
+        self,
+        machine: Machine,
+        *,
+        client: httpx.AsyncClient,
+    ) -> None:
+        """No-op: progettoSnaps is a disk-only source."""
+        return
+
+    def url_for(self, machine: Machine, kind: Kind) -> str | None:
+        """Return ``file://<abs-snap_dir>/<machine.name>.png`` if present.
+
+        Returns ``None`` when ``kind != "snap"`` (this source only covers
+        snap), or when the file isn't on disk for this machine.
+        """
+        if kind != "snap":
+            return None
+
+        name = machine.name
+        if name in self._missing:
+            return None
+
+        if name not in self._present:
+            candidate = self._snap_dir / f"{name}.png"
+            if candidate.is_file():
+                self._present.add(name)
+            else:
+                self._missing.add(name)
+                return None
+
+        return (self._snap_dir / f"{name}.png").as_uri()

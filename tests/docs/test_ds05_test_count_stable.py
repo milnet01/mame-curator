@@ -72,7 +72,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/updates/test_snaps.py covering discovery, download, extraction,
 # disk-space gate, force/no-force overwrite, url override, non-PNG skip,
 # and the PACK_URL_PATTERN regression-lock. 580 → 589.
-EXPECTED_PYTEST_DECLARATIONS = 589
+# Bumped 2026-05-18 (P10 chunk 3b): +10 declarations in
+# tests/media/test_sources.py covering ProgettoSnapsSource — name/kinds/
+# protocol-conformance, file:// URL on hit, None on miss, non-snap kinds
+# rejected, disabled_reason on empty-dir + absent-dir, per-instance
+# existence cache, no-op prepare. 589 → 599.
+EXPECTED_PYTEST_DECLARATIONS = 599
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
