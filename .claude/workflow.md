@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Project phase** | P10 active 2026-05-17 — Media coverage expansion (Step 3: chunks 3a + 3b shipped 2026-05-18 — progettoSnaps pair). FP29 closed 2026-05-17 (RetroArch executable + core PathRows on Settings → Paths; ships the UI half of FP22-C). P14 closed 2026-05-17 — per-game review state. Docs bundle (mame-curator-1029 + 1030) closed 2026-05-16. DS03 closed 2026-05-16. DS05 closed 2026-05-16. DS02 closed 2026-05-15 + R2 hot-fix. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **post-v1**. |
+| **Project phase** | P10 active 2026-05-17 — Media coverage expansion (Step 3: chunks 3a + 3b + 4 + 5 shipped 2026-05-18 — progettoSnaps pair + ArcadeDB + Wikipedia-image bundle). FP29 closed 2026-05-17 (RetroArch executable + core PathRows on Settings → Paths; ships the UI half of FP22-C). P14 closed 2026-05-17 — per-game review state. Docs bundle (mame-curator-1029 + 1030) closed 2026-05-16. DS03 closed 2026-05-16. DS05 closed 2026-05-16. DS02 closed 2026-05-15 + R2 hot-fix. FP28 closed 2026-05-15. DS04 closed 2026-05-15. FP27 closed 2026-05-14. Queue continues **post-v1**. |
 | **Active item ID** | P10 (mame-curator-1005) |
-| **Active step** | 3 — tests-first per App-Build. Step 1 ✅, Step 2 ✅, Step 3 in progress (chunks 1 + 2 + 3a + 3b ✅; next is chunk 4 ArcadeDB). |
+| **Active step** | 3 — tests-first per App-Build. Step 1 ✅, Step 2 ✅, Step 3 in progress (chunks 1 + 2 + 3a + 3b + 4 + 5 ✅; next is chunk 6 MobyGames). |
 | **Blocked on** | nothing. |
-| **Last update** | 2026-05-18 (**P10 step 1 amendment** ac010fe — progettoSnaps shrunk to `kinds=frozenset({"snap"})` after the chunk-3a fixture-capture probe found Flyers / Titles / Marquees / VideoSnaps disabled in upstream navigation and the historic `pS_titles_fullset_<NNN>.zip` placeholder sized "(000Mb)". User picked option A (snap-only) over snap+cabinet-via-manual-paste or defer-chunk-3. **P10 chunk 3a** 487b30e — new `mame-curator refresh-snaps` CLI + `updates/snaps.py` (discovery → download via existing P07 primitive → flat-layout ZIP extraction; 9 tests; pack URL pinned: `https://www.progettosnaps.net/snapshots/packs/full_sets/pS_snap_fullset_<NNN>.zip`). **P10 chunk 3b** b43d450 — `ProgettoSnapsSource` (file:// model, snap kind only, per-instance existence cache, disabled_reason on empty/absent dir; 10 tests). Bundle pushed; CI watching.) |
-| **Next gate** | P10 chunk 4 (ArcadeDB source) — fixture `tests/fixtures/arcadedb_pacman.json` already captured at the 2026-05-17 prep step. |
+| **Last update** | 2026-05-18 (**P10 chunks 4 + 5 bundle** 2c1f76f — `ArcadeDBSource` (two-step JSON lookup against the scraper endpoint, parse-before-trust cache-slot unlink on `JSONDecodeError`, `arcadedb_rate_limit_per_min` config field default 30 mirrored across Python schema + TS types + Zod + two fixtures, lifespan-shared 30-req/min `TokenBucket`; 7 tests) + `WikipediaImageSource` (REST summary, boxart only, `re.sub(r"\s*\([^)]*\)\s*$", "", desc).strip()` title canonicalisation, hardcoded 60-req/min courtesy cap, lifespan-shared `User-Agent: mame-curator/{__version__} (+repo-url)` via new `_build_user_agent()` helper in `media/__init__.py`; 7 tests) + 1 `_build_user_agent` test. Test-count pin 599 → 614. Five gates green: 760 backend / 0 ruff / 0 mypy / 0 bandit / api-types-sync; 319 frontend vitest / 0 eslint. Pre-existing `tsc` errors in `src/test/handlers.ts` + `renderWithClient.tsx` left untouched per global rule 11. Bundle pushed; CI watching.) |
+| **Next gate** | P10 chunk 6 (MobyGames + key resolution) — needs `MOBYGAMES_API_KEY` env var or `data/secrets/mobygames.key` dotfile at 0600 mode; pre-impl-prep fixture-capture not yet done (chunk gates on a real-key 200 response, deferred per spec § "Open verification items" item 4 footnote). Chunk 7 (registry + orchestrator) is the convergence checkpoint per spec § "Cross-chunk rules" #5 — pause for user check-in before chunks 8–11. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD`; 4 rounds of cold-eyes spec review converged on 20 actionable sub-bullets — C9 retained as footnoted stale entry, D3 added during review; folded into DS01) |
@@ -243,6 +243,126 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-05-18 — P10 chunks 4 + 5 bundle (ArcadeDB + Wikipedia-image)
+
+User said "continue with the next bundle of similar roadmap items"
+and "use Ants MCP where appropriate." `roadmap_query(status="active")`
+returned 4 bullets — P10 🚧 (in-progress) plus three post-v1 items
+(mame-curator-1040 test-audit refactor, FP30 auto-save indicator,
+P15 UI polish). The natural bundle inside the in-progress P10 was
+chunks 4 (ArcadeDBSource) + 5 (WikipediaImageSource) — both add a
+new `*Source` class with a per-source `TokenBucket`, both feed the
+chunk-7 orchestrator, both share the same lanes (`media`, `tests`)
+and same Kind (`implement`). Per memory `feedback_bundle_similar_items`:
+same kind + same lanes ⇒ bundle.
+
+**Shipped — 1 commit:**
+
+- **2c1f76f** `feat(media): P10 chunks 4 + 5 bundle — ArcadeDBSource
+  + WikipediaImageSource` — both source classes land together; same
+  shape (new class + lifespan limiter + re-export), no inter-chunk
+  dependency. Diverges from the 3a/3b split (those committed
+  separately because 3b consumed 3a's CLI output); chunks 4 and 5
+  are mutually independent so a single bundle commit reads better
+  in `git log`.
+
+**Chunk 4 — ArcadeDBSource:**
+
+- Two-step JSON lookup via `fetch_text_with_cache` against
+  `http://adb.arcadeitalia.net/service_scraper.php?ajax=query_mame&game_name={name}`.
+  Lifespan client's `follow_redirects=True` (FP10 A1) handles the
+  301 → HTTPS transparently; cache key is SHA-256 of the original
+  http:// URL so cache slot is deterministic.
+- Parse-before-trust: `json.JSONDecodeError` unlinks the bad cache
+  slot via `cache_path_for(url, cache_dir).unlink(missing_ok=True)`
+  and raises `MediaFetchError` chained from the JSONDecodeError —
+  transient bad upstream doesn't permanently disable the source
+  for this machine; next request re-fetches.
+- Empty `result` array → uniform negative-cache shape (
+  `_url_cache[name]` stays absent; `url_for` returns None) so the
+  registry's "no hit" branch in chunk 7 doesn't need to
+  distinguish "404 from upstream" vs "200 with empty array".
+- New `MediaConfig.arcadedb_rate_limit_per_min: int = 30` field;
+  mirrored in `frontend/src/api/types.ts` + `schemas.ts` + two
+  test fixtures so the `check-api-types-sync` pre-commit hook
+  (DS05 Cluster D) stays green.
+
+**Chunk 5 — WikipediaImageSource:**
+
+- `kinds = frozenset({"boxart"})` only. Wikipedia REST summary's
+  only image field with a documented location is `thumbnail.source`
+  (the infobox image); title and snap aren't reliably present.
+  Silently degrading those kinds to the infobox image would let
+  the wrong-shape image win over a legit downstream candidate —
+  the frozenset prevents this at registry-build time.
+- `license_compatible = False` conservatively. Wikipedia hosts
+  mixed-license images; P10 only displays, never redistributes.
+  P11's contribute-back flow would need per-image inspection.
+- Title canonicalisation: `re.sub(r"\s*\([^)]*\)\s*$", "", desc).strip()`
+  strips trailing parenthesised qualifier — "Pac-Man (Midway)"
+  → "Pac-Man". No fuzzy match, no second attempt: the source's
+  value is the head of the catalog, not full coverage. The
+  canonicalisation test pins this with two respx routes (one for
+  the canonicalised form, one for the raw form) + a
+  call-count assert.
+- New `_build_user_agent()` helper in `media/__init__.py`. Returns
+  `mame-curator/{__version__} (+https://github.com/milnet01/mame-curator)`
+  per Wikipedia's API:Etiquette. Underscore-prefixed because it's
+  an implementation helper, not a stable consumer API — callers
+  let the lifespan client own the header.
+- Hardcoded 60-req/min courtesy cap (no config field; spec § "3.
+  Wikipedia (image) Rate limit" doesn't request one).
+
+**Mid-session decisions:**
+
+- **Single bundled commit, not 4-then-5.** The 3a/3b precedent
+  split commits because 3b's `ProgettoSnapsSource` consumed the
+  on-disk pack 3a's CLI wrote — the diff hunks naturally split
+  along that boundary. Chunks 4 and 5 are mutually independent
+  (both feed chunk-7's registry but neither feeds the other), so
+  one bundle commit reads cleanly.
+- **`MediaConfig` field add fanout caught early.** Adding
+  `arcadedb_rate_limit_per_min` triggered the `check-api-types-sync`
+  hook's parity rule — required mirroring in `types.ts` + Zod
+  schema + two pre-existing test fixtures (`no-checkbox-for-prefs`
+  + `_settingsPageFixtures`). Caught at the local `tsc` step
+  before commit; would otherwise have failed CI on the
+  api-types-sync gate.
+- **Pre-existing `tsc` errors in `src/test/handlers.ts` +
+  `renderWithClient.tsx` left alone.** Stashed-then-rebased to
+  confirm they exist on clean `main` (3 errors: TS2345 `unknown`-
+  to-`JsonBodyType`, two TS2503 `Cannot find namespace 'JSX'`).
+  Global rule 11 (stay in your lane) — these are test
+  infrastructure, not the code I'm shipping; surfacing them in
+  the journal instead of drive-by fixing. The frontend CI gate
+  doesn't run `tsc -b` directly (only `eslint` + `vitest` per
+  the new DS03 Cluster G CI job); the errors don't gate this
+  bundle.
+- **Used Ants MCP for state-recovery, not implementation.**
+  `roadmap_query(status="active")` for the queue read,
+  `git_state(op=status/log)` for VCS state — saved ~12 K tokens
+  vs equivalent Bash. Tool-side feedback addendum logged to
+  `MAME_Curator_Ants_MCP_Feedback.md` per user request.
+
+**Workflow lessons:**
+
+- **"Same kind + same lanes" memory heuristic still applies
+  inside an in-progress phase, but the chunk dependency graph
+  is the tiebreaker.** P10's chunk graph (spec § "Chunk
+  dependency graph") makes 4 and 5 mutually independent — both
+  add a source class, both fan into chunk-7. Bundling them
+  matches the natural unit. The 3a→3b serial pair was the
+  exception (because 3b *consumed* 3a's output); 4||5 is the
+  parallel-bundle rule.
+- **Prior MCP feedback verification pass returns the
+  fulfillment dividend.** Three of the six items from the
+  2026-05-18 evening addendum landed: ANTS-1520 (`caller_cwd`
+  required everywhere), ANTS-1521 (`headline_oneline` field),
+  ANTS-1522 (`git_state` `files[]` unified envelope). The
+  session used all three transparently. The MCP-side CC
+  session evidently shipped the relevant fixes in the
+  ~24 h since the feedback was filed — short feedback loop.
 
 ### 2026-05-18 — P10 chunk 3 bundle (3a + 3b — progettoSnaps pair)
 
