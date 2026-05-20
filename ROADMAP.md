@@ -262,6 +262,17 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   leading `#`). Kind: doc-fix. Lanes: backend tests. Source:
   test-audit-2026-05-20 (discovered during the closing gate run).
 
+- 📋 [mame-curator-1071] **CI — GitHub Actions Node 20 deprecation +
+  runner redirect.** The closing CI run (`26187276453`) annotated:
+  `actions/upload-artifact@v4` runs on Node.js 20 — GitHub forces Node 24
+  from 2026-06-02 and removes Node 20 on 2026-09-16; bump to a
+  Node-24-compatible release (`@v5`) or set
+  `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`. Also `windows-latest`
+  redirects to `windows-2025-vs2026` by 2026-06-15 (informational —
+  pin the image if reproducibility matters). Not a test-quality finding;
+  surfaced while watching this sweep's CI. Kind: chore. Lanes: ci.
+  Source: test-audit-2026-05-20 closing CI run.
+
 ### 🧪 Test Audit 2026-05-18 (FP31 — second sweep)
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 163
