@@ -34,8 +34,9 @@ describe('useReviewStateSet — optimistic update', () => {
 
     result.current.mutate({ short_name: 'pacman', state: 'reviewed' })
 
-    // onMutate runs synchronously; assertion shouldn't need to wait for the
-    // network round-trip.
+    // onMutate updates the cache on the next microtask (before the network
+    // round-trip resolves); waitFor settles that tick without waiting on the
+    // server response.
     await waitFor(() =>
       expect(qc.getQueryData(['reviewState'])).toEqual({
         entries: { pacman: 'reviewed' },

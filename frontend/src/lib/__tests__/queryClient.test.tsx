@@ -90,5 +90,8 @@ describe('createAppQueryClient', () => {
         expect.objectContaining({ description: expect.any(String) }),
       ),
     )
+    // Symmetry with the first test: pin the once-per-failure contract so a
+    // regression that re-emits the toast on each retry/refetch tick is caught.
+    expect(vi.mocked(toast.error)).toHaveBeenCalledTimes(1)
   })
 })

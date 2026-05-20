@@ -91,7 +91,10 @@ def test_config_snapshots_round_trip(client: Any) -> None:
 
     # Snapshot should exist; pick the most recent one.
     snaps = client.get("/api/config/snapshots").json()
-    items = snaps.get("items") or snaps.get("snapshots") or []
+    # FP31/test-audit: pin the `items` key directly — the old
+    # `or snaps.get("snapshots")` fallback would silently mask a contract
+    # drift (matches test_route_r17_shape_snapshot_restore above).
+    items = snaps["items"]
     assert len(items) >= 1, "PATCH should have created a snapshot"
     most_recent = items[0]
 

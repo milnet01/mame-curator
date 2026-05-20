@@ -74,7 +74,12 @@ beforeEach(() => {
 })
 
 function renderWithClient(ui: React.ReactElement) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  // Disable retry for BOTH queries and mutations — the grant test fires a
+  // POST mutation that would otherwise inherit the 3× default retry and
+  // mask a failing handler behind a retry-success.
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
   return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>)
 }
 

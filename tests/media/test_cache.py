@@ -303,6 +303,7 @@ async def test_fetch_with_cache_rejects_file_scheme(tmp_path: Path) -> None:
             await fetch_with_cache("file:///etc/passwd", cache_dir, client=client)
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_fetch_with_cache_caps_body_size(tmp_path: Path) -> None:
     """A body exceeding `max_bytes` must raise `MediaFetchError` with a

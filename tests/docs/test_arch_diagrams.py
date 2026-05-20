@@ -14,7 +14,7 @@ The test parses the architecture-diagram fenced code block from each doc
 and asserts every `<name>/` row corresponds to (a) a real
 `src/mame_curator/<name>/__init__.py`, or (b) an explicit annotation
 that excuses it (`(post-v1)`, `(filesystem-only)`), or (c) the
-`frontend/` exception (README only — separate React tree).
+`frontend/` exception (README + CLAUDE.md — separate React tree).
 
 Pre-fix: CLAUDE.md has `(P04 — next)` for shipped code + help/ + setup/
 rows for non-existent packages → fails. README has help/ row for
@@ -93,6 +93,10 @@ def test_claude_md_architecture_diagram_matches_source_tree() -> None:
     failures: list[str] = []
     for name, line in _row_packages(diagram):
         if _is_excused(line):
+            continue
+        if name == "frontend":
+            # React tree at repo-root; expected exception (mirrors the
+            # README arch-diagram test). Not a Python package in src/.
             continue
         pkg_init = SRC_PKG / name / "__init__.py"
         if not pkg_init.exists():

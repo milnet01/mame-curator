@@ -23,7 +23,7 @@ describe('ConfirmationDialog', () => {
     ).toBeInTheDocument()
     // Both the AlertDialog description and the action button carry the
     // concrete target text.
-    expect(screen.getAllByText('Delete 3 files from drive').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText('Delete 3 files from drive')).toHaveLength(2)
   })
 
   it('throws if the action label is "OK"', () => {

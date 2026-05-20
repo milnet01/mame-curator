@@ -46,13 +46,13 @@ def test_full_machine_constructs() -> None:
 
 def test_machine_is_frozen() -> None:
     m = Machine(name="pacman", description="Pac-Man")
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="frozen"):
         m.name = "other"
 
 
 def test_machine_rejects_extra_fields() -> None:
-    with pytest.raises(ValidationError):
-        Machine(name="x", description="y", bogus_field=True)  # type: ignore[call-arg]
+    with pytest.raises(ValidationError, match="Extra inputs"):
+        Machine(name="x", description="y", bogus_field=True)  # type: ignore[call-arg, unused-ignore]
 
 
 def test_driver_status_values() -> None:

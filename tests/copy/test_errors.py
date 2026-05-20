@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from mame_curator.copy.errors import (
     CopyError,
     CopyExecutionError,
@@ -12,22 +14,22 @@ from mame_curator.copy.errors import (
 )
 
 
-def test_copy_error_str_quotes_path_with_control_byte() -> None:
+@pytest.mark.parametrize("cls", [CopyError, PlaylistError, RecycleError, CopyExecutionError])
+def test_copy_error_str_quotes_path_with_control_byte(cls: type[CopyError]) -> None:
     """FP07 A4 — `CopyError.__str__` must render `self.path` via `repr()`
     so a path with a control byte (newline, ANSI escape) doesn't break
     the single-line error contract or spoof terminal output.
 
-    Single test covers every CopyError subclass via the shared `__str__`
-    at `copy/errors.py:26`.
+    Parametrized per subclass so a failure names the offending class
+    (shared `__str__` at `copy/errors.py:26`).
     """
     bad = Path("evil\nname.zip")
-    for cls in (CopyError, PlaylistError, RecycleError, CopyExecutionError):
-        exc = cls("test message", path=bad)
-        rendered = str(exc)
-        # Post-fix: repr-escaped form (Python source `\\n` = backslash + n).
-        assert "evil\\nname.zip" in rendered, f"{cls.__name__} did not quote the path"
-        # Strict: no literal LF byte in the rendered message.
-        assert "\n" not in rendered, f"{cls.__name__} leaked a literal LF byte"
+    exc = cls("test message", path=bad)
+    rendered = str(exc)
+    # Post-fix: repr-escaped form (Python source `\\n` = backslash + n).
+    assert "evil\\nname.zip" in rendered, f"{cls.__name__} did not quote the path"
+    # Strict: no literal LF byte in the rendered message.
+    assert "\n" not in rendered, f"{cls.__name__} leaked a literal LF byte"
 
 
 def test_copy_error_str_no_path_renders_message_only() -> None:

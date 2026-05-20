@@ -47,6 +47,8 @@ def test_urls_for_pipe_in_description() -> None:
     urls = urls_for(machine)
     # "Foo | Bar" -> "Foo _ Bar" (escape) -> "Foo%20_%20Bar" (quote)
     assert urls.boxart == f"{_BASE}/Named_Boxarts/Foo%20_%20Bar.png"
+    assert urls.title == f"{_BASE}/Named_Titles/Foo%20_%20Bar.png"
+    assert urls.snap == f"{_BASE}/Named_Snaps/Foo%20_%20Bar.png"
 
 
 def test_media_urls_is_frozen() -> None:
@@ -74,4 +76,4 @@ def test_media_urls_rejects_extra_fields() -> None:
     from mame_curator.media import MediaUrls
 
     with pytest.raises(ValueError):
-        MediaUrls(boxart="x", title="y", snap="z", video="oops")  # type: ignore[call-arg]
+        MediaUrls(boxart="x", title="y", snap="z", video="oops")  # type: ignore[call-arg, unused-ignore]

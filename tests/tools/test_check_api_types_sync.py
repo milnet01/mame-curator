@@ -16,10 +16,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "tools" / "check_api_types_sync.py"
 
 
+@pytest.mark.slow
 def test_script_exits_zero_at_head() -> None:
     """The real source tree must currently be in sync.
 

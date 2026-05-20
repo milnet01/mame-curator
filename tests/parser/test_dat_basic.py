@@ -108,5 +108,5 @@ def test_missing_file_raises(tmp_path: Path) -> None:
 def test_malformed_xml_raises(tmp_path: Path) -> None:
     bad = tmp_path / "bad.xml"
     bad.write_text("<datafile><machine name='x'><description>y")
-    with pytest.raises(DATError):
+    with pytest.raises(DATError, match="XML parse failed"):
         parse_dat(bad)

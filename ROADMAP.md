@@ -164,6 +164,104 @@ wave lands.
   Source: user-2026-05-08 ("ensure that we are on the latest version
   of all dependencies"); reinforces global rule § 5.
 
+### 🧪 Test Audit 2026-05-20
+
+Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
+(113 backend + 54 frontend = 50 vitest + 4 Playwright) · Dimensions: all 18
+· Raw findings: ~33 · Fixed inline: 14 (all count-neutral
+correctness / assertion-quality / slow-marker fixes + 1 pre-existing red
+test) · Deferred below: 1065–1070 (grouped) · Suite green at fold-in:
+761 backend + 320 frontend tests at 87.51 % coverage. Several lower-severity
+nits re-confirmed already-open FP31 items and were **not** re-filed:
+`_seed_existing_playlist` dedup ([mame-curator-1054] c), world-lock
+parametrize ([mame-curator-1055] a), `test_routes_copy.py:79` vacuous
+pass ([mame-curator-1052]), `fireEvent`→`userEvent`
+([mame-curator-1048]), `@pytest.mark.asyncio` cleanup
+([mame-curator-1050]), `_url_cache` white-box ([mame-curator-1055] i),
+retroarch-not-executable coverage ([mame-curator-1055] b).
+
+**Pre-existing failure fixed inline (no roadmap entry):** `main` was red at
+HEAD — `tests/docs/test_arch_diagrams.py::test_claude_md_architecture_diagram_matches_source_tree`
+failed because CLAUDE.md's architecture diagram gained a `frontend/` row
+(cold-eyes docs sweep, commit `7ff03ec`) but the CLAUDE.md arch test lacked
+the `frontend/` exception its `README.md` sibling already carried. Root-caused
+by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
+10), itself a legitimate test-audit catch.
+
+**Deferred to roadmap (this sub-section):**
+
+- 📋 [mame-curator-1065] **Test-audit 2026-05-20 — dedup nits beyond
+  [mame-curator-1054].** (a) `tests/api/test_fp21_fixes.py` — extract a
+  `_make_job(tmp_path, history=0)` helper for the byte-identical
+  CopyPlan+Job construction (chunk c-001). (b)
+  `frontend/.../CartBar.test.tsx` — extract `renderCartBar(overrides)`;
+  5 tests inline the full 8-prop render block (chunk fc-002). (c)
+  `frontend/.../CopyModal.test.tsx` — extract `openAbortPrompt()`; 3
+  abort-path tests repeat render+cancel-click (chunk fc-002). (d)
+  `frontend/.../StatsPage.test.tsx` — hoist the 3 identical renders into
+  `beforeEach` (chunk fc-005). (e) `frontend/.../ActivityPage.test.tsx:50`
+  — use the file's own `renderAt` helper instead of an inline render
+  (chunk fc-005). (f) `frontend/.../LibraryPage_error_boundary.test.ts:39`
+  — extract `findLastJsxOpenTag()`; the regex+while-loop is copy-pasted
+  across both `it` blocks (chunk fc-001). (g)
+  `tests/updates/test_snaps.py:154,175` — extract the shared
+  overwrite/force setup. Kind: refactor. Lanes: backend tests, frontend
+  tests. Source: test-audit-2026-05-20.
+
+- 📋 [mame-curator-1066] **Test-audit 2026-05-20 — verbosity / parametrize
+  polish beyond [mame-curator-1055] (a).** (a)
+  `tests/api/test_routes_copy.py:36` — parametrize the r22/r23/r24 shape
+  tests (chunk c-002). (b) `tests/updates/test_snaps.py` — parametrize the
+  `force=False/True` overwrite pair (chunk c-010). (c)
+  `frontend/.../useValidateCart.test.tsx:41-56` — `it.each` for the
+  all-existing / all-missing pair (chunk fc-004). (d)
+  `tests/filter/test_drops.py:150` — split the 4-predicate
+  `…_mechanical_false_keeps_them` test so a failure names the offending
+  predicate (chunk c-006). Kind: refactor. Lanes: backend tests, frontend
+  tests. Source: test-audit-2026-05-20.
+
+- 📋 [mame-curator-1067] **Test-audit 2026-05-20 — coverage gaps beyond
+  [mame-curator-1053].** (a) `tests/filter/test_drops.py` — only
+  `drop_bios_devices_mechanical` has a flag-disabled (`=False`) "keeps
+  them" test; add the equivalents for `drop_mature`,
+  `drop_preliminary_emulation`, `drop_chd_required`,
+  `drop_japanese_only_text` (chunk c-006). (b)
+  `tests/updates/test_snaps.py:214` — add an explicit ZIP path-traversal
+  test (`"../evil.png"` rejected, nothing escapes dest); the SUT guard
+  exists but is never directly asserted (chunk c-010). Kind: test. Lanes:
+  backend tests. Source: test-audit-2026-05-20.
+
+- 📋 [mame-curator-1068] **Test-audit 2026-05-20 — reliability /
+  assertion hardening.** (a) `tests/api/test_fp09_fixes.py:247`
+  (`test_b7_fs_list_parent_filtered_against_allowlist`) — the assertion is
+  vacuous when `body["parent"] is None`; a regression that always returns
+  `parent=null` passes silently. Needs a deterministic allowlist setup so
+  the "parent outside allowlist → None" path is asserted exactly (the
+  naive `assert is None` is environment-dependent on `$HOME`'s parent;
+  chunk c-001). (b) `tests/media/test_sources.py:68` + `:242`
+  (`*_prepare_is_noop`) — prove "no HTTP attempted" via `respx.mock` with
+  no registered routes (`assert_all_called`) instead of relying on a real
+  `ConnectError` propagating; a silently-swallowed network error currently
+  still passes (chunk c-008). Kind: fix. Lanes: backend tests. Source:
+  test-audit-2026-05-20.
+
+- 📋 [mame-curator-1069] **Test-audit 2026-05-20 — fixture-scope perf in
+  `tests/api/conftest.py:27-66`.** Seven read-only static-file `Path`
+  fixtures (`mini_dat`, `listxml`, `catver_ini`, `languages_ini`,
+  `bestgames_ini`, `mature_ini`, `series_ini`) are function-scoped and
+  rebuilt for every api test; promote to `scope="session"` (they are
+  never mutated). Kind: perf. Lanes: backend tests. Source:
+  test-audit-2026-05-20 chunk c-001.
+
+- 📋 [mame-curator-1070] **Test-audit 2026-05-20 — ruff `# noqa`
+  false-directive noise in `tests/media/test_cache.py:20`.** The FP31
+  hoist comment contains the literal token `# noqa: E402` in prose
+  (describing the old import); ruff parses it as a malformed `# noqa`
+  directive and emits a warning on every `ruff check` run (does not fail
+  the gate). Rephrase so the token is not directive-shaped (e.g. drop the
+  leading `#`). Kind: doc-fix. Lanes: backend tests. Source:
+  test-audit-2026-05-20 (discovered during the closing gate run).
+
 ### 🧪 Test Audit 2026-05-18 (FP31 — second sweep)
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 163

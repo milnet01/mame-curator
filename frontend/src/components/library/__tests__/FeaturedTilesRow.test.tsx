@@ -46,7 +46,10 @@ describe('FeaturedTilesRow', () => {
         onTileSelect={() => {}}
       />,
     )
-    const active = screen.getByText("Beat 'em Ups").closest('button')!
+    // DS04 T3.2 idiom (matches the click test above): query by role+name so
+    // the test fails clearly if the tile stops being a proper button, rather
+    // than NPE-ing on a null `.closest('button')`.
+    const active = screen.getByRole('button', { name: "Beat 'em Ups" })
     expect(active).toHaveAttribute('aria-pressed', 'true')
   })
 })

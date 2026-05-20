@@ -16,6 +16,16 @@ def test_defaults_match_design_spec() -> None:
     assert cfg.prefer_parent_over_clone is True
     assert cfg.prefer_good_driver is True
     assert cfg.region_priority == ("World", "USA", "Europe", "Japan", "Asia", "Brazil")
+    # Tuple drop/prefer lists and year bounds default to empty / None.
+    assert cfg.drop_categories == ()
+    assert cfg.drop_genres == ()
+    assert cfg.drop_publishers == ()
+    assert cfg.drop_developers == ()
+    assert cfg.drop_year_before is None
+    assert cfg.drop_year_after is None
+    assert cfg.preferred_genres == ()
+    assert cfg.preferred_publishers == ()
+    assert cfg.preferred_developers == ()
 
 
 def test_immutable() -> None:
@@ -26,7 +36,7 @@ def test_immutable() -> None:
 
 def test_extra_fields_rejected() -> None:
     with pytest.raises(ValidationError):
-        FilterConfig(bogus_key=True)  # type: ignore[call-arg]
+        FilterConfig(bogus_key=True)  # type: ignore[call-arg, unused-ignore]
 
 
 def test_year_range_independent_of_each_other() -> None:
