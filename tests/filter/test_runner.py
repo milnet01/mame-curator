@@ -10,7 +10,7 @@ from mame_curator.filter.runner import run_filter
 from mame_curator.filter.sessions import Session, Sessions
 from mame_curator.filter.types import DroppedReason, FilterContext
 from mame_curator.parser.models import DriverStatus, Machine
-from tests.filter.conftest import m
+from tests.filter.conftest import m, o
 
 
 @pytest.fixture
@@ -94,8 +94,7 @@ def test_overrides_replace_pick(sample: tuple[dict[str, Machine], FilterContext]
         machines,
         ctx,
         FilterConfig(),
-        # mypy doesn't see through Pydantic's populate_by_name=True; works at runtime.
-        Overrides(entries={"pacman": "pacmanf"}),  # type: ignore[call-arg, unused-ignore]
+        o(pacman="pacmanf"),
         Sessions(),
     )
     assert result.winners == ("pacmanf",)
@@ -109,7 +108,7 @@ def test_unknown_override_warns_doesnt_crash(
         machines,
         ctx,
         FilterConfig(),
-        Overrides(entries={"pacman": "no_such_machine"}),  # type: ignore[call-arg, unused-ignore]
+        o(pacman="no_such_machine"),
         Sessions(),
     )
     assert any("no_such_machine" in w for w in result.warnings)
@@ -133,7 +132,7 @@ def test_override_with_unknown_parent_warns(
         machines,
         ctx,
         FilterConfig(),
-        Overrides(entries={"no_such_parent": "pacman"}),  # type: ignore[call-arg, unused-ignore]
+        o(no_such_parent="pacman"),
         Sessions(),
     )
     assert any("no_such_parent" in w and "not a known parent" in w for w in result.warnings)
@@ -153,7 +152,7 @@ def test_override_with_cross_group_target_warns(
         machines,
         ctx,
         FilterConfig(),
-        Overrides(entries={"a": "c"}),  # type: ignore[call-arg, unused-ignore]
+        o(a="c"),
         Sessions(),
     )
     assert any("different group" in w for w in result.warnings)

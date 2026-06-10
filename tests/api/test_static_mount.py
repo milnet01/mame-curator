@@ -25,18 +25,33 @@ def _mount_names(app: Any) -> list[str]:
     return [r.name for r in app.routes if isinstance(r, Mount) and r.name]
 
 
+def _rebuilt_client(
+    dist: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+) -> TestClient:
+    """Point the module-level ``_FRONTEND_DIST`` at ``dist``, rebuild the app
+    via ``create_app``, and wrap it in a ``TestClient``.
+
+    All four mount tests repeated this monkeypatch-and-rebuild dance
+    (mame-curator-1054a). The rebuilt app stays reachable via ``client.app``
+    for the mount-name assertions.
+    """
+    from mame_curator.api import app as app_module
+    from mame_curator.api import create_app
+
+    monkeypatch.setattr(app_module, "_FRONTEND_DIST", dist)
+    return TestClient(create_app(config_file))
+
+
 def test_static_mount_absent_when_dist_missing(
     monkeypatch: pytest.MonkeyPatch,
     config_file: Path,
     fake_home: Path,
 ) -> None:
     """Without frontend/dist/, no `frontend` mount is registered."""
-    from mame_curator.api import app as app_module
-    from mame_curator.api import create_app
-
-    monkeypatch.setattr(app_module, "_FRONTEND_DIST", Path("/nonexistent-frontend-dist"))
-    rebuilt = create_app(config_file)
-    assert "frontend" not in _mount_names(rebuilt)
+    client = _rebuilt_client(Path("/nonexistent-frontend-dist"), monkeypatch, config_file)
+    assert "frontend" not in _mount_names(client.app)
 
 
 def test_static_mount_registered_and_serves_index(
@@ -57,14 +72,10 @@ def test_static_mount_registered_and_serves_index(
     sentinel_html = "<!doctype html><title>P06 stub</title>"
     (stub / "index.html").write_text(sentinel_html, encoding="utf-8")
 
-    from mame_curator.api import app as app_module
-    from mame_curator.api import create_app
+    client = _rebuilt_client(stub, monkeypatch, config_file)
+    assert "frontend" in _mount_names(client.app)
 
-    monkeypatch.setattr(app_module, "_FRONTEND_DIST", stub)
-    rebuilt = create_app(config_file)
-    assert "frontend" in _mount_names(rebuilt)
-
-    with TestClient(rebuilt) as client:
+    with client:
         # GET /  → SPA index.
         spa = client.get("/")
         assert spa.status_code == 200
@@ -103,12 +114,8 @@ def test_undefined_api_path_returns_404_not_spa_html(
     stub.mkdir(parents=True)
     (stub / "index.html").write_text("<!doctype html><title>SPA</title>", encoding="utf-8")
 
-    from mame_curator.api import app as app_module
-    from mame_curator.api import create_app
-
-    monkeypatch.setattr(app_module, "_FRONTEND_DIST", stub)
-    rebuilt = create_app(config_file)
-    with TestClient(rebuilt) as client:
+    client = _rebuilt_client(stub, monkeypatch, config_file)
+    with client:
         # Each of these is either an unrouted /api or /media path. The
         # exact 4xx code varies (router 404 vs media-kind 400) — what
         # matters is "NOT 200 + SPA HTML cascade".
@@ -145,12 +152,8 @@ def test_missing_asset_returns_404_not_spa_html(
     (stub / "index.html").write_text("<!doctype html><title>SPA</title>", encoding="utf-8")
     (stub / "assets" / "real.js").write_text("// real asset", encoding="utf-8")
 
-    from mame_curator.api import app as app_module
-    from mame_curator.api import create_app
-
-    monkeypatch.setattr(app_module, "_FRONTEND_DIST", stub)
-    rebuilt = create_app(config_file)
-    with TestClient(rebuilt) as client:
+    client = _rebuilt_client(stub, monkeypatch, config_file)
+    with client:
         # Real asset still serves.
         ok = client.get("/assets/real.js")
         assert ok.status_code == 200

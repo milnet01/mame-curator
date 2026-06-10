@@ -44,7 +44,7 @@ def test_escape_libretro_special_chars(raw: str, escaped: str) -> None:
     [
         "Pac-Man",
         "Donkey Kong (US)",
-        "Street Fighter II: The World Warrior",  # only the colon is escaped
+        "Street Fighter II: The World Warrior",  # colon is the lone special char here
         "Q*bert's Qubes",  # apostrophe preserved
         "100% [hack]",
         "Über Game",

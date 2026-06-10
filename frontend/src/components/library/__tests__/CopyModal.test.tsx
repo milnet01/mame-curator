@@ -65,7 +65,7 @@ describe('CopyModal', () => {
       />,
     )
     await userEvent.click(screen.getByRole('button', { name: /pause/i }))
-    expect(onPause).toHaveBeenCalled()
+    expect(onPause).toHaveBeenCalledOnce()
 
     rerender(
       <CopyModal
@@ -78,7 +78,7 @@ describe('CopyModal', () => {
       />,
     )
     await userEvent.click(screen.getByRole('button', { name: /resume/i }))
-    expect(onResume).toHaveBeenCalled()
+    expect(onResume).toHaveBeenCalledOnce()
   })
 
   it('opens the abort prompt offering BOTH keep + recycle paths (FP11 § A3)', async () => {

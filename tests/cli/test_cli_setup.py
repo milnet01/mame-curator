@@ -120,6 +120,8 @@ def test_setup_refuses_to_overwrite_without_force(
 
 
 def test_setup_overwrites_with_force(tmp_path: Path) -> None:
+    """`--force` replaces an existing config.yaml — the stale body is gone and
+    the freshly-written file carries the new `source_roms` path."""
     out = tmp_path / "config.yaml"
     out.write_text("# stale\n", encoding="utf-8")
     source_roms = tmp_path / "roms"
@@ -172,6 +174,8 @@ def test_setup_errors_on_missing_source_roms(
 def test_setup_errors_on_missing_source_dat(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """A non-existent `--source-dat` exits 1, writes no config, and names the
+    offending flag + missing path on stderr."""
     out = tmp_path / "config.yaml"
     source_roms = tmp_path / "roms"
     source_roms.mkdir()

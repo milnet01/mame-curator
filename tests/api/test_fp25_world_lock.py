@@ -44,32 +44,28 @@ CURATE_ROUTE_FUNCS = (
 GAMES_ROUTE_FUNCS = ("put_notes",)
 
 
-@pytest.mark.parametrize("name", CURATE_ROUTE_FUNCS)
-def test_fp25_a_curate_route_is_async(name: str) -> None:
-    """Each curate.py mutation route must be ``async def``.
+# (module, func) for every mutation route FP25-A converts to async + lock.
+ASYNC_MUTATION_ROUTES = [
+    *(("mame_curator.api.routes.curate", n) for n in CURATE_ROUTE_FUNCS),
+    *(("mame_curator.api.routes.games", n) for n in GAMES_ROUTE_FUNCS),
+]
 
-    Sync handlers run in Starlette's threadpool — the read-merge-write
-    block races with itself across threads. Converting to async + lock
-    eliminates the threadpool race entirely.
+
+@pytest.mark.parametrize(("module", "name"), ASYNC_MUTATION_ROUTES)
+def test_fp25_a_mutation_route_is_async(module: str, name: str) -> None:
+    """Each of the seven P04-spec mutation routes must be ``async def``.
+
+    Sync handlers run in Starlette's threadpool — the read-merge-write block
+    races with itself across threads. Converting to async + lock eliminates
+    the threadpool race entirely. (``docs/specs/P04.md`` lines 104-115;
+    ROADMAP § FP25-A.)
     """
-    import mame_curator.api.routes.curate as curate
+    import importlib
 
-    fn = getattr(curate, name)
+    fn = getattr(importlib.import_module(module), name)
     assert inspect.iscoroutinefunction(fn), (
-        f"{name} must be `async def` after FP25-A (currently sync — "
-        "see ROADMAP § FP25-A and docs/specs/P04.md lines 104-115)"
-    )
-
-
-@pytest.mark.parametrize("name", GAMES_ROUTE_FUNCS)
-def test_fp25_a_games_route_is_async(name: str) -> None:
-    """``put_notes`` must be ``async def`` for the same reason."""
-    import mame_curator.api.routes.games as games
-
-    fn = getattr(games, name)
-    assert inspect.iscoroutinefunction(fn), (
-        f"{name} must be `async def` after FP25-A "
-        "(see ROADMAP § FP25-A and docs/specs/P04.md lines 104-115)"
+        f"{name} must be `async def` after FP25-A (see ROADMAP § FP25-A "
+        "and docs/specs/P04.md lines 104-115)"
     )
 
 

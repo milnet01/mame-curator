@@ -63,10 +63,10 @@ describe('CartBar', () => {
     fireEvent.click(screen.getByRole('button', { name: /expand cart/i }))
     fireEvent.click(screen.getByRole('button', { name: /dry-run/i }))
     fireEvent.click(screen.getByRole('button', { name: /^copy$/i }))
-    expect(onBulkAdd).toHaveBeenCalled()
-    expect(onToggleExpand).toHaveBeenCalled()
-    expect(onDryRun).toHaveBeenCalled()
-    expect(onCopy).toHaveBeenCalled()
+    expect(onBulkAdd).toHaveBeenCalledOnce()
+    expect(onToggleExpand).toHaveBeenCalledOnce()
+    expect(onDryRun).toHaveBeenCalledOnce()
+    expect(onCopy).toHaveBeenCalledOnce()
   })
 
   it('expand button uses Collapse aria-label when expanded=true', () => {

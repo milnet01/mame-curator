@@ -478,7 +478,7 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
 
 **Deferred to roadmap (this sub-section):**
 
-- 📋 [mame-curator-1046] **FP31 follow-up — file-size cap splits in
+- ✅ [mame-curator-1046] **FP31 follow-up — file-size cap splits in
   `tests/media/test_sources.py` + `tests/copy/test_fp01_fixes.py`.**
   `tests/media/test_sources.py` is 546 lines (over the 500-line hard
   cap) — covers four independent source implementations (Libretro,
@@ -489,6 +489,12 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   `tests/media/conftest.py` during the split.
   Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
   FP31 chunks c-004 + c-008 (HIGH for c-008's hard-cap violation).
+  Resolved (2026-06-10): split `test_sources.py` (554 lines → 4 per-source
+  files `test_sources_{libretro,progettosnaps,arcadedb,wikipedia}.py`, each
+  <190) + new `tests/media/conftest.py` holding `_machine` /
+  `_make_unbounded_limiter`; split `test_fp01_fixes.py` (423 → 272) into it
+  + new `test_fp01_error_branches.py` (164, the Tier-3 playlist + FP08
+  control-byte tests). Count-neutral; 216 copy+media tests green.
 
 - 📋 [mame-curator-1047] **FP31 follow-up — FsBrowser prefetch policy
   when dialog is closed.** Surfaced when adding a request-spy assertion
@@ -523,7 +529,7 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   Kind: refactor. Lanes: frontend tests. Source:
   test-audit-2026-05-18 FP31 chunk fc-001 MED.
 
-- 📋 [mame-curator-1050] **FP31 follow-up — `@pytest.mark.asyncio`
+- ✅ [mame-curator-1050] **FP31 follow-up — `@pytest.mark.asyncio`
   decorator cleanup under `asyncio_mode = "auto"`.** Redundant
   decorators identified in `test_fp28_jobs_loop_thread.py` (1),
   `test_downloads.py` (11), and `test_ini.py` (3). Auto mode collects
@@ -531,8 +537,12 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   decorator is cargo-cult noise. Mechanical sweep across the suite.
   Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
   FP31 chunks c-001 / c-009 / c-010 LOW.
+  Resolved (2026-06-10): stripped all 15 redundant `@pytest.mark.asyncio`
+  decorators (1 in test_fp28_jobs_loop_thread + 11 in test_downloads + 3 in
+  test_ini); `asyncio_mode = "auto"` still collects them. Dropped the
+  now-unused `import pytest` in test_ini.py. Count-neutral.
 
-- 📋 [mame-curator-1051] **FP31 follow-up — broaden
+- ✅ [mame-curator-1051] **FP31 follow-up — broaden
   `pytest.raises((SessionsError, ValueError))` unions in
   `test_filter/test_sessions.py` (4 sites) + `test_filter/test_types.py`
   (1 site).** Now that the FP06 B2 migration is shipped, the precise
@@ -541,6 +551,12 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   specific type and add `match=` patterns (chunk c-007 LOW).
   Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
   FP31 chunk c-007 LOW.
+  Resolved (2026-06-10): all 5 sites pinned to `pytest.raises(ValidationError,
+  match=...)`. Verified empirically that the 4 direct-construction paths
+  (`Sessions(...)` / `Session(...)`) and the frozen-field rebind in
+  test_types.py all raise Pydantic's `ValidationError` (a `ValueError`
+  subclass — which is why the old union passed); each now carries a specific
+  `match=` for its validator message.
 
 - 📋 [mame-curator-1052] **FP31 follow-up — `test_routes_copy.py:79`
   pause/resume/abort test passes vacuously on fast runners.** Both
@@ -560,7 +576,7 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   Kind: fix. Lanes: backend tests, frontend tests. Source:
   test-audit-2026-05-18 FP31 chunks c-002 / c-003 / fc-002 LOW.
 
-- 📋 [mame-curator-1054] **FP31 follow-up — refactoring & dedup nits:**
+- ✅ [mame-curator-1054] **FP31 follow-up — refactoring & dedup nits:**
   (a) `tests/api/test_static_mount.py` extract `_rebuilt_client(stub,
       monkeypatch, config_file)` helper (4 duplicated app-rebuild
       blocks). chunk c-003 MED.
@@ -583,8 +599,22 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
       subdirectory autouse fixture. chunk c-010 LOW.
   Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
   FP31 chunks c-003/c-004/c-007/c-010 MEDIUM/LOW.
+  Resolved (2026-06-10): (a) `_rebuilt_client(dist, monkeypatch, config_file)`
+  helper folds the 4 app-rebuild blocks (rebuilt app reachable via
+  `client.app`); (c) `_seed_existing_playlist` lifted to
+  `tests/copy/conftest.py` (now shared by fp01 / fp01_error_branches / fp02);
+  (d) `o(**entries)` factory in `tests/filter/conftest.py` absorbs 4
+  `Overrides(entries=…)` constructions + drops their `type: ignore`; (e)
+  `_machine` was already lifted to `_runner_helpers` in the inline FP31 pass;
+  (f) new `tests/updates/conftest.py` with one autouse `_no_sleep`.
+  (b) **deliberately not done** — moving `config_file` to the top-level
+  `tests/conftest.py` would drag api-only fixtures into the shared root,
+  including `source_dir` / `dest_dir` that collide *by name* with
+  `tests/copy/conftest.py`'s same-named fixtures; over-engineering for a LOW
+  dedup nit, and the cli `_build_minimal_config` is a documented minimal
+  subset (4 paths), not a true duplicate of the 11-fixture `config_file`.
 
-- 📋 [mame-curator-1055] **FP31 follow-up — assorted LOW/INFO test polish:**
+- ✅ [mame-curator-1055] **FP31 follow-up — assorted LOW/INFO test polish:**
   (a) `tests/api/test_fp25_world_lock.py:47-73` — parametrize 7
       structurally-identical per-route world-lock tests. chunk c-001
       LOW.
@@ -638,14 +668,34 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   Kind: refactor. Lanes: backend tests, frontend tests. Source:
   test-audit-2026-05-18 FP31 chunks c-001/c-003/c-005/c-008/c-009 +
   fc-001/fc-002/fc-004/fc-005 LOW.
+  Resolved (2026-06-10): all 15 sub-items (a–o). (a) merged the two
+  async-introspection tests into one parametrized-over-7 test; (b) added the
+  exists-but-non-executable (0o644) X_OK test (+1 test); (c) 4 docstrings;
+  (d) renamed to `test_fp21_l_progress_history_deque_has_finite_maxlen`;
+  (e) tracemalloc comment now cites the respx 0.23 / httpx 0.28 pins;
+  (f) `_parser_spec_path()` adds a `pyproject.toml` sentinel; (g) preflight
+  rewritten to a mocked-`disk_usage` two-run delta == kof94_size check;
+  (h) escape parametrize comment fixed; (i) `_url_cache` white-box write →
+  `prepare()`-mocked; (j) dead `endswith` branch dropped; (k)
+  `toHaveBeenCalledOnce`; (l) `waitFor` timeouts; (m) file-level
+  `afterEach(restoreAllMocks)` in ErrorBoundary + ConfirmationDialog;
+  (n) `makeGameCard()` factory (note: `manufacturer_raw`/`bytes`/`parent`
+  are no longer on the `GameCard` type — that half of the finding was
+  stale; adding them would break `tsc`); (o) OnboardingBanner asserts via
+  `strings.library.onboarding.body`. +1 backend test (b); frontend
+  count-neutral.
 
-- 📋 [mame-curator-1056] **FP31 follow-up — `tests/api/test_fp09_fixes.py:159-177`
+- ✅ [mame-curator-1056] **FP31 follow-up — `tests/api/test_fp09_fixes.py:159-177`
   convert `asyncio.run()` sync wrapper to `@pytest.mark.asyncio async def`.**
   Today the test manages the lifespan context manually inside a sync
   function. Benign under `asyncio_mode = "auto"` but
   incompatible with the strict-mode opt-in some teams adopt later.
   Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
   FP31 chunk c-001 MEDIUM.
+  Resolved (2026-06-10): converted `test_b4_app_state_has_shared_media_client`
+  to a native `async def` (auto-mode collects it) — dropped the
+  `asyncio.run(_check())` wrapper + the nested `_check` coroutine; the
+  lifespan context is now entered directly with `async with`.
 
 
 ### 🧪 Test Audit 2026-05-18

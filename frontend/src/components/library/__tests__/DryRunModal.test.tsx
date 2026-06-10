@@ -54,6 +54,6 @@ describe('DryRunModal', () => {
       />,
     )
     await userEvent.click(screen.getByRole('button', { name: /^copy/i }))
-    expect(onConfirm).toHaveBeenCalled()
+    expect(onConfirm).toHaveBeenCalledOnce()
   })
 })

@@ -28,22 +28,10 @@ from mame_curator.copy.types import (
 )
 from mame_curator.parser.listxml import BIOSChainEntry
 
-# FP31: `_machine` lifted to the shared `_runner_helpers` module.
+# FP31: `_machine` lifted to the shared `_runner_helpers` module;
+# `_seed_existing_playlist` lifted to `conftest.py` (mame-curator-1054c).
 from tests.copy._runner_helpers import _machine
-
-
-def _seed_existing_playlist(dest_dir: Path, items: list[dict[str, str]]) -> None:
-    payload = {
-        "version": "1.5",
-        "default_core_path": "",
-        "default_core_name": "",
-        "label_display_mode": 0,
-        "right_thumbnail_mode": 0,
-        "left_thumbnail_mode": 0,
-        "sort_mode": 0,
-        "items": items,
-    }
-    (dest_dir / "mame.lpl").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+from tests.copy.conftest import _seed_existing_playlist
 
 
 def _entry(dest_dir: Path, short: str, label: str | None = None) -> dict[str, str]:

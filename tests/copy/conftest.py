@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,26 @@ import pytest
 from mame_curator.parser.listxml import BIOSChainEntry, parse_listxml_bios_chain
 
 FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def _seed_existing_playlist(dest_dir: Path, items: list[dict[str, str]]) -> None:
+    """Write a v1.5 ``mame.lpl`` playlist seeded with ``items`` at ``dest_dir``.
+
+    FP31 (mame-curator-1054c): byte-for-byte duplicated in ``test_fp01_fixes``
+    and ``test_fp02_fixes``; lifted here as a plain helper (imported explicitly,
+    mirroring ``tests/filter/conftest.py``'s ``m()``).
+    """
+    payload = {
+        "version": "1.5",
+        "default_core_path": "",
+        "default_core_name": "",
+        "label_display_mode": 0,
+        "right_thumbnail_mode": 0,
+        "left_thumbnail_mode": 0,
+        "sort_mode": 0,
+        "items": items,
+    }
+    (dest_dir / "mame.lpl").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 @pytest.fixture(scope="module")

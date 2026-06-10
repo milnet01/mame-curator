@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
 import { ErrorBoundary } from '../ErrorBoundary'
@@ -9,6 +9,10 @@ function Boom({ shouldThrow }: { shouldThrow: boolean }) {
 }
 
 describe('ErrorBoundary', () => {
+  // Restore the console.error spies even if an assertion throws first,
+  // so a leaked silencer can't mask real errors in later tests.
+  afterEach(() => vi.restoreAllMocks())
+
   it('renders children when no error is thrown', () => {
     render(
       <ErrorBoundary>
@@ -19,19 +23,17 @@ describe('ErrorBoundary', () => {
   })
 
   it('renders the fallback panel when a child throws', () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     render(
       <ErrorBoundary>
         <Boom shouldThrow />
       </ErrorBoundary>,
     )
     expect(screen.getByRole('alert')).toBeInTheDocument()
-    expect(screen.getByText('kaboom')).toBeInTheDocument()
-    errorSpy.mockRestore()
-  })
+    expect(screen.getByText('kaboom')).toBeInTheDocument()  })
 
   it('clears the error when resetKey changes', () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     const { rerender } = render(
       <ErrorBoundary resetKey="a">
         <Boom shouldThrow />
@@ -43,18 +45,14 @@ describe('ErrorBoundary', () => {
         <Boom shouldThrow={false} />
       </ErrorBoundary>,
     )
-    expect(screen.getByText('safe')).toBeInTheDocument()
-    errorSpy.mockRestore()
-  })
+    expect(screen.getByText('safe')).toBeInTheDocument()  })
 
   it('exposes a Try again button in the fallback panel', () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     render(
       <ErrorBoundary>
         <Boom shouldThrow />
       </ErrorBoundary>,
     )
-    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
-    errorSpy.mockRestore()
-  })
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()  })
 })

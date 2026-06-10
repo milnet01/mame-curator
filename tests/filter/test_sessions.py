@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from mame_curator.filter.errors import SessionsError
 from mame_curator.filter.sessions import Session, load_sessions
@@ -92,11 +93,12 @@ def test_full_session_with_all_includes(tmp_path: Path) -> None:
 def test_sessions_active_validator_rejects_unknown_in_programmatic_construction() -> None:
     """C1 — `Sessions(active=...)` must validate via `model_validator`, not just
     in the YAML loader. Programmatic construction with `active` referencing a
-    non-existent session must raise `SessionsError` (or `ValidationError`),
+    non-existent session must raise Pydantic's `ValidationError` (the
+    `model_validator` re-raises as a `ValueError`, which Pydantic wraps),
     not silently produce a broken `Sessions`."""
     from mame_curator.filter.sessions import Sessions
 
-    with pytest.raises((SessionsError, ValueError)):
+    with pytest.raises(ValidationError, match=r"active session .* is not defined"):
         Sessions(active="bogus", sessions={})
 
 
@@ -173,7 +175,7 @@ def test_sessions_rejects_empty_string_active() -> None:
     from mame_curator.filter.sessions import Sessions
 
     valid_session = Session(include_genres=("Fighter*",))
-    with pytest.raises((SessionsError, ValueError)):
+    with pytest.raises(ValidationError, match=r"active session name must be non-empty"):
         Sessions(active="", sessions={"": valid_session})
 
 
@@ -196,7 +198,7 @@ def test_session_year_range_validator_rejects_reversed() -> None:
     bypasses the check (same bug class C1 closed for `Sessions.active`)."""
     from mame_curator.filter.sessions import Session
 
-    with pytest.raises((SessionsError, ValueError)):
+    with pytest.raises(ValidationError, match=r"year range .* is reversed"):
         Session(include_genres=("X*",), include_year_range=(1995, 1990))
 
 
@@ -208,7 +210,7 @@ def test_session_validator_rejects_no_include_rules() -> None:
     construction."""
     from mame_curator.filter.sessions import Session
 
-    with pytest.raises((SessionsError, ValueError)):
+    with pytest.raises(ValidationError, match=r"session has no include rules"):
         Session()
 
 

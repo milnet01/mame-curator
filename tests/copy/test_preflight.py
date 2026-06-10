@@ -129,34 +129,55 @@ def test_fp21_e_preflight_total_needed_includes_bios_chain(
 
 
 def test_fp21_e_preflight_total_needed_subtracts_already_copied(
-    source_dir: Path, dest_dir: Path
+    tmp_path: Path, source_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """FP21-E: ``preflight`` subtracts already-copied bytes from
     ``total_needed`` so a re-run on a fully-idempotent set reports a
     meaningful free-space gap (not a phantom shortfall).
+
+    Two-run gap-difference check (mirrors the BIOS-chain test above): with
+    ``shutil.disk_usage`` pinned to a fixed free value, the only thing that
+    moves ``free_space_gap_bytes`` between the two runs is whether kof94 is
+    already at dest. The delta must equal exactly kof94's size — a stronger
+    claim than the old ``gap >= -sf2_size`` lower bound, which passed even if
+    the already-copied subtraction were dropped (mame-curator-1055g).
     """
     import shutil as _shutil
 
-    # Copy one of the winners over so it's already-idempotent at dest.
-    _shutil.copy2(source_dir / "kof94.zip", dest_dir / "kof94.zip")
-    plan = _plan(winners=("kof94", "sf2"), source_dir=source_dir, dest_dir=dest_dir)
-    result = preflight(plan)
-    assert "kof94" in result.already_copied
+    # dest_present has kof94 already copied (→ already_copied, not needed);
+    # dest_absent is empty (→ kof94 must be copied, counts toward total).
+    dest_present = tmp_path / "dest_present"
+    dest_present.mkdir()
+    dest_absent = tmp_path / "dest_absent"
+    dest_absent.mkdir()
+    _shutil.copy2(source_dir / "kof94.zip", dest_present / "kof94.zip")
 
-    # Compare against the same plan with no already-copied state.
-    # We can't easily remove the file mid-test, so just assert that the
-    # gap reflects the smaller total: only sf2 needs space. The
-    # idempotent kof94 doesn't contribute to total_needed.
-    sf2_size = (source_dir / "sf2.zip").stat().st_size
+    FIXED_FREE = 10 * 1024 * 1024  # deterministic between the two calls
+
+    def fake_disk_usage(_path: object) -> object:
+        from types import SimpleNamespace
+
+        return SimpleNamespace(total=FIXED_FREE * 2, used=FIXED_FREE, free=FIXED_FREE)
+
+    monkeypatch.setattr(_shutil, "disk_usage", fake_disk_usage)
+
+    result_present = preflight(
+        _plan(winners=("kof94", "sf2"), source_dir=source_dir, dest_dir=dest_present)
+    )
+    result_absent = preflight(
+        _plan(winners=("kof94", "sf2"), source_dir=source_dir, dest_dir=dest_absent)
+    )
+    assert "kof94" in result_present.already_copied
+    assert "kof94" not in result_absent.already_copied
+
     kof94_size = (source_dir / "kof94.zip").stat().st_size
-    # Pre-fix would sum both → free_space_gap = free - (sf2 + kof94).
-    # Post-fix subtracts kof94 → free_space_gap = free - sf2.
-    # We don't know free exactly, but the difference is one kof94's size.
-    # Use the gap directly: it should leave enough room for sf2 (which
-    # the disk certainly has).
-    assert result.free_space_gap_bytes >= -sf2_size, (
-        f"gap {result.free_space_gap_bytes} must reflect already_copied "
-        f"subtraction (kof94={kof94_size} bytes was already at dest)"
+    # present: total_needed = sf2; absent: total_needed = sf2 + kof94.
+    # gap = FIXED_FREE - total_needed → the already-copied kof94 lifts the gap
+    # by exactly its size.
+    delta = result_present.free_space_gap_bytes - result_absent.free_space_gap_bytes
+    assert delta == kof94_size, (
+        f"already-copied kof94 ({kof94_size} bytes) must lift free_space_gap "
+        f"by exactly its size; observed delta={delta}"
     )
 
 

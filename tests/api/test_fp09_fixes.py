@@ -163,25 +163,20 @@ def test_clusterr_h1_lifecycle_event_survives_progress_overflow() -> None:
 # ---- B4 — Shared httpx.AsyncClient on app.state ----------------------------
 
 
-def test_b4_app_state_has_shared_media_client(app: Any) -> None:
+async def test_b4_app_state_has_shared_media_client(app: Any) -> None:
     """B4 — `app.state.media_client` must exist after lifespan startup.
 
     Reuses one TLS connection across many media-proxy requests instead of
     handshaking per-request.
     """
+    import httpx
+
     # Drive the lifespan by entering it as a context manager.
-    import asyncio
-
-    async def _check() -> None:
-        async with app.router.lifespan_context(app):
-            assert hasattr(app.state, "media_client"), (
-                "B4: lifespan must instantiate app.state.media_client"
-            )
-            import httpx
-
-            assert isinstance(app.state.media_client, httpx.AsyncClient)
-
-    asyncio.run(_check())
+    async with app.router.lifespan_context(app):
+        assert hasattr(app.state, "media_client"), (
+            "B4: lifespan must instantiate app.state.media_client"
+        )
+        assert isinstance(app.state.media_client, httpx.AsyncClient)
 
 
 # ---- B5 — Pause/resume/abort timing — pick one (50 ms in implementation) ---

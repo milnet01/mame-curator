@@ -71,3 +71,24 @@ def test_config_patch_accepts_executable_retroarch(client: Any, tmp_path: Path) 
     ra.chmod(0o755)
     response = client.patch("/api/config", json={"paths": {"retroarch": str(ra)}})
     assert response.status_code == 200, response.text
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="os.X_OK semantics differ; Windows uses the shutil.which branch.",
+)
+def test_config_patch_rejects_non_executable_retroarch(client: Any, tmp_path: Path) -> None:
+    """POSIX: an existing-but-non-executable file (mode 0o644) must 422, not
+    200 — this is the ``os.X_OK`` branch the happy/missing pair doesn't reach.
+    Without it the validator could regress to a bare ``.exists()`` check and
+    still pass every other test."""
+    ra = tmp_path / "ra"
+    ra.touch()
+    ra.chmod(0o644)
+    response = client.patch("/api/config", json={"paths": {"retroarch": str(ra)}})
+    assert response.status_code == 422, response.text
+    body = response.json()
+    assert body["code"] == "config_invalid"
+    assert any(
+        f["loc"] == "paths.retroarch" and f["type"] == "path_invalid" for f in body["fields"]
+    ), f"FP28 C1 — expected paths.retroarch path_invalid in {body!r}"

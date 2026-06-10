@@ -9,6 +9,7 @@ rebinding, not contained-dict state). Tests pin the post-fix shape:
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from mame_curator.filter.types import DroppedReason, FilterResult
 
@@ -32,9 +33,9 @@ def test_filter_result_dropped_cannot_be_mutated() -> None:
         dropped=(("neogeo", DroppedReason.BIOS),),
         contested_groups=(),
     )
-    with pytest.raises((TypeError, AttributeError, ValueError)):
-        # Pydantic frozen=True raises ValidationError on rebinding;
-        # any of TypeError / AttributeError is acceptable here.
+    # Pydantic v2 frozen=True raises ValidationError (type=frozen_instance)
+    # on field rebinding.
+    with pytest.raises(ValidationError, match=r"Instance is frozen"):
         result.dropped = (("z80", DroppedReason.DEVICE),)
 
 

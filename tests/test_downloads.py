@@ -26,7 +26,6 @@ def _no_sleep(no_sleep: None) -> None:
     pass
 
 
-@pytest.mark.asyncio
 async def test_download_writes_to_dest_with_correct_bytes(tmp_path: Path) -> None:
     """Happy path: 200 OK → file appears at dest, bytes match."""
     body = b"Hello, world!"
@@ -42,7 +41,6 @@ async def test_download_writes_to_dest_with_correct_bytes(tmp_path: Path) -> Non
     assert dest.read_bytes() == body
 
 
-@pytest.mark.asyncio
 async def test_download_verifies_sha256_match(tmp_path: Path) -> None:
     """Correct sha256 is accepted; file written."""
     body = b"verified content"
@@ -59,7 +57,6 @@ async def test_download_verifies_sha256_match(tmp_path: Path) -> None:
     assert dest.read_bytes() == body
 
 
-@pytest.mark.asyncio
 async def test_download_rejects_sha256_mismatch_and_does_not_write(
     tmp_path: Path,
 ) -> None:
@@ -80,7 +77,6 @@ async def test_download_rejects_sha256_mismatch_and_does_not_write(
     assert not dest.exists(), "checksum-failed download must not touch dest"
 
 
-@pytest.mark.asyncio
 async def test_download_retries_on_http_error_then_succeeds(tmp_path: Path) -> None:
     """First call returns 503; retry succeeds."""
     body = b"eventually OK"
@@ -101,7 +97,6 @@ async def test_download_retries_on_http_error_then_succeeds(tmp_path: Path) -> N
     assert dest.read_bytes() == body
 
 
-@pytest.mark.asyncio
 async def test_download_falls_back_to_mirror(tmp_path: Path) -> None:
     """Primary URL exhausts retries → mirror URL succeeds."""
     body = b"from mirror"
@@ -125,7 +120,6 @@ async def test_download_falls_back_to_mirror(tmp_path: Path) -> None:
     assert dest.read_bytes() == body
 
 
-@pytest.mark.asyncio
 async def test_download_returns_manual_fallback_on_total_failure(
     tmp_path: Path,
 ) -> None:
@@ -143,7 +137,6 @@ async def test_download_returns_manual_fallback_on_total_failure(
     assert not dest.exists()
 
 
-@pytest.mark.asyncio
 async def test_download_checksum_mismatch_falls_through_to_mirror(
     tmp_path: Path,
 ) -> None:
@@ -183,7 +176,6 @@ async def test_download_checksum_mismatch_falls_through_to_mirror(
         "gopher://example.com/",
     ],
 )
-@pytest.mark.asyncio
 async def test_download_rejects_non_http_scheme(tmp_path: Path, bad_url: str) -> None:
     """FP20-F: download() must reject schemes outside http(s) at function entry.
 
@@ -202,7 +194,6 @@ async def test_download_rejects_non_http_scheme(tmp_path: Path, bad_url: str) ->
     assert not dest.exists()
 
 
-@pytest.mark.asyncio
 async def test_download_rejects_bad_scheme_in_mirrors(tmp_path: Path) -> None:
     """FP20-F: mirrors[] entries are validated alongside the primary URL.
 
@@ -239,7 +230,6 @@ async def test_download_rejects_bad_scheme_in_mirrors(tmp_path: Path) -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.asyncio
 async def test_download_streams_chunks_to_tmp_not_buffer(tmp_path: Path) -> None:
     """A 10 MB body must NOT spike RAM peak above body_size/4 (≈2.5 MB)
     plus httpx async-machinery overhead. Threshold is loose enough to
@@ -277,7 +267,10 @@ async def test_download_streams_chunks_to_tmp_not_buffer(tmp_path: Path) -> None
     # ~30 MB. Post-fix it streams chunk slices straight to .tmp;
     # peak stays near 2× body size. The 2.5× body_size threshold
     # cleanly distinguishes the two shapes without being so tight it
-    # flakes on respx + asyncio task-allocator noise.
+    # flakes on respx + asyncio task-allocator noise. Calibrated against
+    # respx 0.23.x / httpx 0.28.x (pins: respx>=0.22, httpx>=0.28); revisit
+    # the multiplier if a future bump changes respx's mock-transport
+    # buffering (it holds one extra full-body copy on the response object).
     upper = int(2.5 * 10 * 1024 * 1024)  # 25 MB
     assert peak < upper, (
         f"FP27 B3 — download must stream to disk, not buffer; "
@@ -286,7 +279,6 @@ async def test_download_streams_chunks_to_tmp_not_buffer(tmp_path: Path) -> None
     )
 
 
-@pytest.mark.asyncio
 async def test_download_sha256_mismatch_unlinks_tmp(
     tmp_path: Path,
 ) -> None:

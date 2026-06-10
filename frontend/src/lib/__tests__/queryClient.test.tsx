@@ -55,7 +55,7 @@ describe('createAppQueryClient', () => {
       { wrapper },
     )
 
-    await waitFor(() => expect(vi.mocked(toast.error)).toHaveBeenCalled())
+    await waitFor(() => expect(vi.mocked(toast.error)).toHaveBeenCalled(), { timeout: 3000 })
     // FP25-K(8): lock the once-per-failure contract. The pre-FP25-K
     // assertion (`toHaveBeenCalled`) would pass even if a regression
     // re-emitted the same failure on every retry / refetch tick;
@@ -84,11 +84,13 @@ describe('createAppQueryClient', () => {
       { wrapper },
     )
 
-    await waitFor(() =>
-      expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
-        expect.stringContaining('Connection problem'),
-        expect.objectContaining({ description: expect.any(String) }),
-      ),
+    await waitFor(
+      () =>
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+          expect.stringContaining('Connection problem'),
+          expect.objectContaining({ description: expect.any(String) }),
+        ),
+      { timeout: 3000 },
     )
     // Symmetry with the first test: pin the once-per-failure contract so a
     // regression that re-emits the toast on each retry/refetch tick is caught.

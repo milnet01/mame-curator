@@ -236,11 +236,12 @@ def test_fp21_l_emit_after_current_cleared_is_a_noop(tmp_path: Path) -> None:
     assert manager._current is None
 
 
-def test_fp21_l_progress_history_is_drop_oldest_under_pressure() -> None:
-    """FP21-L sibling: progress_history is a drop-oldest deque so a flood
-    of late progress events can't unbounded-grow memory. Verified at the
-    dataclass level by FP09 B3 — this is a structural sibling assertion
-    pinning the contract.
+def test_fp21_l_progress_history_deque_has_finite_maxlen() -> None:
+    """FP21-L sibling: progress_history's default_factory yields a drop-oldest
+    deque with a finite ``maxlen`` so a flood of late progress events can't
+    unbounded-grow memory. No pressure is applied here — this is the
+    structural contract assertion (maxlen is set + positive); FP09 B3 verifies
+    the drop-oldest behaviour under load.
     """
     import dataclasses
 

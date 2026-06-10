@@ -5,19 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import httpx
-import pytest
 import respx
 
 from mame_curator.updates import refresh_inis
 
 
-# Autouse the shared ``no_sleep`` fixture from tests/conftest.py.
-@pytest.fixture(autouse=True)
-def _no_sleep(no_sleep: None) -> None:
-    pass
-
-
-@pytest.mark.asyncio
 async def test_refresh_inis_writes_all_files_and_returns_report(
     tmp_path: Path,
 ) -> None:
@@ -39,7 +31,6 @@ async def test_refresh_inis_writes_all_files_and_returns_report(
     assert (tmp_path / "catver.ini").read_bytes() == bodies["https://example.com/catver.ini"]
 
 
-@pytest.mark.asyncio
 async def test_refresh_inis_collects_failures(tmp_path: Path) -> None:
     """One source 503s → that name in report.failed with its URL; others succeed."""
     sources = {
@@ -58,7 +49,6 @@ async def test_refresh_inis_collects_failures(tmp_path: Path) -> None:
     assert report.failed == [("bad.ini", sources["bad.ini"])]
 
 
-@pytest.mark.asyncio
 async def test_refresh_inis_creates_dest_dir(tmp_path: Path) -> None:
     """Dest directory is created if missing."""
     dest = tmp_path / "nested" / "dir"

@@ -4,6 +4,7 @@ import {
   OnboardingBanner,
   ONBOARDING_DISMISS_KEY,
 } from '@/components/library/OnboardingBanner'
+import { strings } from '@/strings'
 
 describe('OnboardingBanner', () => {
   beforeEach(() => localStorage.clear())
@@ -11,7 +12,7 @@ describe('OnboardingBanner', () => {
   it('renders body copy on first mount', () => {
     render(<OnboardingBanner cartHasItems={false} />)
     expect(
-      screen.getByText(/Tap a game to add it to your list/i),
+      screen.getByText(strings.library.onboarding.body),
     ).toBeInTheDocument()
   })
 
@@ -19,7 +20,9 @@ describe('OnboardingBanner', () => {
     const { rerender } = render(<OnboardingBanner cartHasItems={false} />)
     fireEvent.click(screen.getByRole('button', { name: /dismiss/i }))
     rerender(<OnboardingBanner cartHasItems={false} />)
-    expect(screen.queryByText(/Tap a game/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(strings.library.onboarding.body),
+    ).not.toBeInTheDocument()
   })
 
   it('persists dismissal across remounts via localStorage', () => {
@@ -27,13 +30,17 @@ describe('OnboardingBanner', () => {
     fireEvent.click(screen.getByRole('button', { name: /dismiss/i }))
     unmount()
     render(<OnboardingBanner cartHasItems={false} />)
-    expect(screen.queryByText(/Tap a game/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(strings.library.onboarding.body),
+    ).not.toBeInTheDocument()
     expect(localStorage.getItem(ONBOARDING_DISMISS_KEY)).toBe('1')
   })
 
   it('auto-dismisses when cart has items even without click', () => {
     render(<OnboardingBanner cartHasItems={true} />)
-    expect(screen.queryByText(/Tap a game/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(strings.library.onboarding.body),
+    ).not.toBeInTheDocument()
     expect(localStorage.getItem(ONBOARDING_DISMISS_KEY)).toBe('1')
   })
 })

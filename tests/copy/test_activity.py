@@ -40,6 +40,8 @@ def _started_event(session_id: str = "01HZZ") -> ActivityEvent:
 
 
 def test_activity_log_append_writes_one_line(tmp_path: Path) -> None:
+    """A single `append_activity` call writes exactly one JSONL line carrying
+    the event's `event_type` and `session_id`."""
     log_path = tmp_path / "activity.jsonl"
     append_activity(_started_event(), log_path=log_path)
     text = log_path.read_text(encoding="utf-8")
@@ -74,6 +76,8 @@ def test_activity_log_creates_parent_dir_if_missing(tmp_path: Path) -> None:
 
 
 def test_read_activity_yields_newest_first(tmp_path: Path) -> None:
+    """`read_activity` returns events in reverse-append (newest-first) order so
+    the most recent activity surfaces at the top of the log view."""
     log_path = tmp_path / "activity.jsonl"
     for i in range(5):
         append_activity(_started_event(session_id=f"0{i}"), log_path=log_path)

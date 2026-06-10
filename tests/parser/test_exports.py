@@ -24,6 +24,19 @@ from pathlib import Path
 from mame_curator import parser
 
 
+def _parser_spec_path() -> Path:
+    """Resolve ``src/mame_curator/parser/spec.md``, guarding the ``parents[2]``
+    hop with a ``pyproject.toml`` sentinel so a future move of this test file
+    surfaces as a clear assertion rather than a confusing missing-file read
+    (mame-curator-1055f)."""
+    root = Path(__file__).resolve().parents[2]
+    assert (root / "pyproject.toml").is_file(), (
+        f"expected repo root at {root} — pyproject.toml sentinel missing; "
+        "test_exports.py's parents[2] hop is stale"
+    )
+    return root / "src" / "mame_curator" / "parser" / "spec.md"
+
+
 def test_parse_listxml_bios_chain_in_all() -> None:
     """`parse_listxml_bios_chain` must be part of `mame_curator.parser.__all__`."""
     assert "parse_listxml_bios_chain" in parser.__all__, (
@@ -62,8 +75,7 @@ def test_parser_spec_md_documents_parse_listxml_bios_chain() -> None:
     Substring assertion (not regex anchored to a bullet shape) survives
     later spec formatting changes (table vs list, H4-inline vs prose).
     """
-    spec_path = Path(__file__).resolve().parents[2] / "src" / "mame_curator" / "parser" / "spec.md"
-    text = spec_path.read_text(encoding="utf-8")
+    text = _parser_spec_path().read_text(encoding="utf-8")
     assert "`parse_listxml_bios_chain`" in text, (
         "parser/spec.md must document 'parse_listxml_bios_chain' inside "
         "backticks (see `docs/specs/FP27.md` § A9)."
@@ -72,8 +84,7 @@ def test_parser_spec_md_documents_parse_listxml_bios_chain() -> None:
 
 def test_parser_spec_md_documents_bios_chain_entry() -> None:
     """`parser/spec.md` must mention `BIOSChainEntry` inside backticks."""
-    spec_path = Path(__file__).resolve().parents[2] / "src" / "mame_curator" / "parser" / "spec.md"
-    text = spec_path.read_text(encoding="utf-8")
+    text = _parser_spec_path().read_text(encoding="utf-8")
     assert "`BIOSChainEntry`" in text, (
         "parser/spec.md must document 'BIOSChainEntry' inside backticks "
         "(see `docs/specs/FP27.md` § A9)."

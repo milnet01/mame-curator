@@ -35,7 +35,6 @@ import pytest
 from mame_curator.api.jobs import JobManager
 
 
-@pytest.mark.asyncio
 async def test_job_manager_emit_raises_off_loop_thread(tmp_path: Path) -> None:
     manager = JobManager(history_dir=tmp_path)
     # Post-fix `__init__` will set `self._loop` to the running loop; simulate

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from mame_curator.filter.overrides import Overrides
 from mame_curator.filter.types import FilterContext
 from mame_curator.parser.models import Machine
 
@@ -29,6 +30,18 @@ def m(**kw: object) -> Machine:
     # resolve `mame_curator.parser.models` and infers `Any`) skip the
     # arg-type check without complaining the ignore is unused.
     return Machine(name=name, description=description, **kw)  # type: ignore[arg-type, unused-ignore]
+
+
+def o(**entries: str) -> Overrides:
+    """Minimal ``Overrides`` builder: ``o(pacman="pacmanf")`` →
+    ``Overrides(entries={"pacman": "pacmanf"})``.
+
+    Centralises the `call-arg` suppression the isolated pre-commit mypy
+    needs (it can't resolve `Overrides`'s signature and flags `entries=`);
+    `unused-ignore` lets the CI mypy — which sees the real signature — skip
+    the check without complaining the ignore is unused.
+    """
+    return Overrides(entries=entries)  # type: ignore[call-arg, unused-ignore]
 
 
 def make_empty_ctx() -> FilterContext:

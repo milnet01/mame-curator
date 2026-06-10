@@ -1,10 +1,14 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { ConfirmationDialog } from '../ConfirmationDialog'
 
 describe('ConfirmationDialog', () => {
+  // Restore the console.error spy even if the .toThrow assertion fails,
+  // so a leaked silencer can't mask real errors in later tests.
+  afterEach(() => vi.restoreAllMocks())
+
   it('renders the concrete action label and target description', () => {
     render(
       <ConfirmationDialog
@@ -27,7 +31,7 @@ describe('ConfirmationDialog', () => {
   })
 
   it('throws if the action label is "OK"', () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(() =>
       render(
         <ConfirmationDialog
@@ -40,7 +44,6 @@ describe('ConfirmationDialog', () => {
         />,
       ),
     ).toThrow(/concrete/i)
-    errorSpy.mockRestore()
   })
 
   it('calls onConfirm and closes when the action button is clicked', async () => {

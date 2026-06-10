@@ -15,34 +15,25 @@ function renderWithRouter(ui: ReactElement) {
   return render(<MemoryRouter>{ui}</MemoryRouter>)
 }
 
-const winner: GameCard = {
-  short_name: 'pacman',
-  description: 'Pac-Man',
-  year: 1980,
-  manufacturer: 'Namco',
-  publisher: 'Midway',
-  developer: 'Namco',
-  badges: [],
-}
-const clones: GameCard[] = [
-  {
-    short_name: 'pacmanf',
-    description: 'Pac-Man (fast hack)',
+// `short_name` + `description` are required per fixture; the rest default
+// to the Namco/Midway/1980 shape these tests share (mame-curator-1055n).
+function makeGameCard(
+  overrides: Partial<GameCard> & Pick<GameCard, 'short_name' | 'description'>,
+): GameCard {
+  return {
     year: 1980,
     manufacturer: 'Namco',
     publisher: 'Midway',
     developer: 'Namco',
     badges: [],
-  },
-  {
-    short_name: 'pacmanjr',
-    description: 'Pac-Man Jr.',
-    year: 1981,
-    manufacturer: 'Namco',
-    publisher: 'Midway',
-    developer: 'Namco',
-    badges: [],
-  },
+    ...overrides,
+  }
+}
+
+const winner: GameCard = makeGameCard({ short_name: 'pacman', description: 'Pac-Man' })
+const clones: GameCard[] = [
+  makeGameCard({ short_name: 'pacmanf', description: 'Pac-Man (fast hack)' }),
+  makeGameCard({ short_name: 'pacmanjr', description: 'Pac-Man Jr.', year: 1981 }),
 ]
 
 describe('AlternativesDrawer', () => {

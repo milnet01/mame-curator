@@ -17,12 +17,6 @@ import httpx
 import pytest
 import respx
 
-
-@pytest.fixture(autouse=True)
-def _no_sleep(no_sleep: None) -> None:
-    pass
-
-
 _INDEX_BODY = """
 <html><body>
 <a href="/snapshots/packs/full_sets/pS_snap_fullset_278.zip">0.278</a>
