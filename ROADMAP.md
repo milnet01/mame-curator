@@ -992,6 +992,15 @@ under a docs-review skill.
   Lanes: docs.
   Source: cold-eyes-2026-05-18 lane spec/FP27 (H1).
 
+### 🤝 Community & funding
+
+- 📋 [mame-curator-1073] **Add a GitHub Sponsors donation link.**
+  User-requested. Minimal deliverable: `.github/FUNDING.yml` with `github: [<handle>]` so the GitHub repo shows a "Sponsor" button. Optional surfaces: a README sponsor badge/link and an in-app Support/Donate link (e.g. on the About / help surface — pulls in the frontend lane if added). Prerequisite: the maintainer must have GitHub Sponsors enabled on their account, and the Sponsors handle confirmed (repo owner is `milnet01`) before `.github/FUNDING.yml` is written — an unconfigured handle renders a dead button. Source: user-request 2026-06-10.
+  **Layman:** Add a "Sponsor" button to the project so people can donate to the maintainer.
+  Kind: chore.
+  Lanes: packaging, docs.
+  Source: user-request-2026-06-10.
+
 ---
 
 ## 1.4.0 — Library polish (target: 2026-Q3)
