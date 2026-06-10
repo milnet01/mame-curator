@@ -4,7 +4,7 @@
 # dependency to avoid drift.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         # Frontend production bundle ships pre-minified by Vite — pre-commit
@@ -22,7 +22,7 @@ repos:
         exclude: ^frontend/dist/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.13
+    rev: v0.15.16
     hooks:
       - id: ruff
         args: [--fix]

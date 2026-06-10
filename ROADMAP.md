@@ -278,7 +278,7 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   directive-shaped token. This item (`test_cache.py:20`, `# noqa: E402`)
   remains open.
 
-- 📋 [mame-curator-1071] **CI — GitHub Actions Node 20 deprecation +
+- ✅ [mame-curator-1071] **CI — GitHub Actions Node 20 deprecation +
   runner redirect.** The closing CI run (`26187276453`) annotated:
   `actions/upload-artifact@v4` runs on Node.js 20 — GitHub forces Node 24
   from 2026-06-02 and removes Node 20 on 2026-09-16; bump to a
@@ -288,6 +288,34 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   pin the image if reproducibility matters). Not a test-quality finding;
   surfaced while watching this sweep's CI. Kind: chore. Lanes: ci.
   Source: test-audit-2026-05-20 closing CI run.
+  Resolved (2026-06-10, dep-freshness sweep): `actions/upload-artifact`
+  @v4 → @v7 (Node 24) in both ci.yml + release.yml; `download-artifact`
+  @v4 → @v8; `softprops/action-gh-release` @v2 → @v3; `astral-sh/setup-uv`
+  @v8.1.0 → @v8.2.0. All v3+/v7+/v8 majors are Node-20→24 runtime bumps
+  only (no input changes; ubuntu-latest already supports Node 24 + runner
+  ≥2.327.1). `windows-latest` left floating by design — pinning to
+  `windows-2025-vs2026` is a maintenance burden the informational redirect
+  doesn't warrant for this project.
+
+- 📋 [mame-curator-1072] **Frontend `npm run build` (`tsc -b`) is broken —
+  3 pre-existing type errors in `src/test/` not caught by CI.** Discovered
+  during the 2026-06-10 dep-freshness sweep; **proven pre-existing** (the
+  identical 3 errors reproduce on the pre-bump lockfile — NOT caused by the
+  dep bump). CI's frontend type gate is `npx tsc --noEmit`, but
+  `frontend/tsconfig.json` is a solution file (`files: []` + project
+  references), so `tsc --noEmit` type-checks **zero** files — the real
+  build (`tsc -b`, via `npm run build`) is the only thing that follows the
+  references into `src/test/**`, and CI never runs it. Errors: (a)
+  `src/test/renderWithClient.tsx:15,45` — bare global `JSX.Element` doesn't
+  resolve under the build tsconfig (use `ReactElement` / `React.JSX.Element`
+  / `import type { JSX } from 'react'`); (b) `src/test/handlers.ts:31` —
+  MSW `JsonBodyType` rejects an `unknown` arg (needs a cast/narrowing).
+  Consequence: `frontend/dist/` (the committed, API-served bundle) **cannot
+  be regenerated** until this is fixed, so the 2026-06-10 frontend dep bumps
+  (React 19.2.7, Vite 8.0.16, etc.) won't reach the served bundle yet. Fix
+  also wants a real CI build gate (`npm run build` or `tsc -b`) so this
+  class can't recur silently. Kind: fix. Lanes: frontend, ci. Source:
+  dep-freshness sweep 2026-06-10.
 
 ### 🧪 Test Audit 2026-05-18 (FP31 — second sweep)
 
