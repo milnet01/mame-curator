@@ -219,8 +219,9 @@ def test_fp21_l_emit_after_current_cleared_is_a_noop(tmp_path: Path) -> None:
 
     # DS04 T1.4: history_dir is unused in this test (the _emit guard
     # short-circuits on _current=None before touching it), but a fresh
-    # tmp_path keeps the constructor signature honest without world-
-    # writable /tmp paths or # noqa: S108.
+    # tmp_path keeps the constructor signature honest without a
+    # world-writable /tmp path (which would otherwise need a bandit S108
+    # waiver).
     manager = JobManager(history_dir=tmp_path)
     # _current starts None; _emit must be a clean no-op.
     assert manager._current is None

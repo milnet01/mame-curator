@@ -272,6 +272,11 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   the gate). Rephrase so the token is not directive-shaped (e.g. drop the
   leading `#`). Kind: doc-fix. Lanes: backend tests. Source:
   test-audit-2026-05-20 (discovered during the closing gate run).
+  Note (2026-06-10): a sibling instance in `tests/api/test_fp21_fixes.py`
+  (a prose `# noqa: S108`) was surfaced by the 1065/1066 closing gate and
+  fixed in passing — reworded to name "a bandit S108 waiver" with no
+  directive-shaped token. This item (`test_cache.py:20`, `# noqa: E402`)
+  remains open.
 
 - 📋 [mame-curator-1071] **CI — GitHub Actions Node 20 deprecation +
   runner redirect.** The closing CI run (`26187276453`) annotated:
