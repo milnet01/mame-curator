@@ -95,7 +95,16 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #   • +1 `test_year_none_survives_year_range_filter` (FP31 year=None coverage
 #     gap — chunk c-006 LOW).
 # 614 → 611.
-EXPECTED_PYTEST_DECLARATIONS = 611
+# Bumped 2026-06-10 (test-audit 2026-05-20 fold-in, mame-curator-1065/1066):
+# net -3 declarations from two refactor-only consolidations (no coverage lost,
+# both SUT paths still exercised via parametrize):
+#   • -1 `test_refresh_snaps_refuses_overwrite_without_force` +
+#     `test_refresh_snaps_force_overwrites_existing_files` merged into the
+#     parametrized `test_refresh_snaps_overwrite_honours_force` (1066 b / 1065 g).
+#   • -2 `test_route_r22/r23/r24_shape_*` merged into the parametrized
+#     `test_route_r22_r24_action_job_not_found` (1066 a).
+# 611 → 608.
+EXPECTED_PYTEST_DECLARATIONS = 608
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -113,7 +122,12 @@ EXPECTED_PYTEST_DECLARATIONS = 611
 # Bumped 2026-05-18 (FP31 test-audit fold-in): +1 declaration in
 # useValidateCart.test.tsx — server-error coverage gap (`isError flips
 # true when the server returns 500`). chunk fc-002 MED. 304 → 305.
-EXPECTED_VITEST_DECLARATIONS = 305
+# Bumped 2026-06-10 (test-audit 2026-05-20 fold-in, mame-curator-1066 c):
+# net -2 declarations — the `handles all-existing` + `handles all-missing`
+# `it()` pair in useValidateCart.test.tsx merged into one `it.each([...])`
+# (not matched by the `^\s*it\s*\(` regex, per the P14-chunk-10 note above).
+# Same SUT path; no coverage lost. 305 → 303.
+EXPECTED_VITEST_DECLARATIONS = 303
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

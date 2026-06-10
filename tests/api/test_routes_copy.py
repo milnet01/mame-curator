@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 # ---- Per-route shape tests --------------------------------------------------
 
 
@@ -33,22 +35,21 @@ def test_route_r21_shape_start(client: Any) -> None:
         assert "job_id" in response.json()
 
 
-def test_route_r22_shape_pause(client: Any) -> None:
-    """R22 POST /api/copy/pause — 404 when no job running."""
-    response = client.post("/api/copy/pause")
-    # Fresh client → no job → contract is 404 with code job_not_found.
-    assert response.status_code == 404, response.text
-    assert response.json()["code"] == "job_not_found"
-
-
-def test_route_r23_shape_resume(client: Any) -> None:
-    response = client.post("/api/copy/resume")
-    assert response.status_code == 404, response.text
-    assert response.json()["code"] == "job_not_found"
-
-
-def test_route_r24_shape_abort(client: Any) -> None:
-    response = client.post("/api/copy/abort", json={"recycle_partial": False})
+@pytest.mark.parametrize(
+    ("endpoint", "json_body"),
+    [
+        ("/api/copy/pause", None),
+        ("/api/copy/resume", None),
+        ("/api/copy/abort", {"recycle_partial": False}),
+    ],
+    ids=["r22-pause", "r23-resume", "r24-abort"],
+)
+def test_route_r22_r24_action_job_not_found(
+    client: Any, endpoint: str, json_body: dict[str, Any] | None
+) -> None:
+    """R22/R23/R24 — pause / resume / abort all 404 with code ``job_not_found``
+    when no job is running (fresh client → no current job)."""
+    response = client.post(endpoint, json=json_body)
     assert response.status_code == 404, response.text
     assert response.json()["code"] == "job_not_found"
 

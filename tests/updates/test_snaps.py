@@ -151,8 +151,26 @@ async def test_refresh_snaps_verifies_disk_space_before_download(
     assert not get_route.called  # but the GET was aborted by the gate
 
 
-async def test_refresh_snaps_refuses_overwrite_without_force(tmp_path: Path) -> None:
-    """Pre-existing ``<dest>/snap/pacman.png`` is preserved unless ``--force``."""
+@pytest.mark.parametrize(
+    ("force", "expected_bytes", "extracted", "skipped"),
+    [
+        (False, b"existing", 0, 1),
+        (True, b"newer", 1, 0),
+    ],
+    ids=["no-force-preserves", "force-overwrites"],
+)
+async def test_refresh_snaps_overwrite_honours_force(
+    tmp_path: Path,
+    force: bool,
+    expected_bytes: bytes,
+    extracted: int,
+    skipped: int,
+) -> None:
+    """A pre-existing ``<dest>/snap/pacman.png`` is preserved unless ``force=True``.
+
+    ``force=False`` keeps the existing bytes and reports the entry skipped;
+    ``force=True`` overwrites it and reports it extracted.
+    """
     from mame_curator.updates.snaps import refresh_snaps
 
     snap_dir = tmp_path / "snap"
@@ -165,32 +183,13 @@ async def test_refresh_snaps_refuses_overwrite_without_force(tmp_path: Path) -> 
     with respx.mock(assert_all_called=True) as mock:
         _mount_pack(mock, pack_url, pack_body)
         async with httpx.AsyncClient() as client:
-            report = await refresh_snaps(dest_dir=tmp_path, url=pack_url, client=client)
+            report = await refresh_snaps(
+                dest_dir=tmp_path, url=pack_url, client=client, force=force
+            )
 
-    assert (snap_dir / "pacman.png").read_bytes() == b"existing"
-    assert report.files_extracted == 0
-    assert report.files_skipped == 1
-
-
-async def test_refresh_snaps_force_overwrites_existing_files(tmp_path: Path) -> None:
-    """``force=True`` overwrites pre-existing entries."""
-    from mame_curator.updates.snaps import refresh_snaps
-
-    snap_dir = tmp_path / "snap"
-    snap_dir.mkdir()
-    (snap_dir / "pacman.png").write_bytes(b"existing")
-
-    pack_url = "https://example.test/pS_snap_fullset_999.zip"
-    pack_body = _zip_bytes({"pacman.png": b"newer"})
-
-    with respx.mock(assert_all_called=True) as mock:
-        _mount_pack(mock, pack_url, pack_body)
-        async with httpx.AsyncClient() as client:
-            report = await refresh_snaps(dest_dir=tmp_path, url=pack_url, client=client, force=True)
-
-    assert (snap_dir / "pacman.png").read_bytes() == b"newer"
-    assert report.files_extracted == 1
-    assert report.files_skipped == 0
+    assert (snap_dir / "pacman.png").read_bytes() == expected_bytes
+    assert report.files_extracted == extracted
+    assert report.files_skipped == skipped
 
 
 async def test_refresh_snaps_url_override_skips_discovery(tmp_path: Path) -> None:

@@ -12,23 +12,21 @@ from collections import deque
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import Thread
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-# ---- K — SSE register-before-replay race + snapshot-as-tuple ----------------
+if TYPE_CHECKING:
+    from mame_curator.api.jobs import Job, JobManager
 
 
-def test_fp21_k_events_iterator_snapshots_history_before_replay(
-    tmp_path: Path,
-) -> None:
-    """FP21-K: ``_events_iterator`` snapshots ``lifecycle_history`` and
-    ``progress_history`` into tuples BEFORE merging — concurrent mutation
-    by ``_emit`` (worker thread via ``call_soon_threadsafe``) must not
-    raise ``RuntimeError: deque mutated during iteration``.
+def _make_job(tmp_path: Path, *, history: int = 0) -> tuple[JobManager, Job, datetime]:
+    """Build the JobManager + synthetic Job the FP21-K tests share.
 
-    Setup: a synthetic Job with a partially-filled progress deque. Spawn
-    a background thread that mutates the deque while the iterator
-    iterates. Pre-fix the heapq.merge over the live deque would crash;
-    post-fix the snapshot tuple is immutable so iteration is safe.
+    Both K-tests need byte-identical CopyPlan + Job construction with a
+    ``job_started`` lifecycle entry already replayable. ``history`` pre-fills
+    that many ``file_progress`` entries into ``progress_history`` with
+    timestamps staggered by 1µs so ``heapq.merge`` has an unambiguous order
+    (equal-ts tie-breaks are implementation-defined). Registers the job as
+    ``manager._current`` and returns ``(manager, job, now)``.
     """
     from mame_curator.api.jobs import Job, JobManager
     from mame_curator.api.schemas import JobEvent
@@ -42,9 +40,7 @@ def test_fp21_k_events_iterator_snapshots_history_before_replay(
         dest_dir=tmp_path / "dst",
         conflict_strategy=ConflictStrategy.CANCEL,
     )
-
     manager = JobManager(history_dir=tmp_path / "history")
-
     now = datetime.now(UTC)
     job = Job(
         id="test-job",
@@ -55,12 +51,7 @@ def test_fp21_k_events_iterator_snapshots_history_before_replay(
         files_total=1,
         bytes_total=100,
     )
-    # Pre-populate with replay-able history. Use 500 entries so the
-    # mutating thread has time to fire mid-iteration on most machines.
-    # FP31: stagger timestamps by 1µs so heapq.merge has unambiguous
-    # ordering — equal-ts tie-breaks are implementation-defined and the
-    # sibling test at line ~145 already uses this idiom.
-    for i in range(500):
+    for i in range(history):
         job.progress_history.append(
             JobEvent(
                 event="file_progress",
@@ -81,6 +72,30 @@ def test_fp21_k_events_iterator_snapshots_history_before_replay(
         )
     )
     manager._current = job
+    return manager, job, now
+
+
+# ---- K — SSE register-before-replay race + snapshot-as-tuple ----------------
+
+
+def test_fp21_k_events_iterator_snapshots_history_before_replay(
+    tmp_path: Path,
+) -> None:
+    """FP21-K: ``_events_iterator`` snapshots ``lifecycle_history`` and
+    ``progress_history`` into tuples BEFORE merging — concurrent mutation
+    by ``_emit`` (worker thread via ``call_soon_threadsafe``) must not
+    raise ``RuntimeError: deque mutated during iteration``.
+
+    Setup: a synthetic Job with a partially-filled progress deque. Spawn
+    a background thread that mutates the deque while the iterator
+    iterates. Pre-fix the heapq.merge over the live deque would crash;
+    post-fix the snapshot tuple is immutable so iteration is safe.
+    """
+    from mame_curator.api.schemas import JobEvent
+
+    # 500 history entries so the mutating thread has time to fire mid-
+    # iteration on most machines.
+    manager, job, now = _make_job(tmp_path, history=500)
 
     async def _drive() -> int:
         iter_task = manager._events_iterator()
@@ -142,45 +157,11 @@ def test_fp21_k_subscriber_registered_before_history_drain(
     drain). Emit a live event mid-drain. Assert the live event reaches
     the subscriber by the time it finishes replay.
     """
-    from mame_curator.api.jobs import Job, JobManager
     from mame_curator.api.schemas import JobEvent
-    from mame_curator.copy import ConflictStrategy, CopyController, CopyPlan
 
-    plan = CopyPlan(
-        winners=("kof94",),
-        machines={},
-        bios_chain={},
-        source_dir=tmp_path / "src",
-        dest_dir=tmp_path / "dst",
-        conflict_strategy=ConflictStrategy.CANCEL,
-    )
-
-    manager = JobManager(history_dir=tmp_path / "history")
-
-    now = datetime.now(UTC)
-    job = Job(
-        id="test-job",
-        plan=plan,
-        started_at=now,
-        controller=CopyController(),
-        thread=Thread(),
-        files_total=1,
-        bytes_total=100,
-    )
-    # Smaller history so we control when the drain ends.
-    job.lifecycle_history.append(
-        JobEvent(
-            event="job_started",
-            payload={
-                "job_id": "test-job",
-                "files_total": 1,
-                "bytes_total": 100,
-                "started_at": now.isoformat(),
-            },
-            ts=now,
-        )
-    )
-    manager._current = job
+    # No progress history — only the job_started lifecycle entry — so we
+    # control exactly when the replay drain ends.
+    manager, _job, now = _make_job(tmp_path)
 
     async def _drive() -> list[str]:
         # FP28-A1: _emit asserts the running loop matches self._loop.

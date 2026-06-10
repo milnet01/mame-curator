@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
 import { StatsPage } from '../StatsPage'
@@ -13,8 +13,13 @@ const stats: Stats = {
 }
 
 describe('StatsPage', () => {
-  it('renders every section header from the fixture', () => {
+  // Every case renders the same fixture; auto-cleanup (vitest globals:true)
+  // tears the DOM down between tests.
+  beforeEach(() => {
     render(<StatsPage stats={stats} />)
+  })
+
+  it('renders every section header from the fixture', () => {
     expect(screen.getByText(/by genre/i)).toBeInTheDocument()
     expect(screen.getByText(/by decade/i)).toBeInTheDocument()
     expect(screen.getByText(/top publishers/i)).toBeInTheDocument()
@@ -22,7 +27,6 @@ describe('StatsPage', () => {
   })
 
   it('renders the per-bucket counts', () => {
-    render(<StatsPage stats={stats} />)
     expect(screen.getByText('Fighting')).toBeInTheDocument()
     expect(screen.getByText('120')).toBeInTheDocument()
     expect(screen.getByText('1990s')).toBeInTheDocument()
@@ -30,7 +34,6 @@ describe('StatsPage', () => {
   })
 
   it('renders the total library size', () => {
-    render(<StatsPage stats={stats} />)
     expect(screen.getByText(/15\.4 GB/)).toBeInTheDocument()
   })
 })

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from mame_curator.filter.config import FilterConfig
 from mame_curator.filter.drops import drop_reason
 from mame_curator.filter.types import DroppedReason, FilterContext
@@ -147,18 +149,25 @@ def test_year_none_survives_year_range_filter() -> None:
     assert drop_reason(m(name="x", year=None), FilterContext(), cfg) is None
 
 
-def test_drop_bios_devices_mechanical_false_keeps_them() -> None:
+@pytest.mark.parametrize(
+    "machine",
+    [
+        m(name="ng", is_bios=True),
+        m(name="z80", is_device=True),
+        m(name="z80", runnable=False),
+        m(name="x", is_mechanical=True),
+    ],
+    ids=["bios", "device", "non_runnable", "mechanical"],
+)
+def test_drop_bios_devices_mechanical_false_keeps_them(machine: Machine) -> None:
     """Per filter/spec.md FilterConfig: `drop_bios_devices_mechanical: bool = True`
     is a togglable filter. When set to False, BIOS / device / mechanical machines
-    must survive Phase A.
+    must survive Phase A. Split per-predicate so a failure names the offending rule.
 
     Was a zombie field (declared, never read) until indie-review pass 3 Tier 1.
     """
     cfg = FilterConfig(drop_bios_devices_mechanical=False)
-    assert drop_reason(m(name="ng", is_bios=True), FilterContext(), cfg) is None
-    assert drop_reason(m(name="z80", is_device=True), FilterContext(), cfg) is None
-    assert drop_reason(m(name="z80", runnable=False), FilterContext(), cfg) is None
-    assert drop_reason(m(name="x", is_mechanical=True), FilterContext(), cfg) is None
+    assert drop_reason(machine, FilterContext(), cfg) is None
 
 
 def test_drop_bios_devices_mechanical_default_true_drops_them() -> None:

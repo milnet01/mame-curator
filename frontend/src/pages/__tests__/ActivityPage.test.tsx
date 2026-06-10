@@ -20,10 +20,10 @@ const items: Record<string, unknown>[] = [
   },
 ]
 
-function renderAt(initialEntry: string, total = 150) {
+function renderAt(initialEntry: string, total = 150, itemsOverride = items) {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
-      <ActivityPage pageSize={50} total={total} items={items} />
+      <ActivityPage pageSize={50} total={total} items={itemsOverride} />
     </MemoryRouter>,
   )
 }
@@ -48,11 +48,7 @@ describe('ActivityPage', () => {
   })
 
   it('renders an empty state when items is empty', () => {
-    render(
-      <MemoryRouter initialEntries={['/activity']}>
-        <ActivityPage pageSize={50} total={0} items={[]} />
-      </MemoryRouter>,
-    )
+    renderAt('/activity', 0, [])
     expect(screen.getByText(/no activity yet/i)).toBeInTheDocument()
   })
 })

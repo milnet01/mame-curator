@@ -16,6 +16,25 @@ const baseState: CopyModalState = {
   conflict: null,
 }
 
+// Render the modal in its default running state and click Cancel to open
+// the keep/recycle abort prompt; returns the onAbort spy so the caller can
+// assert which path the user picks.
+async function openAbortPrompt() {
+  const onAbort = vi.fn()
+  render(
+    <CopyModal
+      open
+      onOpenChange={() => {}}
+      state={baseState}
+      onPause={() => {}}
+      onResume={() => {}}
+      onAbort={onAbort}
+    />,
+  )
+  await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+  return onAbort
+}
+
 describe('CopyModal', () => {
   it('renders the progress line and current file', () => {
     render(
@@ -63,18 +82,7 @@ describe('CopyModal', () => {
   })
 
   it('opens the abort prompt offering BOTH keep + recycle paths (FP11 § A3)', async () => {
-    const onAbort = vi.fn()
-    render(
-      <CopyModal
-        open
-        onOpenChange={() => {}}
-        state={baseState}
-        onPause={() => {}}
-        onResume={() => {}}
-        onAbort={onAbort}
-      />,
-    )
-    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    await openAbortPrompt()
     // Spec / design §9: "Cancel asks whether to keep already-copied
     // files or remove them." Both paths must be reachable.
     expect(
@@ -86,18 +94,7 @@ describe('CopyModal', () => {
   })
 
   it('aborts with recycle_partial=true when user picks recycle', async () => {
-    const onAbort = vi.fn()
-    render(
-      <CopyModal
-        open
-        onOpenChange={() => {}}
-        state={baseState}
-        onPause={() => {}}
-        onResume={() => {}}
-        onAbort={onAbort}
-      />,
-    )
-    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    const onAbort = await openAbortPrompt()
     await userEvent.click(
       await screen.findByRole('button', { name: /move to recycle bin/i }),
     )
@@ -105,18 +102,7 @@ describe('CopyModal', () => {
   })
 
   it('aborts with recycle_partial=false when user picks keep', async () => {
-    const onAbort = vi.fn()
-    render(
-      <CopyModal
-        open
-        onOpenChange={() => {}}
-        state={baseState}
-        onPause={() => {}}
-        onResume={() => {}}
-        onAbort={onAbort}
-      />,
-    )
-    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    const onAbort = await openAbortPrompt()
     await userEvent.click(
       await screen.findByRole('button', { name: /keep files/i }),
     )

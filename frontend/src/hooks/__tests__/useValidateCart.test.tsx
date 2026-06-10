@@ -38,22 +38,16 @@ describe('useValidateCart', () => {
     })
   })
 
-  it('handles all-existing input', async () => {
+  it.each([
+    { label: 'all-existing', shortNames: ['pacman', 'pacmanf'], emptyField: 'missing' as const },
+    { label: 'all-missing', shortNames: ['ghost1', 'ghost2'], emptyField: 'existing' as const },
+  ])('handles $label input (empty $emptyField)', async ({ shortNames, emptyField }) => {
     const { result } = renderHook(() => useValidateCart(), {
       wrapper: makeClientWrapper(),
     })
-    result.current.mutate({ short_names: ['pacman', 'pacmanf'] })
+    result.current.mutate({ short_names: shortNames })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data?.missing).toEqual([])
-  })
-
-  it('handles all-missing input', async () => {
-    const { result } = renderHook(() => useValidateCart(), {
-      wrapper: makeClientWrapper(),
-    })
-    result.current.mutate({ short_names: ['ghost1', 'ghost2'] })
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data?.existing).toEqual([])
+    expect(result.current.data?.[emptyField]).toEqual([])
   })
 
   it('isError flips true when the server returns 500', async () => {

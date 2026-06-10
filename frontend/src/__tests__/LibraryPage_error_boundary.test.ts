@@ -24,41 +24,40 @@ import { describe, expect, it } from 'vitest'
 
 import libraryPageSource from '../pages/LibraryPage.tsx?raw'
 
+// Walk back through `text` to the most recent JSX open tag (`<TagName`),
+// ignoring closing tags `</…>` and self-closes. Returns the tag name, or
+// null when no enclosing open tag precedes the slice.
+function findLastJsxOpenTag(text: string): string | null {
+  const openTagRe = /<([A-Z][A-Za-z0-9_.]*)\b(?![^>]*\/\s*>)/g
+  let lastOpen: RegExpExecArray | null = null
+  let m: RegExpExecArray | null
+  while ((m = openTagRe.exec(text)) !== null) lastOpen = m
+  return lastOpen?.[1] ?? null
+}
+
 describe('DS02 E1/E2 — modal ErrorBoundary nesting', () => {
   it('AlternativesDrawer is wrapped in an ErrorBoundary (E1)', () => {
-    // Find the first occurrence of `<AlternativesDrawer` and assert
-    // the preceding opening tag is `<ErrorBoundary`. We allow other
-    // expression-tree intermediates (parentheses, conditional spread)
-    // but require no other JSX open-tag between the boundary and the
-    // drawer (i.e. the boundary is the immediate parent).
+    // Find the first occurrence of `<AlternativesDrawer` and assert the
+    // immediately-enclosing JSX open tag is `<ErrorBoundary` — no other
+    // JSX open-tag may sit between the boundary and the drawer.
     const drawerIdx = libraryPageSource.indexOf('<AlternativesDrawer')
     expect(drawerIdx, 'AlternativesDrawer is not rendered in LibraryPage').toBeGreaterThan(-1)
-    const before = libraryPageSource.slice(0, drawerIdx)
-    // Walk back to the most recent JSX open tag (anything matching
-    // `<TagName`) — ignoring closing tags `</…>` and self-closes.
-    const openTagRe = /<([A-Z][A-Za-z0-9_.]*)\b(?![^>]*\/\s*>)/g
-    let lastOpen: RegExpExecArray | null = null
-    let m: RegExpExecArray | null
-    while ((m = openTagRe.exec(before)) !== null) lastOpen = m
-    expect(lastOpen, 'no enclosing JSX component found before AlternativesDrawer').not.toBeNull()
+    const enclosing = findLastJsxOpenTag(libraryPageSource.slice(0, drawerIdx))
+    expect(enclosing, 'no enclosing JSX component found before AlternativesDrawer').not.toBeNull()
     expect(
-      lastOpen?.[1],
-      `AlternativesDrawer is enclosed by <${lastOpen?.[1]}>, expected ErrorBoundary`,
+      enclosing,
+      `AlternativesDrawer is enclosed by <${enclosing}>, expected ErrorBoundary`,
     ).toBe('ErrorBoundary')
   })
 
   it('CopyModal is wrapped in an ErrorBoundary (E2)', () => {
     const modalIdx = libraryPageSource.indexOf('<CopyModal')
     expect(modalIdx, 'CopyModal is not rendered in LibraryPage').toBeGreaterThan(-1)
-    const before = libraryPageSource.slice(0, modalIdx)
-    const openTagRe = /<([A-Z][A-Za-z0-9_.]*)\b(?![^>]*\/\s*>)/g
-    let lastOpen: RegExpExecArray | null = null
-    let m: RegExpExecArray | null
-    while ((m = openTagRe.exec(before)) !== null) lastOpen = m
-    expect(lastOpen, 'no enclosing JSX component found before CopyModal').not.toBeNull()
+    const enclosing = findLastJsxOpenTag(libraryPageSource.slice(0, modalIdx))
+    expect(enclosing, 'no enclosing JSX component found before CopyModal').not.toBeNull()
     expect(
-      lastOpen?.[1],
-      `CopyModal is enclosed by <${lastOpen?.[1]}>, expected ErrorBoundary`,
+      enclosing,
+      `CopyModal is enclosed by <${enclosing}>, expected ErrorBoundary`,
     ).toBe('ErrorBoundary')
   })
 

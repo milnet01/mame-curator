@@ -190,7 +190,7 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
 
 **Deferred to roadmap (this sub-section):**
 
-- 📋 [mame-curator-1065] **Test-audit 2026-05-20 — dedup nits beyond
+- ✅ [mame-curator-1065] **Test-audit 2026-05-20 — dedup nits beyond
   [mame-curator-1054].** (a) `tests/api/test_fp21_fixes.py` — extract a
   `_make_job(tmp_path, history=0)` helper for the byte-identical
   CopyPlan+Job construction (chunk c-001). (b)
@@ -207,8 +207,13 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   `tests/updates/test_snaps.py:154,175` — extract the shared
   overwrite/force setup. Kind: refactor. Lanes: backend tests, frontend
   tests. Source: test-audit-2026-05-20.
+  Resolved (2026-06-10): helpers extracted — `_make_job()` (a);
+  `renderCartBar()`/`cartBarProps()` (b); `openAbortPrompt()` (c);
+  `beforeEach` render (d); `renderAt()` reuse (e); `findLastJsxOpenTag()`
+  (f); (g) folded into 1066(b)'s parametrized snaps test. 764 backend +
+  320 frontend tests green; ruff/format/mypy/bandit/eslint/tsc clean.
 
-- 📋 [mame-curator-1066] **Test-audit 2026-05-20 — verbosity / parametrize
+- ✅ [mame-curator-1066] **Test-audit 2026-05-20 — verbosity / parametrize
   polish beyond [mame-curator-1055] (a).** (a)
   `tests/api/test_routes_copy.py:36` — parametrize the r22/r23/r24 shape
   tests (chunk c-002). (b) `tests/updates/test_snaps.py` — parametrize the
@@ -219,6 +224,12 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   `…_mechanical_false_keeps_them` test so a failure names the offending
   predicate (chunk c-006). Kind: refactor. Lanes: backend tests, frontend
   tests. Source: test-audit-2026-05-20.
+  Resolved (2026-06-10): parametrized — r22/r23/r24 →
+  `test_route_r22_r24_action_job_not_found` (a); snaps force pair →
+  `test_refresh_snaps_overwrite_honours_force`, also closing 1065(g) (b);
+  useValidateCart all-existing/all-missing → `it.each` (c); test_drops
+  4-predicate split into per-rule parametrize ids (d). DS05 count pins
+  bumped 611→608 / 305→303 with cited reasons.
 
 - 📋 [mame-curator-1067] **Test-audit 2026-05-20 — coverage gaps beyond
   [mame-curator-1053].** (a) `tests/filter/test_drops.py` — only
