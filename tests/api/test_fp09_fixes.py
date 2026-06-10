@@ -234,20 +234,30 @@ def test_b6_notes_only_skips_recompute(app: Any, monkeypatch: Any) -> None:
 # ---- B7 — fs_list parent escapes sandbox ------------------------------------
 
 
-def test_b7_fs_list_parent_filtered_against_allowlist(client: Any) -> None:
-    """B7 — `parent` field must be None when `requested.parent` is outside
-    the allowlist (rather than offering a non-clickable up-link).
+def test_b7_fs_list_parent_filtered_against_allowlist(client: Any, fake_home: Path) -> None:
+    """B7 — `parent` is None when going up would leave the sandbox.
+
+    The pre-fix form listed the real ``$HOME`` and only asserted anything
+    when ``parent`` came back non-None — vacuous on the common case where
+    ``parent`` is None, so a regression that always returned ``parent=null``
+    passed silently. ``fake_home`` is an allowlist root (``compose_allowlist``
+    adds ``Path.home()``) whose own parent (``tmp_path``) is outside every
+    root, so the "parent outside allowlist → None" path is asserted exactly.
     """
-    home = str(Path.home())
-    response = client.get(f"/api/fs/list?path={home}")
-    assert response.status_code == 200
-    body = response.json()
-    # If $HOME's parent is outside the allowlist (`/home` typically is),
-    # parent should be None.
-    if body["parent"] is not None:
-        # Sanity: parent must be inside allowlist, exposed via the same API.
-        parent_check = client.get(f"/api/fs/list?path={body['parent']}")
-        assert parent_check.status_code != 403, "B7: returned parent must be inside the allowlist"
+    sub = fake_home / "sub"
+    sub.mkdir()
+
+    # A dir inside the allowlist exposes its (in-allowlist) parent.
+    sub_listing = client.get(f"/api/fs/list?path={sub}")
+    assert sub_listing.status_code == 200
+    root_path = sub_listing.json()["parent"]
+    assert root_path is not None, "a dir inside the allowlist must expose its parent"
+
+    # That parent is the allowlist root: it is itself listable (200, inside
+    # the sandbox), but listing it yields parent=None — up would escape.
+    root_listing = client.get(f"/api/fs/list?path={root_path}")
+    assert root_listing.status_code == 200
+    assert root_listing.json()["parent"] is None
 
 
 # ---- B8 — _help_dir() arithmetic --------------------------------------------

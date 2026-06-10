@@ -231,7 +231,7 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   4-predicate split into per-rule parametrize ids (d). DS05 count pins
   bumped 611→608 / 305→303 with cited reasons.
 
-- 📋 [mame-curator-1067] **Test-audit 2026-05-20 — coverage gaps beyond
+- ✅ [mame-curator-1067] **Test-audit 2026-05-20 — coverage gaps beyond
   [mame-curator-1053].** (a) `tests/filter/test_drops.py` — only
   `drop_bios_devices_mechanical` has a flag-disabled (`=False`) "keeps
   them" test; add the equivalents for `drop_mature`,
@@ -241,8 +241,9 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   test (`"../evil.png"` rejected, nothing escapes dest); the SUT guard
   exists but is never directly asserted (chunk c-010). Kind: test. Lanes:
   backend tests. Source: test-audit-2026-05-20.
+  Resolved (2026-06-10): (a) added `test_togglable_drop_flags_false_keeps_them` in test_drops.py — flag-disabled `=False` keeps-them locks for drop_mature / drop_preliminary_emulation / drop_chd_required / drop_japanese_only_text (every togglable predicate now has one). (b) added `test_refresh_snaps_rejects_zip_path_traversal` in test_snaps.py — `../evil.png` skipped, files_extracted==1, nothing escapes dest; mutation-checked (guard off → 2 extracted → test fails). DS05 pin 608→610.
 
-- 📋 [mame-curator-1068] **Test-audit 2026-05-20 — reliability /
+- ✅ [mame-curator-1068] **Test-audit 2026-05-20 — reliability /
   assertion hardening.** (a) `tests/api/test_fp09_fixes.py:247`
   (`test_b7_fs_list_parent_filtered_against_allowlist`) — the assertion is
   vacuous when `body["parent"] is None`; a regression that always returns
@@ -255,16 +256,18 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   `ConnectError` propagating; a silently-swallowed network error currently
   still passes (chunk c-008). Kind: fix. Lanes: backend tests. Source:
   test-audit-2026-05-20.
+  Resolved (2026-06-10): (a) `test_b7_fs_list_parent_filtered_against_allowlist` rewritten deterministically via the `fake_home` allowlist root — lists a subdir (parent exposed) then the root (parent=None, up escapes sandbox); no longer vacuous on the parent-is-None case. (b) both `*_prepare_is_noop` tests now mount a catch-all respx route returning 500 and assert `not catch_all.called` — a swallowed network call flips that flag (verified respx trips on a real GET). Count-neutral.
 
-- 📋 [mame-curator-1069] **Test-audit 2026-05-20 — fixture-scope perf in
+- ✅ [mame-curator-1069] **Test-audit 2026-05-20 — fixture-scope perf in
   `tests/api/conftest.py:27-66`.** Seven read-only static-file `Path`
   fixtures (`mini_dat`, `listxml`, `catver_ini`, `languages_ini`,
   `bestgames_ini`, `mature_ini`, `series_ini`) are function-scoped and
   rebuilt for every api test; promote to `scope="session"` (they are
   never mutated). Kind: perf. Lanes: backend tests. Source:
   test-audit-2026-05-20 chunk c-001.
+  Resolved (2026-06-10): the 7 read-only static-file Path fixtures (mini_dat, listxml, catver_ini, languages_ini, bestgames_ini, mature_ini, series_ini) in tests/api/conftest.py promoted to scope="session" — never mutated, so built once for the api suite. Count-neutral; full suite 769 green @ 87.51%.
 
-- 📋 [mame-curator-1070] **Test-audit 2026-05-20 — ruff `# noqa`
+- ✅ [mame-curator-1070] **Test-audit 2026-05-20 — ruff `# noqa`
   false-directive noise in `tests/media/test_cache.py:20`.** The FP31
   hoist comment contains the literal token `# noqa: E402` in prose
   (describing the old import); ruff parses it as a malformed `# noqa`
@@ -277,6 +280,7 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   fixed in passing — reworded to name "a bandit S108 waiver" with no
   directive-shaped token. This item (`test_cache.py:20`, `# noqa: E402`)
   remains open.
+  Resolved (2026-06-10): reworded the prose `# noqa: E402` in test_cache.py:20 to "an E402 import-not-at-top waiver" (no directive-shaped token). `ruff check --no-cache` now emits no "Invalid `# noqa` directive" warning (the prior runs were cache-masked; --no-cache surfaced it).
 
 - ✅ [mame-curator-1071] **CI — GitHub Actions Node 20 deprecation +
   runner redirect.** The closing CI run (`26187276453`) annotated:

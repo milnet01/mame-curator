@@ -66,20 +66,22 @@ def test_libretro_source_classvars() -> None:
 
 @pytest.mark.asyncio
 async def test_libretro_source_prepare_is_noop() -> None:
-    """LibretroSource has no per-machine lookup — ``prepare`` is a no-op.
-    Pins the single-shot-source contract carried by the Protocol."""
+    """LibretroSource has no per-machine lookup — ``prepare`` is a no-op that
+    attempts no HTTP. A catch-all respx route (returns 500 instead of raising)
+    records any request ``prepare`` might fire; asserting it was never called
+    catches a regression that issues — and silently swallows — a network call,
+    which the prior unmocked-client form passed vacuously."""
     import httpx
+    import respx
 
     from mame_curator.media import LibretroSource
 
     src = LibretroSource()
-    async with httpx.AsyncClient() as client:
-        # `prepare` returns None by contract; awaiting it must not raise
-        # and must not hit any upstream — verified by the lack of a respx
-        # mock in this test (any HTTP request would 502 against an
-        # unmocked client). The implicit `result is None` is what
-        # `-> None` already guarantees; we only need the await to succeed.
-        await src.prepare(_machine(), client=client)
+    with respx.mock(assert_all_called=False) as mock:
+        catch_all = mock.route().mock(return_value=httpx.Response(500))
+        async with httpx.AsyncClient() as client:
+            await src.prepare(_machine(), client=client)
+    assert not catch_all.called, "prepare must not attempt any HTTP"
 
 
 # --- ProgettoSnapsSource (P10 chunk 3b) --------------------------------------
@@ -242,8 +244,11 @@ def test_progettosnaps_source_satisfies_media_source_protocol(
 async def test_progettosnaps_source_prepare_is_noop(
     tmp_path: Path,
 ) -> None:
-    """ProgettoSnapsSource never hits the network — ``prepare`` returns None."""
+    """ProgettoSnapsSource never hits the network — ``prepare`` returns None and
+    attempts no HTTP. The catch-all respx route proves the latter: a swallowed
+    network call would still flip ``catch_all.called``."""
     import httpx
+    import respx
 
     from mame_curator.media import ProgettoSnapsSource
 
@@ -251,8 +256,11 @@ async def test_progettosnaps_source_prepare_is_noop(
     snap_dir.mkdir()
     src = ProgettoSnapsSource(snap_dir=snap_dir)
 
-    async with httpx.AsyncClient() as client:
-        await src.prepare(_machine(), client=client)
+    with respx.mock(assert_all_called=False) as mock:
+        catch_all = mock.route().mock(return_value=httpx.Response(500))
+        async with httpx.AsyncClient() as client:
+            await src.prepare(_machine(), client=client)
+    assert not catch_all.called, "prepare must not attempt any HTTP"
 
 
 # --- ArcadeDBSource (P10 chunk 4) -----------------------------------------

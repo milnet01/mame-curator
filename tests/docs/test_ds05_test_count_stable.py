@@ -104,7 +104,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #   • -2 `test_route_r22/r23/r24_shape_*` merged into the parametrized
 #     `test_route_r22_r24_action_job_not_found` (1066 a).
 # 611 → 608.
-EXPECTED_PYTEST_DECLARATIONS = 608
+# Bumped 2026-06-10 (test-audit 2026-05-20 coverage fold-in,
+# mame-curator-1067): +2 declarations (each counts once; parametrize
+# expansions don't add to the regex count):
+#   • +1 `test_togglable_drop_flags_false_keeps_them` in test_drops.py —
+#     flag-disabled `=False` "keeps them" locks for the four remaining
+#     togglable predicates (drop_mature / drop_preliminary_emulation /
+#     drop_chd_required / drop_japanese_only_text). 1067 a.
+#   • +1 `test_refresh_snaps_rejects_zip_path_traversal` in test_snaps.py —
+#     explicit zip-slip assertion (`../evil.png` skipped, nothing escapes). 1067 b.
+# 608 → 610.
+EXPECTED_PYTEST_DECLARATIONS = 610
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

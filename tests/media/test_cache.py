@@ -17,9 +17,10 @@ import respx
 # FP31: hoisted both public re-export and internal-module imports up here so
 # every test exercises the same import surface. Previously the FP27 T2 B4
 # tests imported `MediaFetchError` / `fetch_with_cache` from
-# `mame_curator.media.cache` mid-file behind `# noqa: E402` while the
-# earlier tests imported them from `mame_curator.media`. If the public
-# re-export broke, one half of the suite would silently keep passing.
+# `mame_curator.media.cache` mid-file behind an E402 import-not-at-top
+# waiver, while the earlier tests imported them from `mame_curator.media`.
+# If the public re-export broke, one half of the suite would silently keep
+# passing.
 from mame_curator.media import MediaFetchError as _MediaFetchError_public
 from mame_curator.media import cache_path_for as _cache_path_for_public  # noqa: F401
 from mame_curator.media import fetch_with_cache as _fetch_with_cache_public  # noqa: F401

@@ -23,13 +23,16 @@ COPY_FIXTURES = Path(__file__).resolve().parents[1] / "copy" / "fixtures"
 API_FIXTURES = Path(__file__).parent / "fixtures"
 
 
-@pytest.fixture
+# These seven fixtures point at read-only reference files checked into the
+# repo (never mutated by a test), so a single session-scoped build is reused
+# across the whole api suite instead of being rebuilt per test.
+@pytest.fixture(scope="session")
 def mini_dat() -> Path:
     """6-machine DAT fixture (reused from parser tests)."""
     return PARSER_FIXTURES / "mini.dat.xml"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def listxml() -> Path:
     """Listxml fixture with pacman/pacmanf cloneof + neogeo bios entries.
 
@@ -40,27 +43,27 @@ def listxml() -> Path:
     return API_FIXTURES / "api_listxml.xml"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def catver_ini() -> Path:
     return PARSER_FIXTURES / "catver.ini"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def languages_ini() -> Path:
     return PARSER_FIXTURES / "languages.ini"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def bestgames_ini() -> Path:
     return PARSER_FIXTURES / "bestgames.ini"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mature_ini() -> Path:
     return PARSER_FIXTURES / "mature.ini"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def series_ini() -> Path:
     return PARSER_FIXTURES / "series.ini"
 

@@ -181,6 +181,44 @@ def test_drop_bios_devices_mechanical_default_true_drops_them() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("cfg", "ctx", "machine"),
+    [
+        (
+            FilterConfig(drop_mature=False),
+            FilterContext(mature=frozenset({"adultx"})),
+            m(name="adultx"),
+        ),
+        (
+            FilterConfig(drop_preliminary_emulation=False),
+            FilterContext(),
+            m(name="b", driver_status=DriverStatus.PRELIMINARY),
+        ),
+        (
+            FilterConfig(drop_chd_required=False),
+            FilterContext(chd_required=frozenset({"kinst"})),
+            m(name="kinst"),
+        ),
+        (
+            FilterConfig(drop_japanese_only_text=False),
+            FilterContext(languages={"jp": ("Japanese",)}),
+            m(name="jp"),
+        ),
+    ],
+    ids=["mature", "preliminary_emulation", "chd_required", "japanese_only_text"],
+)
+def test_togglable_drop_flags_false_keeps_them(
+    cfg: FilterConfig, ctx: FilterContext, machine: Machine
+) -> None:
+    """Each remaining boolean Phase-A flag, when False, must keep machines its
+    enabled form drops. Mirrors `test_drop_bios_devices_mechanical_false_keeps_them`
+    for `drop_mature`, `drop_preliminary_emulation`, `drop_chd_required`, and
+    `drop_japanese_only_text` — every togglable drop predicate now has a
+    flag-disabled regression lock. Split per-flag so a failure names the rule.
+    """
+    assert drop_reason(machine, ctx, cfg) is None
+
+
 def test_clean_machine_not_dropped() -> None:
     assert (
         drop_reason(

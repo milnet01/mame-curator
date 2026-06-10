@@ -237,6 +237,38 @@ async def test_refresh_snaps_extraction_skips_non_png_entries(tmp_path: Path) ->
     assert report.files_extracted == 1
 
 
+async def test_refresh_snaps_rejects_zip_path_traversal(tmp_path: Path) -> None:
+    """A malicious ``../evil.png`` ZIP entry is rejected — nothing escapes ``snap/``.
+
+    The extractor's flat-layout guard (``"/" in name``) doubles as a
+    zip-slip defence: any entry carrying a path separator is skipped, so a
+    crafted ``../evil.png`` can't be written outside the snap dir. The SUT
+    guard exists but the other extraction tests only exercise it
+    incidentally (subdir skip); this asserts the traversal case directly.
+    """
+    from mame_curator.updates.snaps import refresh_snaps
+
+    pack_url = "https://example.test/pS_snap_fullset_999.zip"
+    pack_body = _zip_bytes(
+        {
+            "pacman.png": b"pac",
+            "../evil.png": b"escaped",  # path-traversal attempt
+        }
+    )
+
+    with respx.mock(assert_all_called=True) as mock:
+        _mount_pack(mock, pack_url, pack_body)
+        async with httpx.AsyncClient() as client:
+            report = await refresh_snaps(dest_dir=tmp_path, url=pack_url, client=client)
+
+    # Only the legitimate entry lands; the traversal entry is skipped.
+    assert (tmp_path / "snap" / "pacman.png").exists()
+    assert report.files_extracted == 1
+    # Nothing escaped — neither at the dest root nor one level above it.
+    assert not (tmp_path / "evil.png").exists()
+    assert not (tmp_path.parent / "evil.png").exists()
+
+
 def test_pack_url_pattern_matches_pinned_filename() -> None:
     """``PACK_URL_PATTERN`` recognises the canonical pinned filename shape.
 
