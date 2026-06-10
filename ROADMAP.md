@@ -297,7 +297,7 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   `windows-2025-vs2026` is a maintenance burden the informational redirect
   doesn't warrant for this project.
 
-- 📋 [mame-curator-1072] **Frontend `npm run build` (`tsc -b`) is broken —
+- ✅ [mame-curator-1072] **Frontend `npm run build` (`tsc -b`) is broken —
   3 pre-existing type errors in `src/test/` not caught by CI.** Discovered
   during the 2026-06-10 dep-freshness sweep; **proven pre-existing** (the
   identical 3 errors reproduce on the pre-bump lockfile — NOT caused by the
@@ -316,6 +316,15 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   also wants a real CI build gate (`npm run build` or `tsc -b`) so this
   class can't recur silently. Kind: fix. Lanes: frontend, ci. Source:
   dep-freshness sweep 2026-06-10.
+  Resolved (2026-06-10): (a) `renderWithClient.tsx` — global `JSX.Element`
+  → `ReactElement` (imported from react); (b) `handlers.ts` — helper param
+  `unknown` → MSW `JsonBodyType` so `HttpResponse.json()` accepts it.
+  CI gate added: the frontend job's vacuous `npx tsc --noEmit` step (root
+  tsconfig is a `files: []` solution file → checks zero files) replaced
+  with `npm run build` (`tsc -b` + vite) in BOTH ci.yml + release.yml, so
+  a build-only type error now fails CI. `frontend/dist/` regenerated
+  against the 2026-06-10 bumped deps (React 19.2.7 / Vite 8.0.16). Build,
+  eslint, vitest (320) all green.
 
 ### 🧪 Test Audit 2026-05-18 (FP31 — second sweep)
 

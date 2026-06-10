@@ -1,5 +1,5 @@
 import { setupServer } from 'msw/node'
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse, type JsonBodyType } from 'msw'
 
 /**
  * MSW base handlers shared across the Vitest suite.
@@ -25,7 +25,7 @@ export { http, HttpResponse }
  * (the JSON payload to return for it), keeping the helper free of
  * test-file globals.
  */
-export function makeSandboxedListHandler(home: string, homeListing: unknown) {
+export function makeSandboxedListHandler(home: string, homeListing: JsonBodyType) {
   return http.get('/api/fs/list', ({ request }) => {
     const path = new URL(request.url).searchParams.get('path')
     if (path === home) return HttpResponse.json(homeListing)

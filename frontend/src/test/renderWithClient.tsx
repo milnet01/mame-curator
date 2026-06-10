@@ -8,11 +8,11 @@
  * don't get rebrand from "broken handler" to "took N retries to fail".
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 
 export interface RenderWithClientResult {
   /** A wrapper component to pass to ``renderHook`` / ``render``. */
-  wrapper: (props: { children: ReactNode }) => JSX.Element
+  wrapper: (props: { children: ReactNode }) => ReactElement
   /** The underlying ``QueryClient`` — useful for tests that need to
    * seed cache entries via ``qc.setQueryData(...)`` before rendering. */
   qc: QueryClient
@@ -42,6 +42,6 @@ export function renderWithClient(): RenderWithClientResult {
  * underlying ``QueryClient`` — keeps the call-site short for the
  * common case where the hook itself owns its cache interactions.
  */
-export function makeClientWrapper(): (props: { children: ReactNode }) => JSX.Element {
+export function makeClientWrapper(): (props: { children: ReactNode }) => ReactElement {
   return renderWithClient().wrapper
 }

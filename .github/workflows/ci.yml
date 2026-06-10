@@ -89,8 +89,12 @@ jobs:
       - name: ESLint
         run: npm run lint
 
-      - name: TypeScript type-check
-        run: npx tsc --noEmit
+      # Full build (`tsc -b && vite build`), not `tsc --noEmit`: the root
+      # tsconfig is a solution file (files: [] + references), so
+      # `tsc --noEmit` checks ZERO files. Only `tsc -b` follows the project
+      # references into src/ (incl. src/test/**) — see mame-curator-1072.
+      - name: Build (type-check + bundle)
+        run: npm run build
 
       - name: Vitest
         run: npm test
