@@ -27,6 +27,9 @@ describe('FiltersSidebar', () => {
   it('debounces the search input by ~200ms before calling onChange', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
+      // setup() must bind to the fake clock so userEvent's internal delays
+      // advance vitest's timers rather than hanging on the real clock.
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       const onChange = vi.fn()
       render(
         <FiltersSidebar
@@ -36,7 +39,7 @@ describe('FiltersSidebar', () => {
         />,
       )
       const input = screen.getByLabelText(/search/i)
-      await userEvent.type(input, 'pacm')
+      await user.type(input, 'pacm')
       // No call before the debounce window elapses.
       expect(onChange).not.toHaveBeenCalled()
       vi.advanceTimersByTime(250)
@@ -51,6 +54,7 @@ describe('FiltersSidebar', () => {
   })
 
   it('opens the save-as-session prompt and forwards the typed name', async () => {
+    const user = userEvent.setup()
     const onSaveSession = vi.fn()
     render(
       <FiltersSidebar
@@ -59,10 +63,10 @@ describe('FiltersSidebar', () => {
         onSaveSession={onSaveSession}
       />,
     )
-    await userEvent.click(screen.getByRole('button', { name: /save as session/i }))
+    await user.click(screen.getByRole('button', { name: /save as session/i }))
     const nameInput = await screen.findByLabelText(/session name/i)
-    await userEvent.type(nameInput, 'late-90s-fighters')
-    await userEvent.click(screen.getByRole('button', { name: /^save$/i }))
+    await user.type(nameInput, 'late-90s-fighters')
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
     expect(onSaveSession).toHaveBeenCalledWith('late-90s-fighters')
   })
 })

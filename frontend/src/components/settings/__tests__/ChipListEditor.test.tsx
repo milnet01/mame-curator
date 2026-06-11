@@ -42,6 +42,7 @@ describe('ChipListEditor', () => {
   })
 
   it('adds a chip on Enter and clears the input', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <ChipListEditor
@@ -53,13 +54,14 @@ describe('ChipListEditor', () => {
     )
 
     const input = screen.getByPlaceholderText('Add genre…')
-    await userEvent.type(input, 'puzzle{Enter}')
+    await user.type(input, 'puzzle{Enter}')
 
     expect(onChange).toHaveBeenCalledWith(['shooter', 'puzzle'])
     expect(input).toHaveValue('')
   })
 
   it('removes the clicked chip via its remove button', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <ChipListEditor
@@ -70,7 +72,7 @@ describe('ChipListEditor', () => {
       />,
     )
 
-    await userEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Remove puzzle from Drop genres' }),
     )
 
@@ -78,6 +80,7 @@ describe('ChipListEditor', () => {
   })
 
   it('removes the last chip on Backspace when the input is empty', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <ChipListEditor
@@ -90,12 +93,13 @@ describe('ChipListEditor', () => {
 
     const input = screen.getByPlaceholderText('Add genre…')
     input.focus()
-    await userEvent.keyboard('{Backspace}')
+    await user.keyboard('{Backspace}')
 
     expect(onChange).toHaveBeenCalledWith(['shooter'])
   })
 
   it('does NOT remove on Backspace when the input has text', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <ChipListEditor
@@ -107,12 +111,13 @@ describe('ChipListEditor', () => {
     )
 
     const input = screen.getByPlaceholderText('Add genre…')
-    await userEvent.type(input, 'p{Backspace}')
+    await user.type(input, 'p{Backspace}')
 
     expect(onChange).not.toHaveBeenCalled()
   })
 
   it('splits a comma-separated paste into multiple chips', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <ChipListEditor
@@ -125,7 +130,7 @@ describe('ChipListEditor', () => {
 
     const input = screen.getByPlaceholderText('Add genre…')
     input.focus()
-    await userEvent.paste('puzzle, racing,  fighting')
+    await user.paste('puzzle, racing,  fighting')
 
     expect(onChange).toHaveBeenCalledWith([
       'shooter',
@@ -136,6 +141,7 @@ describe('ChipListEditor', () => {
   })
 
   it('trims whitespace and ignores empty add attempts', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <ChipListEditor
@@ -147,14 +153,15 @@ describe('ChipListEditor', () => {
     )
 
     const input = screen.getByPlaceholderText('Add genre…')
-    await userEvent.type(input, '   {Enter}')
+    await user.type(input, '   {Enter}')
     expect(onChange).not.toHaveBeenCalled()
 
-    await userEvent.type(input, '  shooter  {Enter}')
+    await user.type(input, '  shooter  {Enter}')
     expect(onChange).toHaveBeenLastCalledWith(['shooter'])
   })
 
   it('dedupes — adding an existing value is a no-op', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <ChipListEditor
@@ -166,7 +173,7 @@ describe('ChipListEditor', () => {
     )
 
     const input = screen.getByPlaceholderText('Add genre…')
-    await userEvent.type(input, 'shooter{Enter}')
+    await user.type(input, 'shooter{Enter}')
 
     expect(onChange).not.toHaveBeenCalled()
     expect(input).toHaveValue('')

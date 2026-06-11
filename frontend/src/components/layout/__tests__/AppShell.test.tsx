@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { AppShell } from '@/components/layout/AppShell'
 
@@ -35,10 +36,11 @@ describe('AppShell', () => {
     expect(cart.tagName).toBe('BUTTON')
   })
 
-  it('fires onOpenCart when the Cart button is clicked', () => {
+  it('fires onOpenCart when the Cart button is clicked', async () => {
+    const user = userEvent.setup()
     const onOpenCart = vi.fn()
     renderShell({ cartCount: 0, onOpenCart })
-    fireEvent.click(screen.getByRole('button', { name: /cart/i }))
+    await user.click(screen.getByRole('button', { name: /cart/i }))
     expect(onOpenCart).toHaveBeenCalledTimes(1)
   })
 

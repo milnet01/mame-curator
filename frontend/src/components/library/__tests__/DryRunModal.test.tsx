@@ -44,6 +44,7 @@ describe('DryRunModal', () => {
   })
 
   it('calls onConfirm when the confirm button is clicked', async () => {
+    const user = userEvent.setup()
     const onConfirm = vi.fn()
     render(
       <DryRunModal
@@ -53,7 +54,7 @@ describe('DryRunModal', () => {
         onConfirm={onConfirm}
       />,
     )
-    await userEvent.click(screen.getByRole('button', { name: /^copy/i }))
+    await user.click(screen.getByRole('button', { name: /^copy/i }))
     expect(onConfirm).toHaveBeenCalledOnce()
   })
 })

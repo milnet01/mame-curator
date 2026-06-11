@@ -25,6 +25,7 @@ describe('DragReorderList', () => {
   })
 
   it('moves an item down when its Down button is clicked', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <DragReorderList
@@ -33,11 +34,12 @@ describe('DragReorderList', () => {
         onChange={onChange}
       />,
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Move us down' }))
+    await user.click(screen.getByRole('button', { name: 'Move us down' }))
     expect(onChange).toHaveBeenCalledWith(['eu', 'us', 'jp'])
   })
 
   it('moves an item up when its Up button is clicked', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <DragReorderList
@@ -46,7 +48,7 @@ describe('DragReorderList', () => {
         onChange={onChange}
       />,
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Move jp up' }))
+    await user.click(screen.getByRole('button', { name: 'Move jp up' }))
     expect(onChange).toHaveBeenCalledWith(['us', 'jp', 'eu'])
   })
 
@@ -75,6 +77,7 @@ describe('DragReorderList', () => {
   })
 
   it('reorders downward via ArrowDown when an item is focused', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <DragReorderList
@@ -85,11 +88,12 @@ describe('DragReorderList', () => {
     )
     const items = screen.getAllByRole('listitem')
     items[0].focus()
-    await userEvent.keyboard('{ArrowDown}')
+    await user.keyboard('{ArrowDown}')
     expect(onChange).toHaveBeenCalledWith(['eu', 'us', 'jp'])
   })
 
   it('reorders upward via ArrowUp when an item is focused', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <DragReorderList
@@ -100,11 +104,12 @@ describe('DragReorderList', () => {
     )
     const items = screen.getAllByRole('listitem')
     items[2].focus()
-    await userEvent.keyboard('{ArrowUp}')
+    await user.keyboard('{ArrowUp}')
     expect(onChange).toHaveBeenCalledWith(['us', 'jp', 'eu'])
   })
 
   it('ignores ArrowUp on the first item (no onChange)', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <DragReorderList
@@ -115,11 +120,12 @@ describe('DragReorderList', () => {
     )
     const items = screen.getAllByRole('listitem')
     items[0].focus()
-    await userEvent.keyboard('{ArrowUp}')
+    await user.keyboard('{ArrowUp}')
     expect(onChange).not.toHaveBeenCalled()
   })
 
   it('ignores ArrowDown on the last item (no onChange)', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
     render(
       <DragReorderList
@@ -130,7 +136,7 @@ describe('DragReorderList', () => {
     )
     const items = screen.getAllByRole('listitem')
     items[2].focus()
-    await userEvent.keyboard('{ArrowDown}')
+    await user.keyboard('{ArrowDown}')
     expect(onChange).not.toHaveBeenCalled()
   })
 
@@ -147,6 +153,7 @@ describe('DragReorderList', () => {
   })
 
   it('announces moves via an aria-live region (FP13 § D2)', async () => {
+    const user = userEvent.setup()
     render(
       <DragReorderList
         ariaLabel="Region priority"
@@ -156,7 +163,7 @@ describe('DragReorderList', () => {
     )
     const status = screen.getByRole('status')
     expect(status).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Move us down' }))
+    await user.click(screen.getByRole('button', { name: 'Move us down' }))
     expect(status).toHaveTextContent(/Moved us to position 2 of 3/i)
   })
 })

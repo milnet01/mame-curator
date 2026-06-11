@@ -53,6 +53,7 @@ describe('AlternativesDrawer', () => {
   })
 
   it('calls onOverride with parent + chosen winner and closes', async () => {
+    const user = userEvent.setup()
     const onOverride = vi.fn()
     const onOpenChange = vi.fn()
     renderWithRouter(
@@ -64,7 +65,7 @@ describe('AlternativesDrawer', () => {
         onOverride={onOverride}
       />,
     )
-    await userEvent.click(
+    await user.click(
       screen.getByRole('button', { name: /Use Pac-Man Jr\./i }),
     )
     expect(onOverride).toHaveBeenCalledWith({
@@ -149,6 +150,7 @@ describe('AlternativesDrawer', () => {
   })
 
   it('does not call onLaunch when the button is gated (FP22-B)', async () => {
+    const user = userEvent.setup()
     const onLaunch = vi.fn()
     renderWithRouter(
       <AlternativesDrawer
@@ -161,11 +163,12 @@ describe('AlternativesDrawer', () => {
         retroarchConfigured={false}
       />,
     )
-    await userEvent.click(screen.getByRole('button', { name: /Launch in RetroArch/i }))
+    await user.click(screen.getByRole('button', { name: /Launch in RetroArch/i }))
     expect(onLaunch).not.toHaveBeenCalled()
   })
 
   it('enables Launch when retroarchConfigured is true (FP22-B)', async () => {
+    const user = userEvent.setup()
     const onLaunch = vi.fn()
     renderWithRouter(
       <AlternativesDrawer
@@ -180,7 +183,7 @@ describe('AlternativesDrawer', () => {
     )
     const launchButton = screen.getByRole('button', { name: /Launch in RetroArch/i })
     expect(launchButton).toBeEnabled()
-    await userEvent.click(launchButton)
+    await user.click(launchButton)
     expect(onLaunch).toHaveBeenCalledWith('pacman')
   })
 

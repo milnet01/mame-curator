@@ -28,37 +28,41 @@ describe('BackupTab (FP12 § J + FP13 § B1/B3)', () => {
   })
 
   it('calls onExport when Export is clicked', async () => {
+    const user = userEvent.setup()
     const onExport = vi.fn()
     render(<BackupTab onExport={onExport} onImport={() => {}} />)
-    await userEvent.click(screen.getByRole('button', { name: /^Export/ }))
+    await user.click(screen.getByRole('button', { name: /^Export/ }))
     expect(onExport).toHaveBeenCalledOnce()
   })
 
   it('opens a confirmation dialog when a valid file is selected', async () => {
+    const user = userEvent.setup()
     render(<BackupTab onExport={() => {}} onImport={() => {}} />)
     const input = screen.getByLabelText(/^Import/) as HTMLInputElement
-    await userEvent.upload(input, sampleFile())
+    await user.upload(input, sampleFile())
     expect(
       screen.getByRole('alertdialog', { name: /replace configuration/i }),
     ).toBeInTheDocument()
   })
 
   it('uses a concrete action label naming the file (design §8)', async () => {
+    const user = userEvent.setup()
     render(<BackupTab onExport={() => {}} onImport={() => {}} />)
     const input = screen.getByLabelText(/^Import/) as HTMLInputElement
-    await userEvent.upload(input, sampleFile())
+    await user.upload(input, sampleFile())
     expect(
       screen.getByRole('button', { name: 'Replace settings from backup.json' }),
     ).toBeInTheDocument()
   })
 
   it('calls onImport with the parsed bundle only after confirming (FP13 § B1)', async () => {
+    const user = userEvent.setup()
     const onImport = vi.fn()
     render(<BackupTab onExport={() => {}} onImport={onImport} />)
     const input = screen.getByLabelText(/^Import/) as HTMLInputElement
-    await userEvent.upload(input, sampleFile())
+    await user.upload(input, sampleFile())
     expect(onImport).not.toHaveBeenCalled()
-    await userEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Replace settings from backup.json' }),
     )
     expect(onImport).toHaveBeenCalledExactlyOnceWith({
@@ -70,11 +74,12 @@ describe('BackupTab (FP12 § J + FP13 § B1/B3)', () => {
   })
 
   it('does not call onImport when the dialog is cancelled', async () => {
+    const user = userEvent.setup()
     const onImport = vi.fn()
     render(<BackupTab onExport={() => {}} onImport={onImport} />)
     const input = screen.getByLabelText(/^Import/) as HTMLInputElement
-    await userEvent.upload(input, sampleFile())
-    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    await user.upload(input, sampleFile())
+    await user.click(screen.getByRole('button', { name: /cancel/i }))
     expect(onImport).not.toHaveBeenCalled()
   })
 
@@ -86,19 +91,21 @@ describe('BackupTab (FP12 § J + FP13 § B1/B3)', () => {
   })
 
   it('rejects a file whose JSON parse fails — no dialog opens (FP13 § B1)', async () => {
+    const user = userEvent.setup()
     const onImport = vi.fn()
     render(<BackupTab onExport={() => {}} onImport={onImport} />)
     const input = screen.getByLabelText(/^Import/) as HTMLInputElement
     const garbage = new File(['{ not json'], 'garbage.json', {
       type: 'application/json',
     })
-    await userEvent.upload(input, garbage)
+    await user.upload(input, garbage)
     expect(screen.getByRole('alert')).toHaveTextContent(/not a valid JSON/i)
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
     expect(onImport).not.toHaveBeenCalled()
   })
 
   it('rejects a file whose schema does not match — no dialog opens (FP13 § B1)', async () => {
+    const user = userEvent.setup()
     const onImport = vi.fn()
     render(<BackupTab onExport={() => {}} onImport={onImport} />)
     const input = screen.getByLabelText(/^Import/) as HTMLInputElement
@@ -106,7 +113,7 @@ describe('BackupTab (FP12 § J + FP13 § B1/B3)', () => {
     const wrongShape = new File([JSON.stringify({ unrelated: 1 })], 'wrong.json', {
       type: 'application/json',
     })
-    await userEvent.upload(input, wrongShape)
+    await user.upload(input, wrongShape)
     expect(screen.getByRole('alert')).toHaveTextContent(
       /not a configuration bundle/i,
     )
@@ -115,6 +122,7 @@ describe('BackupTab (FP12 § J + FP13 § B1/B3)', () => {
   })
 
   it('rejects a file larger than the size cap — no parse, no dialog (FP13 § B3)', async () => {
+    const user = userEvent.setup()
     const onImport = vi.fn()
     render(<BackupTab onExport={() => {}} onImport={onImport} />)
     const input = screen.getByLabelText(/^Import/) as HTMLInputElement
@@ -125,7 +133,7 @@ describe('BackupTab (FP12 § J + FP13 § B1/B3)', () => {
     // without burning ~12 MB of jsdom RAM per test run.
     const huge = new File(['x'], 'huge.json', { type: 'application/json' })
     Object.defineProperty(huge, 'size', { value: 6 * 1024 * 1024 })
-    await userEvent.upload(input, huge)
+    await user.upload(input, huge)
     expect(screen.getByRole('alert')).toHaveTextContent(/too large/i)
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
     expect(onImport).not.toHaveBeenCalled()

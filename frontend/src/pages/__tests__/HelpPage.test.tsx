@@ -26,6 +26,7 @@ describe('HelpPage', () => {
   })
 
   it('calls onSelect when a topic is clicked', async () => {
+    const user = userEvent.setup()
     const onSelect = vi.fn()
     render(
       <HelpPage
@@ -35,7 +36,7 @@ describe('HelpPage', () => {
         onSelect={onSelect}
       />,
     )
-    await userEvent.click(screen.getByText('Manual overrides'))
+    await user.click(screen.getByText('Manual overrides'))
     expect(onSelect).toHaveBeenCalledWith('overrides')
   })
 

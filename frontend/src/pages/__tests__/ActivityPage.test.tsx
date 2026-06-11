@@ -41,8 +41,9 @@ describe('ActivityPage', () => {
   })
 
   it('writes ?page when the user clicks Next', async () => {
+    const user = userEvent.setup()
     renderAt('/activity?page=2', 200)
-    await userEvent.click(screen.getByRole('button', { name: /next/i }))
+    await user.click(screen.getByRole('button', { name: /next/i }))
     // Page indicator advances from 2 → 3.
     expect(screen.getByText(/Page 3 of/)).toBeInTheDocument()
   })

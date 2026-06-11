@@ -51,30 +51,33 @@ describe('SnapshotsTab (FP12 § I)', () => {
   })
 
   it('opens a confirmation dialog when Restore is clicked', async () => {
+    const user = userEvent.setup()
     render(<SnapshotsTab snapshots={sample} onRestore={() => {}} />)
     const buttons = screen.getAllByRole('button', { name: /^Restore/ })
-    await userEvent.click(buttons[0]!)
+    await user.click(buttons[0]!)
     expect(
       screen.getByRole('alertdialog', { name: /restore configuration/i }),
     ).toBeInTheDocument()
   })
 
   it('uses a concrete action label including file count (design §8)', async () => {
+    const user = userEvent.setup()
     render(<SnapshotsTab snapshots={sample} onRestore={() => {}} />)
     const buttons = screen.getAllByRole('button', { name: /^Restore/ })
-    await userEvent.click(buttons[0]!)
+    await user.click(buttons[0]!)
     expect(
       screen.getByRole('button', { name: 'Restore 4 files' }),
     ).toBeInTheDocument()
   })
 
   it('calls onRestore with the snapshot id only after confirming', async () => {
+    const user = userEvent.setup()
     const onRestore = vi.fn()
     render(<SnapshotsTab snapshots={sample} onRestore={onRestore} />)
     const buttons = screen.getAllByRole('button', { name: /^Restore/ })
-    await userEvent.click(buttons[0]!)
+    await user.click(buttons[0]!)
     expect(onRestore).not.toHaveBeenCalled()
-    await userEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Restore 4 files' }),
     )
     expect(onRestore).toHaveBeenCalledExactlyOnceWith(
@@ -83,12 +86,13 @@ describe('SnapshotsTab (FP12 § I)', () => {
   })
 
   it('does not call onRestore when the dialog is cancelled', async () => {
+    const user = userEvent.setup()
     const onRestore = vi.fn()
     render(<SnapshotsTab snapshots={sample} onRestore={onRestore} />)
-    await userEvent.click(
+    await user.click(
       screen.getAllByRole('button', { name: /^Restore/ })[0]!,
     )
-    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    await user.click(screen.getByRole('button', { name: /cancel/i }))
     expect(onRestore).not.toHaveBeenCalled()
   })
 
@@ -126,6 +130,7 @@ describe('SnapshotsTab (FP12 § I)', () => {
   })
 
   it('restoreError still allows opening the restore dialog (user can try another)', async () => {
+    const user = userEvent.setup()
     render(
       <SnapshotsTab
         snapshots={sample}
@@ -134,7 +139,7 @@ describe('SnapshotsTab (FP12 § I)', () => {
       />,
     )
     const buttons = screen.getAllByRole('button', { name: /^Restore/ })
-    await userEvent.click(buttons[1]!)
+    await user.click(buttons[1]!)
     expect(
       screen.getByRole('alertdialog', { name: /restore configuration/i }),
     ).toBeInTheDocument()

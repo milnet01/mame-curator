@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { FeaturedTilesRow } from '@/components/library/FeaturedTilesRow'
 import { strings } from '@/strings'
 
@@ -24,7 +25,8 @@ describe('FeaturedTilesRow', () => {
     expect(screen.getByText(/51 games/i)).toBeInTheDocument()
   })
 
-  it('emits onTileSelect with the tile id on click', () => {
+  it('emits onTileSelect with the tile id on click', async () => {
+    const user = userEvent.setup()
     const onTileSelect = vi.fn()
     render(
       <FeaturedTilesRow counts={{}} activeTileId={null} onTileSelect={onTileSelect} />,
@@ -34,7 +36,7 @@ describe('FeaturedTilesRow', () => {
     // also surfaces an a11y regression if the tile stops being a
     // proper button.
     const button = screen.getByRole('button', { name: 'Capcom Classics' })
-    fireEvent.click(button)
+    await user.click(button)
     expect(onTileSelect).toHaveBeenCalledWith('capcom-classics')
   })
 

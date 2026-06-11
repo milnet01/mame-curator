@@ -14,10 +14,11 @@ describe('NotesEditor', () => {
   })
 
   it('calls onSave when the textarea blurs with new content', async () => {
+    const user = userEvent.setup()
     const onSave = vi.fn().mockResolvedValue(undefined)
     render(<NotesEditor initial="" onSave={onSave} />)
     const textarea = screen.getByRole('textbox')
-    await userEvent.type(textarea, 'updated note')
+    await user.type(textarea, 'updated note')
     textarea.blur()
     // Use waitFor instead of `await Promise.resolve()` so the test
     // tolerates additional async steps in the blur handler — a future
@@ -36,10 +37,11 @@ describe('NotesEditor', () => {
   })
 
   it('flips to the saved badge after a successful save', async () => {
+    const user = userEvent.setup()
     const onSave = vi.fn().mockResolvedValue(undefined)
     render(<NotesEditor initial="" onSave={onSave} />)
     const textarea = screen.getByRole('textbox')
-    await userEvent.type(textarea, 'changed')
+    await user.type(textarea, 'changed')
     textarea.blur()
     await waitFor(() =>
       expect(screen.getByText(strings.notes.saved)).toBeInTheDocument(),
@@ -47,10 +49,11 @@ describe('NotesEditor', () => {
   })
 
   it('shows the error badge with role="alert" when onSave rejects', async () => {
+    const user = userEvent.setup()
     const onSave = vi.fn().mockRejectedValue(new Error('boom'))
     render(<NotesEditor initial="" onSave={onSave} />)
     const textarea = screen.getByRole('textbox')
-    await userEvent.type(textarea, 'changed')
+    await user.type(textarea, 'changed')
     textarea.blur()
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent(strings.notes.saveError)
@@ -61,6 +64,7 @@ describe('NotesEditor', () => {
   // retry begins, the badge MUST flip to `saving` so the user doesn't
   // see a stale "Could not save" while a fresh request is in flight.
   it('clears a prior error to "saving" while a retry is in flight', async () => {
+    const user = userEvent.setup()
     const retry: { resolve?: () => void } = {}
     const onSave = vi
       .fn()
@@ -73,13 +77,13 @@ describe('NotesEditor', () => {
     const textarea = screen.getByRole('textbox')
 
     // First attempt — fails, error badge sticks.
-    await userEvent.type(textarea, 'first')
+    await user.type(textarea, 'first')
     textarea.blur()
     await screen.findByRole('alert')
 
     // Second attempt — type more, blur. Before the promise resolves,
     // the badge must read "Saving…", NOT "Could not save".
-    await userEvent.type(textarea, ' second')
+    await user.type(textarea, ' second')
     textarea.blur()
     await waitFor(() =>
       expect(screen.getByText(strings.notes.saving)).toBeInTheDocument(),

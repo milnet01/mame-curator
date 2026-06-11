@@ -104,30 +104,33 @@ describe('FsBrowser (FP12 § G)', () => {
   })
 
   it('navigates into a directory when clicked', async () => {
+    const user = userEvent.setup()
     renderWithClient(
       <FsBrowser open onOpenChange={() => {}} onPick={() => {}} />,
     )
-    await userEvent.click(await screen.findByText('projects'))
+    await user.click(await screen.findByText('projects'))
     expect(await screen.findByText('mame')).toBeInTheDocument()
   })
 
   it('returns to the parent via Up', async () => {
+    const user = userEvent.setup()
     renderWithClient(
       <FsBrowser open onOpenChange={() => {}} onPick={() => {}} />,
     )
-    await userEvent.click(await screen.findByText('projects'))
+    await user.click(await screen.findByText('projects'))
     await screen.findByText('mame')
-    await userEvent.click(screen.getByRole('button', { name: /up/i }))
+    await user.click(screen.getByRole('button', { name: /up/i }))
     expect(await screen.findByText('projects')).toBeInTheDocument()
   })
 
   it('calls onPick with the current path when Use this directory is clicked', async () => {
+    const user = userEvent.setup()
     const onPick = vi.fn()
     renderWithClient(
       <FsBrowser open onOpenChange={() => {}} onPick={onPick} />,
     )
     await screen.findByText('projects')
-    await userEvent.click(
+    await user.click(
       screen.getByRole('button', { name: /use this directory/i }),
     )
     expect(onPick).toHaveBeenCalledExactlyOnceWith(HOME)
@@ -142,22 +145,24 @@ describe('FsBrowser (FP12 § G)', () => {
   })
 
   it('shows and selects files in file mode', async () => {
+    const user = userEvent.setup()
     const onPick = vi.fn()
     renderWithClient(
       <FsBrowser open onOpenChange={() => {}} onPick={onPick} mode="file" />,
     )
     const fileEntry = await screen.findByText('notes.txt')
-    await userEvent.click(fileEntry)
+    await user.click(fileEntry)
     expect(onPick).toHaveBeenCalledExactlyOnceWith('/home/test/notes.txt')
   })
 
   it('closes via the Cancel button', async () => {
+    const user = userEvent.setup()
     const onOpenChange = vi.fn()
     renderWithClient(
       <FsBrowser open onOpenChange={onOpenChange} onPick={() => {}} />,
     )
     await screen.findByText('projects')
-    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    await user.click(screen.getByRole('button', { name: /cancel/i }))
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
@@ -245,6 +250,7 @@ describe('FsBrowser (FP12 § G)', () => {
   })
 
   it('closes the modal when the grant prompt is cancelled (FP13 § C2)', async () => {
+    const user = userEvent.setup()
     const onOpenChange = vi.fn()
     server.use(makeSandboxedListHandler(HOME, homeListing))
     renderWithClient(
@@ -259,7 +265,7 @@ describe('FsBrowser (FP12 § G)', () => {
     // The grant prompt offers Cancel + the "Grant access to /etc" affirm.
     // Clicking Cancel must close FsBrowser entirely, not silently reset to
     // home (which would re-open the prompt if home hadn't loaded).
-    await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }))
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
@@ -281,6 +287,7 @@ describe('FsBrowser (FP12 § G)', () => {
   })
 
   it('POSTs a grant when the prompt is confirmed', async () => {
+    const user = userEvent.setup()
     let granted: string | null = null
     server.use(
       makeSandboxedListHandler(HOME, homeListing),
@@ -306,7 +313,7 @@ describe('FsBrowser (FP12 § G)', () => {
     const grantBtn = await screen.findByRole('button', {
       name: 'Grant access to /etc',
     })
-    await userEvent.click(grantBtn)
+    await user.click(grantBtn)
     await waitFor(() => expect(granted).toBe('/etc'))
   })
 })

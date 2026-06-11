@@ -19,7 +19,7 @@ const baseState: CopyModalState = {
 // Render the modal in its default running state and click Cancel to open
 // the keep/recycle abort prompt; returns the onAbort spy so the caller can
 // assert which path the user picks.
-async function openAbortPrompt() {
+async function openAbortPrompt(user: ReturnType<typeof userEvent.setup>) {
   const onAbort = vi.fn()
   render(
     <CopyModal
@@ -31,7 +31,7 @@ async function openAbortPrompt() {
       onAbort={onAbort}
     />,
   )
-  await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+  await user.click(screen.getByRole('button', { name: /cancel/i }))
   return onAbort
 }
 
@@ -52,6 +52,7 @@ describe('CopyModal', () => {
   })
 
   it('shows pause when running and resume when paused', async () => {
+    const user = userEvent.setup()
     const onPause = vi.fn()
     const onResume = vi.fn()
     const { rerender } = render(
@@ -64,7 +65,7 @@ describe('CopyModal', () => {
         onAbort={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('button', { name: /pause/i }))
+    await user.click(screen.getByRole('button', { name: /pause/i }))
     expect(onPause).toHaveBeenCalledOnce()
 
     rerender(
@@ -77,12 +78,13 @@ describe('CopyModal', () => {
         onAbort={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('button', { name: /resume/i }))
+    await user.click(screen.getByRole('button', { name: /resume/i }))
     expect(onResume).toHaveBeenCalledOnce()
   })
 
   it('opens the abort prompt offering BOTH keep + recycle paths (FP11 § A3)', async () => {
-    await openAbortPrompt()
+    const user = userEvent.setup()
+    await openAbortPrompt(user)
     // Spec / design §9: "Cancel asks whether to keep already-copied
     // files or remove them." Both paths must be reachable.
     expect(
@@ -94,22 +96,25 @@ describe('CopyModal', () => {
   })
 
   it('aborts with recycle_partial=true when user picks recycle', async () => {
-    const onAbort = await openAbortPrompt()
-    await userEvent.click(
+    const user = userEvent.setup()
+    const onAbort = await openAbortPrompt(user)
+    await user.click(
       await screen.findByRole('button', { name: /move to recycle bin/i }),
     )
     expect(onAbort).toHaveBeenCalledWith({ recycle_partial: true })
   })
 
   it('aborts with recycle_partial=false when user picks keep', async () => {
-    const onAbort = await openAbortPrompt()
-    await userEvent.click(
+    const user = userEvent.setup()
+    const onAbort = await openAbortPrompt(user)
+    await user.click(
       await screen.findByRole('button', { name: /keep files/i }),
     )
     expect(onAbort).toHaveBeenCalledWith({ recycle_partial: false })
   })
 
   it('shows a Done button in terminal states (FP11 § D8)', async () => {
+    const user = userEvent.setup()
     const onOpenChange = vi.fn()
     const { rerender } = render(
       <CopyModal
@@ -125,7 +130,7 @@ describe('CopyModal', () => {
     expect(done).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /pause/i })).toBeNull()
     expect(screen.queryByRole('button', { name: /^cancel$/i })).toBeNull()
-    await userEvent.click(done)
+    await user.click(done)
     expect(onOpenChange).toHaveBeenCalledWith(false)
 
     rerender(

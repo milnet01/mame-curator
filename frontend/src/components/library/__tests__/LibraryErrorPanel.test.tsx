@@ -27,10 +27,11 @@ describe('LibraryErrorPanel', () => {
   })
 
   it('renders a Retry button that invokes onRetry on click', async () => {
+    const user = userEvent.setup()
     const onRetry = vi.fn()
     render(<LibraryErrorPanel onRetry={onRetry} />)
     const button = screen.getByRole('button', { name: strings.common.retry })
-    await userEvent.click(button)
+    await user.click(button)
     expect(onRetry).toHaveBeenCalledTimes(1)
   })
 
@@ -54,12 +55,13 @@ describe('LibraryErrorPanel', () => {
   })
 
   it('FP25-H: disabled Retry does not invoke onRetry on click', async () => {
+    const user = userEvent.setup()
     const onRetry = vi.fn()
     render(<LibraryErrorPanel onRetry={onRetry} isFetching />)
     const button = screen.getByRole('button', {
       name: strings.common.retrying,
     })
-    await userEvent.click(button)
+    await user.click(button)
     expect(onRetry).not.toHaveBeenCalled()
   })
 })

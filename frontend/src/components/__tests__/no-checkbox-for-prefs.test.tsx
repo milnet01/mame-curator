@@ -96,6 +96,7 @@ describe('no-checkbox-for-prefs invariant', () => {
   })
 
   it('SettingsPage prefs tabs use Switch, never Checkbox', async () => {
+    const user = userEvent.setup()
     // DS02 D1: SettingsPage now reads its active tab via
     // `useSearchParams`, so it must render inside a Router.
     render(
@@ -117,7 +118,7 @@ describe('no-checkbox-for-prefs invariant', () => {
     expect(tabs.length, 'SettingsPage rendered zero tabs').toBeGreaterThan(0)
     for (const tab of tabs) {
       const label = tab.textContent ?? '<no label>'
-      await userEvent.click(tab)
+      await user.click(tab)
       expect(
         screen.queryAllByRole('checkbox'),
         `Tab "${label}" leaked a Checkbox`,

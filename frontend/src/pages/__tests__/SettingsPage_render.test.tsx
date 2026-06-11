@@ -89,6 +89,7 @@ describe('SettingsPage — render', () => {
   )
 
   it('renders the R36 update banner when updateInfo is provided (FP11 § B3)', async () => {
+    const user = userEvent.setup()
     render(
       <SettingsPage
         config={config}
@@ -101,11 +102,12 @@ describe('SettingsPage — render', () => {
         }}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Updates$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Updates$/ }))
     expect(screen.getByText(/0\.0\.1.*0\.0\.2/)).toBeInTheDocument()
   })
 
   it('uses Switch (not Checkbox) on the Filters tab', async () => {
+    const user = userEvent.setup()
     render(
       <SettingsPage
         config={config}
@@ -113,12 +115,13 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Filters$/ }))
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
     expect(screen.getAllByRole('switch').length).toBeGreaterThan(0)
   })
 
   it('calls onPatch when a Filters Switch is toggled', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -127,13 +130,14 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Filters$/ }))
     const firstSwitch = screen.getAllByRole('switch')[0]!
-    await userEvent.click(firstSwitch)
+    await user.click(firstSwitch)
     expect(onPatch).toHaveBeenCalled()
   })
 
   it('renders 4 chip-list editors on the Filters tab (FP12 § A)', async () => {
+    const user = userEvent.setup()
     render(
       <SettingsPage
         config={config}
@@ -141,7 +145,7 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Filters$/ }))
     expect(screen.getByPlaceholderText('Add category…')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Add genre…')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Add publisher…')).toBeInTheDocument()
@@ -149,6 +153,7 @@ describe('SettingsPage — render', () => {
   })
 
   it('renders 3 chip-list editors on the Picker tab (FP12 § A)', async () => {
+    const user = userEvent.setup()
     const pickerConfig = {
       ...config,
       filters: {
@@ -164,7 +169,7 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Picker$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Picker$/ }))
     // 3 placeholders, one per chip-list field (preferred_*).
     expect(
       screen.getAllByPlaceholderText(/^Add (genre|publisher|developer)…$/),
@@ -179,6 +184,7 @@ describe('SettingsPage — render', () => {
   })
 
   it('patches the filters list when a chip is added via Enter (FP12 § A)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -187,9 +193,9 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Filters$/ }))
     const input = screen.getByPlaceholderText('Add genre…')
-    await userEvent.type(input, 'shooter{Enter}')
+    await user.type(input, 'shooter{Enter}')
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         filters: expect.objectContaining({ drop_genres: ['shooter'] }),
@@ -198,6 +204,7 @@ describe('SettingsPage — render', () => {
   })
 
   it('renders the updates.channel dropdown with the current value (FP12 § E)', async () => {
+    const user = userEvent.setup()
     render(
       <SettingsPage
         config={config}
@@ -205,12 +212,13 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Updates$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Updates$/ }))
     const trigger = screen.getByRole('combobox', { name: 'Update channel' })
     expect(trigger).toHaveTextContent('Stable')
   })
 
   it('patches updates.channel when a new option is picked (FP12 § E)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -219,11 +227,11 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Updates$/ }))
-    await userEvent.click(
+    await user.click(screen.getByRole('tab', { name: /^Updates$/ }))
+    await user.click(
       screen.getByRole('combobox', { name: 'Update channel' }),
     )
-    await userEvent.click(screen.getByRole('option', { name: 'Dev' }))
+    await user.click(screen.getByRole('option', { name: 'Dev' }))
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         updates: expect.objectContaining({ channel: 'dev' }),
@@ -232,6 +240,7 @@ describe('SettingsPage — render', () => {
   })
 
   it('renders the default_sort dropdown with the current value (FP12 § D)', async () => {
+    const user = userEvent.setup()
     render(
       <SettingsPage
         config={config}
@@ -239,12 +248,13 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Interface$/ }))
     const trigger = screen.getByRole('combobox', { name: 'Default sort order' })
     expect(trigger).toHaveTextContent('By name')
   })
 
   it('patches ui.default_sort when a new option is picked (FP12 § D)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -253,11 +263,11 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
-    await userEvent.click(
+    await user.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    await user.click(
       screen.getByRole('combobox', { name: 'Default sort order' }),
     )
-    await userEvent.click(screen.getByRole('option', { name: 'By year' }))
+    await user.click(screen.getByRole('option', { name: 'By year' }))
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         ui: expect.objectContaining({ default_sort: 'year' }),
@@ -266,6 +276,7 @@ describe('SettingsPage — render', () => {
   })
 
   it('renders the cards_per_row_hint dropdown with the current value (P07 § C)', async () => {
+    const user = userEvent.setup()
     render(
       <SettingsPage
         config={config}
@@ -273,12 +284,13 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Interface$/ }))
     const trigger = screen.getByRole('combobox', { name: 'Cards per row' })
     expect(trigger).toHaveTextContent('Automatic')
   })
 
   it('patches ui.cards_per_row_hint as a number when an integer option is picked (P07 § C)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -287,11 +299,11 @@ describe('SettingsPage — render', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
-    await userEvent.click(
+    await user.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    await user.click(
       screen.getByRole('combobox', { name: 'Cards per row' }),
     )
-    await userEvent.click(screen.getByRole('option', { name: '6 columns' }))
+    await user.click(screen.getByRole('option', { name: '6 columns' }))
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         ui: expect.objectContaining({ cards_per_row_hint: 6 }),
@@ -319,6 +331,7 @@ describe('SettingsPage — render', () => {
   })
 
   it('patches paths.retroarch when the executable PathRow blurs (FP29)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -328,8 +341,8 @@ describe('SettingsPage — render', () => {
       />,
     )
     const input = screen.getByLabelText('RetroArch executable')
-    await userEvent.type(input, '/usr/bin/retroarch')
-    await userEvent.tab()
+    await user.type(input, '/usr/bin/retroarch')
+    await user.tab()
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         paths: expect.objectContaining({ retroarch: '/usr/bin/retroarch' }),
@@ -338,6 +351,7 @@ describe('SettingsPage — render', () => {
   })
 
   it('patches paths.retroarch_core when the core PathRow blurs (FP29)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -347,8 +361,8 @@ describe('SettingsPage — render', () => {
       />,
     )
     const input = screen.getByLabelText('RetroArch core')
-    await userEvent.type(input, '/path/to/mame_libretro.so')
-    await userEvent.tab()
+    await user.type(input, '/path/to/mame_libretro.so')
+    await user.tab()
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         paths: expect.objectContaining({
@@ -359,6 +373,7 @@ describe('SettingsPage — render', () => {
   })
 
   it('saves an empty RetroArch executable as null (FP29 nullable round-trip)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     const seededConfig = {
       ...config,
@@ -372,8 +387,8 @@ describe('SettingsPage — render', () => {
       />,
     )
     const input = screen.getByLabelText('RetroArch executable')
-    await userEvent.clear(input)
-    await userEvent.tab()
+    await user.clear(input)
+    await user.tab()
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         paths: expect.objectContaining({ retroarch: null }),

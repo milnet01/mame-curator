@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { CartPanel } from '@/components/library/CartPanel'
 
 const items = [
@@ -45,7 +46,8 @@ describe('CartPanel', () => {
     expect(screen.getByText('⇄ 1942j')).toBeInTheDocument()
   })
 
-  it('emits onRemove(shortName) when ✕ is clicked', () => {
+  it('emits onRemove(shortName) when ✕ is clicked', async () => {
+    const user = userEvent.setup()
     const onRemove = vi.fn()
     render(
       <CartPanel
@@ -55,11 +57,12 @@ describe('CartPanel', () => {
         onClearAll={() => {}}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: /remove pacman/i }))
+    await user.click(screen.getByRole('button', { name: /remove pacman/i }))
     expect(onRemove).toHaveBeenCalledWith('pacman')
   })
 
-  it('emits onClearAll when Clear all is clicked', () => {
+  it('emits onClearAll when Clear all is clicked', async () => {
+    const user = userEvent.setup()
     const onClearAll = vi.fn()
     render(
       <CartPanel
@@ -69,7 +72,7 @@ describe('CartPanel', () => {
         onClearAll={onClearAll}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: /clear all/i }))
+    await user.click(screen.getByRole('button', { name: /clear all/i }))
     expect(onClearAll).toHaveBeenCalled()
   })
 })

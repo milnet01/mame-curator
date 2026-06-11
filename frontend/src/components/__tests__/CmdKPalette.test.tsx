@@ -26,25 +26,28 @@ describe('CmdKPalette', () => {
   })
 
   it('filters across sections by typed prefix', async () => {
+    const user = userEvent.setup()
     render(
       <CmdKPalette open onOpenChange={() => {}} items={items} onSelect={() => {}} />,
     )
-    await userEvent.type(screen.getByRole('combobox'), 'dry')
+    await user.type(screen.getByRole('combobox'), 'dry')
     expect(screen.getByText('Run dry-run')).toBeInTheDocument()
     expect(screen.queryByText('Copy selected')).toBeNull()
     expect(screen.queryByText('Getting started')).toBeNull()
   })
 
   it('calls onSelect with the picked item value', async () => {
+    const user = userEvent.setup()
     const onSelect = vi.fn()
     render(
       <CmdKPalette open onOpenChange={() => {}} items={items} onSelect={onSelect} />,
     )
-    await userEvent.click(screen.getByText('Copy selected'))
+    await user.click(screen.getByText('Copy selected'))
     expect(onSelect).toHaveBeenCalledWith('action.copy', expect.objectContaining({ id: 'a2' }))
   })
 
   it('matches when the user types a hint (FP11 § B7)', async () => {
+    const user = userEvent.setup()
     const itemsWithHint: CmdKItem[] = [
       ...items,
       {
@@ -63,7 +66,7 @@ describe('CmdKPalette', () => {
         onSelect={() => {}}
       />,
     )
-    await userEvent.type(screen.getByRole('combobox'), 'catver')
+    await user.type(screen.getByRole('combobox'), 'catver')
     // The hint text was added to keywords; cmdk should match.
     expect(screen.getByText('Refresh INIs')).toBeInTheDocument()
   })

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import {
   OnboardingBanner,
   ONBOARDING_DISMISS_KEY,
@@ -16,18 +17,20 @@ describe('OnboardingBanner', () => {
     ).toBeInTheDocument()
   })
 
-  it('hides itself after click on dismiss', () => {
+  it('hides itself after click on dismiss', async () => {
+    const user = userEvent.setup()
     const { rerender } = render(<OnboardingBanner cartHasItems={false} />)
-    fireEvent.click(screen.getByRole('button', { name: /dismiss/i }))
+    await user.click(screen.getByRole('button', { name: /dismiss/i }))
     rerender(<OnboardingBanner cartHasItems={false} />)
     expect(
       screen.queryByText(strings.library.onboarding.body),
     ).not.toBeInTheDocument()
   })
 
-  it('persists dismissal across remounts via localStorage', () => {
+  it('persists dismissal across remounts via localStorage', async () => {
+    const user = userEvent.setup()
     const { unmount } = render(<OnboardingBanner cartHasItems={false} />)
-    fireEvent.click(screen.getByRole('button', { name: /dismiss/i }))
+    await user.click(screen.getByRole('button', { name: /dismiss/i }))
     unmount()
     render(<OnboardingBanner cartHasItems={false} />)
     expect(

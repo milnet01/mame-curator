@@ -12,8 +12,9 @@ describe('ThemeSwitcher', () => {
   })
 
   it('lists every theme option', async () => {
+    const user = userEvent.setup()
     render(<ThemeSwitcher value="dark" onChange={() => {}} />)
-    await userEvent.click(screen.getByRole('button', { name: /dark/i }))
+    await user.click(screen.getByRole('button', { name: /dark/i }))
     for (const theme of ['Dark', 'Light', 'Double Dragon', 'Pac-Man', 'SF2', 'Neo Geo']) {
       expect(await screen.findByRole('menuitemradio', { name: theme })).toBeInTheDocument()
     }
@@ -23,10 +24,11 @@ describe('ThemeSwitcher', () => {
     // FP11 § D3: ThemeSwitcher delegates the DOM mutation to ThemeProvider
     // (single writer). The click handler ONLY fires onChange; the provider's
     // useEffect mirrors the config value into `data-theme`.
+    const user = userEvent.setup()
     const onChange = vi.fn<(name: ThemeName) => void>()
     render(<ThemeSwitcher value="dark" onChange={onChange} />)
-    await userEvent.click(screen.getByRole('button', { name: /dark/i }))
-    await userEvent.click(await screen.findByRole('menuitemradio', { name: 'Pac-Man' }))
+    await user.click(screen.getByRole('button', { name: /dark/i }))
+    await user.click(await screen.findByRole('menuitemradio', { name: 'Pac-Man' }))
     expect(onChange).toHaveBeenCalledWith('pacman')
   })
 })

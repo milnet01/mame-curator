@@ -507,7 +507,7 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   Kind: fix. Lanes: frontend, frontend tests. Source:
   test-audit-2026-05-18 FP31 chunk fc-003 MED.
 
-- 📋 [mame-curator-1048] **FP31 follow-up — frontend
+- ✅ [mame-curator-1048] **FP31 follow-up — frontend
   `fireEvent.click` → `userEvent.click` migration sweep.** Across at
   least 8 files (`CartPanel`, `CartBar`, `GameCard`, `FeaturedTilesRow`,
   `AppShell`, `OnboardingBanner`, `DryRunModal`, `CopyModal`,
@@ -519,8 +519,9 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   Kind: refactor. Lanes: frontend tests. Source:
   test-audit-2026-05-18 FP31 chunks fc-001/fc-002/fc-003/fc-004/fc-005
   (LOW/MED across the suite).
+  Resolved (2026-06-11): migrated every fireEvent.click site (AppShell, CartPanel, CartBar, OnboardingBanner, FeaturedTilesRow, GameCard) to `await user.click` via `userEvent.setup()`. fireEvent.error (GameCard image-error) and fireEvent.change (YearRangeEditor direct value-set) kept — no userEvent equivalent / out of .click scope. 320 vitest green; tsc/eslint clean.
 
-- 📋 [mame-curator-1049] **FP31 follow-up — `userEvent` static API →
+- ✅ [mame-curator-1049] **FP31 follow-up — `userEvent` static API →
   `userEvent.setup()` migration in 3 components**
   (`CmdKPalette.test.tsx`, `ConfirmationDialog.test.tsx`,
   `no-checkbox-for-prefs.test.tsx`). The static API is deprecated in
@@ -528,6 +529,7 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   pointer/keyboard state and delay config across calls in a test.
   Kind: refactor. Lanes: frontend tests. Source:
   test-audit-2026-05-18 FP31 chunk fc-001 MED.
+  Resolved (2026-06-11): scope expanded to a full-suite sweep (user-approved) — all 30 userEvent test files migrated to the `userEvent.setup()` instance form; zero static `userEvent.<method>` calls remain (was 3-file scope, but 3-of-25 would have worsened consistency). FiltersSidebar fake-timer test uses `setup({ advanceTimers })`. 320 vitest green; tsc/eslint clean.
 
 - ✅ [mame-curator-1050] **FP31 follow-up — `@pytest.mark.asyncio`
   decorator cleanup under `asyncio_mode = "auto"`.** Redundant

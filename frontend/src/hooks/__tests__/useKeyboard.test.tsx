@@ -15,22 +15,25 @@ function Probe({
 
 describe('useKeyboard', () => {
   it('fires a single-key binding on document keydown', async () => {
+    const user = userEvent.setup()
     const handler = vi.fn()
     render(<Probe bindings={[{ combo: '/', handler }]} />)
-    await userEvent.keyboard('/')
+    await user.keyboard('/')
     expect(handler).toHaveBeenCalled()
   })
 
   it('fires a chord binding only after both keys arrive', async () => {
+    const user = userEvent.setup()
     const handler = vi.fn()
     render(<Probe bindings={[{ combo: 'g l', handler }]} />)
-    await userEvent.keyboard('g')
+    await user.keyboard('g')
     expect(handler).not.toHaveBeenCalled()
-    await userEvent.keyboard('l')
+    await user.keyboard('l')
     expect(handler).toHaveBeenCalled()
   })
 
   it('does not fire while typing in an input unless the binding is meta-keyed', async () => {
+    const user = userEvent.setup()
     const slash = vi.fn()
     const cmdK = vi.fn()
     render(
@@ -48,9 +51,9 @@ describe('useKeyboard', () => {
       '[data-testid="search"]',
     ) as HTMLInputElement
     input.focus()
-    await userEvent.type(input, '/')
+    await user.type(input, '/')
     expect(slash).not.toHaveBeenCalled()
-    await userEvent.keyboard('{Meta>}k{/Meta}')
+    await user.keyboard('{Meta>}k{/Meta}')
     expect(cmdK).toHaveBeenCalled()
   })
 })

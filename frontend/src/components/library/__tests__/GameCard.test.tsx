@@ -95,18 +95,20 @@ describe('GameCard', () => {
   })
 
   it('calls onOpen when the user clicks the card', async () => {
+    const user = userEvent.setup()
     const onOpen = vi.fn()
     render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={() => {}} />)
-    await userEvent.click(screen.getByRole('button', { name: 'Pac-Man (Midway)' }))
+    await user.click(screen.getByRole('button', { name: 'Pac-Man (Midway)' }))
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
   it('calls onOpen when the user activates the card with Enter', async () => {
+    const user = userEvent.setup()
     const onOpen = vi.fn()
     render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={() => {}} />)
     const card = screen.getByRole('button', { name: 'Pac-Man (Midway)' })
     card.focus()
-    await userEvent.keyboard('{Enter}')
+    await user.keyboard('{Enter}')
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
@@ -115,11 +117,12 @@ describe('GameCard', () => {
   // <button> is invalid HTML5. WAI-ARIA composite button still requires
   // both Enter and Space activation.
   it('calls onOpen when the user activates the card with Space', async () => {
+    const user = userEvent.setup()
     const onOpen = vi.fn()
     render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={() => {}} />)
     const card = screen.getByRole('button', { name: 'Pac-Man (Midway)' })
     card.focus()
-    await userEvent.keyboard(' ')
+    await user.keyboard(' ')
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
@@ -147,24 +150,26 @@ describe('GameCard +Add', () => {
     expect(screen.getByText(/✓ added/i)).toBeInTheDocument()
   })
 
-  it('emits onAdd when Add button clicked, does not bubble to onOpen', () => {
+  it('emits onAdd when Add button clicked, does not bubble to onOpen', async () => {
+    const user = userEvent.setup()
     const onAdd = vi.fn()
     const onOpen = vi.fn()
     render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={onAdd} />)
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: /add pac-man \(midway\) to cart/i }),
     )
     expect(onAdd).toHaveBeenCalledWith('pacman')
     expect(onOpen).not.toHaveBeenCalled()
   })
 
-  it('emits onOpen when card body clicked', () => {
+  it('emits onOpen when card body clicked', async () => {
+    const user = userEvent.setup()
     const onAdd = vi.fn()
     const onOpen = vi.fn()
     render(<GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={onAdd} />)
     // FP20-H: outer card's accessible name now comes from the <h3> via
     // aria-labelledby — no aria-label on the wrapper.
-    fireEvent.click(screen.getByRole('button', { name: 'Pac-Man (Midway)' }))
+    await user.click(screen.getByRole('button', { name: 'Pac-Man (Midway)' }))
     expect(onOpen).toHaveBeenCalled()
   })
 

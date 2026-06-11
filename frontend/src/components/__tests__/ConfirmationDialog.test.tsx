@@ -47,6 +47,7 @@ describe('ConfirmationDialog', () => {
   })
 
   it('calls onConfirm and closes when the action button is clicked', async () => {
+    const user = userEvent.setup()
     const onConfirm = vi.fn()
     const onOpenChange = vi.fn()
     render(
@@ -59,7 +60,7 @@ describe('ConfirmationDialog', () => {
         onConfirm={onConfirm}
       />,
     )
-    await userEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Reset configuration' }),
     )
     expect(onConfirm).toHaveBeenCalled()

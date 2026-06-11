@@ -40,6 +40,7 @@ describe('SessionsPage', () => {
   })
 
   it('calls onActivate when the user activates a session', async () => {
+    const user = userEvent.setup()
     const onActivate = vi.fn()
     render(
       <SessionsPage
@@ -51,13 +52,14 @@ describe('SessionsPage', () => {
         onCreate={() => {}}
       />,
     )
-    await userEvent.click(
+    await user.click(
       screen.getByRole('button', { name: /activate fighters/i }),
     )
     expect(onActivate).toHaveBeenCalledWith('fighters')
   })
 
   it('calls onDeactivate when the user deactivates the active session', async () => {
+    const user = userEvent.setup()
     const onDeactivate = vi.fn()
     render(
       <SessionsPage
@@ -69,7 +71,7 @@ describe('SessionsPage', () => {
         onCreate={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('button', { name: /deactivate/i }))
+    await user.click(screen.getByRole('button', { name: /deactivate/i }))
     expect(onDeactivate).toHaveBeenCalled()
   })
 

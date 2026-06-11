@@ -26,6 +26,7 @@ import { config, render } from './_settingsPageFixtures'
 
 describe('SettingsPage', () => {
   it('patches drop_year_before when the year-range switch is toggled on (FP12 § C)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -34,8 +35,8 @@ describe('SettingsPage', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
-    await userEvent.click(
+    await user.click(screen.getByRole('tab', { name: /^Filters$/ }))
+    await user.click(
       screen.getByRole('switch', {
         name: 'Apply Drop games before year filter',
       }),
@@ -48,6 +49,7 @@ describe('SettingsPage', () => {
   })
 
   it('patches region_priority when reordered on the Picker tab (FP12 § B)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     const cfg: AppConfigResponse = {
       ...config,
@@ -60,11 +62,11 @@ describe('SettingsPage', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Picker$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Picker$/ }))
     expect(
       screen.getByRole('list', { name: 'Region priority' }),
     ).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Move us down' }))
+    await user.click(screen.getByRole('button', { name: 'Move us down' }))
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         filters: expect.objectContaining({
@@ -75,6 +77,7 @@ describe('SettingsPage', () => {
   })
 
   it('renders the snapshot list when given snapshots (FP12 § I)', async () => {
+    const user = userEvent.setup()
     render(
       <SettingsPage
         config={config}
@@ -89,7 +92,7 @@ describe('SettingsPage', () => {
         ]}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Snapshots$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Snapshots$/ }))
     expect(
       screen.getByRole('button', { name: /^Restore$/ }),
     ).toBeInTheDocument()
@@ -97,6 +100,7 @@ describe('SettingsPage', () => {
   })
 
   it('propagates the snapshot id to onSnapshotRestore on confirm (FP12 § I)', async () => {
+    const user = userEvent.setup()
     const onSnapshotRestore = vi.fn()
     render(
       <SettingsPage
@@ -112,9 +116,9 @@ describe('SettingsPage', () => {
         ]}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Snapshots$/ }))
-    await userEvent.click(screen.getByRole('button', { name: /^Restore$/ }))
-    await userEvent.click(
+    await user.click(screen.getByRole('tab', { name: /^Snapshots$/ }))
+    await user.click(screen.getByRole('button', { name: /^Restore$/ }))
+    await user.click(
       screen.getByRole('button', { name: 'Restore 2 files' }),
     )
     expect(onSnapshotRestore).toHaveBeenCalledExactlyOnceWith(
@@ -123,6 +127,7 @@ describe('SettingsPage', () => {
   })
 
   it('renders an editable media.cache_dir input on the Media tab (FP12 § F)', async () => {
+    const user = userEvent.setup()
     render(
       <SettingsPage
         config={config}
@@ -130,7 +135,7 @@ describe('SettingsPage', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Media$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Media$/ }))
     const input = screen.getByLabelText(
       /^Media cache directory$/,
     ) as HTMLInputElement
@@ -138,6 +143,7 @@ describe('SettingsPage', () => {
   })
 
   it('patches media.cache_dir on blur when the value changes (FP12 § F)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -146,11 +152,11 @@ describe('SettingsPage', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Media$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Media$/ }))
     const input = screen.getByLabelText(/^Media cache directory$/)
-    await userEvent.clear(input)
-    await userEvent.type(input, '/tmp/new-cache')
-    await userEvent.tab()
+    await user.clear(input)
+    await user.type(input, '/tmp/new-cache')
+    await user.tab()
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         media: expect.objectContaining({ cache_dir: '/tmp/new-cache' }),
@@ -175,6 +181,7 @@ describe('SettingsPage', () => {
   })
 
   it('patches paths.source_roms on blur (FP12 § H)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -184,9 +191,9 @@ describe('SettingsPage', () => {
       />,
     )
     const input = screen.getByLabelText(/^Source ROMs$/)
-    await userEvent.clear(input)
-    await userEvent.type(input, '/new/roms')
-    await userEvent.tab()
+    await user.clear(input)
+    await user.type(input, '/new/roms')
+    await user.tab()
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         paths: expect.objectContaining({ source_roms: '/new/roms' }),
@@ -195,6 +202,7 @@ describe('SettingsPage', () => {
   })
 
   it('fires onBackupExport when Export is clicked on the Backup tab (FP12 § J)', async () => {
+    const user = userEvent.setup()
     const onBackupExport = vi.fn()
     render(
       <SettingsPage
@@ -204,10 +212,10 @@ describe('SettingsPage', () => {
         onBackupExport={onBackupExport}
       />,
     )
-    await userEvent.click(
+    await user.click(
       screen.getByRole('tab', { name: /^Backup & restore$/ }),
     )
-    await userEvent.click(screen.getByRole('button', { name: /^Export/ }))
+    await user.click(screen.getByRole('button', { name: /^Export/ }))
     expect(onBackupExport).toHaveBeenCalledOnce()
   })
 
@@ -238,6 +246,7 @@ describe('SettingsPage', () => {
   })
 
   it('renders the cart_clear_on_copy dropdown with the current value (P15 § F13)', async () => {
+    const user = userEvent.setup()
     render(
       <SettingsPage
         config={config}
@@ -245,12 +254,13 @@ describe('SettingsPage', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    await user.click(screen.getByRole('tab', { name: /^Interface$/ }))
     const trigger = screen.getByRole('combobox', { name: 'Clear cart after copy' })
     expect(trigger).toHaveTextContent('On success only')
   })
 
   it('patches ui.cart_clear_on_copy when a new option is picked (P15 § F13)', async () => {
+    const user = userEvent.setup()
     const onPatch = vi.fn()
     render(
       <SettingsPage
@@ -259,11 +269,11 @@ describe('SettingsPage', () => {
         onSnapshotRestore={() => {}}
       />,
     )
-    await userEvent.click(screen.getByRole('tab', { name: /^Interface$/ }))
-    await userEvent.click(
+    await user.click(screen.getByRole('tab', { name: /^Interface$/ }))
+    await user.click(
       screen.getByRole('combobox', { name: 'Clear cart after copy' }),
     )
-    await userEvent.click(screen.getByRole('option', { name: 'Never' }))
+    await user.click(screen.getByRole('option', { name: 'Never' }))
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         ui: expect.objectContaining({ cart_clear_on_copy: 'never' }),
@@ -316,9 +326,10 @@ describe('SettingsPage', () => {
     })
 
     it('clicking a different tab rewrites the URL search param', async () => {
+      const user = userEvent.setup()
       const seen: string[] = []
       renderWithSpy('/settings', (s) => seen.push(s))
-      await userEvent.click(screen.getByRole('tab', { name: /^Filters$/ }))
+      await user.click(screen.getByRole('tab', { name: /^Filters$/ }))
       // After click, the URL must include ?tab=filters (or equivalent
       // canonical encoding). Assert via the captured location stream.
       const last = seen[seen.length - 1]

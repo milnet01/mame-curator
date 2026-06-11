@@ -70,6 +70,7 @@ describe('YearRangeEditor', () => {
   })
 
   it('fires onBeforeChange(null) when the before-switch is toggled off', async () => {
+    const user = userEvent.setup()
     const onBeforeChange = vi.fn()
     render(
       <YearRangeEditor
@@ -81,11 +82,12 @@ describe('YearRangeEditor', () => {
       />,
     )
     const switches = screen.getAllByRole('switch')
-    await userEvent.click(switches[0])
+    await user.click(switches[0])
     expect(onBeforeChange).toHaveBeenCalledWith(null)
   })
 
   it('fires onBeforeChange(minYear) when the before-switch is toggled on', async () => {
+    const user = userEvent.setup()
     const onBeforeChange = vi.fn()
     render(
       <YearRangeEditor
@@ -97,11 +99,12 @@ describe('YearRangeEditor', () => {
       />,
     )
     const switches = screen.getAllByRole('switch')
-    await userEvent.click(switches[0])
+    await user.click(switches[0])
     expect(onBeforeChange).toHaveBeenCalledWith(1971)
   })
 
   it('fires onAfterChange(maxYear) when the after-switch is toggled on', async () => {
+    const user = userEvent.setup()
     const onAfterChange = vi.fn()
     render(
       <YearRangeEditor
@@ -113,7 +116,7 @@ describe('YearRangeEditor', () => {
       />,
     )
     const switches = screen.getAllByRole('switch')
-    await userEvent.click(switches[1])
+    await user.click(switches[1])
     expect(onAfterChange).toHaveBeenCalledWith(2026)
   })
 

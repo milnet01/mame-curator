@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { CartBar } from '@/components/library/CartBar'
 
@@ -53,16 +54,17 @@ describe('CartBar', () => {
     expect(screen.getByRole('button', { name: /add all 51/i })).toBeInTheDocument()
   })
 
-  it('emits callbacks on click', () => {
+  it('emits callbacks on click', async () => {
+    const user = userEvent.setup()
     const onBulkAdd = vi.fn()
     const onToggleExpand = vi.fn()
     const onDryRun = vi.fn()
     const onCopy = vi.fn()
     renderCartBar({ itemCount: 3, bulkAddTotal: 51, onBulkAdd, onToggleExpand, onDryRun, onCopy })
-    fireEvent.click(screen.getByRole('button', { name: /add all 51/i }))
-    fireEvent.click(screen.getByRole('button', { name: /expand cart/i }))
-    fireEvent.click(screen.getByRole('button', { name: /dry-run/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^copy$/i }))
+    await user.click(screen.getByRole('button', { name: /add all 51/i }))
+    await user.click(screen.getByRole('button', { name: /expand cart/i }))
+    await user.click(screen.getByRole('button', { name: /dry-run/i }))
+    await user.click(screen.getByRole('button', { name: /^copy$/i }))
     expect(onBulkAdd).toHaveBeenCalledOnce()
     expect(onToggleExpand).toHaveBeenCalledOnce()
     expect(onDryRun).toHaveBeenCalledOnce()
