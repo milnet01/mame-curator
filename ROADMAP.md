@@ -700,6 +700,18 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   lifespan context is now entered directly with `async with`.
 
 
+- 📋 [mame-curator-1074] **FP31 follow-up — decide keep-vs-migrate for the 3 remaining non-click `fireEvent` calls in the frontend tests.**
+  After the 1048/1049 sweep the only `fireEvent` calls left are 3 non-click ones, left alone deliberately: `fireEvent.error(img)` in GameCard.test.tsx (simulates an image load failure) and `fireEvent.change(input, ...)` x2 in YearRangeEditor.test.tsx (directly sets a number input's value). `fireEvent.error` has NO userEvent equivalent and MUST stay (an image error is not a user action). `fireEvent.change` is a legitimate RTL idiom for controlled inputs but could migrate to `user.clear()` + `user.type()` for full consistency. Low priority. NOTE: migrating the change calls is not free -- `user.type('2000')` fires an onChange per keystroke, so the `toHaveBeenLastCalledWith(2000)` / `(null)` assertions must be re-checked. Do NOT blindly sweep `fireEvent.error`.
+  Kind: refactor.
+  Lanes: frontend tests.
+  Source: in-session-2026-06-11 (1048/1049 userEvent sweep leftovers).
+
+- 📋 [mame-curator-1075] **Repo-wide Prettier formatting debt in the frontend tree (not CI-gated).**
+  `npx prettier --check` flags ~45 frontend files, including many untouched by recent work -- pre-existing, repo-wide debt. `npm run format` (prettier --check) is NOT part of the CI gate (CI runs eslint + tsc -b + vitest only), which is why it has never blocked. Every file touched in the 1048/1049 userEvent sweep was already prettier-dirty at HEAD, so the sweep neither introduced nor fixed it. Fix: one standalone `prettier --write` debt-sweep commit across the frontend tree (kept separate so the pure-formatting churn doesn't muddy feature diffs), and optionally add `npm run format` to the CI workflow to stop re-drift.
+  Kind: chore.
+  Lanes: frontend.
+  Source: in-session-2026-06-11.
+
 ### 🧪 Test Audit 2026-05-18
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 152
