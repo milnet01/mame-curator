@@ -151,7 +151,11 @@ EXPECTED_PYTEST_DECLARATIONS = 613
 # declaration in frontend/src/hooks/__tests__/useFs.test.tsx — the
 # `useFsGrantRoot` onSuccess→cache test (success path was untested; only
 # the onError→toast path was covered). 303 → 304.
-EXPECTED_VITEST_DECLARATIONS = 304
+# Bumped 2026-06-30 (cleanup-debt bundle, mame-curator-1078): +2
+# declarations in SnapshotsTab.test.tsx — the review-state
+# snapshot-exclusion caveat is asserted in both the empty and populated
+# tab states. 304 → 306.
+EXPECTED_VITEST_DECLARATIONS = 306
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
