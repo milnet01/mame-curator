@@ -8,7 +8,7 @@
 | **Active item ID** | P10 (mame-curator-1005) |
 | **Active step** | 3 — tests-first per App-Build. Step 1 ✅, Step 2 ✅, Step 3 in progress (chunks 1 + 2 + 3a + 3b + 4 + 5 ✅; next is chunk 6 MobyGames). |
 | **Blocked on** | nothing. |
-| **Last update** | 2026-06-30 (**P14 docs bundle** — closed mame-curator-1060 (P14 phase journal) + 1061 (review-state contract promoted to co-located `src/mame_curator/filter/review_state_spec.md`; user elected the separate-file option; `/cold-eyes` clean at 3 loops — fixed a world-lock over-claim, an unshipped-caption claim, a GET-can't-404 nit, and a coupled `copy/spec.md` `ReviewStateDetails` `str`-not-enum type bug) + 1064 (amended the CLAUDE.md "fix-passes don't get specs" rule to bless long-form specs for multi-tier fold-ins, matching the FP05/FP27/FP28/DS01–DS05 reality). **Parked 1058** (media spec — P10 still in flight, chunk 6+ unshipped; re-checked + annotated). Surfaced + roadmapped **1077** (`LibraryPage.tsx` 579-line file-size cap breach) and **1078** (unshipped Snapshots "review state not snapshotted" caption). 3 commits `2037993..cb6d8c7`; docs gate 96 green (no `.py`/frontend touched); pushed. Active P10 item unchanged.) **Prior:** 2026-06-10 (**FP31 second-sweep backend-test refactor bundle** — closed mame-curator-1046/1050/1051/1054/1055/1056 (same kind+lane: refactor / backend-tests). 1046 split `test_sources.py` 554→4 per-source files + `tests/media/conftest.py`, and `test_fp01_fixes.py` 423→272 + new `test_fp01_error_branches.py`; 1050 dropped 15 redundant `@pytest.mark.asyncio`; 1051 pinned 5 `pytest.raises` to `ValidationError` + `match=`; 1054 (a/c/d/e/f) helper/conftest dedup — **(b) deliberately declined** (cross-tree fixture move would collide `source_dir`/`dest_dir` names); 1055 all 15 sub-items a–o (incl. +1 X_OK test, makeGameCard factory, preflight two-run delta); 1056 `asyncio.run`→`async def`. Gates green: **770 backend** @ 87.40% / 0 ruff / 0 format / 0 mypy / 0 bandit; **320 frontend** vitest / 0 eslint / `tsc -b` + `vite build` clean; api-types-sync ok. Net +1 backend test (1055b); all else count-neutral. Open FP31 remainder: 1047/1048/1049/1052/1053.) **Prior:** 2026-06-10 (**test-audit 2026-05-20 coverage/reliability bundle** — closed mame-curator-1067 (flag-disabled `=False` keeps-them locks for the 4 remaining togglable drop predicates + explicit zip-slip test), 1068 (deterministic B7 allowlist-parent assertion + catch-all-respx no-HTTP proof for the two `prepare_is_noop` tests), 1069 (7 read-only api/conftest Path fixtures → `scope="session"`), 1070 (prose `# noqa: E402` reworded — `ruff check --no-cache` clean). +2 pytest decls (DS05 pin 608→610); 769 backend green @ 87.51%; ruff/format/mypy/bandit clean. Zip-slip + no-HTTP locks mutation-verified.) **Prior:** 2026-05-20 (**test-audit sweep** — full `/test-audit` across all 18 dimensions / all severities / 167 files (113 backend + 54 frontend = 50 vitest + 4 Playwright) → ~33 raw findings → 14 fixed inline (all count-neutral: 5 backend assertion/correctness, 2 slow-marker, 1 parametrize, 5 frontend correctness/reliability, + **1 pre-existing red test root-caused** — `test_arch_diagrams.py` lacked the `frontend/` exception its README sibling carried; `main` was red at HEAD `7ff03ec` from the 2026-05-18 cold-eyes docs sweep). 6 deferred clusters mame-curator-1065..1070; many lower nits re-confirmed already-open FP31 items (1046/1048/1050/1052/1054c/1055a,b,i) and were not re-filed. No new allowlist entry — the `@pytest.mark.asyncio` "FP" turned out to be the existing mame-curator-1050 cleanup. Test-count pin unchanged (611 backend / 305 frontend — every fix count-neutral). Gates green: 761 backend / 0 ruff / 0 mypy / 0 bandit; 320 frontend vitest / 0 eslint. Pre-existing `tsc` errors in `src/test/handlers.ts` + `renderWithClient.tsx` left untouched.) |
+| **Last update** | 2026-06-30 (**Cleanup/debt bundle** — closed mame-curator-1077 (split `LibraryPage.tsx` 579→314 under the §2 frontend component hard cap of 350; non-render logic → new `pages/useLibraryController.ts` 318-line hook + pure `pages/libraryPageHelpers.ts` 61; JSX kept in the page so the `?raw` source-text structural tests stay valid; behaviour-preserving) + 1078 (Snapshots review-state exclusion caveat — `snapshotsStateExclusionNote` string per P14 spec §875, rendered in both empty + populated states; +2 vitest). Same `frontend` lane, both surfaced 2026-06-30 from the P14 docs work. 1076 (chore/ci macOS-26 pin) left for its own pass. 2 commits `3b0321b..d82c491` — **CI went red on the first push** (`test_ds05_test_count_stable` is a *pytest* test counting frontend `it()` decls; +2 SnapshotsTab tests tripped 304→306; local frontend gate doesn't run pytest), fixed by `d82c491` bumping the pin; final CI all 8 jobs green. 323 frontend vitest / 0 eslint / `tsc -b` + `vite build` clean; no other `.py` touched. Active P10 item unchanged.) **Prior:** 2026-06-30 (**P14 docs bundle** — closed mame-curator-1060 (P14 phase journal) + 1061 (review-state contract promoted to co-located `src/mame_curator/filter/review_state_spec.md`; user elected the separate-file option; `/cold-eyes` clean at 3 loops — fixed a world-lock over-claim, an unshipped-caption claim, a GET-can't-404 nit, and a coupled `copy/spec.md` `ReviewStateDetails` `str`-not-enum type bug) + 1064 (amended the CLAUDE.md "fix-passes don't get specs" rule to bless long-form specs for multi-tier fold-ins, matching the FP05/FP27/FP28/DS01–DS05 reality). **Parked 1058** (media spec — P10 still in flight, chunk 6+ unshipped; re-checked + annotated). Surfaced + roadmapped **1077** (`LibraryPage.tsx` 579-line file-size cap breach) and **1078** (unshipped Snapshots "review state not snapshotted" caption). 3 commits `2037993..cb6d8c7`; docs gate 96 green (no `.py`/frontend touched); pushed. Active P10 item unchanged.) **Prior:** 2026-06-10 (**FP31 second-sweep backend-test refactor bundle** — closed mame-curator-1046/1050/1051/1054/1055/1056 (same kind+lane: refactor / backend-tests). 1046 split `test_sources.py` 554→4 per-source files + `tests/media/conftest.py`, and `test_fp01_fixes.py` 423→272 + new `test_fp01_error_branches.py`; 1050 dropped 15 redundant `@pytest.mark.asyncio`; 1051 pinned 5 `pytest.raises` to `ValidationError` + `match=`; 1054 (a/c/d/e/f) helper/conftest dedup — **(b) deliberately declined** (cross-tree fixture move would collide `source_dir`/`dest_dir` names); 1055 all 15 sub-items a–o (incl. +1 X_OK test, makeGameCard factory, preflight two-run delta); 1056 `asyncio.run`→`async def`. Gates green: **770 backend** @ 87.40% / 0 ruff / 0 format / 0 mypy / 0 bandit; **320 frontend** vitest / 0 eslint / `tsc -b` + `vite build` clean; api-types-sync ok. Net +1 backend test (1055b); all else count-neutral. Open FP31 remainder: 1047/1048/1049/1052/1053.) **Prior:** 2026-06-10 (**test-audit 2026-05-20 coverage/reliability bundle** — closed mame-curator-1067 (flag-disabled `=False` keeps-them locks for the 4 remaining togglable drop predicates + explicit zip-slip test), 1068 (deterministic B7 allowlist-parent assertion + catch-all-respx no-HTTP proof for the two `prepare_is_noop` tests), 1069 (7 read-only api/conftest Path fixtures → `scope="session"`), 1070 (prose `# noqa: E402` reworded — `ruff check --no-cache` clean). +2 pytest decls (DS05 pin 608→610); 769 backend green @ 87.51%; ruff/format/mypy/bandit clean. Zip-slip + no-HTTP locks mutation-verified.) **Prior:** 2026-05-20 (**test-audit sweep** — full `/test-audit` across all 18 dimensions / all severities / 167 files (113 backend + 54 frontend = 50 vitest + 4 Playwright) → ~33 raw findings → 14 fixed inline (all count-neutral: 5 backend assertion/correctness, 2 slow-marker, 1 parametrize, 5 frontend correctness/reliability, + **1 pre-existing red test root-caused** — `test_arch_diagrams.py` lacked the `frontend/` exception its README sibling carried; `main` was red at HEAD `7ff03ec` from the 2026-05-18 cold-eyes docs sweep). 6 deferred clusters mame-curator-1065..1070; many lower nits re-confirmed already-open FP31 items (1046/1048/1050/1052/1054c/1055a,b,i) and were not re-filed. No new allowlist entry — the `@pytest.mark.asyncio` "FP" turned out to be the existing mame-curator-1050 cleanup. Test-count pin unchanged (611 backend / 305 frontend — every fix count-neutral). Gates green: 761 backend / 0 ruff / 0 mypy / 0 bandit; 320 frontend vitest / 0 eslint. Pre-existing `tsc` errors in `src/test/handlers.ts` + `renderWithClient.tsx` left untouched.) |
 | **Next gate** | P10 chunk 6 (MobyGames + key resolution) — needs `MOBYGAMES_API_KEY` env var or `data/secrets/mobygames.key` dotfile at 0600 mode; pre-impl-prep fixture-capture not yet done (chunk gates on a real-key 200 response, deferred per spec § "Open verification items" item 4 footnote). Chunk 7 (registry + orchestrator) is the convergence checkpoint per spec § "Cross-chunk rules" #5 — pause for user check-in before chunks 8–11. |
 | **Convergence checkpoint** | 5 (pause and check in with user after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt for `/debt-sweep` after this many phases without one) |
@@ -243,6 +243,90 @@ journal); §2 is the only part that changes.
 ## §3. Session journal
 
 Append-only. Newest at the top.
+
+### 2026-06-30 — Cleanup/debt bundle (mame-curator-1077 + 1078)
+
+User said "continue with the next bundle of similar roadmap items" +
+"use Ants MCP where appropriate." `roadmap_query(section="cleanup-debt")`
+showed three open items: 1076 (chore/ci — macOS-26 runner pin review),
+1077 (refactor/frontend — split `LibraryPage.tsx`), 1078 (fix/frontend —
+Snapshots review-state caveat). The natural bundle per
+`feedback_bundle_similar_items` (same lane) was **1077 + 1078** — both
+`frontend`, both surfaced 2026-06-30 during the P14 docs work. 1076 is a
+different lane (ci) and a date-gated "review" task; left for its own pass.
+P10 (the 🚧 active phase) is blocked on a real MOBYGAMES_API_KEY for
+chunk 6, so the cleanup bundle was the actionable next unit.
+
+**Shipped — 2 commits:**
+
+- **3b0321b** `refactor(frontend): split LibraryPage under cap +
+  Snapshots review-state caveat` — the bundle.
+- **d82c491** `test(docs): bump vitest declaration pin 304→306` — CI
+  follow-up (see lesson below).
+
+**1078 (fix):** added `settings.snapshotsStateExclusionNote` (text per
+P14 spec §875) + rendered it as a caption in `SnapshotsTab.tsx` (both
+empty + populated states). Used the **flat** `snapshotsStateExclusionNote`
+key to match the existing `snapshotsXxx` convention, NOT the spec's
+dotted `settings.snapshots.stateExclusionNote` (global rule 11 — match
+the file's style). +2 vitest cases.
+
+**1077 (refactor):** split `LibraryPage.tsx` 579→314 lines. Canonical
+cap resolved up front: `coding-standards.md` §2 (= authoritative under
+§15 precedence) says frontend **components** are hard-capped at 350; the
+bullet's "350 vs 500" doubt was DS02's working number for data files
+(`strings_internal.ts` 676, `schemas.ts` 591 are acknowledged
+exceptions), not the component cap. Extraction seam chosen to KEEP the
+JSX in the page: both LibraryPage tests assert against `?raw` source
+text (`LibraryPage_error_boundary` checks `<AlternativesDrawer>` /
+`<CopyModal>` are wrapped in `<ErrorBoundary>`; `landmark_labels` checks
+the `FiltersSidebar` aside aria-label). So I extracted only the
+non-render logic → new `pages/useLibraryController.ts` (318 lines, a
+controller hook returning ~37 members) + pure helpers →
+`pages/libraryPageHelpers.ts` (61 lines: DEFAULT_FILTERS, walkthrough
+pref, fetchTileCount). Behaviour-preserving; 323 frontend tests green.
+
+**Mid-session decisions:**
+
+- **No new failing test for the refactor (1077).** Per Karpathy
+  surgical-changes + the project's "TDD for non-trivial *logic*" rule, a
+  pure code-motion refactor adds no logic — the existing LibraryPage
+  source-text + full vitest suite ARE the regression net. Verified by
+  keeping all 50 frontend test files green.
+- **Single bundle commit for both items.** CHANGELOG (one feature-style
+  subsection covering both), ROADMAP (one `flip_batch`), and the
+  `frontend/dist` rebuild all span both items; splitting source across
+  two commits while those are shared would be messier than one honest
+  bundle commit. Matches the P10 chunks-4+5 bundle precedent.
+- **CHANGELOG hand-edited, not via `changelog_log`.** The tool's
+  dry_run correctly flagged that `[Unreleased]` uses feature-grouped
+  `###` subsections (not flat `### Category` blocks) but would still
+  insert a flat `### Fixed` — inconsistent with the file's style. Filed
+  as a minor Ants-MCP observation; hand-added a matching subsection.
+
+**Workflow lesson — the local frontend gate has a backend-enforced
+blind spot:**
+
+- CI went **red** on the first push: `tests/docs/test_ds05_test_count_stable.py::test_vitest_declaration_count_stable` (a *pytest* test that
+  counts frontend `it()` declarations) expected 304, found 306. The
+  local frontend gate (vitest/eslint/tsc/build) does NOT run pytest, so
+  +2 vitest tests passed locally and only the Python CI matrix caught
+  the stale pin. **My pre-push grep for the pin used the wrong number
+  ("320/321" from a prior journal) and missed the real constant (304).**
+  Fix: `d82c491` bumped 304→306 with rationale. Lesson saved: when
+  adding/removing frontend `it()`/`test()` declarations, the count pin
+  to bump lives in `tests/docs/test_ds05_test_count_stable.py`
+  (`EXPECTED_VITEST_DECLARATIONS`) — a *backend* test — and must be
+  updated in the same change; grep that file by name, not by a
+  remembered number. Final CI: all 8 jobs green.
+
+- **Ants MCP this session:** `session_orient` (state + index + roadmap
+  in one call), `roadmap_query` (section read), `read_region` (§2 cap
+  lookup), `roadmap_log op:flip_batch` (both bullets closed in one
+  call), `feedback_query`/`feedback_log` (read tracking + file new
+  findings). One new friction filed: `roadmap_query`'s `status` filter
+  rejects `"planned"` (roadmap_log's own status vocabulary) with no
+  valid-values hint.
 
 ### 2026-05-18 — P10 chunks 4 + 5 bundle (ArcadeDB + Wikipedia-image)
 
