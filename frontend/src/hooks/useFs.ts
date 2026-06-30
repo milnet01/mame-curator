@@ -18,19 +18,26 @@ const FS_ROOTS_KEY = ['fs', 'roots'] as const
 const FS_ALLOWED_KEY = ['fs', 'allowed-roots'] as const
 const fsListKey = (path: string) => ['fs', 'list', path] as const
 
-export function useFsHome() {
-  return useApiQuery<FsPath>(FS_HOME_KEY, '/api/fs/home', FsPathSchema)
+// mame-curator-1047: every fs query takes an `enabled` flag (default true)
+// so a mounted-but-closed FsBrowser can gate them on `open` and avoid
+// prefetching home / roots / allowed-roots for a dialog the user hasn't
+// opened. Default-true keeps the hooks drop-in for any always-on caller.
+export function useFsHome(enabled = true) {
+  return useApiQuery<FsPath>(FS_HOME_KEY, '/api/fs/home', FsPathSchema, { enabled })
 }
 
-export function useFsDriveRoots() {
-  return useApiQuery<FsDriveRoots>(FS_ROOTS_KEY, '/api/fs/roots', FsDriveRootsSchema)
+export function useFsDriveRoots(enabled = true) {
+  return useApiQuery<FsDriveRoots>(FS_ROOTS_KEY, '/api/fs/roots', FsDriveRootsSchema, {
+    enabled,
+  })
 }
 
-export function useFsAllowedRoots() {
+export function useFsAllowedRoots(enabled = true) {
   return useApiQuery<FsAllowedRoots>(
     FS_ALLOWED_KEY,
     '/api/fs/allowed-roots',
     FsAllowedRootsSchema,
+    { enabled },
   )
 }
 
@@ -40,12 +47,14 @@ export function useFsAllowedRoots() {
 // empty-path call sit on independent keys.
 const DISABLED_PATH_SENTINEL = '__fs_listing_disabled__'
 
-export function useFsListing(path: string | null) {
+export function useFsListing(path: string | null, enabled = true) {
   return useApiQuery<FsListing>(
     fsListKey(path ?? DISABLED_PATH_SENTINEL),
     path !== null ? `/api/fs/list?path=${encodeURIComponent(path)}` : '',
     FsListingSchema,
-    { enabled: path !== null },
+    // Gated on BOTH `enabled` (open) and a real path: an `initialPath` makes
+    // `path` non-null even while closed, so `enabled` is the load-bearing gate.
+    { enabled: enabled && path !== null },
   )
 }
 

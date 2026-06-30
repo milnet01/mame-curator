@@ -84,16 +84,29 @@ function renderWithClient(ui: React.ReactElement) {
 }
 
 describe('FsBrowser (FP12 § G)', () => {
-  it('does not render when open=false', () => {
-    // FP31 follow-up: an attempt to spy on `request:start` here surfaced
-    // that the component fires its useQuery handlers on mount regardless
-    // of `open`. That's a SUT design question (prefetch on close vs gate
-    // via `enabled: open`), not a test-only fix — deferred to a separate
-    // ROADMAP item for the FsBrowser prefetch policy.
-    renderWithClient(
-      <FsBrowser open={false} onOpenChange={() => {}} onPick={() => {}} />,
-    )
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  it('does not render OR fetch when open=false (mame-curator-1047)', async () => {
+    // mame-curator-1047: the fs queries are gated on `open` (enabled: open),
+    // so a closed FsBrowser mounted on the Settings page issues ZERO fs
+    // requests. Pre-fix, the useQuery hooks fired on mount regardless of
+    // `open`, prefetching home / roots / allowed-roots for a dialog the user
+    // never opened. A request:start spy is the regression lock.
+    const fsRequests: string[] = []
+    const onRequest = ({ request }: { request: Request }) => {
+      const { pathname } = new URL(request.url)
+      if (pathname.startsWith('/api/fs')) fsRequests.push(pathname)
+    }
+    server.events.on('request:start', onRequest)
+    try {
+      renderWithClient(
+        <FsBrowser open={false} onOpenChange={() => {}} onPick={() => {}} />,
+      )
+      // Flush any mount-effect query kick-off; gated queries fire nothing.
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(fsRequests).toEqual([])
+    } finally {
+      server.events.removeListener('request:start', onRequest)
+    }
   })
 
   it('lists the home directory on first open', async () => {

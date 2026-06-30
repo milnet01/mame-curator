@@ -36,9 +36,12 @@ export function FsBrowser({
   mode = 'directory',
   initialPath,
 }: FsBrowserProps) {
-  const home = useFsHome()
-  const driveRoots = useFsDriveRoots()
-  const allowed = useFsAllowedRoots()
+  // mame-curator-1047: gate the fs queries on `open` so a closed (but still
+  // mounted) browser issues no requests. The hooks run unconditionally
+  // (rules-of-hooks); `enabled: open` is what suppresses the fetch.
+  const home = useFsHome(open)
+  const driveRoots = useFsDriveRoots(open)
+  const allowed = useFsAllowedRoots(open)
   const grant = useFsGrantRoot()
 
   // userPath holds a user-navigated path; falls back to home until they
@@ -47,7 +50,7 @@ export function FsBrowser({
   const [userPath, setUserPath] = useState<string | null>(initialPath ?? null)
   const path = userPath ?? home.data?.path ?? null
 
-  const listing = useFsListing(path)
+  const listing = useFsListing(path, open)
 
   // R33 grant flow — surface a confirm dialog if `path` is outside the
   // allowlist (`fs_sandboxed` 403 from R29). On confirm we POST the path
