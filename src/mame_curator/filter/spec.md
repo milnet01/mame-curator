@@ -203,7 +203,7 @@ The leading int is a **family rank** so different revision-encoding styles compa
 `FilterError(Exception)` base. Subclasses:
 - `OverridesError` — malformed `overrides.yaml`.
 - `SessionsError` — malformed or empty session.
-- `ReviewStateError` — malformed `data/state.yaml` (P14 per-game review state loader; see also `copy/spec.md` ActivityEventType `review_state` row).
+- `ReviewStateError` — malformed `data/state.yaml` (P14 per-game review state loader; the full review-state contract — model, loader, `/api/state` routes, the `?review_state=` filter, and 13 invariants — is co-located at [`review_state_spec.md`](review_state_spec.md); see also `copy/spec.md` ActivityEventType `review_state` row).
 
 (`ConfigError` retired in FP27 — invalid `FilterConfig` values are
 surfaced via Pydantic's `ValidationError` directly; no separate typed

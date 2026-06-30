@@ -326,7 +326,7 @@ class ActivityEvent(BaseModel):
 | `app_updated` | `updates/` self-update completes (Phase 7) | `AppUpdatedDetails(version_old: str, version_new: str)` |
 | `file_recycled` | `recycle_file` completes | `FileRecycledDetails(path: str, reason: str)` |
 | `recycle_purged` | `purge_recycle` completes | `RecyclePurgedDetails(dirs_purged: int, bytes_freed: int)` |
-| `review_state` | P14 per-game review state changes (emitter in `api/` routes; included here so the schema is unified) | `ReviewStateDetails(short_name: str, state: ReviewStateValue, previous: ReviewStateValue \| None)` |
+| `review_state` | P14 per-game review state changes (emitter in `api/` routes; included here so the schema is unified) | `ReviewStateDetails(short_name: str, state: str, previous: str)` — `state`/`previous` are plain `str` (not `ReviewStateValue`) so the log records the literal transition including the sentinel `"pending"`, which the storage enum excludes |
 
 Each `details` shape is itself a frozen Pydantic model with `extra="forbid"`. The `ActivityEvent` Pydantic discriminator is `event_type`; `details` is a `Annotated[Union[...], Discriminator("event_type")]`.
 
