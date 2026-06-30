@@ -42,6 +42,9 @@ describe('GameCard', () => {
   it('shows the description in the art area when the image fails (so the game is still identifiable)', () => {
     render(<GameCard card={baseCard} inCart={false} onOpen={() => {}} onAdd={() => {}} />)
     const img = screen.getByTestId('gamecard-img-pacman')
+    // mame-curator-1074: fireEvent (not userEvent) is correct here — an image
+    // load failure is a browser event, NOT a user action, so userEvent has no
+    // equivalent. Deliberately retained after the 1048/1049 userEvent sweep.
     fireEvent.error(img)
     // Description appears once in the heading and once as the art-area placeholder.
     const matches = screen.getAllByText('Pac-Man (Midway)')

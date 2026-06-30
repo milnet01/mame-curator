@@ -65,6 +65,12 @@ describe('YearRangeEditor', () => {
       />,
     )
     const input = screen.getByLabelText('Drop games before year')
+    // mame-curator-1074: fireEvent.change is deliberately retained over
+    // user.clear()+user.type(). It atomically sets the controlled number
+    // input's value in one onChange; user.type('2000') would fire onChange
+    // per keystroke ('2','20','200','2000'), so toHaveBeenLastCalledWith(2000)
+    // would assert against an intermediate-keystroke parse, not the final
+    // value. This is the canonical RTL idiom for controlled inputs.
     fireEvent.change(input, { target: { value: '2000' } })
     expect(onBeforeChange).toHaveBeenLastCalledWith(2000)
   })
@@ -150,6 +156,8 @@ describe('YearRangeEditor', () => {
       />,
     )
     const input = screen.getByLabelText('Drop games before year')
+    // mame-curator-1074: fireEvent.change retained (see the typed-year test
+    // above) — clearing a controlled input is a single atomic value change.
     fireEvent.change(input, { target: { value: '' } })
     expect(onBeforeChange).toHaveBeenLastCalledWith(null)
   })

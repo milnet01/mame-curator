@@ -123,3 +123,21 @@ def test_proxy_route_500_detail_no_double_wrap(client: Any) -> None:
     assert "MediaFetchError" not in detail, "class name should not leak to user"
     assert "upstream error:" not in detail, "redundant prefix"
     assert "500" in detail, "inner cause's status code should still be present"
+
+
+def test_proxy_route_transport_error_maps_to_502(client: Any) -> None:
+    """mame-curator-1053 — a transport-level failure (connection refused, DNS
+    failure, timeout) raises ``httpx.TransportError`` *before any response
+    arrives*. ``cache.py`` catches it via ``except httpx.HTTPError``
+    (``TransportError`` is an ``HTTPError`` subclass) and wraps it as
+    ``MediaFetchError``, which the route maps to 502 ``media_upstream_error``
+    — the same envelope as an upstream 5xx. The other tests only cover
+    HTTP-status responses (404/500/301); this is the only test that drives
+    the transport-error branch.
+    """
+    with respx.mock(assert_all_called=True) as mock:
+        mock.get(_PACMAN_BOXART_URL).mock(side_effect=httpx.ConnectError("connection refused"))
+        response = client.get("/media/pacman/boxart")
+
+    assert response.status_code == 502
+    assert response.json()["code"] == "media_upstream_error"

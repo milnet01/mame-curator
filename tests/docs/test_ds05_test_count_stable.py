@@ -114,7 +114,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #   • +1 `test_refresh_snaps_rejects_zip_path_traversal` in test_snaps.py —
 #     explicit zip-slip assertion (`../evil.png` skipped, nothing escapes). 1067 b.
 # 608 → 610.
-EXPECTED_PYTEST_DECLARATIONS = 610
+# Bumped 2026-06-30 (FP31 follow-up bundle, mame-curator-1053): +3
+# declarations from new coverage:
+#   • +2 in tests/copy/test_activity.py — `test_details_map_covers_every_event_type`
+#     (guard) + `test_every_event_type_round_trips` (parametrized breadth over
+#     all 10 ActivityEventType variants; parametrize counts once).
+#   • +1 in tests/api/test_routes_media.py —
+#     `test_proxy_route_transport_error_maps_to_502` (httpx transport-error
+#     branch, previously uncovered).
+# (test_routes_copy.py's vacuous L10 test was rewritten in place — +0.)
+# 610 → 613.
+EXPECTED_PYTEST_DECLARATIONS = 613
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -137,7 +147,11 @@ EXPECTED_PYTEST_DECLARATIONS = 610
 # `it()` pair in useValidateCart.test.tsx merged into one `it.each([...])`
 # (not matched by the `^\s*it\s*\(` regex, per the P14-chunk-10 note above).
 # Same SUT path; no coverage lost. 305 → 303.
-EXPECTED_VITEST_DECLARATIONS = 303
+# Bumped 2026-06-30 (FP31 follow-up bundle, mame-curator-1053): +1
+# declaration in frontend/src/hooks/__tests__/useFs.test.tsx — the
+# `useFsGrantRoot` onSuccess→cache test (success path was untested; only
+# the onError→toast path was covered). 303 → 304.
+EXPECTED_VITEST_DECLARATIONS = 304
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

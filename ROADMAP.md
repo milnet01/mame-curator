@@ -496,7 +496,7 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   + new `test_fp01_error_branches.py` (164, the Tier-3 playlist + FP08
   control-byte tests). Count-neutral; 216 copy+media tests green.
 
-- 📋 [mame-curator-1047] **FP31 follow-up — FsBrowser prefetch policy
+- ✅ [mame-curator-1047] **FP31 follow-up — FsBrowser prefetch policy
   when dialog is closed.** Surfaced when adding a request-spy assertion
   to `FsBrowser.test.tsx`'s "does not render when open=false" test:
   the spy caught 3 requests (home / roots / allowed-roots) even though
@@ -506,6 +506,7 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   needs to happen first.
   Kind: fix. Lanes: frontend, frontend tests. Source:
   test-audit-2026-05-18 FP31 chunk fc-003 MED.
+  Resolved 2026-06-30: gated useFsHome/useFsDriveRoots/useFsAllowedRoots/useFsListing on `enabled: open` (default-true params; FsBrowser passes `open`). A closed-but-mounted FsBrowser now issues zero fs requests. Regression-locked by the rewritten 'does not render OR fetch when open=false' request:start spy test.
 
 - ✅ [mame-curator-1048] **FP31 follow-up — frontend
   `fireEvent.click` → `userEvent.click` migration sweep.** Across at
@@ -560,7 +561,7 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   subclass — which is why the old union passed); each now carries a specific
   `match=` for its validator message.
 
-- 📋 [mame-curator-1052] **FP31 follow-up — `test_routes_copy.py:79`
+- ✅ [mame-curator-1052] **FP31 follow-up — `test_routes_copy.py:79`
   pause/resume/abort test passes vacuously on fast runners.** Both
   `pause` and `abort` accept `status_code in (200, 404)`; on fast CI
   the tiny fixture files complete in microseconds and both return 404,
@@ -568,8 +569,9 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   guard with skip-if-both-404, slow the fixture, or delete in favour
   of the `test_sse.py` coverage. Kind: fix. Lanes: backend tests.
   Source: test-audit-2026-05-18 FP31 chunk c-002 MED.
+  Resolved 2026-06-30: rewrote the vacuous test_pause_resume_abort_copy to assert the transitional state on the 200 branch and job_not_found on the 404 branch (non-vacuous on both race outcomes), added the missing resume call, and corrected the false docstring (real deterministic pause/resume/cancel coverage is test_controller.py + test_runner_lifecycle.py, NOT test_sse.py).
 
-- 📋 [mame-curator-1053] **FP31 follow-up — coverage gaps in `test_routes_media.py`
+- ✅ [mame-curator-1053] **FP31 follow-up — coverage gaps in `test_routes_media.py`
   (no `httpx.TransportError` mock), `test_activity.py` (7 of 10
   `ActivityEventType` variants have no round-trip test), and
   `test_useFs.test.tsx` (success-path of `useFsGrantRoot` untested).**
@@ -577,6 +579,7 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   tested, error/alternate branch in same file untested."
   Kind: fix. Lanes: backend tests, frontend tests. Source:
   test-audit-2026-05-18 FP31 chunks c-002 / c-003 / fc-002 LOW.
+  Resolved 2026-06-30: added httpx.TransportError test in test_routes_media.py (->502 media_upstream_error, exercises the previously-uncovered except httpx.HTTPError branch), a parametrized round-trip over all 10 ActivityEventType variants + a coverage guard in test_activity.py, and the useFsGrantRoot onSuccess->cache test in useFs.test.tsx.
 
 - ✅ [mame-curator-1054] **FP31 follow-up — refactoring & dedup nits:**
   (a) `tests/api/test_static_mount.py` extract `_rebuilt_client(stub,
@@ -700,11 +703,12 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   lifespan context is now entered directly with `async with`.
 
 
-- 📋 [mame-curator-1074] **FP31 follow-up — decide keep-vs-migrate for the 3 remaining non-click `fireEvent` calls in the frontend tests.**
+- ✅ [mame-curator-1074] **FP31 follow-up — decide keep-vs-migrate for the 3 remaining non-click `fireEvent` calls in the frontend tests.**
   After the 1048/1049 sweep the only `fireEvent` calls left are 3 non-click ones, left alone deliberately: `fireEvent.error(img)` in GameCard.test.tsx (simulates an image load failure) and `fireEvent.change(input, ...)` x2 in YearRangeEditor.test.tsx (directly sets a number input's value). `fireEvent.error` has NO userEvent equivalent and MUST stay (an image error is not a user action). `fireEvent.change` is a legitimate RTL idiom for controlled inputs but could migrate to `user.clear()` + `user.type()` for full consistency. Low priority. NOTE: migrating the change calls is not free -- `user.type('2000')` fires an onChange per keystroke, so the `toHaveBeenLastCalledWith(2000)` / `(null)` assertions must be re-checked. Do NOT blindly sweep `fireEvent.error`.
   Kind: refactor.
   Lanes: frontend tests.
   Source: in-session-2026-06-11 (1048/1049 userEvent sweep leftovers).
+  Resolved 2026-06-30: decision is KEEP all 3 non-click fireEvent calls. fireEvent.error has no userEvent equivalent (image error is not a user action); fireEvent.change is the idiomatic atomic set for controlled inputs and migrating to user.type would break the toHaveBeenLastCalledWith assertions per-keystroke. Documented the rationale at each call site.
 
 - 📋 [mame-curator-1075] **Repo-wide Prettier formatting debt in the frontend tree (not CI-gated).**
   `npx prettier --check` flags ~45 frontend files, including many untouched by recent work -- pre-existing, repo-wide debt. `npm run format` (prettier --check) is NOT part of the CI gate (CI runs eslint + tsc -b + vitest only), which is why it has never blocked. Every file touched in the 1048/1049 userEvent sweep was already prettier-dirty at HEAD, so the sweep neither introduced nor fixed it. Fix: one standalone `prettier --write` debt-sweep commit across the frontend tree (kept separate so the pure-formatting churn doesn't muddy feature diffs), and optionally add `npm run format` to the CI workflow to stop re-drift.

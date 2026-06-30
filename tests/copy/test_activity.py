@@ -10,13 +10,22 @@ import pytest
 
 from mame_curator.copy import append_activity, read_activity
 from mame_curator.copy.types import (
+    ActivityDetails,
     ActivityEvent,
     ActivityEventType,
+    AppUpdatedDetails,
     ConflictStrategy,
+    CopyAbortedDetails,
+    CopyFinishedDetails,
     CopyStartedDetails,
     FileRecycledDetails,
+    IniRefreshedDetails,
+    OverrideSetDetails,
     PlanSummary,
+    RecyclePurgedDetails,
+    ReportSummary,
     ReviewStateDetails,
+    SessionActivatedDetails,
 )
 
 
@@ -196,3 +205,69 @@ def test_review_state_event_round_trip() -> None:
     assert revived.details.state == "reviewed"
     assert revived.details.previous == "pending"
     assert revived.session_id == ""
+
+
+# --- mame-curator-1053: breadth round-trip over every event type -------------
+# One representative payload per ActivityEventType. The two tests above keep
+# their field-level assertions for file_recycled / review_state; this table
+# proves the `event_type` discriminator re-routes ALL ten variants to the
+# right details class (previously only 3 of 10 were round-tripped).
+
+_ALL_DETAILS: dict[ActivityEventType, ActivityDetails] = {
+    ActivityEventType.COPY_STARTED: CopyStartedDetails(
+        plan_summary=PlanSummary(
+            winners_count=5,
+            bios_count=2,
+            conflict_strategy=ConflictStrategy.APPEND,
+            source_dir=Path("/src"),
+            dest_dir=Path("/dst"),
+        ),
+        conflict_strategy=ConflictStrategy.APPEND,
+    ),
+    ActivityEventType.COPY_FINISHED: CopyFinishedDetails(
+        report_summary=ReportSummary(
+            succeeded_count=5,
+            skipped_count=1,
+            failed_count=0,
+            bytes_copied=2048,
+        ),
+    ),
+    ActivityEventType.COPY_ABORTED: CopyAbortedDetails(reason="CANCELLED", recycled_count=2),
+    ActivityEventType.OVERRIDE_SET: OverrideSetDetails(parent="puckman", winner="pacman"),
+    ActivityEventType.SESSION_ACTIVATED: SessionActivatedDetails(session_name="default"),
+    ActivityEventType.INI_REFRESHED: IniRefreshedDetails(
+        ini_name="catlist", sha256_old="aa", sha256_new="bb"
+    ),
+    ActivityEventType.APP_UPDATED: AppUpdatedDetails(version_old="1.0.0", version_new="1.1.0"),
+    ActivityEventType.FILE_RECYCLED: FileRecycledDetails(
+        path="/dst/sf2.zip", reason="REPLACE_AND_RECYCLE"
+    ),
+    ActivityEventType.RECYCLE_PURGED: RecyclePurgedDetails(dirs_purged=3, bytes_freed=1024),
+    ActivityEventType.REVIEW_STATE: ReviewStateDetails(
+        short_name="sf2", state="reviewed", previous="pending"
+    ),
+}
+
+
+def test_details_map_covers_every_event_type() -> None:
+    """Guard: every ActivityEventType has a round-trip case below, so a new
+    variant added without coverage fails loudly here rather than silently."""
+    assert set(_ALL_DETAILS) == set(ActivityEventType)
+
+
+@pytest.mark.parametrize("event_type", list(ActivityEventType), ids=lambda e: e.value)
+def test_every_event_type_round_trips(event_type: ActivityEventType) -> None:
+    """Each variant round-trips through JSON with its details re-routed to the
+    correct class by the ``event_type`` discriminator, and revives equal."""
+    details = _ALL_DETAILS[event_type]
+    event = ActivityEvent(
+        timestamp=datetime(2026, 4, 30, tzinfo=UTC),
+        event_type=event_type,
+        summary=f"{event_type.value} summary",
+        session_id="01HZZ",
+        details=details,
+    )
+    revived = ActivityEvent.model_validate_json(event.model_dump_json())
+    assert revived.event_type is event_type
+    assert type(revived.details) is type(details)
+    assert revived.details == details
