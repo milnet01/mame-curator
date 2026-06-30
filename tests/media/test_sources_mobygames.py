@@ -26,6 +26,7 @@ delete-point for the follow-up) and the ROADMAP follow-up bullet.
 from __future__ import annotations
 
 import logging
+import sys
 from pathlib import Path
 
 import httpx
@@ -37,6 +38,7 @@ from tests.media.conftest import _machine, _make_unbounded_limiter
 _MOBY_ENV = "MOBYGAMES_API_KEY"
 _API_HOST = "api.mobygames.com"
 _API_PATH = "/v1/games"
+_WINDOWS = sys.platform == "win32"
 
 
 def _write_key(secrets_dir: Path, content: str = "secret-key-123", mode: int = 0o600) -> Path:
@@ -107,11 +109,16 @@ def test_mobygames_source_env_var_takes_precedence(
     assert src.disabled_reason is None
 
 
+@pytest.mark.skipif(_WINDOWS, reason="POSIX mode bits don't apply on Windows")
 def test_mobygames_source_dotfile_wrong_mode_rejected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     """A group/other-readable (0644) dotfile is rejected with a WARNING; the
-    source stays disabled (an attacker-readable key file is treated as no key)."""
+    source stays disabled (an attacker-readable key file is treated as no key).
+
+    POSIX-only: Windows reports a synthetic 0o666 for every file, so the
+    mode gate is skipped there (the source's ``_resolve_key`` guards the
+    check on ``sys.platform != "win32"`` to match the atomic-write path)."""
     monkeypatch.delenv(_MOBY_ENV, raising=False)
     from mame_curator.media import MobyGamesSource, SourceDisabledFlag
 

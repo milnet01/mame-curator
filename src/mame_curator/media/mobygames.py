@@ -25,6 +25,7 @@ from __future__ import annotations
 import logging
 import os
 import stat
+import sys
 from pathlib import Path
 from typing import ClassVar
 from urllib.parse import quote
@@ -156,7 +157,13 @@ class MobyGamesSource:
             return None
         if not stat.S_ISREG(st.st_mode):
             return None
-        if st.st_mode & 0o077 != 0:
+        # POSIX mode bits are the security boundary on Unix only — Windows
+        # reports a synthetic 0o666 regardless of chmod (NTFS ACLs are the
+        # real gate there), so the same `sys.platform != "win32"` guard the
+        # atomic-write path uses applies. On Windows the key is accepted on
+        # mode grounds; refusing it would make MobyGames permanently
+        # unusable for no security gain.
+        if sys.platform != "win32" and st.st_mode & 0o077 != 0:
             logger.warning(
                 "media/sources: MobyGames key file %s has insecure mode %04o "
                 "(must be 0600); ignoring it",
