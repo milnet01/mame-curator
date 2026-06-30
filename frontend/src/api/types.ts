@@ -119,6 +119,7 @@ export interface MediaConfig {
   fetch_videos: boolean
   cache_dir: string
   arcadedb_rate_limit_per_min: number
+  mobygames_rate_limit_per_min: number
 }
 
 export type ThemeName =

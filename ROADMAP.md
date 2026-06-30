@@ -1248,6 +1248,28 @@ through.
   later").
   Dependencies: P07 ✅ (downloads + INI refresh CLI).
 
+- 📋 [mame-curator-1079] **MobyGames cover-URL parse + JSON-body caching (P10 chunk 6 deferred half).**
+  P10 chunk 6 shipped the key-handling half of `MobyGamesSource`
+  (env/0600-dotfile resolution, missing-key + 401/403 disable,
+  key-redacted errors, rate-limit). The success-path cover-URL
+  extraction + JSON-body caching are DEFERRED: the spec's guessed
+  `cover_url` field is unverified and the real MobyGames `/v1/games`
+  response nests the cover differently, so the parse can't be written
+  correctly without a real API key (none on this machine; no anonymous
+  API access). To close: register a free key at mobygames.com, capture
+  `tests/fixtures/mobygames_pacman.json`, pin the cover field path in
+  docs/specs/P10.md § "4. MobyGames", implement the 200-path parse in
+  `src/mame_curator/media/mobygames.py` (replacing the deferred no-op),
+  add a happy-path `prepare`-populates-cover test, and delete
+  `test_mobygames_source_200_does_not_populate_cover_yet`. Until then
+  MobyGames is in the chain (when keyed) but yields no covers — it's
+  last in the default fallback order, so zero user-visible regression.
+  Dependencies: P10 chunk 7 (registry/orchestrator) does NOT block this;
+  this can land as a post-P10 fix-pass.
+  **Layman:** MobyGames knows your key but can't pull a cover image yet — that last step needs a real key to confirm the data format. Finish it once a key is available.
+  Kind: implement.
+  Source: in-session-2026-07-01 (P10 chunk 6 — user elected "key-handling now, fetch later").
+
 ### 🔌 Plugins / extensions
 
 - 💭 [mame-curator-1007] **P11 — Contribute missing thumbnails

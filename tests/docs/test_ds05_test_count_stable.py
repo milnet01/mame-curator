@@ -124,7 +124,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #     branch, previously uncovered).
 # (test_routes_copy.py's vacuous L10 test was rewritten in place — +0.)
 # 610 → 613.
-EXPECTED_PYTEST_DECLARATIONS = 613
+# Bumped 2026-07-01 (P10 chunk 6 — MobyGames key-handling): +15
+# declarations in the new tests/media/test_sources_mobygames.py
+# (classvars, key resolution via env/0600-dotfile, wrong-mode rejection,
+# one-time WARNING, 401/403 disable, 429/404 auth branches, key redaction,
+# rate-limit short-circuit, boxart-only + deferred-cover contract,
+# already-disabled-flag construction, Protocol conformance). 613 → 628.
+EXPECTED_PYTEST_DECLARATIONS = 628
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

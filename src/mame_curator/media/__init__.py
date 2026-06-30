@@ -44,6 +44,16 @@ P10 chunk 5 (Wikipedia REST summary, image-only):
   (+https://github.com/milnet01/mame-curator)``). Underscore-prefixed
   because it's an implementation helper, not a stable consumer API —
   callers should let the lifespan client own the header.
+
+P10 chunk 6 (MobyGames key-handling — lives in ``mobygames.py``):
+
+- ``MobyGamesSource`` — port-cover source, boxart only; resolves an API key
+  (env var / mode-0600 dotfile), self-disables when no key resolves, and
+  flips a process-wide disabled flag on a 401/403. The success-path cover
+  parse is deferred pending a real-key fixture.
+- ``SourceDisabledFlag`` — injectable holder for a source's process-wide
+  runtime-disabled reason (survives per-request source re-creation while
+  keeping ``media/`` free of any ``api/`` import).
 """
 
 from __future__ import annotations
@@ -58,6 +68,7 @@ from mame_curator.media.cache_text import (
     DEFAULT_TEXT_MAX_BYTES,
     fetch_text_with_cache,
 )
+from mame_curator.media.mobygames import MobyGamesSource, SourceDisabledFlag
 from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
 from mame_curator.media.sources import (
     ArcadeDBSource,
@@ -92,7 +103,9 @@ __all__ = [
     "MediaRateLimited",
     "MediaSource",
     "MediaUrls",
+    "MobyGamesSource",
     "ProgettoSnapsSource",
+    "SourceDisabledFlag",
     "TokenBucket",
     "WikipediaImageSource",
     "_build_user_agent",

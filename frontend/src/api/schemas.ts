@@ -163,6 +163,7 @@ export const MediaConfigSchema = z
     fetch_videos: z.boolean(),
     cache_dir: z.string(),
     arcadedb_rate_limit_per_min: z.number(),
+    mobygames_rate_limit_per_min: z.number(),
   })
   .strict()
 

@@ -61,7 +61,12 @@ export const config: AppConfigResponse = {
     prefer_parent_over_clone: true,
     prefer_good_driver: true,
   },
-  media: { fetch_videos: false, cache_dir: './data/media-cache', arcadedb_rate_limit_per_min: 30 },
+  media: {
+    fetch_videos: false,
+    cache_dir: './data/media-cache',
+    arcadedb_rate_limit_per_min: 30,
+    mobygames_rate_limit_per_min: 5,
+  },
   ui: {
     theme: 'dark',
     layout: 'masonry',

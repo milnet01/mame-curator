@@ -17,6 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P10 chunk 6 — MobyGames key-handling (2026-07-01)
+
+The fifth and final P10 fallback art source lands its key-handling half.
+MobyGames needs a personal API key; the cover-image fetch that depends on
+a real key to verify the response shape is deferred (mame-curator-1079).
+
+**Added**
+
+- `src/mame_curator/media/mobygames.py` — `MobyGamesSource` (boxart-only,
+  `license_compatible=False`). Resolves an API key from `MOBYGAMES_API_KEY`
+  or a mode-0600 `data/secrets/mobygames.key` dotfile (group/other-readable
+  files are rejected with a warning), self-disables with a user-readable
+  reason when no key resolves, and flips a process-wide `SourceDisabledFlag`
+  on a 401/403 from a configured key. The lookup request carries the key in
+  its query string, so every error/log message redacts it. Split into its
+  own module so `sources.py` stays under the 500-line cap. (mame-curator-1005)
+- `media.mobygames_rate_limit_per_min` config field (default 5 req/min) plus
+  the `mobygames_limiter` token bucket and `mobygames_disabled` flag wired
+  on `app.state` at lifespan startup. (mame-curator-1005)
+
+**Deferred**
+
+- MobyGames cover-URL parse + JSON-body caching — gated on a real API key
+  to capture a fixture and verify the response field path. Until it lands,
+  MobyGames participates in the chain (when keyed) but yields no covers;
+  it is last in the default fallback order, so no user-visible regression.
+  (mame-curator-1079)
+
 ### Cleanup / debt — frontend file-size + Snapshots caveat (2026-06-30)
 
 Two `frontend` cleanup-debt items surfaced during the P14 docs work,

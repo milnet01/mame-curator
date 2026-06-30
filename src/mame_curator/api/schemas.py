@@ -84,6 +84,10 @@ class MediaConfig(BaseModel):
     # so we cap ourselves at a courteous rate. Configurable so ops can
     # tune without a spec rev if upstream policy changes.
     arcadedb_rate_limit_per_min: int = 30
+    # P10 chunk 6 — MobyGames lookup rate-limit knob. MobyGames documents
+    # 360 req/hr for free accounts; 5 req/min (= 300/hr) leaves a 60%
+    # margin. Configurable for users on a higher-tier key.
+    mobygames_rate_limit_per_min: int = 5
 
 
 class UiConfig(BaseModel):

@@ -22,7 +22,7 @@ from mame_curator.api.errors import install_handlers
 from mame_curator.api.jobs import JobManager
 from mame_curator.api.routes import router as api_router
 from mame_curator.api.state import build_world
-from mame_curator.media import TokenBucket, _build_user_agent
+from mame_curator.media import SourceDisabledFlag, TokenBucket, _build_user_agent
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +150,17 @@ def create_app(config_path: Path) -> FastAPI:
             capacity=arcadedb_per_min,
         )
         app.state.wikipedia_limiter = TokenBucket(rate=60.0 / 60.0, capacity=60)
+        # P10 chunk 6 — MobyGames limiter (default 5 req/min, configurable)
+        # plus the process-wide disabled flag. The flag survives the
+        # per-request re-creation of source instances (set on a 401/403 from
+        # a configured key); media/ stays HTTP-agnostic by carrying it in a
+        # small holder rather than reaching back into app.state itself.
+        mobygames_per_min = world.config.media.mobygames_rate_limit_per_min
+        app.state.mobygames_limiter = TokenBucket(
+            rate=mobygames_per_min / 60.0,
+            capacity=mobygames_per_min,
+        )
+        app.state.mobygames_disabled = SourceDisabledFlag()
         try:
             yield
         finally:
