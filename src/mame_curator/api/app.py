@@ -107,12 +107,14 @@ def create_app(config_path: Path) -> FastAPI:
         # this, two concurrent mutating requests read the same base
         # state and the later writer overwrites the earlier — silently
         # losing a user edit. P04 spec lines 104-115 mandate the lock
-        # for all 12 mutation routes: FP20-C wired patch_config,
+        # for the original 12 mutation routes: FP20-C wired patch_config,
         # restore_config_snapshot, import_config, fs_grant_root,
-        # fs_revoke_root; FP25-A closed the remaining seven —
+        # fs_revoke_root; FP25-A closed the next seven —
         # post_override, delete_override, upsert_session,
         # delete_session, deactivate_session, activate_session,
-        # put_notes. See ``tests/api/test_fp25_world_lock.py`` for the
+        # put_notes. P14 added two more that also acquire it —
+        # post_state, delete_state (POST/DELETE /api/state) — for 14
+        # total. See ``tests/api/test_fp25_world_lock.py`` for the
         # acceptance test that fires two ``asyncio.gather``-ed
         # mutations across different routes and asserts both edits land.
         app.state.world_lock = asyncio.Lock()

@@ -93,11 +93,10 @@ lock-guarded routes are:
 `PUT /api/games/{name}/notes`, and `POST /api/state` /
 `DELETE /api/state/{short_name}`.
 
-(The two enumerated clusters in the `app.py` comment — FP20-C's five and
-FP25-A's seven — total twelve and predate P14; the review-state routes
-`POST`/`DELETE /api/state` added in P14 add two more, for fourteen total
-(5 + 7 + 2). The comment's own "all 12 mutation routes" wording is therefore
-stale. New world-mutating routes MUST acquire the lock.)
+(The `app.py` comment enumerates the guarded routes in three waves —
+FP20-C's five, FP25-A's seven, and P14's two (`POST`/`DELETE /api/state`) —
+for fourteen total (5 + 7 + 2). New world-mutating routes MUST acquire the
+lock.)
 
 ## Error envelope
 

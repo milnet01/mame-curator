@@ -67,7 +67,9 @@ class SnapsRefreshReport:
     """PNG entries that existed already and ``force=False`` left untouched."""
 
     error: str | None = None
-    """Populated on disk-space gate failure or download/extract error."""
+    """Populated on disk-space gate failure or download failure. A corrupt
+    pack at extract raises (``BadZipFile`` / ``OSError``) rather than
+    populating this field."""
 
 
 async def discover_snap_pack_url(
