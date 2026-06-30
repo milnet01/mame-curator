@@ -43,6 +43,23 @@ describe('SnapshotsTab (FP12 § I)', () => {
     expect(screen.getByText(/no snapshots yet/i)).toBeInTheDocument()
   })
 
+  // P14 / mame-curator-1078 — the review-state exclusion caveat is
+  // surfaced in both the empty and populated views (the two states a
+  // user lands on when deciding what they can roll back).
+  it('surfaces the review-state exclusion caveat in the empty state', () => {
+    render(<SnapshotsTab snapshots={[]} onRestore={() => {}} />)
+    expect(
+      screen.getByText(/review state is not snapshotted/i),
+    ).toBeInTheDocument()
+  })
+
+  it('surfaces the review-state exclusion caveat in the populated list', () => {
+    render(<SnapshotsTab snapshots={sample} onRestore={() => {}} />)
+    expect(
+      screen.getByText(/review state is not snapshotted/i),
+    ).toBeInTheDocument()
+  })
+
   it('renders one row per snapshot with file count + restore button', () => {
     render(<SnapshotsTab snapshots={sample} onRestore={() => {}} />)
     expect(screen.getAllByRole('button', { name: /^Restore/ })).toHaveLength(2)

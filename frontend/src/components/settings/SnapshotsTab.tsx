@@ -57,15 +57,23 @@ export function SnapshotsTab({
   }
   if (snapshots.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {strings.settings.snapshotsEmpty}
-      </p>
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-muted-foreground">
+          {strings.settings.snapshotsEmpty}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {strings.settings.snapshotsStateExclusionNote}
+        </p>
+      </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-2">
       <h2 className="text-sm font-medium">{strings.settings.snapshotsTitle}</h2>
+      <p className="text-xs text-muted-foreground">
+        {strings.settings.snapshotsStateExclusionNote}
+      </p>
       {restoreError && (
         <p role="alert" className="text-sm text-destructive">
           {restoreError}

@@ -171,19 +171,21 @@ wave lands.
   Lanes: ci.
   Source: ci-annotation-2026-06-30.
 
-- 📋 [mame-curator-1077] **Split `LibraryPage.tsx` (579 lines) under the frontend file-size hard cap.**
+- ✅ [mame-curator-1077] **Split `LibraryPage.tsx` (579 lines) under the frontend file-size hard cap.**
   `frontend/src/pages/LibraryPage.tsx` is 579 lines, over the frontend file-size hard cap (`coding-standards.md` §2). It is NOT in the DS02 acknowledged-exceptions list (those are `copy/runner.py` 540, `strings_internal.ts` 646, `api/schemas.ts` 591). The breach predates P14 — `docs/specs/P14.md` § "Module layout" called it out as a follow-up concern ("extract a small `LibraryHeader.tsx` if convenient") and not a P14 blocker. Likely split lines: the header/progress-chip + walkthrough-toggle block into `LibraryHeader.tsx`, and/or the review-state + cart wiring into a hook. Note: `coding-standards.md` §2 and `docs/specs/P14.md` disagree on the exact frontend cap (350 vs the 500 DS02 treats as hard) — confirm the canonical number when picking this up.
   **Layman:** One of the library screen's source files has grown too big and should be broken into smaller pieces for readability.
   Kind: refactor.
   Lanes: frontend.
   Source: in-session-2026-06-30 (surfaced during 1060/1061 P14 docs work).
+  Resolved (2026-06-30): split LibraryPage.tsx 579→314 lines, under the coding-standards §2 frontend component hard cap (350). The §15-precedence-authoritative cap is 350 (the bullet's 350-vs-500 doubt resolved in favour of coding-standards.md). Non-render logic extracted to new pages/useLibraryController.ts (318 lines) + pure pages/libraryPageHelpers.ts (61 lines); all JSX kept in the page so the source-text structural tests (LibraryPage_error_boundary, landmark_labels) keep asserting the rendered shape. Behaviour-preserving — 323 frontend tests green, tsc -b + eslint clean.
 
-- 📋 [mame-curator-1078] **Surface the "review state isn't snapshotted" caveat in the Snapshots UI.**
+- ✅ [mame-curator-1078] **Surface the "review state isn't snapshotted" caveat in the Snapshots UI.**
   `docs/specs/P14.md` § "Snapshot policy" specified a one-line caption (`settings.snapshots.stateExclusionNote`) noting that `data/state.yaml` is not snapshotted, so review-state changes cannot be rolled back via Settings → Snapshots (recovery is `activity.jsonl` replay only). That caption was never shipped — `frontend/src/strings_internal.ts` has no such string and `SnapshotsTab.tsx` shows no review-state caveat. Add the caption so the exclusion is visible to the user. Low priority (behavioural gap is documented, just not surfaced in-app).
   **Layman:** The app saves restore-points for your settings but not for your per-game review marks. The screen never tells you that, so add a one-line note.
   Kind: fix.
   Lanes: frontend.
   Source: in-session-2026-06-30 (surfaced by cold-eyes on review_state_spec.md).
+  Resolved (2026-06-30): added settings.snapshotsStateExclusionNote string + rendered it as a caption in SnapshotsTab.tsx (both empty + populated states). Text per P14 spec §875. Flat key name (snapshotsStateExclusionNote) to match the existing flat snapshotsXxx convention, not the spec's dotted settings.snapshots.stateExclusionNote. +2 vitest cases.
 
 ### 🧪 Test Audit 2026-05-20
 

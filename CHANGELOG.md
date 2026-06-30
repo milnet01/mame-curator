@@ -17,6 +17,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Cleanup / debt — frontend file-size + Snapshots caveat (2026-06-30)
+
+Two `frontend` cleanup-debt items surfaced during the P14 docs work,
+bundled by shared lane.
+
+**Fixed**
+
+- Settings → Snapshots now shows a one-line caveat that per-game review
+  state is excluded from config snapshots, so review marks can't be
+  rolled back there — recovery is via Activity replay. The caption
+  (`settings.snapshotsStateExclusionNote`) was specified in the P14 spec
+  but never shipped. (mame-curator-1078)
+
+**Changed**
+
+- `frontend/src/pages/LibraryPage.tsx` (579 lines) split under the §2
+  frontend component hard cap of 350 lines — non-render logic extracted
+  to a new `useLibraryController` hook plus pure helpers in
+  `libraryPageHelpers.ts`; the JSX stays in the page so the source-text
+  structural tests keep asserting the rendered shape. Behaviour-
+  preserving (all 323 frontend tests green). (mame-curator-1077)
+
 ### P14 — Per-game review state (closed 2026-05-17)
 
 Per-game `pending` / `reviewed` / `skipped` / `needs-decision` state

@@ -499,6 +499,12 @@ export const strings = {
     /** FP20-J — generic fallback when ``restore.error`` is non-ApiError. */
     snapshotRestoreError: 'Could not restore that snapshot.',
     snapshotsEmpty: 'No snapshots yet — one is written automatically before each PATCH.',
+    /** P14 / mame-curator-1078 — snapshots cover config only, not
+     * per-game review state (`data/state.yaml` is excluded by design;
+     * see P14 spec § "Snapshot policy"). Surface the caveat so the
+     * user knows review marks can't be rolled back here. */
+    snapshotsStateExclusionNote:
+      'Review state is not snapshotted — to roll back, use Activity to undo individual changes.',
     snapshotItemFiles: (count: number) =>
       `${count} file${count === 1 ? '' : 's'}`,
     snapshotRestoreLabel: 'Restore',
