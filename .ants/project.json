@@ -1,0 +1,14 @@
+{
+    "changelog": "CHANGELOG.md",
+    "docs_dir": "docs",
+    "roadmap": "ROADMAP.md",
+    "source_roots": [
+        "src/mame_curator",
+        "frontend/src"
+    ],
+    "specs_dir": "docs/specs",
+    "test_roots": [
+        "tests",
+        "frontend/src/__tests__"
+    ]
+}
