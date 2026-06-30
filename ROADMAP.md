@@ -961,7 +961,7 @@ per-feature-specs). Single-pass with all severities folded inline;
 items below are the verified deferrals that couldn't be auto-fixed
 under a docs-review skill.
 
-- 📋 [mame-curator-1057] **Author `src/mame_curator/api/spec.md`.**
+- ✅ [mame-curator-1057] **Author `src/mame_curator/api/spec.md`.**
   Shipped P04 API module ships without a co-located `spec.md`,
   violating the project rule in `coding-standards.md § 7` + `CLAUDE.md`
   ("No feature merges without a `spec.md` next to its code"). Three
@@ -972,6 +972,7 @@ under a docs-review skill.
   Kind: doc.
   Lanes: api, docs.
   Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs + decisions.
+  Resolved 2026-06-30: authored src/mame_curator/api/spec.md — the co-located P04 API contract (app factory + lifespan app.state model, frozen WorldState + the 14-route world_lock concurrency invariant, the ApiErrorBody envelope + 24-entry code/status table, the 46-route inventory, copy-job lifecycle + SSE, the home+4-paths FS sandbox, config snapshots/persistence, media proxy, SPA fallback). Ran /cold-eyes to a clean pass (4 loops; every verified HIGH/MEDIUM/LOW fixed — home-root allowlist omission, TokenBucket name + config key, 12→14 lock count, video temporal claim, limiter construction shape, root-id hash shape, MediaRateLimited wire-reachability note).
 
 - 📋 [mame-curator-1058] **Author `src/mame_curator/media/spec.md`.**
   Shipped P05 module (with P10 still in flight) ships without a
@@ -983,7 +984,7 @@ under a docs-review skill.
   Lanes: media, docs.
   Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs.
 
-- 📋 [mame-curator-1059] **Author `src/mame_curator/updates/spec.md`.**
+- ✅ [mame-curator-1059] **Author `src/mame_curator/updates/spec.md`.**
   Shipped P07 module ships without a co-located `spec.md`. Same rule
   violation as 1057. ADR-0004 § "Post-v1 hardening path" already
   identifies this as the first step; lift it from a buried footnote to
@@ -992,6 +993,7 @@ under a docs-review skill.
   Kind: doc.
   Lanes: updates, docs.
   Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs + decisions.
+  Resolved 2026-06-30: authored src/mame_curator/updates/spec.md — the co-located P07 reference-data-refresh contract (refresh_inis / refresh_snaps / discover_snap_pack_url, the two report dataclasses, the 2x disk-space gate + dest_dir/parent probe, the path-separator zip-slip defense, the complete failure-mode enumeration: report-vs-raise for disk-gate/download vs extract/discovery-HTTP). Ran /cold-eyes to a clean pass (6 loops; every verified HIGH/MEDIUM/LOW fixed — INI mandatory/fifth framing, dangling ROADMAP ref, MiB/MB units, pack retention, DEFAULT_DEST, extract-failure-raises correction, discovery raise_for_status path). 1058 (media spec) stays blocked per its body until P10 closes.
 
 - 📋 [mame-curator-1060] **Author `docs/journal/P14.md`.**
   P14 closed 2026-05-17 with tag `P14-complete` but no journal entry.
