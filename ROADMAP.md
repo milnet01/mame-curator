@@ -164,6 +164,13 @@ wave lands.
   Source: user-2026-05-08 ("ensure that we are on the latest version
   of all dependencies"); reinforces global rule § 5.
 
+- 📋 [mame-curator-1076] **Review the `macos-latest` CI runner pin ahead of the macOS 26 migration.**
+  CI annotation on run 28463638134 (2026-06-30): "The macos-latest label will migrate to macOS 26 beginning June 15, 2026" (actions/runner-images#14167). The `macos-latest` matrix leg in `.github/workflows/*` will roll to macOS 26 automatically on that date. Before 2026-06-15, confirm the Python/uv toolchain + test suite still green on macOS 26 (or pin to `macos-15` deliberately with a reason per global rule 5a). Low priority — auto-migration, not a break.
+  **Layman:** GitHub is changing what "latest macOS" means for our test runner on 15 June 2026 — check our setup still works before then.
+  Kind: chore.
+  Lanes: ci.
+  Source: ci-annotation-2026-06-30.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
