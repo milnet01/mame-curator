@@ -171,6 +171,20 @@ wave lands.
   Lanes: ci.
   Source: ci-annotation-2026-06-30.
 
+- 📋 [mame-curator-1077] **Split `LibraryPage.tsx` (579 lines) under the frontend file-size hard cap.**
+  `frontend/src/pages/LibraryPage.tsx` is 579 lines, over the frontend file-size hard cap (`coding-standards.md` §2). It is NOT in the DS02 acknowledged-exceptions list (those are `copy/runner.py` 540, `strings_internal.ts` 646, `api/schemas.ts` 591). The breach predates P14 — `docs/specs/P14.md` § "Module layout" called it out as a follow-up concern ("extract a small `LibraryHeader.tsx` if convenient") and not a P14 blocker. Likely split lines: the header/progress-chip + walkthrough-toggle block into `LibraryHeader.tsx`, and/or the review-state + cart wiring into a hook. Note: `coding-standards.md` §2 and `docs/specs/P14.md` disagree on the exact frontend cap (350 vs the 500 DS02 treats as hard) — confirm the canonical number when picking this up.
+  **Layman:** One of the library screen's source files has grown too big and should be broken into smaller pieces for readability.
+  Kind: refactor.
+  Lanes: frontend.
+  Source: in-session-2026-06-30 (surfaced during 1060/1061 P14 docs work).
+
+- 📋 [mame-curator-1078] **Surface the "review state isn't snapshotted" caveat in the Snapshots UI.**
+  `docs/specs/P14.md` § "Snapshot policy" specified a one-line caption (`settings.snapshots.stateExclusionNote`) noting that `data/state.yaml` is not snapshotted, so review-state changes cannot be rolled back via Settings → Snapshots (recovery is `activity.jsonl` replay only). That caption was never shipped — `frontend/src/strings_internal.ts` has no such string and `SnapshotsTab.tsx` shows no review-state caveat. Add the caption so the exclusion is visible to the user. Low priority (behavioural gap is documented, just not surfaced in-app).
+  **Layman:** The app saves restore-points for your settings but not for your per-game review marks. The screen never tells you that, so add a one-line note.
+  Kind: fix.
+  Lanes: frontend.
+  Source: in-session-2026-06-30 (surfaced by cold-eyes on review_state_spec.md).
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
@@ -990,6 +1004,7 @@ under a docs-review skill.
   Kind: doc.
   Lanes: media, docs.
   Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs.
+  Re-checked 2026-06-30 (1060/1061 session): still blocked. P10 remains in flight per .claude/workflow.md §1 — Step 3, chunk 6 (MobyGames) plus chunks 7–11 (registry/orchestrator) unshipped. Gate holds: drafting media/spec.md now would document a partial source surface (MobyGames absent). Stays parked until P10 closes.
 
 - ✅ [mame-curator-1059] **Author `src/mame_curator/updates/spec.md`.**
   Shipped P07 module ships without a co-located `spec.md`. Same rule
@@ -1002,7 +1017,7 @@ under a docs-review skill.
   Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs + decisions.
   Resolved 2026-06-30: authored src/mame_curator/updates/spec.md — the co-located P07 reference-data-refresh contract (refresh_inis / refresh_snaps / discover_snap_pack_url, the two report dataclasses, the 2x disk-space gate + dest_dir/parent probe, the path-separator zip-slip defense, the complete failure-mode enumeration: report-vs-raise for disk-gate/download vs extract/discovery-HTTP). Ran /cold-eyes to a clean pass (6 loops; every verified HIGH/MEDIUM/LOW fixed — INI mandatory/fifth framing, dangling ROADMAP ref, MiB/MB units, pack retention, DEFAULT_DEST, extract-failure-raises correction, discovery raise_for_status path). 1058 (media spec) stays blocked per its body until P10 closes.
 
-- 📋 [mame-curator-1060] **Author `docs/journal/P14.md`.**
+- ✅ [mame-curator-1060] **Author `docs/journal/P14.md`.**
   P14 closed 2026-05-17 with tag `P14-complete` but no journal entry.
   Every other closed phase has one (`DS02`, `DS03`, `DS04`, `DS05`,
   `FP27`, `FP28`). Standalone fix; scrape the close commit body +
@@ -1011,8 +1026,9 @@ under a docs-review skill.
   Kind: doc.
   Lanes: docs.
   Source: cold-eyes-2026-05-18 lane spec/P14.
+  Resolved 2026-06-30: authored docs/journal/P14.md from the P14-complete tag body + CHANGELOG ### P14 — chunk→commit map, the passive-swap (INV-4) / per-request-filter architecture, the chunk 8+15 folding, and the 507→535 backend / 289→300 frontend test deltas.
 
-- 📋 [mame-curator-1061] **Promote P14 review-state contract to a
+- ✅ [mame-curator-1061] **Promote P14 review-state contract to a
   module-co-located spec.** P14 spec § Files-touched lists
   `src/mame_curator/filter/review_state_spec.md` as the close-time
   promotion target; it doesn't exist on disk and the contract lives
@@ -1025,6 +1041,7 @@ under a docs-review skill.
   Kind: doc.
   Lanes: filter, docs.
   Source: cold-eyes-2026-05-18 lane spec/P14.
+  Resolved 2026-06-30: created src/mame_curator/filter/review_state_spec.md — the per-feature co-located contract (model/loader/enums, the three /api/state routes, the ?review_state= per-request filter, the passive-swap fact, 13 invariants) extracted from docs/specs/P14.md and verified clause-by-clause against shipped code. De-staled P14's two promotion notes and added a filter/spec.md back-pointer. User elected the separate-file option over merging into filter/spec.md. Ran /cold-eyes to a clean pass (3 loops): fixed a world-lock over-claim (GET is lock-free), an unshipped-snapshot-caption claim (→ roadmapped 1078), a GET-can't-404 nit, and a coupled copy/spec.md ReviewStateDetails type bug (str, not ReviewStateValue).
 
 - 📋 [mame-curator-1062] **Re-introduce a Radix-Esc regression lock
   for FP27 A6a.** `frontend/src/components/__tests__/EscOverlayBehavior.test.tsx`
@@ -1054,7 +1071,7 @@ under a docs-review skill.
   Lanes: api, docs.
   Source: cold-eyes-2026-05-18 lane spec/FP27.
 
-- 📋 [mame-curator-1064] **Reconcile `CLAUDE.md` "fix-passes don't
+- ✅ [mame-curator-1064] **Reconcile `CLAUDE.md` "fix-passes don't
   get specs" rule with the FP05/FP25/FP27/FP28 precedent.** CLAUDE.md
   states *"Fix-passes (`FP##` / `DS##`) don't get specs — they
   correct code against the existing module spec."* In practice every
@@ -1068,6 +1085,7 @@ under a docs-review skill.
   Kind: doc.
   Lanes: docs.
   Source: cold-eyes-2026-05-18 lane spec/FP27 (H1).
+  Resolved 2026-06-30: amended the CLAUDE.md spec-discipline rule — fix-passes still don't *require* their own spec, but a multi-tier fold-in MAY carry a long-form docs/specs/<ID>.md when the upfront contract earns its keep, matching the FP05/FP27/FP28/DS01–DS05 reality the journals credit. User elected amend-the-rule over trimming the 11 existing specs.
 
 ### 🤝 Community & funding
 
