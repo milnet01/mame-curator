@@ -1270,6 +1270,48 @@ through.
   Kind: implement.
   Source: in-session-2026-07-01 (P10 chunk 6 — user elected "key-handling now, fetch later").
 
+- 💭 [mame-curator-1080] **UI localization — translate the interface into additional languages.**
+  Frontend-only localization (i18n) of every visible label / message.
+
+  **Enabler (mostly done):** all user-facing copy already funnels through
+  one catalogue — `frontend/src/strings_internal.ts` (682 lines, section-
+  keyed) behind the stable `strings.ts` facade (DS02 A3). There are no
+  scattered hardcoded strings to hunt down; that groundwork is the hard 80%.
+
+  **The design fork to settle at spec time (Step 1):** 45 of the catalogue
+  entries are interpolation *functions*, not plain strings — plurals,
+  multi-arg, `n.toLocaleString()` (e.g. `progressChip(handled, total, pct)`,
+  `bulkAdd(n)`). A naive `strings.<lang>.ts` object-swap can't localise
+  those cleanly. Two credible approaches:
+    (a) Adopt a real i18n library (react-i18next or FormatJS/react-intl)
+        with ICU message format — proper plural/gender rules, locale
+        detection + switching, an extraction pipeline for translators. Cost
+        is migrating the 682-line catalogue + 45 functions to message keys.
+    (b) Keep the typed hand-rolled catalogue: one `strings.<lang>.ts` per
+        locale implementing the same shape (functions included) + a light
+        locale-switch context. No new dependency, keeps the typed call
+        sites, cheaper to start — but each translator writes plural logic
+        in code and there's no ICU tooling.
+
+  **Sub-pieces (regardless of fork):** browser-locale detection
+  (`navigator.language`); a persisted UI-language config field (distinct
+  from the game-metadata `languages.ini` / `region_priority` filtering —
+  that's the games' own languages, not the app's); a Settings LanguageSwitcher
+  (parallels ThemeSwitcher / LayoutSwitcher); number/date via `Intl`; a
+  translation-file workflow; pick 1–2 pilot locales to prove the pipeline.
+
+  **Out of scope:** backend stays English — it emits error *codes*, and the
+  frontend `errorByCode` map already turns them into friendly copy, so
+  localisation is entirely frontend-side. CLI (`rich.Console`) output stays
+  English (operator-facing). RTL layout (Arabic/Hebrew) is a likely
+  follow-up, not v1 of this feature.
+
+  Kind: feature. Post-v1; needs a Step-1 spec + cold-eyes to resolve the
+  fork before sizing. Dependencies: none hard.
+  **Layman:** Today every menu, button, and message is English only. Add the ability to display the interface in other languages (Spanish, French, German, …) with a language picker in Settings, next to the existing theme and layout pickers.
+  Kind: feature.
+  Source: user-request-2026-07-01 ("Please roadmap adding support for additional languages" → clarified: translate the UI)..
+
 ### 🔌 Plugins / extensions
 
 - 💭 [mame-curator-1007] **P11 — Contribute missing thumbnails
