@@ -17,6 +17,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P10 chunk 10 — Settings → Media source list (2026-07-01)
+
+The Media tab in Settings gains a live list of your art sources.
+
+**Added**
+
+- A reorderable art-source list on Settings → Media: each source shows a
+  status dot (green Active / grey Disabled), the image kinds it covers, and —
+  when it's off — the reason why. Drag-free reorder (arrow buttons) sets the
+  fallback priority, saved to your config. (mame-curator-1005)
+- A "Configure…" button on MobyGames (when it has no key) opens a modal to
+  paste your API key; on success the dot flips to green without a restart.
+  (mame-curator-1005)
+- A "Download pack…" button on progettoSnaps (when the pack isn't downloaded)
+  opens a modal with the `mame-curator refresh-snaps` command and a copy
+  button — run it in a terminal, reopen the tab, and it flips to green.
+  (mame-curator-1005)
+
+**Deferred**
+
+- Turning a source fully off (a per-row enable/disable checkbox) is a
+  follow-up (mame-curator-1084); chunk 10 ships reorder + status + the key /
+  pack helpers. (mame-curator-1005)
+
 ### P10 chunk 9 — media source readiness + key-paste API (2026-07-01)
 
 Backend for the upcoming Settings → Media tab: a way to see which art sources

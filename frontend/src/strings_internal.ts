@@ -464,6 +464,33 @@ export const strings = {
     datSwapActionLabel: (path: string) => `Swap DAT to ${path}`,
     mediaCacheLabel: 'Media cache directory',
     mediaCacheBrowseLabel: 'Browse for media cache directory',
+    // P10 chunk 10 — Media source readiness list + key/pack modals.
+    mediaSources: {
+      sectionLabel: 'Art sources (priority order)',
+      sectionHelp:
+        'Sources are tried top-to-bottom; the first with an image wins. Use the arrows to reorder.',
+      reorderAriaLabel: 'Art source priority',
+      statusActive: 'Active',
+      statusDisabled: 'Disabled',
+      configureButton: 'Configure…',
+      downloadPackButton: 'Download pack…',
+    },
+    mediaKeyModal: {
+      title: 'Configure MobyGames API key',
+      body: 'Paste your MobyGames API key. It is saved to data/secrets/mobygames.key (owner-only, mode 0600) and never written to config.yaml.',
+      inputLabel: 'API key',
+      save: 'Save',
+      cancel: 'Cancel',
+      error: 'Could not save the key — check it and try again.',
+    },
+    mediaPackModal: {
+      title: 'Download the progettoSnaps snapshot pack',
+      body: 'The snapshot pack is large (~500 MB). Run this command in a terminal, then reopen this tab:',
+      command: 'mame-curator refresh-snaps',
+      copyButton: 'Copy command',
+      copied: 'Copied!',
+      close: 'Close',
+    },
     backupBlurb:
       'Configuration snapshots can be restored from disk. Restore confirmation surfaces a destructive-action dialog.',
     banners: {

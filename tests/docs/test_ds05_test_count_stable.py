@@ -161,7 +161,7 @@ EXPECTED_PYTEST_DECLARATIONS = 671
 # declarations in SnapshotsTab.test.tsx — the review-state
 # snapshot-exclusion caveat is asserted in both the empty and populated
 # tab states. 304 → 306.
-EXPECTED_VITEST_DECLARATIONS = 306
+EXPECTED_VITEST_DECLARATIONS = 315
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

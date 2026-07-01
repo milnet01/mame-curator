@@ -10,6 +10,7 @@
  *   git grep -l "Checkbox" frontend/src/ | grep -v src/components/ui
  */
 import { describe, expect, it } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
@@ -105,14 +106,20 @@ describe('no-checkbox-for-prefs invariant', () => {
     const user = userEvent.setup()
     // DS02 D1: SettingsPage now reads its active tab via
     // `useSearchParams`, so it must render inside a Router.
+    // P10 chunk 10: the Media tab calls useMediaSources (react-query), so a
+    // QueryClient must wrap the page (the readiness GET is served by the
+    // default MSW handler).
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
-      <MemoryRouter>
-        <SettingsPage
-          config={config}
-          onPatch={() => {}}
-          onSnapshotRestore={() => {}}
-        />
-      </MemoryRouter>,
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <SettingsPage
+            config={config}
+            onPatch={() => {}}
+            onSnapshotRestore={() => {}}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
     )
     // Visit EVERY tab the page renders, not a hardcoded subset — test-audit
     // FP03 (2026-05-18) flagged that the 5-tab subset would let a future

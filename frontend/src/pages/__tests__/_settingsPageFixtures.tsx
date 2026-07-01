@@ -10,6 +10,7 @@
 import type { ReactElement } from 'react'
 import { render as rtlRender } from '@testing-library/react'
 import type { RenderOptions } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router'
 
 import type { AppConfigResponse } from '@/api/types'
@@ -18,12 +19,21 @@ import type { AppConfigResponse } from '@/api/types'
 // must render inside a Router. Wrap `@testing-library/react`'s render
 // so every existing test (which expects a bare `render(<SettingsPage
 // …/>)` to work) keeps working without per-site edits.
+// P10 chunk 10 — the Media tab now calls `useMediaSources` (react-query),
+// so the wrapper also provides a QueryClient (retries off for tests). The
+// readiness GET is served by the default MSW handler in src/test/handlers.ts.
 export function render(
   ui: ReactElement,
   options?: RenderOptions & { initialPath?: string },
 ) {
   const { initialPath = '/settings', ...rtlOptions } = options ?? {}
-  return rtlRender(<MemoryRouter initialEntries={[initialPath]}>{ui}</MemoryRouter>, rtlOptions)
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return rtlRender(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[initialPath]}>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+    rtlOptions,
+  )
 }
 
 export const config: AppConfigResponse = {

@@ -1346,6 +1346,12 @@ through.
   Kind: security.
   Source: in-session-2026-07-01 (P10 chunk-9 secret-route auth decision).
 
+- 📋 [mame-curator-1084] **Settings → Media: enable/disable art sources (add/remove from the fallback chain).**
+  P10 chunk 10 shipped the Settings → Media source list as reorder + live readiness + Configure-key / Download-pack modals over the *configured* sources (media.sources). The mockup's per-row enable/disable checkbox (add/remove a source from media.sources, with unconfigured sources rendered below the reorderable list with an Enable affordance) was deferred: it's untested, the common case is the default all-five tuple, and it introduces a fiddly unconfigured-below-the-list state. To close: add the checkbox to MediaSourceRow toggling media.sources membership (PATCH /api/config), render unconfigured known sources below the DragReorderList with an Enable button, and add vitest coverage. Note libretro is always re-appended by the backend registry, so its checkbox is a no-op ("always on"). Lane: frontend.
+  **Layman:** Add a checkbox next to each art source so you can turn one off entirely (not just reorder it) — e.g. skip MobyGames if you'll never set a key.
+  Kind: feature.
+  Source: in-session-2026-07-01 (P10 chunk 10 — deferred from the Media tab UI).
+
 ### 🔌 Plugins / extensions
 
 - 💭 [mame-curator-1007] **P11 — Contribute missing thumbnails

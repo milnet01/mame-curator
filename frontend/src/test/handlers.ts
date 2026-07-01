@@ -4,13 +4,17 @@ import { http, HttpResponse, type JsonBodyType } from 'msw'
 /**
  * MSW base handlers shared across the Vitest suite.
  *
- * Empty by design — the only handler we'd reach for would be
- * `/api/health`, but the backend doesn't define that route, and
- * frontend code never calls it (FP11 § I1: dead mock removed). Per-
- * test handlers are added with `server.use(...)` inside individual
- * test files when a route needs mocking.
+ * Almost empty by design — per-test handlers are added with
+ * `server.use(...)` inside individual test files when a route needs
+ * mocking. The one default (P10 chunk 10): `GET /api/media/sources`
+ * returns an empty readiness list, because the Settings → Media tab
+ * fires `useMediaSources` on mount — any SettingsPage-rendering test
+ * would otherwise hit an unhandled request. Tests that assert on
+ * readiness override it with their own `server.use(...)`.
  */
-export const baseHandlers: Parameters<typeof setupServer> = []
+export const baseHandlers: Parameters<typeof setupServer> = [
+  http.get('/api/media/sources', () => HttpResponse.json({ sources: [] })),
+]
 
 export const server = setupServer(...baseHandlers)
 export { http, HttpResponse }

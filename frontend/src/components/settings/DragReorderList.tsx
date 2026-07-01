@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -10,6 +10,15 @@ export interface DragReorderListProps {
   items: string[]
   /** Called with the next list whenever an item is reordered. */
   onChange: (next: string[]) => void
+  /**
+   * P10 chunk 10: optionally render rich row content in place of the plain
+   * item label (e.g. a media source's status dot + Configure button).
+   * Replaces ONLY the label span — the arrow buttons and the row-level
+   * ArrowUp/ArrowDown reorder handler are unchanged. Interactive controls
+   * inside `renderItem` should `stopPropagation` on keydown so they don't
+   * also trigger a reorder. Defaults to the plain item string.
+   */
+  renderItem?: (item: string) => ReactNode
 }
 
 function swap(arr: string[], from: number, to: number): string[] {
@@ -30,6 +39,7 @@ export function DragReorderList({
   ariaLabel,
   items,
   onChange,
+  renderItem,
 }: DragReorderListProps) {
   const [announcement, setAnnouncement] = useState('')
 
@@ -77,7 +87,7 @@ export function DragReorderList({
               onKeyDown={(e) => onKeyDown(e, i)}
               className="flex items-center justify-between gap-2 rounded border border-input bg-muted/30 px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <span>{item}</span>
+              {renderItem ? renderItem(item) : <span>{item}</span>}
               <div className="flex gap-1">
                 <button
                   type="button"
