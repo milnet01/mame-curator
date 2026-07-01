@@ -976,6 +976,28 @@ documenting test-audit-specific false positives.
   Lanes: backend, frontend, cli.
   Source: indie-review-2026-05-14 Tier 2.
 
+- 🚧 [mame-curator-1085] **FP32 — closing-review fold-in after P10 (media coverage expansion).**
+  Findings from the 3-lane closing indie-review (audit static-analysis clean; its 29 mypy 'cannot find fastapi/yaml' warnings are the scrubbed-env false positive — CI mypy passes; logged as allowlist-015).
+
+  HIGH:
+  - H1 (media): valid-but-non-object JSON (`[]` / `null` / string) makes `data.get(...)` raise AttributeError in ArcadeDBSource.prepare (sources.py:281), WikipediaImageSource.prepare (sources.py:381) and resolve_wikipedia_extract (wikipedia.py:86-88). Not a JSONDecodeError, so parse-before-trust skips the cache unlink AND resolve_image (catches only MediaRateLimited/MediaFetchError) lets it escape → route 500s + persistent poisoned cache slot, defeating the fallback chain. No test. Fix: `if not isinstance(data, dict)` → unlink slot + raise MediaFetchError (image) / return None (wiki), matching parse-before-trust. Add regression tests.
+  - H2 (frontend): DownloadPackModal clipboard copy has no `navigator.clipboard` guard (undefined in non-secure LAN contexts) and sets copied=true even on a rejected/thrown writeText (false success). Fix: guard + only set copied inside `.then`; catch rejection.
+
+  MEDIUM:
+  - M1 (media): ProgettoSnapsSource.__init__ probes `.iterdir()` after `.exists()`, so a `snap_dir` that is a regular FILE raises NotADirectoryError → build_registry crashes → every media request 500s. Fix: probe `.is_dir()` (non-dir → self-disable).
+  - M2 (frontend): AboutSection binds the server-supplied Wikipedia `url` into an href with no scheme check (WikipediaExtractSchema.url is `z.string()`). Trusted source today, but a poisoned/MITM `javascript:` URL would render clickable. Fix: validate `https:` (or `z.url()`) before rendering; drop the link otherwise.
+
+  LOW:
+  - api/spec.md still documents the retired 502 MediaUpstreamError / media_upstream_error surface (P05-era) — update to the resolve_image fallback-chain (miss → 404) per P10.md Route contract.
+  - MediaUpstreamError (errors.py:179-183) is now dead code (raised nowhere) + its frontend byCode/strings_internal entry — remove or annotate as intentionally retained (CLAUDE.md rule 11: surfaced, not silently deleted).
+  - TokenBucket.acquire leaves _last stale when elapsed<=0 (prod-safe under monotonic; latent under an injected non-monotonic clock) — set _last unconditionally.
+  - resolve.py file:// short-circuit uses `.exists()` not `.is_file()` (a dir named x.png would return; url_for already is_file-gates, so practically unreachable).
+  - ConfigureSourceKeyModal shows a fixed generic 422 string, discarding the ApiError detail (can't tell unknown-source from bad-key); and clears the secret only via unmount (correct-by-accident) — add a defensive clear on close.
+  **Layman:** The closing review of the new artwork-fetching feature found a few real bugs to fix before we call it done. The most important: if an art site returns an unexpected (but valid) response, an image request could error out — and stay broken — instead of quietly trying the next site. Also a "copy command" button that can wrongly say "Copied!" when it didn't. A quick fix-pass to burn these off.
+  Kind: review-fix.
+  Lanes: media, api, frontend, docs.
+  Source: indie-review-2026-07-01 (P10 /close-phase; audit clean modulo the env-mypy false positive).
+
 ### 📝 Cold-eyes 2026-05-18
 
 **Theme:** Docs reviewed: 12 lanes (contracts, standards, decisions,

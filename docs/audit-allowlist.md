@@ -265,6 +265,17 @@ Do not delete revoked entries — the history is the value.
 - **Confirmed by phase:** FP31 test-audit fold-in (2026-05-18).
 
 
+## allowlist-015 — audit-env `mypy` "cannot find module fastapi / yaml" across `api/`
+
+- **Status:** active
+- **Tool / rule:** `mypy` via `/audit` `audit_run` (P10 `/close-phase`, 2026-07-01).
+- **Location:** every `fastapi` / `fastapi.responses` / `fastapi.exceptions` import under `src/mame_curator/api/` (e.g. `app.py:15`, `errors.py:12`, `routes/*.py`), plus `import yaml` in `api/persist.py`, `api/state.py`, `cli/commands/*.py`, `filter/*.py` (`error: Cannot find implementation or library stub for module named "fastapi" [import-not-found]` / `Library stubs not installed for "yaml" [import-untyped]`).
+- **Why this is a false positive:** `audit_run` executes `mypy` server-side in a scrubbed environment **without** the project's installed dependencies (`fastapi`, `types-PyYAML`, etc. are never `uv sync`-ed into the audit runner). So `mypy` can't resolve `fastapi`/`yaml` and flags every import. The project's real type check — `uv run mypy` with deps installed, run in pre-commit AND in the CI `Lint, type-check, test` job on all 8 platform/version combos — passes clean (0 errors). These are audit-infrastructure artifacts, not type errors in the code. Every full `/audit` sweep will re-surface them until the audit runner installs project deps before invoking `mypy` (or `mypy` is dropped from the audit tool set, since CI already runs the real one).
+- **Suppression applied:** none — this is a tool-environment artifact, not a real finding on real code, so there is nothing to suppress in-source. This allowlist entry IS the pre-discard mechanism for future closes.
+- **Logged:** 2026-07-01
+- **Confirmed by phase:** P10 `/close-phase` (folded remaining actionable findings into FP32; these 29 `mypy` warnings were the only audit output and are all this artifact).
+
+
 ## What does NOT belong here
 
 - **Findings that are real but blocked by a missing feature.**

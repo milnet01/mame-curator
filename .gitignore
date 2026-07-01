@@ -69,3 +69,6 @@ Thumbs.db
 # KDE Dolphin folder-metadata (view mode, sort order, etc.) — appears
 # whenever a Dolphin user opens a directory in the tree.
 .directory
+
+# Audit artifacts (ants /audit writes SARIF + findings here)
+.audit_cache/
