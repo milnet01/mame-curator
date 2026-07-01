@@ -88,6 +88,17 @@ class MediaConfig(BaseModel):
     # 360 req/hr for free accounts; 5 req/min (= 300/hr) leaves a 60%
     # margin. Configurable for users on a higher-tier key.
     mobygames_rate_limit_per_min: int = 5
+    # P10 chunk 7 — the fallback source order. First tried first; a source
+    # not listed is disabled (no chain entry); an unknown name logs a
+    # one-time WARNING and is skipped. Users reorder to change priority.
+    # "libretro" is always appended as the baseline even if omitted here.
+    sources: tuple[str, ...] = (
+        "libretro",
+        "progettoSnaps",
+        "arcadeDB",
+        "wikipediaImage",
+        "mobyGames",
+    )
 
 
 class UiConfig(BaseModel):

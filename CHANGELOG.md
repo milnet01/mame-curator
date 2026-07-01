@@ -17,6 +17,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P10 chunk 7 — media source registry + fallback orchestrator (2026-07-01)
+
+The five P10 art sources become a real fallback chain. A media request now
+walks the configured sources in order and returns the first hit, instead of
+always going straight to libretro-thumbnails.
+
+**Added**
+
+- `src/mame_curator/media/resolve.py` — `resolve_image`, the fallback
+  orchestrator: it walks the per-kind source chain, serving the first cached
+  image and falling through past any source that rate-limits, errors, or has
+  no candidate. A local snap-pack (`file://`) hit is served directly. Plus
+  `build_registry`, the composition root that constructs the configured
+  sources with the app-state rate limiters + MobyGames disabled-flag injected.
+  (mame-curator-1005)
+- `MediaSourceRegistry` (`media/sources.py`) — orders + filters the configured
+  sources into a per-kind chain: unknown names dropped (one-time warning),
+  `libretro` appended as the baseline, kind-mismatched and disabled sources
+  skipped. (mame-curator-1005)
+- `media.sources` config field (default order: libretro, progettoSnaps,
+  arcadeDB, wikipediaImage, mobyGames) — the fallback priority; reorder to
+  change which source is tried first. Mirrored in the frontend typed config.
+  (mame-curator-1005)
+
+**Changed**
+
+- `GET /media/{name}/{kind}` now resolves through the fallback chain. **The
+  502 `media_upstream_error` response is retired for media**: a single
+  source's upstream 5xx / transport error no longer fails the request — the
+  chain advances, and only a chain that misses everywhere returns 404
+  `media_upstream_not_found`. This trades the 5xx-vs-404 distinction for
+  resilience (one flaky mirror can't break a thumbnail). (mame-curator-1005)
+- The keyless-MobyGames startup warning is now deduped process-wide, so
+  per-request source reconstruction logs it once per process rather than on
+  every thumbnail request. (mame-curator-1005)
+
 ### P10 chunk 6 — MobyGames key-handling (2026-07-01)
 
 The fifth and final P10 fallback art source lands its key-handling half.

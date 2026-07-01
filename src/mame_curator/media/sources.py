@@ -28,7 +28,9 @@ ever attempting a fetch.
 from __future__ import annotations
 
 import json
+import logging
 import re
+from collections.abc import Mapping
 from pathlib import Path
 from typing import ClassVar, Literal, Protocol, runtime_checkable
 from urllib.parse import quote
@@ -40,6 +42,8 @@ from mame_curator.media.cache_text import fetch_text_with_cache
 from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
 from mame_curator.media.urls import urls_for
 from mame_curator.parser.models import Machine
+
+logger = logging.getLogger(__name__)
 
 # The source-chain kind vocabulary. Excludes ``video`` deliberately —
 # ``MediaUrls`` has no video field (P05 spec § "class MediaUrls"), so no
@@ -387,3 +391,67 @@ class WikipediaImageSource:
         if kind != "boxart":
             return None
         return self._url_cache.get(machine.name)
+
+
+# P10 chunk 7 — the registry. Orders + filters configured sources into a
+# per-kind fallback chain. See spec § "class MediaSourceRegistry" + § chunk-7
+# notes. The orchestrator (resolve_image) and the composition-root factory
+# (build_registry) live in resolve.py.
+
+# Process-wide dedup for the "unknown source name in media.sources" WARNING.
+# The registry is rebuilt per request (spec § Architecture notes), so without
+# this a misconfigured name would log on every media request. Cleared by
+# tests via ``_reset_unknown_source_warn_dedup()``.
+_warned_unknown_sources: set[str] = set()
+
+
+def _reset_unknown_source_warn_dedup() -> None:
+    """Test hook — clear the process-wide unknown-source WARNING dedup set."""
+    _warned_unknown_sources.clear()
+
+
+class MediaSourceRegistry:
+    """Resolves configured source names + a kind → an ordered MediaSource chain.
+
+    Built per request from ``world.config.media.sources`` plus a
+    ``name → MediaSource`` map the composition root (``build_registry`` in
+    ``resolve.py``) assembles with the app-state limiters + the injected
+    ``SourceDisabledFlag``. The registry is a pure filter/orderer — no
+    app-state, no HTTP — so tests construct one from fake sources directly.
+    """
+
+    _BASELINE = "libretro"
+
+    def __init__(
+        self,
+        configured: tuple[str, ...],
+        available: Mapping[str, MediaSource],
+    ) -> None:
+        """Bind the configured order tuple + the ``name → instance`` map."""
+        self._configured = configured
+        self._available = available
+
+    def chain_for(self, kind: Kind) -> tuple[MediaSource, ...]:
+        """Sources that cover ``kind`` AND are ready, in the configured order.
+
+        Filtering, in order: unknown names dropped (one-time WARNING, deduped
+        process-wide); ``libretro`` appended if absent from the configured
+        tuple; kind-mismatch filtered; ``disabled_reason``-set filtered.
+        """
+        names = list(self._configured)
+        if self._BASELINE not in names:
+            names.append(self._BASELINE)
+        chain: list[MediaSource] = []
+        for name in names:
+            source = self._available.get(name)
+            if source is None:
+                if name not in _warned_unknown_sources:
+                    _warned_unknown_sources.add(name)
+                    logger.warning("media: unknown source %r in media.sources — skipping", name)
+                continue
+            if kind not in source.kinds:
+                continue
+            if source.disabled_reason is not None:
+                continue
+            chain.append(source)
+        return tuple(chain)

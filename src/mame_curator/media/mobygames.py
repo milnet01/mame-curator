@@ -67,6 +67,20 @@ _MOBYGAMES_API_BASE = "https://api.mobygames.com/v1/games"
 _MOBYGAMES_ENV_VAR = "MOBYGAMES_API_KEY"
 _MOBYGAMES_KEY_FILENAME = "mobygames.key"
 
+# Process-wide dedup for the "MobyGames disabled — no key" WARNING. Source
+# instances are re-created per request (P10 § Architecture notes), so without
+# this guard a keyless MobyGames would log on every thumbnail request. Chunk 7
+# owns this cross-request dedup (the chunk-6 note anticipated it). Cleared by
+# tests via ``_reset_missing_key_warn_dedup()``.
+_missing_key_warned = False
+
+
+def _reset_missing_key_warn_dedup() -> None:
+    """Test hook — clear the process-wide missing-key WARNING dedup guard."""
+    global _missing_key_warned
+    _missing_key_warned = False
+
+
 _MOBYGAMES_NO_KEY_REASON = (
     "No API key configured. Set MOBYGAMES_API_KEY env var, or paste a key "
     "into Settings → Media (writes data/secrets/mobygames.key, mode 0600)."
@@ -134,7 +148,10 @@ class MobyGamesSource:
         key = self._resolve_key()
         if not key:
             self.disabled_reason = _MOBYGAMES_NO_KEY_REASON
-            logger.warning("media/sources: MobyGames disabled — %s", _MOBYGAMES_NO_KEY_REASON)
+            global _missing_key_warned
+            if not _missing_key_warned:
+                _missing_key_warned = True
+                logger.warning("media/sources: MobyGames disabled — %s", _MOBYGAMES_NO_KEY_REASON)
         else:
             self._api_key = key
             self.disabled_reason = None

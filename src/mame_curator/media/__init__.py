@@ -54,6 +54,16 @@ P10 chunk 6 (MobyGames key-handling — lives in ``mobygames.py``):
 - ``SourceDisabledFlag`` — injectable holder for a source's process-wide
   runtime-disabled reason (survives per-request source re-creation while
   keeping ``media/`` free of any ``api/`` import).
+
+P10 chunk 7 (registry + orchestrator):
+
+- ``MediaSourceRegistry`` — orders + filters configured sources into a
+  per-kind fallback chain (lives in ``sources.py``).
+- ``resolve_image`` — the orchestrator: walks the chain, serves the first
+  hit, handles the ``file://`` short-circuit for the local snap pack.
+- ``build_registry`` — composition root that constructs the configured
+  sources with the app-state limiters + disabled flag injected. Both live
+  in ``resolve.py``.
 """
 
 from __future__ import annotations
@@ -70,11 +80,13 @@ from mame_curator.media.cache_text import (
 )
 from mame_curator.media.mobygames import MobyGamesSource, SourceDisabledFlag
 from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
+from mame_curator.media.resolve import build_registry, resolve_image
 from mame_curator.media.sources import (
     ArcadeDBSource,
     Kind,
     LibretroSource,
     MediaSource,
+    MediaSourceRegistry,
     ProgettoSnapsSource,
     WikipediaImageSource,
 )
@@ -102,6 +114,7 @@ __all__ = [
     "MediaFetchError",
     "MediaRateLimited",
     "MediaSource",
+    "MediaSourceRegistry",
     "MediaUrls",
     "MobyGamesSource",
     "ProgettoSnapsSource",
@@ -109,9 +122,11 @@ __all__ = [
     "TokenBucket",
     "WikipediaImageSource",
     "_build_user_agent",
+    "build_registry",
     "cache_path_for",
     "escape_libretro",
     "fetch_text_with_cache",
     "fetch_with_cache",
+    "resolve_image",
     "urls_for",
 ]

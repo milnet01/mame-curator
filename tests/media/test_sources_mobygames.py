@@ -124,7 +124,7 @@ def test_mobygames_source_dotfile_wrong_mode_rejected(
 
     secrets = tmp_path / "secrets"
     _write_key(secrets, mode=0o644)
-    with caplog.at_level(logging.WARNING, logger="mame_curator.media.sources"):
+    with caplog.at_level(logging.WARNING, logger="mame_curator.media.mobygames"):
         src = MobyGamesSource(
             limiter=_make_unbounded_limiter(),
             cache_dir=tmp_path,
@@ -145,7 +145,7 @@ async def test_mobygames_source_logs_warning_once_per_startup(
     monkeypatch.delenv(_MOBY_ENV, raising=False)
     from mame_curator.media import MobyGamesSource, SourceDisabledFlag
 
-    with caplog.at_level(logging.WARNING, logger="mame_curator.media.sources"):
+    with caplog.at_level(logging.WARNING, logger="mame_curator.media.mobygames"):
         src = MobyGamesSource(
             limiter=_make_unbounded_limiter(),
             cache_dir=tmp_path,
@@ -157,6 +157,32 @@ async def test_mobygames_source_logs_warning_once_per_startup(
         async with httpx.AsyncClient() as client:
             await src.prepare(_machine(), client=client)
         assert [r for r in caplog.records if r.levelno == logging.WARNING] == []
+
+
+def test_mobygames_disabled_warning_deduped_across_constructions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """P10 chunk 7 — the keyless-MobyGames WARNING is deduped process-wide.
+
+    Sources are re-created per request, so without a process-wide guard a
+    keyless MobyGames would log on every thumbnail request. Two constructions
+    (the conftest autouse fixture clears the guard first) emit exactly one
+    WARNING between them.
+    """
+    monkeypatch.delenv(_MOBY_ENV, raising=False)
+    from mame_curator.media import MobyGamesSource, SourceDisabledFlag
+
+    absent = tmp_path / "secrets"  # no dotfile
+    with caplog.at_level(logging.WARNING, logger="mame_curator.media.mobygames"):
+        for _ in range(2):
+            MobyGamesSource(
+                limiter=_make_unbounded_limiter(),
+                cache_dir=tmp_path,
+                disabled_flag=SourceDisabledFlag(),
+                secrets_dir=absent,
+            )
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1
 
 
 @pytest.mark.asyncio

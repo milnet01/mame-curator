@@ -130,7 +130,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # one-time WARNING, 401/403 disable, 429/404 auth branches, key redaction,
 # rate-limit short-circuit, boxart-only + deferred-cover contract,
 # already-disabled-flag construction, Protocol conformance). 613 → 628.
-EXPECTED_PYTEST_DECLARATIONS = 628
+EXPECTED_PYTEST_DECLARATIONS = 645
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

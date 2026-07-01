@@ -1328,6 +1328,18 @@ through.
   Kind: feature.
   Source: user-request-2026-07-01 ("Please roadmap adding support for additional languages" → clarified: translate the UI)..
 
+- 📋 [mame-curator-1081] **Bind progettoSnaps source read-path to refresh-snaps --dest via a media.snaps_dir config field.**
+  P10 chunk 7 wires ProgettoSnapsSource into the fallback chain reading a FIXED `./data/snaps/snap` default (mirrors `refresh-snaps --dest`'s default). No config field couples the source's read path to the CLI's `--dest`, so a user who runs `mame-curator refresh-snaps --dest /elsewhere` downloads a pack the source never sees. Fix: add `media.snaps_dir: Path = Path("./data/snaps")` to MediaConfig; have both `build_registry` (source read path = snaps_dir/"snap") and the `refresh-snaps` CLI default read it, so they can't diverge. Frontend type-sync + a Settings surface come with it. Sized as its own small pass. Lane: media.
+  **Layman:** If you download the snap image pack to a custom folder, the app won't find it — it only looks in the default folder. Add a setting so the two always match.
+  Kind: implement.
+  Source: in-session-2026-07-01 (P10 chunk 7 — cold-eyes surfaced gap).
+
+- 📋 [mame-curator-1082] **Silence StarletteDeprecationWarning (httpx-with-testclient) surfaced on every pytest run.**
+  Every `uv run pytest` prints one `StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated; install httpx2 instead` (from `fastapi/testclient.py:1`). Pre-existing, dependency-driven — not introduced by chunk 7, but surfaced by its gate run. Per keep-deps-latest: evaluate migrating the FastAPI/Starlette test client to `httpx2`, or pin/filter the warning with a documented reason if the migration isn't yet clean. Lane: api / deps-hygiene.
+  **Layman:** A harmless 'this will change in a future version' notice prints on every test run. Tidy it up so real warnings don't get lost in the noise.
+  Kind: chore.
+  Source: in-session-2026-07-01 (surfaced during P10 chunk 7 gate).
+
 ### 🔌 Plugins / extensions
 
 - 💭 [mame-curator-1007] **P11 — Contribute missing thumbnails

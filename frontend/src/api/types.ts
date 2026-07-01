@@ -120,6 +120,8 @@ export interface MediaConfig {
   cache_dir: string
   arcadedb_rate_limit_per_min: number
   mobygames_rate_limit_per_min: number
+  // P10 chunk 7 — fallback source order (see api/schemas.py MediaConfig.sources)
+  sources: string[]
 }
 
 export type ThemeName =

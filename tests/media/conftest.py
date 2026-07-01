@@ -9,6 +9,8 @@ pattern (plain functions, not fixtures, since call sites pass per-test args).
 
 from __future__ import annotations
 
+import pytest
+
 from mame_curator.media import TokenBucket
 from mame_curator.parser.models import Machine
 
@@ -20,3 +22,20 @@ def _machine(name: str = "pacman", description: str = "Pac-Man") -> Machine:
 def _make_unbounded_limiter() -> TokenBucket:
     """Return a TokenBucket with capacity high enough for one prepare call."""
     return TokenBucket(rate=10.0, capacity=10)
+
+
+@pytest.fixture(autouse=True)
+def _reset_media_warn_dedup() -> None:
+    """Clear the process-wide WARNING dedup guards before every media test.
+
+    Chunk 7 dedups two WARNINGs process-wide (an unknown ``media.sources``
+    name; a keyless MobyGames), so per-request source reconstruction can't
+    spam the log. Those module-level guards persist across tests, so a test
+    asserting a WARNING *count* would see zero if an earlier test already
+    tripped the guard. Reset both before each test for isolation.
+    """
+    from mame_curator.media import mobygames
+    from mame_curator.media.sources import _reset_unknown_source_warn_dedup
+
+    _reset_unknown_source_warn_dedup()
+    mobygames._reset_missing_key_warn_dedup()

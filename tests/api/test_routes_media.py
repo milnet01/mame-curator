@@ -75,14 +75,21 @@ def test_proxy_route_propagates_upstream_404(client: Any) -> None:
     assert response.json()["code"] == "media_upstream_not_found"
 
 
-def test_proxy_route_propagates_upstream_500(client: Any) -> None:
-    """Upstream 500 → media_upstream_error (route catches MediaFetchError)."""
+def test_proxy_route_500_falls_through_to_404(client: Any) -> None:
+    """P10 chunk 7: an upstream 500 no longer surfaces as 502.
+
+    ``resolve_image`` swallows the source's ``MediaFetchError`` and advances
+    the chain; with the (libretro-only, per conftest) chain exhausted it
+    returns ``None`` → the route raises 404 ``media_upstream_not_found``. The
+    502 ``media_upstream_error`` surface is retired for media (spec §
+    "Route contract — chunk 7 retires the 502 error surface").
+    """
     with respx.mock(assert_all_called=True) as mock:
         mock.get(_PACMAN_BOXART_URL).mock(return_value=httpx.Response(500))
         response = client.get("/media/pacman/boxart")
 
-    assert response.status_code == 502
-    assert response.json()["code"] == "media_upstream_error"
+    assert response.status_code == 404
+    assert response.json()["code"] == "media_upstream_not_found"
 
 
 def test_proxy_route_follows_redirect(client: Any) -> None:
@@ -106,38 +113,37 @@ def test_proxy_route_follows_redirect(client: Any) -> None:
     assert route2.called, "redirect target must be fetched (follow_redirects=True)"
 
 
-def test_proxy_route_500_detail_no_double_wrap(client: Any) -> None:
-    """FP10 A3: 500 user-facing ``detail`` must not double-wrap the inner cause.
+def test_proxy_route_404_detail_leaks_no_internal_class(client: Any) -> None:
+    """The fall-through 404 detail stays user-facing — no typed-exception class
+    name and no keyed/internal URL leaks into the wire body.
 
-    Pre-fix: ``MediaUpstreamError(f"upstream error: {exc!r}")`` produces
-    ``upstream error: MediaFetchError("upstream 500 ...")`` — class name leaks
-    into the wire body. Post-fix: ``MediaUpstreamError(str(exc))`` exposes only
-    the inner message; the typed cause is still on ``__cause__`` for logs.
+    (P10 chunk 7 replaces the FP10-A3 502 detail contract: a source's
+    ``MediaFetchError`` is swallowed by ``resolve_image``, so the only
+    media error surface is the 404 the route synthesises.)
     """
     with respx.mock(assert_all_called=True) as mock:
         mock.get(_PACMAN_BOXART_URL).mock(return_value=httpx.Response(500))
         response = client.get("/media/pacman/boxart")
 
-    assert response.status_code == 502
+    assert response.status_code == 404
     detail = response.json()["detail"]
     assert "MediaFetchError" not in detail, "class name should not leak to user"
-    assert "upstream error:" not in detail, "redundant prefix"
-    assert "500" in detail, "inner cause's status code should still be present"
+    assert "boxart" in detail, "detail should name the requested kind"
 
 
-def test_proxy_route_transport_error_maps_to_502(client: Any) -> None:
+def test_proxy_route_transport_error_falls_through_to_404(client: Any) -> None:
     """mame-curator-1053 — a transport-level failure (connection refused, DNS
     failure, timeout) raises ``httpx.TransportError`` *before any response
     arrives*. ``cache.py`` catches it via ``except httpx.HTTPError``
     (``TransportError`` is an ``HTTPError`` subclass) and wraps it as
-    ``MediaFetchError``, which the route maps to 502 ``media_upstream_error``
-    — the same envelope as an upstream 5xx. The other tests only cover
-    HTTP-status responses (404/500/301); this is the only test that drives
-    the transport-error branch.
+    ``MediaFetchError``. P10 chunk 7: ``resolve_image`` swallows that and
+    advances the chain, so a transport failure on the last source yields
+    ``None`` → 404 (no longer 502). This is the only test that drives the
+    transport-error branch through the orchestrator.
     """
     with respx.mock(assert_all_called=True) as mock:
         mock.get(_PACMAN_BOXART_URL).mock(side_effect=httpx.ConnectError("connection refused"))
         response = client.get("/media/pacman/boxart")
 
-    assert response.status_code == 502
-    assert response.json()["code"] == "media_upstream_error"
+    assert response.status_code == 404
+    assert response.json()["code"] == "media_upstream_not_found"

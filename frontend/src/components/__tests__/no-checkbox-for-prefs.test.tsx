@@ -64,6 +64,7 @@ const config: AppConfigResponse = {
     cache_dir: '/x',
     arcadedb_rate_limit_per_min: 30,
     mobygames_rate_limit_per_min: 5,
+    sources: ['libretro'],
   },
   ui: {
     theme: 'dark',

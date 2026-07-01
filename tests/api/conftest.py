@@ -158,6 +158,11 @@ filters:
 media:
   fetch_videos: false
   cache_dir: {media_cache_dir}
+  # P10 chunk 7: pin the fallback chain to libretro-only so media-route tests
+  # are deterministic — the default 5-source chain would fan out to
+  # arcadeDB / wikipedia (real hosts) on a libretro miss. The multi-source
+  # fall-through is unit-tested in tests/media/test_resolve.py.
+  sources: ["libretro"]
 
 ui:
   theme: dark

@@ -66,6 +66,7 @@ export const config: AppConfigResponse = {
     cache_dir: './data/media-cache',
     arcadedb_rate_limit_per_min: 30,
     mobygames_rate_limit_per_min: 5,
+    sources: ['libretro', 'progettoSnaps', 'arcadeDB', 'wikipediaImage', 'mobyGames'],
   },
   ui: {
     theme: 'dark',
