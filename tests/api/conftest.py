@@ -159,9 +159,11 @@ media:
   fetch_videos: false
   cache_dir: {media_cache_dir}
   # P10 chunk 7: pin the fallback chain to libretro-only so media-route tests
-  # are deterministic — the default 5-source chain would fan out to
-  # arcadeDB / wikipedia (real hosts) on a libretro miss. The multi-source
-  # fall-through is unit-tested in tests/media/test_resolve.py.
+  # are deterministic (the default 5-source chain would fan out to arcadeDB /
+  # wikipedia real hosts on a libretro miss). The multi-source fall-through is
+  # unit-tested in tests/media/test_resolve.py. NOTE: keep this YAML ASCII-only
+  # -- write_text() here uses the platform encoding (cp1252 on Windows), but
+  # load_app_config reads utf-8, so a non-ASCII byte crashes the Windows CI.
   sources: ["libretro"]
 
 ui:
