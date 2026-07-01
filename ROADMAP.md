@@ -1272,6 +1272,22 @@ through.
 
 - 💭 [mame-curator-1080] **UI localization — translate the interface into additional languages.**
   Frontend-only localization (i18n) of every visible label / message.
+  Decision (2026-07-01, user): go route (a) — adopt a real i18n library
+  (not the hand-rolled per-locale catalogue). All the strong React i18n
+  libraries are free / open-source (MIT), so cost is not a factor.
+  Shortlist for the Step-1 spec to lock: react-i18next (frontrunner —
+  largest community + docs, safest for a solo maintainer), LinguiJS
+  (alternative — native ICU message format + auto-extraction + strong
+  TypeScript), FormatJS/react-intl (ICU-heavyweight fallback). Spec picks
+  one after weighing how the 45 interpolation functions migrate + bundle
+  size.
+
+  New sub-decision the spec must also settle: source of the actual
+  translated *text* (the library only organises/displays it). Human
+  translation (most accurate) vs a machine-translation seed — free options
+  noted for the latter: LibreTranslate (self-hostable OSS), Argos Translate
+  (offline), DeepL free API tier. Likely: MT-seed 1-2 pilot locales, then
+  refine.
 
   **Enabler (mostly done):** all user-facing copy already funnels through
   one catalogue — `frontend/src/strings_internal.ts` (682 lines, section-
