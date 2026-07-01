@@ -102,6 +102,37 @@ async def resolve_image(
     return None
 
 
+def _source_factories(
+    *,
+    cache_dir: Path,
+    arcadedb_limiter: TokenBucket,
+    wikipedia_limiter: TokenBucket,
+    mobygames_limiter: TokenBucket,
+    mobygames_disabled: SourceDisabledFlag,
+    snap_dir: Path,
+) -> dict[str, Callable[[], MediaSource]]:
+    """The name → source-constructor table (insertion order = default order).
+
+    Shared by ``build_registry`` (constructs only the configured subset) and
+    ``build_all_sources`` (constructs every known source for the readiness
+    endpoint) so the five-source roster + their dep-injection live in one
+    place.
+    """
+    return {
+        "libretro": LibretroSource,
+        "progettoSnaps": lambda: ProgettoSnapsSource(snap_dir=snap_dir),
+        "arcadeDB": lambda: ArcadeDBSource(limiter=arcadedb_limiter, cache_dir=cache_dir),
+        "wikipediaImage": lambda: WikipediaImageSource(
+            limiter=wikipedia_limiter, cache_dir=cache_dir
+        ),
+        "mobyGames": lambda: MobyGamesSource(
+            limiter=mobygames_limiter,
+            cache_dir=cache_dir,
+            disabled_flag=mobygames_disabled,
+        ),
+    }
+
+
 def build_registry(
     *,
     configured: tuple[str, ...],
@@ -121,19 +152,43 @@ def build_registry(
     passed in, so the per-request source instances share the process-wide
     rate-limit / disabled state.
     """
-    factories: dict[str, Callable[[], MediaSource]] = {
-        "libretro": LibretroSource,
-        "progettoSnaps": lambda: ProgettoSnapsSource(snap_dir=snap_dir),
-        "arcadeDB": lambda: ArcadeDBSource(limiter=arcadedb_limiter, cache_dir=cache_dir),
-        "wikipediaImage": lambda: WikipediaImageSource(
-            limiter=wikipedia_limiter, cache_dir=cache_dir
-        ),
-        "mobyGames": lambda: MobyGamesSource(
-            limiter=mobygames_limiter,
-            cache_dir=cache_dir,
-            disabled_flag=mobygames_disabled,
-        ),
-    }
+    factories = _source_factories(
+        cache_dir=cache_dir,
+        arcadedb_limiter=arcadedb_limiter,
+        wikipedia_limiter=wikipedia_limiter,
+        mobygames_limiter=mobygames_limiter,
+        mobygames_disabled=mobygames_disabled,
+        snap_dir=snap_dir,
+    )
     wanted = set(configured) | {"libretro"}
     available = {name: make() for name, make in factories.items() if name in wanted}
     return MediaSourceRegistry(configured, available)
+
+
+def build_all_sources(
+    *,
+    cache_dir: Path,
+    arcadedb_limiter: TokenBucket,
+    wikipedia_limiter: TokenBucket,
+    mobygames_limiter: TokenBucket,
+    mobygames_disabled: SourceDisabledFlag,
+    snap_dir: Path = _DEFAULT_SNAP_DIR,
+) -> dict[str, MediaSource]:
+    """Construct ALL five known sources, regardless of config.
+
+    The readiness endpoint (``GET /api/media/sources``) reports every known
+    source's real state — including ones the user removed from
+    ``media.sources`` — so it can't use ``build_registry``'s configured-only
+    subset. Constructing ``mobyGames`` here fires its keyless WARNING at most
+    once per process (the chunk-6 dedup guard), acceptable for a rare
+    surface-only call.
+    """
+    factories = _source_factories(
+        cache_dir=cache_dir,
+        arcadedb_limiter=arcadedb_limiter,
+        wikipedia_limiter=wikipedia_limiter,
+        mobygames_limiter=mobygames_limiter,
+        mobygames_disabled=mobygames_disabled,
+        snap_dir=snap_dir,
+    )
+    return {name: make() for name, make in factories.items()}

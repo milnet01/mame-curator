@@ -190,6 +190,17 @@ class MediaUpstreamNotFoundError(ApiException):
     status_code = 404
 
 
+class MediaSourceUnknownError(ApiException):
+    """422 — PUT /api/media/sources/{name}/secret with an unknown source name.
+
+    P10 chunk 9: the secret-write route only supports config-bearing sources
+    (currently ``mobyGames``); any other name is unprocessable input.
+    """
+
+    code = "media_source_unknown"
+    status_code = 422
+
+
 class RetroArchNotConfiguredError(ApiException):
     """422 — POST /api/games/{name}/launch called without RetroArch paths.
 

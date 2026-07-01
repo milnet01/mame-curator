@@ -179,6 +179,35 @@ export const WikipediaExtractSchema = z
   })
   .strict()
 
+// P10 chunk 9 — media source readiness + secret write. Mirrors api/schemas.py
+// SourceReadinessRow / SourceReadiness / SourceSecret; used by chunk 10's
+// Settings → Media tab (useMediaSources).
+export const MediaKindSchema = z.enum(['boxart', 'title', 'snap'])
+
+export const SourceReadinessRowSchema = z
+  .object({
+    name: z.string(),
+    enabled: z.boolean(),
+    in_chain: z.boolean(),
+    kinds: z.array(MediaKindSchema),
+    license_compatible: z.boolean(),
+    disabled_reason: z.string().nullable(),
+    needs_config: z.boolean(),
+  })
+  .strict()
+
+export const SourceReadinessSchema = z
+  .object({
+    sources: z.array(SourceReadinessRowSchema),
+  })
+  .strict()
+
+export const SourceSecretSchema = z
+  .object({
+    secret: z.string().min(1),
+  })
+  .strict()
+
 export const ThemeNameSchema = z.enum([
   'dark',
   'light',

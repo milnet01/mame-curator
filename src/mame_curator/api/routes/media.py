@@ -8,6 +8,7 @@ single-source URL build for the fallback-chain orchestrator; chunk 8 adds the
 
 from __future__ import annotations
 
+import logging
 import mimetypes
 from typing import cast
 
@@ -15,25 +16,39 @@ import httpx
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse, Response
 
+from mame_curator._atomic import atomic_write_text
 from mame_curator.api.errors import (
     GameNotFoundError,
     MediaKindInvalidError,
+    MediaSourceUnknownError,
     MediaUpstreamNotFoundError,
 )
 from mame_curator.api.routes._deps import get_world
+from mame_curator.api.schemas import SourceReadiness, SourceReadinessRow, SourceSecret
 from mame_curator.api.state import WorldState
 from mame_curator.media import (
     Kind,
     MediaError,
+    MediaSource,
     WikipediaExtract,
+    build_all_sources,
     build_registry,
+    mobygames_key_path,
     resolve_image,
     resolve_wikipedia_extract,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 _VALID_KINDS = {"boxart", "title", "snap", "video"}
+# P10 chunk 9 — sources that accept a pasted secret (value-paste config).
+_SECRET_SOURCES = frozenset({"mobyGames"})
+# Sources the readiness surface marks as "needs a pasted value" (Configure-key
+# button). progettoSnaps also self-disables, but its fix is a pack download
+# (surfaced via disabled_reason), not a value — so it is NOT needs_config.
+_NEEDS_CONFIG = frozenset({"mobyGames"})
 
 
 # P10 chunk 8 — Wikipedia "About" flavor text. Registered BEFORE the
@@ -116,3 +131,60 @@ async def media_proxy(
         media_type=mimetypes.guess_type(str(path))[0] or "image/png",
         headers={"Cache-Control": "public, max-age=2592000, immutable"},
     )
+
+
+# --- P10 chunk 9: readiness surface + secret write -------------------------
+
+
+def _readiness_row(source: MediaSource, configured: tuple[str, ...]) -> SourceReadinessRow:
+    """Project a constructed source into its readiness wire row."""
+    return SourceReadinessRow(
+        name=source.name,
+        enabled=source.disabled_reason is None,
+        in_chain=source.name in configured,
+        # source.kinds is a frozenset (no order) — sort for a stable wire shape.
+        kinds=tuple(sorted(source.kinds)),
+        license_compatible=source.license_compatible,
+        disabled_reason=source.disabled_reason,
+        needs_config=source.name in _NEEDS_CONFIG,
+    )
+
+
+@router.get("/api/media/sources", response_model=SourceReadiness)
+def media_sources(request: Request, world: WorldState = Depends(get_world)) -> SourceReadiness:
+    """Per-source readiness for the Settings → Media tab.
+
+    Surface-only — no upstream hits, no side effects. Constructs every known
+    source (via ``build_all_sources``, using the app-state limiters + disabled
+    flag) to read its real ``disabled_reason``. Rows are ordered: configured
+    sources in ``media.sources`` order first, then any unconfigured known
+    sources alphabetised.
+    """
+    sources = build_all_sources(
+        cache_dir=world.config.media.cache_dir,
+        arcadedb_limiter=request.app.state.arcadedb_limiter,
+        wikipedia_limiter=request.app.state.wikipedia_limiter,
+        mobygames_limiter=request.app.state.mobygames_limiter,
+        mobygames_disabled=request.app.state.mobygames_disabled,
+    )
+    configured = world.config.media.sources
+    ordered = [n for n in configured if n in sources]
+    ordered += sorted(n for n in sources if n not in configured)
+    return SourceReadiness(sources=tuple(_readiness_row(sources[n], configured) for n in ordered))
+
+
+@router.put("/api/media/sources/{name}/secret", status_code=204)
+def media_source_secret(name: str, body: SourceSecret) -> None:
+    """Atomically write a per-source secret to its 0600 dotfile.
+
+    Only ``mobyGames`` is supported (the sole value-paste source) — any other
+    name is 422 (``media_source_unknown``) before any write. An empty secret
+    is rejected by ``SourceSecret`` (min_length=1) → 422. Loopback-trust per
+    P10 spec § Open verification items #5 — no auth gate (consistent with the
+    app's other mutation routes behind the default 127.0.0.1 bind). The value
+    is never logged; only the source name is.
+    """
+    if name not in _SECRET_SOURCES:
+        raise MediaSourceUnknownError(f"unknown media source for secret write: {name!r}")
+    atomic_write_text(mobygames_key_path(), body.secret, mode=0o600)
+    logger.info("media/sources: secret saved for %s", name)

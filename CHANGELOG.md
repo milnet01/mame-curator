@@ -17,6 +17,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P10 chunk 9 — media source readiness + key-paste API (2026-07-01)
+
+Backend for the upcoming Settings → Media tab: a way to see which art sources
+are working and to paste a MobyGames API key.
+
+**Added**
+
+- `GET /api/media/sources` — per-source readiness: for each of the five art
+  sources, whether it's active, whether it's in your fallback order, which
+  image kinds it covers, and (if disabled) a human-readable reason (e.g.
+  "no key configured" for MobyGames, "run refresh-snaps" for progettoSnaps).
+  Surface-only — no network calls. (mame-curator-1005)
+- `PUT /api/media/sources/{name}/secret` — paste a MobyGames API key; it's
+  written to `data/secrets/mobygames.key` at mode 0600 (owner-only) via an
+  atomic write, and the very next request picks it up (no restart). The key
+  value is never logged and never appears in a config export. Unknown source
+  name or empty key → 422. (mame-curator-1005)
+- `SourceReadinessRow` / `SourceReadiness` / `SourceSecret` API schemas,
+  mirrored in the frontend typed config. (mame-curator-1005)
+
+**Security**
+
+- The key-paste route uses loopback-trust (no auth gate) — the server binds
+  `127.0.0.1` by default, consistent with every other write endpoint in the
+  app. App-wide cross-site-request hardening is tracked as a future
+  consideration (mame-curator-1083). (mame-curator-1005)
+
 ### P10 chunk 8 — Wikipedia "About" flavor-text endpoint (2026-07-01)
 
 A new endpoint serves a one-paragraph Wikipedia summary for a game, for the

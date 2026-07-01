@@ -21,6 +21,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from mame_curator.filter.config import FilterConfig
+from mame_curator.media import Kind  # P10 chunk 9 — source-chain kind vocabulary
 
 # ---------------------------------------------------------------------------
 # Config schema
@@ -99,6 +100,33 @@ class MediaConfig(BaseModel):
         "wikipediaImage",
         "mobyGames",
     )
+
+
+# P10 chunk 9 — media source readiness surface (GET /api/media/sources) +
+# secret write (PUT /api/media/sources/{name}/secret).
+class SourceReadinessRow(BaseModel):
+    """Per-source readiness for the Settings → Media tab."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    name: str
+    enabled: bool  # True iff disabled_reason is None
+    in_chain: bool  # True iff name appears in config.media.sources
+    kinds: tuple[Kind, ...]  # sorted(source.kinds) — frozenset has no order
+    license_compatible: bool
+    disabled_reason: str | None  # non-None iff !enabled
+    needs_config: bool  # True for value-paste sources (currently mobyGames)
+
+
+class SourceReadiness(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    sources: tuple[SourceReadinessRow, ...]
+
+
+class SourceSecret(BaseModel):
+    """Request body for PUT /api/media/sources/{name}/secret."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    secret: str = Field(min_length=1)  # empty → 422 before any write
 
 
 class UiConfig(BaseModel):

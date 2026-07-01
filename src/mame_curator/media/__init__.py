@@ -86,9 +86,13 @@ from mame_curator.media.cache_text import (
     DEFAULT_TEXT_MAX_BYTES,
     fetch_text_with_cache,
 )
-from mame_curator.media.mobygames import MobyGamesSource, SourceDisabledFlag
+from mame_curator.media.mobygames import (
+    MobyGamesSource,
+    SourceDisabledFlag,
+    mobygames_key_path,
+)
 from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
-from mame_curator.media.resolve import build_registry, resolve_image
+from mame_curator.media.resolve import build_all_sources, build_registry, resolve_image
 from mame_curator.media.sources import (
     ArcadeDBSource,
     Kind,
@@ -132,11 +136,13 @@ __all__ = [
     "WikipediaExtract",
     "WikipediaImageSource",
     "_build_user_agent",
+    "build_all_sources",
     "build_registry",
     "cache_path_for",
     "escape_libretro",
     "fetch_text_with_cache",
     "fetch_with_cache",
+    "mobygames_key_path",
     "resolve_image",
     "resolve_wikipedia_extract",
     "urls_for",

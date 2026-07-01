@@ -12,11 +12,26 @@ implementation makes them pass.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import pytest
+
+
+@pytest.fixture
+def configured_media_sources(request: pytest.FixtureRequest) -> list[str]:
+    """The ``media.sources`` list baked into the test config.
+
+    Defaults to ``["libretro"]`` so media-proxy tests are deterministic (the
+    default 5-source chain would fan out to real hosts on a miss). Override via
+    indirect parametrize — e.g. the chunk-9 readiness tests pass all five to
+    exercise ``in_chain`` — ``@pytest.mark.parametrize("configured_media_sources",
+    [[...]], indirect=True)``.
+    """
+    return getattr(request, "param", ["libretro"])
+
 
 PARSER_FIXTURES = Path(__file__).resolve().parents[1] / "parser" / "fixtures"
 COPY_FIXTURES = Path(__file__).resolve().parents[1] / "copy" / "fixtures"
@@ -113,6 +128,7 @@ def config_file(
     source_dir: Path,
     dest_dir: Path,
     media_cache_dir: Path,
+    configured_media_sources: list[str],
 ) -> Path:
     """Write a config.yaml under tmp_path that points at all reference files.
 
@@ -158,13 +174,14 @@ filters:
 media:
   fetch_videos: false
   cache_dir: {media_cache_dir}
-  # P10 chunk 7: pin the fallback chain to libretro-only so media-route tests
-  # are deterministic (the default 5-source chain would fan out to arcadeDB /
-  # wikipedia real hosts on a libretro miss). The multi-source fall-through is
-  # unit-tested in tests/media/test_resolve.py. NOTE: keep this YAML ASCII-only
-  # -- write_text() here uses the platform encoding (cp1252 on Windows), but
-  # load_app_config reads utf-8, so a non-ASCII byte crashes the Windows CI.
-  sources: ["libretro"]
+  # P10 chunk 7: the fallback chain defaults to libretro-only so media-proxy
+  # tests are deterministic (the default 5-source chain would fan out to
+  # arcadeDB / wikipedia real hosts on a libretro miss). Overridable via the
+  # `configured_media_sources` fixture (chunk-9 readiness tests pass all five).
+  # NOTE: keep this YAML ASCII-only -- write_text() here uses the platform
+  # encoding (cp1252 on Windows), but load_app_config reads utf-8, so a
+  # non-ASCII byte crashes the Windows CI.
+  sources: {json.dumps(configured_media_sources)}
 
 ui:
   theme: dark

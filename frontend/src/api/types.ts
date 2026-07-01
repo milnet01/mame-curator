@@ -134,6 +134,30 @@ export interface WikipediaExtract {
   license: string
 }
 
+// P10 chunk 9 — media source readiness surface (GET /api/media/sources) +
+// secret write (PUT /api/media/sources/{name}/secret). Mirrors api/schemas.py
+// SourceReadinessRow / SourceReadiness / SourceSecret; consumed by chunk 10's
+// Settings → Media tab.
+export type MediaKind = 'boxart' | 'title' | 'snap'
+
+export interface SourceReadinessRow {
+  name: string
+  enabled: boolean
+  in_chain: boolean
+  kinds: MediaKind[]
+  license_compatible: boolean
+  disabled_reason: string | null
+  needs_config: boolean
+}
+
+export interface SourceReadiness {
+  sources: SourceReadinessRow[]
+}
+
+export interface SourceSecret {
+  secret: string
+}
+
 export type ThemeName =
   | 'dark'
   | 'light'

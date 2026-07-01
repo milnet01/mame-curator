@@ -1340,6 +1340,12 @@ through.
   Kind: chore.
   Source: in-session-2026-07-01 (surfaced during P10 chunk 7 gate).
 
+- 💭 [mame-curator-1083] **App-wide CSRF / cross-site protection for mutation routes (security-hardening pass).**
+  P10 chunk 9's PUT /api/media/sources/{name}/secret ships loopback-trust (user decision) — matching every existing mutation route (config import/restore/export, fs allowed-root grants, sessions, overrides), none of which authenticate; the app binds 127.0.0.1 by default. The realistic residual risk is a malicious page in the user's browser issuing a cross-site POST to localhost (CSRF). If addressed, it must be app-wide (a per-route token on just the secret endpoint leaves the higher-value config/fs write routes exposed) — e.g. an Origin/Referer check or a startup-printed token required on all state-changing routes. Considered, not scheduled: low priority for a single-user localhost tool. Lane: api / security.
+  **Layman:** The app trusts that only your own computer can reach it. If you ever expose it more widely, add a guard so a random website can't quietly change your settings.
+  Kind: security.
+  Source: in-session-2026-07-01 (P10 chunk-9 secret-route auth decision).
+
 ### 🔌 Plugins / extensions
 
 - 💭 [mame-curator-1007] **P11 — Contribute missing thumbnails

@@ -66,6 +66,19 @@ class SourceDisabledFlag:
 _MOBYGAMES_API_BASE = "https://api.mobygames.com/v1/games"
 _MOBYGAMES_ENV_VAR = "MOBYGAMES_API_KEY"
 _MOBYGAMES_KEY_FILENAME = "mobygames.key"
+_MOBYGAMES_DEFAULT_SECRETS_DIR = Path("data/secrets")
+
+
+def mobygames_key_path(secrets_dir: Path = _MOBYGAMES_DEFAULT_SECRETS_DIR) -> Path:
+    """Path to the MobyGames key dotfile under ``secrets_dir``.
+
+    Single source of truth for the dotfile location, shared by
+    ``MobyGamesSource._resolve_key`` (read) and the P10 chunk-9
+    ``PUT /api/media/sources/{name}/secret`` route (write) so the written
+    key is exactly what the next source construction reads.
+    """
+    return secrets_dir / _MOBYGAMES_KEY_FILENAME
+
 
 # Process-wide dedup for the "MobyGames disabled — no key" WARNING. Source
 # instances are re-created per request (P10 § Architecture notes), so without
@@ -124,7 +137,7 @@ class MobyGamesSource:
         limiter: TokenBucket,
         cache_dir: Path,
         disabled_flag: SourceDisabledFlag,
-        secrets_dir: Path = Path("data/secrets"),
+        secrets_dir: Path = _MOBYGAMES_DEFAULT_SECRETS_DIR,
     ) -> None:
         """Resolve the key and set ``disabled_reason`` accordingly.
 
@@ -167,7 +180,7 @@ class MobyGamesSource:
         if env_key:
             return env_key
 
-        keyfile = self._secrets_dir / _MOBYGAMES_KEY_FILENAME
+        keyfile = mobygames_key_path(self._secrets_dir)
         try:
             st = keyfile.stat()
         except OSError:

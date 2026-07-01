@@ -85,14 +85,20 @@ def fsync_parent_dir(path: Path) -> None:
             os.close(fd)
 
 
-def atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8") -> None:
-    """Atomically write `text` to `path`.
+def atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8", mode: int = 0o644) -> None:
+    """Atomically write `text` to `path` with POSIX file mode `mode`.
 
     Writes to a unique `.tmp` sibling, fsyncs the file (best-effort), then
     `os.replace`s onto the target. Cleans the tmp on any exception. EXDEV
     (cross-filesystem rename) propagates as a distinguishable `OSError`
     with `errno.EXDEV` for callers that want to surface the failure mode
     cleanly.
+
+    `mode` defaults to 0o644 (world-readable data files). Pass `0o600` for
+    secret material (P10 chunk 9 — the MobyGames key dotfile, which the
+    source rejects unless it's owner-only). The mode is applied to the tmp
+    inode *before* the rename, so the target is never briefly world-readable.
+    POSIX-only (Windows has no fchmod; NTFS ACLs are the gate there).
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     # `delete=False` because we want to control deletion ourselves; the
@@ -119,11 +125,12 @@ def atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8") -> None
                 # it (e.g. tmpfs without O_DIRECT). Power-cut robustness is
                 # a defense-in-depth concern, not a hard contract.
                 os.fsync(tmp_handle.fileno())
-            # FP25-D: pin perms at 0o644 — see atomic_write_bytes for the
-            # full reasoning. Same sys.platform gate for Windows-mypy.
+            # FP25-D: pin perms — see atomic_write_bytes for the full
+            # reasoning. `mode` defaults to 0o644; callers pass 0o600 for
+            # secret material. Same sys.platform gate for Windows-mypy.
             if sys.platform != "win32":
                 with contextlib.suppress(OSError):
-                    os.fchmod(tmp_handle.fileno(), 0o644)
+                    os.fchmod(tmp_handle.fileno(), mode)
         finally:
             tmp_handle.close()
         # Windows: must close before replace. Linux/macOS would tolerate
