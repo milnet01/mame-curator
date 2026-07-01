@@ -7,6 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { AboutSection } from '@/components/alternatives/AboutSection'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useKeyboard } from '@/hooks/useKeyboard'
@@ -195,6 +196,10 @@ export function AlternativesDrawer({
               : strings.alternatives.familySummary(alternatives.length)}
           </SheetDescription>
         </SheetHeader>
+
+        {/* P10 chunk 11 — Wikipedia "About" flavor text for the winner.
+            Renders nothing while loading / on error / when there's no page. */}
+        <AboutSection shortName={winner.short_name} />
 
         {!onlyOne && (
           <ul className="flex flex-col gap-2">

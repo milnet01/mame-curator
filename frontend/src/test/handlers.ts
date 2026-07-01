@@ -14,6 +14,11 @@ import { http, HttpResponse, type JsonBodyType } from 'msw'
  */
 export const baseHandlers: Parameters<typeof setupServer> = [
   http.get('/api/media/sources', () => HttpResponse.json({ sources: [] })),
+  // P10 chunk 11: the Alternatives drawer's AboutSection fires
+  // useWikipediaExtract on mount; default to "no page" so drawer-rendering
+  // tests don't hit an unhandled request. Tests that assert the About text
+  // override this with their own server.use(...).
+  http.get('/media/:name/wiki', () => HttpResponse.json(null)),
 ]
 
 export const server = setupServer(...baseHandlers)

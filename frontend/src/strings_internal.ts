@@ -267,6 +267,9 @@ export const strings = {
 
   alternatives: {
     drawerTitle: 'Alternative versions',
+    // P10 chunk 11 — Wikipedia "About" flavor text (CC-BY-SA attribution).
+    wikipediaReadMore: 'Read more on Wikipedia',
+    wikipediaLicense: 'Text from Wikipedia, CC BY-SA 4.0.',
     /** Subtitle when the family contains only the winner. */
     onlyVersionText: 'This is the only version in the library.',
     /** Subtitle when the family contains multiple versions. */

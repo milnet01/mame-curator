@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P10 chunk 11 — Wikipedia "About" paragraph in the Alternatives drawer (2026-07-01)
+
+**Added**
+
+- The Alternatives drawer now shows a short Wikipedia "About" paragraph for the
+  selected game, with a "Read more on Wikipedia" link and a CC-BY-SA
+  attribution line. It appears only when a matching Wikipedia page exists —
+  otherwise (or while loading) it's silently absent, since it's non-essential
+  flavor text. Consumes the chunk-8 `GET /media/{name}/wiki` endpoint via the
+  new `useWikipediaExtract` hook. (mame-curator-1005)
+
 ### P10 chunk 10 — Settings → Media source list (2026-07-01)
 
 The Media tab in Settings gains a live list of your art sources.

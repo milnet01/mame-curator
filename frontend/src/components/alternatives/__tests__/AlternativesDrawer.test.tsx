@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -8,11 +9,16 @@ import { AlternativesDrawer } from '../AlternativesDrawer'
 import type { GameCard } from '@/api/types'
 
 // FP22-B introduced a <Link> in the disabled-Launch hint, so any render
-// that exercises the Launch path needs a router context. Wrapping every
-// render keeps the existing tests untouched while supporting the new
-// ones.
+// that exercises the Launch path needs a router context. P10 chunk 11 added
+// an AboutSection (react-query), so the wrapper also provides a QueryClient
+// (the wiki GET is served by the default MSW handler → null / no section).
 function renderWithRouter(ui: ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>)
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  )
 }
 
 // `short_name` + `description` are required per fixture; the rest default
