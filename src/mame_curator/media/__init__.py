@@ -64,6 +64,14 @@ P10 chunk 7 (registry + orchestrator):
 - ``build_registry`` — composition root that constructs the configured
   sources with the app-state limiters + disabled flag injected. Both live
   in ``resolve.py``.
+
+P10 chunk 8 (Wikipedia flavor-text endpoint):
+
+- ``WikipediaExtract`` — frozen wire model (title / extract / url / license)
+  for the Alternatives-drawer "About" paragraph.
+- ``resolve_wikipedia_extract`` — fetches + parses the Wikipedia REST summary
+  (shared cache slot + rate-limit bucket with ``WikipediaImageSource``).
+  Both live in ``wikipedia.py``.
 """
 
 from __future__ import annotations
@@ -91,6 +99,7 @@ from mame_curator.media.sources import (
     WikipediaImageSource,
 )
 from mame_curator.media.urls import MediaUrls, escape_libretro, urls_for
+from mame_curator.media.wikipedia import WikipediaExtract, resolve_wikipedia_extract
 
 
 def _build_user_agent() -> str:
@@ -120,6 +129,7 @@ __all__ = [
     "ProgettoSnapsSource",
     "SourceDisabledFlag",
     "TokenBucket",
+    "WikipediaExtract",
     "WikipediaImageSource",
     "_build_user_agent",
     "build_registry",
@@ -128,5 +138,6 @@ __all__ = [
     "fetch_text_with_cache",
     "fetch_with_cache",
     "resolve_image",
+    "resolve_wikipedia_extract",
     "urls_for",
 ]

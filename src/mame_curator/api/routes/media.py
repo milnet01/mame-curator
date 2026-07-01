@@ -1,7 +1,9 @@
 """R39 — media proxy with libretro-thumbnails URL builder + sha256 disk cache.
 
 P04 shipped a minimal pass-through proxy; P05 swaps in the real escape rules
-and lazy-fetch cache via ``mame_curator.media``. URL surface unchanged.
+and lazy-fetch cache via ``mame_curator.media``. P10 chunk 7 swaps the
+single-source URL build for the fallback-chain orchestrator; chunk 8 adds the
+``GET /media/{name}/wiki`` flavor-text endpoint.
 """
 
 from __future__ import annotations
@@ -20,11 +22,45 @@ from mame_curator.api.errors import (
 )
 from mame_curator.api.routes._deps import get_world
 from mame_curator.api.state import WorldState
-from mame_curator.media import Kind, build_registry, resolve_image
+from mame_curator.media import (
+    Kind,
+    MediaError,
+    WikipediaExtract,
+    build_registry,
+    resolve_image,
+    resolve_wikipedia_extract,
+)
 
 router = APIRouter()
 
 _VALID_KINDS = {"boxart", "title", "snap", "video"}
+
+
+# P10 chunk 8 — Wikipedia "About" flavor text. Registered BEFORE the
+# `/media/{name}/{kind}` proxy so `/media/pacman/wiki` matches this literal
+# path rather than binding `kind="wiki"` (which the proxy would 400 as an
+# unknown kind). Returns `WikipediaExtract | None`; `None` serialises to JSON
+# `null` and the frontend hides the AboutSection.
+@router.get("/media/{name}/wiki", response_model=WikipediaExtract | None)
+async def media_wiki(
+    name: str, request: Request, world: WorldState = Depends(get_world)
+) -> WikipediaExtract | None:
+    machine = world.machines.get(name)
+    if machine is None:
+        raise GameNotFoundError(f"game not found: {name!r}")
+    client: httpx.AsyncClient = request.app.state.media_client
+    try:
+        return await resolve_wikipedia_extract(
+            machine,
+            cache_dir=world.config.media.cache_dir,
+            client=client,
+            limiter=request.app.state.wikipedia_limiter,
+        )
+    except MediaError:
+        # About text is non-essential flavor — degrade to null on ANY
+        # media-layer failure (rate-limit / network / parse) rather than 500.
+        # MediaError is the base of MediaRateLimited + MediaFetchError.
+        return None
 
 
 @router.get("/media/{name}/{kind}")

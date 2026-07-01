@@ -51,6 +51,9 @@ PYTHON_SOURCES = (
     "src/mame_curator/filter/config.py",
     "src/mame_curator/filter/sessions.py",
     "src/mame_curator/filter/types.py",
+    # P10 chunk 8: WikipediaExtract is an API-boundary model (response_model on
+    # GET /media/{name}/wiki), so its TS mirror is gate-enforced like the rest.
+    "src/mame_curator/media/wikipedia.py",
 )
 
 # Hand-mirrored TS interface dump.

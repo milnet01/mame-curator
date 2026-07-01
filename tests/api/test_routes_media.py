@@ -7,15 +7,27 @@ cache and short-circuits ``kind=video``.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import httpx
 import respx
 
+from mame_curator.media import TokenBucket
+
 _BASE = "https://raw.githubusercontent.com/libretro-thumbnails/MAME/master"
 # Mini-DAT fixture: <machine name="pacman"><description>Pac-Man (Midway)</description>
 _PACMAN_BOXART_URL = f"{_BASE}/Named_Boxarts/Pac-Man%20%28Midway%29.png"
 _REDIRECT_TARGET = f"{_BASE}/Named_Boxarts/Pac-Man-relocated.png"
+# P10 chunk 8 — Wikipedia extract endpoint. Description "Pac-Man (Midway)"
+# canonicalises to "Pac-Man" before the REST summary lookup.
+_WIKI_SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/Pac-Man"
+
+
+def _wiki_fixture_text() -> str:
+    return (Path(__file__).resolve().parents[1] / "fixtures" / "wikipedia_pacman.json").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_route_r39_shape_media_unknown_kind(client: Any) -> None:
@@ -147,3 +159,64 @@ def test_proxy_route_transport_error_falls_through_to_404(client: Any) -> None:
 
     assert response.status_code == 404
     assert response.json()["code"] == "media_upstream_not_found"
+
+
+# --- P10 chunk 8: GET /media/{name}/wiki (Wikipedia extract) -----------------
+
+
+def test_media_wiki_returns_extract_json(client: Any) -> None:
+    """Wikipedia 200 → the route returns the parsed extract JSON.
+
+    ``/media/pacman/wiki`` must match the literal wiki route, NOT bind
+    ``kind="wiki"`` on the image proxy (which would 400).
+    """
+    with respx.mock(assert_all_called=True) as mock:
+        mock.get(_WIKI_SUMMARY_URL).mock(
+            return_value=httpx.Response(200, text=_wiki_fixture_text())
+        )
+        response = client.get("/media/pacman/wiki")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "Pac-Man"
+    assert body["extract"]
+    assert body["url"] == "https://en.wikipedia.org/wiki/Pac-Man"
+    assert body["license"] == "CC-BY-SA-4.0"
+
+
+def test_media_wiki_returns_null_on_404(client: Any) -> None:
+    """Wikipedia 404 (no page) → route returns JSON ``null`` with HTTP 200."""
+    with respx.mock(assert_all_called=True) as mock:
+        mock.get(_WIKI_SUMMARY_URL).mock(return_value=httpx.Response(404))
+        response = client.get("/media/pacman/wiki")
+
+    assert response.status_code == 200
+    assert response.json() is None
+
+
+def test_media_wiki_returns_null_when_rate_limited(client: Any) -> None:
+    """An exhausted ``wikipedia_limiter`` → route catches ``MediaRateLimited``
+    (a ``MediaError``) and returns JSON ``null``, HTTP 200 — a non-essential
+    About paragraph never 500s. No upstream call is attempted."""
+    drained = TokenBucket(rate=1.0, capacity=1)
+    assert drained.acquire() is True  # empty the bucket
+    client.app.state.wikipedia_limiter = drained
+    with respx.mock(assert_all_called=False) as mock:
+        route = mock.get(host="en.wikipedia.org")
+        response = client.get("/media/pacman/wiki")
+
+    assert response.status_code == 200
+    assert response.json() is None
+    assert not route.called, "rate-limit must short-circuit before any upstream call"
+
+
+def test_media_wiki_video_kind_remains_unsupported(client: Any) -> None:
+    """Adding the wiki route must not break the P05 video short-circuit:
+    ``GET /media/{name}/video`` still returns ``media_upstream_not_found``."""
+    with respx.mock(assert_all_called=False) as mock:
+        route = mock.get(host="raw.githubusercontent.com")
+        response = client.get("/media/pacman/video")
+
+    assert response.status_code == 404
+    assert response.json()["code"] == "media_upstream_not_found"
+    assert not route.called

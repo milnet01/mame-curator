@@ -17,6 +17,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### P10 chunk 8 — Wikipedia "About" flavor-text endpoint (2026-07-01)
+
+A new endpoint serves a one-paragraph Wikipedia summary for a game, for the
+"About" section of the Alternatives drawer (the drawer UI itself lands later).
+
+**Added**
+
+- `GET /media/{name}/wiki` — returns a `WikipediaExtract` (`title` / `extract`
+  / `url` / `license`) or JSON `null` when there's no matching Wikipedia page.
+  It reuses the same Wikipedia REST summary the image source already fetches,
+  so one lookup warms both caches. (mame-curator-1005)
+- `src/mame_curator/media/wikipedia.py` — `WikipediaExtract` (frozen model)
+  and `resolve_wikipedia_extract`, which shares the `wikipedia_limiter`
+  rate-limit budget + the on-disk text cache with the chunk-5 image source,
+  and applies the same parse-before-trust cache-poisoning guard.
+- `WikipediaExtract` mirrored in the frontend typed config (`types.ts` + Zod
+  `schemas.ts`) and added to the API type-sync gate. (mame-curator-1005)
+
+**Behaviour note**
+
+- The "About" paragraph is non-essential: if Wikipedia is rate-limited or
+  unreachable, the endpoint returns `null` (the section just hides) rather
+  than surfacing a 5xx error. (mame-curator-1005)
+
 ### P10 chunk 7 — media source registry + fallback orchestrator (2026-07-01)
 
 The five P10 art sources become a real fallback chain. A media request now

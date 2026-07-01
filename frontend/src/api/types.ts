@@ -124,6 +124,16 @@ export interface MediaConfig {
   sources: string[]
 }
 
+// P10 chunk 8 — response body of GET /media/{name}/wiki (may be null).
+// Mirrors media/wikipedia.py WikipediaExtract; consumed by chunk 11's
+// useWikipediaExtract / AboutSection.
+export interface WikipediaExtract {
+  title: string
+  extract: string
+  url: string
+  license: string
+}
+
 export type ThemeName =
   | 'dark'
   | 'light'

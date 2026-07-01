@@ -168,6 +168,17 @@ export const MediaConfigSchema = z
   })
   .strict()
 
+// P10 chunk 8 — GET /media/{name}/wiki returns this or null. Mirrors
+// media/wikipedia.py WikipediaExtract; used by chunk 11's useWikipediaExtract.
+export const WikipediaExtractSchema = z
+  .object({
+    title: z.string(),
+    extract: z.string(),
+    url: z.string(),
+    license: z.string(),
+  })
+  .strict()
+
 export const ThemeNameSchema = z.enum([
   'dark',
   'light',
