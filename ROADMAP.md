@@ -999,6 +999,28 @@ documenting test-audit-specific false positives.
   Lanes: media, api, frontend, docs.
   Source: indie-review-2026-07-01 (P10 /close-phase; audit clean modulo the env-mypy false positive).
 
+- 🚧 [mame-curator-1086] **FP33 — second closing-review fold-in after P10 (nested parse-before-trust + file:// LFI).**
+  Second 3-lane closing indie-review after FP32 shipped. Audit static-analysis clean (28 findings all allowlist-015 env-mypy false positive; CI mypy clean). FP32's 4 fixes verified correct; these are the residual + newly-surfaced defects.
+
+  HIGH:
+  - H1 (media, SECURITY/LFI): resolve_image's `file://` short-circuit (resolve.py:80-88) fires for ANY source's url_for, not just the local ProgettoSnaps pack. ArcadeDB's first hop is plaintext HTTP (sources.py:220) and returns upstream-controlled URL strings with no scheme/type check, so a MITM/hostile `file:///etc/passwd` is served as an image — bypassing the cache-layer `_ALLOWED_URL_SCHEMES` guard (which runs after the short-circuit). Fix: gate the file:// branch to the local-pack source only (isinstance ProgettoSnapsSource or a per-source local_pack flag) AND/OR confine the resolved path within snap_dir; any non-local source emitting file:// → treat as a miss.
+  - H2 (media): FP32's parse-before-trust `isinstance(data, dict)` only guards the TOP level; 4 nested accesses still assume upstream shape → uncaught AttributeError/TypeError/KeyError → route 500 (incl. the "never-500s" wiki path, whose route catches only MediaError): (1) ArcadeDB result[0]/first.get (sources.py:292-299) on list-of-non-dict / truthy-non-list result; (2) ArcadeDB flyer/title/ingame stored with no isinstance(str) (sources.py:297-305) → non-str URL → resolve_image url.startswith crash (also feeds H1); (3) WikipediaImage (data.get("thumbnail") or {}).get("source") (sources.py:397) on truthy-non-dict thumbnail; (4) wikipedia.py content_urls.desktop.get("page") (wikipedia.py:95) on non-dict desktop. Fix: isinstance-guard each nested step (list/dict/str), treating a mismatch like a parse failure (unlink+raise MediaFetchError / return None). Reproduce-before-fix: FP32 tests only covered top-level shapes.
+
+  MEDIUM/LOW:
+  - M1 (media): ProgettoSnapsSource.__init__ is_dir()+iterdir() probe still crashes on a permission-denied dir (is_dir re-raises EACCES; iterdir raises PermissionError on x-but-not-r) → build_registry 500 (sources.py:171,179). Fix: wrap probe in try/except OSError → self-disable.
+  - L1 (frontend): DownloadPackModal `copied` never resets; reopening the modal without leaving the Media tab still reads "Copied!" (never-lies axis, same as ConfigureSourceKeyModal's defensive clear). Fix: setCopied(false) on close.
+  - L2 (api/docs): api/spec.md route inventory missing 3 shipped media routes (GET /media/{name}/wiki, GET /api/media/sources, PUT /api/media/sources/{name}/secret) + error table missing MediaSourceUnknownError (422); fix the illustrative chain-order parenthetical.
+  - L3 (frontend/docs): strings_internal.ts:662-664 cites a `tools/check_error_codes_sync.py` byCode-sync gate that does not exist (never built) — correct the comment (or add the gate).
+  - L4 (api): SourceSecret stores the pasted key verbatim (schemas.py:129) — a trailing newline/space is written to the 0600 file. Fix: .strip() validator.
+  - L5 (api): secret route hardcodes mobygames_key_path() ignoring `name` (media.py:189) — safe today (only mobyGames in _SECRET_SOURCES) but clobbers on a 2nd source; add a name→path map or guard comment.
+
+  INFO (fold if cheap): ConfigureSourceKeyModal onSuccess uses onOpenChange not handleOpenChange (skips save.reset — harmless while conditionally mounted); docs/specs/P06.md:161 still lists retired media_upstream_error; per-request snap-dir re-stat (perf, defer).
+
+  Convergence: 2 FP in a row (FP32, FP33) — under the checkpoint of 5.
+  **Layman:** A deeper re-review of the artwork feature found two more real bugs FP32's first pass missed: an art site could be tricked into serving a private file off your computer, and a few more "unexpected response shape crashes the request" spots. This pass burns them off before we call P10 done.
+  Kind: review-fix.
+  Source: indie-review-2026-07-02 (P10 /close-phase re-run; 3-lane: media chain / API surface / frontend).
+
 ### 📝 Cold-eyes 2026-05-18
 
 **Theme:** Docs reviewed: 12 lanes (contracts, standards, decisions,
