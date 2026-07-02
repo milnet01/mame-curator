@@ -149,7 +149,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #   • +2 secret route strips surrounding whitespace + rejects whitespace-only
 #     (test_routes_media_sources.py, L4)
 # 677 → 685.
-EXPECTED_PYTEST_DECLARATIONS = 685
+# Bumped 2026-07-02 (FP34 — P10 third closing-review fold-in): +1 declaration —
+# MobyGamesSource self-disables on a non-UTF-8 / unreadable key file rather than
+# crashing build_registry (test_sources_mobygames.py, M1). 685 → 686.
+EXPECTED_PYTEST_DECLARATIONS = 686
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

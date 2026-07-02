@@ -93,6 +93,32 @@ def test_mobygames_source_reads_dotfile(tmp_path: Path, monkeypatch: pytest.Monk
     assert src.disabled_reason is None
 
 
+def test_mobygames_source_self_disables_on_unreadable_key(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FP34 M1: a key dotfile with non-UTF-8 bytes (or one deleted between the
+    stat() and the read) must self-disable, not raise a UnicodeDecodeError /
+    OSError past ``__init__`` → ``build_registry`` → 500 on every media request.
+    The read now lives inside the same guard as the stat()."""
+    monkeypatch.delenv(_MOBY_ENV, raising=False)
+    from mame_curator.media import MobyGamesSource, SourceDisabledFlag
+
+    secrets = tmp_path / "secrets"
+    secrets.mkdir(parents=True)
+    keyfile = secrets / "mobygames.key"
+    keyfile.write_bytes(b"\xff\xfe not valid utf-8 \x80")  # non-UTF-8
+    keyfile.chmod(0o600)  # passes the mode gate → reaches the read
+
+    src = MobyGamesSource(  # must not raise
+        limiter=_make_unbounded_limiter(),
+        cache_dir=tmp_path,
+        disabled_flag=SourceDisabledFlag(),
+        secrets_dir=secrets,
+    )
+    assert src.disabled_reason is not None
+    assert src.url_for(_machine(), "boxart") is None
+
+
 def test_mobygames_source_env_var_takes_precedence(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

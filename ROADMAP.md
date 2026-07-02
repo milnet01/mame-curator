@@ -1022,6 +1022,21 @@ documenting test-audit-specific false positives.
   Kind: review-fix.
   Source: indie-review-2026-07-02 (P10 /close-phase re-run; 3-lane: media chain / API surface / frontend).
 
+- 🚧 [mame-curator-1087] **FP34 — third closing-review fold-in after P10 (tail: mobygames read guard + spec drift).**
+  Third closing verification after FP33 shipped. Both lanes confirmed all FP33 fixes correct + complete; audit clean (allowlist-015, now also in the .ants_review_falsepos.jsonl ledger). Three tail findings:
+
+  MEDIUM:
+  - M1 (media): MobyGamesSource._resolve_key reads the key dotfile OUTSIDE the try/except OSError that guards stat() (mobygames.py:204) — a non-UTF-8 key file raises UnicodeDecodeError (a ValueError, not OSError), and a TOCTOU delete/perm-change between stat() and read raises OSError; either escapes __init__ → build_registry → 500s every media request instead of self-disabling. Same class as FP33 M1 (guard stopped one line short). Fix: widen the guard to cover read_text, catching (OSError, UnicodeDecodeError) → return None (self-disable). Reproduce-before-fix.
+  - M2 (api/docs): api/spec.md:212 marks PUT /api/media/sources/{name}/secret as Mut. ✓, but the route takes no world_lock and mutates no WorldState (media.py:176 plain sync def, no world param) — contradicts the spec's own Mut. definition + lock-guarded-routes list. Drift introduced by FP33 L2. Fix: drop the ✓.
+
+  LOW:
+  - L1 (frontend/docs): MediaSourceUnknownError (media_source_unknown, 422) has no strings.errors.byCode entry, though api/spec.md § error-table rule says a new code MUST add one. Impact nil (ConfigureSourceKeyModal surfaces error.detail, and the code is UI-unreachable) — but the spec's own MUST. Fix: add the byCode entry.
+
+  Convergence: 3 FP in a row (FP32/33/34) — under the checkpoint of 5; severity trailing off (round 3 = one-line guard + one-char doc + nil-impact LOW). User elected fix + targeted verify + close (no full 4th review round).
+  **Layman:** The final review round of the artwork feature found three small leftovers — one real (a corrupt API-key file could crash the whole feature instead of just disabling that one source) and two doc nits. This pass clears them so P10 can close.
+  Kind: review-fix.
+  Source: indie-review-2026-07-02 (P10 /close-phase 3rd attempt; 2-lane verification of FP33).
+
 ### 📝 Cold-eyes 2026-05-18
 
 **Theme:** Docs reviewed: 12 lanes (contracts, standards, decisions,

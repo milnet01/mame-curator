@@ -201,7 +201,18 @@ class MobyGamesSource:
                 stat.S_IMODE(st.st_mode),
             )
             return None
-        return keyfile.read_text(encoding="utf-8").strip() or None
+        try:
+            return keyfile.read_text(encoding="utf-8").strip() or None
+        except (OSError, UnicodeDecodeError):
+            # A corrupt / non-UTF-8 key file — or a TOCTOU delete/perm-change
+            # between the stat() above and this read — must self-disable, not
+            # crash __init__ → build_registry → 500 every media request. Treat
+            # an unreadable key the same as a missing one. (FP34 M1)
+            logger.warning(
+                "media/sources: MobyGames key file %s is unreadable; ignoring it",
+                keyfile,
+            )
+            return None
 
     def _lookup_url(self, machine: Machine) -> str:
         return f"{_MOBYGAMES_API_BASE}?title={quote(machine.description)}&api_key={self._api_key}"

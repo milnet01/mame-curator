@@ -209,7 +209,7 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | GET | `/media/{name}/{kind}` | image bytes (`FileResponse`) | |
 | GET | `/media/{name}/wiki` | `WikipediaExtract \| null` | |
 | GET | `/api/media/sources` | `SourceReadiness` | |
-| PUT | `/api/media/sources/{name}/secret` | `204 No Content` | ✓ |
+| PUT | `/api/media/sources/{name}/secret` | `204 No Content` | |
 
 Route ordering note: `POST /api/sessions/_deactivate` is registered
 **before** the dynamic `POST /api/sessions/{name}/activate` so FastAPI
