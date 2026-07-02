@@ -17,6 +17,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP33 — P10 second closing-review fold-in (2026-07-02)
+
+A deeper re-review after FP32 shipped found two real bugs FP32's first pass
+missed — same class, one level deeper. Fixed TDD, a failing regression test
+first.
+
+**Fixed**
+
+- **Security:** an artwork source could no longer be tricked into serving a
+  private file off the server. The "serve a local file directly" fast-path is
+  now restricted to the local snapshot pack; a network source (fetched over
+  plain HTTP) handing back a `file://…` path is dropped instead of read off
+  disk. (mame-curator-1086)
+- FP32's "unexpected response shape" guard only checked the top level; a few
+  deeper spots (a list element / URL field / thumbnail / link block that isn't
+  the expected type) could still crash an image or "About" request. All are now
+  type-guarded and fall through gracefully. (mame-curator-1086)
+- A snapshot-pack folder the server can't read no longer takes the media
+  feature down — it just disables that source. (mame-curator-1086)
+- The "copy command" button no longer reads "Copied!" when you reopen the
+  dialog without having copied again. (mame-curator-1086)
+- Housekeeping: the API-key box trims pasted whitespace (and rejects a
+  spaces-only key); three shipped media endpoints + one error code are now
+  documented in the API spec; and several stale/dead doc references were
+  corrected. (mame-curator-1086)
+
 ### FP32 — P10 closing-review fold-in (2026-07-02)
 
 The closing indie-review of the media feature (run once all 11 P10 chunks had
