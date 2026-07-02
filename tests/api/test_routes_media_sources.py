@@ -111,6 +111,23 @@ def test_put_source_secret_writes_dotfile(client: Any) -> None:
     assert keyfile.read_text(encoding="utf-8") == "abc123"
 
 
+def test_put_source_secret_strips_surrounding_whitespace(client: Any) -> None:
+    """FP33 L4: a pasted key with a trailing newline / surrounding spaces is
+    stripped before the 0600 write — a stray byte would break the upstream
+    Authorization header."""
+    response = client.put("/api/media/sources/mobyGames/secret", json={"secret": "  abc123\n"})
+    assert response.status_code == 204
+    assert mobygames_key_path().read_text(encoding="utf-8") == "abc123"
+
+
+def test_put_source_secret_whitespace_only_returns_422(client: Any) -> None:
+    """FP33 L4: a whitespace-only secret strips to empty → 422 (min_length=1);
+    no dotfile written."""
+    response = client.put("/api/media/sources/mobyGames/secret", json={"secret": "   "})
+    assert response.status_code == 422
+    assert not mobygames_key_path().exists()
+
+
 @pytest.mark.skipif(_WINDOWS, reason="POSIX mode bits don't apply on Windows")
 def test_put_source_secret_writes_dotfile_with_0600(client: Any) -> None:
     """The written key dotfile is owner-only (mode 0600) on POSIX."""

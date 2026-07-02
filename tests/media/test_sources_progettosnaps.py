@@ -131,6 +131,34 @@ def test_progettosnaps_source_self_disables_when_snap_dir_is_a_file(
     assert src.url_for(_machine(), "snap") is None
 
 
+def test_progettosnaps_source_self_disables_on_unreadable_dir(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """FP33 M1: a snap_dir that exists but is unreadable (EACCES on stat, or a
+    dir with execute-but-not-read perms so ``iterdir()`` raises PermissionError)
+    must self-disable, not raise — an unhandled OSError in ``__init__`` crashes
+    ``build_registry`` → 500s every media request."""
+    from mame_curator.media import ProgettoSnapsSource
+
+    snap_dir = tmp_path / "snap"
+    snap_dir.mkdir()
+    (snap_dir / "pacman.png").write_bytes(b"pac")
+
+    real_iterdir = Path.iterdir
+
+    def boom_iterdir(self: Path):  # type: ignore[no-untyped-def]
+        if self == snap_dir:
+            raise PermissionError(13, "Permission denied")
+        return real_iterdir(self)
+
+    monkeypatch.setattr(Path, "iterdir", boom_iterdir)
+
+    src = ProgettoSnapsSource(snap_dir=snap_dir)  # must not raise
+    assert src.disabled_reason is not None
+    assert "refresh-snaps" in src.disabled_reason
+
+
 def test_progettosnaps_source_caches_existence_per_request(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

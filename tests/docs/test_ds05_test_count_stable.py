@@ -139,7 +139,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #   • +1 TokenBucket advances _last on backward clock step (test_rate_limit.py, LOW)
 #   • +1 resolve_image file:// short-circuit ignores a directory (test_resolve.py, LOW)
 # 671 → 677.
-EXPECTED_PYTEST_DECLARATIONS = 677
+# Bumped 2026-07-02 (FP33 — P10 second closing-review fold-in): +8 declarations:
+#   • +1 resolve_image drops a file:// URL from a non-local source (test_resolve.py, H1 LFI)
+#   • +2 arcadeDB survives nested shape drift + ignores non-string URL fields
+#     (test_sources_arcadedb.py, H2)
+#   • +1 wikipediaImage survives a non-dict thumbnail (test_sources_wikipedia.py, H2)
+#   • +1 wikipedia-extract survives a non-dict content_urls.desktop (test_wikipedia.py, H2)
+#   • +1 progettoSnaps self-disables on an unreadable dir (test_sources_progettosnaps.py, M1)
+#   • +2 secret route strips surrounding whitespace + rejects whitespace-only
+#     (test_routes_media_sources.py, L4)
+# 677 → 685.
+EXPECTED_PYTEST_DECLARATIONS = 685
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -178,7 +188,10 @@ EXPECTED_PYTEST_DECLARATIONS = 677
 #   • +2 ConfigureSourceKeyModal.test.tsx — surfaces the ApiError detail on
 #     422 + defensive clear of the key on close (LOW).
 # 319 → 324.
-EXPECTED_VITEST_DECLARATIONS = 324
+# Bumped 2026-07-02 (FP33 — P10 second closing-review fold-in): +1 declaration
+# in DownloadPackModal.test.tsx — "Copied!" resets on close so a reopen shows no
+# stale success (L1). 324 → 325.
+EXPECTED_VITEST_DECLARATIONS = 325
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

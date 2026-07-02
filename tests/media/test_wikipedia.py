@@ -194,6 +194,25 @@ async def test_wikipedia_extract_non_object_json_returns_none_and_unlinks(tmp_pa
     assert not cache_path_for(url, tmp_path).exists(), "poisoned slot must be unlinked"
 
 
+async def test_wikipedia_extract_survives_non_dict_content_urls(tmp_path: Path) -> None:
+    """FP33 H2: a non-dict ``content_urls.desktop`` (upstream drift) must not
+    crash via ``"str".get('page')`` — that AttributeError is NOT a MediaError,
+    so it would escape the route's ``except MediaError`` and 500 the
+    contractually never-500s wiki path. Degrade to ``None`` instead."""
+    url = _summary_url("Pac-Man")
+    body = '{"extract":"x","title":"Pac-Man","content_urls":{"desktop":"not-an-object"}}'
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(url).mock(return_value=httpx.Response(200, text=body))
+            result = await resolve_wikipedia_extract(
+                _machine(description="Pac-Man"),
+                cache_dir=tmp_path,
+                client=client,
+                limiter=_make_unbounded_limiter(),
+            )
+    assert result is None
+
+
 async def test_wikipedia_extract_respects_rate_limit(tmp_path: Path) -> None:
     """An exhausted bucket → ``MediaRateLimited`` before any upstream hit."""
     bucket = TokenBucket(rate=1.0, capacity=1)

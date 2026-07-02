@@ -659,9 +659,12 @@ export const strings = {
      * `mame_curator.api.errors` (FP11 § B1: prior versions carried
      * dead codes that no backend handler issued — `parent_not_found`,
      * `winner_must_be_in_family`, `path_outside_allowed_roots` were
-     * spec-aspirational). The CI gate `tools/check_error_codes_sync.py`
-     * (FP11 follow-up) asserts every backend `ApiException.code` has
-     * a `byCode` entry and that no `byCode` entry is dead. */
+     * spec-aspirational). NOTE (FP33 L3): the `tools/check_error_codes_sync.py`
+     * gate this comment once promised was never built — the FP11 follow-up
+     * was dropped. `strings.test.ts` only verifies these keys are *reachable*
+     * (via the `errors.byCode` dynamic-access allowlist), NOT that they mirror
+     * the backend `ApiException.code` set. Keep this map in sync with
+     * `api/errors.py` by hand until that gate lands. */
     byCode: {
       game_not_found: 'No game with that short name in the loaded DAT.',
       override_not_found: 'No override registered for that parent.',

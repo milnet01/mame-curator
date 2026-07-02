@@ -145,6 +145,7 @@ class vars). `install_handlers` registers three handlers:
 | `HelpTopicNotFoundError` | `help_topic_not_found` | 404 |
 | `MediaKindInvalidError` | `media_kind_invalid` | 400 |
 | `MediaUpstreamNotFoundError` | `media_upstream_not_found` | 404 |
+| `MediaSourceUnknownError` | `media_source_unknown` | 422 |
 | `RetroArchNotConfiguredError` | `retroarch_not_configured` | 422 |
 | `RomFileNotFoundError` | `rom_file_not_found` | 404 |
 | (`ApiException` base / fallback) | `internal` | 500 |
@@ -206,6 +207,9 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | GET | `/api/setup/check` | `SetupCheck` | |
 | GET | `/api/updates/check` | `UpdatesCheck` | |
 | GET | `/media/{name}/{kind}` | image bytes (`FileResponse`) | |
+| GET | `/media/{name}/wiki` | `WikipediaExtract \| null` | |
+| GET | `/api/media/sources` | `SourceReadiness` | |
+| PUT | `/api/media/sources/{name}/secret` | `204 No Content` | ✓ |
 
 Route ordering note: `POST /api/sessions/_deactivate` is registered
 **before** the dynamic `POST /api/sessions/{name}/activate` so FastAPI
@@ -293,9 +297,11 @@ All FS browsing crosses `api/fs.py`:
   `MediaUpstreamNotFoundError` (404). Video art is sourced from
   progettoSnaps rather than libretro-thumbnails (design §6.3) and is not
   served by this proxy today.
-- The image is resolved by `media.resolve_image`, which walks the P10
-  fallback chain (progettoSnaps → arcadeDB → wikipediaImage → libretro
-  baseline). A single source's failure (`MediaFetchError` /
+- The image is resolved by `media.resolve_image`, which walks the
+  configured `media.sources` fallback chain (default order: `libretro` →
+  `progettoSnaps` → `arcadeDB` → `wikipediaImage` → `mobyGames`; `libretro`
+  is always appended as the baseline if a user omits it). A single source's
+  failure (`MediaFetchError` /
   `MediaRateLimited`) is swallowed and the chain advances — there is **no
   502 surface for media**. If the whole chain misses (every source returns
   no candidate), the route raises `MediaUpstreamNotFoundError` (404). See

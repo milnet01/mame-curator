@@ -26,6 +26,14 @@ interface DownloadPackModalProps {
 export function DownloadPackModal({ open, onOpenChange }: DownloadPackModalProps) {
   const [copied, setCopied] = useState(false)
 
+  const handleOpenChange = (next: boolean) => {
+    // Reset the transient "Copied!" state on close so a reopen (the component
+    // stays mounted while the Media settings tab is active) never shows a
+    // stale success. (FP33 L1)
+    if (!next) setCopied(false)
+    onOpenChange(next)
+  }
+
   const onCopy = () => {
     // navigator.clipboard is undefined in non-secure (plain-HTTP LAN) contexts,
     // and writeText can reject on a permissions denial — only flip to "Copied!"
@@ -39,7 +47,7 @@ export function DownloadPackModal({ open, onOpenChange }: DownloadPackModalProps
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{strings.settings.mediaPackModal.title}</DialogTitle>
@@ -54,7 +62,7 @@ export function DownloadPackModal({ open, onOpenChange }: DownloadPackModalProps
           </Button>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" onClick={() => handleOpenChange(false)}>
             {strings.settings.mediaPackModal.close}
           </Button>
         </DialogFooter>

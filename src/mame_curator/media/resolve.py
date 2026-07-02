@@ -78,10 +78,23 @@ async def resolve_image(
         if url is None:
             continue  # source has no candidate for this (machine, kind)
         if url.startswith("file://"):
-            # Local-pack source (ProgettoSnaps). fetch_with_cache's
-            # _ALLOWED_URL_SCHEMES rejects file:// (P05 FP27 B4 guard), so
-            # serve the path directly. url2pathname handles the Windows
-            # ``/C:/…`` → ``C:\`` conversion a naive ``urlparse().path`` won't.
+            # Only the local snap-pack source (ProgettoSnaps) is trusted to emit
+            # a file:// URL. A NETWORK source returning file:// is a poisoned /
+            # hostile upstream value (e.g. a MITM on ArcadeDB's plaintext hop
+            # injecting file:///etc/passwd) — serving it would be an arbitrary
+            # local-file read that bypasses fetch_with_cache's
+            # _ALLOWED_URL_SCHEMES guard (which runs only in the else branch).
+            # Drop it. (FP33 H1)
+            if source.name != ProgettoSnapsSource.name:
+                logger.warning(
+                    "media: %s returned a file:// URL but is not the local pack; dropping",
+                    source.name,
+                )
+                continue
+            # Local-pack source. fetch_with_cache's _ALLOWED_URL_SCHEMES rejects
+            # file:// (P05 FP27 B4 guard), so serve the path directly.
+            # url2pathname handles the Windows ``/C:/…`` → ``C:\`` conversion a
+            # naive ``urlparse().path`` won't.
             local = Path(url2pathname(urlparse(url).path))
             if local.is_file():
                 return local

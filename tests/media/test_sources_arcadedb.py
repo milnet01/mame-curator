@@ -170,6 +170,49 @@ async def test_arcadedb_source_prepare_non_object_json_unlinks_cache(tmp_path: P
     assert not cache_file.exists(), "non-object JSON slot should be unlinked"
 
 
+@pytest.mark.asyncio
+async def test_arcadedb_source_prepare_survives_nested_shape_drift(tmp_path: Path) -> None:
+    """FP33 H2: nested upstream shape drift must not crash ``prepare`` (which
+    would escape to the route as a 500). A ``result`` list whose first element
+    is not an object, and non-string URL fields, are treated as no-match —
+    ``url_for`` returns ``None`` and the chain advances."""
+    import httpx
+    import respx
+
+    from mame_curator.media import ArcadeDBSource
+
+    # result[0] is an int, not an object → pre-fix `first.get(...)` AttributeError.
+    src = ArcadeDBSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(_ARCADEDB_SCRAPER_URL).mock(
+                return_value=httpx.Response(200, text='{"release":1,"result":[1]}')
+            )
+            await src.prepare(_machine(), client=client)  # must not raise
+    assert src.url_for(_machine(), "boxart") is None
+
+
+@pytest.mark.asyncio
+async def test_arcadedb_source_prepare_ignores_non_string_url_fields(tmp_path: Path) -> None:
+    """FP33 H2: a non-string ``url_image_flyer`` (upstream drift / injection)
+    must NOT be cached — otherwise ``url_for`` returns a non-str and
+    ``resolve_image``'s ``url.startswith('file://')`` crashes (and a str-shaped
+    ``file://`` value would feed the H1 LFI)."""
+    import httpx
+    import respx
+
+    from mame_curator.media import ArcadeDBSource
+
+    src = ArcadeDBSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    body = '{"release":1,"result":[{"url_image_flyer":123,"url_image_title":null}]}'
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(_ARCADEDB_SCRAPER_URL).mock(return_value=httpx.Response(200, text=body))
+            await src.prepare(_machine(), client=client)  # must not raise
+    assert src.url_for(_machine(), "boxart") is None
+    assert src.url_for(_machine(), "title") is None
+
+
 def test_arcadedb_source_satisfies_media_source_protocol(tmp_path: Path) -> None:
     """Runtime-checkable Protocol — attribute presence."""
     from mame_curator.media import ArcadeDBSource, MediaSource

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { DownloadPackModal } from '../DownloadPackModal'
@@ -20,6 +21,29 @@ describe('DownloadPackModal', () => {
     // Clicking must not throw; the button must not falsely flip to "Copied!".
     fireEvent.click(screen.getByRole('button', { name: /copy command/i }))
     expect(screen.getByRole('button', { name: /copy command/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /copied/i })).toBeNull()
+  })
+
+  it('FP33 L1: resets "Copied!" on close so a reopen never shows a stale success', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    function Harness() {
+      const [open, setOpen] = useState(true)
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>reopen</button>
+          <DownloadPackModal open={open} onOpenChange={setOpen} />
+        </>
+      )
+    }
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: /copy command/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /copied/i })).toBeInTheDocument())
+    // Close via the footer Close button (routes through the reset-on-close handler).
+    const closeButtons = screen.getAllByRole('button', { name: 'Close' })
+    fireEvent.click(closeButtons[closeButtons.length - 1])
+    fireEvent.click(screen.getByRole('button', { name: /reopen/i }))
+    expect(await screen.findByRole('button', { name: /copy command/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /copied/i })).toBeNull()
   })
 

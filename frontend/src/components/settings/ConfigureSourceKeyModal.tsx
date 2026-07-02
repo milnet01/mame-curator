@@ -48,12 +48,9 @@ export function ConfigureSourceKeyModal({
   const onSave = () => {
     save.mutate(
       { name: sourceName, secret },
-      {
-        onSuccess: () => {
-          setSecret('')
-          onOpenChange(false)
-        },
-      },
+      // Close through handleOpenChange so the secret clear + mutation reset are
+      // the single close path (FP33 INFO — was onOpenChange, skipping reset).
+      { onSuccess: () => handleOpenChange(false) },
     )
   }
 

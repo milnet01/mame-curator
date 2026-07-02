@@ -18,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from mame_curator.filter.config import FilterConfig
 from mame_curator.media import Kind  # P10 chunk 9 — source-chain kind vocabulary
@@ -126,7 +126,16 @@ class SourceSecret(BaseModel):
     """Request body for PUT /api/media/sources/{name}/secret."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
-    secret: str = Field(min_length=1)  # empty → 422 before any write
+    secret: str = Field(min_length=1)  # empty / whitespace-only → 422 before any write
+
+    @field_validator("secret", mode="before")
+    @classmethod
+    def _strip_secret(cls, v: object) -> object:
+        # Keys are pasted; a trailing newline or surrounding spaces would be
+        # written verbatim to the 0600 dotfile and break the upstream auth
+        # header. Strip first — a whitespace-only paste then fails min_length=1
+        # → 422 (before any write). (FP33 L4)
+        return v.strip() if isinstance(v, str) else v
 
 
 class UiConfig(BaseModel):

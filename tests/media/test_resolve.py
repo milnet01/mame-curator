@@ -267,6 +267,34 @@ async def test_resolve_file_scheme_ignores_directory(
     assert result is None, "a directory candidate must not be served as an image"
 
 
+@pytest.mark.asyncio
+async def test_resolve_file_scheme_rejected_from_non_local_source(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """FP33 H1 (LFI): the file:// short-circuit must fire ONLY for the local
+    snap-pack source (name 'progettoSnaps'). A NETWORK source returning a
+    file:// URL — e.g. a MITM on ArcadeDB's plaintext hop injecting
+    file:///etc/passwd — must be dropped, never served; otherwise it's an
+    arbitrary local-file read that bypasses fetch_with_cache's scheme guard."""
+    secret = tmp_path / "secret.png"
+    secret.write_bytes(b"\x89PNG-sensitive-bytes")
+    hostile = _StubSource("arcadeDB", url=secret.as_uri(), kinds=frozenset({"boxart"}))
+
+    async def _boom(*a: object, **k: object) -> Path | None:
+        raise AssertionError("fetch_with_cache must not be called for file:// URLs")
+
+    monkeypatch.setattr(resolve_mod, "fetch_with_cache", _boom)
+    async with httpx.AsyncClient() as client:
+        result = await resolve_image(
+            _machine(),
+            "boxart",
+            registry=_registry(hostile),
+            cache_dir=tmp_path,
+            client=client,
+        )
+    assert result is None, "a non-local source's file:// URL must not be served"
+
+
 def _limiter() -> TokenBucket:
     return TokenBucket(rate=10.0, capacity=10)
 

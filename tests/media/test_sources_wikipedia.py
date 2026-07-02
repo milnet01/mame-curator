@@ -160,6 +160,25 @@ async def test_wikipedia_image_source_prepare_non_object_json_unlinks_cache(tmp_
     assert not cache_path_for(url, tmp_path).exists(), "non-object JSON slot should be unlinked"
 
 
+@pytest.mark.asyncio
+async def test_wikipedia_image_source_prepare_survives_non_dict_thumbnail(tmp_path: Path) -> None:
+    """FP33 H2: a truthy-but-non-dict ``thumbnail`` (upstream drift) must not
+    crash ``prepare`` via ``"str".get('source')`` — it's treated as no-match."""
+    import httpx
+    import respx
+
+    from mame_curator.media import WikipediaImageSource
+
+    src = WikipediaImageSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    url = _wikipedia_url_for("Pac-Man")
+    body = '{"title":"Pac-Man","thumbnail":"not-an-object"}'
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(url).mock(return_value=httpx.Response(200, text=body))
+            await src.prepare(_machine(description="Pac-Man"), client=client)  # must not raise
+    assert src.url_for(_machine(), "boxart") is None
+
+
 def test_wikipedia_image_source_satisfies_media_source_protocol(tmp_path: Path) -> None:
     """Runtime-checkable Protocol — attribute presence."""
     from mame_curator.media import MediaSource, WikipediaImageSource

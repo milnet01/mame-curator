@@ -92,7 +92,13 @@ async def resolve_wikipedia_extract(
         return None
     extract = data.get("extract")
     page_title = data.get("title")
-    page_url = (data.get("content_urls") or {}).get("desktop", {}).get("page")
+    # Nested parse-before-trust (FP33 H2): a non-dict content_urls / desktop
+    # would make the chained ``.get(...)`` raise AttributeError — which is NOT a
+    # MediaError, so it would escape the route's ``except MediaError`` and 500
+    # the contractually never-500s wiki path. Guard each container type.
+    content_urls = data.get("content_urls")
+    desktop = content_urls.get("desktop") if isinstance(content_urls, dict) else None
+    page_url = desktop.get("page") if isinstance(desktop, dict) else None
     if not (
         isinstance(extract, str)
         and extract

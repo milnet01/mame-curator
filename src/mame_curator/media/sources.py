@@ -168,18 +168,24 @@ class ProgettoSnapsSource:
         resolved to an absolute form so the produced ``file://`` URLs are
         unambiguous regardless of the caller's CWD.
         """
-        self._snap_dir = snap_dir.resolve() if snap_dir.is_dir() else snap_dir
         self._present: set[str] = set()
         self._missing: set[str] = set()
 
-        # Gate on ``is_dir()`` (not ``exists()``): a ``snap_dir`` that is a
-        # regular FILE passes ``exists()`` but makes ``iterdir()`` raise
-        # NotADirectoryError → crashes build_registry → 500s every media
-        # request. A non-directory simply self-disables.
-        if not snap_dir.is_dir() or not any(snap_dir.iterdir()):
-            self.disabled_reason: str | None = self._DISABLED_REASON
-        else:
-            self.disabled_reason = None
+        # Probe the pack dir once. Gate on ``is_dir()`` (not ``exists()``): a
+        # ``snap_dir`` that is a regular FILE passes ``exists()`` but makes
+        # ``iterdir()`` raise NotADirectoryError. And wrap the whole probe in
+        # ``except OSError`` (FP33 M1): ``is_dir()`` re-raises EACCES and
+        # ``iterdir()`` raises PermissionError on an execute-but-not-read dir —
+        # an unhandled OSError here crashes build_registry → 500s every media
+        # request. Any inaccessible / non-directory path simply self-disables.
+        try:
+            is_dir = snap_dir.is_dir()
+            self._snap_dir = snap_dir.resolve() if is_dir else snap_dir
+            empty = not is_dir or not any(snap_dir.iterdir())
+        except OSError:
+            self._snap_dir = snap_dir
+            empty = True
+        self.disabled_reason: str | None = self._DISABLED_REASON if empty else None
 
     async def prepare(
         self,
@@ -289,19 +295,26 @@ class ArcadeDBSource:
             # MediaFetchError (resolve_image swallows it → next source).
             cache_path_for(url, self._cache_dir).unlink(missing_ok=True)
             raise MediaFetchError(f"arcadeDB returned non-object JSON for {machine.name!r}")
-        result = data.get("result") or []
-        if not result:
+        # Nested parse-before-trust (FP33 H2): the top-level dict guard above
+        # doesn't cover the shape UNDER it. A non-list/empty result is a legit
+        # no-match; a non-dict result[0] or non-string URL field is upstream
+        # drift — treat as no-match rather than let an AttributeError/TypeError
+        # escape to the route as a 500.
+        result = data.get("result")
+        if not isinstance(result, list) or not result:
             return
         first = result[0]
+        if not isinstance(first, dict):
+            return
         urls: dict[str, str] = {}
         flyer = first.get("url_image_flyer")
         title = first.get("url_image_title")
         ingame = first.get("url_image_ingame")
-        if flyer:
+        if isinstance(flyer, str) and flyer:
             urls["boxart"] = flyer
-        if title:
+        if isinstance(title, str) and title:
             urls["title"] = title
-        if ingame:
+        if isinstance(ingame, str) and ingame:
             urls["snap"] = ingame
         if urls:
             self._url_cache[machine.name] = urls
@@ -394,7 +407,11 @@ class WikipediaImageSource:
             # unparseable branch above (else `data.get("thumbnail")` throws).
             cache_path_for(url, self._cache_dir).unlink(missing_ok=True)
             raise MediaFetchError(f"wikipediaImage returned non-object JSON for {machine.name!r}")
-        thumb = (data.get("thumbnail") or {}).get("source")
+        # Nested parse-before-trust (FP33 H2): a truthy-but-non-dict thumbnail
+        # would make ``.get("source")`` raise before the isinstance(thumb, str)
+        # guard runs. Guard the container type first.
+        thumbnail = data.get("thumbnail")
+        thumb = thumbnail.get("source") if isinstance(thumbnail, dict) else None
         if isinstance(thumb, str) and thumb:
             self._url_cache[machine.name] = thumb
 

@@ -186,5 +186,9 @@ def media_source_secret(name: str, body: SourceSecret) -> None:
     """
     if name not in _SECRET_SOURCES:
         raise MediaSourceUnknownError(f"unknown media source for secret write: {name!r}")
+    # NOTE (FP33 L5): _SECRET_SOURCES holds only "mobyGames" today, so `name` is
+    # necessarily mobyGames here and the hardcoded mobygames_key_path() is
+    # correct. Adding a second value-paste source MUST replace this with a
+    # name -> key_path map — else the new source's secret clobbers this one.
     atomic_write_text(mobygames_key_path(), body.secret, mode=0o600)
     logger.info("media/sources: secret saved for %s", name)
