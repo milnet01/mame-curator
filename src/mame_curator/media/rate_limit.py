@@ -63,9 +63,13 @@ class TokenBucket:
         """Consume one token if available; return True on success."""
         now = self._time_fn()
         elapsed = now - self._last
+        # Advance the anchor unconditionally: under a non-monotonic clock a
+        # backward step (elapsed<=0) must still move ``_last`` to ``now``, else
+        # it stays anchored to the pre-step time and a later forward read
+        # measures a negative delta and never re-credits.
+        self._last = now
         if elapsed > 0:
             self._tokens = min(self._capacity, self._tokens + elapsed * self._rate)
-            self._last = now
         if self._tokens >= 1.0:
             self._tokens -= 1.0
             return True

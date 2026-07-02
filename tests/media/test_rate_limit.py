@@ -65,6 +65,23 @@ def test_token_bucket_caps_at_capacity() -> None:
     assert bucket.acquire() is False, "Should cap at capacity, not overflow"
 
 
+def test_token_bucket_advances_last_on_backward_clock_step() -> None:
+    """FP32 LOW: ``_last`` advances on every ``acquire`` — even when the injected
+    clock reports elapsed<=0 (a non-monotonic step backward). Pre-fix ``_last``
+    stayed anchored to the pre-step time, so a later forward read measured a
+    negative delta and never re-credited. Observable: after draining at a
+    stepped-back time, a genuine forward delta refills a token."""
+    from mame_curator.media import TokenBucket
+
+    times = iter([100.0, 90.0, 95.0])  # construct=100, step back to 90, then 95
+    bucket = TokenBucket(rate=1.0, capacity=1, time_fn=lambda: next(times))
+
+    assert bucket.acquire() is True, "drains the only token at t=90"
+    # Pre-fix: _last stuck at 100 → t=95 reads elapsed=-5 → no credit → False.
+    # Fixed: _last==90 → t=95 credits 5*rate (capped at capacity=1) → True.
+    assert bucket.acquire() is True
+
+
 def test_media_rate_limited_inherits_media_error() -> None:
     """MediaRateLimited subclasses MediaError so callers can catch the base."""
     from mame_curator.media import MediaError, MediaRateLimited

@@ -83,6 +83,13 @@ async def resolve_wikipedia_extract(
         raise MediaFetchError(
             f"wikipediaExtract returned unparseable JSON for {machine.name!r}"
         ) from exc
+    if not isinstance(data, dict):
+        # Valid-but-non-object JSON (`[]` / `null` / a bare string) would make
+        # `data.get("extract")` raise AttributeError → route 500. The About
+        # paragraph is non-essential, so degrade to None (unlinking the
+        # poisoned slot so the next request re-fetches).
+        cache_path_for(url, cache_dir).unlink(missing_ok=True)
+        return None
     extract = data.get("extract")
     page_title = data.get("title")
     page_url = (data.get("content_urls") or {}).get("desktop", {}).get("page")

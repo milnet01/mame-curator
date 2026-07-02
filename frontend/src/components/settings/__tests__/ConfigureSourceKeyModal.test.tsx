@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { http, HttpResponse, server } from '@/test/handlers'
@@ -48,6 +49,48 @@ describe('ConfigureSourceKeyModal', () => {
     await user.click(screen.getByRole('button', { name: /^save$/i }))
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['media', 'sources'] })
+  })
+
+  it('FP32 LOW: surfaces the ApiError detail (not a generic string) on 422', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.put('/api/media/sources/:name/secret', () =>
+        HttpResponse.json(
+          { code: 'media_source_unknown', detail: 'No source named mobyGames.', fields: [] },
+          { status: 422 },
+        ),
+      ),
+    )
+    renderModal()
+    await user.type(screen.getByLabelText('API key'), 'bad')
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('No source named mobyGames.')
+  })
+
+  it('FP32 LOW: clears the entered key when the modal is closed (defensive)', async () => {
+    const user = userEvent.setup()
+    function Harness() {
+      const [open, setOpen] = useState(true)
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>reopen</button>
+          <ConfigureSourceKeyModal open={open} onOpenChange={setOpen} sourceName="mobyGames" />
+        </>
+      )
+    }
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
+    render(
+      <QueryClientProvider client={qc}>
+        <Harness />
+      </QueryClientProvider>,
+    )
+    await user.type(screen.getByLabelText('API key'), 'secret-key')
+    await user.click(screen.getByRole('button', { name: /cancel/i }))
+    // Reopen: the field must be empty (the secret is not retained across close).
+    await user.click(screen.getByRole('button', { name: /reopen/i }))
+    expect(await screen.findByLabelText('API key')).toHaveValue('')
   })
 
   it('surfaces an inline error and stays open on 422', async () => {

@@ -113,6 +113,24 @@ def test_progettosnaps_source_sets_disabled_reason_when_dir_absent(
     assert "refresh-snaps" in src.disabled_reason
 
 
+def test_progettosnaps_source_self_disables_when_snap_dir_is_a_file(
+    tmp_path: Path,
+) -> None:
+    """FP32 M1: a ``snap_dir`` that is a regular FILE (not a directory) must
+    self-disable via ``disabled_reason`` — the pre-fix ``.exists()`` +
+    ``.iterdir()`` probe raised ``NotADirectoryError`` at construction, which
+    crashed ``build_registry`` and 500'd every media request."""
+    from mame_curator.media import ProgettoSnapsSource
+
+    snap_file = tmp_path / "snap"
+    snap_file.write_bytes(b"not a directory")
+
+    src = ProgettoSnapsSource(snap_dir=snap_file)  # must not raise
+    assert src.disabled_reason is not None
+    assert "refresh-snaps" in src.disabled_reason
+    assert src.url_for(_machine(), "snap") is None
+
+
 def test_progettosnaps_source_caches_existence_per_request(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

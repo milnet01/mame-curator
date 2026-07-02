@@ -130,7 +130,16 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # one-time WARNING, 401/403 disable, 429/404 auth branches, key redaction,
 # rate-limit short-circuit, boxart-only + deferred-cover contract,
 # already-disabled-flag construction, Protocol conformance). 613 → 628.
-EXPECTED_PYTEST_DECLARATIONS = 671
+# Bumped 2026-07-02 (FP32 — P10 closing-review fold-in): +6 declarations
+# for the closing-review regressions:
+#   • +1 arcadeDB non-object-JSON parse-before-trust (test_sources_arcadedb.py, H1)
+#   • +1 wikipediaImage non-object-JSON parse-before-trust (test_sources_wikipedia.py, H1)
+#   • +1 wikipedia-extract non-object-JSON → None + unlink (test_wikipedia.py, H1)
+#   • +1 progettoSnaps FILE snap_dir self-disables (test_sources_progettosnaps.py, M1)
+#   • +1 TokenBucket advances _last on backward clock step (test_rate_limit.py, LOW)
+#   • +1 resolve_image file:// short-circuit ignores a directory (test_resolve.py, LOW)
+# 671 → 677.
+EXPECTED_PYTEST_DECLARATIONS = 677
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -161,7 +170,15 @@ EXPECTED_PYTEST_DECLARATIONS = 671
 # declarations in SnapshotsTab.test.tsx — the review-state
 # snapshot-exclusion caveat is asserted in both the empty and populated
 # tab states. 304 → 306.
-EXPECTED_VITEST_DECLARATIONS = 319
+# Bumped 2026-07-02 (FP32 — P10 closing-review fold-in): +5 declarations
+# for the closing-review regressions:
+#   • +2 DownloadPackModal.test.tsx — clipboard undefined guard + no false
+#     "Copied!" on a rejected writeText (H2).
+#   • +1 AboutSection.test.tsx — non-https Wikipedia url drops the link (M2).
+#   • +2 ConfigureSourceKeyModal.test.tsx — surfaces the ApiError detail on
+#     422 + defensive clear of the key on close (LOW).
+# 319 → 324.
+EXPECTED_VITEST_DECLARATIONS = 324
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

@@ -27,8 +27,15 @@ export function DownloadPackModal({ open, onOpenChange }: DownloadPackModalProps
   const [copied, setCopied] = useState(false)
 
   const onCopy = () => {
-    void navigator.clipboard.writeText(strings.settings.mediaPackModal.command)
-    setCopied(true)
+    // navigator.clipboard is undefined in non-secure (plain-HTTP LAN) contexts,
+    // and writeText can reject on a permissions denial — only flip to "Copied!"
+    // on a real success so the button never lies. (FP32 H2)
+    if (!navigator.clipboard) return
+    Promise.resolve(navigator.clipboard.writeText(strings.settings.mediaPackModal.command))
+      .then(() => setCopied(true))
+      .catch(() => {
+        /* copy failed (permissions / non-secure) — leave the button un-flipped */
+      })
   }
 
   return (

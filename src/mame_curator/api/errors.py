@@ -176,13 +176,6 @@ class MediaKindInvalidError(ApiException):
     status_code = 400
 
 
-class MediaUpstreamError(ApiException):
-    """502 — upstream libretro-thumbnails request failed."""
-
-    code = "media_upstream_error"
-    status_code = 502
-
-
 class MediaUpstreamNotFoundError(ApiException):
     """404 — upstream returned 404 for the requested media."""
 

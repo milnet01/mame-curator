@@ -83,7 +83,7 @@ async def resolve_image(
             # serve the path directly. url2pathname handles the Windows
             # ``/C:/…`` → ``C:\`` conversion a naive ``urlparse().path`` won't.
             local = Path(url2pathname(urlparse(url).path))
-            if local.exists():
+            if local.is_file():
                 return local
             continue  # pack file vanished between url_for and here; fall through
         try:

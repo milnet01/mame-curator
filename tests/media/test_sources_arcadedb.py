@@ -146,6 +146,30 @@ async def test_arcadedb_source_prepare_unparseable_body_unlinks_cache(tmp_path: 
     assert not cache_file.exists(), "bad cache slot should be unlinked"
 
 
+@pytest.mark.asyncio
+async def test_arcadedb_source_prepare_non_object_json_unlinks_cache(tmp_path: Path) -> None:
+    """FP32 H1: a valid-but-non-object JSON body (``[]`` / ``null`` / a bare
+    string) must not let ``data.get("result")`` raise an uncaught
+    ``AttributeError`` past the fallback chain. Parse-before-trust treats it
+    like unparseable: unlink the poisoned slot + raise ``MediaFetchError``
+    (which ``resolve_image`` swallows → falls through to the next source)."""
+    import httpx
+    import respx
+
+    from mame_curator.media import ArcadeDBSource, MediaFetchError, cache_path_for
+
+    src = ArcadeDBSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    cache_file = cache_path_for(_ARCADEDB_SCRAPER_URL, tmp_path)
+
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(_ARCADEDB_SCRAPER_URL).mock(return_value=httpx.Response(200, text="[]"))
+            with pytest.raises(MediaFetchError):
+                await src.prepare(_machine(), client=client)
+
+    assert not cache_file.exists(), "non-object JSON slot should be unlinked"
+
+
 def test_arcadedb_source_satisfies_media_source_protocol(tmp_path: Path) -> None:
     """Runtime-checkable Protocol — attribute presence."""
     from mame_curator.media import ArcadeDBSource, MediaSource

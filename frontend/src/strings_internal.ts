@@ -685,7 +685,6 @@ export const strings = {
       snapshot_not_found: 'No configuration snapshot with that ID.',
       help_topic_not_found: 'That help topic is unavailable.',
       media_kind_invalid: 'That media kind is not supported.',
-      media_upstream_error: 'Could not reach the libretro-thumbnails server.',
       media_upstream_not_found: 'The requested media is not in the libretro library.',
       // FP21-J / FP22-D: typed launch_game errors lifted out of bare HTTPException.
       retroarch_not_configured:

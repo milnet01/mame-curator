@@ -144,7 +144,6 @@ class vars). `install_handlers` registers three handlers:
 | `SessionNameInvalidError` | `session_name_invalid` | 422 |
 | `HelpTopicNotFoundError` | `help_topic_not_found` | 404 |
 | `MediaKindInvalidError` | `media_kind_invalid` | 400 |
-| `MediaUpstreamError` | `media_upstream_error` | 502 |
 | `MediaUpstreamNotFoundError` | `media_upstream_not_found` | 404 |
 | `RetroArchNotConfiguredError` | `retroarch_not_configured` | 422 |
 | `RomFileNotFoundError` | `rom_file_not_found` | 404 |
@@ -294,10 +293,13 @@ All FS browsing crosses `api/fs.py`:
   `MediaUpstreamNotFoundError` (404). Video art is sourced from
   progettoSnaps rather than libretro-thumbnails (design §6.3) and is not
   served by this proxy today.
-- The URL is built by `media.urls_for(machine)`; bytes are lazily fetched
-  and disk-cached by `media.fetch_with_cache` using the shared
-  `app.state.media_client`. An upstream failure → `MediaUpstreamError`
-  (502); an upstream 404 → `MediaUpstreamNotFoundError` (404).
+- The image is resolved by `media.resolve_image`, which walks the P10
+  fallback chain (progettoSnaps → arcadeDB → wikipediaImage → libretro
+  baseline). A single source's failure (`MediaFetchError` /
+  `MediaRateLimited`) is swallowed and the chain advances — there is **no
+  502 surface for media**. If the whole chain misses (every source returns
+  no candidate), the route raises `MediaUpstreamNotFoundError` (404). See
+  `docs/specs/P10.md` § "Route contract".
 - A cache hit returns a `FileResponse` (content-type sniffed from the
   cached file's suffix) with a 30-day `immutable` `Cache-Control`.
 - This proxy path (libretro-thumbnails) is **not** rate-limited. The

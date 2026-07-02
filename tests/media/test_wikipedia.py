@@ -175,6 +175,25 @@ async def test_wikipedia_extract_returns_none_when_summary_missing_fields(tmp_pa
     assert result is None
 
 
+async def test_wikipedia_extract_non_object_json_returns_none_and_unlinks(tmp_path: Path) -> None:
+    """FP32 H1: a valid-but-non-object JSON body (``[]``) degrades to ``None``
+    (the About paragraph is non-essential) after unlinking the poisoned slot —
+    not an uncaught ``AttributeError`` from ``data.get("extract")`` that 500s
+    the route."""
+    url = _summary_url("Pac-Man")
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(url).mock(return_value=httpx.Response(200, text="[]"))
+            result = await resolve_wikipedia_extract(
+                _machine(description="Pac-Man"),
+                cache_dir=tmp_path,
+                client=client,
+                limiter=_make_unbounded_limiter(),
+            )
+    assert result is None
+    assert not cache_path_for(url, tmp_path).exists(), "poisoned slot must be unlinked"
+
+
 async def test_wikipedia_extract_respects_rate_limit(tmp_path: Path) -> None:
     """An exhausted bucket → ``MediaRateLimited`` before any upstream hit."""
     bucket = TokenBucket(rate=1.0, capacity=1)

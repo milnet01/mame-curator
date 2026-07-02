@@ -241,6 +241,32 @@ async def test_resolve_file_scheme_short_circuits_cache(
     assert result == snap
 
 
+@pytest.mark.asyncio
+async def test_resolve_file_scheme_ignores_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """FP32 LOW: the ``file://`` short-circuit must gate on ``.is_file()``, not
+    ``.exists()`` — a candidate path that is a *directory* (named ``x.png``)
+    must fall through, never be returned as an image path."""
+    snap_dir = tmp_path / "pacman.png"
+    snap_dir.mkdir()  # a directory, not a file
+    local = _StubSource("progettoSnaps", url=snap_dir.as_uri(), kinds=frozenset({"snap"}))
+
+    async def _boom(*a: object, **k: object) -> Path | None:
+        raise AssertionError("fetch_with_cache must not be called for file:// URLs")
+
+    monkeypatch.setattr(resolve_mod, "fetch_with_cache", _boom)
+    async with httpx.AsyncClient() as client:
+        result = await resolve_image(
+            _machine(),
+            "snap",
+            registry=_registry(local),
+            cache_dir=tmp_path,
+            client=client,
+        )
+    assert result is None, "a directory candidate must not be served as an image"
+
+
 def _limiter() -> TokenBucket:
     return TokenBucket(rate=10.0, capacity=10)
 

@@ -58,6 +58,19 @@ describe('AboutSection', () => {
     expect(screen.getByText(/cc.by.sa/i)).toBeInTheDocument()
   })
 
+  it('FP32 M2: drops the read-more link when the url is not https (keeps the text)', async () => {
+    server.use(
+      http.get('/media/:name/wiki', () =>
+        HttpResponse.json({ ...PAC, url: 'javascript:alert(1)' }),
+      ),
+    )
+    renderAbout()
+    // The extract + license still render — only the unsafe link is dropped.
+    expect(await screen.findByText(PAC.extract)).toBeInTheDocument()
+    expect(screen.getByText(/cc.by.sa/i)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /read more/i })).toBeNull()
+  })
+
   it('renders nothing while loading (non-essential — no skeleton)', () => {
     server.use(http.get('/media/:name/wiki', () => new Promise(() => {})))
     const { container } = renderAbout()

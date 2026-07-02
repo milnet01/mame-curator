@@ -138,6 +138,28 @@ async def test_wikipedia_image_source_prepare_rate_limit_raises(tmp_path: Path) 
             await src.prepare(_machine(), client=client)
 
 
+@pytest.mark.asyncio
+async def test_wikipedia_image_source_prepare_non_object_json_unlinks_cache(tmp_path: Path) -> None:
+    """FP32 H1: a valid-but-non-object JSON body (``null``) must raise
+    ``MediaFetchError`` after unlinking the poisoned slot — not an uncaught
+    ``AttributeError`` from ``data.get("thumbnail")`` that escapes the chain."""
+    import httpx
+    import respx
+
+    from mame_curator.media import MediaFetchError, WikipediaImageSource
+    from mame_curator.media.cache import cache_path_for
+
+    src = WikipediaImageSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
+    url = _wikipedia_url_for("Pac-Man")
+    async with httpx.AsyncClient() as client:
+        with respx.mock(assert_all_called=True) as mock:
+            mock.get(url).mock(return_value=httpx.Response(200, text="null"))
+            with pytest.raises(MediaFetchError):
+                await src.prepare(_machine(description="Pac-Man"), client=client)
+
+    assert not cache_path_for(url, tmp_path).exists(), "non-object JSON slot should be unlinked"
+
+
 def test_wikipedia_image_source_satisfies_media_source_protocol(tmp_path: Path) -> None:
     """Runtime-checkable Protocol — attribute presence."""
     from mame_curator.media import MediaSource, WikipediaImageSource

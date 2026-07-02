@@ -168,11 +168,15 @@ class ProgettoSnapsSource:
         resolved to an absolute form so the produced ``file://`` URLs are
         unambiguous regardless of the caller's CWD.
         """
-        self._snap_dir = snap_dir.resolve() if snap_dir.exists() else snap_dir
+        self._snap_dir = snap_dir.resolve() if snap_dir.is_dir() else snap_dir
         self._present: set[str] = set()
         self._missing: set[str] = set()
 
-        if not snap_dir.exists() or not any(snap_dir.iterdir()):
+        # Gate on ``is_dir()`` (not ``exists()``): a ``snap_dir`` that is a
+        # regular FILE passes ``exists()`` but makes ``iterdir()`` raise
+        # NotADirectoryError → crashes build_registry → 500s every media
+        # request. A non-directory simply self-disables.
+        if not snap_dir.is_dir() or not any(snap_dir.iterdir()):
             self.disabled_reason: str | None = self._DISABLED_REASON
         else:
             self.disabled_reason = None
@@ -278,6 +282,13 @@ class ArcadeDBSource:
             raise MediaFetchError(
                 f"arcadeDB returned unparseable JSON for {machine.name!r}"
             ) from exc
+        if not isinstance(data, dict):
+            # Valid JSON but not an object (`[]` / `null` / a bare string) —
+            # `data.get(...)` would raise AttributeError past the fallback
+            # chain. Treat it like unparseable: unlink the poisoned slot + raise
+            # MediaFetchError (resolve_image swallows it → next source).
+            cache_path_for(url, self._cache_dir).unlink(missing_ok=True)
+            raise MediaFetchError(f"arcadeDB returned non-object JSON for {machine.name!r}")
         result = data.get("result") or []
         if not result:
             return
@@ -378,6 +389,11 @@ class WikipediaImageSource:
             raise MediaFetchError(
                 f"wikipediaImage returned unparseable JSON for {machine.name!r}"
             ) from exc
+        if not isinstance(data, dict):
+            # Valid-but-non-object JSON — parse-before-trust, same as the
+            # unparseable branch above (else `data.get("thumbnail")` throws).
+            cache_path_for(url, self._cache_dir).unlink(missing_ok=True)
+            raise MediaFetchError(f"wikipediaImage returned non-object JSON for {machine.name!r}")
         thumb = (data.get("thumbnail") or {}).get("source")
         if isinstance(thumb, str) and thumb:
             self._url_cache[machine.name] = thumb
