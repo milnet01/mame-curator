@@ -1022,8 +1022,9 @@ documenting test-audit-specific false positives.
   Kind: review-fix.
   Source: indie-review-2026-07-02 (P10 /close-phase re-run; 3-lane: media chain / API surface / frontend).
 
-- 🚧 [mame-curator-1087] **FP34 — third closing-review fold-in after P10 (tail: mobygames read guard + spec drift).**
+- ✅ [mame-curator-1087] **FP34 — third closing-review fold-in after P10 (tail: mobygames read guard + spec drift).**
   Third closing verification after FP33 shipped. Both lanes confirmed all FP33 fixes correct + complete; audit clean (allowlist-015, now also in the .ants_review_falsepos.jsonl ledger). Three tail findings:
+  Resolved 2026-07-02 (commit a4aac3e). All 2 MEDIUM + 1 LOW fixed (mobygames read-guard TDD; 2 doc one-liners verified against code). M1 MobyGamesSource._resolve_key read now inside the guard, catching (OSError, UnicodeDecodeError) → self-disable; M2 dropped the spurious Mut. ✓ on the secret route in api/spec.md; L1 added strings.errors.byCode.media_source_unknown. Also committed .ants_review_falsepos.jsonl (machine-readable mypy allowlist-015 ledger). Gates: 855 backend @88% / 342 frontend vitest, all lint/type/security clean; DS05 pytest 685→686. Third and final verification round — severity trailed off to one-line fixes; media surface fully hardened + verified. Parent P10 ready to close (pending co-located media/spec.md, mame-curator-1058).
 
   MEDIUM:
   - M1 (media): MobyGamesSource._resolve_key reads the key dotfile OUTSIDE the try/except OSError that guards stat() (mobygames.py:204) — a non-UTF-8 key file raises UnicodeDecodeError (a ValueError, not OSError), and a TOCTOU delete/perm-change between stat() and read raises OSError; either escapes __init__ → build_registry → 500s every media request instead of self-disabling. Same class as FP33 M1 (guard stopped one line short). Fix: widen the guard to cover read_text, catching (OSError, UnicodeDecodeError) → return None (self-disable). Reproduce-before-fix.

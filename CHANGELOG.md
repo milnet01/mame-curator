@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP34 — P10 third closing-review fold-in (2026-07-02)
+
+The final review round confirmed FP33's fixes and found three small leftovers.
+
+**Fixed**
+
+- A corrupt or non-text MobyGames API-key file no longer takes the whole
+  artwork feature down — it just disables that one source, like every other
+  bad-key case. (mame-curator-1087)
+- Housekeeping: corrected a "modifies data" marker on the API-key endpoint in
+  the API spec (it only writes a key file, holds no lock), and added the
+  friendly message for the "unknown media source" error. (mame-curator-1087)
+
 ### FP33 — P10 second closing-review fold-in (2026-07-02)
 
 A deeper re-review after FP32 shipped found two real bugs FP32's first pass
