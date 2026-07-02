@@ -1267,7 +1267,7 @@ through.
 
 ### 🎨 Features
 
-- 🚧 [mame-curator-1005] **P10 — Media coverage expansion.**
+- ✅ [mame-curator-1005] **P10 — Media coverage expansion.**
   Add fallback art sources beyond libretro-thumbnails:
   progettoSnaps (~60–70% gap-closer, no auth, ~1 day),
   ArcadeDB JSON API (highest-quality images, rate-limited, ~2
@@ -1286,6 +1286,7 @@ through.
   Source: user-2026-05-04 ("Are there additional sites that game
   metadata can be scraped from?").
   Dependencies: P05 ✅, FP10 ✅.
+  Closed 2026-07-02 (tag P10-complete). All 11 chunks shipped + CI-green, then 3 closing-review rounds hardened the media source chain: FP32 (mame-curator-1085), FP33 (1086), FP34 (1087) — 4 HIGH + 5 MEDIUM + LOW/INFO fixed TDD across media/api/frontend/docs, severity trailing to one-liners by round 3. Audit clean throughout (allowlist-015 mypy env FP, now in .ants_review_falsepos.jsonl). Final gates: 855 backend @88% / 342 frontend vitest, all lint/type/security clean; CI green all 8 jobs. Deferred (own items): media/spec.md co-located contract → mame-curator-1058 (now unblocked, next up); MobyGames cover-URL fetch → 1079; Settings enable/disable → 1084; media.snaps_dir binding → 1081; Starlette httpx deprecation → 1082.
 
 - 💭 [mame-curator-1010] **P12 — In-app self-update + INI
   diff-preview UI.**
