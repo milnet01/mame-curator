@@ -976,8 +976,9 @@ documenting test-audit-specific false positives.
   Lanes: backend, frontend, cli.
   Source: indie-review-2026-05-14 Tier 2.
 
-- 🚧 [mame-curator-1085] **FP32 — closing-review fold-in after P10 (media coverage expansion).**
+- ✅ [mame-curator-1085] **FP32 — closing-review fold-in after P10 (media coverage expansion).**
   Findings from the 3-lane closing indie-review (audit static-analysis clean; its 29 mypy 'cannot find fastapi/yaml' warnings are the scrubbed-env false positive — CI mypy passes; logged as allowlist-015).
+  Resolved 2026-07-02 (commit 14f4f1c). All 2 HIGH + 2 MEDIUM + 5 LOW findings fixed TDD (a failing regression test landed first for each behavioural one). H1 isinstance-dict guard in ArcadeDB/WikipediaImage prepare (raise MediaFetchError) + resolve_wikipedia_extract (return None), both unlink the poisoned slot; H2 clipboard guard + resolve-only copied flip; M1 progettoSnaps .is_dir(); M2 AboutSection https-scheme gate; LOWs: api/spec.md 502→404 drift, dead MediaUpstreamError + byCode leaf removed, TokenBucket._last unconditional, resolve .is_file(), ConfigureSourceKeyModal surfaces ApiError.detail + defensive clear. Gates: 846 backend @88% / 341 frontend vitest, all lint/type/security clean; DS05 pins 671→677 / 319→324. Parent P10 stays 🚧 pending the /close-phase re-run.
 
   HIGH:
   - H1 (media): valid-but-non-object JSON (`[]` / `null` / string) makes `data.get(...)` raise AttributeError in ArcadeDBSource.prepare (sources.py:281), WikipediaImageSource.prepare (sources.py:381) and resolve_wikipedia_extract (wikipedia.py:86-88). Not a JSONDecodeError, so parse-before-trust skips the cache unlink AND resolve_image (catches only MediaRateLimited/MediaFetchError) lets it escape → route 500s + persistent poisoned cache slot, defeating the fallback chain. No test. Fix: `if not isinstance(data, dict)` → unlink slot + raise MediaFetchError (image) / return None (wiki), matching parse-before-trust. Add regression tests.

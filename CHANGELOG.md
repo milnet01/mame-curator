@@ -17,6 +17,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### FP32 — P10 closing-review fold-in (2026-07-02)
+
+The closing indie-review of the media feature (run once all 11 P10 chunks had
+shipped) found real defects the spec cold-eyes couldn't — they reviewed
+contracts, not code paths. Fixed TDD, a failing regression test first.
+
+**Fixed**
+
+- An art source returning a valid-but-unexpected response (a JSON array or
+  `null` instead of an object) could make an image request error out — and
+  stay broken via a poisoned cache slot — instead of quietly trying the next
+  source. Now it falls through the fallback chain as intended. (mame-curator-1085)
+- The "copy `refresh-snaps` command" button no longer claims "Copied!" when the
+  browser has no clipboard access (plain-HTTP LAN) or the copy is denied, and a
+  stray file where the snapshot-pack folder is expected no longer takes the
+  whole media feature down. (mame-curator-1085)
+- The Wikipedia "Read more" link only renders for a genuine `https://` URL —
+  defence against a poisoned/MITM link. (mame-curator-1085)
+- Housekeeping: retired the dead 502 media-upstream error surface, made the
+  rate-limiter safe under a non-monotonic clock, and the API-key dialog now
+  shows the server's actual reason on failure instead of a generic message.
+  (mame-curator-1085)
+
 ### P10 chunk 11 — Wikipedia "About" paragraph in the Alternatives drawer (2026-07-01)
 
 **Added**
