@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|-------|
 | **Project phase** | P10 (Media coverage expansion) **CLOSED 2026-07-02**, tag `P10-complete`. Phase history in `docs/journal/P10.md` + `CHANGELOG.md`; App-Build mapping in § "Phase history" below. |
-| **Active item ID** | **mame-curator-1058** — author the co-located `src/mame_curator/media/spec.md` (unblocked by the P10 close; the media contract currently lives only in `docs/specs/P10.md`). Kind: `doc`. |
-| **Active step** | 1 — spec authoring → `/cold-eyes` loop to clean (CLAUDE.md §14) before sign-off. |
-| **Blocked on** | nothing — mame-curator-1058 ready to start. |
-| **Last update** | 2026-07-02 — **P10 closed** (tag `P10-complete`). All 11 chunks + 3 closing-review fix-passes (FP32/FP33/FP34 = mame-curator-1085/1086/1087) shipped + CI-green; media source chain hardened (nested parse-before-trust, `file://` LFI gate, OSError self-disable guards, secret whitespace-strip). Full detail in `docs/journal/P10.md` + `CHANGELOG.md` + `git log`. **Next: mame-curator-1058.** |
-| **Next gate** | Author `src/mame_curator/media/spec.md` (mame-curator-1058) → `/cold-eyes` to clean → sign-off. Then the media/ queue: 1079 (MobyGames cover-fetch), 1081 (`media.snaps_dir` binding), 1082 (Starlette httpx deprecation), 1084 (Settings enable/disable). |
+| **Active item ID** | **none pinned** — user to pick the next media/ item. Queue: 1082 (Starlette httpx deprecation — small, unblocked), 1081 (`media.snaps_dir` binding — small), 1084 (Settings enable/disable), 1079 (MobyGames cover-fetch — **blocked on a real MobyGames API key fixture**). |
+| **Active step** | — (between items). |
+| **Blocked on** | nothing to start on the media/ queue except 1079 (needs a real MobyGames key to capture `tests/fixtures/mobygames_pacman.json`). |
+| **Last update** | 2026-07-03 — **mame-curator-1058 CLOSED** (✅). Authored `src/mame_curator/media/spec.md` (co-located contract for the shipped `media/` package), distilled from P05/P10 and verified clause-by-clause against `src/mame_curator/media/*.py`; ran **5 `/cold-eyes` loops** to convergence (HIGH→MEDIUM→LOW, 6 cold readers), all verified findings fixed inline. Also (session, non-1058): added `local-CI.sh` mirroring `ci.yml` (ae5889d) and `coding-standards.md §8` latest-by-default dep rule + version-break registry (6b670bd), both pushed + CI-green. |
+| **Next gate** | User picks the next media/ item (suggest 1082 or 1081 — small + unblocked). 1079 stays blocked until a MobyGames key is available. |
 | **Convergence checkpoint** | 5 (pause + check in after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt `/debt-sweep` after this many phases without one) |
 | **Last debt sweep** | 2026-05-01 (scope `P02-complete..HEAD` → folded into DS01) |
@@ -22,9 +22,13 @@ becomes active. Closed-phase step logs live in each phase's
 `docs/journal/<ID>.md` + its annotated `<ID>-complete` git tag
 (`git tag --list '*-complete'`).
 
-**mame-curator-1058 — author `src/mame_curator/media/spec.md`**
+**mame-curator-1058 — author `src/mame_curator/media/spec.md`** ✅ CLOSED 2026-07-03
 
-All 9 steps ⬜ (not yet started).
+Doc item — the lighter loop applied (no code/tests): Step 1 spec authoring
+→ 5 `/cold-eyes` loops to a clean pass (all verified findings fixed inline)
+→ committed + ROADMAP flipped ✅. No tag (doc bullet, not a phase).
+
+No item currently active — awaiting the next media/ pick.
 
 ### Active item details
 

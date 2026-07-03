@@ -1059,7 +1059,7 @@ under a docs-review skill.
   Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs + decisions.
   Resolved 2026-06-30: authored src/mame_curator/api/spec.md — the co-located P04 API contract (app factory + lifespan app.state model, frozen WorldState + the 14-route world_lock concurrency invariant, the ApiErrorBody envelope + 24-entry code/status table, the 46-route inventory, copy-job lifecycle + SSE, the home+4-paths FS sandbox, config snapshots/persistence, media proxy, SPA fallback). Ran /cold-eyes to a clean pass (4 loops; every verified HIGH/MEDIUM/LOW fixed — home-root allowlist omission, TokenBucket name + config key, 12→14 lock count, video temporal claim, limiter construction shape, root-id hash shape, MediaRateLimited wire-reachability note).
 
-- 📋 [mame-curator-1058] **Author `src/mame_curator/media/spec.md`.**
+- ✅ [mame-curator-1058] **Author `src/mame_curator/media/spec.md`.**
   Shipped P05 module (with P10 still in flight) ships without a
   co-located `spec.md`. Same rule violation as 1057. Wait for P10 to
   close before drafting so the spec captures the full source surface
@@ -1069,6 +1069,7 @@ under a docs-review skill.
   Lanes: media, docs.
   Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs.
   Re-checked 2026-06-30 (1060/1061 session): still blocked. P10 remains in flight per .claude/workflow.md §1 — Step 3, chunk 6 (MobyGames) plus chunks 7–11 (registry/orchestrator) unshipped. Gate holds: drafting media/spec.md now would document a partial source surface (MobyGames absent). Stays parked until P10 closes.
+  Resolved 2026-07-03: authored src/mame_curator/media/spec.md — the co-located module contract for the shipped media/ package (P10). Distilled from docs/specs/P05.md + P10.md and verified clause-by-clause against src/mame_curator/media/*.py. Ran 5 /cold-eyes loops to convergence (severity fell HIGH→MEDIUM→LOW; 6 independent cold readers); all verified findings (1 HIGH, 2 MEDIUM, ~11 LOW) fixed inline. media/ is no longer the sole shipped module without a co-located spec.md audit surface.
 
 - ✅ [mame-curator-1059] **Author `src/mame_curator/updates/spec.md`.**
   Shipped P07 module ships without a co-located `spec.md`. Same rule
