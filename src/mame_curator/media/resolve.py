@@ -38,12 +38,14 @@ from mame_curator.parser.models import Machine
 
 logger = logging.getLogger(__name__)
 
-# Default local snap-pack directory. Mirrors ``refresh-snaps``'s extraction
-# target (``updates.snaps.DEFAULT_DEST / "snap"`` == ``./data/snaps/snap``).
-# NOT derived from ``cache_dir``: the CLI writes to this fixed CWD-relative
-# path regardless of the media cache location, so the source must read the
-# same fixed path. A ``media.snaps_dir`` config field binding both is a
-# deferred follow-up (P10 spec § chunk-7 notes).
+# Fallback local snap-pack directory for DIRECT callers (tests, and any caller
+# that omits ``snap_dir``). Mirrors ``MediaConfig().snaps_dir / "snap"`` ==
+# ``./data/snaps/snap`` == ``refresh-snaps``'s default extraction target.
+# NOT derived from ``cache_dir`` (the pack folder is independent of the media
+# cache). The API composition root (``api/routes/media.py``) passes
+# ``config.media.snaps_dir / "snap"`` explicitly, so a user who relocates the
+# pack keeps the reader and ``refresh-snaps`` bound to one config field
+# (mame-curator-1081; supersedes the P10 chunk-7 "deferred follow-up" note).
 _DEFAULT_SNAP_DIR = Path("./data/snaps/snap")
 
 

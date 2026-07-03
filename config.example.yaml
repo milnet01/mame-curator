@@ -46,6 +46,10 @@ picker:
 media:
   fetch_videos: false
   cache_dir: ./data/media-cache
+  # progettoSnaps pack folder. `refresh-snaps` downloads here (unless --dest is
+  # given) and the snapshot art source reads it from the same place (images
+  # under <snaps_dir>/snap). Relocate the pack by changing this one value.
+  snaps_dir: ./data/snaps
 
 ui:
   theme: dark                 # dark | light | double_dragon | pacman | sf2 | neogeo

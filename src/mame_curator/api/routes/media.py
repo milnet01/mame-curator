@@ -109,6 +109,10 @@ async def media_proxy(
         wikipedia_limiter=request.app.state.wikipedia_limiter,
         mobygames_limiter=request.app.state.mobygames_limiter,
         mobygames_disabled=request.app.state.mobygames_disabled,
+        # mame-curator-1081: bind the progettoSnaps read-path to config so it
+        # tracks `refresh-snaps --dest` / `media.snaps_dir` instead of the fixed
+        # ./data/snaps/snap default. Pack PNGs live under `<snaps_dir>/snap/`.
+        snap_dir=world.config.media.snaps_dir / "snap",
     )
     # `kind` is one of boxart/title/snap here (video short-circuited above,
     # invalid kinds rejected above) — narrow the untyped route param to Kind.
@@ -166,6 +170,10 @@ def media_sources(request: Request, world: WorldState = Depends(get_world)) -> S
         wikipedia_limiter=request.app.state.wikipedia_limiter,
         mobygames_limiter=request.app.state.mobygames_limiter,
         mobygames_disabled=request.app.state.mobygames_disabled,
+        # mame-curator-1081: readiness must reflect the configured pack folder
+        # too, else Settings → Media shows progettoSnaps disabled while the
+        # media-proxy route (which now reads snaps_dir) serves it, or vice versa.
+        snap_dir=world.config.media.snaps_dir / "snap",
     )
     configured = world.config.media.sources
     ordered = [n for n in configured if n in sources]

@@ -315,6 +315,9 @@ limiters + the `SourceDisabledFlag`, and wraps them in a `MediaSourceRegistry`.
 Building only the configured subset means dropping `mobyGames` from
 `media.sources` also suppresses its keyless-startup WARNING. Keeping the
 factory in `media/` (deps passed explicitly) honours the anti-jump rule.
+`snap_dir` defaults to `_DEFAULT_SNAP_DIR` for direct callers, but the API
+route passes `world.config.media.snaps_dir / "snap"` so the progettoSnaps
+read-path tracks the configured pack folder (mame-curator-1081).
 
 ### `build_all_sources(*, cache_dir, arcadedb_limiter, wikipedia_limiter, mobygames_limiter, mobygames_disabled, snap_dir=_DEFAULT_SNAP_DIR) -> dict[str, MediaSource]`
 
@@ -462,7 +465,7 @@ The following are **caller-side** and live outside `media/`:
   `api/routes/media.py`. **A single source's 5xx / transport failure no longer
   maps to a `502`** — `resolve_image` swallows it and advances the chain; a
   whole-chain miss is the existing `404 media_upstream_not_found`.
-- **`MediaConfig` schema** (`fetch_videos`, `cache_dir`, `sources`,
+- **`MediaConfig` schema** (`fetch_videos`, `cache_dir`, `snaps_dir`, `sources`,
   `arcadedb_rate_limit_per_min`, `mobygames_rate_limit_per_min`) + the
   `SourceReadinessRow` / `SourceReadiness` / `SourceSecret` wire models —
   `api/schemas.py`.
@@ -470,7 +473,9 @@ The following are **caller-side** and live outside `media/`:
   `follow_redirects=True`), the three `TokenBucket`s, and the
   `SourceDisabledFlag` are constructed on `app.state` in `api/app.py`.
 - **The `refresh-snaps` CLI** that downloads + extracts the progettoSnaps pack
-  — `updates/snaps.py` + `cli/`.
+  — `updates/snaps.py` + `cli/`. When `--dest` is omitted it reads
+  `media.snaps_dir` from `--config`, so the download folder and this source's
+  read-path (`snaps_dir/snap`) can't diverge (mame-curator-1081).
 - **Frontend** — Settings → Media tab, `AboutSection`, `useMediaSources`, etc.
 
 Also deferred (out of `media/`'s current scope):
@@ -481,10 +486,6 @@ Also deferred (out of `media/`'s current scope):
 - **MobyGames 200-path cover parse + JSON-body caching** — deferred to
   `mame-curator-1079`. Until then a valid key validates but yields no covers
   (`_url_cache` stays empty; `url_for` → `None`).
-- **Binding `progettoSnaps`'s read path to `refresh-snaps --dest`** — the
-  source reads the fixed `_DEFAULT_SNAP_DIR = ./data/snaps/snap`; a
-  `media.snaps_dir` config field binding both is deferred to
-  `mame-curator-1081`.
 
 ## Architecture notes
 

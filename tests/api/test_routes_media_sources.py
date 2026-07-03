@@ -91,6 +91,33 @@ def test_media_sources_endpoint_marks_progettosnaps_disabled_without_pack(
     assert ps2["disabled_reason"] is None
 
 
+@_all_configured
+@pytest.mark.parametrize("configured_snaps_dir", ["custom-snaps"], indirect=True)
+def test_media_sources_reads_configured_snaps_dir(client: Any, tmp_path: Path) -> None:
+    """progettoSnaps reads ``config.media.snaps_dir/snap`` — not the fixed default.
+
+    Regression for mame-curator-1081: the read-path was hardwired to
+    ``./data/snaps/snap`` regardless of config, so a user who relocated the
+    pack (here via ``media.snaps_dir: custom-snaps``) got a source that never
+    saw it. A pack at the OLD default must be ignored; a pack at the CONFIGURED
+    folder must enable the source.
+    """
+    # A pack at the OLD hardwired default must NOT enable it — config points elsewhere.
+    default_snap = tmp_path / "data" / "snaps" / "snap"
+    default_snap.mkdir(parents=True)
+    (default_snap / "pacman.png").write_bytes(b"\x89PNG")
+    ps = _rows_by_name(client.get("/api/media/sources"))["progettoSnaps"]
+    assert ps["enabled"] is False  # default path is no longer consulted
+
+    # A pack at the CONFIGURED folder (custom-snaps/snap, CWD-relative) enables it.
+    custom_snap = tmp_path / "custom-snaps" / "snap"
+    custom_snap.mkdir(parents=True)
+    (custom_snap / "pacman.png").write_bytes(b"\x89PNG")
+    ps2 = _rows_by_name(client.get("/api/media/sources"))["progettoSnaps"]
+    assert ps2["enabled"] is True
+    assert ps2["disabled_reason"] is None
+
+
 def test_media_sources_endpoint_marks_in_chain_false_for_unconfigured(client: Any) -> None:
     """Default config = ("libretro",): libretro in_chain, the rest listed but not."""
     rows = _rows_by_name(client.get("/api/media/sources"))

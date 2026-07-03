@@ -23,6 +23,8 @@ interface MediaTabProps {
 export function MediaTab({ media, onChange }: MediaTabProps) {
   const [cacheDirDraft, setCacheDirDraft] = useState(media.cache_dir)
   const [browseOpen, setBrowseOpen] = useState(false)
+  const [snapsDirDraft, setSnapsDirDraft] = useState(media.snaps_dir)
+  const [snapsBrowseOpen, setSnapsBrowseOpen] = useState(false)
   const [configureSource, setConfigureSource] = useState<string | null>(null)
   const [packOpen, setPackOpen] = useState(false)
 
@@ -74,6 +76,43 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
             onChange('cache_dir', picked)
           }}
           initialPath={media.cache_dir || undefined}
+        />
+      )}
+
+      {/* mame-curator-1081 — progettoSnaps pack folder; kept in sync with the
+          folder `refresh-snaps` downloads into so the source can't miss it. */}
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="media-snaps-dir">{strings.settings.mediaSnapsLabel}</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="media-snaps-dir"
+            value={snapsDirDraft}
+            onChange={(e) => setSnapsDirDraft(e.target.value)}
+            onBlur={() => {
+              if (snapsDirDraft !== media.snaps_dir) {
+                onChange('snaps_dir', snapsDirDraft)
+              }
+            }}
+          />
+          <Button
+            variant="outline"
+            onClick={() => setSnapsBrowseOpen(true)}
+            aria-label={strings.settings.mediaSnapsBrowseLabel}
+          >
+            {strings.settings.fsBrowserBrowse}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{strings.settings.mediaSnapsHelp}</p>
+      </div>
+      {snapsBrowseOpen && (
+        <FsBrowser
+          open
+          onOpenChange={setSnapsBrowseOpen}
+          onPick={(picked) => {
+            setSnapsDirDraft(picked)
+            onChange('snaps_dir', picked)
+          }}
+          initialPath={media.snaps_dir || undefined}
         />
       )}
 

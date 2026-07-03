@@ -33,6 +33,18 @@ def configured_media_sources(request: pytest.FixtureRequest) -> list[str]:
     return getattr(request, "param", ["libretro"])
 
 
+@pytest.fixture
+def configured_snaps_dir(request: pytest.FixtureRequest) -> str | None:
+    """Optional ``media.snaps_dir`` baked into the test config (mame-curator-1081).
+
+    Default ``None`` omits the key entirely, so the config falls back to
+    ``MediaConfig``'s default (``./data/snaps``) and every existing test is
+    unaffected. Override via indirect parametrize to point the progettoSnaps
+    read-path at a custom folder.
+    """
+    return getattr(request, "param", None)
+
+
 PARSER_FIXTURES = Path(__file__).resolve().parents[1] / "parser" / "fixtures"
 COPY_FIXTURES = Path(__file__).resolve().parents[1] / "copy" / "fixtures"
 API_FIXTURES = Path(__file__).parent / "fixtures"
@@ -129,12 +141,16 @@ def config_file(
     dest_dir: Path,
     media_cache_dir: Path,
     configured_media_sources: list[str],
+    configured_snaps_dir: str | None,
 ) -> Path:
     """Write a config.yaml under tmp_path that points at all reference files.
 
     Per ``docs/specs/P04.md`` § AppConfig schema. The shape mirrors
     ``config.example.yaml`` at the repo root.
     """
+    # mame-curator-1081: only emit snaps_dir when a test overrides it, so the
+    # default-path tests keep exercising MediaConfig's ./data/snaps fallback.
+    snaps_dir_line = f"\n  snaps_dir: {configured_snaps_dir}" if configured_snaps_dir else ""
     config_yaml = f"""
 paths:
   source_roms: {source_dir}
@@ -181,7 +197,7 @@ media:
   # NOTE: keep this YAML ASCII-only -- write_text() here uses the platform
   # encoding (cp1252 on Windows), but load_app_config reads utf-8, so a
   # non-ASCII byte crashes the Windows CI.
-  sources: {json.dumps(configured_media_sources)}
+  sources: {json.dumps(configured_media_sources)}{snaps_dir_line}
 
 ui:
   theme: dark

@@ -467,6 +467,11 @@ export const strings = {
     datSwapActionLabel: (path: string) => `Swap DAT to ${path}`,
     mediaCacheLabel: 'Media cache directory',
     mediaCacheBrowseLabel: 'Browse for media cache directory',
+    // mame-curator-1081 — progettoSnaps pack folder (the source reads <dir>/snap).
+    mediaSnapsLabel: 'Snapshot pack folder',
+    mediaSnapsHelp:
+      'Where the progettoSnaps snapshot pack lives. `refresh-snaps` downloads here and the viewer reads it from the same place (images under <folder>/snap).',
+    mediaSnapsBrowseLabel: 'Browse for snapshot pack folder',
     // P10 chunk 10 — Media source readiness list + key/pack modals.
     mediaSources: {
       sectionLabel: 'Art sources (priority order)',

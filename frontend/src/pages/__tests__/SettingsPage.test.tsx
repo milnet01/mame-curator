@@ -164,6 +164,42 @@ describe('SettingsPage', () => {
     )
   })
 
+  it('renders an editable media.snaps_dir input on the Media tab (mame-curator-1081)', async () => {
+    const user = userEvent.setup()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await user.click(screen.getByRole('tab', { name: /^Media$/ }))
+    const input = screen.getByLabelText(/^Snapshot pack folder$/) as HTMLInputElement
+    expect(input.value).toBe('./data/snaps')
+  })
+
+  it('patches media.snaps_dir on blur when the value changes (mame-curator-1081)', async () => {
+    const user = userEvent.setup()
+    const onPatch = vi.fn()
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    )
+    await user.click(screen.getByRole('tab', { name: /^Media$/ }))
+    const input = screen.getByLabelText(/^Snapshot pack folder$/)
+    await user.clear(input)
+    await user.type(input, '/packs/snaps')
+    await user.tab()
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        media: expect.objectContaining({ snaps_dir: '/packs/snaps' }),
+      }),
+    )
+  })
+
   it('renders 4 editable path rows on the Paths tab (FP12 § H)', () => {
     render(
       <SettingsPage

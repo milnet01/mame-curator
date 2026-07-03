@@ -17,6 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### mame-curator-1081 — snapshot pack folder is now a setting (2026-07-03)
+
+**Added**
+
+- A new **Snapshot pack folder** setting (Settings → Media) tells the app
+  where the progettoSnaps snapshot art lives. Point it anywhere; the
+  downloader and the viewer both follow it, so a relocated pack can't go
+  unseen. (mame-curator-1081)
+
+**Fixed**
+
+- The snapshot art source used to look only in the fixed `./data/snaps`
+  folder, even if you downloaded the pack elsewhere with
+  `refresh-snaps --dest …` — so those images silently never showed. The
+  viewer now reads the folder from your config (`media.snaps_dir`), and
+  `refresh-snaps` reads the same setting when you don't pass `--dest`, so the
+  two can't drift apart. (mame-curator-1081)
+
 ### Dev tooling — silence the Starlette test-client deprecation warning (2026-07-03)
 
 **Changed**

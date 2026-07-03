@@ -152,7 +152,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-07-02 (FP34 — P10 third closing-review fold-in): +1 declaration —
 # MobyGamesSource self-disables on a non-UTF-8 / unreadable key file rather than
 # crashing build_registry (test_sources_mobygames.py, M1). 685 → 686.
-EXPECTED_PYTEST_DECLARATIONS = 686
+# Bumped 2026-07-03 (mame-curator-1081 — media.snaps_dir binding): +5 declarations:
+#   • +4 tests/cli/test_cli_refresh_snaps.py — refresh-snaps --dest resolution
+#     (config default / explicit override / missing-config fallback / broken-config).
+#   • +1 tests/api/test_routes_media_sources.py — progettoSnaps reads the
+#     configured snaps_dir/snap, not the fixed default.
+# 686 → 691.
+EXPECTED_PYTEST_DECLARATIONS = 691
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -194,7 +200,10 @@ EXPECTED_PYTEST_DECLARATIONS = 686
 # Bumped 2026-07-02 (FP33 — P10 second closing-review fold-in): +1 declaration
 # in DownloadPackModal.test.tsx — "Copied!" resets on close so a reopen shows no
 # stale success (L1). 324 → 325.
-EXPECTED_VITEST_DECLARATIONS = 325
+# Bumped 2026-07-03 (mame-curator-1081 — media.snaps_dir binding): +2 declarations
+# in SettingsPage.test.tsx — the media.snaps_dir input renders + patches on blur.
+# 325 → 327.
+EXPECTED_VITEST_DECLARATIONS = 327
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

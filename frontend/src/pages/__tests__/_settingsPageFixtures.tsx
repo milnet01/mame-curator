@@ -74,6 +74,7 @@ export const config: AppConfigResponse = {
   media: {
     fetch_videos: false,
     cache_dir: './data/media-cache',
+    snaps_dir: './data/snaps',
     arcadedb_rate_limit_per_min: 30,
     mobygames_rate_limit_per_min: 5,
     sources: ['libretro', 'progettoSnaps', 'arcadeDB', 'wikipediaImage', 'mobyGames'],

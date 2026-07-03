@@ -171,8 +171,18 @@ def build_parser() -> argparse.ArgumentParser:
     refresh_snaps.add_argument(
         "--dest",
         type=Path,
-        default=Path("./data/snaps"),
-        help="Destination root (the pack lands under <dest>/snap/). Default: ./data/snaps",
+        default=None,
+        help=(
+            "Destination root (the pack lands under <dest>/snap/). When omitted, "
+            "reads media.snaps_dir from --config so the download folder tracks the "
+            "folder the media source reads (default: ./data/snaps)."
+        ),
+    )
+    refresh_snaps.add_argument(
+        "--config",
+        type=Path,
+        default=Path("config.yaml"),
+        help="Config file to read media.snaps_dir from when --dest is omitted.",
     )
     refresh_snaps.add_argument(
         "--url",

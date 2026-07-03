@@ -118,6 +118,8 @@ export interface FsConfig {
 export interface MediaConfig {
   fetch_videos: boolean
   cache_dir: string
+  // mame-curator-1081 — progettoSnaps pack root; the source reads snaps_dir/snap
+  snaps_dir: string
   arcadedb_rate_limit_per_min: number
   mobygames_rate_limit_per_min: number
   // P10 chunk 7 — fallback source order (see api/schemas.py MediaConfig.sources)

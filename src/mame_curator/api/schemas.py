@@ -80,6 +80,13 @@ class MediaConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     fetch_videos: bool = False
     cache_dir: Path = Path("./data/media-cache")
+    # mame-curator-1081 — local progettoSnaps pack root. `refresh-snaps`
+    # downloads/extracts the pack under `snaps_dir/snap/`, and the
+    # progettoSnaps media source reads its PNGs from the same `snaps_dir/snap/`.
+    # Binding both to one config field means relocating the pack can't leave
+    # the reader pointed at the old (fixed) path. Default mirrors the CLI's
+    # historical `--dest` default (./data/snaps).
+    snaps_dir: Path = Path("./data/snaps")
     # P10 chunk 4 — ArcadeDB scraper rate-limit knob. Default 30 req/min;
     # the public service has no documented hard cap but is a hobby site,
     # so we cap ourselves at a courteous rate. Configurable so ops can
