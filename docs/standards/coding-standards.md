@@ -158,6 +158,19 @@ Spec template (kept short — it is documentation, not prose):
   - **Vitest** + `@testing-library/react` + **Playwright** (one E2E).
   - **pre-commit** hooks: `ruff check`, `ruff format`, `mypy`, `pytest -q -x` (fast subset), `gitleaks`, frontend `eslint`/`prettier`.
 - **No lock-pinning to bleeding-edge zero-x releases** unless the feature is essential. Pin to the most recent stable.
+- **Latest stable by default — for features *and* security.** Every dependency — Python runtime + dev, frontend runtime + dev, GitHub Actions + runner images, pre-commit hooks, container bases — tracks the **most recent stable release**. This is a standing rule, not a per-need reaction: security fixes and features both ride the latest version, so the project never sits on a release carrying a known CVE or a superseded API. Reinforces (and makes project-enforceable) global rules 5 / 5a–5c. Bump on a cadence — at each release-cycle start, and whenever you open a manifest (`pyproject.toml`, `frontend/package.json`, `.github/workflows/*`, `.pre-commit-config.yaml`) for any other reason: run `uv sync --upgrade` / `npm outdated` on the way past and take what's safe.
+- **Pinning below latest is the rare, documented exception.** Hold a dependency below its latest release ONLY when a newer version *explicitly breaks* one of our features **and** there is no reasonable workaround (a version pin to dodge a real upstream regression is the legitimate case global rule 1's "no workaround without a root-cause fix" allows — the upstream regression *is* the root cause). Whenever you pin:
+  1. **Record it** in the Version-break registry below.
+  2. **Comment the pin site** (`pyproject.toml` / `package.json` / the workflow / the pre-commit config) naming the breaking version and pointing at the registry row — so the pin reads as deliberate, never as neglect (global rule 1).
+  3. **Set the re-test trigger.** The registry row names the version that broke us; the moment a version *newer than that* ships, re-test the affected feature against it — if it's fixed, delete the pin and bump. A pin is a debt with a payoff date, not a permanent decision.
+
+  **Version-break registry.** The living record of every dependency held below latest, why, and when to re-test. **Currently empty** — as of 2026-07-03 no dependency is pinned below latest for a break reason. When a pin is added, append a row (newest first) and keep it until the pin is lifted:
+
+  | Dependency | Ecosystem | Held at | Broken from (version) | What it breaks | Recorded | Re-test trigger |
+  |---|---|---|---|---|---|---|
+  | _(example — delete when a real entry lands)_ `somelib` | Python | `1.4.2` | `1.5.0` | `tests/x/test_foo` — upstream changed `bar()`'s return shape | 2026-07-03 | any `somelib > 1.5.0` ships → re-run `test_foo`; un-pin if green |
+
+  The `mypy`-vs-`Ty` note and `engines.node = 24.x` are **not** registry entries: the former is a tooling-choice pending Ty's 1.0, the latter a supported-runtime floor. The registry is only for "a newer version exists and we cannot take it yet because it breaks us."
 
 ## 9. Errors, logging, observability
 
