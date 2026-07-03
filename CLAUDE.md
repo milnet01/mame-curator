@@ -27,9 +27,14 @@ For shipped status and what's next, see [`ROADMAP.md`](ROADMAP.md) and [`CHANGEL
 # Setup
 uv sync --extra dev && uv run pre-commit install
 
-# Full local CI gate (all five must pass on `main`)
-uv run pytest && uv run ruff check && uv run ruff format --check \
-    && uv run mypy && uv run bandit -c pyproject.toml -r src
+# Full CI mirror — runs every check .github/workflows/ci.yml runs, in the
+# same order (backend gates + api-type-sync + frontend + gitleaks). Keep it
+# in lockstep with ci.yml. `--fresh` provisions first (uv sync + npm ci).
+./local-CI.sh
+
+# Backend-only gate (the five that must pass on `main`; a subset of the above)
+uv run ruff check && uv run ruff format --check && uv run mypy \
+    && uv run bandit -c pyproject.toml -r src && uv run pytest
 
 # Single test
 uv run pytest tests/parser/test_dat.py::test_parse_dat_minimal -xvs
