@@ -1398,11 +1398,12 @@ through.
   Kind: implement.
   Source: in-session-2026-07-01 (P10 chunk 7 — cold-eyes surfaced gap).
 
-- 📋 [mame-curator-1082] **Silence StarletteDeprecationWarning (httpx-with-testclient) surfaced on every pytest run.**
+- ✅ [mame-curator-1082] **Silence StarletteDeprecationWarning (httpx-with-testclient) surfaced on every pytest run.**
   Every `uv run pytest` prints one `StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated; install httpx2 instead` (from `fastapi/testclient.py:1`). Pre-existing, dependency-driven — not introduced by chunk 7, but surfaced by its gate run. Per keep-deps-latest: evaluate migrating the FastAPI/Starlette test client to `httpx2`, or pin/filter the warning with a documented reason if the migration isn't yet clean. Lane: api / deps-hygiene.
   **Layman:** A harmless 'this will change in a future version' notice prints on every test run. Tidy it up so real warnings don't get lost in the noise.
   Kind: chore.
   Source: in-session-2026-07-01 (surfaced during P10 chunk 7 gate).
+  Resolved (2026-07-03): migrated (not filtered) — added httpx2>=2.5 to dev deps. Starlette 1.2 TestClient imports `httpx2 as httpx`, so its presence silences the per-run StarletteDeprecationWarning from fastapi/testclient.py. httpx2 (2.5.0) is a real PyPI package; it coexists with the runtime media-proxy httpx>=0.28 (unaffected). Full backend gate green: 856 passed, coverage 88.12%, warning count 0.
 
 - 💭 [mame-curator-1083] **App-wide CSRF / cross-site protection for mutation routes (security-hardening pass).**
   P10 chunk 9's PUT /api/media/sources/{name}/secret ships loopback-trust (user decision) — matching every existing mutation route (config import/restore/export, fs allowed-root grants, sessions, overrides), none of which authenticate; the app binds 127.0.0.1 by default. The realistic residual risk is a malicious page in the user's browser issuing a cross-site POST to localhost (CSRF). If addressed, it must be app-wide (a per-route token on just the secret endpoint leaves the higher-value config/fs write routes exposed) — e.g. an Origin/Referer check or a startup-printed token required on all state-changing routes. Considered, not scheduled: low priority for a single-user localhost tool. Lane: api / security.

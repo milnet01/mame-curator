@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Dev tooling — silence the Starlette test-client deprecation warning (2026-07-03)
+
+**Changed**
+
+- Every `pytest` run printed a harmless "this will change in a future
+  version" notice from the web test-client, which risked burying real
+  warnings in the noise. Added the `httpx2` package to the developer test
+  tools so the notice no longer appears. The app itself is unchanged — this
+  only affects how tests run. (mame-curator-1082)
+
 ### FP34 — P10 third closing-review fold-in (2026-07-02)
 
 The final review round confirmed FP33's fixes and found three small leftovers.

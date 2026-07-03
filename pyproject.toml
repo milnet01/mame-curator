@@ -47,6 +47,10 @@ dev = [
     "pytest-asyncio>=0.25",
     "hypothesis>=6.152",
     "respx>=0.22",
+    "httpx2>=2.5",              # tests — Starlette 1.2 TestClient imports httpx2;
+                               # absent, it falls back to httpx + a deprecation
+                               # warning on every run (mame-curator-1082). Runtime
+                               # media proxy still uses httpx>=0.28 (unaffected).
     "ruff>=0.15",
     "mypy>=2.1",
     "bandit>=1.8",
