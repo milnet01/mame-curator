@@ -203,7 +203,11 @@ EXPECTED_PYTEST_DECLARATIONS = 691
 # Bumped 2026-07-03 (mame-curator-1081 — media.snaps_dir binding): +2 declarations
 # in SettingsPage.test.tsx — the media.snaps_dir input renders + patches on blur.
 # 325 → 327.
-EXPECTED_VITEST_DECLARATIONS = 327
+# Bumped 2026-07-04 (mame-curator-1084 — enable/disable art sources): +9 declarations
+# — 5 in MediaSourceRow.test.tsx (toggle reflects in_chain / onToggle fires up +
+# down / libretro locked) and 4 in MediaTab.sources.test.tsx (unconfigured render,
+# add, remove, libretro-locked). 327 → 336.
+EXPECTED_VITEST_DECLARATIONS = 336
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
