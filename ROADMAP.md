@@ -1413,11 +1413,12 @@ through.
   Kind: security.
   Source: in-session-2026-07-01 (P10 chunk-9 secret-route auth decision).
 
-- 📋 [mame-curator-1084] **Settings → Media: enable/disable art sources (add/remove from the fallback chain).**
+- ✅ [mame-curator-1084] **Settings → Media: enable/disable art sources (add/remove from the fallback chain).**
   P10 chunk 10 shipped the Settings → Media source list as reorder + live readiness + Configure-key / Download-pack modals over the *configured* sources (media.sources). The mockup's per-row enable/disable checkbox (add/remove a source from media.sources, with unconfigured sources rendered below the reorderable list with an Enable affordance) was deferred: it's untested, the common case is the default all-five tuple, and it introduces a fiddly unconfigured-below-the-list state. To close: add the checkbox to MediaSourceRow toggling media.sources membership (PATCH /api/config), render unconfigured known sources below the DragReorderList with an Enable button, and add vitest coverage. Note libretro is always re-appended by the backend registry, so its checkbox is a no-op ("always on"). Lane: frontend.
   **Layman:** Add a checkbox next to each art source so you can turn one off entirely (not just reorder it) — e.g. skip MobyGames if you'll never set a key.
   Kind: feature.
   Source: in-session-2026-07-01 (P10 chunk 10 — deferred from the Media tab UI).
+  Resolved (2026-07-04): shipped frontend-only. The readiness endpoint (GET /api/media/sources) already returned every known source with an `in_chain` flag (configured-first then unconfigured-alphabetised), so no backend change was needed — simpler than the bullet anticipated. MediaSourceRow gained a per-row toggle (checked=in_chain; onToggle add/removes from media.sources via PATCH /api/config). libretro's toggle is locked-on since MediaSourceRegistry.chain_for always re-appends it (removing it would be a no-op lie). Unconfigured known sources (in_chain=false) render in an "Available sources (off)" list below the DragReorderList, each with the same toggle (off→on appends to the chain). Chose a toggle switch over the mockup's checkbox (user pick, 2026-07-04) — the toggle subsumes a separate Enable button (shortest-correct). TDD: +9 vitest first (MediaSourceRow toggle reflects in_chain / onToggle fires / libretro locked; MediaTab renders unconfigured below + add/remove/lock). Full frontend gate green (tsc, eslint, 353 vitest). Files: MediaSourceRow.tsx, MediaTab.tsx, strings_internal.ts + 2 test files.
 
 ### 🔌 Plugins / extensions
 

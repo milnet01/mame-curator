@@ -482,6 +482,11 @@ export const strings = {
       statusDisabled: 'Disabled',
       configureButton: 'Configure…',
       downloadPackButton: 'Download pack…',
+      // mame-curator-1084 — per-source on/off toggle + the "available (off)" list.
+      toggleAriaLabel: (name: string) => `Toggle ${name} art source`,
+      lockedHint: 'always on',
+      unconfiguredLabel: 'Available sources (off)',
+      unconfiguredHelp: 'Turn one on to add it to the fallback chain above.',
     },
     mediaKeyModal: {
       title: 'Configure MobyGames API key',

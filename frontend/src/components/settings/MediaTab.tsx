@@ -15,6 +15,10 @@ import type { AppConfigResponse, SourceReadinessRow } from '@/api/types'
 
 type MediaCfg = AppConfigResponse['media']
 
+// mame-curator-1084 — the backend registry always re-appends this source
+// (`MediaSourceRegistry.chain_for`), so its toggle is locked on.
+const BASELINE_SOURCE = 'libretro'
+
 interface MediaTabProps {
   media: MediaCfg
   onChange: <K extends keyof MediaCfg>(key: K, value: MediaCfg[K]) => void
@@ -36,6 +40,27 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
       ),
     [readiness],
   )
+  // mame-curator-1084 — known sources the user has turned off (not in the
+  // fallback chain). The backend readiness surface returns them in_chain=false,
+  // already alphabetised; we render them below the reorderable list.
+  const unconfigured = useMemo(
+    () => (readiness?.sources ?? []).filter((r) => !r.in_chain),
+    [readiness],
+  )
+
+  // Add/remove a source from the media.sources fallback chain (PATCH via
+  // onChange). Toggling on appends to the end (lowest priority); reorder moves
+  // it up. Toggling off drops it. libretro is locked, so it never reaches here.
+  const toggleSource = (name: string, next: boolean) => {
+    if (next) {
+      if (!media.sources.includes(name)) onChange('sources', [...media.sources, name])
+    } else {
+      onChange(
+        'sources',
+        media.sources.filter((n) => n !== name),
+      )
+    }
+  }
 
   return (
     <>
@@ -135,12 +160,41 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
                 row={row}
                 onConfigure={setConfigureSource}
                 onDownloadPack={() => setPackOpen(true)}
+                onToggle={toggleSource}
+                locked={name === BASELINE_SOURCE}
               />
             ) : (
               <span>{name}</span>
             )
           }}
         />
+
+        {/* mame-curator-1084 — known sources currently off (not in the chain). */}
+        {unconfigured.length > 0 && (
+          <div className="mt-2 flex flex-col gap-2">
+            <div>
+              <Label>{strings.settings.mediaSources.unconfiguredLabel}</Label>
+              <p className="text-xs text-muted-foreground">
+                {strings.settings.mediaSources.unconfiguredHelp}
+              </p>
+            </div>
+            <ul className="flex flex-col gap-1">
+              {unconfigured.map((row) => (
+                <li
+                  key={row.name}
+                  className="flex items-center rounded-md border px-3 py-2"
+                >
+                  <MediaSourceRow
+                    row={row}
+                    onConfigure={setConfigureSource}
+                    onDownloadPack={() => setPackOpen(true)}
+                    onToggle={toggleSource}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {configureSource !== null && (

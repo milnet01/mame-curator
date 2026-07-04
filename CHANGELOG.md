@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### mame-curator-1084 — turn art sources on or off (2026-07-04)
+
+**Added**
+
+- Each art source in Settings → Media now has an on/off switch, so you can
+  drop one from the lineup entirely instead of only reordering it — for
+  example, skip MobyGames if you'll never add a key. Sources you've switched
+  off collect in an "Available sources (off)" list underneath; flip one back
+  on to return it to the fallback chain. (libretro stays on — it's the
+  built-in baseline the app always falls back to.) (mame-curator-1084)
+
 ### mame-curator-1081 — snapshot pack folder is now a setting (2026-07-03)
 
 **Added**

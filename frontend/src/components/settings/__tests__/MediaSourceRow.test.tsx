@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 
 import { MediaSourceRow } from '../MediaSourceRow'
 import type { SourceReadinessRow } from '@/api/types'
@@ -22,7 +23,7 @@ function row(over: Partial<SourceReadinessRow> = {}): SourceReadinessRow {
 describe('MediaSourceRow', () => {
   it('renders a green Active dot for an enabled source, with no reason line', () => {
     const { container } = render(
-      <MediaSourceRow row={row()} onConfigure={noop} onDownloadPack={noop} />,
+      <MediaSourceRow row={row()} onConfigure={noop} onDownloadPack={noop} onToggle={noop} />,
     )
     expect(container.querySelector('[data-state="active"]')).not.toBeNull()
     expect(container.querySelector('[data-state="disabled"]')).toBeNull()
@@ -42,6 +43,7 @@ describe('MediaSourceRow', () => {
         })}
         onConfigure={noop}
         onDownloadPack={noop}
+        onToggle={noop}
       />,
     )
     expect(container.querySelector('[data-state="disabled"]')).not.toBeNull()
@@ -55,8 +57,81 @@ describe('MediaSourceRow', () => {
         row={row({ name: 'libretro', enabled: false, needs_config: false, disabled_reason: 'down' })}
         onConfigure={noop}
         onDownloadPack={noop}
+        onToggle={noop}
       />,
     )
     expect(screen.queryByRole('button', { name: /configure/i })).toBeNull()
+  })
+
+  // mame-curator-1084 — per-source on/off toggle (chain membership).
+  it('renders a checked toggle for an in-chain source', () => {
+    render(
+      <MediaSourceRow
+        row={row({ name: 'arcadeDB', in_chain: true })}
+        onConfigure={noop}
+        onDownloadPack={noop}
+        onToggle={noop}
+      />,
+    )
+    const toggle = screen.getByRole('switch', { name: /arcadeDB/i })
+    expect(toggle).toBeChecked()
+    expect(toggle).toBeEnabled()
+  })
+
+  it('renders an unchecked toggle for an unconfigured source', () => {
+    render(
+      <MediaSourceRow
+        row={row({ name: 'wikipediaImage', in_chain: false })}
+        onConfigure={noop}
+        onDownloadPack={noop}
+        onToggle={noop}
+      />,
+    )
+    expect(screen.getByRole('switch', { name: /wikipediaImage/i })).not.toBeChecked()
+  })
+
+  it('calls onToggle(name, false) when an in-chain source is switched off', async () => {
+    const onToggle = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <MediaSourceRow
+        row={row({ name: 'arcadeDB', in_chain: true })}
+        onConfigure={noop}
+        onDownloadPack={noop}
+        onToggle={onToggle}
+      />,
+    )
+    await user.click(screen.getByRole('switch', { name: /arcadeDB/i }))
+    expect(onToggle).toHaveBeenCalledWith('arcadeDB', false)
+  })
+
+  it('calls onToggle(name, true) when an unconfigured source is switched on', async () => {
+    const onToggle = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <MediaSourceRow
+        row={row({ name: 'mobyGames', in_chain: false })}
+        onConfigure={noop}
+        onDownloadPack={noop}
+        onToggle={onToggle}
+      />,
+    )
+    await user.click(screen.getByRole('switch', { name: /mobyGames/i }))
+    expect(onToggle).toHaveBeenCalledWith('mobyGames', true)
+  })
+
+  it('locks the toggle on (checked + disabled) for the always-on baseline source', () => {
+    render(
+      <MediaSourceRow
+        row={row({ name: 'libretro', in_chain: true })}
+        onConfigure={noop}
+        onDownloadPack={noop}
+        onToggle={noop}
+        locked
+      />,
+    )
+    const toggle = screen.getByRole('switch', { name: /libretro/i })
+    expect(toggle).toBeChecked()
+    expect(toggle).toBeDisabled()
   })
 })
