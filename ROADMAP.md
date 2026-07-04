@@ -164,12 +164,13 @@ wave lands.
   Source: user-2026-05-08 ("ensure that we are on the latest version
   of all dependencies"); reinforces global rule § 5.
 
-- 📋 [mame-curator-1076] **Review the `macos-latest` CI runner pin ahead of the macOS 26 migration.**
+- ✅ [mame-curator-1076] **Review the `macos-latest` CI runner pin ahead of the macOS 26 migration.**
   CI annotation on run 28463638134 (2026-06-30): "The macos-latest label will migrate to macOS 26 beginning June 15, 2026" (actions/runner-images#14167). The `macos-latest` matrix leg in `.github/workflows/*` will roll to macOS 26 automatically on that date. Before 2026-06-15, confirm the Python/uv toolchain + test suite still green on macOS 26 (or pin to `macos-15` deliberately with a reason per global rule 5a). Low priority — auto-migration, not a break.
   **Layman:** GitHub is changing what "latest macOS" means for our test runner on 15 June 2026 — check our setup still works before then.
   Kind: chore.
   Lanes: ci.
   Source: ci-annotation-2026-06-30.
+  Resolved (2026-07-04): verified green on macOS 26 — no pin-back needed. The `macos-latest` label is mid-rollout: CI run 28667637025 (HEAD d61a275, 2026-07-03, post-migration) ran the `macos-latest, 3.12` leg on `macos-26-arm64` and the `3.13` leg on `macos-15-arm64` — both passed (uv + Python + full backend gate). Keeping `macos-latest` unpinned per latest-by-default (global rule 5 / coding-standards §8); the auto-migration is safe. No workflow change required.
 
 - ✅ [mame-curator-1077] **Split `LibraryPage.tsx` (579 lines) under the frontend file-size hard cap.**
   `frontend/src/pages/LibraryPage.tsx` is 579 lines, over the frontend file-size hard cap (`coding-standards.md` §2). It is NOT in the DS02 acknowledged-exceptions list (those are `copy/runner.py` 540, `strings_internal.ts` 646, `api/schemas.ts` 591). The breach predates P14 — `docs/specs/P14.md` § "Module layout" called it out as a follow-up concern ("extract a small `LibraryHeader.tsx` if convenient") and not a P14 blocker. Likely split lines: the header/progress-chip + walkthrough-toggle block into `LibraryHeader.tsx`, and/or the review-state + cart wiring into a hook. Note: `coding-standards.md` §2 and `docs/specs/P14.md` disagree on the exact frontend cap (350 vs the 500 DS02 treats as hard) — confirm the canonical number when picking this up.
