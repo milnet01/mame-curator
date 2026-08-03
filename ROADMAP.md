@@ -285,6 +285,21 @@ wave lands.
   Lanes: docs.
   Source: doc-layout-audit-2026-08-03.
 
+- 💭 [mame-curator-1093] **`docs/discovery.md` deliberately not written — do not re-raise.**
+  The app-workflow Phase A output `docs/discovery.md` (problem, users,
+  success criteria, stack, out-of-scope, distribution) has never existed in
+  this project. The 2026-08-03 doc-layout audit flagged it as a gap; the
+  user chose to leave it absent, on the grounds that back-filling a
+  discovery document for a project already past v1.0.0 produces fiction
+  rather than a record of what was actually decided up front. The
+  equivalent content, written when it was true, is spread across
+  README.md, docs/plans/phase-plan.md and docs/design.md. A future audit
+  will flag this again — this bullet is the answer, not a to-do.
+  **Layman:** A "what problem are we solving" document that the workflow normally asks for up front; we decided not to invent one after the fact.
+  Kind: doc.
+  Lanes: docs.
+  Source: user-decision-2026-08-03 (doc-layout audit).
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
