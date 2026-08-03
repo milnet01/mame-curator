@@ -260,6 +260,20 @@ wave lands.
   Lanes: cli, docs.
   Source: cold-eyes-2026-08-03 (mame-curator-1088 review).
 
+- 📋 [mame-curator-1092] **Rename the sixteen `docs/specs/<ID>.md` files to `<ID>-<topic>.md`.**
+  `docs/standards/spec-format.md` §2 requires `<ID>-<topic>.md`; sixteen
+  legacy files (DS01-DS05, FP05-FP08, FP27, FP28, P04, P05, P06, P10, P14)
+  carry the bare id. Deliberately not bundled with the 2026-08-03 doc-layout
+  migration: ~207 citations across journals, ROADMAP, CHANGELOG and the
+  specs themselves would have to move in the same commit, and one broken
+  citation is easy to miss in that volume. `P15-cart-curated-library.md`
+  already uses the new form, so the directory is mixed until this lands.
+  Recorded as override O1 in spec-format.md.
+  **Layman:** Spec filenames say only an ID; adding a short topic to each makes the folder readable at a glance.
+  Kind: doc-fix.
+  Lanes: docs.
+  Source: doc-layout-audit-2026-08-03.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
@@ -1521,7 +1535,7 @@ through.
 ## Future enhancements
 
 Captured in
-[`docs/superpowers/specs/2026-04-27-roadmap.md` § "Future enhancements"](docs/superpowers/specs/2026-04-27-roadmap.md):
+[`docs/plans/phase-plan.md` § "Future enhancements"](docs/plans/phase-plan.md):
 software-list routing, EmulationStation `gamelist.xml` exporter,
 LaunchBox interop, DAT-version-upgrade workflow, cloud sync of
 `overrides.yaml` / `sessions.yaml`, multi-user mode, i18n, themes

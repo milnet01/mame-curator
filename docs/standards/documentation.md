@@ -23,8 +23,8 @@ for `ROADMAP.md` and `CHANGELOG.md` authoring.
 | `CLAUDE.md` | Claude Code session instructions; resumption flow |
 | `CHANGELOG.md` | Keep-a-Changelog format; `[Unreleased]` always at top |
 | `ROADMAP.md` | Queue summary; points to long-form phase plan |
-| `docs/superpowers/specs/2026-04-27-roadmap.md` | Long-form authoritative phase plan (Phase 0–9) |
-| `docs/superpowers/specs/2026-04-27-mame-curator-design.md` | Long-form design spec (architecture, data shapes, routes) |
+| `docs/plans/phase-plan.md` | Long-form authoritative phase plan (Phase 0–9) |
+| `docs/design.md` | Long-form design spec (architecture, data shapes, routes) |
 | `docs/standards/coding-standards.md` | All enforceable rules, single ordered document |
 | `docs/decisions/<NNNN>-<slug>.md` | ADRs for non-obvious choices |
 | `docs/journal/<P##>.md` | Per-phase journal entry — what shipped, what was learned |
@@ -32,7 +32,8 @@ for `ROADMAP.md` and `CHANGELOG.md` authoring.
 | `docs/known-issues.md` | Findings deferred until a named dependency lands |
 | `docs/audit-allowlist.md` | Closed-loop memory for confirmed false positives |
 | `docs/ideas.md` | Mid-flight user-proposed ideas, pending placement decision |
-| `docs/specs/<ID>.md` | Per-roadmap-item spec (lazy — written at Step 1 of the per-item loop) |
+| `docs/specs/<ID>-<topic>.md` | Per-roadmap-item spec (lazy — written at Step 1 of the per-item loop). Format: [`spec-format.md`](spec-format.md). Sixteen legacy files still use the bare `<ID>.md`; rename tracked as mame-curator-1092 (override O1). |
+| `docs/plans/<ID>-<topic>.md` | Build steps for that item. `phase-plan.md` is the pre-existing long-form Phase 0–9 plan and has no single id. |
 | `src/mame_curator/<module>/spec.md` | Per-module feature contract; the audit surface for that module |
 
 ## Governs

@@ -9,10 +9,10 @@
 **Tech Stack:** Python 3.12+ / FastAPI / Pydantic 2 (frozen models) on the backend; React 18 + TypeScript + Vite + Vitest + MSW + Playwright + shadcn/ui + react-router + zod + react-query on the frontend. No new runtime deps.
 
 **Companion docs:**
-- [Spec — 2026-05-07 cart-and-curated-library design](../specs/2026-05-07-cart-and-curated-library-design.md)
-- [ADR-0002 — `cloneof` from listxml](../../decisions/0002-cloneof-from-listxml.md) (motivates the regression test in Task B1)
-- [Coding standards](../../standards/coding-standards.md)
-- [Commits standard](../../standards/commits.md) (Conventional Commits; phase-closing tag at the end)
+- [Spec — 2026-05-07 cart-and-curated-library design](../specs/P15-cart-curated-library.md)
+- [ADR-0002 — `cloneof` from listxml](../decisions/0002-cloneof-from-listxml.md) (motivates the regression test in Task B1)
+- [Coding standards](../standards/coding-standards.md)
+- [Commits standard](../standards/commits.md) (Conventional Commits; phase-closing tag at the end)
 
 **Acceptance (lifted from spec § 6 and § 9):**
 - [ ] All listed tests pass (backend ≥85 % overall, `parser/` ≥90 %, `filter/` ≥95 %, `copy/` ≥85 %, `api/` ≥80 %, frontend ≥70 %).
@@ -112,7 +112,7 @@ Insert directly above `## FP23 — …` at the top of the closed/planned mix sec
 ```markdown
 ## P15 — Cart and curated library (planned)
 
-**Theme:** [`docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`](docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md) — turn the dead `21,049 games · 0.0 GB` bottom-bar into a cart-first selection model with featured INI-derived tiles, dismissible onboarding banner, sticky cart-bar with expand-up panel, and live Copy + DryRun flows. Picker runtime symptom shipped fixed in FP23; this phase adds the regression test that locks `cloneof_map` non-empty ⇒ winners < machines, plus the `listxml_available` + `cloneof_map_size` setup-check fields that let the banner cover the "supplied but parsed empty" edge case.
+**Theme:** [`docs/specs/P15-cart-curated-library.md`](../specs/P15-cart-curated-library.md) — turn the dead `21,049 games · 0.0 GB` bottom-bar into a cart-first selection model with featured INI-derived tiles, dismissible onboarding banner, sticky cart-bar with expand-up panel, and live Copy + DryRun flows. Picker runtime symptom shipped fixed in FP23; this phase adds the regression test that locks `cloneof_map` non-empty ⇒ winners < machines, plus the `listxml_available` + `cloneof_map_size` setup-check fields that let the banner cover the "supplied but parsed empty" edge case.
 
 ### 🎨 Features
 
@@ -161,7 +161,7 @@ FP23 fix at the test level. See `ROADMAP.md` `P15`.
 
 Change:
 ```
-| **Active item ID** | P15 — Cart and curated library (spec at `docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`); writing-plans handoff next session |
+| **Active item ID** | P15 — Cart and curated library (spec at `docs/specs/P15-cart-curated-library.md`); writing-plans handoff next session |
 | **Active step** | ⬜ all (FP23 closed 2026-05-07; P15 spec written + 7-round cold-eyes review APPROVE; user signed off on spec then asked for bug-fix-first before plan) |
 ```
 to:
@@ -175,11 +175,10 @@ Also clear the `Blocked on` line (the planning-blocks commit is in).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add ROADMAP.md CHANGELOG.md .roadmap-counter docs/journal/P15.md docs/superpowers/plans/2026-05-07-cart-and-curated-library-plan.md .claude/workflow.md
+git add ROADMAP.md CHANGELOG.md .roadmap-counter docs/journal/P15.md docs/plans/P15-cart-curated-library.md .claude/workflow.md
 git commit -m "docs(roadmap,changelog): open P15 — cart and curated library
 
-Plan committed at docs/superpowers/plans/2026-05-07-cart-and-
-curated-library-plan.md (~20 tasks across backend / frontend /
+Plan committed at docs/plans/P15-cart-curated-library.md (~20 tasks across backend / frontend /
 e2e). Phase ID 1024 reserved in .roadmap-counter."
 ```
 
@@ -3320,7 +3319,7 @@ After this plan is finalised, review against spec § 6 (Testing) and § 9 (File-
 
 ## Execution Handoff
 
-Plan complete and saved to `docs/superpowers/plans/2026-05-07-cart-and-curated-library-plan.md`. Two execution options:
+Plan complete and saved to `docs/plans/P15-cart-curated-library.md`. Two execution options:
 
 1. **Subagent-Driven (recommended)** — I dispatch a fresh subagent per task, review between tasks, fast iteration. Best for this plan because the 19 tasks are mostly independent within their wave; parallelism shaves real wall-clock.
 

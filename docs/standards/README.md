@@ -38,6 +38,15 @@ without breaking that ordering.
 | [`commits.md`](commits.md) | §12 Git, commits, and CI | Every commit |
 | [`documentation.md`](documentation.md) | §5 Comments and documentation, §7 Specs | `Kind: doc / doc-fix` |
 | [`roadmap-format.md`](roadmap-format.md) | App-Build's standard `roadmap-format.md` v1 (structure verbatim; examples customised for MAME Curator) | `ROADMAP.md` and `CHANGELOG.md` authoring |
+| [`spec-format.md`](spec-format.md) | App-Build's `spec-format.md` v1 verbatim, plus a `## MAME Curator overrides` section (O1–O4) | `docs/specs/` and `docs/plans/` authoring |
+| [`spec-skeleton.md`](spec-skeleton.md) · [`plan-skeleton.md`](plan-skeleton.md) | Templates, not rules — copied by `/write-spec` | The shape of a new spec / plan |
+
+`spec-format.md` and the two skeletons are **not** redirect stubs: they are
+the sub-spec pair `roadmap-format.md` already models, carrying the format
+contract the consolidated document does not (`coding-standards.md` §7 owns
+the *co-located module* `spec.md`, which is a different document — see
+override O4). Landed 2026-08-03; before that the project fell back to
+`~/.claude/skills/_shared/spec-format.md`.
 
 ## Editing rules
 

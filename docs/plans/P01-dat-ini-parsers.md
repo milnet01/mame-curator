@@ -9,9 +9,9 @@
 **Tech Stack:** Python 3.12+, `lxml.iterparse`, Pydantic 2, stdlib `argparse` (kept lightweight; no extra dep), `rich` for CLI output formatting (already a runtime dep).
 
 **Companion docs:**
-- [Design spec §6.1](../specs/2026-04-27-mame-curator-design.md#61-parser)
-- [Roadmap Phase 1](../specs/2026-04-27-roadmap.md#phase-1--dat--ini-parsers-parser)
-- [Coding standards](../../standards/coding-standards.md)
+- [Design spec §6.1](../design.md#61-parser)
+- [Roadmap Phase 1](phase-plan.md#phase-1--dat--ini-parsers-parser)
+- [Coding standards](../standards/coding-standards.md)
 
 **Acceptance (lifted from roadmap):**
 - [ ] All listed tests pass.

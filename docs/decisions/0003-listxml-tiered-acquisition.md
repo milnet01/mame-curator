@@ -4,7 +4,7 @@
 - **Date:** 2026-04-27
 - **Deciders:** Project lead
 - **Related:** ADR-0002, P08 (setup wizard),
-  [docs/superpowers/specs/2026-04-27-mame-curator-design.md § 6.1](../superpowers/specs/2026-04-27-mame-curator-design.md)
+  [docs/design.md § 6.1](../design.md)
 
 ## Context
 

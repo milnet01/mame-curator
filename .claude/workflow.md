@@ -118,10 +118,10 @@ nominal. Both tags point at `56449c6`.
 | P10 | — | 📋 | — | — | Media coverage expansion (progettoSnaps + ArcadeDB + Wikipedia + Mobygames; post-v1 by default — § A promotable ahead of P07 on user say-so) |
 | P11 | — | 📋 | — | — | Contribute missing thumbnails to libretro-thumbnails (post-v1; depends on P05 ✅, composes with P10) |
 | P12 | — | 📋 | — | — | In-app self-update + INI diff-preview UI (post-v1; deferred from P07 2026-05-04 to keep v1 budget tight; depends on P07 / P09) |
-| P15 | — | 📋 | — | — | Cart and curated library — spec drafted 2026-05-07 (`docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`); 7-round cold-eyes-review APPROVE; awaiting writing-plans handoff. |
+| P15 | — | 📋 | — | — | Cart and curated library — spec drafted 2026-05-07 (`docs/specs/P15-cart-curated-library.md`); 7-round cold-eyes-review APPROVE; awaiting writing-plans handoff. |
 
 The detailed per-phase contract for every phase still lives at
-`docs/superpowers/specs/2026-04-27-roadmap.md` — that file is the
+`docs/plans/phase-plan.md` — that file is the
 long-form authoritative phase plan. `ROADMAP.md` at the root is
 the queue summary.
 
@@ -752,7 +752,7 @@ User said "Let's continue with the next outstanding roadmap
 item" picking up from yesterday's FP24 close. Status-header
 recap surfaced state drift: workflow.md said "P15 awaiting
 implementation plan" but the ROADMAP was 🚧, the implementation
-plan was already at `docs/superpowers/plans/2026-05-07-cart-and-curated-library-plan.md`,
+plan was already at `docs/plans/P15-cart-curated-library.md`,
 all P15 implementation commits had landed (`cbd8af6..bf9a956`),
 and FP24 had absorbed the full closing-review fold-in. The
 right move was the clean-close path of the per-phase 9-step
@@ -1285,7 +1285,7 @@ Existing per-module specs (`src/mame_curator/{cli,parser,filter}/spec.md`)
 remain the per-feature audit surface — they already meet
 App-Build's spec-as-contract requirement.
 
-`docs/superpowers/specs/2026-04-27-{roadmap,mame-curator-design}.md`
+`docs/plans/phase-plan.md` + `docs/design.md`
 remain the long-form authoritative phase plan and design spec
 respectively; the new `ROADMAP.md` at root is the queue summary
 that points to them.

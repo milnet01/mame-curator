@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Dev docs — one home per document kind (2026-08-03)
+
+**Changed**
+
+- The design spec and the long-form phase plan moved out of
+  `docs/superpowers/` to the places the project's own conventions name:
+  `docs/design.md`, `docs/plans/<ID>-<topic>.md`, `docs/specs/<ID>-<topic>.md`.
+  All 50 references across the roadmap, changelog, journals, ADRs and specs
+  were updated with them, and the format contract they follow now lives
+  in-repo at `docs/standards/spec-format.md`. No behaviour change — this is
+  where contributors look for things. (mame-curator-1092)
+
 ### mame-curator-1088 — choose the port with `PORT` (2026-08-03)
 
 **Added**
@@ -1429,8 +1441,8 @@ with no clear path to pick a few games and copy them. P15 turns
 the dead bottom-bar into a cart-first selection model with
 per-game `+Add`, featured INI-derived tiles, sticky cart-bar
 with expand-up panel, and a live SSE-driven Copy flow. Plan at
-`docs/superpowers/plans/2026-05-07-cart-and-curated-library-plan.md`;
-spec at `docs/superpowers/specs/2026-05-07-cart-and-curated-library-design.md`.
+`docs/plans/P15-cart-curated-library.md`;
+spec at `docs/specs/P15-cart-curated-library.md`.
 
 **Backend (B1–B5):**
 

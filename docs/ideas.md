@@ -16,7 +16,7 @@ Long-running post-v1 ideas (software-list routing,
 EmulationStation export, LaunchBox interop, DAT-version-upgrade
 workflow, cloud sync, multi-user, i18n) are already captured in
 the roadmap doc's "Future enhancements" section
-(`docs/superpowers/specs/2026-04-27-roadmap.md` — bottom). This
+(`docs/plans/phase-plan.md` — bottom). This
 file is for new ideas that surface mid-phase, not for the
 already-known post-v1 backlog.
 

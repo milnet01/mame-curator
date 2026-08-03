@@ -16,10 +16,10 @@ Parent/clone relationships are sourced from the official MAME `-listxml`, **not*
 **Tech Stack:** Python 3.12+, Pydantic 2 (frozen models everywhere), `functools.cmp_to_key`, stdlib `fnmatch` for glob patterns, `re` for region/revision heuristics, `hypothesis` for property tests, no new runtime deps.
 
 **Companion docs:**
-- [Design spec §6.2](../specs/2026-04-27-mame-curator-design.md#62-filter--the-rule-chain)
-- [Roadmap Phase 2](../specs/2026-04-27-roadmap.md#phase-2--filter-rule-chain-filter)
-- [Coding standards](../../standards/coding-standards.md)
-- [Phase 1 plan](2026-04-27-phase-1-parser.md) (parser API the filter consumes)
+- [Design spec §6.2](../design.md#62-filter--the-rule-chain)
+- [Roadmap Phase 2](phase-plan.md#phase-2--filter-rule-chain-filter)
+- [Coding standards](../standards/coding-standards.md)
+- [Phase 1 plan](P01-dat-ini-parsers.md) (parser API the filter consumes)
 
 **Acceptance (lifted from roadmap):**
 - [ ] All listed tests pass.

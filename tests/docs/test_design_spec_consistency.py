@@ -1,6 +1,6 @@
 """FP27 A6c — design-spec keyboard shortcuts match the wired post-fix set.
 
-`docs/superpowers/specs/2026-04-27-mame-curator-design.md` advertises
+`docs/design.md` advertises
 nine keyboard-shortcut bullets under the `### Keyboard shortcuts`
 section. `frontend/src/App.tsx:316-318` registers exactly one binding
 via `useKeyboard` (`combo: 'k'` with `meta:true`). The other eight are
@@ -29,7 +29,7 @@ import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DESIGN_SPEC = REPO_ROOT / "docs" / "superpowers" / "specs" / "2026-04-27-mame-curator-design.md"
+DESIGN_SPEC = REPO_ROOT / "docs" / "design.md"
 APP_TSX = REPO_ROOT / "frontend" / "src" / "App.tsx"
 
 # Expected post-fix sets.

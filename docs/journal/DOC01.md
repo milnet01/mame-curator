@@ -21,7 +21,7 @@
 
 - **Tier 1 — Long-form roadmap acceptance checkboxes for shipped
   phases.** Phase 0 + Phase 1 acceptance lists at
-  `docs/superpowers/specs/2026-04-27-roadmap.md` were unticked
+  `docs/plans/phase-plan.md` were unticked
   despite both phases shipping. Ticked all boxes citing journal
   entries; reworded Phase 0's `uv run ty check` line to `uv run mypy`
   with a note about the Ty deferral.

@@ -303,7 +303,7 @@ Things deliberately not part of this spec.
 
 ### 7.1 Forward-looking enhancements (in long-form roadmap "Future enhancements")
 
-The following are already captured in `docs/superpowers/specs/2026-04-27-roadmap.md` § "Future enhancements" so they don't get lost:
+The following are already captured in `docs/plans/phase-plan.md` § "Future enhancements" so they don't get lost:
 
 - **Cart sync (multi-device)** — opt-in cloud sync of the in-progress copy cart, server-side state.
 - **Featured-tile editor in Settings** — UI for managing the curated tile list (today: code-defined, one-PR-per-tile).

@@ -9,9 +9,9 @@
 **Tech Stack:** Python ≥ 3.12, uv (Astral), Ruff (Astral) ≥ 0.9, Ty (Astral; mypy fallback), pytest ≥ 8, pytest-cov, pytest-asyncio, hypothesis, respx, bandit, gitleaks, pre-commit ≥ 4, GitHub Actions.
 
 **Companion docs:**
-- [Design spec](../specs/2026-04-27-mame-curator-design.md)
-- [Roadmap (Phase 0 §)](../specs/2026-04-27-roadmap.md#phase-0--scaffold-and-tooling)
-- [Coding standards](../../standards/coding-standards.md)
+- [Design spec](../design.md)
+- [Roadmap (Phase 0 §)](phase-plan.md#phase-0--scaffold-and-tooling)
+- [Coding standards](../standards/coding-standards.md)
 
 **Acceptance (lifted from roadmap):**
 - [ ] `uv sync` produces a working `.venv` from a fresh clone.
@@ -651,7 +651,7 @@ git commit -m "chore(scaffold): gitignore, gitleaksignore, MIT license"
 - Copies the chosen ROMs (plus required BIOSes) to a separate destination, leaving the source untouched.
 - Generates a RetroArch playlist (`mame.lpl`) so games show pretty descriptions in RetroArch without renaming files.
 
-See the [design spec](docs/superpowers/specs/2026-04-27-mame-curator-design.md) for the full picture.
+See the [design spec](../design.md) for the full picture.
 
 ## Requirements
 
@@ -683,7 +683,7 @@ All five must pass on `main`.
 
 ## Project structure
 
-See [the design spec §11](docs/superpowers/specs/2026-04-27-mame-curator-design.md) for the canonical layout.
+See [the design spec §11](../design.md) for the canonical layout.
 
 ## License
 
@@ -691,7 +691,7 @@ See [the design spec §11](docs/superpowers/specs/2026-04-27-mame-curator-design
 
 ## Contributing
 
-This project is in active development. See the [implementation roadmap](docs/superpowers/specs/2026-04-27-roadmap.md) for the planned phases. Issues and PRs welcome.
+This project is in active development. See the [implementation roadmap](phase-plan.md) for the planned phases. Issues and PRs welcome.
 ```
 
 - [ ] **Step 2: Write `CHANGELOG.md`**
@@ -1178,14 +1178,12 @@ Expected layout (sorted, partial):
 ./README.md
 ./config.example.yaml
 ./docs
+./docs/design.md
+./docs/plans
+./docs/plans/P00-scaffold-tooling.md
+./docs/plans/phase-plan.md
 ./docs/standards
 ./docs/standards/coding-standards.md
-./docs/superpowers
-./docs/superpowers/plans
-./docs/superpowers/plans/2026-04-27-phase-0-scaffold.md
-./docs/superpowers/specs
-./docs/superpowers/specs/2026-04-27-mame-curator-design.md
-./docs/superpowers/specs/2026-04-27-roadmap.md
 ./overrides.example.yaml
 ./pyproject.toml
 ./sessions.example.yaml

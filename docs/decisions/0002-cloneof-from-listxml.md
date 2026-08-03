@@ -5,7 +5,7 @@
 - **Deciders:** Project lead
 - **Related:** P02 (filter rule chain), `parser/spec.md`,
   `filter/spec.md`,
-  [docs/superpowers/specs/2026-04-27-roadmap.md § Phase 2](../superpowers/specs/2026-04-27-roadmap.md)
+  [docs/plans/phase-plan.md § Phase 2](../plans/phase-plan.md)
 
 ## Context
 

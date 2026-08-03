@@ -4,9 +4,9 @@
 - **Date:** 2026-05-15
 - **Deciders:** Project lead
 - **Related:** ADR-0003 (listxml acquisition),
-  [docs/superpowers/specs/2026-04-27-mame-curator-design.md § 6.6](../superpowers/specs/2026-04-27-mame-curator-design.md)
+  [docs/design.md § 6.6](../design.md)
   (wizard bootstrap),
-  [§ 6.7](../superpowers/specs/2026-04-27-mame-curator-design.md)
+  [§ 6.7](../design.md)
   (runtime refresh),
   FP28 § E1.
 

@@ -3,7 +3,7 @@
 **Date:** 2026-04-27
 **Status:** Draft (pending user review)
 **License (planned):** MIT
-**Companion docs:** [Coding standards](../../standards/coding-standards.md) · [Implementation roadmap](2026-04-27-roadmap.md)
+**Companion docs:** [Coding standards](standards/coding-standards.md) · [Implementation roadmap](plans/phase-plan.md)
 
 ---
 
@@ -30,7 +30,7 @@ There are existing community ROM-management tools (ClrMamePro, RomVault, etc.) b
 - Telemetry or analytics of any kind. The app makes no outgoing requests beyond the documented ones (libretro thumbnails, progettoSnaps INI files, GitHub releases for self-update).
 - Multi-language UI. (Strings are kept in one place to make future i18n possible, but v1 ships English-only.)
 
-Tracked for **post-v1** (see also `docs/superpowers/specs/2026-04-27-roadmap.md` "Future enhancements"):
+Tracked for **post-v1** (see also `docs/plans/phase-plan.md` "Future enhancements"):
 
 - EmulationStation `gamelist.xml` and LaunchBox importers / exporters.
 - MAME software-list routing to per-system folders (see §13).
@@ -370,7 +370,7 @@ Two independent update channels, both manual-trigger and both checked at startup
 - INI refreshes never touch user files; they only update `data/*.ini` plus the in-memory model.
 - "Roll back to previous version" is one click in Settings (uses `git reset --hard <prev-tag>` for clones, swap-in for downloads).
 
-See [ADR-0004 (`0004-ini-refresh-trust-model`)](../../decisions/0004-ini-refresh-trust-model.md) for the runtime refresh trust model — why mirrors + sha256 (promised in § 6.6 for the wizard bootstrap) are deferred for the refresh path until the wizard ships.
+See [ADR-0004 (`0004-ini-refresh-trust-model`)](decisions/0004-ini-refresh-trust-model.md) for the runtime refresh trust model — why mirrors + sha256 (promised in § 6.6 for the wizard bootstrap) are deferred for the refresh path until the wizard ships.
 
 ### 6.8 `help/` — in-app help
 
@@ -697,7 +697,7 @@ Notes:
 
 ## 12. Phasing
 
-The canonical implementation order lives in **[the roadmap doc](2026-04-27-roadmap.md)** — read it before writing any code. It defines ten sequential phases (0 scaffold → 9 release) with explicit pre-conditions, tests-first sequences, and binary acceptance criteria per phase. The roadmap also enumerates anti-jump rules to keep implementation strictly in order.
+The canonical implementation order lives in **[the roadmap doc](plans/phase-plan.md)** — read it before writing any code. It defines ten sequential phases (0 scaffold → 9 release) with explicit pre-conditions, tests-first sequences, and binary acceptance criteria per phase. The roadmap also enumerates anti-jump rules to keep implementation strictly in order.
 
 High-level summary of those phases (full detail in the roadmap):
 

@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-27
 **Status:** Authoritative implementation order. Read before writing code.
-**Companion docs:** [Design spec](2026-04-27-mame-curator-design.md) · [Coding standards](../../standards/coding-standards.md)
+**Companion docs:** [Design spec](../design.md) · [Coding standards](../standards/coding-standards.md)
 
 ---
 
