@@ -203,6 +203,17 @@ wave lands.
   Kind: feature.
   Lanes: cli, tooling.
   Source: user-request-2026-08-03.
+  Cold-eyes (2026-08-03, 2 lanes, 1 loop): 1 CRITICAL fixed in code —
+  rich parsed the offending `$PORT` as markup, so `PORT='[abc]'` printed
+  as `PORT=''`, dropping the value the error contract requires verbatim
+  (escaped + pinned by a test). Spec section tightened on 6 verified
+  findings (exit code pinned to 1, --port exempt from the range check,
+  $PORT ignored when the flag is present, leading-zero/whitespace/bounds
+  behaviour, ordering vs the config check, corrected "both entry points"
+  and the wrong duplicate-check rationale). 3 items filed rather than
+  fixed: 1089, 1090, 1091. CI went red on windows-latest first
+  (POSIX-only shell test); fixed with a win32 skip plus a local guard
+  test for the class, and local-CI.sh now runs as a pre-push hook.
 
 - 📋 [mame-curator-1089] **`run.bat` bypasses the `$PORT` validation contract on Windows.**
   `run.bat:69` defaults `$PORT` to 8080 like `run.sh`, but forwards it as
