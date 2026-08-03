@@ -158,7 +158,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #   • +1 tests/api/test_routes_media_sources.py — progettoSnaps reads the
 #     configured snaps_dir/snap, not the fixed default.
 # 686 → 691.
-EXPECTED_PYTEST_DECLARATIONS = 691
+# Bumped 2026-08-03 (mame-curator-1088 — $PORT contract): +15 declarations:
+#   • +9 tests/cli/test_serve_port_env.py — the four contract cases at the
+#     Python layer, flag precedence, and the bypass path reaching uvicorn.
+#   • +6 tests/tools/test_run_sh_port.py — the same four cases at the shell
+#     layer, run against a stub `uv` that records the exec'd argv.
+# 691 → 706.
+EXPECTED_PYTEST_DECLARATIONS = 706
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

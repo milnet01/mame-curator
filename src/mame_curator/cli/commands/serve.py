@@ -3,15 +3,52 @@
 from __future__ import annotations
 
 import argparse
+import os
+import re
 
 from rich.console import Console
 
 from mame_curator.filter import FilterError
 from mame_curator.parser import ParserError
 
+DEFAULT_PORT = 8080
+MIN_PORT = 1024
+MAX_PORT = 65535
+_DIGITS = re.compile(r"[0-9]+")
+
+
+def _resolve_port(explicit: int | None) -> int:
+    """Resolve the bind port: ``--port`` flag → ``$PORT`` → 8080.
+
+    `run.sh` converts `$PORT` into an explicit `--port`, so this only
+    fires for callers that invoke `mame-curator serve` directly — but the
+    range and the message match `run.sh`'s own check so the error reads
+    the same whichever way the user came in.
+
+    Raises:
+        ValueError: `$PORT` is set to something other than an integer in
+            1024-65535. Never falls back to the default silently.
+    """
+    if explicit is not None:
+        return explicit
+    raw = os.environ.get("PORT", "")
+    if not raw:
+        return DEFAULT_PORT
+    if not _DIGITS.fullmatch(raw) or not MIN_PORT <= int(raw) <= MAX_PORT:
+        raise ValueError(
+            f"PORT={raw!r} is not a valid port — expected an integer in {MIN_PORT}-{MAX_PORT}."
+        )
+    return int(raw)
+
 
 def _cmd_serve(args: argparse.Namespace) -> int:
     err_console = Console(stderr=True, soft_wrap=True)
+    try:
+        port = _resolve_port(args.port)
+    except ValueError as exc:
+        err_console.print(f"[red]error:[/red] {exc}")
+        return 1
+
     if not args.config.exists():
         err_console.print(
             f"[red]error:[/red] config file not found: {args.config!r} — "
@@ -46,7 +83,6 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         return 1
 
     host = args.host or "127.0.0.1"
-    port = args.port or 8080
     try:
         uvicorn.run(app, host=host, port=port, log_level="info")
     except OSError as exc:

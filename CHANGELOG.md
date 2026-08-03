@@ -17,6 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### mame-curator-1088 — choose the port with `PORT` (2026-08-03)
+
+**Added**
+
+- You can now tell MAME Curator which port to serve on by setting `PORT`
+  before starting it — `PORT=5999 ./run.sh` — so another tool can place the
+  app wherever it needs it. Running `mame-curator serve` directly honours
+  the same setting; an explicit `--port` still wins over it. Leaving `PORT`
+  unset keeps the usual port 8080, exactly as before. (mame-curator-1088)
+
+**Changed**
+
+- A nonsense or unusable `PORT` (a word, or a number outside 1024-65535) now
+  stops the app immediately with one line naming what you typed and what's
+  allowed, instead of a confusing error from deeper in the stack — or, for a
+  privileged port like 80, a permission failure much later. The message is
+  identical whichever way you start the app. (mame-curator-1088)
+
 ### mame-curator-1084 — turn art sources on or off (2026-07-04)
 
 **Added**

@@ -48,6 +48,20 @@ Subcommand-specific flags live on their respective subparsers, not here.
 | `3` | User-prompt cancel — `mame-curator copy` was cancelled via the playlist-conflict prompt (`CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT`). Distinct from SIGINT-driven cancel so shell scripts that special-case 130 don't mis-attribute prompt-cancels (FP05 B10). | `_cmd_copy` |
 | `130` | SIGINT-family cancel — `mame-curator copy` was cancelled by Ctrl-C / signal-driven stop (`CopyReportStatus.CANCELLED`). Conventional POSIX exit code (128 + signal 2 = 130). | `_cmd_copy` |
 
+## `serve` port resolution
+
+`_cmd_serve` resolves its bind port from three sources, in this order — first one present wins:
+
+1. **`--port <n>`** — explicit beats implicit. Passed through as given (including `--port 0`, which uvicorn reads as "any free port"); only argparse's `type=int` constrains it.
+2. **`$PORT`** — read only when `--port` is absent. MUST be a decimal integer in **1024-65535**.
+3. **`8080`** — the default, used when `--port` is absent AND `$PORT` is unset or empty.
+
+A `$PORT` that is present but not an integer in 1024-65535 MUST exit non-zero with `error: PORT='<value>' is not a valid port — expected an integer in 1024-65535.` on stderr. It MUST NOT fall back to 8080, and MUST NOT be allowed to reach argparse (whose `invalid int value:` message omits the range) or the bind call (whose `permission denied` names neither).
+
+`run.sh` performs the identical check on `$PORT` before it execs `mame-curator serve --port "${PORT}"`, so both entry points reject the same values with the same message. The two checks are deliberate duplicates across a language boundary — `run.sh` is a zero-dependency bootstrap that must fail before `uv sync`'s output buries the reason.
+
+The `--port` help text says "overrides config", but no config lookup exists in `_cmd_serve` — pre-existing wording drift, tracked separately.
+
 ## Output routing (per coding standards §9)
 
 - **Success / summary output → stdout.** One `rich.console.Console()` (default `file=sys.stdout`) for the user-facing summary lines (`machines: 43579`, `winners: 2847`, `report: report.json`).

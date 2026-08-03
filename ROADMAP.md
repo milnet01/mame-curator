@@ -188,6 +188,22 @@ wave lands.
   Source: in-session-2026-06-30 (surfaced by cold-eyes on review_state_spec.md).
   Resolved (2026-06-30): added settings.snapshotsStateExclusionNote string + rendered it as a caption in SnapshotsTab.tsx (both empty + populated states). Text per P14 spec §875. Flat key name (snapshotsStateExclusionNote) to match the existing flat snapshotsXxx convention, not the spec's dotted settings.snapshots.stateExclusionNote. +2 vitest cases.
 
+- ✅ [mame-curator-1088] **Validated `$PORT` contract on both serve entry points.**
+  Four exhaustive cases: PORT read at startup; valid (integer
+  1024-65535) binds that port; absent (unset or empty) keeps the
+  existing 8080 default unchanged; invalid exits non-zero naming the
+  value and the range, never a silent fall-back. `run.sh` validates
+  right after `PORT=${PORT:-8080}`, before the exec; `serve.py` gained
+  `_resolve_port` (--port flag -> $PORT -> 8080) so the direct-CLI
+  bypass honours the same contract with the identical message. Pinned
+  by 15 tests across both layers and verified by running each path
+  (5999, 5998-bypass, 8080-default bound per `ss`; abc/80/99999
+  rejected identically on both paths).
+  **Layman:** You can now tell MAME Curator which port to use with the PORT setting, and a bad value fails immediately with a clear message instead of a confusing one later.
+  Kind: feature.
+  Lanes: cli, tooling.
+  Source: user-request-2026-08-03.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167

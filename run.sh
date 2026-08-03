@@ -85,6 +85,20 @@ fi
 # ---- 5. serve --------------------------------------------------------
 
 PORT=${PORT:-8080}
+
+# An invalid $PORT must fail here, named, rather than three layers down:
+# a non-numeric value reaches argparse ("invalid int value: 'abc'" — no
+# range in the message), and an out-of-range one reaches the bind
+# ("permission denied" for <1024). Never silently fall back to 8080.
+# The `{1,5}` bound keeps `test -lt` inside 64-bit range: a longer digit
+# string makes `[ ... -lt ... ]` error out instead of comparing.
+# `cli/commands/serve.py:_resolve_port` re-checks the same range with the
+# same message for callers that skip this script.
+if ! [[ "${PORT}" =~ ^[0-9]{1,5}$ ]] || [ "${PORT}" -lt 1024 ] || [ "${PORT}" -gt 65535 ]; then
+    echo "error: PORT='${PORT}' is not a valid port — expected an integer in 1024-65535." >&2
+    exit 1
+fi
+
 URL="http://127.0.0.1:${PORT}/"
 
 echo
