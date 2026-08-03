@@ -7,6 +7,7 @@ import os
 import re
 
 from rich.console import Console
+from rich.markup import escape
 
 from mame_curator.filter import FilterError
 from mame_curator.parser import ParserError
@@ -46,7 +47,11 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     try:
         port = _resolve_port(args.port)
     except ValueError as exc:
-        err_console.print(f"[red]error:[/red] {exc}")
+        # `escape` because the offending value is user input and rich would
+        # otherwise eat any `[...]` in it as a style tag — `PORT='[abc]'`
+        # printed as `PORT=''`, dropping the one thing spec.md § "Error
+        # messages" requires the message to carry verbatim.
+        err_console.print(f"[red]error:[/red] {escape(str(exc))}")
         return 1
 
     if not args.config.exists():

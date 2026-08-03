@@ -204,6 +204,62 @@ wave lands.
   Lanes: cli, tooling.
   Source: user-request-2026-08-03.
 
+- 📋 [mame-curator-1089] **`run.bat` bypasses the `$PORT` validation contract on Windows.**
+  `run.bat:69` defaults `$PORT` to 8080 like `run.sh`, but forwards it as
+  `--port %PORT%`. Per the contract an explicit `--port` skips validation,
+  so `PORT=abc` reaches argparse (`invalid int value`, exit 2 — which
+  `cli/spec.md` exit-code row 2 reserves for usage errors) and `PORT=80`
+  reaches the bind. Two candidate fixes: add a `findstr` regex + range
+  check to `run.bat`, or simply stop passing `--port` there and let
+  `_resolve_port` read the inherited environment (one-line, no batch regex,
+  but needs a Windows runner to verify). Neither is verifiable on this
+  machine — the check has to land with a CI run as its first execution.
+  **Layman:** On Windows, a bad PORT setting still produces a confusing error instead of the clear one Linux and macOS now give.
+  Kind: fix.
+  Lanes: cli, tooling.
+  Source: cold-eyes-2026-08-03 (mame-curator-1088 review).
+
+- 📋 [mame-curator-1090] **`serve --port` / `--host` help text claims a config lookup that does not exist.**
+  `cli/__init__.py:204-205` — `--host` and `--port` are both described as
+  "(overrides config)", but `_cmd_serve` resolves host as `args.host or
+  "127.0.0.1"` and port via `_resolve_port`; neither consults config.yaml.
+  Either wire the config lookup or reword both help strings. Pre-existing,
+  flagged by the user during mame-curator-1088 and deliberately left
+  unchanged there.
+  **Layman:** The help text for two options says they override your config file, but nothing actually reads the config for them.
+  Kind: doc-fix.
+  Lanes: cli.
+  Source: cold-eyes-2026-08-03 (mame-curator-1088 review).
+
+- 📋 [mame-curator-1091] **`cli/spec.md` carries pre-existing contract defects two cold-eyes lanes found independently.**
+  Both lanes flagged these; all verified against source, none touched by
+  mame-curator-1088 (out of its lane):
+  (a) `_cmd_serve` returns 130 unconditionally, so `serve` never exits 0 —
+  the exit-code table's row 130 names only `_cmd_copy` and row 0 is
+  unreachable for serve (FP28 D1 made this deliberate; the table never
+  caught up).
+  (b) L30 says adding a subcommand needs a dispatch branch in `run()`;
+  L93-94 say the opposite and the code agrees with L93 (`set_defaults`).
+  (c) L30's handler convention `cli/_cmd_<name>.py` — real layout is
+  `cli/commands/<name>.py`.
+  (d) L112 "never lets a Python traceback reach the user" contradicts
+  FP28 D2, which deliberately lets programmer errors propagate.
+  (e) subcommand inventory still lists `copy` and `serve` as planned.
+  (f) `serve`'s other exit-1 paths (missing config, missing API extras,
+  create_app typed errors, bind OSError) and the `127.0.0.1` host default
+  are unspecified; `ConfigError` is missing from the row-1 typed list.
+  (g) L120 "out of scope" says `main.py` orchestrates the uvicorn
+  lifespan — `_cmd_serve` calls `uvicorn.run` itself.
+  (h) `--no-open-browser` is registered but never read by `_cmd_serve`.
+  (i) `--port` is never range-checked, so `--port 99999` raises
+  `OverflowError`, which the `except OSError` does not catch — a traceback,
+  which (d) claims cannot happen. Also `config file not found: {path!r}`
+  has the same rich-markup-swallow defect fixed for `$PORT` in 1088.
+  **Layman:** The CLI's design document describes several things the code no longer does; worth a clean-up pass so nobody builds from the stale parts.
+  Kind: doc-fix.
+  Lanes: cli, docs.
+  Source: cold-eyes-2026-08-03 (mame-curator-1088 review).
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167

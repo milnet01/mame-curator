@@ -12,6 +12,13 @@
 #      windows-latest. This script runs on the local OS only. Cross-platform
 #      code paths (Windows path semantics, macOS fsync) are only exercised on
 #      CI's other runners.
+#      This caveat has bitten once for real (mame-curator-1088): a test that
+#      shells out to `bash` passed every local gate and reddened both Windows
+#      legs. The class is now caught locally by
+#      tests/docs/test_posix_only_tests_skip_on_win32.py, which runs inside
+#      the `pytest` step below. When you add a check that can only fail on a
+#      runner this script cannot be, add the local stand-in there rather than
+#      widening this caveat.
 #   2. Python matrix. CI runs the backend job on Python 3.12 AND 3.13. This
 #      script runs on whatever interpreter `uv` resolves for the project.
 #
@@ -20,11 +27,27 @@
 # step order — matches CI exactly. Keep this file and ci.yml in lockstep: when
 # one changes, change the other.
 #
+# This script runs BEFORE EVERY PUSH — that is the standing rule, and it is
+# wired as a pre-commit `pre-push` hook (`local-ci` in .pre-commit-config.yaml).
+# Enable it once per clone with:
+#     uv run pre-commit install --hook-type pre-push
+# Running it by hand first is still the faster loop; the hook is the backstop.
+#
+# Exemption (user rule, 2026-08-03): a DOC-ONLY push may skip this run —
+# `git push --no-verify` — when the diff touches no executable surface
+# (*.md, docs/, ROADMAP, CHANGELOG). Anything that can change behaviour,
+# including this script, the workflows, and the shell bootstraps, runs it.
+#
 # Usage:
 #   ./local-CI.sh            # run all checks against the already-installed env
 #   ./local-CI.sh --fresh    # provision first (uv sync --extra dev + npm ci),
 #                            # exactly as CI's cold-start "Install dependencies"
 #                            # steps do, then run the checks
+#
+# Note: a bare `uv run <project-command>` (e.g. `uv run mame-curator serve`)
+# re-syncs WITHOUT `--extra dev` and silently removes pytest-cov et al, after
+# which the `pytest` step below fails on unrecognised --cov arguments. Recover
+# with `uv sync --extra dev`, or just use `--fresh`.
 #
 # Exit code: 0 iff every check passed; 1 otherwise. Unlike CI (which fail-fasts
 # each job on the first failing step), this script runs ALL checks and prints a

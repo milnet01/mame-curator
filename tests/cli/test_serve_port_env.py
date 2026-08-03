@@ -164,6 +164,25 @@ def test_serve_exits_nonzero_on_invalid_port(
     assert "1024-65535" in stderr
 
 
+def test_invalid_port_value_survives_rich_markup(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A `$PORT` containing square brackets is still named verbatim.
+
+    `rich` reads `[abc]` as a style tag, so an unescaped f-string printed
+    `PORT=''` — dropping the one thing `cli/spec.md` § "Error messages"
+    requires the message to carry. `run.sh`'s `echo` has no such hazard, so
+    this is also what keeps the two entry points' messages identical.
+    """
+    from mame_curator.cli.commands.serve import _cmd_serve
+
+    monkeypatch.setenv("PORT", "[abc]")
+    rc = _cmd_serve(_serve_args(_config(tmp_path)))
+
+    assert rc != 0
+    assert "[abc]" in capsys.readouterr().err
+
+
 def test_invalid_port_checked_before_config(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

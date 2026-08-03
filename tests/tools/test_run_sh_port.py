@@ -24,10 +24,21 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+
+# `run.sh` is the POSIX bootstrap; Windows ships `run.bat` instead, and the
+# CI windows-latest runner has no `/usr/bin/env bash` to exec (the first push
+# of this module reddened both Windows legs with WinError 2). The guard in
+# `tests/docs/test_posix_only_tests_skip_on_win32.py` keeps the next
+# shell-driving test module from reaching that runner unmarked.
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="run.sh is the POSIX bootstrap; Windows uses run.bat",
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUN_SH = REPO_ROOT / "run.sh"

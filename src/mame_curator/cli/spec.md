@@ -43,7 +43,7 @@ Subcommand-specific flags live on their respective subparsers, not here.
 | Code | Meaning | Source |
 |---|---|---|
 | `0` | Success. | Library calls returned without raising. |
-| `1` | Runtime / data error — DAT corrupt, listxml unreadable, override target missing, copy `PARTIAL_FAILURE` / `FAILED`, etc. | A `ParserError` / `FilterError` / `CopyError` was caught at the CLI boundary, or `_cmd_copy`'s report status was non-OK and not a cancel-family. |
+| `1` | Runtime / data error — DAT corrupt, listxml unreadable, override target missing, copy `PARTIAL_FAILURE` / `FAILED`, etc. | A `ParserError` / `FilterError` / `CopyError` was caught at the CLI boundary, or `_cmd_copy`'s report status was non-OK and not a cancel-family, or `_cmd_serve` rejected `$PORT` (see § "`serve` port resolution"). |
 | `2` | Usage error — unknown subcommand, missing required argument, malformed flag, etc. | argparse exits with this BEFORE `run()` is ever called. The CLI MUST NOT use `2` for runtime errors (collides with argparse's reserved meaning; breaks shell-scripting around the tool). |
 | `3` | User-prompt cancel — `mame-curator copy` was cancelled via the playlist-conflict prompt (`CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT`). Distinct from SIGINT-driven cancel so shell scripts that special-case 130 don't mis-attribute prompt-cancels (FP05 B10). | `_cmd_copy` |
 | `130` | SIGINT-family cancel — `mame-curator copy` was cancelled by Ctrl-C / signal-driven stop (`CopyReportStatus.CANCELLED`). Conventional POSIX exit code (128 + signal 2 = 130). | `_cmd_copy` |
@@ -52,15 +52,19 @@ Subcommand-specific flags live on their respective subparsers, not here.
 
 `_cmd_serve` resolves its bind port from three sources, in this order — first one present wins:
 
-1. **`--port <n>`** — explicit beats implicit. Passed through as given (including `--port 0`, which uvicorn reads as "any free port"); only argparse's `type=int` constrains it.
-2. **`$PORT`** — read only when `--port` is absent. MUST be a decimal integer in **1024-65535**.
-3. **`8080`** — the default, used when `--port` is absent AND `$PORT` is unset or empty.
+`_cmd_serve` delegates to `_resolve_port(args.port)`, which reads three sources in this order — first one present wins:
 
-A `$PORT` that is present but not an integer in 1024-65535 MUST exit non-zero with `error: PORT='<value>' is not a valid port — expected an integer in 1024-65535.` on stderr. It MUST NOT fall back to 8080, and MUST NOT be allowed to reach argparse (whose `invalid int value:` message omits the range) or the bind call (whose `permission denied` names neither).
+1. **`--port <n>`** — explicit beats implicit. Passed through as given (including `--port 0`, which uvicorn reads as "any free port"); only argparse's `type=int` constrains it. **The range check below does NOT apply to the flag** — a caller who names a port explicitly is taken at their word (a privileged port under `sudo` is the motivating case). `$PORT` is not read at all when the flag is present, so a malformed `$PORT` alongside `--port 9000` is ignored, not an error.
+2. **`$PORT`** — read only when `--port` is absent. MUST match `[0-9]+` in full and fall inside **1024-65535, inclusive**. Leading zeros are accepted (`08080` → 8080); a leading `+`, surrounding whitespace, underscores, and non-ASCII digits are NOT — `int()` and `str.isdigit()` both accept some of those, so neither is a conforming implementation on its own.
+3. **`8080`** — the default, used when `--port` is absent AND `$PORT` is unset or the empty string. Any other value, whitespace included, takes the invalid path rather than the default.
 
-`run.sh` performs the identical check on `$PORT` before it execs `mame-curator serve --port "${PORT}"`, so both entry points reject the same values with the same message. The two checks are deliberate duplicates across a language boundary — `run.sh` is a zero-dependency bootstrap that must fail before `uv sync`'s output buries the reason.
+A `$PORT` that is present and does not satisfy (2) MUST exit **1** with `error: PORT='<value>' is not a valid port — expected an integer in 1024-65535.` on stderr, where `<value>` is the environment value **verbatim** per § "Error messages" — rich markup in it (`[abc]`) MUST be escaped, not interpreted. It MUST NOT fall back to 8080, and MUST NOT be allowed to reach argparse (whose `invalid int value:` message omits the range) or the bind call (whose `permission denied` names neither). The check runs **before** the config-existence check, so a bad `$PORT` reports as itself rather than as a missing config.
 
-The `--port` help text says "overrides config", but no config lookup exists in `_cmd_serve` — pre-existing wording drift, tracked separately.
+`run.sh` performs the same check on `$PORT` before it execs `mame-curator serve --port "${PORT}"`. The two checks are deliberate duplicates across a language boundary: `run.sh` must reject the value before it spawns the browser-opener subshell and `exec`s, and it cannot import Python to do so. Its regex carries a `{1,5}` digit bound the Python side does not need — a wider digit string makes `test -lt` error out instead of comparing, which would read as "in range". The messages are byte-identical for every value either check accepts as *reaching* the message; they can differ in quoting for values containing a quote or a newline (bash prints `PORT='<raw>'`, Python uses `repr`).
+
+**Coverage is `run.sh` and the direct `mame-curator serve` invocation, not every entry point.** `run.bat` (the Windows bootstrap) defaults `$PORT` the same way but forwards it as `--port`, which by rule (1) skips validation entirely — so on Windows a bad `PORT` still reaches argparse or the bind. Tracked as **mame-curator-1089**. `scripts/dev.sh` passes `--port 8080` explicitly for the same reason Vite's proxy target is hardcoded.
+
+The `--port` and `--host` help texts both say "overrides config", but no config lookup exists in `_cmd_serve` — pre-existing wording drift, tracked as **mame-curator-1090**.
 
 ## Output routing (per coding standards §9)
 

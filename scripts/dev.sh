@@ -44,7 +44,12 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo "→ backend  → http://127.0.0.1:8080 (config: ${CONFIG#"${REPO_ROOT}/"})"
-( cd "${REPO_ROOT}" && uv run mame-curator serve --config "${CONFIG}" --no-open-browser ) &
+# --port 8080 explicitly, not from $PORT: Vite proxies /api and /media to a
+# hardcoded http://127.0.0.1:8080 (frontend/vite.config.ts), so a developer
+# with PORT exported in their shell would otherwise move the backend out from
+# under the proxy — and the banner above would be lying. Dev mode is pinned;
+# $PORT is honoured by run.sh and by `mame-curator serve` (mame-curator-1088).
+( cd "${REPO_ROOT}" && uv run mame-curator serve --config "${CONFIG}" --port 8080 --no-open-browser ) &
 
 echo "→ frontend → http://127.0.0.1:5173 (HMR)"
 echo

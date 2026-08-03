@@ -164,7 +164,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #   • +6 tests/tools/test_run_sh_port.py — the same four cases at the shell
 #     layer, run against a stub `uv` that records the exec'd argv.
 # 691 → 706.
-EXPECTED_PYTEST_DECLARATIONS = 706
+# Bumped 2026-08-03 (mame-curator-1088 follow-up — cold-eyes + CI fixes):
+# +3 declarations:
+#   • +1 tests/cli/test_serve_port_env.py — a `$PORT` containing rich markup
+#     is still named verbatim in the error.
+#   • +2 tests/docs/test_posix_only_tests_skip_on_win32.py — shell-driving
+#     test modules must carry a win32 skip, plus the self-check that the
+#     scan still matches something.
+# 706 → 709.
+EXPECTED_PYTEST_DECLARATIONS = 709
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

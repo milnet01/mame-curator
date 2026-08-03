@@ -76,3 +76,19 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+
+      # mame-curator-1088: the full CI mirror runs before every push, so a
+      # red GitHub run is never the first signal. Push stage only — it is
+      # minutes, not seconds, and the per-commit hooks above already cover
+      # the fast subset. Enable with:
+      #   uv run pre-commit install --hook-type pre-push
+      # It still cannot reproduce CI's windows-latest / macos-latest legs
+      # (one machine, one OS); tests/docs/test_posix_only_tests_skip_on_win32.py
+      # is the local stand-in for the Windows-specific failure class.
+      - id: local-ci
+        name: local-CI.sh (full CI mirror)
+        entry: ./local-CI.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
