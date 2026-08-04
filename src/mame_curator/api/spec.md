@@ -291,6 +291,16 @@ All FS browsing crosses `api/fs.py`:
 - `PATCH /api/config` deep-merges the patch (`deep_merge`, depth-capped at
   10 for defence-in-depth), validates against `AppConfig`, writes the YAML,
   and swaps the world.
+  - `_validate_paths(config, *, setup_required=False)` collects the
+    `path_not_found` / `path_invalid` field errors; a non-empty tuple is a
+    422. While `world.setup_required` is true the **`source_dat` check is
+    skipped** — otherwise the missing DAT rejects every save, including the
+    one that fixes it. Every other path error stays fatal
+    (mame-curator-1095 § 4.2a, INV-9).
+  - `restart_required` is `server_changed or world.setup_required`: in setup
+    mode *any* successful save asks for the restart, because `replace_world`
+    does not re-parse the DAT and the likeliest recovery leaves the path
+    string unchanged (mame-curator-1095 § 4.2b, INV-10).
 - `snapshot_files` captures the pre-write state before each config mutation;
   `restore_snapshot` reverts to a captured snapshot id (unknown id →
   `SnapshotNotFoundError` 404). Old snapshots are pruned.

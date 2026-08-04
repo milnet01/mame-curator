@@ -525,6 +525,38 @@ wave lands.
   Next: step 5 — `_validate_paths(..., setup_required=)` skips the
   `source_dat` check and `restart_required` fires while in setup mode.
 
+- 📋 [mame-curator-1096] **Stop the test suite opening real browser tabs.**
+  Reported by the user 2026-08-04: "every now and then you open a new
+  tab in my browser but the page never loads". Reproduced by inspection
+  during the mame-curator-1095 step 4 run.
+
+  `ServerConfig.open_browser_on_start` defaults to `True`
+  (`api/schemas.py:71`), and four test files call `_cmd_serve` without
+  patching `serve_mod.webbrowser` and without disabling the open:
+  `tests/cli/test_serve_config_layer.py`, `tests/cli/test_serve_port_env.py`,
+  `tests/cli/test_config_location.py`, `tests/cli/test_fp28_serve_signal.py`.
+  Each call starts the real daemon poller, which polls its target for
+  `_BROWSER_POLL_TIMEOUT_S = 300.0` seconds at 0.1 s intervals — long
+  outliving the test that spawned it. Other tests bind ephemeral
+  listeners (`bind(("127.0.0.1", 0))`); when the OS reuses a port a
+  stale poller is still watching, the poller connects and calls the real
+  `webbrowser.open`. The triggering listener is closed by then, so the
+  tab opens on a dead address — exactly the reported symptom.
+
+  Only `tests/cli/test_serve_browser.py` patches `webbrowser`, and it
+  does so per-test.
+
+  Fix: an autouse fixture in `tests/cli/conftest.py` that patches
+  `serve_mod.webbrowser` for the whole CLI suite, so no test can reach a
+  real opener; `test_serve_browser.py` keeps its per-test patches for
+  the assertions it makes. Consider also asserting no poller thread
+  outlives its test. Not a production defect — the poller behaves as
+  `cli/spec.md` § Browser specifies; it is the tests that run it
+  unmuzzled.
+  **Layman:** Running the tests sometimes pops open a browser tab that never loads — the tests are launching a real browser instead of a pretend one.
+  Kind: fix.
+  Source: user-report-2026-08-04.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167

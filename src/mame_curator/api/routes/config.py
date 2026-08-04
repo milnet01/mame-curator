@@ -60,14 +60,24 @@ def _to_response(config: AppConfig, *, restart_required: bool = False) -> AppCon
     )
 
 
-def _validate_paths(config: AppConfig) -> tuple[FieldError, ...]:
+def _validate_paths(config: AppConfig, *, setup_required: bool = False) -> tuple[FieldError, ...]:
+    """Collect `path_not_found` / `path_invalid` errors for the configured paths.
+
+    mame-curator-1095 § 4.2a: while `setup_required` is true the
+    `source_dat` check is **skipped entirely** — the starter config points
+    at a DAT that by construction does not exist, so collecting it would
+    reject every PATCH the user needs to make to fix it. Every other path
+    error stays fatal in setup mode, and the check applies again as soon as
+    the DAT parses. The missing DAT is already reported through
+    `setup_required` on `SetupCheck` and `build_world`'s warning.
+    """
     errs: list[FieldError] = []
     p = config.paths
     if not p.source_roms.exists():
         errs.append(
             FieldError(loc="paths.source_roms", msg="path does not exist", type="path_not_found")
         )
-    if not p.source_dat.exists():
+    if not setup_required and not p.source_dat.exists():
         errs.append(
             FieldError(loc="paths.source_dat", msg="path does not exist", type="path_not_found")
         )
@@ -158,7 +168,7 @@ async def patch_config(
                 fields=field_errors_from_pydantic(exc.errors()),
             ) from exc
 
-        path_errs = _validate_paths(new_config)
+        path_errs = _validate_paths(new_config, setup_required=world.setup_required)
         if path_errs:
             raise ConfigError("config validation failed", fields=path_errs)
 
@@ -178,7 +188,13 @@ async def patch_config(
         rerun = filter_relevant_changed(world.config, new_config)
         new_world = replace_world(base=world, config=new_config, rerun_filter=rerun)
         set_world(request, new_world)
-        return _to_response(new_config, restart_required=server_changed)
+        # mame-curator-1095 § 4.2b: in setup mode ANY successful save asks for
+        # the restart, deliberately not just a `source_dat` change. The
+        # likeliest recovery is the user dropping their DAT at exactly the path
+        # the starter config already names — the path string is then unchanged,
+        # and a difference-based condition would leave the library empty with
+        # no prompt. One extra prompt during setup; it cannot miss.
+        return _to_response(new_config, restart_required=server_changed or world.setup_required)
 
 
 @router.get("/api/config/snapshots", response_model=SnapshotsListing)
