@@ -643,7 +643,7 @@ wave lands.
   moves to mame-curator-1097, which carries the ruled-out list and an
   instrument-don't-read investigation plan.
 
-- 📋 [mame-curator-1097] **Browser tabs still open unbidden — cause not yet found.**
+- ✅ [mame-curator-1097] **Browser tabs still open unbidden — cause not yet found.**
   Reported again by the user 2026-08-04, AFTER mame-curator-1096 shipped:
   "Browser tabs are still being opened." So 1096's fix — real, and worth
   keeping — was not the cause of what the user is seeing, or not the only
@@ -684,6 +684,29 @@ wave lands.
   **Layman:** Something still pops open a browser tab that never loads, and the two things we blamed so far were not it.
   Kind: investigate.
   Source: user-report-2026-08-04.
+  Resolved (2026-08-04): the user supplied the decisive datum — the tab's
+  URL was `127.0.0.1:58019`, an OS-assigned ephemeral port, not 8080.
+  That shape pointed straight at
+  `tests/cli/test_fp28_serve_signal.py::test_serve_returns_130_on_keyboard_interrupt`,
+  the only test in the suite that spawns a REAL `mame-curator serve`
+  subprocess: it binds `_find_free_port()`, and `_build_minimal_config`
+  writes no `server:` block, so `open_browser_on_start` stayed at its
+  `True` default and no in-process patch could reach a separate process.
+  The server bound, the poller opened a real tab, and the test's SIGINT
+  then killed the server behind it — "opens, never loads", exactly.
+  Marked `@pytest.mark.slow`, so it runs in the FULL suite only (not the
+  `pytest-fast` pre-commit hook), which is why it was intermittent and
+  why it fired on pushes: the pre-push hook runs `local-CI.sh`.
+
+  Fixed by passing `--no-open-browser` in the subprocess argv. One line;
+  cannot affect the assertion, which is about the signal path.
+
+  **Why two earlier diagnoses missed it:** both were code audits that
+  generalised from a grep. The first blamed the CLI suite wholesale
+  without reading call sites; the second saw `no_open_browser=True` on
+  the OTHER test in this very file and concluded the file was clean. The
+  lesson is the one this bullet already carried: the user's one-line
+  observation (a port number) outperformed two rounds of reading.
 
 ### 🧪 Test Audit 2026-05-20
 

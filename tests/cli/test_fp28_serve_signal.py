@@ -93,6 +93,16 @@ def test_serve_returns_130_on_keyboard_interrupt(tmp_path: Path) -> None:
             str(port),
             "--host",
             "127.0.0.1",
+            # mame-curator-1097: this is a REAL subprocess on an ephemeral
+            # port, so no in-process patch of `serve_mod.webbrowser` can
+            # reach it, and `_build_minimal_config` writes no `server:`
+            # block — leaving `open_browser_on_start` at its `True` default.
+            # Without this flag the poller opened a real browser tab at
+            # `http://127.0.0.1:<random>/`, and the SIGINT below then killed
+            # the server it pointed at, so the tab never loaded. The flag
+            # cannot affect what this test asserts: it suppresses the
+            # browser open only, never the signal path.
+            "--no-open-browser",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
