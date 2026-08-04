@@ -204,7 +204,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub_serve.add_argument("--host", default=None, help="Bind address (overrides config).")
     sub_serve.add_argument("--port", type=int, default=None, help="Bind port (overrides config).")
     sub_serve.add_argument(
-        "--config", type=Path, default=Path("config.yaml"), help="Config file path."
+        "--config",
+        type=Path,
+        default=None,
+        help=(
+            "Config file path. Default: ./config.yaml if present, else a "
+            "per-user config that is created on first run."
+        ),
     )
     sub_serve.add_argument(
         "--no-open-browser", action="store_true", help="Skip auto-opening the browser."

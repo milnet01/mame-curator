@@ -34,6 +34,7 @@ dependencies = [
     "uvicorn[standard]>=0.47",  # api/ — ASGI server, `mame-curator serve`
     "httpx>=0.28",              # api/ — shared async client (media proxy)
     "sse-starlette>=3.4",       # api/ — SSE event streaming for copy progress
+    "platformdirs>=4.11",       # cli/ — per-user config/data/log locations
 ]
 
 # Per coding standards §8 "Phase-staged dependency declaration": runtime deps

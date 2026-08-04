@@ -16,6 +16,11 @@ from typing import TYPE_CHECKING
 from rich.console import Console
 from rich.markup import escape
 
+from mame_curator.config_location import (
+    ConfigSource,
+    ensure_starter_config,
+    resolve_config_path,
+)
 from mame_curator.filter import FilterError
 from mame_curator.parser import ParserError
 
@@ -233,9 +238,26 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     # would let `server.port` beat an explicit flag.
     use_config_port = args.port is None and not os.environ.get("PORT", "")
 
-    if not args.config.exists():
+    # Resolution and starter-config creation replace the old
+    # `args.config.exists()` check, and sit HERE rather than at the top of
+    # the function: `cli/spec.md` pins the $PORT raise before any config
+    # I/O, and `test_invalid_port_checked_before_config` fails if this is
+    # hoisted above it.
+    config_path, config_source = resolve_config_path(args.config)
+    if config_source is ConfigSource.USER:
+        try:
+            ensure_starter_config(config_path)
+        except OSError as exc:
+            err_console.print(
+                f"[red]error:[/red] cannot create config at "
+                f"{escape(str(config_path))}: {escape(str(exc))}"
+            )
+            return 1
+    if not config_path.exists():
+        # Only reachable for an explicit --config: layer 2 is skipped when
+        # absent and layer 3 was just created.
         err_console.print(
-            f"[red]error:[/red] config file not found: {escape(repr(args.config))} — "
+            f"[red]error:[/red] config file not found: {escape(repr(config_path))} — "
             "run `mame-curator setup` first"
         )
         return 1
@@ -258,7 +280,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
 
     # --- Stage 2: after the config file exists and the extras imported --
     try:
-        server = _load_server_config(args.config)
+        server = _load_server_config(config_path)
     except ConfigError as exc:
         err_console.print(f"[red]error:[/red] {escape(str(exc))}")
         return 1
@@ -275,7 +297,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     # uvicorn.run, not here. This catch is defence-in-depth in case a
     # future refactor moves validation up into the factory body.
     try:
-        app = create_app(args.config)
+        app = create_app(config_path)
     except (ConfigError, ParserError, FilterError) as exc:
         err_console.print(f"[red]error:[/red] failed to create app: {escape(str(exc))}")
         return 1

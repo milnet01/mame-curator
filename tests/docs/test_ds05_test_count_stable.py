@@ -185,7 +185,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #     exec cases merged into one parametrised declaration, and the freed
 #     slot went to "`$PORT` absent announces no URL".
 # 709 → 742.
-EXPECTED_PYTEST_DECLARATIONS = 742
+# Bumped 2026-08-04 (mame-curator-1095 step 1 — per-user config location):
+# +10 declarations, all tests/cli/test_config_location.py — the three
+# resolution layers, the starter config and its data directories, the
+# never-overwrite rule, and the three `_cmd_serve` first-run cases
+# (creates-and-starts, explicit-typo-still-exits-1, $PORT-before-any-
+# config-I/O).
+# 742 → 752.
+EXPECTED_PYTEST_DECLARATIONS = 752
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
