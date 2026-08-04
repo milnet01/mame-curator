@@ -442,6 +442,33 @@ wave lands.
   Kind: package.
   Lanes: ci, cli, packaging.
   Source: user-request-2026-08-04.
+  Progress (2026-08-04): spec written and gated —
+  `docs/specs/mame-curator-1095-desktop-bundles.md`, 900 lines, 15
+  invariants. `/cold-eyes` ran 2 loops x 3 lanes: 63 findings verified, 62
+  fixed, 1 dismissed, 0 deferred. **Stopped at loop 2 on the collateral
+  trigger** (7 draft defects vs 16 fix collateral — a decisive margin),
+  not at the cap.
+
+  Three CRITICALs were the same class both loops: the design asserted
+  behaviour the codebase does not have. (a) `restart_required` fires only
+  on `server:` changes, so correcting a DAT path prompted nothing;
+  (b) `_validate_paths` rejects EVERY `PATCH /api/config` while the
+  starter `source_dat` is absent, so the user could never save the fix
+  that ends setup mode; (c) `release.yml`'s `publish` job takes
+  `needs: build` and one `download-artifact`, so three new build jobs
+  would have run and had their artefacts discarded.
+
+  Scope reality the spec surfaced: this is ~40% packaging and ~60%
+  "make a first run work" — a per-user config location, a degraded
+  setup mode in `build_world`, two `api/routes/config.py` changes, a
+  `SetupCheck` field mirrored into the TS types, and `main()` learning to
+  tee stderr to a log. NOT yet implemented; no code written.
+
+  Recommended split before implementation (user's call): keep 1095 for
+  the packaging half (PyInstaller spec, 3 platform builds, 3 local mirror
+  scripts, release wiring, icon, naming) and file the first-run half as
+  its own item — it owns 10 of the 15 invariants and produced every
+  CRITICAL across both loops.
 
 ### 🧪 Test Audit 2026-05-20
 
