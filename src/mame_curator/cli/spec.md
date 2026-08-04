@@ -19,7 +19,7 @@ A thin argparse-based command dispatcher that wires user-facing subcommands to t
 
 ## Subcommand inventory
 
-The set of subcommands grows phase-by-phase. Each subcommand's behavioral contract lives in **its host module's `spec.md`**, not here — this spec covers wiring discipline only.
+The set of subcommands grows phase-by-phase. Each subcommand's behavioral contract lives in **its host module's `spec.md`**, not here — this spec covers wiring discipline only. **Two deliberate exceptions**, both because there is no host module to hold the contract: `setup` (specified in full below — it wraps the `AppConfig` schema directly), and `serve`'s launch wiring (§ "`serve` host, port and browser resolution" — `api/spec.md` owns everything from the socket inwards and explicitly disclaims the entrypoint).
 
 | Phase | Subcommand | Status | Host module spec |
 |---|---|---|---|
@@ -87,8 +87,8 @@ edit is required before either doc can be trusted on the point.
 1. `$PORT` set and invalid (see § "`serve` host, port and browser resolution").
 2. `--config` names a file that does not exist.
 3. The API extras are not installed (`ImportError` on `uvicorn` / `mame_curator.api`).
-4. `config.yaml` is unreadable, is not a YAML mapping, or its `server:`
-   section fails validation (`ConfigError`). `cli/` deliberately re-uses
+4. (`PENDING`) `config.yaml` is unreadable, is not a YAML mapping, or its
+   `server:` section fails validation (`ConfigError`). `cli/` deliberately re-uses
    `api.errors.ConfigError` here rather than defining a `CliError` of its
    own: the failure *is* an API-config failure, the same class the API
    lifespan raises for the same file, and coding-standards §9's
@@ -96,9 +96,10 @@ edit is required before either doc can be trusted on the point.
    not about forbidding a caller from catching its callee's typed error.
 5. `create_app` raised `ConfigError` / `ParserError` / `FilterError`.
 6. The bind failed — `OSError` (address in use, permission denied for a
-   privileged port) or `OverflowError` (a **resolved** port outside
-   0-65535, which can come from `--port` or from `server.port`; neither
-   is range-checked, see § Port rules (1) and (3)).
+   privileged port), or `OverflowError` (`PENDING`; a **resolved** port
+   outside 0-65535, which can come from `--port` or from `server.port` —
+   neither is range-checked, see § Port rules (1) and (3)). The `OSError`
+   half ships today; the `OverflowError` half does not.
 
 ## `serve` host, port and browser resolution
 
@@ -109,9 +110,11 @@ edit is required before either doc can be trusted on the point.
 > built** — the `config.yaml` layer, the `--no-open-browser` flag doing
 > anything, the browser poll thread, the `OverflowError` catch, and
 > `run.sh`'s conditional forwarding. Tracked as **mame-curator-1090**
-> (the wiring) and **mame-curator-1091** (nine defects a–i). Every other
-> section of this spec describes shipped behaviour; treat an unmarked
-> clause anywhere else as current.
+> (the wiring) and **mame-curator-1091** (nine defects a–i).
+>
+> **§ "Exit codes" is the one other section carrying pending clauses** —
+> exit-`1` paths 4 and 6 are marked there. Outside those two paths and
+> this section, treat an unmarked clause as describing shipped behaviour.
 
 `_cmd_serve` resolves three settings. They do **not** share one precedence
 rule — each is stated in full in its own subsection below, and the
@@ -119,7 +122,7 @@ differences are deliberate:
 
 | Setting | Resolution |
 |---|---|
-| **Port** | `--port` → `$PORT` → `server.port` → `8080`; first present wins. |
+| **Port** | `--port` → `$PORT` → `server.port` → `8080`; first present wins. Layers 3 and 4 are one read, not two — `ServerConfig.port` always carries a value once the block parses, so `8080` is reached as *that field's own default*, never as a separate lookup. |
 | **Host** | `--host` → `server.host` → `127.0.0.1`. **No environment layer** — see § Host. |
 | **Browser** | Not a chain at all: a config default with a one-way suppress flag. `--no-open-browser` can only turn the open *off*, never on. See § Browser. |
 
@@ -130,50 +133,82 @@ The `config.yaml` layer is the `server:` section, typed by
 full config validation belongs to the API lifespan, and `serve` must still
 be able to start a server whose *other* sections are mid-edit.
 
-**The block is read once, unconditionally, and before host/port/browser
-are resolved** — not lazily when a layer below the flags turns out to be
-needed. So a malformed `server:` block fails the command even when
-`--host`, `--port` and `--no-open-browser` are all supplied and nothing
-from the file would have been consumed. This is the stricter of the two
-conforming readings and it is chosen on purpose: a config the user cannot
-see is broken is worse than a command that refuses to start, and the lazy
-alternative makes `scripts/dev.sh` (which supplies exactly those flags)
-the one invocation that never notices the breakage. A `config.yaml` that
-is unreadable, is not a YAML mapping, or whose `server:` block fails
-`ServerConfig` validation exits **1** naming the file and the cause.
+**The block is read once, and unconditionally** — not lazily when a layer
+below the flags turns out to be needed. So a malformed `server:` block
+fails the command even when `--host`, `--port` and `--no-open-browser`
+are all supplied and nothing from the file would have been consumed. This
+is the stricter of the two conforming readings and it is chosen on
+purpose: a config the user cannot see is broken is worse than a command
+that refuses to start, and the lazy alternative makes `scripts/dev.sh`
+(which supplies exactly those flags) the one invocation that never
+notices the breakage. A `config.yaml` that is unreadable, is not a YAML
+mapping, or whose `server:` block fails `ServerConfig` validation exits
+**1** naming the file and the cause.
 
-**Resolution is two-staged, and the stages straddle the exit-`1` ordering
-above.** `$PORT` is validated in stage 1, before any config I/O, so a bad
-`$PORT` reports as itself rather than as a missing or malformed config
-(exit-`1` path 1 precedes paths 2 and 4). The `server:` layer is read in
-stage 2, only after the config file is known to exist and the API extras
-import has succeeded (exit-`1` paths 2 and 3).
+**"Unconditionally" is about the flags, not about ordering** — the read
+still happens after the two checks that precede it. Resolution is
+two-staged, and the stages straddle the exit-`1` ordering above:
+
+- **Stage 1** — `$PORT` is validated before any config I/O (exit-`1` path
+  1 precedes paths 2 and 4; § Port states the rationale).
+- **Stage 2** — the `server:` block is read, only after the config file is
+  known to exist and the API extras import has succeeded (exit-`1` paths
+  2 and 3), and regardless of which flags were supplied.
 
 **Ownership of the resolution is `_cmd_serve`, not `_resolve_port`.**
 `_resolve_port(explicit: int | None) -> int` keeps its current signature
-and its current meaning — flag → `$PORT` → `DEFAULT_PORT` — so the eleven
-existing tests in `tests/cli/test_serve_port_env.py` that call
-`_resolve_port(None)` and expect `8080` continue to pass unchanged.
-`_cmd_serve` reads the `server:` block and applies layer (3) around it;
-the config value is **not** threaded into `_resolve_port` as a second
-parameter. An implementer who instead widens `_resolve_port`'s signature
-will red those eleven tests, which is the signal that this clause was
-skipped rather than a licence to update them.
+and its current meaning — flag → `$PORT` → `DEFAULT_PORT`. The config
+value is **not** threaded into it as a second parameter.
+
+`_cmd_serve` therefore **cannot infer layer (3) from `_resolve_port`'s
+return value**: that function returns `8080` identically for "nothing was
+set" and for an explicit `--port 8080` or `PORT=8080`, so a
+`if port == DEFAULT_PORT: port = server.port` implementation would let
+`server.port: 9000` silently beat an explicit `--port 8080` — a
+precedence inversion no existing test catches. `_cmd_serve` MUST
+re-derive presence directly instead:
+
+```python
+# consult layer (3) iff neither layer (1) nor layer (2) is present
+if args.port is None and not os.environ.get("PORT", ""):
+    port = server.port          # ServerConfig's value, or its 8080 default
+else:
+    port = _resolve_port(args.port)   # raises on an invalid $PORT, as today
+```
+
+Two existing tests in `tests/cli/test_serve_port_env.py` call
+`_resolve_port(None)` and expect `8080` (the `$PORT`-unset and `PORT=""`
+cases); they must keep passing unchanged, as must every other
+`_resolve_port` caller in that module. An implementer who widens
+`_resolve_port`'s signature reds all of them, which is the signal that
+this clause was skipped rather than a licence to update them.
+
+**Test surface for the config layer** (none exist yet; part of
+mame-curator-1090's tests-to-write-first): a valid `server: {port: 9000}`
+with no flag and no `$PORT` binds 9000; the same config with `--port 9500`
+binds 9500; the same config with `PORT=9600` binds 9600 (this is the
+precedence-inversion regression); `server: {host: 0.0.0.0}` with no
+`--host` binds the wildcard; a `server:` block omitting `port` falls to
+8080; an unreadable `config.yaml`, a non-mapping `config.yaml`, and a
+`server:` block failing `ServerConfig` validation each exit 1 naming the
+file and the cause **even when `--host`, `--port` and
+`--no-open-browser` are all supplied**; and a config whose *other*
+sections are invalid still starts (only `server:` is parsed here).
 
 ### Port
 
 1. **`--port <n>`** — explicit beats implicit. Passed through as given (including `--port 0`, which uvicorn reads as "any free port" — see § Browser for why that value suppresses the browser open); only argparse's `type=int` constrains it. **The 1024-65535 check does NOT apply to the flag** — a caller who names a port explicitly is taken at their word (a privileged port under `sudo` is the motivating case). `$PORT` is not read at all when the flag is present, so a malformed `$PORT` alongside `--port 9000` is ignored, not an error.
-2. **`$PORT`** — read only when `--port` is absent. MUST match `[0-9]+` in full and fall inside **1024-65535, inclusive**. Leading zeros are accepted (`08080` → 8080); a leading `+`, surrounding whitespace, underscores, and non-ASCII digits are NOT — `int()` and `str.isdigit()` both accept some of those, so neither is a conforming implementation on its own.
+2. **`$PORT`** — read only when `--port` is absent. **An unset `$PORT` and a set-but-empty `PORT=""` both count as absent** and fall through to (3); this matches bash's `${PORT:-…}` and is what the two existing `_resolve_port(None) == 8080` tests pin. Otherwise it MUST match `[0-9]+` in full and fall inside **1024-65535, inclusive**. Leading zeros are accepted (`08080` → 8080); a leading `+`, surrounding whitespace, underscores, and non-ASCII digits are NOT — `int()` and `str.isdigit()` both accept some of those, so neither is a conforming implementation on its own.
 3. **`server.port`** (`PENDING`) — read when neither of the above is set. Constrained only by `ServerConfig`'s `int` type, on the same "taken at their word" grounds as (1): a hand-edited config naming port 80 is as deliberate as a typed flag. Because it is unconstrained, it can reach the bind out of range — see exit-`1` path 6.
 4. **`8080`** — `ServerConfig.port`'s own default, reached when `config.yaml` has no `server:` block **or has one that omits `port`** (every `ServerConfig` field carries its own default, so a partial block is valid). `serve.DEFAULT_PORT` mirrors it as the fallback for `_resolve_port`'s unit-level callers. **A test MUST pin `serve.DEFAULT_PORT == ServerConfig.model_fields["port"].default` so the two cannot drift** — no such test exists today, and writing it is part of mame-curator-1090.
 
-A `$PORT` that is present and does not satisfy (2) MUST exit **1** with `error: PORT='<value>' is not a valid port — expected an integer in 1024-65535.` on stderr, where `<value>` is the environment value **verbatim** per § "Error messages" — rich markup in it (`[abc]`) MUST be escaped, not interpreted. It MUST NOT fall back to 8080 or to `server.port`, and MUST NOT be allowed to reach argparse (whose `invalid int value:` message omits the range) or the bind call (whose `permission denied` names neither). The check runs **before** the config-existence check, so a bad `$PORT` reports as itself rather than as a missing config.
+A `$PORT` that is non-empty and does not satisfy (2) MUST exit **1** with `error: PORT='<value>' is not a valid port — expected an integer in 1024-65535.` on stderr, where `<value>` is the environment value **verbatim** per § "Error messages" — rich markup in it (`[abc]`) MUST be escaped, not interpreted. It MUST NOT fall back to 8080 or to `server.port`, and MUST NOT be allowed to reach argparse (whose `invalid int value:` message omits the range) or the bind call (whose `permission denied` names neither). The check runs **before** the config-existence check, so a bad `$PORT` reports as itself rather than as a missing config.
 
 A port that passes resolution but lies outside the OS socket range (`--port 99999`, `--port -1`, or a `server.port` of either) raises `OverflowError` from `socket.bind`, which is **not** an `OSError` subclass. `_cmd_serve` MUST catch it alongside `OSError` and report exit 1 (`PENDING` — the current code catches `OSError` only); letting it escape is the traceback § "Errors the CLI catches" forbids.
 
 ### Host
 
-1. **`--host <addr>`**, else 2. **`server.host`** (`PENDING`), else 3. **`127.0.0.1`** (`ServerConfig.host`'s default). There is deliberately no `$HOST` layer: `$PORT` has an environment layer because process supervisors and PaaS runtimes set it by convention, and nothing sets `$HOST` the same way.
+1. **`--host <addr>`**, else 2. **`server.host`** (`PENDING`), else 3. **`127.0.0.1`** (`ServerConfig.host`'s default). **`--host` counts as present only when non-empty** — `--host ""` is treated as absent and falls through to (2), matching the current `args.host or "127.0.0.1"`. An empty bind host therefore reaches uvicorn only from `server.host: ""`, which is the one route by which § Browser's empty-string wildcard case arises. There is deliberately no `$HOST` layer: `$PORT` has an environment layer because process supervisors and PaaS runtimes set it by convention, and nothing sets `$HOST` the same way.
 
 ### Browser
 
@@ -191,27 +226,61 @@ It is opened from a **daemon thread that polls the resolved address until it acc
 | `_BROWSER_CONNECT_TIMEOUT_S` | `0.25` | Per-attempt socket timeout. Bounds one attempt against a host that blackholes rather than refusing. |
 | `_BROWSER_POLL_TIMEOUT_S` | `300.0` | Total giveup. Sized for a cold-cache DAT parse with headroom. |
 
-The poll is **best-effort and MUST NOT be able to fail the server**: on giveup it logs one `logger.debug` line naming the URL and the elapsed budget and returns — never raises, never touches the exit code — and the thread is a daemon so a failed open can never hold the process open at shutdown. The debug line exists so the giveup is observable; a genuinely silent giveup is untestable at the 300 s value.
+The poll is **best-effort and MUST NOT be able to fail the server**: it returns rather than raising on every failure path, never touches the exit code, and the thread is a daemon so a failed open can never hold the process open at shutdown.
 
-**The browser open is skipped entirely when the resolved port is `0`.** `--port 0` means "any free port", so the port uvicorn actually binds is not knowable to the resolver — the address the poller would be given is unconnectable by construction, and it would burn the full 300 s budget before giving up. Skip, and log the same `logger.debug` line.
+**Each non-open outcome logs its own distinguishable line**, so a test can tell them apart and `-v` shows the user which happened. All are `logger.debug` — a browser that did not open is not a malfunction, and § "Logging configuration" pins the default level to `INFO`, so **these lines are observable under `-v` and in caplog, not on a default run**. That is the intended visibility: the URL is already on stdout for the user to click.
 
-When the bind host is a wildcard the browser URL uses `127.0.0.1` instead — a wildcard is an address to listen on, not one every platform can connect to. Treat as wildcard: the empty string, `0.0.0.0`, and any unspecified IPv6 form (`::`, `[::]`, `::0`). The robust test is `ipaddress.ip_address(host).is_unspecified` after stripping any surrounding brackets, not a literal string list.
+| Outcome | Line |
+|---|---|
+| Poll exhausted `_BROWSER_POLL_TIMEOUT_S` | `browser open gave up: <url> not accepting after <n>s` |
+| Resolved port is `0` | `browser open skipped: port 0 (bound port not knowable before listen)` |
+| `open_browser_on_start` false, or `--no-open-browser` | `browser open skipped: disabled by <config|flag>` |
+| `webbrowser.open` raised | `browser open failed: <exc>` |
 
-**Test surface** (none of these exist yet; they are mame-curator-1090's "tests to write first"): the open is skipped when `open_browser_on_start` is false; skipped when `--no-open-browser` is passed with config true; skipped when the resolved port is `0`; fires once the poll target starts accepting; gives up and logs after `_BROWSER_POLL_TIMEOUT_S` (monkeypatched small); rewrites each wildcard form to `127.0.0.1`; and a `webbrowser.open` that raises does not change the exit code.
+**The browser open is skipped entirely when the resolved port is `0`.** `--port 0` means "any free port", so the port uvicorn actually binds is not knowable to the resolver — the address the poller would be given is unconnectable by construction, and it would burn the full 300 s budget before giving up.
+
+When the bind host is a wildcard the browser URL uses `127.0.0.1` instead — a wildcard is an address to listen on, not one every platform can connect to. Wildcards are the empty string, `0.0.0.0`, and every unspecified IPv6 form (`::`, `[::]`, `::0`).
+
+**A bare `ipaddress.ip_address(host).is_unspecified` is NOT a conforming test** — it raises `ValueError` on the empty string, which is itself one of the wildcard forms, and on any hostname (`--host localhost`, `--host myhost.local`), for which the spec's answer is "not a wildcard". The predicate is:
+
+```python
+def _is_wildcard(host: str) -> bool:
+    if not host:                       # empty string IS a wildcard
+        return True
+    try:
+        return ipaddress.ip_address(host.strip("[]")).is_unspecified
+    except ValueError:                 # a hostname, not a literal address
+        return False                   # use it as given
+```
+
+**Test surface** (none of these exist yet; they are mame-curator-1090's "tests to write first"): the open is skipped when `open_browser_on_start` is false; skipped when `--no-open-browser` is passed with config true; skipped when the resolved port is `0`; fires once the poll target starts accepting; gives up after `_BROWSER_POLL_TIMEOUT_S` (monkeypatched small); each of the four outcomes above emits its own distinct line; `_is_wildcard` returns true for `""`, `0.0.0.0`, `::`, `[::]`, `::0` and false for `127.0.0.1`, `192.168.1.5` and `localhost`; and a `webbrowser.open` that raises does not change the exit code.
+
+**One existing-test change lands with this**: `_serve_args` in `tests/cli/test_serve_port_env.py` builds `argparse.Namespace(config=…, host=…, port=…)` with **no `no_open_browser` attribute**, so the first `args.no_open_browser` read raises `AttributeError` across all four `_cmd_serve` end-to-end tests. Give the helper a `no_open_browser: bool = False` default in the same commit; do not paper over it with `getattr(args, …, False)` in production code, which would hide a genuinely missing argparse registration.
 
 ### Entry points
 
 `run.sh` MUST forward `--port "${PORT}"` **only when `$PORT` is non-empty**; with `$PORT` unset it must exec `mame-curator serve` with no port flag, so `server.port` is honoured. Forwarding an unconditional `--port 8080` makes rule (1) fire on every bootstrap and the config layer unreachable through the project's primary entry point.
 
-**`PENDING` — `run.sh` does not do this today.** It currently sets `PORT=${PORT:-8080}` and then execs `--port "${PORT}"` unconditionally, so the default is baked in at the shell layer. Two changes land together: drop the `:-8080` default so an unset `$PORT` stays empty, and make the flag conditional. Two cases in `tests/tools/test_run_sh_port.py` assert `"run mame-curator serve --port 8080"` for absent and empty `$PORT`; under this contract both become `"run mame-curator serve"`, and changing them is part of the same commit.
+**`PENDING` — `run.sh` does not do this today.** It currently sets `PORT=${PORT:-8080}` and then execs `--port "${PORT}"` unconditionally, so the default is baked in at the shell layer. **Three changes land together, and omitting the third breaks the default bootstrap:**
+
+1. Drop the `:-8080` default, so an unset `$PORT` stays empty.
+2. **Guard the `$PORT` validation block on `[ -n "${PORT}" ]`.** The existing check is `if ! [[ "${PORT}" =~ ^[0-9]{1,5}$ ]] || …`, and an empty string fails that regex — verified: with `PORT=""` it exits 1 with `error: PORT='' is not a valid port`. Left unguarded, change (1) alone makes *every* no-`$PORT` launch abort. An empty `$PORT` must skip validation entirely, exactly as it now falls through to layer (3) on the Python side.
+3. Make the `--port` flag conditional on the same non-empty test.
+
+Two cases in `tests/tools/test_run_sh_port.py` assert `"run mame-curator serve --port 8080"` for absent and empty `$PORT`; under this contract both become `"run mame-curator serve"` **with a zero exit code**, and changing them is part of the same commit. Assert the exit code as well as the argv — a `--port`-less serve line and an aborted script are otherwise indistinguishable in the `serve_argv` helper, which returns `None` for both.
 
 `run.sh` still performs its own `$PORT` check before the exec. The two checks are deliberate duplicates across a language boundary: `run.sh` must reject the value before it `exec`s, and it cannot import Python to do so. Its regex carries a `{1,5}` digit bound the Python side does not need — a wider digit string makes `test -lt` error out instead of comparing, which would read as "in range". The **plain-text** messages are identical for every value either check accepts as *reaching* the message. Two axes on which the emitted bytes still differ, neither of which is a defect: the Python side prints through `rich` with `[red]error:[/red]`, so on a tty it carries ANSI styling the bash `echo` does not; and quoting differs for values containing a quote or a newline (bash prints `PORT='<raw>'`, Python uses `repr`). Assert on the text, never on the byte stream.
 
 `run.sh` MUST NOT open the browser — `_cmd_serve` does, per § Browser above. The shell script cannot see when the socket starts accepting without polling it in bash, and duplicating the poll across the language boundary buys nothing here (unlike the `$PORT` check, which must happen before the exec).
 
-**`PENDING` — `run.sh` does open it today**, from a backgrounded subshell that sleeps 2 s and then calls `xdg-open` / `open`. That block is **deleted** as part of mame-curator-1090, in the same commit that adds the Python poller. Adding the poller without deleting the block gives every bootstrap two browser opens, and the blind 2 s sleep is the "Unable to connect" first-load wart the poller exists to fix. `run.sh` keeps its `echo "Starting MAME Curator on ${URL}"` announce line — that is the manual fallback when no opener is available, and it is unaffected.
+**`PENDING` — `run.sh` does open it today**, from a backgrounded subshell that sleeps 2 s and then calls `xdg-open` / `open`. That block is **deleted** as part of mame-curator-1090, in the same commit that adds the Python poller. Adding the poller without deleting the block gives every bootstrap two browser opens, and the blind 2 s sleep is the "Unable to connect" first-load wart the poller exists to fix. `run.sh` keeps an announce line — it is the manual fallback when no opener is available — but **the line does change, because `URL` is built from `$PORT`.** With the `:-8080` default dropped and `$PORT` unset, `URL="http://127.0.0.1:${PORT}/"` renders as `http://127.0.0.1:/`, and the real port is not knowable to the shell at all once it can come from `server.port`. So:
 
-**Coverage is `run.sh` and the direct `mame-curator serve` invocation, not every entry point.** `run.bat` (the Windows bootstrap) defaults `$PORT` the same way but forwards it as `--port`, which by rule (1) skips validation entirely — so on Windows a bad `PORT` still reaches argparse or the bind. Tracked as **mame-curator-1089**. `scripts/dev.sh` passes `--port 8080` and `--no-open-browser` explicitly, for two different reasons: `--port 8080` because Vite proxies `/api` and `/media` to a hardcoded `http://127.0.0.1:8080`, so a developer with `PORT` exported would otherwise move the backend out from under the proxy; `--no-open-browser` because dev.sh already opens the Vite dev server at `:5173`, and a second tab on the backend port is noise.
+- **`$PORT` non-empty** — announce as today, `http://127.0.0.1:${PORT}/`. The shell knows the port because it is the one being forwarded.
+- **`$PORT` empty** — announce without a URL (`Starting MAME Curator — the address will be printed once the server binds`). `serve` owns the address in this case, and uvicorn already logs `Uvicorn running on http://<host>:<port>` on bind.
+
+Pin both cases in `tests/tools/test_run_sh_port.py`; the existing `PORT=5999` case already asserts `http://127.0.0.1:5999/` is announced, and the empty case must assert that no `http://127.0.0.1:/` appears.
+
+**Coverage is `run.sh` and the direct `mame-curator serve` invocation, not every entry point.** `run.bat` (the Windows bootstrap) defaults `$PORT` the same way but forwards it as `--port`, which by rule (1) skips validation entirely — so on Windows a bad `PORT` still reaches argparse or the bind. Tracked as **mame-curator-1089**. **That item has a second half once mame-curator-1090 lands:** unconditional `--port` forwarding also makes layer (3) unreachable, so `server.port` would be honoured on Linux/macOS and silently ignored on Windows. `run.bat` needs the same three changes `run.sh` gets, or the two bootstraps diverge on which config keys work. `scripts/dev.sh` passes `--port 8080` and `--no-open-browser` explicitly, for two different reasons: `--port 8080` because Vite proxies `/api` and `/media` to a hardcoded `http://127.0.0.1:8080`, so a developer with `PORT` exported would otherwise move the backend out from under the proxy; `--no-open-browser` because dev.sh already opens the Vite dev server at `:5173`, and a second tab on the backend port is noise.
 
 ## Output routing (per coding standards §9)
 
@@ -249,7 +318,8 @@ is user input for this purpose. Style markup the CLI itself writes
 
 Each subparser registers its handler via `set_defaults(func=_cmd_<name>)` at
 the time it is added in `build_parser()`. `run()` then dispatches with a
-single `return int(args.func(args))`. Adding a new subcommand is a two-line
+single `return int(args.func(args))`, after the missing-`func` guard below.
+Adding a new subcommand is a two-line
 registration in `build_parser()` (the `add_parser()` + the `set_defaults()`)
 plus the new `_cmd_<name>` function — no edit to `run()` required.
 
@@ -303,3 +373,4 @@ can raise on valid inputs. If the list is "anything", the catch is too wide.
 | Loop | Date | Lanes | Severity (verified) | Dimensions | Outcome |
 |---|---|---|---|---|---|
 | 1 | 2026-08-04 | 3 × general-purpose | C 3 · H 5 · M 7 · L 8 · I 0 (23 verified / 1 unverified) | dim 2×6, dim 5×4, dim 6×5, dim 7×2, dim 15×2, dim 4×1, dim 9×1, dim 10×1, dim 11×1 | 23 fixed. Dominant defect: the whole § "`serve` host, port and browser resolution" was written in present-tense indicative while unimplemented, with no shipped-vs-pending marker — fixed with a status banner plus inline `PENDING` tags. Also fixed: the "same precedence rule" generalisation (false for host and browser), a drift test asserted to exist that does not, the unstated owner of the config layer, and the unstated read discipline for the `server:` block. 1 dismissed (`refresh-snaps` "shipped" is correct — P10 closed 2026-07-02). Surfaced, not fixed: the reciprocal `docs/specs/P04.md` exit-code edit; two test-module docstrings citing this spec's former section name. |
+| 2 | 2026-08-04 | 3 × general-purpose | C 5 · H 3 · M 7 · L 3 · I 0 (18 verified / 0 unverified) | dim 5×5, dim 2×4, dim 6×4, dim 7×3, dim 15×3, dim 10×2, dim 4×2, dim 1×1 | 18 fixed, 1 dismissed. **14 of 18 were loop-1 fix collateral, 4 draft defects** — loop 1 answered prose defects with substantive new contract text, and the new text carried its own. Four were verified by execution rather than reading: `ipaddress.ip_address("")` and `("localhost")` both raise, so the prescribed wildcard predicate crashed on two inputs the same sentence mandated handling; bash rejects an empty `$PORT`, so loop 1's two-step `run.sh` change list would have broken the default bootstrap; only 2 tests (not the stated eleven) call `_resolve_port(None)` expecting 8080; bash and Python agree on leading zeros, confirming the message-parity claim. Both prescribed code blocks now parse, and `_is_wildcard` was run against its own stated test surface. Draft defects fixed: the `setup`/`serve` carve-out to the host-module rule (missed in loop 1), `run.bat`'s second-half divergence under 1090, `PORT=""` presence, the `run()` guard. Dismissed: moving the exit-`1` list out of § "Exit codes" — a structural tidy that would strand § Port's "path 6" cross-references. |
