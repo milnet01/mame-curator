@@ -413,6 +413,36 @@ wave lands.
   Lanes: cli.
   Source: cold-eyes-2026-08-04 (cli/spec.md rule-14 gate, loop 3 deferred tail).
 
+- 📋 [mame-curator-1095] **Ship self-contained desktop bundles for Linux, Windows and macOS.**
+  Three artefacts built by `release.yml` and attached to each `v*.*.*`
+  release: a Linux **AppImage**, a Windows **single-file .exe**
+  (PyInstaller one-file), and an **unsigned macOS `.app` inside a `.dmg`**.
+  Each CI job has a local mirror script — `local-appimage.sh`,
+  `local-exe.sh`, `local-macos.sh` — that runs byte-identical steps, the
+  same relationship `local-CI.sh` has to `ci.yml`.
+
+  Carries a first-run change without which the bundles do not work at all:
+  `serve` exits 1 when `config.yaml` is absent and points at an
+  *interactive terminal* wizard, so a double-clicked bundle would flash and
+  die with nothing on screen. `serve` gains a per-user config location
+  (XDG / %APPDATA% / Application Support) and writes a starter config there
+  when none exists, leaving path configuration to the existing Settings
+  page.
+
+  User decisions (2026-08-04): default config written on first run rather
+  than an error dialog; macOS unsigned with documented Gatekeeper steps (no
+  Apple Developer account); pipeline wired and built locally but NO release
+  tagged this round; Windows is one file rather than an installer.
+
+  Constraint: `local-exe.sh` and `local-macos.sh` cannot execute on the
+  development machine (Linux only), so their first real run is CI's — they
+  get shellcheck plus a dry-run locally and nothing more.
+  Kind: package.
+  **Layman:** Download one file and run it — no Python, no terminal, no install steps.
+  Kind: package.
+  Lanes: ci, cli, packaging.
+  Source: user-request-2026-08-04.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
