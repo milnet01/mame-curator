@@ -435,8 +435,27 @@ decision, not a build detail.
 
 ### 4.6 Windows — single `.exe`
 
-`local-exe.sh` and the `build-exe` CI job run the same frontend build and
-PyInstaller with `--onefile --console`. The job declares
+The `build-exe` CI job runs on `windows-latest`; `local-exe.sh` runs the
+same steps **on this Linux machine under Wine**. Both invoke the same
+frontend build and PyInstaller with `--onefile --console`.
+
+**Wine is the supported route, not a hack.** PyInstaller's FAQ states
+that cross-compilation is unsupported and directs Windows-from-Linux
+builds at Wine explicitly — "please use Wine for this, as PyInstaller
+runs fine in Wine". `local-exe.sh` therefore provisions a project-local
+`WINEPREFIX` at `.wine-build/` (gitignored), installs the Windows
+CPython that matches `pyproject.toml`'s `requires-python`, and runs
+`wine python -m PyInstaller` against the shared spec file.
+Source: https://github.com/pyinstaller/pyinstaller/wiki/FAQ
+
+**What that does and does not prove.** It builds a real PE binary with
+the real Windows CPython, so it catches the packaging failures that
+actually bite — a missing `hiddenimport`, a `datas` entry that did not
+land, a spec-file syntax error — before a tag is pushed. It is **not**
+a substitute for the CI job: the binary is produced under Wine rather
+than on Windows, and Wine's own behaviour differs from Windows at the
+edges. CI on `windows-latest` remains the authority; `local-exe.sh` is
+the pre-flight that stops most red CI runs happening at all. The job declares
 **`shell: bash`**: `windows-latest` defaults to `pwsh`, which cannot run
 the script at all, and Git Bash ships on the GitHub runner image. Naming
 the shell is what makes "the CI job runs the same steps" true rather
@@ -447,7 +466,16 @@ a server process nowhere to write stdout.
 ### 4.7 macOS — unsigned `.app` in a `.dmg`
 
 `local-macos.sh` and the `build-macos` CI job produce `MAME Curator.app`
-via PyInstaller's `BUNDLE`, then `hdiutil create` a `.dmg`. No signing,
+via PyInstaller's `BUNDLE`, then `hdiutil create` a `.dmg`.
+
+**There is no Linux equivalent of the Wine route here, and this is
+settled rather than unexplored.** PyInstaller's FAQ: "Packaging macOS
+binaries while running under Linux is currently not possible at all."
+`osxcross` is a C/C++ cross-toolchain — it can compile Darwin objects,
+but PyInstaller must *run* a macOS CPython to freeze it, and nothing on
+Linux hosts one. So `local-macos.sh` is the only one of the three
+scripts that genuinely cannot run here.
+Source: https://github.com/pyinstaller/pyinstaller/wiki/FAQ No signing,
 no notarisation (§3 decision 2). The release notes and README gain the
 first-launch instruction: right-click (or Control-click) the `.app`,
 choose **Open**, then **Open** again in the dialog — needed once.
@@ -457,18 +485,21 @@ Source: https://chrplr.github.io/note-about-macos-unsigned-apps/
 ### 4.8 Local mirror scripts and their honest limit
 
 The three scripts sit beside `local-CI.sh` and hold the same relationship
-to `release.yml` that it holds to `ci.yml`. Only one of them can actually
-run here:
+to `release.yml` that it holds to `ci.yml`. **Two of the three run here**:
 
 | Script | Runs on this machine? | What local execution proves |
 |---|---|---|
-| `local-appimage.sh` | yes | the whole path, end to end — the AppImage is produced and launched |
-| `local-exe.sh` | **no** — Linux host | `shellcheck` only; PyInstaller cannot cross-build a Windows binary |
-| `local-macos.sh` | **no** — Linux host | `shellcheck` only; `hdiutil` and `BUNDLE` are macOS-only |
+| `local-appimage.sh` | yes, natively | the whole path, end to end — the AppImage is produced and launched (INV-13) |
+| `local-exe.sh` | yes, **under Wine** (§4.6) | a real PE binary is produced and starts; catches missing hidden imports and absent `datas`. Not binary-identical to the CI build |
+| `local-macos.sh` | **no** — impossible, not merely unavailable (§4.7) | `shellcheck` only |
 
-Both Windows and macOS scripts therefore have their first real execution
-in CI. The spec states this rather than implying local coverage, because
-a script that has never run reads exactly like one that has.
+**Only `local-macos.sh` has its first real execution in CI.** An earlier
+draft of this spec said the same of `local-exe.sh`; that was wrong, and
+it mattered — it wrote off the platform whose bundle carries the most
+packaging risk (one-file mode, §4.4) as unverifiable, when the tool's own
+FAQ documents the route. The spec states which scripts have been run
+rather than implying coverage, because a script that has never run reads
+exactly like one that has.
 
 ### 4.9 Icon
 
@@ -701,6 +732,28 @@ scripts rather than hardcoded.
   the scripts — which is what "we will measure it later" degrades into
   when nothing checks.
 
+- **INV-16** — `local-exe.sh` produces a PE executable that starts under
+  Wine and serves the SPA.
+  *Test:* manual recipe — no arrow; it needs a built `.exe` and a bound
+  port, exactly as INV-13 does:
+
+  ```bash
+  ./local-exe.sh
+  WINEPREFIX="$PWD/.wine-build" wine dist/MAME_Curator-*-x86_64.exe --no-open-browser &
+  for _ in $(seq 60); do
+      curl -sf http://127.0.0.1:8080/ >/dev/null && break
+      sleep 1
+  done
+  curl -sf http://127.0.0.1:8080/ | grep -q 'id="root"' && echo PASS || echo FAIL
+  kill %1
+  ```
+
+  *Breaks when:* the same two causes as INV-13 — a missing
+  `hiddenimport` or an absent `datas` entry. A Wine PASS does **not**
+  promise the binary works on real Windows; it promises the bundle was
+  assembled correctly, which is the failure class that would otherwise
+  reach a tagged release.
+
 ## 6. Failure modes
 
 | Assumption | When it breaks | Result |
@@ -781,6 +834,19 @@ added, in the same commit.
   is the only one of the four that covers all three targets with one spec
   file and has documented FastAPI/uvicorn precedent. Revisit only if the
   one-file uvicorn defect proves fatal.
+- **Cross-building the macOS bundle on Linux** — `osxcross`,
+  `darling`, or a packaged macOS SDK. Rejected on the tool's own
+  authority rather than on effort: PyInstaller must execute a macOS
+  CPython to freeze one, and `osxcross` is a C/C++ compiler toolchain,
+  not a Darwin userland. Apple's licence also confines macOS to Apple
+  hardware. This is closed, not deferred — §4.7 carries the citation so
+  the question is not reopened every release.
+
+- **A macOS VM on this machine** — same licence constraint, and it would
+  make the local script depend on a VM nobody else building this project
+  would have. GitHub's `macos-latest` runner is the supported answer and
+  costs nothing on a public repo.
+
 - **Hand-rolled per-OS config paths instead of `platformdirs`.** Twenty
   lines and three branches to re-derive a solved problem, against a
   dependency already in the lockfile (rule 3).
@@ -800,6 +866,8 @@ added, in the same commit.
   filename so the gap is visible rather than implied.
 - `run.bat`'s unconditional `--port` — mame-curator-1089.
 - Auto-update for installed bundles.
+- Any local macOS build path (§4.7, §8) — closed on PyInstaller's own
+  documentation, not deferred to a later item.
 
 ## 10. Resource cost
 
@@ -844,17 +912,19 @@ user-visible risk otherwise has no regression guard at all.
 | INV-13 | **nothing** automated — needs a built AppImage and a bound port; the manual recipe in §5 is run before each release, and CI's own build job proves only that the file is produced, not that it runs |
 | INV-14 | `tests/tools/test_release_scripts.py::test_spec_datas_are_allowlisted` |
 | §4.2 SPA field | `tools/check_api_types_sync.py` via the `API type sync` step in `ci.yml` and `release.yml` |
-| Windows `.exe` actually works | **nothing** local — no Windows host (§4.8); the CI job's first run is the first execution |
-| macOS `.app` actually works | **nothing** local — no macOS host (§4.8); same |
+| macOS `.app` actually works | **nothing** local — building a macOS bundle on Linux is impossible, not merely unavailable (§4.7); the CI job's first run is the first execution |
 | one-file uvicorn shutdown | **nothing** — upstream defect with no test surface on a Linux dev box; surfaces as a user report |
 | §4.1 unwritable config dir exits 1 | **nothing** — no test drives an unwritable `$XDG_CONFIG_HOME`; the §6 row is the contract and a `chmod 500` reproduction is the manual check |
 | INV-15 | `tests/tools/test_release_scripts.py::test_scripts_carry_a_size_ceiling` |
+| INV-16 | manual recipe in §5 — a Wine build-and-launch; the `build-exe` CI job on `windows-latest` is the authority for real-Windows behaviour |
 | §4.11 log file is written | **nothing** — no automated launch of any bundle exists to assert against; INV-13's recipe is where a human would notice its absence |
 
-**Six** `nothing` rows. **Two** share one limit — this machine cannot
-execute the Windows or the macOS target — and that pair is the honest
-cost of cross-platform packaging from a single-OS developer machine. The
-other four are distinct: INV-13 needs a built artefact and a free port,
+**Five** `nothing` rows, down from six: the Windows row became INV-16
+once the Wine route was verified, leaving macOS as the only target this
+machine cannot reach at all. The remaining five: macOS is the honest
+cost of cross-platform packaging from a single-OS developer machine, and
+the other four are distinct — INV-13 needs a built artefact and a free
+port,
 so it is a manual recipe rather than an absent one; the one-file uvicorn
 defect is upstream, with no test surface on any host we control;
 §4.11's log file has no automated launch to assert against, which is the
@@ -885,6 +955,8 @@ has no fixture that can create one portably.
 - `docs/standards/coding-standards.md` §8 version-break registry — only
   if a dependency has to be pinned back.
 - `CLAUDE.md` § Common commands — the three new local scripts.
+- `.gitignore` — `.wine-build/` (the Wine prefix `local-exe.sh`
+  provisions) and `dist/`.
 - `tests/docs/test_ds05_test_count_stable.py` — the declaration-count
   pin, bumped in the same commit as the new tests.
 - `src/mame_curator/api/spec.md` — the `build_world` degrade and
@@ -898,3 +970,4 @@ has no fixture that can create one portably.
 |------|------|-------|------|------|-----|-----|---------|
 | 1 | 2026-08-04 | 3 × general-purpose | 3 | 5 | 12 | 16 | 36 verified / 0 unverified. **35 fixed, 1 dismissed** (no TOC — the governing `spec-skeleton.md` mandates none). Dimension tally: dim 2×8, dim 5×8, dim 4×5, dim 10×4, dim 7×3, dim 13×2, dim 6×2, dim 15×2, dim 9×1, dim 1×1, dim 11×1. All three CRITICALs were the same defect class — the first-run recovery journey asserted against code that does not support it: `restart_required` fires only on `server:` changes (`api/routes/config.py`), `_validate_paths` **rejects** every PATCH while the starter `source_dat` is absent (so the user can never save the fix), and the `--config` default change was written as one edit when three registrations carry it. §4.2 gained the two `api/` changes that make the journey real; §3 decision 6 is now scoped to `sub_serve`. Also fixed: §4.2/§8 contradicted each other on whether the frontend changes (it does — `SetupCheck` is mirrored in TS and gated by `check_api_types_sync.py`); INV-13's recipe could not pass as written (`env -i` strips the `HOME` `platformdirs` needs, and the AppImage never returns to the `&&`); `platformdirs` needs `appauthor=False` or Windows double-nests. **Collateral caught by 4c, not by a lane:** the four letter-suffixed ids this loop added (`INV-1b`…`INV-6c`) parsed as 10 invariants instead of 14 — silently absorbed into the preceding body — so all 14 were renumbered sequentially. Doc grew 493 → 758 lines. |
 | 2 | 2026-08-04 | 3 × general-purpose | 3 | 4 | 9 | 11 | **27 verified / 1 dismissed (no TOC — the skeleton mandates none). All 27 fixed. Stopped here, not at the cap: origin split was 7 draft defects vs 16 fix collateral** — a decisive margin on the first split, which `/cold-eyes` Phase 5 answers by sweeping harder rather than dispatching a loop 3 that would generate the next batch. Dimension tally: dim 5×7, dim 2×6, dim 10×6, dim 7×4, dim 4×2, dim 15×1, dim 13×1, dim 6×1, dim 1×1, dim 11×1. Draft defects (the ones a third loop would have been for): the `publish` job takes `needs: build` and one `download-artifact` named `dist`, so three new *build* jobs would have satisfied §12 while their outputs were discarded — §4.10 now specifies the wiring; `resolve_config_path -> Path` discarded which layer won, so a conforming implementation could satisfy the signature and break INV-4 by manufacturing a config for a mistyped `--config` (now returns `tuple[Path, ConfigSource]`, the same provenance-loss trap `cli/spec.md` fixed for `_resolve_port`); `scripts/dev.sh` passes `--config` and so resolves through layer 1, not layer 2 as claimed. Collateral from loop 1's own fixes: `SetupCheck` attributed to `routes/stubs.py` when it is declared in `schemas_setup.py` (all three lanes); the `restart_required` condition tested path *inequality*, which fails on the likeliest recovery of all — the user dropping their DAT at exactly the path the starter config already names; `_validate_paths` was given a `setup_required` rule without the parameter it would need to see it. **Caught by the 4b sweep rather than a lane:** INV-15, added this loop to close a "promise with no gate" finding, itself shipped with no §11 row — the same defect one level down. Doc grew 758 → 890 lines. |
+| impl | 2026-08-04 | **none — no reviewer dispatched** | — | — | — | — | **Implementation fold-back, not a review loop.** The user asked how others cross-build Windows and macOS from Linux; the answer falsified a clause this document had carried through both gate loops. §4.8 claimed `local-exe.sh` "cannot execute on this Linux box" and could get `shellcheck` only. PyInstaller's own FAQ says the opposite for Windows — cross-compilation is unsupported *and* "please use Wine for this, as PyInstaller runs fine in Wine" — and Wine 11.14 is already installed here (`wine cmd /c echo` returns, prefix reports AMD64). For macOS the same FAQ closes it outright: "Packaging macOS binaries while running under Linux is currently not possible at all", and `osxcross` does not help because PyInstaller must *run* a macOS CPython, not merely compile Darwin objects. Changed: §4.6 gained the Wine build route, §4.7 and §8 record why macOS is closed rather than deferred, §4.8's table now says two of three scripts run locally, and the `Windows .exe actually works` row stopped being **nothing** — it became INV-16, dropping the un-caught count from six to five. **This row exists because no cold reader produced it**; the amendment has had the deterministic checks but not an independent read. |
