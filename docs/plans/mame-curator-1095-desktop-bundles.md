@@ -1,7 +1,7 @@
 # mame-curator-1095 — desktop bundles — build plan
 
 **Spec:** [docs/specs/mame-curator-1095-desktop-bundles.md](../specs/mame-curator-1095-desktop-bundles.md)
-**Status:** in progress.
+**Status:** in progress — steps 1–2 done (2026-08-04, 9842a86).
 
 Two halves, in this order: the app must survive a first run (steps 1–7)
 before there is any point wrapping it (steps 8–15). Every step's tests
@@ -9,7 +9,7 @@ land before its implementation, per the project's TDD default.
 
 ## Steps
 
-1. `src/mame_curator/config_location.py` — `ConfigSource`,
+1. **[done]** `src/mame_curator/config_location.py` — `ConfigSource`,
    `user_config_path`, `user_data_path`, `user_log_path`,
    `resolve_config_path`, `ensure_starter_config`; `STARTER_HEADER`
    moves here from `cli/commands/setup.py::_SETUP_HEADER`, which imports
@@ -17,7 +17,7 @@ land before its implementation, per the project's TDD default.
    passes 6 new tests, red before the module exists (satisfies INV-1,
    INV-4, INV-5, INV-6).
 
-2. Wire resolution into `_cmd_serve`: `--config` default → `None`, and
+2. **[done]** Wire resolution into `_cmd_serve`: `--config` default → `None`, and
    `resolve_config_path` / `ensure_starter_config` run in **stage 2**,
    after `$PORT` validation, with the resolved path reaching
    `_load_server_config` and `create_app`. → **verify:**

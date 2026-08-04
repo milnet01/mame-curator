@@ -469,6 +469,29 @@ wave lands.
   scripts, release wiring, icon, naming) and file the first-run half as
   its own item — it owns 10 of the 15 invariants and produced every
   CRITICAL across both loops.
+  Progress (2026-08-04, later): **plan steps 1-2 shipped** in 9842a86 —
+  `src/mame_curator/config_location.py` (three-layer resolution,
+  `ConfigSource`, starter config + data dirs, `user_log_path`), wired into
+  `_cmd_serve` at stage 2, `serve`'s `--config` default now `None`,
+  `platformdirs>=4.11` promoted to a declared dependency,
+  `_SETUP_HEADER` consolidated into `STARTER_HEADER`. +10 tests (957
+  total, 88.95%), full local-CI green, pushed. Satisfies INV-1 to INV-6.
+
+  Also folded in the cross-build research the user asked for (2dc9b66):
+  **Windows IS buildable on this Linux box under Wine** — PyInstaller's
+  FAQ directs Windows-from-Linux builds at Wine explicitly, and Wine
+  11.14 is already installed (prefix reports AMD64). macOS is impossible,
+  not merely unavailable ("Packaging macOS binaries while running under
+  Linux is currently not possible at all"); osxcross does not help
+  because PyInstaller must RUN a macOS CPython, not just compile Darwin
+  objects. So two of the three local scripts run here, not one, and the
+  Windows `nothing` row became INV-16. macOS is closed with a citation so
+  it is not reopened each release.
+
+  Next: plan steps 3-7 (`_resources.py` + `frontend_dist()`, the
+  `build_world` setup-mode degrade, `_validate_paths` / `restart_required`
+  in `api/routes/config.py`, `setup_required` on `SetupCheck` + its TS
+  mirror, the frozen stderr tee in `main()`), then steps 8-15 (packaging).
 
 ### 🧪 Test Audit 2026-05-20
 
