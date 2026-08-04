@@ -505,7 +505,8 @@ wave lands.
   `docs/specs/P06.md`'s app.py excerpt corrected reciprocally (it still
   showed the `parents[3]` constant). DS05 test-count pin 752 → 754.
   Full backend gate green: ruff, ruff format, mypy (213 files), bandit,
-  960 tests, 88.97% coverage. Next: step 4 — `build_world` degrades to
+  960 tests, 88.97% coverage (f6b8e62; all 8 CI jobs green).
+  Next: step 4 — `build_world` degrades to
   `setup_required` on an unreadable DAT.
 
 ### 🧪 Test Audit 2026-05-20
