@@ -1,7 +1,7 @@
 # mame-curator-1095 — desktop bundles — build plan
 
 **Spec:** [docs/specs/mame-curator-1095-desktop-bundles.md](../specs/mame-curator-1095-desktop-bundles.md)
-**Status:** in progress — steps 1–4 done (2026-08-04, 41637cc).
+**Status:** in progress — steps 1–5 done (2026-08-04, 5bda03a).
 
 Two halves, in this order: the app must survive a first run (steps 1–7)
 before there is any point wrapping it (steps 8–15). Every step's tests
@@ -37,7 +37,7 @@ land before its implementation, per the project's TDD default.
    green, and the returned world has every field populated (satisfies
    INV-7, INV-8).
 
-5. `_validate_paths(config, *, setup_required=False)` skips the
+5. **[done]** `_validate_paths(config, *, setup_required=False)` skips the
    `source_dat` existence check in setup mode; `patch_config` passes
    `world.setup_required` and sets
    `restart_required = server_changed or world.setup_required`. →

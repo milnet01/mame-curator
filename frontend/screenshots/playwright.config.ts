@@ -36,7 +36,13 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `uv run mame-curator serve --config ${realConfig}`,
+      // `--no-open-browser` because this one runs against the REAL config,
+      // which has `open_browser_on_start: true` — without it every
+      // screenshot run opens a browser tab, and Playwright then stops the
+      // server it points at, so the tab lands on a dead port. The flag is
+      // one-way suppression (cli/spec.md § Browser), so it cannot turn an
+      // open *on* against a config saying false.
+      command: `uv run mame-curator serve --config ${realConfig} --no-open-browser`,
       cwd: projectRoot,
       port: 8080,
       reuseExistingServer: true,

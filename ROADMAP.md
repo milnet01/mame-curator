@@ -524,38 +524,59 @@ wave lands.
   963 tests, 88.99% coverage.
   Next: step 5 — `_validate_paths(..., setup_required=)` skips the
   `source_dat` check and `restart_required` fires while in setup mode.
+  Progress (2026-08-04): step 5 shipped (5bda03a) — the first-run
+  recovery journey now completes end to end. `_validate_paths` takes a
+  keyword-only `setup_required` and skips the `source_dat` existence
+  check while it is true (INV-9); `restart_required` becomes
+  `server_changed or world.setup_required` (INV-10), deliberately not a
+  path inequality. TDD — `tests/api/test_setup_mode.py` (+2, red first).
+  `api/spec.md` § config routes gains both rules. DS05 pin 757 → 759.
+  Gate green: ruff, ruff format, mypy (214 files), bandit, 965 tests,
+  88.99% coverage.
+  Next: step 6 — `setup_required` on `SetupCheck` in
+  `api/schemas_setup.py` + `routes/stubs.py`, mirrored in
+  `frontend/src/api/{schemas,types}.ts` in the same commit or
+  `check_api_types_sync.py` reds CI.
 
-- 📋 [mame-curator-1096] **Stop the test suite opening real browser tabs.**
+- ✅ [mame-curator-1096] **Stop the test suite opening real browser tabs.**
   Reported by the user 2026-08-04: "every now and then you open a new
   tab in my browser but the page never loads". Reproduced by inspection
   during the mame-curator-1095 step 4 run.
 
-  `ServerConfig.open_browser_on_start` defaults to `True`
-  (`api/schemas.py:71`), and four test files call `_cmd_serve` without
-  patching `serve_mod.webbrowser` and without disabling the open:
-  `tests/cli/test_serve_config_layer.py`, `tests/cli/test_serve_port_env.py`,
-  `tests/cli/test_config_location.py`, `tests/cli/test_fp28_serve_signal.py`.
-  Each call starts the real daemon poller, which polls its target for
-  `_BROWSER_POLL_TIMEOUT_S = 300.0` seconds at 0.1 s intervals — long
-  outliving the test that spawned it. Other tests bind ephemeral
-  listeners (`bind(("127.0.0.1", 0))`); when the OS reuses a port a
-  stale poller is still watching, the poller connects and calls the real
-  `webbrowser.open`. The triggering listener is closed by then, so the
-  tab opens on a dead address — exactly the reported symptom.
+  Cause: `frontend/screenshots/playwright.config.ts` spawns
+  `uv run mame-curator serve --config <repo-root>/config.yaml` with no
+  `--no-open-browser`, and that **real** config sets
+  `open_browser_on_start: true` (`config.yaml:45`). Every README-screenshot
+  run therefore opens a browser tab at `http://127.0.0.1:8080/`; Playwright
+  stops the server when the run ends, so the tab lands on a dead port.
+  "Every now and then" matches: screenshots are regenerated occasionally,
+  not every session.
 
-  Only `tests/cli/test_serve_browser.py` patches `webbrowser`, and it
-  does so per-test.
+  Fixed by adding `--no-open-browser` to that `webServer` command. The flag
+  is one-way suppression (`cli/spec.md` § Browser), so it cannot force an
+  open on against a config saying false. `frontend/playwright.config.ts`
+  (the e2e suite) was already safe — its fixture config at
+  `frontend/e2e/fixtures/config.yaml:16` sets `open_browser_on_start: false`.
 
-  Fix: an autouse fixture in `tests/cli/conftest.py` that patches
-  `serve_mod.webbrowser` for the whole CLI suite, so no test can reach a
-  real opener; `test_serve_browser.py` keeps its per-test patches for
-  the assertions it makes. Consider also asserting no poller thread
-  outlives its test. Not a production defect — the poller behaves as
-  `cli/spec.md` § Browser specifies; it is the tests that run it
-  unmuzzled.
+  **A first diagnosis blamed the CLI test suite and was wrong** — recorded
+  because the wrong version was reported to the user. Every serve path in
+  `tests/cli/` does suppress the open: `test_serve_config_layer.py` and
+  `test_config_location.py` default `no_open_browser=True`,
+  `test_fp28_serve_signal.py` passes it explicitly,
+  `test_serve_port_env.py`'s remaining calls exit on a bad `$PORT` before
+  the browser step, and `test_serve_browser.py` replaces `serve_mod`'s
+  whole `threading` module so no poller thread is ever started. The claim
+  came from counting `webbrowser` mentions per file instead of reading the
+  call sites.
+
+  Not a production defect — the poller behaves as `cli/spec.md` § Browser
+  specifies.
   **Layman:** Running the tests sometimes pops open a browser tab that never loads — the tests are launching a real browser instead of a pretend one.
   Kind: fix.
   Source: user-report-2026-08-04.
+  Resolved (2026-08-04): `--no-open-browser` added to the screenshots
+  Playwright `webServer` command. One-line config change; no test or
+  production-code change needed.
 
 ### 🧪 Test Audit 2026-05-20
 
