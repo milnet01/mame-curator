@@ -59,11 +59,19 @@ It bundles the parsed DAT (`machines`), the listxml joins (`cloneof_map`,
 `bios_chain`, `chd_required`), the `FilterContext` + `FilterResult`,
 curation state (`overrides`, `sessions`, `review_state`, `notes`), the
 composed `allowed_roots`, the resolved `config` + `config_path` +
-`data_dir`, and the DS02 precomputed `bytes_by_machine` map.
+`data_dir`, the DS02 precomputed `bytes_by_machine` map, and the
+`setup_required` flag (default `False`) that records whether the DAT was
+readable at startup.
 
 - **`build_world(config_path)`** — called once at startup. Parses the DAT,
   the five reference INIs (each optional in config), and the listxml joins;
   runs the filter; composes the allowlist; returns the assembled world.
+  A `source_dat` that raises `ParserError` or `OSError` (missing, truncated
+  or not a DAT) **degrades to setup mode** rather than aborting the
+  lifespan: `machines` is empty, `setup_required` is `True`, and the rest of
+  world construction runs unchanged so every field is populated. Any other
+  exception still propagates — the catch names classes for that reason
+  (mame-curator-1095 § 4.2, INV-7 / INV-8).
 - **`replace_world(*, base, ...)`** — builds a *new* world from `base` with
   selected fields swapped. It is the only mutation path. Recompute triggers:
   - `filter_result` is re-run **only** when `config`, `overrides`, or
@@ -76,7 +84,9 @@ composed `allowed_roots`, the resolved `config` + `config_path` +
     trigger a filter recompute — review state never gates eligibility; the
     visibility filter is applied per-request in `routes/games.py`.
   - `machines` / `bytes_by_machine` are immutable post-parse and pass
-    through unchanged on every swap.
+    through unchanged on every swap; `setup_required` is derived from
+    `machines`, so it passes through with them — a swap must not clear
+    setup mode while the library is still empty.
 
 ### Concurrency invariant (the world lock)
 

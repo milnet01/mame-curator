@@ -30,6 +30,7 @@ from mame_curator.filter import (
 )
 from mame_curator.parser import (
     Machine,
+    ParserError,
     parse_bestgames,
     parse_catver,
     parse_dat,
@@ -72,6 +73,11 @@ class WorldState(BaseModel):
     # WorldState construction; replaced wholesale on world swap so
     # the frozen-state invariant holds.
     bytes_by_machine: Mapping[str, int]
+    # mame-curator-1095 § 4.2: True when the configured `source_dat` could not
+    # be parsed, so `build_world` degraded to an empty library instead of
+    # aborting the lifespan. Surfaced on `GET /api/setup/check` so the SPA can
+    # tell a genuinely empty library from an unconfigured one.
+    setup_required: bool = False
 
 
 def load_app_config(config_path: Path) -> AppConfig:
@@ -103,7 +109,20 @@ def build_world(config_path: Path) -> WorldState:
     config = load_app_config(config_path)
     paths = config.paths
 
-    machines = parse_dat(paths.source_dat)
+    # mame-curator-1095 § 4.2: a missing or corrupt DAT degrades to setup mode
+    # rather than aborting the lifespan — the Settings page is the only place
+    # the path can be corrected, and it is unreachable when startup fails. The
+    # catch names classes deliberately: a RuntimeError from our own parser is
+    # still a bug and still propagates.
+    try:
+        machines = parse_dat(paths.source_dat)
+        setup_required = False
+    except (ParserError, OSError) as exc:
+        logger.warning(
+            "DAT unreadable (%s) — starting in setup mode: %s", str(paths.source_dat), exc
+        )
+        machines = {}
+        setup_required = True
 
     # Reference data (each optional in config; missing → empty default).
     category = parse_catver(paths.catver) if paths.catver else {}
@@ -160,6 +179,7 @@ def build_world(config_path: Path) -> WorldState:
         allowed_roots=allowed_roots,
         data_dir=data_dir,
         bytes_by_machine=_compute_bytes_by_machine(machines),
+        setup_required=setup_required,
     )
 
 
@@ -251,6 +271,11 @@ def replace_world(
         # `bytes_by_machine` mapping is unchanged across PATCH /api/config
         # / sessions / notes swaps — pass through.
         bytes_by_machine=base.bytes_by_machine,
+        # mame-curator-1095 § 4.2: derived from `machines`, which passes
+        # through unchanged — so setup mode survives a config PATCH. Letting
+        # it fall back to the default would clear the SPA's setup banner
+        # while the library was still empty.
+        setup_required=base.setup_required,
     )
 
 
