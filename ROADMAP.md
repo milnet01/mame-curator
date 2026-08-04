@@ -537,6 +537,65 @@ wave lands.
   `api/schemas_setup.py` + `routes/stubs.py`, mirrored in
   `frontend/src/api/{schemas,types}.ts` in the same commit or
   `check_api_types_sync.py` reds CI.
+  Fold-in pending (2026-08-04, user-approved, NOT YET WRITTEN): amend the
+  spec + plan with two mechanisms verified by reading three sibling
+  projects on this machine. Researched and approved; `/write-spec` was
+  invoked and paused before drafting, so no spec bytes changed. Must be
+  drafted, `/doc-lint`ed and `/cold-eyes`-gated BEFORE steps 8-15, since
+  it changes what they build.
+
+  (1) A `--self-test` entry point. Precedent: finbreak
+  `src/finbreak/_selftest.py` — each `_check_*` imports its native stack
+  LAZILY (so the module imports cleanly when a dep is missing, and a unit
+  test can monkeypatch one check away), `run_self_test` runs them in
+  order and prints exactly ONE sentinel line: `FINBREAK_SELFTEST_OK`, or
+  `FINBREAK_SELFTEST_FAIL: <stack>` naming the FIRST failing stack, with
+  a non-zero exit. Our equivalent stacks: lxml (DAT parser), uvicorn's
+  `.auto`-selected loop/protocol implementations (uvloop, httptools,
+  websockets), sse-starlette, and `frontend_dist()` resolving to a real
+  directory under the extraction root. Strictly better than INV-13's and
+  INV-16's current recipes, which need a bound port plus curl and a
+  60-iteration poll; a self-test needs neither and behaves identically
+  for the Windows `.exe` under Wine. Open question for the draft: restate
+  INV-13/INV-16 in terms of the sentinel, or keep the page-fetch as an
+  additional end-to-end leg (it does prove the SPA is actually served,
+  which a self-test alone does not).
+
+  (2) A clean-room container proof. Precedent: finbreak
+  `scripts/build-smoke.sh` + `scripts/_build-smoke-in-container.sh`.
+  Builds inside `python:3.12-slim-bookworm` — chosen for two stated
+  reasons: it ships a SHARED libpython (PyInstaller needs one;
+  manylinux's is static) and an older-than-host glibc (~2.36) which
+  bounds the artefact's glibc floor BELOW the test target — then launches
+  the artefact inside a Python-free `debian:13-slim` with a scrubbed,
+  offline environment and asserts the sentinel. Exits 0 only if every
+  artefact passes. Opt-in: gated on an env switch (`FINBREAK_BUILD_SMOKE=1`)
+  plus a podman/docker runtime on PATH, so the everyday gate never pays
+  for a multi-minute build; podman preferred, docker fallback.
+  **Why this matters here specifically:** our build host is openSUSE
+  Tumbleweed, so an AppImage built natively inherits a very new glibc and
+  would fail on exactly the older user machines an AppImage exists to
+  serve. Plan step 10 + INV-13 currently build and test natively and
+  cannot see that failure class at all.
+
+  Also for the plan (step 10): OneUp
+  `/mnt/Games/Scripts/Linux/OneUp/packaging/appimage/build-appimage.sh` is
+  a WORKING AppImage recipe to adapt rather than invent — PyInstaller
+  `--onefile --windowed`, AppDir with icon + `.desktop` + metainfo +
+  `AppRun`, `appimagetool` fetched from the rolling `continuous` tag and
+  run with `--appimage-extract-and-run` (so no host FUSE needed). It does
+  NOT checksum the downloaded tool; our §4.5 already requires a sha256
+  pin, so adapt-and-harden rather than copy.
+
+  Third project surveyed, for the record: RetroDB
+  (`retrodb.spec`, `build_dist.py --standalone`, `release-standalone.sh`).
+  It ships per-OS ZIPs of a PyInstaller one-dir bundle, NOT an AppImage or
+  a `.dmg`, and refuses to cross-build (native runner per OS, 3-OS matrix
+  behind a manual `workflow_dispatch` because bundles are ~600 MB). Its
+  reusable idea is `release-standalone.sh`: tag → dispatch the workflow →
+  watch → set release notes from the changelog → leave the release a
+  DRAFT for a human to publish. No project of the three ships a `.dmg`, so
+  macOS remains without local precedent.
 
 - ✅ [mame-curator-1096] **Stop the test suite opening real browser tabs.**
   Reported by the user 2026-08-04: "every now and then you open a new
