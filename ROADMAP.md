@@ -636,6 +636,54 @@ wave lands.
   Resolved (2026-08-04): `--no-open-browser` added to the screenshots
   Playwright `webServer` command. One-line config change; no test or
   production-code change needed.
+  Superseded as an explanation (2026-08-04): the user reported tabs still
+  opening after this shipped, so the screenshots config was a real defect
+  but not the reported symptom's cause. The fix stands — that config did
+  open a tab against a server Playwright then killed. The open symptom
+  moves to mame-curator-1097, which carries the ruled-out list and an
+  instrument-don't-read investigation plan.
+
+- 📋 [mame-curator-1097] **Browser tabs still open unbidden — cause not yet found.**
+  Reported again by the user 2026-08-04, AFTER mame-curator-1096 shipped:
+  "Browser tabs are still being opened." So 1096's fix — real, and worth
+  keeping — was not the cause of what the user is seeing, or not the only
+  one. No verified cause at the time of writing. Do NOT guess a third
+  time; the first two guesses cost more than they returned.
+
+  **Ruled out, with evidence (do not re-check these):**
+  - The CLI test suite. Every `_cmd_serve` call site in `tests/cli/`
+    suppresses the open: `test_serve_config_layer.py` and
+    `test_config_location.py` default `no_open_browser=True`,
+    `test_fp28_serve_signal.py` passes it explicitly,
+    `test_serve_port_env.py`'s remaining calls exit on a bad `$PORT`
+    before the browser step, and `test_serve_browser.py`'s
+    `_serve_capturing_thread` replaces `serve_mod`'s whole `threading`
+    module so no poller thread ever starts.
+  - The e2e Playwright suite: `frontend/e2e/fixtures/config.yaml` sets
+    `open_browser_on_start: false`.
+  - The screenshots Playwright suite: fixed in 1096 (`--no-open-browser`
+    added). Real defect, still fixed, evidently not the reported symptom.
+
+  **First thing to capture next session — ask the user, don't infer:**
+  the tab's URL and port, and what was running when it appeared. A port
+  that is not 8080 immediately exonerates this project. The symptom
+  ("opens, never loads") only says something called a browser opener at a
+  dead address.
+
+  **Investigation plan — instrument, don't read more code.** Two code
+  audits have now produced two wrong answers, which is the signal to
+  measure instead. Put a logging shim early on `PATH` that records
+  `$PPID`, the full argv and a timestamp before exec'ing the real binary,
+  for `xdg-open` and for the browser binary itself; then reproduce by
+  running `./local-CI.sh` and `uv run pytest` separately. The shim names
+  the caller, which no amount of grepping can. Widen beyond this repo if
+  nothing fires: the user runs several projects on this machine
+  (finbreak, OneUp, RetroDB all spawn servers or Playwright), and a KDE
+  session restore or another agent session are equally consistent with
+  the evidence. Nothing yet rules out a cause outside this project.
+  **Layman:** Something still pops open a browser tab that never loads, and the two things we blamed so far were not it.
+  Kind: investigate.
+  Source: user-report-2026-08-04.
 
 ### 🧪 Test Audit 2026-05-20
 
