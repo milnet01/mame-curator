@@ -19,14 +19,14 @@ A thin argparse-based command dispatcher that wires user-facing subcommands to t
 
 ## Subcommand inventory
 
-The set of subcommands grows phase-by-phase. Each subcommand's behavioral contract lives in **its host module's `spec.md`**, not here — this spec covers wiring discipline only. **Two deliberate exceptions**, both because there is no host module to hold the contract: `setup` (specified in full below — it wraps the `AppConfig` schema directly), and `serve`'s launch wiring (§ "`serve` host, port and browser resolution" — `api/spec.md` owns everything from the socket inwards and explicitly disclaims the entrypoint).
+The set of subcommands grows phase-by-phase. Each subcommand's behavioral contract lives in **its host module's `spec.md`**, not here — this spec covers wiring discipline only. **Two deliberate exceptions, for two different reasons.** `setup` has no host module at all — it wraps the `AppConfig` schema directly, and its **scope** is stated below (the full flag/exit-code contract is not yet written; see the deferred list in mame-curator-1090's review notes). `serve` does have a host module, but `api/spec.md` owns everything from the socket inwards and explicitly disclaims the entrypoint, so the launch wiring lives here in § "`serve` host, port and browser resolution".
 
 | Phase | Subcommand | Status | Host module spec |
 |---|---|---|---|
 | 1 | `parse <DAT>` | shipped | `parser/spec.md` |
 | 2 | `filter ...` | shipped | `filter/spec.md` |
 | 3 | `copy ...` | shipped | `copy/spec.md` |
-| 4 | `serve` (or invoked via `uvicorn`) | shipped; host/port/browser resolution partly **pending** — see § "`serve` host, port and browser resolution" | this spec (launch wiring) + `api/spec.md` (everything from the socket inwards) |
+| 4 | `serve` | shipped; host/port/browser resolution partly `PENDING` — see § "`serve` host, port and browser resolution" | this spec (launch wiring) + `api/spec.md` (everything from the socket inwards) |
 | — | `setup` | shipped | (no host module — wizard wraps `AppConfig` schema directly) |
 | 7 | `refresh-inis ...` | shipped | `updates/spec.md` |
 | 10 | `refresh-snaps ...` | shipped | `updates/spec.md` |
@@ -88,12 +88,18 @@ edit is required before either doc can be trusted on the point.
 2. `--config` names a file that does not exist.
 3. The API extras are not installed (`ImportError` on `uvicorn` / `mame_curator.api`).
 4. (`PENDING`) `config.yaml` is unreadable, is not a YAML mapping, or its
-   `server:` section fails validation (`ConfigError`). `cli/` deliberately re-uses
-   `api.errors.ConfigError` here rather than defining a `CliError` of its
-   own: the failure *is* an API-config failure, the same class the API
-   lifespan raises for the same file, and coding-standards §9's
-   "typed exceptions per module" is about never raising bare `Exception`,
-   not about forbidding a caller from catching its callee's typed error.
+   `server:` section fails validation (`ConfigError`). Because `load_app_config`
+   is deliberately not used here, `cli/` opens and parses the file itself,
+   which means it **raises** this error rather than merely catching one.
+   The reader is `cli/commands/serve.py:_load_server_config(path: Path) ->
+   ServerConfig`; it wraps `OSError` and YAML parse errors, and re-raises
+   `pydantic.ValidationError`, as `api.errors.ConfigError` naming the file
+   and the cause. `cli/` re-uses `api.errors.ConfigError` rather than
+   defining a `CliError` of its own: the failure *is* an API-config
+   failure, the same class the API lifespan raises for the same file, and
+   coding-standards §9's "typed exceptions per module" bars raising bare
+   `Exception` — not reusing a sibling module's typed error for the exact
+   condition it names.
 5. `create_app` raised `ConfigError` / `ParserError` / `FilterError`.
 6. The bind failed — `OSError` (address in use, permission denied for a
    privileged port), or `OverflowError` (`PENDING`; a **resolved** port
@@ -112,9 +118,14 @@ edit is required before either doc can be trusted on the point.
 > `run.sh`'s conditional forwarding. Tracked as **mame-curator-1090**
 > (the wiring) and **mame-curator-1091** (nine defects a–i).
 >
-> **§ "Exit codes" is the one other section carrying pending clauses** —
-> exit-`1` paths 4 and 6 are marked there. Outside those two paths and
-> this section, treat an unmarked clause as describing shipped behaviour.
+> **Pending clauses also appear outside this section**, so an unmarked
+> clause is *not* a reliable shipped signal on its own. Every one of them
+> carries an inline `PENDING` marker; grep for it. They currently live in
+> § "Subcommand inventory" (the `serve` row), § "Exit codes" (exit-`1`
+> paths 4 and 6), § "Error messages" (the class-wide escape rule) and
+> § "Out of scope" (the browser half of `serve`'s wiring), as well as
+> throughout this section. **`PENDING` is the signal; section boundaries
+> are not.**
 
 `_cmd_serve` resolves three settings. They do **not** share one precedence
 rule — each is stated in full in its own subsection below, and the
@@ -139,9 +150,12 @@ fails the command even when `--host`, `--port` and `--no-open-browser`
 are all supplied and nothing from the file would have been consumed. This
 is the stricter of the two conforming readings and it is chosen on
 purpose: a config the user cannot see is broken is worse than a command
-that refuses to start, and the lazy alternative makes `scripts/dev.sh`
-(which supplies exactly those flags) the one invocation that never
-notices the breakage. A `config.yaml` that is unreadable, is not a YAML
+that refuses to start. Under the lazy alternative, the invocations that
+supply every relevant flag are exactly the ones that never discover their
+config is malformed — and those are the long-lived scripted callers
+(`scripts/dev.sh` supplies `--port` and `--no-open-browser`; a supervisor
+unit typically supplies all three), i.e. the callers whose config rots
+longest before anyone looks at it. A `config.yaml` that is unreadable, is not a YAML
 mapping, or whose `server:` block fails `ServerConfig` validation exits
 **1** naming the file and the cause.
 
@@ -168,13 +182,29 @@ set" and for an explicit `--port 8080` or `PORT=8080`, so a
 precedence inversion no existing test catches. `_cmd_serve` MUST
 re-derive presence directly instead:
 
+**The two stages are two separate statements, and collapsing them into one
+`if/else` breaks the stage-1 ordering.** The selection needs `server`, which
+only exists after the stage-2 read; but the `$PORT` *raise* must happen before
+any config I/O. So the presence test and the validation both run in stage 1,
+and stage 2 only picks:
+
 ```python
-# consult layer (3) iff neither layer (1) nor layer (2) is present
-if args.port is None and not os.environ.get("PORT", ""):
-    port = server.port          # ServerConfig's value, or its 8080 default
-else:
-    port = _resolve_port(args.port)   # raises on an invalid $PORT, as today
+# --- Stage 1: before any config I/O -------------------------------
+# Validates $PORT and raises on an invalid one, exactly as today. The
+# value is computed here; whether it WINS is decided in stage 2.
+port_from_flag_or_env = _resolve_port(args.port)
+use_config_port = args.port is None and not os.environ.get("PORT", "")
+
+# ... exit-1 paths 2 and 3, then the server: block read ...
+
+# --- Stage 2: after `server` exists -------------------------------
+port = server.port if use_config_port else port_from_flag_or_env
 ```
+
+`_resolve_port` is called **once**. Note that `port_from_flag_or_env` is
+discarded when `use_config_port` is true — that is intentional, and it is what
+lets the invalid-`$PORT` error fire before the config-existence check while
+still allowing layer (3) to win when nothing was set.
 
 Two existing tests in `tests/cli/test_serve_port_env.py` call
 `_resolve_port(None)` and expect `8080` (the `$PORT`-unset and `PORT=""`
@@ -186,8 +216,18 @@ this clause was skipped rather than a licence to update them.
 **Test surface for the config layer** (none exist yet; part of
 mame-curator-1090's tests-to-write-first): a valid `server: {port: 9000}`
 with no flag and no `$PORT` binds 9000; the same config with `--port 9500`
-binds 9500; the same config with `PORT=9600` binds 9600 (this is the
-precedence-inversion regression); `server: {host: 0.0.0.0}` with no
+binds 9500; the same config with `PORT=9600` binds 9600.
+
+**Two of these cases are the precedence-inversion regression and MUST NOT
+be omitted: `--port 8080` against `server: {port: 9000}` binds 8080, and
+`PORT=8080` against the same config binds 8080.** Only a flag or env value
+*equal to `DEFAULT_PORT`* distinguishes the correct algorithm from the
+`if port == DEFAULT_PORT: port = server.port` form — verified by running
+both against all six cases: the 9500 and 9600 cases pass under the broken
+form too, so a test surface without an 8080-vs-9000 pair ships the
+inversion green.
+
+Continuing: `server: {host: 0.0.0.0}` with no
 `--host` binds the wildcard; a `server:` block omitting `port` falls to
 8080; an unreadable `config.yaml`, a non-mapping `config.yaml`, and a
 `server:` block failing `ServerConfig` validation each exit 1 naming the
@@ -264,7 +304,7 @@ def _is_wildcard(host: str) -> bool:
 **`PENDING` — `run.sh` does not do this today.** It currently sets `PORT=${PORT:-8080}` and then execs `--port "${PORT}"` unconditionally, so the default is baked in at the shell layer. **Three changes land together, and omitting the third breaks the default bootstrap:**
 
 1. Drop the `:-8080` default, so an unset `$PORT` stays empty.
-2. **Guard the `$PORT` validation block on `[ -n "${PORT}" ]`.** The existing check is `if ! [[ "${PORT}" =~ ^[0-9]{1,5}$ ]] || …`, and an empty string fails that regex — verified: with `PORT=""` it exits 1 with `error: PORT='' is not a valid port`. Left unguarded, change (1) alone makes *every* no-`$PORT` launch abort. An empty `$PORT` must skip validation entirely, exactly as it now falls through to layer (3) on the Python side.
+2. **Guard the `$PORT` validation block on `[ -n "${PORT}" ]`.** The existing check is `if ! [[ "${PORT}" =~ ^[0-9]{1,5}$ ]] || …`. Today it never sees an empty string, because `PORT=${PORT:-8080}` runs first — but **once change (1) drops that default, an empty `$PORT` reaches the regex and fails it** (verified in bash: the block then exits 1 with `error: PORT='' is not a valid port`). Left unguarded, change (1) alone makes *every* no-`$PORT` launch abort. An empty `$PORT` must skip validation entirely, exactly as it now falls through to layer (3) on the Python side.
 3. Make the `--port` flag conditional on the same non-empty test.
 
 Two cases in `tests/tools/test_run_sh_port.py` assert `"run mame-curator serve --port 8080"` for absent and empty `$PORT`; under this contract both become `"run mame-curator serve"` **with a zero exit code**, and changing them is part of the same commit. Assert the exit code as well as the argv — a `--port`-less serve line and an aborted script are otherwise indistinguishable in the `serve_argv` helper, which returns `None` for both.
@@ -310,6 +350,17 @@ URL, override key or exception string reaching a `Console.print` in `cli/`
 is user input for this purpose. Style markup the CLI itself writes
 (`[red]error:[/red]`) is not, and is the only markup that should survive.
 
+**`PENDING` — the class-wide rule is not yet enforced class-wide.** Today
+only `_cmd_serve`'s `$PORT` message escapes. Four other `Console.print`
+sites in the same function interpolate unescaped: the config-not-found
+message (`{args.config!r}` — a user-supplied path, the likeliest of the
+four to contain brackets), the missing-extras message (`{exc}`), the
+`create_app` failure (`{exc}`), and the bind failure
+(`{host}:{port}: {exc}`). Bringing them into line is part of
+mame-curator-1091. The rule above is the contract; this note records that
+the code has not caught up, so a reader does not mistake the gap for a
+deliberate exemption.
+
 ## Logging configuration
 
 `logging.basicConfig(...)` is called **inside `main()`** — never at module import. Importing `mame_curator.cli` from tests, the FastAPI application factory, or a Python REPL must not mutate the global root logger. The level is set from `args.verbose`: `DEBUG` if set, else `INFO`. The format string is `"%(asctime)s %(levelname)s %(name)s: %(message)s"`.
@@ -341,9 +392,13 @@ and CI instead of masking it as a silent runtime failure.
 
 The CLI is the outermost user-facing layer. It catches the **typed** library
 errors (`ParserError`, `FilterError`, `CopyError`, `ConfigError` and their
-subclasses) plus the specific stdlib errors a bad user input can reach
-(`OSError` / `OverflowError` at the bind), and converts each into a
-`(stderr message, exit code 1)` pair. Every `_cmd_<name>` function wraps its
+subclasses) plus the specific stdlib errors a bad user input or a missing
+install can reach: `ValueError` from `_resolve_port` (an invalid `$PORT`),
+`ImportError` (the API extras are absent), and `OSError` — plus
+`OverflowError` (`PENDING`) — at the bind. Each converts into a
+`(stderr message, exit code 1)` pair. `KeyboardInterrupt` is also caught
+at `_cmd_serve`, but maps to 130 rather than 1 and so is not part of this
+class. Every `_cmd_<name>` function wraps its
 library call in a `try` that catches the exception classes its phase's
 module actually raises.
 
@@ -365,7 +420,7 @@ can raise on valid inputs. If the list is "anything", the catch is too wide.
 
 - Argument parsing for subcommand flags — that's the host module's responsibility (it adds the flags to the subparser).
 - Business logic of any subcommand — the CLI dispatches to a one-line library call and prints results; logic lives in the library module.
-- Web-server *lifecycle* for `serve` — `_cmd_serve` calls `uvicorn.run` itself and owns only what surrounds it: resolving host/port/browser, and mapping startup failure to an exit code. Everything from the socket inwards — application lifespan, startup/shutdown ordering, request handling — belongs to `api/` and `api/spec.md`.
+- Web-server *lifecycle* for `serve` — `_cmd_serve` calls `uvicorn.run` itself and owns only what surrounds it: resolving host/port/browser (the browser half `PENDING`), and mapping startup failure to an exit code. Everything from the socket inwards — application lifespan, startup/shutdown ordering, request handling — belongs to `api/` and `api/spec.md`.
 - Per-phase contract details (how `parse` counts BIOSes, how `filter` orders tiebreakers, etc.) — see the host module's `spec.md`.
 
 ## Cold-eyes loop log
@@ -373,4 +428,5 @@ can raise on valid inputs. If the list is "anything", the catch is too wide.
 | Loop | Date | Lanes | Severity (verified) | Dimensions | Outcome |
 |---|---|---|---|---|---|
 | 1 | 2026-08-04 | 3 × general-purpose | C 3 · H 5 · M 7 · L 8 · I 0 (23 verified / 1 unverified) | dim 2×6, dim 5×4, dim 6×5, dim 7×2, dim 15×2, dim 4×1, dim 9×1, dim 10×1, dim 11×1 | 23 fixed. Dominant defect: the whole § "`serve` host, port and browser resolution" was written in present-tense indicative while unimplemented, with no shipped-vs-pending marker — fixed with a status banner plus inline `PENDING` tags. Also fixed: the "same precedence rule" generalisation (false for host and browser), a drift test asserted to exist that does not, the unstated owner of the config layer, and the unstated read discipline for the `server:` block. 1 dismissed (`refresh-snaps` "shipped" is correct — P10 closed 2026-07-02). Surfaced, not fixed: the reciprocal `docs/specs/P04.md` exit-code edit; two test-module docstrings citing this spec's former section name. |
+| 3 | 2026-08-04 | 3 × general-purpose | C 3 · H 4 · M 8 · L 9 · I 0 (24 verified / 0 unverified) | dim 7×6, dim 5×5, dim 4×5, dim 2×4, dim 15×2, dim 6×1, dim 10×1, dim 11×1, dim 1×1 | **Converged-by-cap. 11 fixed, 13 filed as mame-curator-1094.** Origin split: 12 fix collateral vs 8 draft defects — with loop 2's 14-vs-4 that is the "collateral outnumbers draft defects two loops running" trigger, so this run stops rather than looping a fourth time. Fixed (all build-changing): loop 2's normative snippet validated `$PORT` *after* the config read and would have redded the pinned ordering test — restructured into two statements and **verified by executing both forms across all six precedence cases**; the same run proved loop 2's test surface could not catch the precedence inversion it named (the naive `port == DEFAULT_PORT` form passes the 9500 and 9600 cases, and only an 8080-vs-9000 pair reds it). Also fixed: the "one other section carries pending clauses" rule was false — replaced with "grep for `PENDING`"; the `server:` reader was never named though the design requires `cli/` to *raise* `ConfigError`, not just catch it; the class-wide escape rule is violated by four shipped call sites; the dev.sh rationale rested on a flag it does not pass. Remaining tail is MEDIUM/LOW and filed, not lost. |
 | 2 | 2026-08-04 | 3 × general-purpose | C 5 · H 3 · M 7 · L 3 · I 0 (18 verified / 0 unverified) | dim 5×5, dim 2×4, dim 6×4, dim 7×3, dim 15×3, dim 10×2, dim 4×2, dim 1×1 | 18 fixed, 1 dismissed. **14 of 18 were loop-1 fix collateral, 4 draft defects** — loop 1 answered prose defects with substantive new contract text, and the new text carried its own. Four were verified by execution rather than reading: `ipaddress.ip_address("")` and `("localhost")` both raise, so the prescribed wildcard predicate crashed on two inputs the same sentence mandated handling; bash rejects an empty `$PORT`, so loop 1's two-step `run.sh` change list would have broken the default bootstrap; only 2 tests (not the stated eleven) call `_resolve_port(None)` expecting 8080; bash and Python agree on leading zeros, confirming the message-parity claim. Both prescribed code blocks now parse, and `_is_wildcard` was run against its own stated test surface. Draft defects fixed: the `setup`/`serve` carve-out to the host-module rule (missed in loop 1), `run.bat`'s second-half divergence under 1090, `PORT=""` presence, the `run()` guard. Dismissed: moving the exit-`1` list out of § "Exit codes" — a structural tidy that would strand § Port's "path 6" cross-references. |
