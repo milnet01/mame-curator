@@ -29,8 +29,18 @@ import pytest
 from mame_curator.cli.commands.serve import _resolve_port
 
 
-def _serve_args(config: Path, port: int | None = None) -> argparse.Namespace:
-    return argparse.Namespace(config=config, host="127.0.0.1", port=port)
+def _serve_args(
+    config: Path, port: int | None = None, no_open_browser: bool = False
+) -> argparse.Namespace:
+    """Build a `serve` Namespace, mirroring what argparse produces.
+
+    `no_open_browser` carries argparse's own default; the two tests below
+    that reach `uvicorn.run` pass True instead, so no browser poller is
+    left probing a port some unrelated process may be serving.
+    """
+    return argparse.Namespace(
+        config=config, host="127.0.0.1", port=port, no_open_browser=no_open_browser
+    )
 
 
 def _config(tmp_path: Path) -> Path:
@@ -127,7 +137,7 @@ def test_serve_binds_env_port(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -
         patch("mame_curator.api.create_app"),
         patch("uvicorn.run") as run_mock,
     ):
-        _cmd_serve(_serve_args(_config(tmp_path)))
+        _cmd_serve(_serve_args(_config(tmp_path), no_open_browser=True))
 
     assert run_mock.call_args.kwargs["port"] == 5998
 
@@ -141,7 +151,7 @@ def test_serve_defaults_to_8080(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
         patch("mame_curator.api.create_app"),
         patch("uvicorn.run") as run_mock,
     ):
-        _cmd_serve(_serve_args(_config(tmp_path)))
+        _cmd_serve(_serve_args(_config(tmp_path), no_open_browser=True))
 
     assert run_mock.call_args.kwargs["port"] == 8080
 

@@ -172,7 +172,20 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #     test modules must carry a win32 skip, plus the self-check that the
 #     scan still matches something.
 # 706 → 709.
-EXPECTED_PYTEST_DECLARATIONS = 709
+# Bumped 2026-08-04 (mame-curator-1090 + 1091 — serve host/port/browser
+# resolution): +33 declarations:
+#   • +22 tests/cli/test_serve_config_layer.py — the `config.yaml` layer:
+#     precedence (including the two 8080-vs-9000 inversion regressions),
+#     host resolution, the four ways reading `server:` can fail, the
+#     `OverflowError` bind catch, and the rich-markup escape sweep.
+#   • +11 tests/cli/test_serve_browser.py — `_is_wildcard`, the four
+#     non-open outcomes and their log lines, and the poller opening once
+#     the port accepts.
+#   • +0 tests/tools/test_run_sh_port.py — net zero: the two absent/empty
+#     exec cases merged into one parametrised declaration, and the freed
+#     slot went to "`$PORT` absent announces no URL".
+# 709 → 742.
+EXPECTED_PYTEST_DECLARATIONS = 742
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

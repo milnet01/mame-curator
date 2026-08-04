@@ -147,6 +147,7 @@ def test_serve_does_not_swallow_unknown_exception(tmp_path: Path) -> None:
         config=config,
         host="127.0.0.1",
         port=8080,
+        no_open_browser=True,
     )
 
     with (

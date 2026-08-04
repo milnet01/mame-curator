@@ -3,9 +3,9 @@
 # MAME Curator clone-and-run bootstrap (Linux / macOS).
 #
 # Provisions Python 3.12+ + uv + project deps, runs the interactive
-# setup wizard if config.yaml is missing, then starts the server and
-# opens a browser. Idempotent — running twice does the right thing on
-# the second run.
+# setup wizard if config.yaml is missing, then starts the server — which
+# opens a browser itself, once the port is accepting. Idempotent — running
+# twice does the right thing on the second run.
 #
 # For developer dual-server (backend + Vite HMR), use scripts/dev.sh.
 
@@ -84,38 +84,48 @@ fi
 
 # ---- 5. serve --------------------------------------------------------
 
-PORT=${PORT:-8080}
+# No `${PORT:-8080}` default: an unset $PORT must stay empty so that
+# `mame-curator serve` can fall through to config.yaml's `server.port`.
+# Forwarding an unconditional `--port 8080` would make that layer
+# unreachable through the project's primary entry point.
+PORT="${PORT:-}"
 
-# An invalid $PORT must fail here, named, rather than three layers down:
-# a non-numeric value reaches argparse ("invalid int value: 'abc'" — no
-# range in the message), and an out-of-range one reaches the bind
-# ("permission denied" for <1024). Never silently fall back to 8080.
-# The `{1,5}` bound keeps `test -lt` inside 64-bit range: a longer digit
-# string makes `[ ... -lt ... ]` error out instead of comparing.
-# `cli/commands/serve.py:_resolve_port` re-checks the same range with the
-# same message for callers that skip this script.
-if ! [[ "${PORT}" =~ ^[0-9]{1,5}$ ]] || [ "${PORT}" -lt 1024 ] || [ "${PORT}" -gt 65535 ]; then
-    echo "error: PORT='${PORT}' is not a valid port — expected an integer in 1024-65535." >&2
-    exit 1
+if [ -n "${PORT}" ]; then
+    # An invalid $PORT must fail here, named, rather than three layers down:
+    # a non-numeric value reaches argparse ("invalid int value: 'abc'" — no
+    # range in the message), and an out-of-range one reaches the bind
+    # ("permission denied" for <1024). Never silently fall back to 8080.
+    # The `{1,5}` bound keeps `test -lt` inside 64-bit range: a longer digit
+    # string makes `[ ... -lt ... ]` error out instead of comparing.
+    # `cli/commands/serve.py:_resolve_port` re-checks the same range with the
+    # same message for callers that skip this script.
+    # The `-n` guard is load-bearing: without it, dropping the `:-8080`
+    # default above lets an empty $PORT reach this regex and abort every
+    # default bootstrap.
+    if ! [[ "${PORT}" =~ ^[0-9]{1,5}$ ]] || [ "${PORT}" -lt 1024 ] || [ "${PORT}" -gt 65535 ]; then
+        echo "error: PORT='${PORT}' is not a valid port — expected an integer in 1024-65535." >&2
+        exit 1
+    fi
 fi
 
-URL="http://127.0.0.1:${PORT}/"
-
 echo
-echo "Starting MAME Curator on ${URL}"
+if [ -n "${PORT}" ]; then
+    # The shell knows the port only because it is the one being forwarded.
+    echo "Starting MAME Curator on http://127.0.0.1:${PORT}/"
+else
+    # `server.port` is resolved inside `serve`, so the address is not
+    # knowable here; uvicorn logs it on bind.
+    echo "Starting MAME Curator — the address will be printed once the server binds"
+fi
 echo "(Ctrl-C to stop. Re-run ./run.sh anytime — it's idempotent.)"
 echo
 
-# Open the browser ~2s after serve starts, in the background. Best-effort:
-# if no opener is available the bootstrap still succeeds; the user reads
-# the URL above and opens it manually.
-(
-    sleep 2
-    if command -v xdg-open >/dev/null 2>&1; then
-        xdg-open "${URL}" >/dev/null 2>&1 || true
-    elif command -v open >/dev/null 2>&1; then
-        open "${URL}" >/dev/null 2>&1 || true
-    fi
-) &
+# No browser open here: `_cmd_serve` polls the socket and opens it once the
+# port accepts (cli/spec.md § Browser). This script used to sleep 2s and
+# call xdg-open, which raced the application lifespan — a ~48 MB DAT parse
+# — and greeted a cold start with "Unable to connect".
 
-exec uv run mame-curator serve --port "${PORT}"
+if [ -n "${PORT}" ]; then
+    exec uv run mame-curator serve --port "${PORT}"
+fi
+exec uv run mame-curator serve

@@ -3,9 +3,9 @@ REM
 REM MAME Curator clone-and-run bootstrap (Windows).
 REM
 REM Provisions Python 3.12+ + uv + project deps, runs the interactive
-REM setup wizard if config.yaml is missing, then starts the server and
-REM opens a browser. Idempotent — running twice does the right thing on
-REM the second run.
+REM setup wizard if config.yaml is missing, then starts the server — which
+REM opens a browser itself, once the port is accepting. Idempotent — running
+REM twice does the right thing on the second run.
 
 setlocal enabledelayedexpansion
 
@@ -74,8 +74,14 @@ echo Starting MAME Curator on %URL%
 echo (Ctrl-C to stop. Re-run run.bat anytime - it's idempotent.)
 echo.
 
-REM Open the browser. `start ""` returns immediately; the serve call below
-REM blocks until Ctrl-C.
-start "" "%URL%"
-
+REM No browser open here: `_cmd_serve` polls the socket and opens it once
+REM the port accepts (cli/spec.md § Browser). This script used to `start ""`
+REM the URL immediately, which raced the application lifespan — a ~48 MB DAT
+REM parse — and greeted a cold start with "Unable to connect". Keeping it
+REM alongside the poller would also open two tabs on every bootstrap.
+REM
+REM The `--port %PORT%` below is still unconditional, so `server.port` in
+REM config.yaml stays unreachable on Windows and a bad %PORT% still skips
+REM validation — both tracked as mame-curator-1089, which needs a Windows
+REM runner to verify.
 uv run mame-curator serve --port %PORT%

@@ -1,12 +1,15 @@
 """`$PORT` contract for `run.sh` — the bootstrap entry point.
 
-`run.sh` reads `$PORT`, defaults it to 8080, and converts it into an
-explicit `--port` flag on the `mame-curator serve` exec. These tests pin
-the four contract cases at the shell layer:
+`run.sh` reads `$PORT` and converts it into an explicit `--port` flag on
+the `mame-curator serve` exec. These tests pin the four contract cases at
+the shell layer:
 
 1. `$PORT` is read on startup.
 2. Present and valid (integer in 1024-65535) → passed through as `--port`.
-3. Absent (unset or empty) → 8080, unchanged.
+3. Absent (unset or empty) → **no `--port` flag at all**, so `serve` can
+   fall through to `config.yaml`'s `server.port`. The shell no longer
+   defaults to 8080; forwarding an unconditional `--port 8080` would make
+   the config layer unreachable through the project's primary entry point.
 4. Present and invalid → exit non-zero naming the value and the range,
    before the exec; never a silent fall-back to 8080.
 
@@ -74,10 +77,15 @@ def run_sh(tmp_path: Path) -> RunSh:
     """Return a callable that runs a copy of `run.sh` in a sandbox.
 
     The sandbox has a stub `uv` first on `PATH` (recording argv to a log
-    rather than syncing or binding a port), no-op browser openers, and a
-    `config.yaml` so the interactive setup branch is skipped. `python3` is
-    the real one — the version gate at the top of the script is part of
-    what's being run.
+    rather than syncing or binding a port) and a `config.yaml` so the
+    interactive setup branch is skipped. `python3` is the real one — the
+    version gate at the top of the script is part of what's being run.
+
+    The no-op `xdg-open` / `open` stubs are sandbox hygiene rather than
+    fixtures for anything asserted here: `run.sh` no longer opens a browser
+    (`_cmd_serve` polls the socket and opens it — `cli/spec.md` § Browser),
+    and the stubs keep a regression that re-added the block from launching
+    real browser windows across the suite.
     """
     sandbox = tmp_path / "sandbox"
     sandbox.mkdir()
@@ -103,9 +111,10 @@ def run_sh(tmp_path: Path) -> RunSh:
         if port is not None:
             env["PORT"] = port
 
-        # Redirect to files rather than pipes: `run.sh` backgrounds a
-        # browser-opener subshell that sleeps 2s holding the inherited
-        # descriptors, so a pipe would keep every test waiting on it.
+        # Redirect to files rather than pipes. This originally worked
+        # around `run.sh`'s backgrounded browser-opener subshell holding
+        # the inherited descriptors for 2s; that block is gone, but a file
+        # keeps any future background job from stalling the whole suite.
         out_path, err_path = tmp_path / "stdout", tmp_path / "stderr"
         with out_path.open("w") as out, err_path.open("w") as err:
             # S603 noqa rationale: bash plus a path to the project's own
@@ -132,18 +141,30 @@ def run_sh(tmp_path: Path) -> RunSh:
 # ---- Cases 1-3: the paths that must not change -----------------------
 
 
-def test_port_absent_execs_8080(run_sh: RunSh) -> None:
-    """Case 3 — unset `$PORT` still execs `--port 8080`."""
+@pytest.mark.parametrize("port", [None, ""], ids=["unset", "empty"])
+def test_port_absent_execs_without_a_port_flag(run_sh: RunSh, port: str | None) -> None:
+    """Case 3 — no `$PORT` means no `--port`, leaving `server.port` reachable.
+
+    The exit code is asserted alongside the argv because `serve_argv`
+    returns None both for "the script aborted" and for "the exec happened
+    but matched nothing", and an unguarded empty `$PORT` reaching the
+    validation regex aborts the bootstrap — which is exactly the failure
+    dropping the `:-8080` default introduces if the guard is omitted.
+    """
+    result = run_sh(port)
+    assert result.returncode == 0
+    assert result.serve_argv == "run mame-curator serve"
+
+
+def test_port_absent_announces_no_url(run_sh: RunSh) -> None:
+    """The shell cannot know the port once it can come from `server.port`.
+
+    `URL="http://127.0.0.1:${PORT}/"` with an empty `$PORT` renders as
+    `http://127.0.0.1:/` — a broken link the user would click.
+    """
     result = run_sh(None)
-    assert result.returncode == 0
-    assert result.serve_argv == "run mame-curator serve --port 8080"
-
-
-def test_port_empty_execs_8080(run_sh: RunSh) -> None:
-    """Case 3 — `PORT=` is 'absent' per bash's `${PORT:-8080}`."""
-    result = run_sh("")
-    assert result.returncode == 0
-    assert result.serve_argv == "run mame-curator serve --port 8080"
+    assert "http://127.0.0.1:/" not in result.stdout
+    assert "Starting MAME Curator" in result.stdout
 
 
 def test_port_valid_execs_that_port(run_sh: RunSh) -> None:
