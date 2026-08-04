@@ -508,6 +508,22 @@ wave lands.
   960 tests, 88.97% coverage (f6b8e62; all 8 CI jobs green).
   Next: step 4 — `build_world` degrades to
   `setup_required` on an unreadable DAT.
+  Progress (2026-08-04): step 4 shipped (41637cc). `build_world` catches
+  `(ParserError, OSError)` around `parse_dat` and returns an empty
+  library with `WorldState.setup_required = True` rather than aborting
+  the API lifespan (INV-7, INV-8); the rest of world construction runs
+  unchanged so the degraded world is usable, not half-built. TDD —
+  `tests/api/test_setup_mode.py` (+3, red first). **Not in the spec,
+  found by implementing it:** `replace_world` names every WorldState
+  field explicitly, so the new field's default would have cleared setup
+  mode on the first `PATCH /api/config` while the library stayed empty —
+  it now passes through with `machines`, covered by a third test and
+  folded back into §4.2. `api/spec.md` updated (the degrade + the
+  pass-through are that module's contract). DS05 test-count pin 754 →
+  757. Backend gate green: ruff, ruff format, mypy (214 files), bandit,
+  963 tests, 88.99% coverage.
+  Next: step 5 — `_validate_paths(..., setup_required=)` skips the
+  `source_dat` check and `restart_required` fires while in setup mode.
 
 ### 🧪 Test Audit 2026-05-20
 

@@ -266,6 +266,13 @@ except (ParserError, OSError) as exc:
 `WorldState` gains `setup_required: bool = False` (the model is
 `extra="forbid"`, so the field must be declared).
 
+**`replace_world` must pass the field through**, alongside `machines` and
+`bytes_by_machine`, from which it is derived. It names every field
+explicitly, so the default would silently clear setup mode on the first
+successful `PATCH /api/config` — the SPA's `GET /api/setup/check` would
+then report a configured app while the library was still empty, which is
+the same "half-built world" failure one step later.
+
 **The rest of `build_world` runs unchanged on the empty dict** and must
 produce a complete `WorldState`, not a partial one: `run_filter`,
 `compose_allowlist` and the `bytes_by_machine` mapping all execute with

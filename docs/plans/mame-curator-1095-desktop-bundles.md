@@ -1,7 +1,7 @@
 # mame-curator-1095 — desktop bundles — build plan
 
 **Spec:** [docs/specs/mame-curator-1095-desktop-bundles.md](../specs/mame-curator-1095-desktop-bundles.md)
-**Status:** in progress — steps 1–2 done (2026-08-04, 9842a86).
+**Status:** in progress — steps 1–4 done (2026-08-04, 41637cc).
 
 Two halves, in this order: the app must survive a first run (steps 1–7)
 before there is any point wrapping it (steps 8–15). Every step's tests
@@ -30,7 +30,7 @@ land before its implementation, per the project's TDD default.
    `uv run pytest tests/test_resources.py` passes with `sys.frozen` and
    `sys._MEIPASS` monkeypatched both ways (satisfies INV-11).
 
-4. `build_world` catches `(ParserError, OSError)` around `parse_dat` →
+4. **[done]** `build_world` catches `(ParserError, OSError)` around `parse_dat` →
    empty `machines` + `WorldState.setup_required = True`; the remaining
    world construction runs unchanged. → **verify:**
    `uv run pytest tests/api/test_setup_mode.py -k "missing or malformed"`
