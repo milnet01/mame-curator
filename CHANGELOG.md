@@ -17,6 +17,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### mame-curator-1090 — the server settings in your config now do something (2026-08-04)
+
+**Added**
+
+- The **Server** settings you can already edit — address, port, and whether
+  to open a browser on start — are now actually read when the app starts.
+  Until now the app saved them, told you a restart was needed, and then
+  ignored them. Setting a port in `config.yaml` and running `./run.sh` uses
+  that port. A `PORT` you set beforehand still beats the file, and an
+  explicit `--port` beats both. (mame-curator-1090)
+- The browser now opens when the app is genuinely ready, rather than two
+  seconds after launch and hoping. On a first run, where the app spends a
+  while reading a ~48 MB game list before it can answer anything, that guess
+  usually lost — you got an "Unable to connect" page and had to reload.
+  (mame-curator-1090)
+
+**Changed**
+
+- `./run.sh` no longer pins the port to 8080 on every launch, which is what
+  made the config setting unreachable. With no `PORT` set it starts the
+  server and lets it pick, so your config wins. (mame-curator-1090)
+- The Windows bootstrap (`run.bat`) no longer opens a browser itself; the
+  app does it. Keeping both would have opened two tabs every time.
+  (mame-curator-1090)
+
+**Fixed**
+
+- `--no-open-browser` now works. The option was accepted and then ignored,
+  so the browser opened anyway. (mame-curator-1091)
+- An impossible port such as `--port 99999` now stops with one readable
+  line instead of a page of Python error text. (mame-curator-1091)
+- Error messages no longer delete anything you wrote in square brackets. A
+  path like `/games/[roms]/config.yaml` was reported back as
+  `/games//config.yaml` — dropping the one detail the message existed to
+  give you. (mame-curator-1091)
+
 ### Dev docs — one home per document kind (2026-08-03)
 
 **Changed**

@@ -230,7 +230,7 @@ wave lands.
   Lanes: cli, tooling.
   Source: cold-eyes-2026-08-03 (mame-curator-1088 review).
 
-- 📋 [mame-curator-1090] **`serve --port` / `--host` help text claims a config lookup that does not exist.**
+- ✅ [mame-curator-1090] **`serve --port` / `--host` help text claims a config lookup that does not exist.**
   `cli/__init__.py:204-205` — `--host` and `--port` are both described as
   "(overrides config)", but `_cmd_serve` resolves host as `args.host or
   "127.0.0.1"` and port via `_resolve_port`; neither consults config.yaml.
@@ -282,8 +282,9 @@ wave lands.
   (d) the wildcard test cannot be a bare `ip_address(host).is_unspecified`
       — it raises on `""` (itself a wildcard) and on any hostname.
   Next action is implementation via /write-code, TDD first.
+  Resolved (2026-08-04): implemented in 5933127, TDD. `serve` now resolves port as --port -> $PORT -> server.port -> 8080 and host as --host -> server.host -> 127.0.0.1, reading only config.yaml's `server:` block (never the whole AppConfig, so a config whose other sections are mid-edit still starts). The browser opens from a daemon thread that polls the resolved address until it accepts, replacing run.sh's blind 2 s sleep. All four implementation pins held: layer (3) is selected by re-deriving presence from args.port/$PORT (the 8080-vs-9000 pair is the only test that reds the naive form -- verified by running both); resolution is two statements so the invalid-$PORT error still precedes the config check; run.sh took all three changes; _is_wildcard is the guarded form. run.bat also lost its browser open (two tabs otherwise) -- its unconditional --port stays with 1089. +33 tests; full local-CI green.
 
-- 📋 [mame-curator-1091] **`cli/spec.md` carries pre-existing contract defects two cold-eyes lanes found independently.**
+- ✅ [mame-curator-1091] **`cli/spec.md` carries pre-existing contract defects two cold-eyes lanes found independently.**
   Both lanes flagged these; all verified against source, none touched by
   mame-curator-1088 (out of its lane):
   (a) `_cmd_serve` returns 130 unconditionally, so `serve` never exits 0 —
@@ -311,6 +312,7 @@ wave lands.
   Kind: doc-fix.
   Lanes: cli, docs.
   Source: cold-eyes-2026-08-03 (mame-curator-1088 review).
+  Resolved (2026-08-04): closed in two halves. Defects (a)-(g) were spec text and were fixed during the cold-eyes gate on cli/spec.md (loops 1-3, 2026-08-04). The code half landed in 5933127: (h) --no-open-browser is now read rather than merely registered; (i) OverflowError is caught at the bind alongside OSError, so `--port 99999` reports exit 1 instead of the traceback (d) claimed could not happen. The rich-markup escape rule is now enforced across all six Console.print sites in _cmd_serve, not just the $PORT message -- the config-not-found path was the likeliest of them to contain brackets.
 
 - 📋 [mame-curator-1092] **Rename the sixteen `docs/specs/<ID>.md` files to `<ID>-<topic>.md`.**
   `docs/standards/spec-format.md` §2 requires `<ID>-<topic>.md`; sixteen
