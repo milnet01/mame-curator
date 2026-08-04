@@ -259,6 +259,29 @@ wave lands.
   layer is unreachable via the primary entry point), and two tests in
   tests/tools/test_run_sh_port.py change with it. The rule-14 /cold-eyes
   gate has NOT yet run on the rewritten spec — that is the next action.
+  Progress (2026-08-04): the rule-14 /cold-eyes gate has now RUN on the
+  rewritten `cli/spec.md`. Converged by cap at 3 loops, 3 lanes each —
+  65 verified findings, 52 fixed (c66cafc, 96440d4, 9a510ff), 13 filed as
+  mame-curator-1094, 1 dismissed. The spec is 203 -> 432 lines and is
+  implementable; the contract is unchanged in intent from the Progress note
+  above, but four things an implementer needs were missing and are now
+  pinned:
+  (a) layer (3) selection MUST re-derive presence from `args.port` /
+      `os.environ["PORT"]` — inferring it from `_resolve_port`'s return
+      value lets `server.port` beat an explicit `--port 8080`. Verified by
+      executing both forms: the naive `port == DEFAULT_PORT` form passes
+      9500 and 9600 cases, so the test surface MUST include an
+      8080-vs-9000 pair or the inversion ships green.
+  (b) resolution is two STATEMENTS, not one if/else — `$PORT` validation
+      stays in stage 1 before any config I/O, or the pinned ordering test
+      (`PORT=abc` + missing config must name `abc`) goes red.
+  (c) `run.sh` needs THREE changes, not two: dropping `:-8080` without
+      guarding the regex block on `[ -n "${PORT}" ]` aborts every default
+      bootstrap (verified in bash). The announce line changes too — `URL`
+      is built from `$PORT`.
+  (d) the wildcard test cannot be a bare `ip_address(host).is_unspecified`
+      — it raises on `""` (itself a wildcard) and on any hostname.
+  Next action is implementation via /write-code, TDD first.
 
 - 📋 [mame-curator-1091] **`cli/spec.md` carries pre-existing contract defects two cold-eyes lanes found independently.**
   Both lanes flagged these; all verified against source, none touched by
@@ -317,6 +340,76 @@ wave lands.
   Kind: doc.
   Lanes: docs.
   Source: user-decision-2026-08-03 (doc-layout audit).
+
+- 📋 [mame-curator-1094] **Fold in the 13 deferred cold-eyes findings on `cli/spec.md`.**
+  The /cold-eyes gate on `src/mame_curator/cli/spec.md` converged by cap at
+  3 loops (65 verified findings; 52 fixed across commits c66cafc, 96440d4,
+  9a510ff). These 13 are verified and unfixed. **Do NOT re-review to
+  rediscover them — a fresh loop costs a full multi-agent dispatch to
+  regenerate what is already written here. Fold them in directly.**
+
+  MEDIUM:
+  1. § Browser — the poll TARGET is undefined for a wildcard bind. The doc
+     rewrites only the browser URL to 127.0.0.1; say both the poll target
+     and the opened URL use `_is_wildcard(host) and "127.0.0.1" or host`,
+     else the poller connects to 0.0.0.0/:: and burns the 300 s budget.
+  2. § config layer — three undefined edge cases: a bare `server:` key
+     parsing to None, a `server:` value that is a scalar or list, and an
+     empty file. Add: absent OR null -> ServerConfig() defaults; any
+     non-mapping value -> exit 1.
+  3. Exit-1 path 1 reads "`$PORT` set and invalid", omitting the
+     precondition § Port states — `$PORT` is not read at all when `--port`
+     is present. Reword to "`--port` absent and `$PORT` set and invalid".
+  4. § "Subcommand inventory" claims `setup`'s contract is stated below,
+     but the paragraph names no flags, no exit codes and no output shape.
+     Either add a small flag/exit-code table or file the contract as its
+     own item.
+  5. The supersession paragraph enumerates P04.md:856/:859/:885 but omits
+     `P04.md:16`, which states the serve flag surface without
+     `--no-open-browser` and with `--port 8080` as a default. Add it and
+     declare this spec canonical for the flag surface too.
+  6. `_serve_args` blast radius is stated as "all four `_cmd_serve`
+     end-to-end tests"; there are five, and only two reach the browser
+     decision (the other three exit at port resolution).
+  7. The browser log table has four rows but covers five outcomes — row 3
+     folds config-false and `--no-open-browser` behind one placeholder,
+     while the test surface asks for "each of the four outcomes".
+  8. Port 0 and "disabled by config/flag" can both hold; state which log
+     line wins (disabled first, then port 0).
+
+  LOW:
+  9. `:183` "widens `_resolve_port`'s signature reds all of them" is true
+     only for a REQUIRED added parameter; a defaulted one reds nothing.
+  10. The layer-3/4 "one read, not two" note is now stated twice (§ table
+      and § Port rule 4). Keep the § Port copy, reduce the table to a
+      pointer. (dim 1 — the duplication this run otherwise removed.)
+  11. Noun drift: "the `server:` section" vs "the `server:` block"; and
+      "layer" vs "rule" for the same numbered list.
+  12. § Port requires the `$PORT` value "verbatim" while § Entry points
+      concedes Python uses `repr` (which quotes and escapes). Say
+      "verbatim modulo `repr` quoting".
+  13. The TOC lists H2s only, but the doc cross-references § Port, § Host,
+      § Browser and § Entry points constantly. Add those four H3s.
+
+  Also recorded, needing a decision rather than an edit:
+  - **Reciprocal `docs/specs/P04.md` edit** (:16, :856, :859, :885) — two
+    contract docs still assert opposite exit codes and different flag
+    surfaces. This spec declares itself canonical; P04 has not been
+    amended. Owner's call.
+  - `CLAUDE.md:58` shows `P10 🚧`; P10 closed 2026-07-02 (out of scope for
+    this run — CLAUDE.md was not the document under review).
+  - `tests/cli/test_serve_port_env.py` and `tests/tools/test_run_sh_port.py`
+    docstrings cite this spec's former section name, "serve port
+    resolution". Code-side; fold into the mame-curator-1090 commit.
+
+  **Size signal:** the doc went 203 -> 432 lines across the three loops.
+  Not past the design point, but if a fourth loop is ever wanted, split it
+  (the serve resolution section is now ~55% of the file) rather than
+  looping a doc this size again.
+  **Layman:** A doc review found 13 smaller wording and completeness gaps in the CLI contract; they are written up and just need folding in.
+  Kind: doc-fix.
+  Lanes: cli.
+  Source: cold-eyes-2026-08-04 (cli/spec.md rule-14 gate, loop 3 deferred tail).
 
 ### 🧪 Test Audit 2026-05-20
 
