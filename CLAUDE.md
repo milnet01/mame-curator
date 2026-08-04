@@ -46,6 +46,17 @@ uv run mame-curator filter --help
 uv run mame-curator copy --help
 ```
 
+**Trap — a CLI smoke run silently breaks the next `pytest`.** `uv run
+<project-command>` (`mame-curator parse`, `serve`, …) re-syncs the
+environment **without** `--extra dev`, which strips `pytest-cov`; the next
+`uv run pytest` then dies on unrecognised `--cov` args from
+`pyproject.toml`'s addopts. It reads as a broken test config, not as an
+environment change. Recover with:
+
+```bash
+uv sync --extra dev
+```
+
 ## Architecture
 
 Layered, acyclic dependency graph (enforced by review):
