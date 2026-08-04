@@ -241,6 +241,24 @@ wave lands.
   Kind: doc-fix.
   Lanes: cli.
   Source: cold-eyes-2026-08-03 (mame-curator-1088 review).
+  Progress (2026-08-04): scope escalated from doc-fix to real wiring on the
+  user's call — "connect it" rather than reword the help text. Reason: the
+  `server:` block (host / port / open_browser_on_start) already exists in
+  `api/schemas.py` ServerConfig, is exposed over the API, and
+  `api/routes/config.py:177` returns restart_required=true when it changes
+  — a promise nothing can keep, because no code reads it. Contract now
+  written in `src/mame_curator/cli/spec.md` (committed, doc only, no code
+  yet): precedence flag -> $PORT -> config.yaml `server:` -> built-in
+  default; only the `server:` block is read, not the whole AppConfig
+  (a full `load_app_config` here would break six tests whose stub config
+  is `paths: {}`, and would move failure timing out of the API lifespan);
+  `--no-open-browser` becomes real; the browser opens from a daemon thread
+  polling until the port accepts TCP, which also fixes the "Unable to
+  connect" first-load wart run.sh's blind 2s sleep causes. Knock-on:
+  run.sh must forward --port only when $PORT is non-empty (else the config
+  layer is unreachable via the primary entry point), and two tests in
+  tests/tools/test_run_sh_port.py change with it. The rule-14 /cold-eyes
+  gate has NOT yet run on the rewritten spec — that is the next action.
 
 - 📋 [mame-curator-1091] **`cli/spec.md` carries pre-existing contract defects two cold-eyes lanes found independently.**
   Both lanes flagged these; all verified against source, none touched by
