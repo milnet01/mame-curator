@@ -126,14 +126,41 @@ here because they widen the work beyond packaging:
 New module `src/mame_curator/config_location.py`:
 
 ```python
-STARTER_HEADER: str                 # comment banner written above a starter config
+class ConfigSource(StrEnum):        # which layer won
+    EXPLICIT = "explicit"           # --config <path>
+    CWD = "cwd"                     # ./config.yaml
+    USER = "user"                   # the per-user path
+
+STARTER_HEADER: str                 # comment banner — see the note below
 def user_config_path() -> Path      # <user_config_dir>/config.yaml
 def user_data_path() -> Path        # <user_data_dir>/ — the four starter paths live here
-def resolve_config_path(explicit: Path | None) -> Path
+def user_log_path() -> Path         # <user_log_dir>/mame-curator.log — see §4.11
+def resolve_config_path(explicit: Path | None) -> tuple[Path, ConfigSource]
 def ensure_starter_config(path: Path) -> bool   # True if it created the file
 ```
 
-Both accessors pass **`appauthor=False`**:
+**`resolve_config_path` returns which layer won, and that is
+load-bearing rather than decorative.** A bare `-> Path` discards the
+one fact the caller needs: `ensure_starter_config` must run for layer 3
+and must **not** run for layers 1 and 2. An implementer wiring
+`ensure_starter_config(resolve_config_path(args.config))` against a
+`Path`-only signature satisfies the types and breaks INV-4 by
+manufacturing a config for a mistyped `--config`. This is the same
+provenance-loss trap `cli/spec.md` spends four paragraphs on for
+`_resolve_port`, and it is avoided the same way — by carrying the
+provenance instead of re-deriving it from the value.
+
+`STARTER_HEADER` **supersedes** `cli/commands/setup.py::_SETUP_HEADER`
+rather than duplicating it: the wizard's banner moves to this module and
+`_cmd_setup` imports it, so one generated-config banner exists and both
+writers use it.
+
+`_cmd_serve` calls `ensure_starter_config` **only when the source is
+`ConfigSource.USER`**, and the resolved path — not `args.config`, which
+is now `None` by default — is what reaches `_load_server_config` and
+`create_app`.
+
+All three accessors pass **`appauthor=False`**:
 `platformdirs.user_config_dir("mame-curator", appauthor=False)`. Without
 it, `_append_parts` in `platformdirs/windows.py` appends the author
 before the app name and defaults the author *to the app name*
@@ -150,9 +177,12 @@ detail that is invisible on the development machine.
 | 2 | `./config.yaml` in the working directory | skipped when absent |
 | 3 | `platformdirs.user_config_dir("mame-curator", appauthor=False)/config.yaml` | **created** from the starter template |
 
-Layer 2 keeps every current workflow working unchanged — `run.sh`,
-`scripts/dev.sh`, and a developer sitting in the repo root all continue to
-read the repo's own `config.yaml` without knowing this feature exists.
+Layer 2 keeps the current workflows working unchanged: `run.sh` `cd`s to
+its own directory before exec'ing, and a developer sitting in the repo
+root gets the repo's `config.yaml` without knowing this feature exists.
+`scripts/dev.sh` is unaffected for a different reason — it passes
+`--config "${CONFIG}"` explicitly, so it resolves through **layer 1**
+and never reaches either of the layers below.
 
 `platformdirs` (>=4.11.0, current release; already present in `uv.lock`
 at 4.10.0 as a transitive dependency) becomes a direct dependency. With
@@ -234,13 +264,26 @@ except (ParserError, OSError) as exc:
 ```
 
 `WorldState` gains `setup_required: bool = False` (the model is
-`extra="forbid"`, so the field must be declared). It is surfaced on the
+`extra="forbid"`, so the field must be declared).
+
+**The rest of `build_world` runs unchanged on the empty dict** and must
+produce a complete `WorldState`, not a partial one: `run_filter`,
+`compose_allowlist` and the `bytes_by_machine` mapping all execute with
+`machines={}`. INV-7's test asserts the world is *usable* — every field
+populated, `bytes_by_machine` empty rather than absent — not merely that
+it has no machines. A degrade that returns a half-built world moves the
+crash from the lifespan to the first request. It is surfaced on the
 existing `GET /api/setup/check` response so the SPA can tell a genuinely
 empty library from an unconfigured one.
 
 The catch is deliberately narrow: `ParserError` and `OSError` are what a
-missing, truncated or non-DAT file produce. A `RuntimeError` from our own
-parser still propagates, per `cli/spec.md` § "Errors the CLI catches".
+missing, truncated or non-DAT file produce — `parser/dat.py` already
+wraps `zipfile.BadZipFile`, `OSError` and `etree.XMLSyntaxError` into
+`DATError`, so a corrupt `.zip` DAT is covered. A `RuntimeError` from
+our own parser still propagates: this runs in the API lifespan, so
+`api/spec.md` owns the rule, and it is the same typed-catches-only
+discipline `cli/spec.md` § "Errors the CLI catches" states for the CLI
+boundary.
 
 **This changes existing behaviour**: an application whose configured DAT
 disappears now starts with an empty library and a warning, where it
@@ -260,25 +303,58 @@ raises `ConfigError` when the list is non-empty. The starter config
 points `source_dat` at a file that by construction does not exist, so
 **every** `PATCH /api/config` is rejected until it is corrected —
 including a PATCH that changes something unrelated. §4.1's directory
-creation clears three of the four; the fourth is closed here: while
-`world.setup_required` is true, a `path_not_found` on **`source_dat`
-alone** is downgraded to a non-fatal field warning, so the config
-persists and the user can save partial progress. Every other path error
-stays fatal, and once `setup_required` is false the rule reverts.
+creation clears three of the four; the fourth is closed here.
+
+`_validate_paths` today is `_validate_paths(config: AppConfig) ->
+tuple[FieldError, ...]` and cannot see the world, so it gains a
+keyword-only parameter:
+
+```python
+def _validate_paths(config: AppConfig, *, setup_required: bool = False) -> tuple[FieldError, ...]:
+```
+
+When `setup_required` is true, the `source_dat` `path_not_found` error
+**is not appended at all** — the field is skipped, not collected and
+filtered, so no new warnings channel is needed and
+`AppConfigResponse` is unchanged (which matters: adding a field to it
+would pull a second `check_api_types_sync.py` surface into scope). The
+missing DAT is already reported to the SPA through `setup_required` on
+`SetupCheck` and to the console through §4.2's `logger.warning`.
+
+Every **other** path error stays fatal even in setup mode, and once
+`setup_required` is false the `source_dat` check applies again. The
+call site passes it explicitly:
+`_validate_paths(new_config, setup_required=world.setup_required)`.
 
 **(b) `restart_required` must fire when the DAT path changes.** It is
 currently `server_changed = new_config.server != world.config.server` —
 `server:` only. A user who corrects `paths.source_dat` therefore gets
 `restart_required: false` and no prompt, while `machines` stays empty
-because `replace_world` does not re-parse the DAT. The condition
-becomes `server_changed or (world.setup_required and
-new_config.paths.source_dat != world.config.paths.source_dat)`, so the
-one edit that ends setup mode is also the one that asks for the restart
-that applies it.
+because `replace_world` does not re-parse the DAT. The condition becomes:
+
+```python
+restart_required = server_changed or world.setup_required
+```
+
+**Deliberately not `… and new_config.paths.source_dat !=
+world.config.paths.source_dat`.** The likeliest recovery is that the
+user drops their DAT at exactly the path the starter config already
+names, in which case the path string is unchanged and a
+difference-based condition returns false — leaving the library empty
+with no prompt, which is the precise failure INV-10 exists to prevent.
+While `setup_required` is true, *any* successful save asks for the
+restart; it is one extra prompt during setup and it cannot miss.
+
+**A DAT swap outside setup mode still returns `restart_required: false`
+and a stale library.** That is pre-existing behaviour, unchanged here
+and knowingly left alone: it is a `replace_world` question, not a
+first-run one, and widening it would pull the world-rebuild contract
+into a packaging item.
 
 **The SPA side is not free, and an earlier draft of this spec wrongly
-said it was.** `setup_required` on `SetupCheck` (`api/routes/stubs.py`)
-is mirrored in `frontend/src/api/schemas.ts` (`SetupCheckSchema`) and
+said it was.** The field is declared on `SetupCheck` in
+**`api/schemas_setup.py`** (`routes/stubs.py` only imports it and
+populates it in `setup_check`), and is mirrored in `frontend/src/api/schemas.ts` (`SetupCheckSchema`) and
 `frontend/src/api/types.ts`, and `tools/check_api_types_sync.py` walks
 `api/schemas_setup.py` — so adding the Python field alone turns the
 `API type sync (Python ↔ TS)` step red in both `ci.yml` and
@@ -308,8 +384,10 @@ construction rather than at import.
 
 `packaging/mame-curator.spec` is shared; each platform's script invokes it
 with a different `--distpath` and post-processing step. PyInstaller
-6.21.0 (current release) is added as a `packaging` optional-dependency
-group, not a runtime dependency.
+6.21.0 (current release) is added as a **`bundle`** optional-dependency
+group, not a runtime dependency — `bundle` rather than `packaging`,
+which would collide with both the `packaging/` directory this spec adds
+and the widely-installed PyPI distribution of that name.
 
 The spec must carry, because PyInstaller's static analysis cannot see
 them:
@@ -327,7 +405,11 @@ them:
   fetching a page proves the set is complete.
 - `datas` entries for `frontend/dist` (defect 2), `config.example.yaml`,
   and `packaging/` (the icon renditions, referenced by INV-14's
-  allowlist).
+  allowlist). **The destination path matters as much as the source**:
+  `frontend/dist` must land at `frontend/dist` inside the bundle,
+  because §4.3's `frontend_dist()` looks for `bundle_root() /
+  "frontend" / "dist"`. A `datas=[("frontend/dist", ".")]` builds green
+  and 404s every page.
 
 Windows uses `--onefile`; Linux and macOS use one-dir, because the
 AppImage and the `.app` are themselves the single-file wrapper. This also
@@ -397,7 +479,28 @@ cache). `packaging/icon.svg` is added as the single source, rendered to
 It is a placeholder by intent — a wordmark tile, not a commissioned
 design.
 
-### 4.10 Where a GUI-launched failure goes
+### 4.10 Attaching the bundles to the Release
+
+**Three build jobs are not enough on their own, and this is the step that
+makes §1 true.** `release.yml`'s `publish` job declares `needs: build`
+and downloads a *single* artifact named `dist` before handing
+`files: dist/*` to `softprops/action-gh-release`. Three new build jobs
+satisfy "three new jobs in `release.yml`" while their outputs are
+discarded when the run ends, and `fail_on_unmatched_files: true` does not
+notice, because `dist/*` still matches the sdist and the wheel.
+
+So the wiring is part of the contract:
+
+- each build job uploads under its own artifact name — `bundle-linux`,
+  `bundle-windows`, `bundle-macos`;
+- `publish` gains `needs: [build, build-appimage, build-exe, build-macos]`;
+- `publish` gains one `download-artifact` step per bundle, all into
+  `dist/`, so the existing `files: dist/*` picks them up unchanged.
+
+`needs` is also what enforces §3 decision 3's ordering: a bundle job that
+fails stops the Release rather than publishing a partial set.
+
+### 4.11 Where a GUI-launched failure goes
 
 §2 defect 3 establishes that a double-clicked bundle has no terminal;
 the corollary is that **every existing exit-1 path is currently
@@ -411,25 +514,32 @@ Two mechanisms, neither of which is a dialog framework:
 1. **The Windows `.exe` keeps its console** (§4.6), so the message is on
    screen for the one platform where a GUI launch has no terminal at
    all.
-2. **All three bundles tee stderr to a log file** at
-   `platformdirs.user_log_dir("mame-curator", appauthor=False)/mame-curator.log`,
-   truncated per run. The README's troubleshooting section names the
-   path per platform. A user who reports "it just closes" can be asked
-   for one file.
+2. **All three bundles tee stderr to a log file** at `user_log_path()`
+   (§4.1), truncated per run.
+   **Owner: `main.py::main()`**, which installs the tee as its first
+   action and **only when `getattr(sys, "frozen", False)`** — a
+   source-tree or `pip install` run keeps today's plain stderr, so no
+   developer workflow changes and no test has to account for a redirect.
+   `main()` is the one entry point all three bundles share, which is
+   what avoids three per-platform wrappers doing it three ways. The
+   README's troubleshooting section names the resolved path per
+   platform.
 
 A native error dialog is out of scope (§9): it needs a GUI toolkit in
 the bundle for a path that should be rare.
 
-### 4.11 Artefact naming
+### 4.12 Artefact naming
 
-One convention, because INV-12's mirror test compares the names CI and
-the local scripts produce:
+One convention. It is **not** what INV-12 checks — that invariant
+compares *step sets*, not filenames — but the local scripts and the CI
+jobs must agree on it or the `download-artifact` steps in §4.10 match
+nothing:
 
-| Platform | Artefact |
-|---|---|
-| Linux | `MAME_Curator-<version>-x86_64.AppImage` |
-| Windows | `MAME_Curator-<version>-x86_64.exe` |
-| macOS | `MAME_Curator-<version>-<arch>.dmg` |
+| Platform | Artefact | `<arch>` today |
+|---|---|---|
+| Linux | `MAME_Curator-<version>-<arch>.AppImage` | `x86_64` |
+| Windows | `MAME_Curator-<version>-<arch>.exe` | `x86_64` |
+| macOS | `MAME_Curator-<version>-<arch>.dmg` | `arm64` (`macos-latest` is Apple Silicon) |
 
 `<version>` is `pyproject.toml`'s `version` (1.2.0 today), read by the
 scripts rather than hardcoded.
@@ -540,11 +650,22 @@ scripts rather than hardcoded.
 
   ```bash
   ./local-appimage.sh
-  HOME="$(mktemp -d)" ./dist/MAME_Curator-*.AppImage &   # background: it does not return
-  until curl -sf http://127.0.0.1:8080/ >/dev/null; do sleep 1; done
-  curl -sf http://127.0.0.1:8080/ | grep -q 'id="root"' && echo PASS
+  # Background: the bundle runs a server and never returns. A fresh HOME
+  # forces the per-user config path; --no-open-browser stops the poller
+  # spawning a tab on every run of the recipe.
+  HOME="$(mktemp -d)" ./dist/MAME_Curator-*-x86_64.AppImage --no-open-browser &
+  for _ in $(seq 60); do
+      curl -sf http://127.0.0.1:8080/ >/dev/null && break
+      sleep 1
+  done
+  curl -sf http://127.0.0.1:8080/ | grep -q 'id="root"' && echo PASS || echo FAIL
   kill %1
   ```
+
+  **The loop is bounded on purpose.** An unbounded `until` hangs forever
+  on exactly the failure this invariant exists to catch — a missing
+  `hiddenimport` makes the bundle exit at once, so the port never opens
+  and a waiting recipe never reports.
 
   A fresh `HOME` rather than `env -i`: the run must exercise §4.1's
   per-user path, and `platformdirs` resolves it from `HOME`/`XDG_*`,
@@ -570,6 +691,16 @@ scripts rather than hardcoded.
   stronger check and needs all three artefacts; it is INV-13's manual
   recipe's neighbour, and is not claimed here.
 
+- **INV-15** — Each local build script fails when its artefact exceeds
+  the size ceiling recorded in §10.
+  *Test:* `tests/tools/test_release_scripts.py::test_scripts_carry_a_size_ceiling`
+  — asserts each script contains a numeric ceiling and a non-zero exit
+  on breach. It cannot assert the *artefact* is under it (that needs a
+  build), only that the guard exists and is wired.
+  *Breaks when:* the ceiling is written into §10 as prose and never into
+  the scripts — which is what "we will measure it later" degrades into
+  when nothing checks.
+
 ## 6. Failure modes
 
 | Assumption | When it breaks | Result |
@@ -579,8 +710,8 @@ scripts rather than hardcoded.
 | `appimagetool` continuous asset is stable | upstream rebuilds it | the pinned sha256 mismatches and the build stops rather than silently using a new binary (§4.5) |
 | one-file uvicorn shutdown is merely untidy | it turns out to hang rather than exit | Windows users cannot close the app cleanly; the fallback is the one-dir-plus-zip alternative in §8 |
 | the user leaves setup mode | they correct `source_dat` in Settings and restart | `setup_required` returns to false and the library populates — via the two `api/` changes in §4.2, not via the pre-existing `restart_required` flow, which fires on `server:` changes only |
-| the user never opens Settings | the bundle is launched, glanced at and closed | the library stays empty with only a `DEBUG`-level warning in the console; nothing in this design nags them, and `setup_required` on `/api/setup/check` is the only signal the SPA has to work with |
-| the config directory is writable | a read-only home, a sandbox, an unavailable `$XDG_CONFIG_HOME` | `ensure_starter_config` raises `OSError`; `_cmd_serve` exits 1 naming the path (§4.1). A GUI launch surfaces it per §4.10 |
+| the user never opens Settings | the bundle is launched, glanced at and closed | the library stays empty; §4.2's `logger.warning` line **is** visible on a default run (`cli/spec.md` § "Logging configuration" pins the default level to `INFO`), and `setup_required` on `/api/setup/check` is the signal the SPA has to work with. Nothing in this design nags the user beyond that |
+| the config directory is writable | a read-only home, a sandbox, an unavailable `$XDG_CONFIG_HOME` | `ensure_starter_config` raises `OSError`; `_cmd_serve` exits 1 naming the path (§4.1). A GUI launch surfaces it per §4.11 |
 | macOS Gatekeeper behaviour holds | Apple tightens unsigned-app policy | the documented right-click flow stops working and signing becomes mandatory; nothing in this design detects that, it surfaces as user reports |
 
 ## 7. Tests
@@ -593,8 +724,10 @@ New files:
 - `tests/test_resources.py` — INV-11.
 - `tests/tools/test_release_scripts.py` — INV-12, INV-14.
 
-Each must be seen failing against pre-change code first. INV-1's test
-fails today with the exit-1 "config file not found" path; INV-7's fails
+Each must be seen failing against pre-change code first. INV-1's and
+INV-2's tests fail at import today — `config_location.py` does not
+exist; INV-4's is the one that fails on the exit-1 "config file not
+found" path, which is the behaviour it pins as unchanged. INV-7's fails
 with an uncaught `DATError`; INV-9's fails with a `ConfigError` from
 `_validate_paths`; INV-10's fails because `restart_required` is
 `server_changed` alone; INV-11's fails because `_FRONTEND_DIST` is a
@@ -663,7 +796,7 @@ added, in the same commit.
 - **`aarch64` AppImage** and an **Intel / `universal2` macOS build**.
   `macos-latest` is Apple Silicon, so the `.dmg` this pipeline produces
   is arm64-only and Intel Macs are not served; Linux ships x86_64 only.
-  Both are separate items, and §4.11 puts the architecture in the
+  Both are separate items, and §4.12 puts the architecture in the
   filename so the gap is visible rather than implied.
 - `run.bat`'s unconditional `--port` — mame-curator-1089.
 - Auto-update for installed bundles.
@@ -671,8 +804,8 @@ added, in the same commit.
 ## 10. Resource cost
 
 **One** new runtime dependency: `platformdirs>=4.11.0`, already in the
-lockfile transitively at 4.10.0. `pyinstaller>=6.21.0` is a
-build-time-only optional-dependency group, absent from the wheel's
+lockfile transitively at 4.10.0. `pyinstaller>=6.21.0` is in the build-time-only `bundle`
+optional-dependency group, absent from the wheel's
 runtime requirements — `>=`, matching every other pin in
 `pyproject.toml` and the project's latest-versions posture, not the
 `==` an earlier draft of this section wrote.
@@ -688,9 +821,9 @@ Artefact sizes and cold-start times are not yet measured. The first
 produces the first real figures, and no claim is made until it does —
 but **declining to guess is not declining to budget**: that step also
 writes the measured figures into this section as a ceiling, with a
-build-failing check in each local script at 1.5× the recorded size. A
-one-file `.exe` whose extraction cost is its main user-visible risk
-otherwise has no regression guard at all.
+build-failing check in each local script at 1.5× the recorded size (see
+INV-15). A one-file `.exe` whose extraction cost is its main
+user-visible risk otherwise has no regression guard at all.
 
 ## 11. What checks this
 
@@ -714,22 +847,29 @@ otherwise has no regression guard at all.
 | Windows `.exe` actually works | **nothing** local — no Windows host (§4.8); the CI job's first run is the first execution |
 | macOS `.app` actually works | **nothing** local — no macOS host (§4.8); same |
 | one-file uvicorn shutdown | **nothing** — upstream defect with no test surface on a Linux dev box; surfaces as a user report |
-| §4.10 log file is written | **nothing** — no automated launch of any bundle exists to assert against; INV-13's recipe is where a human would notice its absence |
+| §4.1 unwritable config dir exits 1 | **nothing** — no test drives an unwritable `$XDG_CONFIG_HOME`; the §6 row is the contract and a `chmod 500` reproduction is the manual check |
+| INV-15 | `tests/tools/test_release_scripts.py::test_scripts_carry_a_size_ceiling` |
+| §4.11 log file is written | **nothing** — no automated launch of any bundle exists to assert against; INV-13's recipe is where a human would notice its absence |
 
-**Five** `nothing` rows. **Two** share one limit — this machine cannot
+**Six** `nothing` rows. **Two** share one limit — this machine cannot
 execute the Windows or the macOS target — and that pair is the honest
 cost of cross-platform packaging from a single-OS developer machine. The
-other three are distinct: INV-13 needs a built artefact and a free port,
+other four are distinct: INV-13 needs a built artefact and a free port,
 so it is a manual recipe rather than an absent one; the one-file uvicorn
-defect is upstream, with no test surface on any host we control; and
-§4.10's log file has no automated launch to assert against, which is the
-same gap as INV-13 one level down.
+defect is upstream, with no test surface on any host we control;
+§4.11's log file has no automated launch to assert against, which is the
+same gap as INV-13 one level down; and §4.1's unwritable-directory exit
+has no fixture that can create one portably.
 
 ## 12. Cross-doc impact
 
-- `pyproject.toml` — the `platformdirs` runtime dependency, the
-  `packaging` optional-dependency group, and whatever `frontend/dist`
-  packaging the build target needs (§2 defect 2).
+- `pyproject.toml` — the `platformdirs` runtime dependency and the
+  `bundle` optional-dependency group. **The wheel build target is
+  unchanged**: defect 2 is solved by the PyInstaller `datas` entry
+  (§4.4), not by teaching the wheel to ship the SPA, which INV-11
+  explicitly leaves out of scope.
+- `uv.lock` — regenerated for the `platformdirs` promotion (it is there
+  transitively at 4.10.0; the pin is `>=4.11.0`).
 - `docs/plans/mame-curator-1095-desktop-bundles.md` — the build order,
   written with this spec (`/write-spec --plan`) and cited by §10.
 - `src/mame_curator/api/routes/config.py` — `_validate_paths`'
@@ -739,7 +879,7 @@ same gap as INV-13 one level down.
 - `frontend/src/api/schemas.ts` + `frontend/src/api/types.ts` — the
   mirrored field, without which `check_api_types_sync.py` fails.
 - `README.md` — download-and-run instructions for all three platforms,
-  including the macOS right-click step and §4.10's log-file paths.
+  including the macOS right-click step and §4.11's log-file paths.
 - `CHANGELOG.md` — user-facing entry under a dated topic subsection.
 - `.github/workflows/release.yml` — three new jobs.
 - `docs/standards/coding-standards.md` §8 version-break registry — only
@@ -757,3 +897,4 @@ same gap as INV-13 one level down.
 | Loop | Date | Lanes | CRIT | HIGH | MED | LOW | Outcome |
 |------|------|-------|------|------|-----|-----|---------|
 | 1 | 2026-08-04 | 3 × general-purpose | 3 | 5 | 12 | 16 | 36 verified / 0 unverified. **35 fixed, 1 dismissed** (no TOC — the governing `spec-skeleton.md` mandates none). Dimension tally: dim 2×8, dim 5×8, dim 4×5, dim 10×4, dim 7×3, dim 13×2, dim 6×2, dim 15×2, dim 9×1, dim 1×1, dim 11×1. All three CRITICALs were the same defect class — the first-run recovery journey asserted against code that does not support it: `restart_required` fires only on `server:` changes (`api/routes/config.py`), `_validate_paths` **rejects** every PATCH while the starter `source_dat` is absent (so the user can never save the fix), and the `--config` default change was written as one edit when three registrations carry it. §4.2 gained the two `api/` changes that make the journey real; §3 decision 6 is now scoped to `sub_serve`. Also fixed: §4.2/§8 contradicted each other on whether the frontend changes (it does — `SetupCheck` is mirrored in TS and gated by `check_api_types_sync.py`); INV-13's recipe could not pass as written (`env -i` strips the `HOME` `platformdirs` needs, and the AppImage never returns to the `&&`); `platformdirs` needs `appauthor=False` or Windows double-nests. **Collateral caught by 4c, not by a lane:** the four letter-suffixed ids this loop added (`INV-1b`…`INV-6c`) parsed as 10 invariants instead of 14 — silently absorbed into the preceding body — so all 14 were renumbered sequentially. Doc grew 493 → 758 lines. |
+| 2 | 2026-08-04 | 3 × general-purpose | 3 | 4 | 9 | 11 | **27 verified / 1 dismissed (no TOC — the skeleton mandates none). All 27 fixed. Stopped here, not at the cap: origin split was 7 draft defects vs 16 fix collateral** — a decisive margin on the first split, which `/cold-eyes` Phase 5 answers by sweeping harder rather than dispatching a loop 3 that would generate the next batch. Dimension tally: dim 5×7, dim 2×6, dim 10×6, dim 7×4, dim 4×2, dim 15×1, dim 13×1, dim 6×1, dim 1×1, dim 11×1. Draft defects (the ones a third loop would have been for): the `publish` job takes `needs: build` and one `download-artifact` named `dist`, so three new *build* jobs would have satisfied §12 while their outputs were discarded — §4.10 now specifies the wiring; `resolve_config_path -> Path` discarded which layer won, so a conforming implementation could satisfy the signature and break INV-4 by manufacturing a config for a mistyped `--config` (now returns `tuple[Path, ConfigSource]`, the same provenance-loss trap `cli/spec.md` fixed for `_resolve_port`); `scripts/dev.sh` passes `--config` and so resolves through layer 1, not layer 2 as claimed. Collateral from loop 1's own fixes: `SetupCheck` attributed to `routes/stubs.py` when it is declared in `schemas_setup.py` (all three lanes); the `restart_required` condition tested path *inequality*, which fails on the likeliest recovery of all — the user dropping their DAT at exactly the path the starter config already names; `_validate_paths` was given a `setup_required` rule without the parameter it would need to see it. **Caught by the 4b sweep rather than a lane:** INV-15, added this loop to close a "promise with no gate" finding, itself shipped with no §11 row — the same defect one level down. Doc grew 758 → 890 lines. |
