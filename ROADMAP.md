@@ -492,6 +492,21 @@ wave lands.
   `build_world` setup-mode degrade, `_validate_paths` / `restart_required`
   in `api/routes/config.py`, `setup_required` on `SetupCheck` + its TS
   mirror, the frozen stderr tee in `main()`), then steps 8-15 (packaging).
+  Progress (2026-08-04): plan step 3 done. New
+  `src/mame_curator/_resources.py` — `bundle_root()` returns
+  `sys._MEIPASS` when `sys.frozen` is set, else the repo root
+  (`parents[2]`); `frontend_dist()` builds on it. `api/app.py`'s
+  module-level `_FRONTEND_DIST` is gone; `create_app` calls
+  `frontend_dist()` at construction, so a frozen bundle finds the SPA
+  under the extraction root (INV-11). TDD — `tests/test_resources.py`
+  (+2, red on `ModuleNotFoundError` first). `tests/api/test_static_mount.py`
+  now monkeypatches the *function* rather than a module constant, which
+  is itself the guard against the path being captured at import again.
+  `docs/specs/P06.md`'s app.py excerpt corrected reciprocally (it still
+  showed the `parents[3]` constant). DS05 test-count pin 752 → 754.
+  Full backend gate green: ruff, ruff format, mypy (213 files), bandit,
+  960 tests, 88.97% coverage. Next: step 4 — `build_world` degrades to
+  `setup_required` on an unreadable DAT.
 
 ### 🧪 Test Audit 2026-05-20
 

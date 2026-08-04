@@ -18,6 +18,7 @@ from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 from starlette.types import Scope
 
+from mame_curator._resources import frontend_dist
 from mame_curator.api.errors import install_handlers
 from mame_curator.api.jobs import JobManager
 from mame_curator.api.routes import router as api_router
@@ -25,9 +26,6 @@ from mame_curator.api.state import build_world
 from mame_curator.media import SourceDisabledFlag, TokenBucket, _build_user_agent
 
 logger = logging.getLogger(__name__)
-
-# `src/mame_curator/api/app.py` → parents[3] = repo root.
-_FRONTEND_DIST = Path(__file__).resolve().parents[3] / "frontend" / "dist"
 
 
 class _SPAStaticFiles(StaticFiles):
@@ -193,10 +191,15 @@ def create_app(config_path: Path) -> FastAPI:
     # /media/* routes keep precedence; the catch-all only fires on a
     # non-API request. `html=True` makes /<anything> fall back to
     # index.html so react-router's client-side routes resolve.
-    if _FRONTEND_DIST.is_dir():
+    #
+    # Resolved here rather than at import: inside a frozen bundle the path
+    # depends on `sys._MEIPASS`, which a module-level constant would miss
+    # (mame-curator-1095 INV-11).
+    dist = frontend_dist()
+    if dist.is_dir():
         app.mount(
             "/",
-            _SPAStaticFiles(directory=_FRONTEND_DIST, html=True),
+            _SPAStaticFiles(directory=dist, html=True),
             name="frontend",
         )
     return app

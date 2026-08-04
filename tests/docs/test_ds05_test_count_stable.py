@@ -192,7 +192,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # (creates-and-starts, explicit-typo-still-exits-1, $PORT-before-any-
 # config-I/O).
 # 742 → 752.
-EXPECTED_PYTEST_DECLARATIONS = 752
+# Bumped 2026-08-04 (mame-curator-1095 step 3 — frozen-bundle resource
+# paths): +2 declarations, both tests/test_resources.py — `bundle_root()`
+# under a monkeypatched `sys._MEIPASS`, and its source-tree branch.
+# 752 → 754.
+EXPECTED_PYTEST_DECLARATIONS = 754
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

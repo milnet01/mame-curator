@@ -24,7 +24,7 @@ land before its implementation, per the project's TDD default.
    `uv run pytest tests/cli/` green, including the untouched
    `test_invalid_port_checked_before_config` (satisfies INV-2, INV-3).
 
-3. `src/mame_curator/_resources.py` — `bundle_root()`, `frontend_dist()`;
+3. **[done]** `src/mame_curator/_resources.py` — `bundle_root()`, `frontend_dist()`;
    `api/app.py`'s module-level `_FRONTEND_DIST` becomes a call inside
    `create_app`. → **verify:**
    `uv run pytest tests/test_resources.py` passes with `sys.frozen` and

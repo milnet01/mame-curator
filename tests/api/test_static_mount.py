@@ -30,17 +30,22 @@ def _rebuilt_client(
     monkeypatch: pytest.MonkeyPatch,
     config_file: Path,
 ) -> TestClient:
-    """Point the module-level ``_FRONTEND_DIST`` at ``dist``, rebuild the app
+    """Point ``app.py``'s ``frontend_dist()`` at ``dist``, rebuild the app
     via ``create_app``, and wrap it in a ``TestClient``.
 
     All four mount tests repeated this monkeypatch-and-rebuild dance
     (mame-curator-1054a). The rebuilt app stays reachable via ``client.app``
     for the mount-name assertions.
+
+    Patching the *function* rather than a module constant is also what
+    pins mame-curator-1095 INV-11's "resolved at construction, not at
+    import": were the path captured at import time again, every test
+    below would serve the real ``frontend/dist`` and fail.
     """
     from mame_curator.api import app as app_module
     from mame_curator.api import create_app
 
-    monkeypatch.setattr(app_module, "_FRONTEND_DIST", dist)
+    monkeypatch.setattr(app_module, "frontend_dist", lambda: dist)
     return TestClient(create_app(config_file))
 
 
@@ -62,8 +67,8 @@ def test_static_mount_registered_and_serves_index(
 ) -> None:
     """With a stub frontend/dist/, the mount serves index.html on GET /.
 
-    Builds a minimal stub (one ``index.html``), points the module-level
-    ``_FRONTEND_DIST`` at it, rebuilds the app, and asserts the mount
+    Builds a minimal stub (one ``index.html``), points ``frontend_dist()``
+    at it, rebuilds the app, and asserts the mount
     serves the stub body. Also asserts the existing /api/health endpoint
     still wins precedence over the catch-all mount.
     """
