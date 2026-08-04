@@ -33,9 +33,16 @@ from mame_curator.api.state import WorldState, build_world, replace_world
 
 
 def _config_with_dat(config_file: Path, dat: Path) -> Path:
-    """Rewrite ``config_file``'s ``source_dat:`` to point at ``dat``."""
+    """Rewrite ``config_file``'s ``source_dat:`` to point at ``dat``.
+
+    The replacement is a **callable**, not an f-string: ``re.sub`` expands
+    backslash escapes in a string replacement, so a Windows path
+    (``D:\\a\\...``) would be mangled — ``\\a`` becomes a bell character and
+    an unknown ``\\<letter>`` raises. Invisible on Linux, red on the
+    windows-latest runner.
+    """
     text = config_file.read_text(encoding="utf-8")
-    patched, count = re.subn(r"(?m)^  source_dat: .*$", f"  source_dat: {dat}", text)
+    patched, count = re.subn(r"(?m)^  source_dat: .*$", lambda _m: f"  source_dat: {dat}", text)
     assert count == 1, "config fixture no longer has exactly one source_dat line"
     config_file.write_text(patched, encoding="utf-8")
     return config_file
