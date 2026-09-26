@@ -34,7 +34,7 @@ class BIOSChainEntry(BaseModel):
 
 **Every machine gets an entry**, so a name absent from the chain is absent from the listxml. An earlier version recorded only machines with a `romof` or a `<biosset>`, which made a plain winner such as `sf2` look missing (mame-curator-1109).
 
-**Membership in the chain is not a BIOS signal.** A game needs a BIOS exactly when `resolve_bios_dependencies([short], bios_chain)` returns a non-empty set. `api/routes/games.py` binds to this: `Badge.BIOS_MISSING` and the `only_bios_missing` filter both use that predicate on the game's own short name. They previously tested membership, which the every-machine rule makes true for every game.
+**Membership in the chain is not a BIOS signal.** A game needs a BIOS exactly when `resolve_bios_dependencies([short], bios_chain)` returns a non-empty set. `api/routes/games.py` binds to this: `Badge.BIOS_MISSING` is set exactly when that predicate holds for the game's own short name, and `only_bios_missing=True` keeps exactly the games carrying that badge. Both previously tested membership, which the every-machine rule makes true for every game.
 
 Same `lxml.iterparse` + fast-iter + `# nosec B410` pattern as `parse_listxml_disks` and `parse_listxml_cloneof`.
 
