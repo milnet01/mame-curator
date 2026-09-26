@@ -46,12 +46,13 @@ uv run mame-curator filter --help
 uv run mame-curator copy --help
 ```
 
-**Trap — a CLI smoke run silently breaks the next `pytest`.** `uv run
-<project-command>` (`mame-curator parse`, `serve`, …) re-syncs the
-environment **without** `--extra dev`, which strips `pytest-cov`; the next
-`uv run pytest` then dies on unrecognised `--cov` args from
-`pyproject.toml`'s addopts. It reads as a broken test config, not as an
-environment change. Recover with:
+**Trap — a plain `uv sync` strips the dev tools.** It is an exact sync, so
+it uninstalls everything outside the runtime set: `mypy`, `ruff`, `pytest`,
+`pytest-cov`. The next `uv run mypy` then finds a copy outside the project
+that cannot see `fastapi`, and `uv run pytest` dies on the `--cov` args in
+`pyproject.toml`'s addopts. It reads as broken code, not as an environment
+change. `uv run` itself does not strip, and `run.sh` / `run.bat` sync with
+`--inexact` so launching the app is safe. Recover with:
 
 ```bash
 uv sync --extra dev

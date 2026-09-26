@@ -44,10 +44,10 @@
 #                            # exactly as CI's cold-start "Install dependencies"
 #                            # steps do, then run the checks
 #
-# Note: a bare `uv run <project-command>` (e.g. `uv run mame-curator serve`)
-# re-syncs WITHOUT `--extra dev` and silently removes pytest-cov et al, after
-# which the `pytest` step below fails on unrecognised --cov arguments. Recover
-# with `uv sync --extra dev`, or just use `--fresh`.
+# Note: a plain `uv sync` (no `--extra dev`, no `--inexact`) uninstalls mypy,
+# ruff, pytest-cov et al, after which the checks below fail as if the code were
+# broken. `uv run` does not do this. Recover with `uv sync --extra dev`, or
+# just use `--fresh`.
 #
 # Exit code: 0 iff every check passed; 1 otherwise. Unlike CI (which fail-fasts
 # each job on the first failing step), this script runs ALL checks and prints a

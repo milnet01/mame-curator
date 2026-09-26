@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Fixed — Launching the app no longer uninstalls developer tools
+
+`run.sh` and `run.bat` now sync with `uv sync --inexact`. A plain sync uninstalled mypy, ruff and the test tools from a developer's environment, which made the next check run fail as if the code were broken.
+
 ### 2026-09-26 Changed — App icon
 
 The browser tab now shows MAME Curator's own icon — a pixel-art arcade cabinet with a tick on its screen — instead of Vite's default logo.

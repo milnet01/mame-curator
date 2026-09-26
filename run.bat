@@ -48,7 +48,9 @@ if errorlevel 1 (
 REM ---- 3. uv sync -------------------------------------------------------
 
 echo Syncing Python deps via uv...
-uv sync --quiet
+REM --inexact: install what the app needs, but never uninstall anything
+REM else. A plain sync strips a developer's `--extra dev` tools.
+uv sync --inexact --quiet
 
 REM ---- 4. config.yaml - interactive setup if missing --------------------
 

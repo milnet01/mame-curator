@@ -66,7 +66,9 @@ fi
 # ---- 3. uv sync ------------------------------------------------------
 
 echo "Syncing Python deps via uv..."
-uv sync --quiet
+# --inexact: install what the app needs, but never uninstall anything
+# else. A plain sync strips a developer's `--extra dev` tools.
+uv sync --inexact --quiet
 
 # ---- 4. config.yaml — interactive setup if missing -------------------
 
