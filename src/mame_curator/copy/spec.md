@@ -34,6 +34,8 @@ class BIOSChainEntry(BaseModel):
 
 **Every machine gets an entry**, so a name absent from the chain is absent from the listxml. An earlier version recorded only machines with a `romof` or a `<biosset>`, which made a plain winner such as `sf2` look missing (mame-curator-1109).
 
+**Membership in the chain is not a BIOS signal.** A game needs a BIOS exactly when `resolve_bios_dependencies([short], bios_chain)` returns a non-empty set. `api/routes/games.py` binds to this: `Badge.BIOS_MISSING` and the `only_bios_missing` filter both use that predicate on the game's own short name. They previously tested membership, which the every-machine rule makes true for every game.
+
 Same `lxml.iterparse` + fast-iter + `# nosec B410` pattern as `parse_listxml_disks` and `parse_listxml_cloneof`.
 
 ## BIOS chain resolution
@@ -51,7 +53,7 @@ Algorithm:
 1. Initialize `to_visit = deque(winners)`, `bios: set[str] = set()`, `seen: set[str] = set()`.
 2. While `to_visit`:
    1. Pop `name`. If `name in seen`: continue. Add to `seen`.
-   2. Look up `entry = bios_chain.get(name)`. If absent: emit `BIOSResolutionWarning(name=name, kind="missing_from_listxml")` and continue (a name not in listxml is a configuration mismatch, not fatal — we still copy the winner zip; design decision: warn loudly, do not crash). An absent name is never added to `bios`: it cannot be confirmed as a BIOS.
+   2. Look up `entry = bios_chain.get(name)`. If absent and `name` is a winner: emit `BIOSResolutionWarning(name=name, kind="missing_from_listxml")` (a winner not in listxml is a configuration mismatch, not fatal — we still copy the winner zip; design decision: warn loudly, do not crash). A name reached through `romof` emits no warning. Either way, continue without adding `name` to `bios`: it cannot be confirmed as a BIOS. So `test_resolve_silently_handles_transitive_missing_intermediary` keeps its no-warning assertion and its `"missingY" in bios` assertion inverts.
    3. If `entry.is_bios` and `name not in winners`: add `name` to `bios`.
    4. If `entry.romof`: push `entry.romof` to `to_visit`.
 3. Return `frozenset(bios)`, sorted-tuple of warnings (canonical order: by name).
