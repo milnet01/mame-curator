@@ -837,6 +837,21 @@ wave lands.
   lesson is the one this bullet already carried: the user's one-line
   observation (a port number) outperformed two rounds of reading.
 
+- 📋 [mame-curator-1106] **Move dev tools from the `dev` extra to a `[dependency-groups]` dev group.**
+  A plain `uv sync` is an exact sync that excludes extras, so it strips
+  mypy, ruff, pytest and pytest-cov. The next `uv run` then fails in ways
+  that read as broken code. uv installs the `dev` dependency group by
+  default, so moving the tools there removes the trap.
+  Scope: pyproject.toml, uv.lock, ci.yml, local-CI.sh, CLAUDE.md's setup
+  command and trap note. Launchers keep `--inexact` and add `--no-dev` so
+  end users do not download dev tools.
+  Decided by the user 2026-09-26: keep the launcher fix and also move the
+  dev deps.
+  **Layman:** A common setup command quietly deletes the developer tools; this makes that command keep them.
+  Kind: chore.
+  Source: user-request-2026-09-26.
+  Lanes: packaging, ci.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
