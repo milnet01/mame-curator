@@ -259,7 +259,13 @@ EXPECTED_PYTEST_DECLARATIONS = 760
 # — 5 in MediaSourceRow.test.tsx (toggle reflects in_chain / onToggle fires up +
 # down / libretro locked) and 4 in MediaTab.sources.test.tsx (unconfigured render,
 # add, remove, libretro-locked). 327 → 336.
-EXPECTED_VITEST_DECLARATIONS = 336
+# Bumped 2026-09-26 (mame-curator-1100/1102 — pending-query empty states):
+# +2 vitest declarations in the new
+# frontend/src/pages/__tests__/LibraryPage_loading_state.test.tsx (the grid's
+# empty-state copy must not render while /api/games is pending; the drawer's
+# "0 versions" copy must not render while a game's alternatives query is
+# pending). 336 → 338.
+EXPECTED_VITEST_DECLARATIONS = 338
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
