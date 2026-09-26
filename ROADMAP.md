@@ -1793,7 +1793,7 @@ documenting test-audit-specific false positives.
 
 **Retained as roadmap follow-ups:**
 
-- 📋 [mame-curator-1040] **Test-audit FP01 — fixture-scope optimisation for `api/conftest.py::client`.**
+- 🚫 [mame-curator-1040] **Test-audit FP01 — fixture-scope optimisation for `api/conftest.py::client`.**
   Verified 2026-05-18: actually **117 api
   tests** (not 37 as the chunk reported) consume `client`/`app` across
   19 files, totalling 169 api tests in 15.43 s locally. Microbench shows
@@ -1815,6 +1815,11 @@ documenting test-audit-specific false positives.
   2026-05-18) as the foundation.
   Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
   chunk-3 (HIGH); verification 2026-05-18 fold-in.
+  Dropped (2026-09-26, owner's call): not worth the risk. Measured
+  today, the full backend suite runs in 17.6 s and tests/api in 9.5 s.
+  At the ~48 ms per app setup measured above, sharing setup across only
+  the read-only tests saves a few seconds at best, against a real risk
+  of cross-test pollution. Reopen if the suite gets slow.
   Source: test-audit-2026-05-18 chunk-3 (HIGH); verification 2026-05-18 fold-in.
   Lanes: backend tests.
 
@@ -2108,7 +2113,7 @@ under a docs-review skill.
   Source: cold-eyes-2026-05-18 lane spec/P14.
   Resolved 2026-06-30: created src/mame_curator/filter/review_state_spec.md — the per-feature co-located contract (model/loader/enums, the three /api/state routes, the ?review_state= per-request filter, the passive-swap fact, 13 invariants) extracted from docs/specs/P14.md and verified clause-by-clause against shipped code. De-staled P14's two promotion notes and added a filter/spec.md back-pointer. User elected the separate-file option over merging into filter/spec.md. Ran /cold-eyes to a clean pass (3 loops): fixed a world-lock over-claim (GET is lock-free), an unshipped-snapshot-caption claim (→ roadmapped 1078), a GET-can't-404 nit, and a coupled copy/spec.md ReviewStateDetails type bug (str, not ReviewStateValue).
 
-- 📋 [mame-curator-1062] **Re-introduce a Radix-Esc regression lock for FP27 A6a.**
+- ✅ [mame-curator-1062] **Re-introduce a Radix-Esc regression lock for FP27 A6a.**
   `frontend/src/components/__tests__/EscOverlayBehavior.test.tsx`
   was deleted by DS04 ("-2 from EscOverlayBehavior deletion") but
   FP27 § A6a / R1d depend on it as the lock that ambient Esc handling
@@ -2119,6 +2124,12 @@ under a docs-review skill.
   Layman: A safety-net test that ensures pressing Esc closes overlays
   was deleted; restore it so a future library upgrade can't quietly
   break this.
+  Resolved (2026-09-26): restored
+  frontend/src/components/__tests__/EscOverlayBehavior.test.tsx from
+  before DS04 T3.9, pointing at docs/design.md's Esc promise, plus a
+  third case for the drawer (a Radix Dialog-based Sheet), which the
+  promise also names. Proven able to fail: blocking Esc on the Sheet
+  reds that case. Vitest pin 341 -> 344.
   Kind: test.
   Source: cold-eyes-2026-05-18 lane spec/FP27.
   Lanes: frontend, tests.

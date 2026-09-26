@@ -310,7 +310,10 @@ EXPECTED_PYTEST_DECLARATIONS = 777
 # Bumped 2026-09-26 (mame-curator-1110 — BIOS warning text): +1 vitest
 # declaration in frontend/src/hooks/__tests__/useCopySession.test.tsx
 # (bios_warning names the machine and the reason). 340 → 341.
-EXPECTED_VITEST_DECLARATIONS = 341
+# Bumped 2026-09-26 (mame-curator-1062 — Esc regression lock restored): +3
+# vitest declarations in frontend/src/components/__tests__/
+# EscOverlayBehavior.test.tsx (AlertDialog, Dialog, drawer Sheet). 341 → 344.
+EXPECTED_VITEST_DECLARATIONS = 344
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
