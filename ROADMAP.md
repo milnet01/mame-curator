@@ -128,6 +128,12 @@ wave lands.
   server started with an absolute --config from frontend/ wrote
   frontend/data/activity.jsonl. recycle_root and the MobyGames secrets dir
   default to relative data/ paths too; check them in the same pass.
+  Input (2026-09-26, from the RetroDB session): RetroDB anchors every data, DB
+  and log path on one BASE_DIR (the module dir from source, the executable dir
+  when frozen), never cwd, with an env override for tests. For us the natural
+  anchor is world.data_dir (config_path.parent / "data"), which the Activity
+  route already uses; the runner should receive it rather than default to a
+  relative path. Pairs with 1095's read-only vs writable root split.
   **Layman:** If the app is started from a different folder, copies are logged in the wrong place and never show up on the Activity page.
   Kind: fix.
   Source: in-session-2026-09-26.
@@ -701,6 +707,16 @@ wave lands.
   watch → set release notes from the changelog → leave the release a
   DRAFT for a human to publish. No project of the three ships a `.dmg`, so
   macOS remains without local precedent.
+  Input (2026-09-26, from the RetroDB session; RetroDB ships PyInstaller onedir
+  bundles): (a) modules imported by string are invisible to PyInstaller;
+  RetroDB tests its registry against the .spec hidden-imports list. (b) keep
+  two named roots: sys._MEIPASS for read-only bundled assets, the executable's
+  dir for writable data; joining user data onto the bundle root broke only in
+  frozen builds. (c) bundled launchers must exec the frozen binary, not
+  `python app.py`. (d) no cross-compile; per-OS CI matrix on manual dispatch.
+  (e) the frozen binary opens the browser itself, since only the server knows
+  the resolved port. Not yet checked against our plan in
+  docs/plans/mame-curator-1095-desktop-bundles.md.
 
 - ✅ [mame-curator-1096] **Stop the test suite opening real browser tabs.**
   Reported by the user 2026-08-04: "every now and then you open a new
