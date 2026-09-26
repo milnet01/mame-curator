@@ -242,7 +242,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-09-26 (mame-curator-1111 — late status subscriber): +1
 # pytest declaration in tests/api/test_mame_curator_1111_status_after_finish.py.
 # 773 → 774.
-EXPECTED_PYTEST_DECLARATIONS = 774
+# Bumped 2026-09-26 (mame-curator-1089 — run.bat PORT forwarding): +3
+# pytest declarations in tests/tools/test_run_bat_port.py (Windows-only;
+# skipped elsewhere but counted by declaration). 774 → 777.
+EXPECTED_PYTEST_DECLARATIONS = 777
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

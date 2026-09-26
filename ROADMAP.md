@@ -400,7 +400,7 @@ wave lands.
   (POSIX-only shell test); fixed with a win32 skip plus a local guard
   test for the class, and local-CI.sh now runs as a pre-push hook.
 
-- 📋 [mame-curator-1089] **`run.bat` bypasses the `$PORT` validation contract on Windows.**
+- ✅ [mame-curator-1089] **`run.bat` bypasses the `$PORT` validation contract on Windows.**
   `run.bat:69` defaults `$PORT` to 8080 like `run.sh`, but forwards it as
   `--port %PORT%`. Per the contract an explicit `--port` skips validation,
   so `PORT=abc` reaches argparse (`invalid int value`, exit 2 — which
@@ -434,6 +434,17 @@ wave lands.
      named error and exit 1; unset PORT binds 8765 from server.port;
      PORT=8766 binds 8766. Stop the server after each; SSH has no desktop,
      and the config opens no browser.
+  Resolved (2026-09-26): run.bat no longer defaults PORT or forwards
+  --port; `serve` validates %PORT% and falls back to server.port. The
+  Windows host found two more defects that stopped run.bat on every
+  machine: a `^` inside the quoted python -c version check (always "too
+  old") and a `)` in an echo inside the uv `if (...)` block ("... was
+  unexpected at this time"). Both fixed; every uv line now uses `call`.
+  Verified on wintest: PORT=abc and PORT=80 exit 1 with the named error;
+  unset binds 8765 from server.port; PORT=8766 binds 8766. New
+  tests/tools/test_run_bat_port.py runs the real run.bat against a stub
+  uv.cmd on CI's windows-latest leg; red on each defect alone, green on
+  the fix. cli/spec.md § Entry points updated to match.
   **Layman:** On Windows, a bad PORT setting still produces a confusing error instead of the clear one Linux and macOS now give.
   Kind: fix.
   Source: cold-eyes-2026-08-03 (mame-curator-1088 review).

@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Fixed — The Windows launcher starts again and reads PORT like Linux does (mame-curator-1089)
+
+`run.bat` stopped before starting the app on every Windows machine: its
+Python check always said "too old", and a stray bracket made Windows
+reject the script. Both are fixed. A bad PORT now gets the same clear
+error as on Linux and macOS, and an unset one uses the port in
+config.yaml.
+
 ### 2026-09-26 Fixed — A very fast copy no longer leaves the progress window stuck (mame-curator-1111)
 
 If a copy finished before the window connected, the window never heard
