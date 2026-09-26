@@ -101,6 +101,17 @@ wave lands.
   ROM copies on disk, not /tmp. Deliver to /tmp/aph-handoff/mame-curator/
   and message the ants-projects-hub-website session with the file list,
   one alt-text sentence per still, and a timestamped video walkthrough.
+  Recording recipe (2026-09-26, from the demoreel session): demoreel
+  already writes H.264 with faststart; it makes no poster.
+    demoreel record -s 1280x720 -r 30 -d 0 -n mametour --settle 15 \
+      -o ~/Videos/mame-tour.mp4 -- <Playwright tour command>
+    ffmpeg -v error -ss 3 -i ~/Videos/mame-tour.mp4 -frames:v 1 -q:v 2 \
+      ~/Videos/mame-tour-poster.jpg
+  Set Playwright `viewport: null` and launch Chromium with
+  `--window-size=1280,720`. Leave `--gpu` and `--cursor` off. On a blank
+  video, pass `--ozone-platform=x11` to Chromium. Pick the poster frame
+  past any white loading page. Write outputs to disk, not /tmp. The
+  website session is now ants-projects-hub-website-87.
   **Layman:** Clicking a featured tile briefly says there are no games before the games appear.
   Kind: ux.
   Source: in-session-2026-09-26.
