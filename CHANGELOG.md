@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Changed — App icon
+
+The browser tab now shows MAME Curator's own icon — a pixel-art arcade cabinet with a tick on its screen — instead of Vite's default logo.
+
 ### mame-curator-1090 — the server settings in your config now do something (2026-08-04)
 
 **Added**
