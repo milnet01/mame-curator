@@ -1084,6 +1084,14 @@ wave lands.
   repo-local `core.hooksPath` (pre-commit's pre-push runs local-CI.sh)
   and the missing commit-msg hook (Conventional Commits, not
   `<ID>: <description>`).
+  Progress (2026-09-26): spec-format.md is NOT an owned standard.
+  CLAUDE.md § Authoritative docs calls it "upstream v1 verbatim +
+  overrides O1-O4", and align-report shares 33 of 35 headings. That is
+  a pre-change fork per global CLAUDE.md rule 14a: extract O1-O4 into
+  docs/standards/spec-format-overrides.md, delete the fork, and repoint
+  CLAUDE.md and the skeletons beside it. Check first for a MIRROR BEGIN
+  marker; rule 14a says the sanctioned mirror is not dismantled. The
+  other five files still need OWNED-HERE or an override rename.
   **Layman:** Some of the project's rule documents share names with the machine-wide ones without saying which one is in charge here.
   Kind: doc.
   Source: peer-claude-2a-2026-09-26 (align-report).
