@@ -61,7 +61,8 @@ The enum is **open-membership**: `<driver status="...">` values not in this set 
 Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 
 - `romof: str | None` — name of the immediate parent ROM (the `romof=` attribute on `<machine>`), or `None` for machines with no parent ROM dependency.
-- `biossets: tuple[str, ...]` — the `<biosset name="...">` children that this machine offers, in source order.
+- `biossets: tuple[str, ...]` — the `<biosset name="...">` children that this machine offers, in source order. These are BIOS option names inside this machine's own romset, not short names of other machines.
+- `is_bios: bool` — `True` when the listxml `<machine>` carries `isbios="yes"`; `False` otherwise, including when the attribute is absent.
 
 ## Public functions
 
@@ -115,8 +116,8 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 
 ### `parse_listxml_bios_chain(path: Path) -> dict[str, BIOSChainEntry]`
 
-- Returns `{machine_short_name: BIOSChainEntry}` joining the listxml's `romof` chain with the per-machine `<biosset>` children. Consumed by `copy/bios.py` (BIOS-dependency resolution), `copy/types.py` (`bios_chain` field of `CopyPlan`), `api/state.py` (WorldState assembly), and `cli/__init__.py` (the `copy` subcommand path).
-- The accompanying `BIOSChainEntry` Pydantic model carries `romof: str | None` + `biossets: tuple[str, ...]` — the per-machine view of the chain.
+- Returns `{machine_short_name: BIOSChainEntry}` with one entry for **every** `<machine>` that carries a `name`, joining the listxml's `romof` chain with the per-machine `<biosset>` children and `isbios` flag. A name absent from the result is absent from the listxml. Consumed by `copy/bios.py` (BIOS-dependency resolution), `copy/types.py` (`bios_chain` field of `CopyPlan`), `api/state.py` (WorldState assembly), and `cli/__init__.py` (the `copy` subcommand path).
+- The accompanying `BIOSChainEntry` Pydantic model carries `romof: str | None` + `biossets: tuple[str, ...]` + `is_bios: bool` — the per-machine view of the chain.
 - Streaming + hardening contract identical to the other `parse_listxml_*` functions above.
 
 ### `split_manufacturer(raw: str | None) -> tuple[str | None, str | None]`

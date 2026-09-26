@@ -4,7 +4,7 @@
 
 Given a Phase-2 `FilterResult` (winner short names), a source ROM directory, and a destination directory, this module:
 
-1. Resolves the **transitive BIOS chain** for every winner via the official MAME `-listxml`'s `romof` and `<biosset>` references.
+1. Resolves the **transitive BIOS chain** for every winner by walking the official MAME `-listxml`'s `romof` references, keeping only machines the listxml flags `isbios="yes"`.
 2. **Pre-flights** the plan (source-side existence, destination writability, free-space estimate, existing-playlist detection).
 3. **Atomically copies** every winner's `.zip` plus the deduplicated BIOS-set `.zip`s from source to destination. Already-copied files (size + mtime match) are skipped (idempotency).
 4. Writes a **RetroArch v6+ JSON `mame.lpl` playlist** with one entry per winner.
@@ -20,14 +20,19 @@ This module depends on `parser/` (DAT + listxml) and `filter/` (FilterResult). I
 
 The Pleasuredome ROM-set DAT strips both `romof` and `cloneof` (verified empirically — see `parser/spec.md` "Edge cases handled"). Phase 3 sources BIOS-chain relationships from the **official MAME `-listxml`**, the same artefact P02 already consumes for `cloneof_map` and `chd_required` (ADR-0002, ADR-0003).
 
-A new helper `parse_listxml_bios_chain(path) -> dict[str, BIOSChainEntry]` in `parser/listxml.py` returns, per machine:
+A new helper `parse_listxml_bios_chain(path) -> dict[str, BIOSChainEntry]` in `parser/listxml.py` returns an entry for **every** `<machine>` in the listxml:
 
 ```python
 class BIOSChainEntry(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     romof: str | None = None                      # parent ROM-of relation (often == cloneof but not always)
-    biossets: tuple[str, ...] = ()                # <biosset name="..."> children
+    biossets: tuple[str, ...] = ()                # <biosset name="..."> children — BIOS option names, NOT romsets
+    is_bios: bool = False                         # <machine isbios="yes">
 ```
+
+**`biossets` names options inside one BIOS romset** (`euro`, `japan`, `unibios10` inside `neogeo.zip`), not files. Resolution never treats them as short names. The field stays for display and diagnostics only.
+
+**Every machine gets an entry**, so a name absent from the chain is absent from the listxml. An earlier version recorded only machines with a `romof` or a `<biosset>`, which made a plain winner such as `sf2` look missing (mame-curator-1109).
 
 Same `lxml.iterparse` + fast-iter + `# nosec B410` pattern as `parse_listxml_disks` and `parse_listxml_cloneof`.
 
@@ -46,10 +51,14 @@ Algorithm:
 1. Initialize `to_visit = deque(winners)`, `bios: set[str] = set()`, `seen: set[str] = set()`.
 2. While `to_visit`:
    1. Pop `name`. If `name in seen`: continue. Add to `seen`.
-   2. Look up `entry = bios_chain.get(name)`. If absent: emit `BIOSResolutionWarning(name=name, kind="missing_from_listxml")` and continue (a winner not in listxml is a configuration mismatch, not fatal — we still copy the winner zip; design decision: warn loudly, do not crash).
-   3. For each `b in entry.biossets`: add `b` to `bios` and push to `to_visit`.
-   4. If `entry.romof and entry.romof != name`: add `entry.romof` to `bios` and push to `to_visit`.
+   2. Look up `entry = bios_chain.get(name)`. If absent: emit `BIOSResolutionWarning(name=name, kind="missing_from_listxml")` and continue (a name not in listxml is a configuration mismatch, not fatal — we still copy the winner zip; design decision: warn loudly, do not crash). An absent name is never added to `bios`: it cannot be confirmed as a BIOS.
+   3. If `entry.is_bios` and `name not in winners`: add `name` to `bios`.
+   4. If `entry.romof`: push `entry.romof` to `to_visit`.
 3. Return `frozenset(bios)`, sorted-tuple of warnings (canonical order: by name).
+
+**Only BIOS machines are copied as dependencies.** The walk follows `romof` through parents that are not BIOS, so a clone of a Neo Geo game still reaches `neogeo`. A parent that is not a BIOS is not copied: in a non-merged set each clone's zip already holds its parent's ROMs. Example: `pacman` (romof `puckman`) resolves to no BIOS; `mslug` (romof `neogeo`, `isbios="yes"`) resolves to `{neogeo}`. Decided by the user 2026-09-26 (mame-curator-1109).
+
+**Out of scope: device ROMs** (`<device_ref>`, `isdevice="yes"`). They are not walked, and a set that stores them as separate zips will not have them copied.
 
 **Cycle safety** is provided by the `seen` set checked at pop time. Self-references (`romof = self.name`, which appears in some MAME entries for slot-machine bios markers) are caught on the second pop without further enqueue — no separate `entry.romof != name` guard is needed; the same `seen` check handles every cycle shape uniformly.
 
