@@ -5,6 +5,10 @@
 - [Top-level flags](#top-level-flags)
 - [Exit codes](#exit-codes)
 - [`serve` host, port and browser resolution](#serve-host-port-and-browser-resolution)
+  - [Port](#port)
+  - [Host](#host)
+  - [Browser](#browser)
+  - [Entry points](#entry-points)
 - [Output routing (per coding standards §9)](#output-routing-per-coding-standards-9)
 - [Error messages](#error-messages)
 - [Logging configuration](#logging-configuration)
@@ -19,7 +23,7 @@ A thin argparse-based command dispatcher that wires user-facing subcommands to t
 
 ## Subcommand inventory
 
-The set of subcommands grows phase-by-phase. Each subcommand's behavioral contract lives in **its host module's `spec.md`**, not here — this spec covers wiring discipline only. **Two deliberate exceptions, for two different reasons.** `setup` has no host module at all — it wraps the `AppConfig` schema directly, and its **scope** is stated below (the full flag/exit-code contract is not yet written; see the deferred list in mame-curator-1090's review notes). `serve` does have a host module, but `api/spec.md` owns everything from the socket inwards and explicitly disclaims the entrypoint, so the launch wiring lives here in § "`serve` host, port and browser resolution".
+The set of subcommands grows phase-by-phase. Each subcommand's behavioral contract lives in **its host module's `spec.md`**, not here — this spec covers wiring discipline only. **Two deliberate exceptions, for two different reasons.** `setup` has no host module at all — it wraps the `AppConfig` schema directly, and its scope, flags and exit codes are stated below. `serve` does have a host module, but `api/spec.md` owns everything from the socket inwards and explicitly disclaims the entrypoint, so the launch wiring lives here in § "`serve` host, port and browser resolution".
 
 | Phase | Subcommand | Status | Host module spec |
 |---|---|---|---|
@@ -41,6 +45,28 @@ sections so they fall back to `AppConfig` defaults. Anything richer
 in-app Settings page or by hand-editing — `setup`'s job is "get me to a
 running app", not "configure every knob". The full P08 wizard (browser
 flow, FS picker, INI auto-detection) replaces `setup` when it lands.
+
+| `setup` flag | Effect |
+|---|---|
+| `--out <path>` | Where to write the config. Default `./config.yaml`. |
+| `--force` | Overwrite an existing `--out` file. |
+| `--source-roms <dir>` | Skip that prompt. |
+| `--source-dat <file>` | Skip that prompt. |
+| `--dest-roms <dir>` | Skip that prompt. |
+| `--retroarch-playlist <file>` | Skip that prompt. |
+
+A path given by flag is used as given. A typed path has `~` expanded,
+and an empty answer re-prompts. With all four path flags supplied,
+`setup` never prompts.
+
+| `setup` exit | When |
+|---|---|
+| `0` | The config was written. |
+| `1` | `--out` exists without `--force`; `source_roms` is not a directory; `source_dat` is not a file; or the write failed. Each prints one `error:` line on stderr. |
+| `2` | argparse usage error. |
+
+A closed stdin at a prompt currently escapes as a traceback (exit 1).
+That violates § "Errors the CLI catches"; tracked as mame-curator-1112.
 
 The CLI MUST refuse to run with no subcommand (argparse `required=True` on the subparsers group). Adding a subcommand is a change to `build_parser()` alone — register the subparser and attach its handler with `set_defaults(func=...)`; `run()` is never edited. See § "Dispatch pattern" for the mandatory form. Handlers live one-per-module in `cli/commands/<name>.py` (dashes in the subcommand name become underscores in the module name: `refresh-inis` → `cli/commands/refresh_inis.py`) and are re-exported from `cli/__init__.py` as `_cmd_<name>` so tests can import them from their historical location.
 
@@ -77,15 +103,16 @@ FP28 D1 measured the behaviour.
 `130` on every non-error path, records that its own `0` was superseded by
 FP28 D1, and has ticked the matching acceptance checkbox. **This spec
 remains canonical for `serve`'s exit code** — P04 owns the HTTP contract,
-not the process's exit status.
+not the process's exit status. **It is canonical for `serve`'s flag
+surface too**; `P04.md` § "Contract" says so and defers here.
 
 `_cmd_serve`'s exit-`1` paths, in the order they are checked:
 
-1. `$PORT` set and invalid (see § "`serve` host, port and browser resolution").
+1. `--port` absent and `$PORT` set and invalid (see § Port).
 2. `--config` names a file that does not exist.
 3. The API extras are not installed (`ImportError` on `uvicorn` / `mame_curator.api`).
 4. `config.yaml` is unreadable, is not a YAML mapping, or its
-   `server:` section fails validation (`ConfigError`). Because `load_app_config`
+   `server:` block fails validation (`ConfigError`). Because `load_app_config`
    is deliberately not used here, `cli/` opens and parses the file itself,
    which means it **raises** this error rather than merely catching one.
    The reader is `cli/commands/serve.py:_load_server_config(path: Path) ->
@@ -117,12 +144,22 @@ differences are deliberate:
 
 | Setting | Resolution |
 |---|---|
-| **Port** | `--port` → `$PORT` → `server.port` → `8080`; first present wins. Layers 3 and 4 are one read, not two — `ServerConfig.port` always carries a value once the block parses, so `8080` is reached as *that field's own default*, never as a separate lookup. |
+| **Port** | `--port` → `$PORT` → `server.port` → `8080`; first present wins. Rules 3 and 4 are one read — see § Port rule 4. |
 | **Host** | `--host` → `server.host` → `127.0.0.1`. **No environment layer** — see § Host. |
 | **Browser** | Not a chain at all: a config default with a one-way suppress flag. `--no-open-browser` can only turn the open *off*, never on. See § Browser. |
 
-The `config.yaml` layer is the `server:` section, typed by
+The `config.yaml` layer is the `server:` block, typed by
 `api.schemas.ServerConfig` (`host`, `port`, `open_browser_on_start`).
+
+**Edge cases of the block, as `_load_server_config` reads them:**
+
+- No `server:` key, or a `server:` value that is empty or null, reads as
+  absent: every `ServerConfig` field takes its default. The read is
+  `raw.get("server") or {}`, so any falsy value (`false`, `0`, `[]`,
+  `""`) also counts as absent.
+- A non-empty `server:` value that is not a mapping (`server: 5`,
+  `server: [a]`) fails `ServerConfig` validation: exit 1.
+- An empty file parses to null, which is not a mapping: exit 1.
 
 **Only the `server:` block is read here, not the whole `AppConfig`**:
 full config validation belongs to the API lifespan, and `serve` must still
@@ -158,7 +195,7 @@ two-staged, and the stages straddle the exit-`1` ordering above:
 and its current meaning — flag → `$PORT` → `DEFAULT_PORT`. The config
 value is **not** threaded into it as a second parameter.
 
-`_cmd_serve` therefore **cannot infer layer (3) from `_resolve_port`'s
+`_cmd_serve` therefore **cannot infer rule (3) from `_resolve_port`'s
 return value**: that function returns `8080` identically for "nothing was
 set" and for an explicit `--port 8080` or `PORT=8080`, so a
 `if port == DEFAULT_PORT: port = server.port` implementation would let
@@ -188,13 +225,13 @@ port = server.port if use_config_port else port_from_flag_or_env
 `_resolve_port` is called **once**. Note that `port_from_flag_or_env` is
 discarded when `use_config_port` is true — that is intentional, and it is what
 lets the invalid-`$PORT` error fire before the config-existence check while
-still allowing layer (3) to win when nothing was set.
+still allowing rule (3) to win when nothing was set.
 
 Two existing tests in `tests/cli/test_serve_port_env.py` call
 `_resolve_port(None)` and expect `8080` (the `$PORT`-unset and `PORT=""`
 cases); they must keep passing unchanged, as must every other
-`_resolve_port` caller in that module. An implementer who widens
-`_resolve_port`'s signature reds all of them, which is the signal that
+`_resolve_port` caller in that module. An implementer who adds a required
+parameter to `_resolve_port` reds all of them (a defaulted one reds none), which is the signal that
 this clause was skipped rather than a licence to update them.
 
 **Test surface for the config layer** (`tests/cli/test_serve_config_layer.py`):
@@ -226,7 +263,7 @@ sections are invalid still starts (only `server:` is parsed here).
 3. **`server.port`** — read when neither of the above is set. Constrained only by `ServerConfig`'s `int` type, on the same "taken at their word" grounds as (1): a hand-edited config naming port 80 is as deliberate as a typed flag. Because it is unconstrained, it can reach the bind out of range — see exit-`1` path 6.
 4. **`8080`** — `ServerConfig.port`'s own default, reached when `config.yaml` has no `server:` block **or has one that omits `port`** (every `ServerConfig` field carries its own default, so a partial block is valid). `serve.DEFAULT_PORT` mirrors it as the fallback for `_resolve_port`'s unit-level callers. **A test MUST pin `serve.DEFAULT_PORT == ServerConfig.model_fields["port"].default` so the two cannot drift** — `tests/cli/test_serve_config_layer.py::test_default_port_tracks_server_config_default`.
 
-A `$PORT` that is non-empty and does not satisfy (2) MUST exit **1** with `error: PORT='<value>' is not a valid port — expected an integer in 1024-65535.` on stderr, where `<value>` is the environment value **verbatim** per § "Error messages" — rich markup in it (`[abc]`) MUST be escaped, not interpreted. It MUST NOT fall back to 8080 or to `server.port`, and MUST NOT be allowed to reach argparse (whose `invalid int value:` message omits the range) or the bind call (whose `permission denied` names neither). The check runs **before** the config-existence check, so a bad `$PORT` reports as itself rather than as a missing config.
+A `$PORT` that is non-empty and does not satisfy (2) MUST exit **1** with `error: PORT='<value>' is not a valid port — expected an integer in 1024-65535.` on stderr, where `<value>` is the environment value **verbatim, modulo `repr` quoting** per § "Error messages" — rich markup in it (`[abc]`) MUST be escaped, not interpreted. It MUST NOT fall back to 8080 or to `server.port`, and MUST NOT be allowed to reach argparse (whose `invalid int value:` message omits the range) or the bind call (whose `permission denied` names neither). The check runs **before** the config-existence check, so a bad `$PORT` reports as itself rather than as a missing config.
 
 A port that passes resolution but lies outside the OS socket range (`--port 99999`, `--port -1`, or a `server.port` of either) raises `OverflowError` from `socket.bind`, which is **not** an `OSError` subclass. `_cmd_serve` MUST catch it alongside `OSError` and report exit 1 (both catches live in its `_run_server` helper); letting it escape is the traceback § "Errors the CLI catches" forbids.
 
@@ -256,12 +293,15 @@ The poll is **best-effort and MUST NOT be able to fail the server**: it returns 
 |---|---|
 | Poll exhausted `_BROWSER_POLL_TIMEOUT_S` | `browser open gave up: <url> not accepting after <n>s` |
 | Resolved port is `0` | `browser open skipped: port 0 (bound port not knowable before listen)` |
-| `open_browser_on_start` false, or `--no-open-browser` | `browser open skipped: disabled by <config|flag>` |
+| `--no-open-browser` passed | `browser open skipped: disabled by flag` |
+| `open_browser_on_start` false | `browser open skipped: disabled by config` |
 | `webbrowser.open` raised | `browser open failed: <exc>` |
+
+**When more than one skip applies, one line is logged**, checked in this order: the flag, then the config, then port `0`.
 
 **The browser open is skipped entirely when the resolved port is `0`.** `--port 0` means "any free port", so the port uvicorn actually binds is not knowable to the resolver — the address the poller would be given is unconnectable by construction, and it would burn the full 300 s budget before giving up.
 
-When the bind host is a wildcard the browser URL uses `127.0.0.1` instead — a wildcard is an address to listen on, not one every platform can connect to. Wildcards are the empty string, `0.0.0.0`, and every unspecified IPv6 form (`::`, `[::]`, `::0`).
+When the bind host is a wildcard, **both the poll target and the opened URL** use `127.0.0.1` instead — a wildcard is an address to listen on, not one every platform can connect to. Polling the wildcard itself would never connect on some platforms and would burn the whole budget. Wildcards are the empty string, `0.0.0.0`, and every unspecified IPv6 form (`::`, `[::]`, `::0`).
 
 **A bare `ipaddress.ip_address(host).is_unspecified` is NOT a conforming test** — it raises `ValueError` on the empty string, which is itself one of the wildcard forms, and on any hostname (`--host localhost`, `--host myhost.local`), for which the spec's answer is "not a wildcard". The predicate is:
 
@@ -275,7 +315,7 @@ def _is_wildcard(host: str) -> bool:
         return False                   # use it as given
 ```
 
-**Test surface** (`tests/cli/test_serve_browser.py`): the open is skipped when `open_browser_on_start` is false; skipped when `--no-open-browser` is passed with config true; skipped when the resolved port is `0`; fires once the poll target starts accepting; gives up after `_BROWSER_POLL_TIMEOUT_S` (monkeypatched small); each of the four outcomes above emits its own distinct line; `_is_wildcard` returns true for `""`, `0.0.0.0`, `::`, `[::]`, `::0` and false for `127.0.0.1`, `192.168.1.5` and `localhost`; and a `webbrowser.open` that raises does not change the exit code.
+**Test surface** (`tests/cli/test_serve_browser.py`): the open is skipped when `open_browser_on_start` is false; skipped when `--no-open-browser` is passed with config true; skipped when the resolved port is `0`; fires once the poll target starts accepting; gives up after `_BROWSER_POLL_TIMEOUT_S` (monkeypatched small); each of the five outcomes above emits its own distinct line; `_is_wildcard` returns true for `""`, `0.0.0.0`, `::`, `[::]`, `::0` and false for `127.0.0.1`, `192.168.1.5` and `localhost`; and a `webbrowser.open` that raises does not change the exit code.
 
 **Every test-built `serve` Namespace carries `no_open_browser`**, because `_cmd_serve` reads it unconditionally and a missing attribute raises `AttributeError`. `_serve_args` in `tests/cli/test_serve_port_env.py` defaults it to argparse's own `False`; `tests/cli/test_fp28_serve_signal.py` sets it explicitly. Production code MUST NOT paper the gap over with `getattr(args, …, False)`, which would hide a genuinely missing argparse registration.
 
@@ -286,7 +326,7 @@ def _is_wildcard(host: str) -> bool:
 **Three changes made this work, and omitting the third would have broken the default bootstrap:**
 
 1. Drop the `:-8080` default, so an unset `$PORT` stays empty.
-2. **Guard the `$PORT` validation block on `[ -n "${PORT}" ]`.** The check is `if ! [[ "${PORT}" =~ ^[0-9]{1,5}$ ]] || …`, and it never saw an empty string while `PORT=${PORT:-8080}` ran first — but **once change (1) dropped that default, an empty `$PORT` would reach the regex and fail it** (verified in bash: the block then exits 1 with `error: PORT='' is not a valid port`). Left unguarded, change (1) alone makes *every* no-`$PORT` launch abort. An empty `$PORT` skips validation entirely, exactly as it falls through to layer (3) on the Python side.
+2. **Guard the `$PORT` validation block on `[ -n "${PORT}" ]`.** The check is `if ! [[ "${PORT}" =~ ^[0-9]{1,5}$ ]] || …`, and it never saw an empty string while `PORT=${PORT:-8080}` ran first — but **once change (1) dropped that default, an empty `$PORT` would reach the regex and fail it** (verified in bash: the block then exits 1 with `error: PORT='' is not a valid port`). Left unguarded, change (1) alone makes *every* no-`$PORT` launch abort. An empty `$PORT` skips validation entirely, exactly as it falls through to rule (3) on the Python side.
 3. Make the `--port` flag conditional on the same non-empty test.
 
 `tests/tools/test_run_sh_port.py` asserts `"run mame-curator serve"` **with a zero exit code** for both absent and empty `$PORT` (one parametrised case). The exit code is asserted alongside the argv — a `--port`-less serve line and an aborted script are otherwise indistinguishable in the `serve_argv` helper, which returns `None` for both.

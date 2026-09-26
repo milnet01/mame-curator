@@ -563,7 +563,7 @@ wave lands.
   Source: user-decision-2026-08-03 (doc-layout audit).
   Lanes: docs.
 
-- 📋 [mame-curator-1094] **Fold in the 13 deferred cold-eyes findings on `cli/spec.md`.**
+- ✅ [mame-curator-1094] **Fold in the 13 deferred cold-eyes findings on `cli/spec.md`.**
   The /cold-eyes gate on `src/mame_curator/cli/spec.md` converged by cap at
   3 loops (65 verified findings; 52 fixed across commits c66cafc, 96440d4,
   9a510ff). These 13 are verified and unfixed. **Do NOT re-review to
@@ -628,6 +628,16 @@ wave lands.
   Not past the design point, but if a fourth loop is ever wanted, split it
   (the serve resolution section is now ~55% of the file) rather than
   looping a doc this size again.
+  Resolved (2026-09-26): folded in directly, no new review loop. Fixed:
+  1 (poll target and URL both use 127.0.0.1 for a wildcard), 2 (server:
+  edge cases, recorded as the code behaves and verified by running
+  _load_server_config: any falsy value reads as absent, a non-empty
+  non-mapping or an empty file exits 1), 3, 4 (setup flag and exit-code
+  tables, owner-approved; found mame-curator-1112), 5, 7, 8, 9, 10, 11
+  (section->block, layer (3)->rule (3)), 12, 13, the two test docstrings,
+  and CLAUDE.md's P10 marker. Already fixed before this pass: 6 (the
+  "all four tests" claim is gone) and the reciprocal P04.md edit (P04
+  § Contract and § CLI integration defer to cli/spec.md).
   **Layman:** A doc review found 13 smaller wording and completeness gaps in the CLI contract; they are written up and just need folding in.
   Kind: doc-fix.
   Source: cold-eyes-2026-08-04 (cli/spec.md rule-14 gate, loop 3 deferred tail).
@@ -1047,6 +1057,20 @@ wave lands.
   Kind: fix.
   Source: in-session-2026-09-26.
   Lanes: api.
+
+- 📋 [mame-curator-1112] **`mame-curator setup` prints a traceback when stdin closes mid-prompt.**
+  `_prompt_path` calls `rich.prompt.Prompt.ask`, which raises `EOFError` on
+  a closed stdin; nothing catches it, so `setup </dev/null` without all
+  four path flags dumps a traceback (exit 1). Verified 2026-09-26.
+  cli/spec.md § "Errors the CLI catches" forbids tracebacks. Fix: catch
+  `EOFError` in `_cmd_setup` and print a one-line error naming the
+  missing flags, exit 1; decide whether Ctrl-C (`KeyboardInterrupt`)
+  maps to 130 like `copy`. Found while writing setup's flag and exit-code
+  table for mame-curator-1094.
+  **Layman:** Running the setup step with no keyboard attached crashes with a wall of Python text instead of a clear message.
+  Kind: fix.
+  Source: in-session-2026-09-26 (mame-curator-1094 fold-in).
+  Lanes: cli.
 
 ### 🧪 Test Audit 2026-05-20
 

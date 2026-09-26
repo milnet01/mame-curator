@@ -15,7 +15,7 @@ The shell half of the same contract lives in
 `tests/tools/test_run_sh_port.py`; the wording of the error is asserted in
 both so the two entry points can't drift apart.
 
-See `src/mame_curator/cli/spec.md` § "`serve` port resolution".
+See `src/mame_curator/cli/spec.md` § "`serve` host, port and browser resolution".
 """
 
 from __future__ import annotations

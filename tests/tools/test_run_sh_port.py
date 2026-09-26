@@ -18,7 +18,7 @@ argv instead of syncing or serving, so the assertion is on the exact
 command line `run.sh` builds — the layer that would otherwise quietly drop
 the value. `tests/cli/test_serve_port_env.py` pins the Python half.
 
-See `src/mame_curator/cli/spec.md` § "`serve` port resolution".
+See `src/mame_curator/cli/spec.md` § "`serve` host, port and browser resolution".
 """
 
 from __future__ import annotations
