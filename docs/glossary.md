@@ -25,7 +25,7 @@ docs, and commits.
 
 | Term | Definition |
 |------|------------|
-| **BIOS set** | A non-runnable `.zip` whose ROM content is required by other machines that reference it via `<biosset>` or `romof`. Example: `neogeo.zip` is the BIOS for every Neo-Geo title. Phase 3's copy step resolves these dependencies transitively. |
+| **BIOS set** | A non-runnable `.zip` whose ROM content is required by other machines that reference it, directly or through a parent, via `romof`; MAME flags it `isbios="yes"`. (`<biosset>` names options inside a BIOS zip, not other zips.) Example: `neogeo.zip` is the BIOS for every Neo-Geo title. Phase 3's copy step resolves these dependencies transitively. |
 | **CHD** | Compressed Hunks of Data — MAME's format for bulky disk-based assets (laserdiscs, hard drives, CDs). Phase 1 detects which machines need a CHD by inspecting `<disk>` entries in the `-listxml`. |
 | **catver.ini** | Community-maintained INI mapping each short-name to a category string (e.g. `Shooter / Vertical`). Sourced from progettoSnaps. |
 | **cloneof** | The MAME relationship from a clone short-name to its parent short-name. Pleasuredome DATs strip this attribute, so Phase 2 reconstructs it from the official `-listxml` instead. |

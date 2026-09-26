@@ -199,7 +199,7 @@ The browser fetches images directly via `<img src>` — no Python proxy needed f
 
 Given an approved set of winner short names:
 
-1. **Resolve dependencies.** For each winner, walk `romof` and `<biosset>` chains. The transitive closure is the BIOS set required.
+1. **Resolve dependencies.** For each winner, walk the `romof` chain. The machines on it that MAME flags `isbios="yes"` are the BIOS set required; a non-BIOS parent is not copied, since a non-merged clone zip already holds its ROMs. `<biosset>` names are BIOS options inside one zip, not files.
 2. **Preflight.** Confirm each `.zip` (game + BIOS) exists in the source dir. Confirm destination is writable and has enough free space.
 3. **Detect existing playlist.** If `mame.lpl` already exists at the destination, prompt the user with three options (see "Playlist conflict resolution" below).
 4. **Copy.** Stream each `.zip` from source to destination. Use `shutil.copy2` to preserve mtime. BIOS files are deduped (copied once even if 100 games need `neogeo.zip`).

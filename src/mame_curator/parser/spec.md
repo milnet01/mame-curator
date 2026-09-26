@@ -116,7 +116,7 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 
 ### `parse_listxml_bios_chain(path: Path) -> dict[str, BIOSChainEntry]`
 
-- Returns `{machine_short_name: BIOSChainEntry}` with one entry for **every** `<machine>` that carries a `name`, joining the listxml's `romof` chain with the per-machine `<biosset>` children and `isbios` flag. A name absent from the result is absent from the listxml. Consumed by `copy/bios.py` (BIOS-dependency resolution), `copy/types.py` (`bios_chain` field of `CopyPlan`), `api/state.py` (WorldState assembly), and `cli/__init__.py` (the `copy` subcommand path).
+- Returns `{machine_short_name: BIOSChainEntry}` with one entry for **every** `<machine>` that carries a `name`, joining the listxml's `romof` chain with the per-machine `<biosset>` children and `isbios` flag. A name absent from the result is absent from the listxml. Consumed by `copy/bios.py` (BIOS-dependency resolution), `copy/types.py` (`bios_chain` field of `CopyPlan`), `api/state.py` (WorldState assembly), `api/routes/games.py` (the `BIOS_MISSING` badge and filter, through `resolve_bios_dependencies` — membership alone is not a BIOS signal), and `cli/__init__.py` (the `copy` subcommand path).
 - The accompanying `BIOSChainEntry` Pydantic model carries `romof: str | None` + `biossets: tuple[str, ...]` + `is_bios: bool` — the per-machine view of the chain.
 - Streaming + hardening contract identical to the other `parse_listxml_*` functions above.
 
