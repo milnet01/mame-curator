@@ -95,6 +95,12 @@ wave lands.
   tile showed the empty-state message for about a second before 121 games
   rendered. Same family as mame-curator-1100 (drawer '0 versions' while
   loading): the empty state should not render while the query is pending.
+  Follow-up owed (2026-09-26): the published site tour video
+  (antsprojectshub.co.za) shows this flash. Once 1102 and 1103 are fixed,
+  re-shoot with the kit in /tmp/mame-curator-demo-kit/ (README.txt). Put
+  ROM copies on disk, not /tmp. Deliver to /tmp/aph-handoff/mame-curator/
+  and message the ants-projects-hub-website session with the file list,
+  one alt-text sentence per still, and a timestamped video walkthrough.
   **Layman:** Clicking a featured tile briefly says there are no games before the games appear.
   Kind: ux.
   Source: in-session-2026-09-26.
@@ -105,6 +111,8 @@ wave lands.
   real library: the Copy in progress window showed '0 / 0 —' and State:
   Copying until it closed. Cause not traced; could be the SSE progress
   events or how CopyModal reads totals.
+  Follow-up owed (2026-09-26): the site tour video ends on this '0 / 0'
+  counter. See 1102's note for the media refresh owed once both are fixed.
   **Layman:** While copying games, the progress window shows 0 out of 0 instead of how many are done.
   Kind: investigate.
   Source: in-session-2026-09-26.
