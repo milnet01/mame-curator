@@ -156,6 +156,53 @@ def test_copy_progress_callback_emits_per_file(
     assert len(file_events) == 4
 
 
+def test_copy_missing_source_still_invokes_on_progress(
+    tmp_path: Path, dest_dir: Path, bios_chain: dict[str, BIOSChainEntry]
+) -> None:
+    """mame-curator-1103 B2 — a SKIPPED_MISSING_SOURCE winner must still
+    drive on_progress exactly once, done == total, so a progress consumer
+    (the SSE ``_ProgressSynthesizer`` / frontend counter) can count it as
+    processed.
+
+    Investigation note (verbatim): "The runner skips a missing source with
+    no progress event, so a skipped file never counts as done." User
+    decision: "count a skipped file as processed, so the counter reaches
+    its total and the finish screen lists what was skipped."
+
+    Pre-fix: the ``if not src.exists(): ... continue`` branch never calls
+    ``on_progress`` for the skipped short name, so ``ghost`` produces zero
+    calls here.
+    """
+    src = tmp_path / "source"
+    src.mkdir()
+    # Only kof94 exists in source; ghost does not.
+    (src / "kof94.zip").write_bytes(b"x" * 100)
+    plan = _plan(
+        winners=("kof94", "ghost"),
+        machines={"kof94": _machine("kof94"), "ghost": _machine("ghost")},
+        bios_chain=bios_chain,
+        source_dir=src,
+        dest_dir=dest_dir,
+    )
+    calls: list[tuple[str, int, int]] = []
+
+    def on_progress(short: str, done: int, total: int) -> None:
+        calls.append((short, done, total))
+
+    run_copy(plan, on_progress=on_progress)
+
+    ghost_calls = [c for c in calls if c[0] == "ghost"]
+    assert len(ghost_calls) == 1, (
+        f"expected exactly one on_progress call for the skipped 'ghost' "
+        f"short name, got {len(ghost_calls)}: {ghost_calls}"
+    )
+    _, done, total = ghost_calls[0]
+    assert done == total, (
+        f"skipped file's progress call must report done == total so it "
+        f"counts as processed; got done={done}, total={total}"
+    )
+
+
 # --- Playlist conflict ----------------------------------------------------
 
 

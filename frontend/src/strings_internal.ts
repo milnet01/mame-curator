@@ -614,6 +614,8 @@ export const strings = {
         : 'Cancel the copy? Already-copied files will be kept.',
     abortKeepFiles: 'Keep files',
     abortRecycleFiles: 'Move to recycle bin',
+    /** mame-curator-1103 — shown until the server reports the job's total. */
+    preparing: 'Preparing copy…',
     progressLine: (done: number, total: number, currentFile: string) =>
       `${done.toLocaleString()} / ${total.toLocaleString()} — ${currentFile}`,
     conflictTitle: 'Existing playlist detected',

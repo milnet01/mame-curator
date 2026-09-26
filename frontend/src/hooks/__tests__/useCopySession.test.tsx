@@ -178,6 +178,61 @@ describe('useCopySession', () => {
     })
   })
 
+  // mame-curator-1103 F1: file_finished must count toward filesDone by
+  // READING payload.files_done, not by incrementing a local per-event
+  // counter. Investigation: "useCopySession never counts done files.
+  // file_progress carries no files_done, and the hook ignores
+  // file_finished." Pre-fix, `case 'file_finished':` falls through to
+  // `default: return prev` — the event is silently dropped and filesDone
+  // never advances on it.
+  //
+  // The second file_finished jumps files_done straight from 1 to 3 (not
+  // to 2) on purpose: an SSE reconnect replays history, and a fix that
+  // increments a local counter once per received file_finished event
+  // (instead of adopting the payload's own running count) would
+  // double-count on replay and diverge from the server's true total.
+  // Asserting filesDone === 3 after a payload of files_done: 3 catches
+  // that route; asserting === 2 after two events would not.
+  it('file_finished event with files_done sets state.filesDone (mame-curator-1103 F1)', async () => {
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    })
+    act(() => {
+      result.current.start({
+        selected_names: ['pacman'],
+        conflict_strategy: 'CANCEL',
+        append_decisions: {},
+      })
+    })
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(1))
+    const es = MockEventSource.instances[0]
+    act(() => {
+      es.emit({
+        event: 'job_started',
+        payload: { files_total: 3, bytes_total: 1024 },
+        ts: new Date().toISOString(),
+      })
+      es.emit({
+        event: 'file_finished',
+        payload: { short_name: 'pacman', files_done: 1, bytes: 1024 },
+        ts: new Date().toISOString(),
+      })
+    })
+    await waitFor(() => {
+      expect(result.current.state?.filesDone).toBe(1)
+    })
+    act(() => {
+      es.emit({
+        event: 'file_finished',
+        payload: { short_name: 'galaga', files_done: 3, bytes: 1024 },
+        ts: new Date().toISOString(),
+      })
+    })
+    await waitFor(() => {
+      expect(result.current.state?.filesDone).toBe(3)
+    })
+  })
+
   it('job_finished closes the SSE source and flips state to finished', async () => {
     const { result } = renderHook(() => useCopySession(), {
       wrapper: renderWithClient(),

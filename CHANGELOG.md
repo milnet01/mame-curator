@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Fixed — Copy progress now counts up (mame-curator-1103)
+
+The copy window's counter used to stay at zero for the whole copy.
+
+- **The done count rises as each file finishes** (mame-curator-1103)
+  Skipped and failed files count too, so the counter reaches its total.
+
+- **The window reads "Preparing copy…" until the job's size is known** (mame-curator-1103)
+  It used to show "0 / 0" first.
+
 ### 2026-09-26 Fixed — Loading no longer reads as "nothing here" (mame-curator-1100, mame-curator-1102)
 
 The library and the versions panel now say they are loading while

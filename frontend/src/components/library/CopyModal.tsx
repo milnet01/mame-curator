@@ -60,7 +60,11 @@ export function CopyModal({
 
           <Progress value={pct} aria-label={strings.copy.progressAriaLabel} />
           <p className="font-mono text-sm" data-testid="progress-line">
-            {strings.copy.progressLine(state.filesDone, state.filesTotal, state.currentFile)}
+            {/* mame-curator-1103: no total until job_started arrives, so
+                "0 / 0" would read as an empty job. */}
+            {state.state === 'running' && state.filesTotal === 0
+              ? strings.copy.preparing
+              : strings.copy.progressLine(state.filesDone, state.filesTotal, state.currentFile)}
           </p>
 
           <p className="text-xs text-muted-foreground">

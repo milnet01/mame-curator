@@ -263,6 +263,11 @@ def run_copy(
                     dst=dst,
                 )
             )
+            # mame-curator-1103: a skipped or failed file reports one
+            # done == total tick so a progress consumer counts it as
+            # processed and the counter can reach files_total.
+            if on_progress is not None:
+                on_progress(short, 0, 0)
             continue
 
         # APPEND + cross-version conflict handling.
@@ -287,6 +292,8 @@ def run_copy(
                         dst=dst,
                     )
                 )
+                if on_progress is not None:
+                    on_progress(short, 0, 0)
                 continue
             # REPLACE / REPLACE_AND_RECYCLE: caller specifies which existing
             # entry is replaced via `replaces`. Without it, no record is
@@ -361,6 +368,8 @@ def run_copy(
                     error=str(exc),
                 )
             )
+            if on_progress is not None:
+                on_progress(short, 0, 0)
             continue
 
         if outcome.status is CopyOutcomeStatus.SUCCEEDED:

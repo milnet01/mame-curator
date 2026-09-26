@@ -210,7 +210,18 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # categories): +1 declaration in tests/parser/test_ini.py —
 # test_parse_catver_ignores_veradded_section.
 # 759 → 760.
-EXPECTED_PYTEST_DECLARATIONS = 760
+# Bumped 2026-09-26 (mame-curator-1103 — copy progress counter regression
+# tests, B1+B2, defects still live): +2 declarations:
+#   • +1 tests/api/test_mame_curator_1103_files_done.py —
+#     test_file_finished_payload_carries_running_files_done_count
+#     (_ProgressSynthesizer's file_finished payload must carry a running
+#     files_done count).
+#   • +1 tests/copy/test_runner.py —
+#     test_copy_missing_source_still_invokes_on_progress (a
+#     SKIPPED_MISSING_SOURCE winner must still drive on_progress once,
+#     done == total).
+# 760 → 762.
+EXPECTED_PYTEST_DECLARATIONS = 762
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -265,7 +276,14 @@ EXPECTED_PYTEST_DECLARATIONS = 760
 # empty-state copy must not render while /api/games is pending; the drawer's
 # "0 versions" copy must not render while a game's alternatives query is
 # pending). 336 → 338.
-EXPECTED_VITEST_DECLARATIONS = 338
+# Bumped 2026-09-26 (mame-curator-1103 — copy progress counter regression
+# tests, F1+F2, defects still live): +2 declarations:
+#   • +1 useCopySession.test.tsx — file_finished event with files_done sets
+#     state.filesDone (the hook currently drops file_finished entirely).
+#   • +1 CopyModal.test.tsx — "0 / 0" must not render while running with
+#     no job_started yet.
+# 338 → 340.
+EXPECTED_VITEST_DECLARATIONS = 340
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

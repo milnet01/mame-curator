@@ -95,6 +95,9 @@ class _ProgressSynthesizer:
         self._sink = sink
         self._controller = controller
         self._seen: set[str] = set()
+        # mame-curator-1103: job-wide count carried on each file_finished,
+        # so a client (or a reconnect replay) reads the count, not a tally.
+        self._files_done = 0
         self._was_paused = False
 
     def __call__(self, short: str, bytes_done: int, bytes_total: int) -> None:
@@ -120,10 +123,15 @@ class _ProgressSynthesizer:
             )
         )
         if bytes_done == bytes_total:
+            self._files_done += 1
             self._dispatch(
                 JobEvent(
                     event="file_finished",
-                    payload={"short_name": short, "bytes": bytes_total},
+                    payload={
+                        "short_name": short,
+                        "bytes": bytes_total,
+                        "files_done": self._files_done,
+                    },
                     ts=ts,
                 )
             )

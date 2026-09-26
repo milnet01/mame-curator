@@ -51,6 +51,28 @@ describe('CopyModal', () => {
     expect(screen.getByText(/pacman\.zip/)).toBeInTheDocument()
   })
 
+  // mame-curator-1103 F2: "0 / 0" reads as the job having zero files, not
+  // as "no job_started yet". Investigation: "'0 / 0' ... is the modal's
+  // initial state before job_started arrives." While running with
+  // filesTotal still 0 (no job_started received), the "0 / 0" progress
+  // line must not render.
+  it('does not render "0 / 0" while running with no job_started yet (mame-curator-1103 F2)', () => {
+    render(
+      <CopyModal
+        open
+        onOpenChange={() => {}}
+        state={{ ...baseState, filesDone: 0, filesTotal: 0, currentFile: '' }}
+        onPause={() => {}}
+        onResume={() => {}}
+        onAbort={() => {}}
+      />,
+    )
+    expect(
+      screen.queryByText(/0 \/ 0/),
+      '"0 / 0" progress line rendered before job_started populated filesTotal',
+    ).not.toBeInTheDocument()
+  })
+
   it('shows pause when running and resume when paused', async () => {
     const user = userEvent.setup()
     const onPause = vi.fn()

@@ -183,8 +183,13 @@ def test_replace_keep_existing_skips_winner(
         conflict_strategy=ConflictStrategy.APPEND,
         append_decisions={"sf2ce": AppendDecision(kind=AppendDecisionKind.KEEP_EXISTING)},
     )
-    report = run_copy(plan)
+    calls: list[tuple[str, int, int]] = []
+    report = run_copy(plan, on_progress=lambda s, d, t: calls.append((s, d, t)))
     assert report.status is CopyReportStatus.OK
+    # mame-curator-1103: the skip still reports once, done == total, so the
+    # progress counter counts it as processed.
+    sf2ce_calls = [c for c in calls if c[0] == "sf2ce"]
+    assert len(sf2ce_calls) == 1 and sf2ce_calls[0][1] == sf2ce_calls[0][2], sf2ce_calls
     # New winner skipped, not copied.
     assert not (dest_dir / "sf2ce.zip").exists()
     # No overwritten / recycled records.
@@ -223,10 +228,14 @@ def test_runner_records_failed_outcome_when_copy_one_raises(
     def boom(*args: object, **kwargs: object) -> None:
         raise CopyExecutionError("simulated failure", path=Path(str(args[0])))
 
+    calls: list[tuple[str, int, int]] = []
     with patch("mame_curator.copy.runner.copy_one", side_effect=boom):
-        report = run_copy(plan)
+        report = run_copy(plan, on_progress=lambda s, d, t: calls.append((s, d, t)))
 
     assert report.status is CopyReportStatus.PARTIAL_FAILURE
+    # mame-curator-1103: a failed file still reports once, done == total.
+    kof94_calls = [c for c in calls if c[0] == "kof94"]
+    assert len(kof94_calls) == 1 and kof94_calls[0][1] == kof94_calls[0][2], kof94_calls
     assert len(report.failed) >= 1
     assert all(o.status is CopyOutcomeStatus.FAILED for o in report.failed)
     assert any("simulated failure" in (o.error or "") for o in report.failed)

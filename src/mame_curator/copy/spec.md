@@ -10,7 +10,7 @@ Given a Phase-2 `FilterResult` (winner short names), a source ROM directory, and
 4. Writes a **RetroArch v6+ JSON `mame.lpl` playlist** with one entry per winner.
 5. Resolves **playlist conflicts** (append vs overwrite vs cancel; per-game version replace; project-internal recycle-bin retention).
 6. Emits a **frozen `CopyReport`** Pydantic model and **appends one or more `ActivityEvent` lines** to `data/activity.jsonl`. (In-memory only; persistence to disk is Phase 4 scope.)
-7. Streams progress via callback at file boundaries; supports **pause / resume / cancel** between files.
+7. Streams progress via callback at file boundaries; supports **pause / resume / cancel** between files. Every planned file ends with one tick where `bytes_done == bytes_total` — a skipped or failed file reports `(short, 0, 0)` — so a consumer counting those ticks reaches the plan's total (mame-curator-1103).
 
 The CLI surface is `mame-curator copy --dry-run` (preview, no writes) and `mame-curator copy --apply` (execute).
 

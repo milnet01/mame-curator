@@ -134,6 +134,12 @@ export function useCopySession() {
               closeStream()
               return { ...prev, state: 'aborted' }
             case 'file_finished':
+              // mame-curator-1103: the server's job-wide count, not a local
+              // tally, so a reconnect replay cannot double-count.
+              return {
+                ...prev,
+                filesDone: (msg.payload.files_done as number | undefined) ?? prev.filesDone,
+              }
             default:
               return prev
           }

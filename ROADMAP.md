@@ -126,7 +126,7 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: frontend.
 
-- 📋 [mame-curator-1103] **Copy progress counter never counts finished or skipped files, and reads '0 / 0 —' before the job starts.**
+- ✅ [mame-curator-1103] **Copy progress counter never counts finished or skipped files, and reads '0 / 0 —' before the job starts.**
   Observed 2026-09-26 copying 4 cart games (6 zips, one 43 MB) against the
   real library: the Copy in progress window showed '0 / 0 —' and State:
   Copying until it closed. Cause not traced; could be the SSE progress
@@ -156,6 +156,14 @@ wave lands.
   the bare "BIOS warning" text is mame-curator-1110. This item keeps the
   counter. The user chose to count a skipped file as processed, so the
   counter reaches its total and the finish screen lists what was skipped.
+  Resolved (2026-09-26): each file_finished event carries the job-wide
+  `files_done`, and useCopySession reads it (so a reconnect replay cannot
+  double-count). The runner ticks `(short, 0, 0)` for missing-source,
+  keep-existing and failed files, so they count as processed. CopyModal
+  shows "Preparing copy…" until job_started brings the total. Locked by
+  four regression tests plus two assertions in test_fp01_fixes.py; a
+  mutation probe kills every mutant that restores a part of the fix.
+  The inflated total is mame-curator-1109's to fix.
   **Layman:** While copying games, the progress window shows 0 out of 0 instead of how many are done.
   Kind: investigate.
   Source: in-session-2026-09-26.
