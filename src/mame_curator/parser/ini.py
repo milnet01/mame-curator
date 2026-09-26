@@ -20,16 +20,21 @@ logger = logging.getLogger(__name__)
 # excluding them prevents `RootFolderIcon` and friends from being treated as machines.
 _META_SECTIONS = frozenset({"FOLDER_SETTINGS", "ROOT_FOLDER"})
 
+# catver.ini also ships [VerAdded], keyed by the same shortnames, whose values are
+# the MAME version that added each machine. Reading it overwrote every category.
+_CATVER_NON_CATEGORY_SECTIONS = frozenset({"VerAdded"})
+
 
 def parse_catver(path: Path) -> dict[str, str]:
     """Return {shortname: category} from progettoSnaps catver.ini.
 
     Section headers are ignored; only `name=value` lines under non-metadata sections
-    are kept. Duplicate shortnames overwrite (last write wins) and emit a warning.
+    are kept, and [VerAdded] is skipped. Duplicate shortnames overwrite (last write
+    wins) and emit a warning.
     """
     out: dict[str, str] = {}
     for section, key, value in _parse_simple_ini(path):
-        if section in _META_SECTIONS:
+        if section in _META_SECTIONS or section in _CATVER_NON_CATEGORY_SECTIONS:
             continue
         if key in out:
             logger.warning("duplicate catver key %r in %s; overwriting", key, path)

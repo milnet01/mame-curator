@@ -206,7 +206,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # only `source_dat` is missing (INV-9), and correcting the DAT path asks
 # for a restart (INV-10).
 # 757 → 759.
-EXPECTED_PYTEST_DECLARATIONS = 759
+# Bumped 2026-09-26 (mame-curator-1098 — catver [VerAdded] overwrote
+# categories): +1 declaration in tests/parser/test_ini.py —
+# test_parse_catver_ignores_veradded_section.
+# 759 → 760.
+EXPECTED_PYTEST_DECLARATIONS = 760
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

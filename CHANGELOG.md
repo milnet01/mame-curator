@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Fixed — Genres are real genres again, not version numbers (mame-curator-1098)
+
+`catver.ini` also lists the MAME version that added each game, under the same game names. That list overwrote every category, so genres read like "0.162" in the genre filter and on the Stats page. The parser now skips it, and server start no longer logs a duplicate-key warning for every game.
+
 ### 2026-09-26 Fixed — Copy in the dry-run preview now copies (mame-curator-1101)
 
 The preview says "Review the diff and confirm to copy", but its Copy button only closed the window. It now closes the preview and starts the same copy as the cart bar's Copy button.

@@ -125,6 +125,22 @@ def test_parse_catver_excludes_progettosnaps_metadata_sections(tmp_path: Path) -
     assert "RootFolderIcon" not in result
 
 
+def test_parse_catver_ignores_veradded_section(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Real catver.ini carries a [VerAdded] section keyed by the same shortnames.
+
+    Its values are MAME versions, not categories; reading it overwrote every
+    category with a version string (mame-curator-1098).
+    """
+    f = tmp_path / "catver.ini"
+    f.write_text("[Category]\npacman=Maze / Collect\n\n[VerAdded]\npacman=0.36b1\n")
+    with caplog.at_level(logging.WARNING, logger="mame_curator.parser.ini"):
+        result = parse_catver(f)
+    assert result == {"pacman": "Maze / Collect"}
+    assert "duplicate" not in caplog.text
+
+
 def test_duplicate_ini_key_emits_warning(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     """Duplicate INI shortname → last write wins; warn via logger.warning (parser/spec.md).
 

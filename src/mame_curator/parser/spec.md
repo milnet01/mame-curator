@@ -84,6 +84,7 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 - Returns `{shortname: category}`.
 - Tolerates blank lines, lines starting with `;` or `#`, and section headers in `[brackets]`.
 - Excludes progettoSnaps configuration-metadata sections (see "Metadata-section handling" below).
+- Skips the `[VerAdded]` section. Its keys are shortnames, but its values are MAME versions, not categories.
 
 ### `parse_languages(path: Path) -> dict[str, list[str]]`
 
