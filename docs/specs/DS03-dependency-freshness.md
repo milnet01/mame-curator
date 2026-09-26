@@ -373,7 +373,7 @@ freshness sweep actually complete for the frontend stack.
 
 **Why this is folded into DS03:** Step 1 inventory surfaced three specs
 referencing `pnpm` despite the project committing to `npm` per
-`docs/specs/P06.md:122` and the on-disk `frontend/package-lock.json`.
+`docs/specs/P06-frontend-mvp.md:122` and the on-disk `frontend/package-lock.json`.
 User-2026-05-16 confirmation: the references must be corrected, not
 deferred. Pure spec-text edit; no test changes, no manifest changes.
 
@@ -381,17 +381,17 @@ deferred. Pure spec-text edit; no test changes, no manifest changes.
 
 | File                        | Find                                          | Replace with                                      |
 |-----------------------------|-----------------------------------------------|---------------------------------------------------|
-| `docs/specs/DS02.md:370`    | `` `pnpm test && pnpm lint && pnpm tsc --noEmit` ``  | `` `cd frontend && npm test && npm run lint && npx tsc --noEmit` `` |
-| `docs/specs/DS05.md:297`    | `` `pnpm test && pnpm lint && pnpm tsc`  ``    | `` `cd frontend && npm test && npm run lint && npx tsc` ``  |
+| `docs/specs/DS02-structural-debt-sweep.md:370`    | `` `pnpm test && pnpm lint && pnpm tsc --noEmit` ``  | `` `cd frontend && npm test && npm run lint && npx tsc --noEmit` `` |
+| `docs/specs/DS05-test-file-seam-split.md:297`    | `` `pnpm test && pnpm lint && pnpm tsc`  ``    | `` `cd frontend && npm test && npm run lint && npx tsc` ``  |
 
-`docs/specs/P06.md:122` is the line that DECIDES on `npm` (vs `pnpm`)
+`docs/specs/P06-frontend-mvp.md:122` is the line that DECIDES on `npm` (vs `pnpm`)
 and explains why; it stays as-is — it's the source of truth that the
 other two diverged from.
 
 **Verification:** post-edit, `grep -rE '`pnpm [a-z]' docs/` (backtick +
 `pnpm` + space + lowercase letter) should return zero hits. The narrower
 pattern matches command-sample fragments like `` `pnpm test` `` but
-preserves prose mentions like P06.md's "`npm` (not `pnpm` / `yarn` /
+preserves prose mentions like P06-frontend-mvp.md's "`npm` (not `pnpm` / `yarn` /
 `bun`)" — the rejected-alternative wording that documents WHY npm was
 chosen. The Step 3 docs-test does NOT police this (would re-trigger on
 legitimate future roadmap items revisiting the choice); the grep is a
@@ -465,9 +465,9 @@ DS05 — same `tests/docs/` directory, same pytest collection scope.
   frontend/package.json`; gates `npm ci` → `npm run lint` →
   `npx tsc --noEmit` → `npm test`; passes on the closing CI run.
 - [x] **Cluster H** — `grep -rE '`pnpm [a-z]' docs/ --include='*.md'
-  --exclude=DS03.md` returns zero hits (backtick + pnpm + verb pattern
-  catches command samples; P06.md's rejected-alternative prose mention is
-  preserved; DS03.md is excluded because this very spec quotes the
+  --exclude=DS03-dependency-freshness.md` returns zero hits (backtick + pnpm + verb pattern
+  catches command samples; P06-frontend-mvp.md's rejected-alternative prose mention is
+  preserved; DS03-dependency-freshness.md is excluded because this very spec quotes the
   find/replace table that would otherwise self-trip).
 
 ### Whole-pass acceptance
@@ -528,8 +528,8 @@ DS03 changes nothing user-visible:
 7. Cluster F — `uv lock --upgrade` + `npm update` transitive refresh.
    Usually small; one commit unless the transitive bumps cluster into
    identifiable groups.
-8. Cluster H — `pnpm` → `npm` spec-text correction (DS02.md +
-   DS05.md). Independent of every other cluster; commits last so it
+8. Cluster H — `pnpm` → `npm` spec-text correction (DS02-structural-debt-sweep.md +
+   DS05-test-file-seam-split.md). Independent of every other cluster; commits last so it
    doesn't entangle with the gate-touching changes.
 
 Matches DS05's "one commit per cluster" cadence and lets the closing audit

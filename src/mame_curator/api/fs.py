@@ -1,6 +1,6 @@
 """Filesystem sandbox: allowlist composition, path validation, drive-root enumeration.
 
-Per ``docs/specs/P04.md`` § Filesystem sandbox.
+Per ``docs/specs/P04-http-api.md`` § Filesystem sandbox.
 """
 
 from __future__ import annotations

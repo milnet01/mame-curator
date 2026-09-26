@@ -51,7 +51,7 @@ def test_copy_error_path_attribute_preserved(tmp_path: Path) -> None:
 def test_copy_preflight_error_class_removed() -> None:
     """FP27 A2 — `copy.PreflightError` must not be importable post-fix.
 
-    FP07's spec at `docs/specs/FP07.md:101` flagged this class as
+    FP07's spec at `docs/specs/FP07-error-path-quoting.md:101` flagged this class as
     "exported but never raised in `src/`". Three releases later, no
     raise site has appeared. FP27 closes the dead surface.
 
@@ -63,8 +63,9 @@ def test_copy_preflight_error_class_removed() -> None:
 
     assert not hasattr(copy_mod, "PreflightError"), (
         "copy.PreflightError should be removed from the public surface "
-        "(no non-test raise sites). See `docs/specs/FP27.md` § A2."
+        "(no non-test raise sites). See `docs/specs/FP27-zombie-features-data-integrity.md` § A2."
     )
     assert "PreflightError" not in copy_mod.__all__, (
-        "copy.__all__ should no longer list 'PreflightError' (see `docs/specs/FP27.md` § A2)."
+        "copy.__all__ should no longer list 'PreflightError' (see "
+        "`docs/specs/FP27-zombie-features-data-integrity.md` § A2)."
     )

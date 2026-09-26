@@ -30,7 +30,7 @@ Three explicit exclusions (separate from § Deliberately not in scope below):
 
 ## Why a single fix-pass
 
-All 14 Tier 2 findings come from one sweep on one HEAD. Splitting them into five separate fix-passes (one per cluster) would mean five separate `/audit` + `/indie-review` cycles for what is structurally one batch of fold-in work; the FP05 / FP25 / FP27 precedent (see `docs/journal/FP05.md`, `docs/journal/FP25.md`, `docs/journal/FP27.md` — each closed multi-cluster Tier 1 fold-ins as one fix-pass) ships these as one pass with thematic clusters inside. FP27.md's own *Why a single fix-pass* section makes the same argument for its Tier 1 batch; this is the second-tier mirror.
+All 14 Tier 2 findings come from one sweep on one HEAD. Splitting them into five separate fix-passes (one per cluster) would mean five separate `/audit` + `/indie-review` cycles for what is structurally one batch of fold-in work; the FP05 / FP25 / FP27 precedent (see `docs/journal/FP05.md`, `docs/journal/FP25.md`, `docs/journal/FP27.md` — each closed multi-cluster Tier 1 fold-ins as one fix-pass) ships these as one pass with thematic clusters inside. FP27-zombie-features-data-integrity.md's own *Why a single fix-pass* section makes the same argument for its Tier 1 batch; this is the second-tier mirror.
 
 ## Scope-naming reconciliation ("Tier 2+3" framing)
 

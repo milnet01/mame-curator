@@ -54,5 +54,5 @@ def test_cli_spec_md_version_caveat_removed() -> None:
     assert "Future, not yet implemented" not in text, (
         "cli/spec.md must no longer carry the '(Future, not yet "
         "implemented.)' caveat on the --version flag. "
-        "See `docs/specs/FP27.md` § A7."
+        "See `docs/specs/FP27-zombie-features-data-integrity.md` § A7."
     )

@@ -8,7 +8,7 @@ constructs the concrete sources named in ``media.sources`` (injecting the
 app-state limiters + the ``SourceDisabledFlag``) and hands them to the
 registry, keeping ``media/`` free of any ``api/`` import.
 
-Per ``docs/specs/P10.md`` § "async resolve_image" + § "Chunk 7 implementation
+Per ``docs/specs/P10-media-coverage.md`` § "async resolve_image" + § "Chunk 7 implementation
 notes".
 """
 

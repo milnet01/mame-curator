@@ -19,7 +19,7 @@ silent) — the assertion of 422 fails.
 Post-fix: validator emits a ``FieldError`` whose ``loc == "paths.retroarch"``
 and ``type == "path_invalid"``; response is 422.
 
-See ``docs/specs/FP28.md`` § C1.
+See ``docs/specs/FP28-hardening-correctness.md`` § C1.
 """
 
 from __future__ import annotations

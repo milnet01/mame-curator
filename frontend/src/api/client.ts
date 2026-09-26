@@ -16,7 +16,7 @@
  *   `status=-1` discriminates "never reached the wire" from "got a 200
  *   but body was wrong"; HTTP-status-bearing errors carry the real code.
  *
- * Per `docs/specs/P06.md` § "API contract surface" and FP11 § C4 + G4.
+ * Per `docs/specs/P06-frontend-mvp.md` § "API contract surface" and FP11 § C4 + G4.
  */
 
 import { z, type ZodType } from 'zod'

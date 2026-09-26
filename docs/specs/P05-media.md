@@ -25,7 +25,7 @@ Source files under `src/mame_curator/media/`:
 
 Realistic file size: `urls.py` ≈ 80 lines, `cache.py` ≈ 90 lines, `__init__.py` ≈ 15. All comfortably under the 300-line soft cap.
 
-The per-module `spec.md` ships at P05 close (moves from `docs/specs/P05.md` to `src/mame_curator/media/spec.md` per the App-Build "specs are for shipped modules" rule).
+The per-module `spec.md` ships at P05 close (moves from `docs/specs/P05-media.md` to `src/mame_curator/media/spec.md` per the App-Build "specs are for shipped modules" rule).
 
 ## Public API
 

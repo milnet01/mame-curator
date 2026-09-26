@@ -11,7 +11,7 @@ different versions of the same tool because a manifest bump didn't
 propagate to the hook rev — local pre-commit passes, CI fails (or vice
 versa), and the gap surfaces only after push.
 
-See `docs/specs/DS03.md` §§ Cluster D + Tests to write first.
+See `docs/specs/DS03-dependency-freshness.md` §§ Cluster D + Tests to write first.
 """
 
 from __future__ import annotations

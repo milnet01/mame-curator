@@ -8,7 +8,7 @@ list satisfies its cap.
 The test also acts as a forward-defending gate: a future PR that
 re-grows any of these files past its cap fires the same assertion.
 
-See `docs/specs/DS05.md` §§ Cluster A/B/C for the seam rationale.
+See `docs/specs/DS05-test-file-seam-split.md` §§ Cluster A/B/C for the seam rationale.
 """
 
 from __future__ import annotations

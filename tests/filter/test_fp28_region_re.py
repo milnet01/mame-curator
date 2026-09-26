@@ -13,7 +13,7 @@ nor ")") while preserving ``(World)`` and ``(World, Europe)``.
 Pre-fix: the fourth parametrise case fails — returns ``Region.WORLD``.
 Post-fix: returns ``Region.UNKNOWN``.
 
-See ``docs/specs/FP28.md`` § B2.
+See ``docs/specs/FP28-hardening-correctness.md`` § B2.
 """
 
 from __future__ import annotations

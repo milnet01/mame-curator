@@ -4,7 +4,7 @@ Per-game review state (P14). Co-located contract for the
 `filter/review_state.py` model + loader and the cross-module surface it
 anchors (the `/api/state` routes, the `?review_state=` request filter,
 and the `review_state` activity event). Promoted here from
-`docs/specs/P14.md` per the `CLAUDE.md` rule that a shipped feature gets
+`docs/specs/P14-review-state.md` per the `CLAUDE.md` rule that a shipped feature gets
 a co-located `spec.md` next to its code; the P14 doc remains the
 historical design record, this file is the live audit surface.
 
@@ -121,7 +121,7 @@ line. (`overrides.yaml` / `sessions.yaml` keep their per-write snapshot
 policy; they are low-frequency editorial mutations.)
 
 Consequence: the Settings → Snapshots view cannot roll back review state
-(it lists `data/snapshots/` only). `docs/specs/P14.md` § "Snapshot
+(it lists `data/snapshots/` only). `docs/specs/P14-review-state.md` § "Snapshot
 policy" intended a one-line caption surfacing this to the user, but it
 was never shipped — no UI caveat is currently shown (tracked as
 `mame-curator-1078`).
@@ -303,7 +303,7 @@ Each has at least one enforcing test.
 
 ## Companion docs
 
-- Design record: `docs/specs/P14.md` · journal: `docs/journal/P14.md`.
+- Design record: `docs/specs/P14-review-state.md` · journal: `docs/journal/P14.md`.
 - Cross-module specs: `api/spec.md` (routes + world lock), `copy/spec.md`
   (activity union), `filter/spec.md` (the rest of the filter surface).
 - ROADMAP: `mame-curator-1014` (P14), `mame-curator-1061` (this

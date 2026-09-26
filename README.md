@@ -23,8 +23,8 @@ cd mame-curator
 ```
 
 `run.sh` provisions Python 3.12+, installs `uv`, syncs deps, runs the
-interactive setup wizard the first time (it asks for your MAME DAT,
-ROM directory, and destination), then opens
+interactive setup wizard the first time (it asks for your ROM
+directory, MAME DAT, destination, and RetroArch playlist path), then opens
 [http://127.0.0.1:8080](http://127.0.0.1:8080) in your browser.
 
 Re-run `./run.sh` anytime — it's idempotent.

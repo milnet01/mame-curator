@@ -1,6 +1,6 @@
 """Tests for ``escape_libretro``.
 
-Per ``docs/specs/P05.md`` § Public API. The libretro-thumbnails MAME repo
+Per ``docs/specs/P05-media.md`` § Public API. The libretro-thumbnails MAME repo
 escapes 10 filename-illegal characters (``& * / : \\ < > ? | "``) to ``_``.
 Apostrophes, spaces, parens, hyphens, periods, and unicode pass through.
 """

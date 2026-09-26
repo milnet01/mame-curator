@@ -21,7 +21,7 @@ Pre-fix: no comparator → no RuntimeError → ``pytest.raises(RuntimeError)`` f
 Post-fix: comparator raises (or `asyncio.get_running_loop()` raises from the
 off-loop thread, which is also RuntimeError) → test passes.
 
-See ``docs/specs/FP28.md`` § A1.
+See ``docs/specs/FP28-hardening-correctness.md`` § A1.
 """
 
 from __future__ import annotations

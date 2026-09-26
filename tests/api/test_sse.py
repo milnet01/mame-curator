@@ -1,6 +1,6 @@
 """L01 — SSE copy-progress event-stream test.
 
-Per ``docs/specs/P04.md`` § Tests, L01:
+Per ``docs/specs/P04-http-api.md`` § Tests, L01:
 
 > ``httpx.AsyncClient`` consumer reads
 > ``job_started → file_started* → file_progress* → file_finished* → job_finished``

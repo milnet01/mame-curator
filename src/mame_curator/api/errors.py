@@ -1,6 +1,6 @@
 """Typed API exceptions + FastAPI exception handler.
 
-Per ``docs/specs/P04.md`` § Error envelope. ``ApiException`` is the throwable;
+Per ``docs/specs/P04-http-api.md`` § Error envelope. ``ApiException`` is the throwable;
 ``ApiErrorBody`` is the wire shape rendered by the global handler.
 """
 

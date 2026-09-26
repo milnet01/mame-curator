@@ -1,6 +1,6 @@
 """R29–R34 shape tests + L12 / L13 behavioral + S01–S03 sandbox-grant tests.
 
-Per ``docs/specs/P04.md`` § Routes (Filesystem browser) and § Filesystem sandbox.
+Per ``docs/specs/P04-http-api.md`` § Routes (Filesystem browser) and § Filesystem sandbox.
 """
 
 from __future__ import annotations

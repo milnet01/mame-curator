@@ -11,7 +11,7 @@ import { strings } from '@/strings'
 
 // FP27 A5: dropped 'games' and 'settings'. Zero production producers
 // ever populated those sections; only test fixtures did. Re-adding
-// them is a one-line per call-site change. See docs/specs/FP27.md § A5.
+// them is a one-line per call-site change. See docs/specs/FP27-zombie-features-data-integrity.md § A5.
 export type CmdKSection = 'actions' | 'help'
 
 export interface CmdKItem {

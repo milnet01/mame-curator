@@ -24,12 +24,13 @@ def test_filter_config_error_class_removed() -> None:
     assert not hasattr(filter_mod, "ConfigError"), (
         "filter.ConfigError should be removed from the public surface "
         "(no non-test raise sites; superseded by ValidationError on "
-        "FilterConfig). See `docs/specs/FP27.md` § A1."
+        "FilterConfig). See `docs/specs/FP27-zombie-features-data-integrity.md` § A1."
     )
 
 
 def test_filter_config_error_not_in_all() -> None:
     """The `__all__` re-export must drop `'ConfigError'` post-fix."""
     assert "ConfigError" not in filter_mod.__all__, (
-        "filter.__all__ should no longer list 'ConfigError' (see `docs/specs/FP27.md` § A1)."
+        "filter.__all__ should no longer list 'ConfigError' (see "
+        "`docs/specs/FP27-zombie-features-data-integrity.md` § A1)."
     )

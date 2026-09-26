@@ -96,7 +96,7 @@ e2e/
 └── library-flow.spec.ts        # the one Playwright E2E
 ```
 
-Realistic file sizes: each component ≤ 200 lines (frontend soft cap per `coding-standards.md` § 2); pages ≤ 200 with the body extracted into hooks + sub-components when they grow. Hard cap 350. The largest projected file is `LibraryGrid.tsx` (virtualized + four layouts) — if it crosses 200 lines, the four layout strategies extract to `layouts/{Masonry,List,Covers,Grouped}.tsx` and the grid becomes a thin dispatcher. The per-module spec ships at P06 close (moves from `docs/specs/P06.md` to `frontend/spec.md` per the App-Build "specs are for shipped modules" rule).
+Realistic file sizes: each component ≤ 200 lines (frontend soft cap per `coding-standards.md` § 2); pages ≤ 200 with the body extracted into hooks + sub-components when they grow. Hard cap 350. The largest projected file is `LibraryGrid.tsx` (virtualized + four layouts) — if it crosses 200 lines, the four layout strategies extract to `layouts/{Masonry,List,Covers,Grouped}.tsx` and the grid becomes a thin dispatcher. The per-module spec ships at P06 close (moves from `docs/specs/P06-frontend-mvp.md` to `frontend/spec.md` per the App-Build "specs are for shipped modules" rule).
 
 ## Toolchain & dependency policy
 
@@ -123,13 +123,13 @@ Dev deps: `vitest`, `@testing-library/react`, `@testing-library/user-event`, `@t
 
 ## API contract surface
 
-The frontend reads the FastAPI app at the same origin (after the static mount in §"Static-file serving" lands). Dev mode runs the Vite dev server on `http://localhost:5173` (Vite's default; matches P04's CORS allowlist at `docs/specs/P04.md:867`) and proxies `/api/*` and `/media/*` to `http://127.0.0.1:8080`. Production mode is same-origin via the static mount; CORS does not engage.
+The frontend reads the FastAPI app at the same origin (after the static mount in §"Static-file serving" lands). Dev mode runs the Vite dev server on `http://localhost:5173` (Vite's default; matches P04's CORS allowlist at `docs/specs/P04-http-api.md:867`) and proxies `/api/*` and `/media/*` to `http://127.0.0.1:8080`. Production mode is same-origin via the static mount; CORS does not engage.
 
 **Type-mirroring strategy: hand-mirrored** in `frontend/src/api/types.ts`, per `docs/standards/coding-standards.md` § 13 ("auto-generated TS types via `pydantic-to-typescript` or hand-mirrored `interface`s with a CI check that they match"). The CI gate `tools/check_api_types_sync.py` parses both Pydantic models from `mame_curator.api.schemas` and TS interfaces from `frontend/src/api/types.ts` and **fails if any field is present in either side and absent from the other** — bidirectional parity, not one-way drift. (The bidirectional rule is what closes the silent-drop class of bug: Pydantic adds a field, TS doesn't mirror it, runtime drops the field, no test catches it.) Reason for hand-mirrored over `pydantic-to-typescript`: only ~25 of the API's ~60 schema types are consumed client-side, so writing them by hand is less code than wiring + auditing a generator's output. If the generator ever becomes desirable (e.g. P07 adds 30+ new types), revisit.
 
 Beyond field parity, `client.ts` MUST validate every response with a strict parser that rejects unknown fields (mirroring Pydantic's `extra="forbid"`). Implementation: a small `parse<T>(schema, data)` helper using `zod` (`^4.x`; the v4 wire format is stable and bundle weight stays under the 350 kB gzipped budget enforced in §"Architecture notes") — alternative to hand-rolling `assert no extra keys`. Adding `zod` to dev+runtime deps is allowed under the toolchain table.
 
-Routes consumed (P04 numbering — see `docs/specs/P04.md` § Routes table for the canonical mapping):
+Routes consumed (P04 numbering — see `docs/specs/P04-http-api.md` § Routes table for the canonical mapping):
 
 | Page / interaction | Routes |
 |---|---|

@@ -1,6 +1,6 @@
 """Media-source protocol + concrete implementations for the P10 fallback chain.
 
-Per ``docs/specs/P10.md`` § "Public API" + § "Source contracts". Chunk 2
+Per ``docs/specs/P10-media-coverage.md`` § "Public API" + § "Source contracts". Chunk 2
 lands the protocol, the ``Kind`` literal, and ``LibretroSource`` (the
 P05 baseline carried under the new shape). Chunk 3b adds
 ``ProgettoSnapsSource`` (file:// model, snap kind only — upstream no
@@ -125,7 +125,7 @@ class LibretroSource:
 
 # P10 chunk 3b — progettoSnaps local-pack source. Snap kind only; flyers
 # and titles aren't published upstream anymore (see 2026-05-18 spec
-# amendment in ``docs/specs/P10.md`` § "1. progettoSnaps — local pack
+# amendment in ``docs/specs/P10-media-coverage.md`` § "1. progettoSnaps — local pack
 # model"). The pack is downloaded by ``mame-curator refresh-snaps``
 # (chunk 3a) into ``<dest>/snap/<name>.png``.
 

@@ -275,7 +275,7 @@ async def test_download_streams_chunks_to_tmp_not_buffer(tmp_path: Path) -> None
     assert peak < upper, (
         f"FP27 B3 — download must stream to disk, not buffer; "
         f"tracemalloc peak {peak} ≥ {upper} suggests chunk-list "
-        f"buffering still present. See `docs/specs/FP27.md` § B3."
+        f"buffering still present. See `docs/specs/FP27-zombie-features-data-integrity.md` § B3."
     )
 
 
@@ -304,5 +304,5 @@ async def test_download_sha256_mismatch_unlinks_tmp(
     tmp_siblings = list(tmp_path.glob("file.ini*"))
     assert tmp_siblings == [], (
         f"FP27 B3 — sha256 mismatch must close and unlink the .tmp; "
-        f"orphans: {tmp_siblings!r}. See `docs/specs/FP27.md` § B3."
+        f"orphans: {tmp_siblings!r}. See `docs/specs/FP27-zombie-features-data-integrity.md` § B3."
     )

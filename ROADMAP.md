@@ -358,7 +358,7 @@ wave lands.
   Resolved (2026-07-04): verified green on macOS 26 — no pin-back needed. The `macos-latest` label is mid-rollout: CI run 28667637025 (HEAD d61a275, 2026-07-03, post-migration) ran the `macos-latest, 3.12` leg on `macos-26-arm64` and the `3.13` leg on `macos-15-arm64` — both passed (uv + Python + full backend gate). Keeping `macos-latest` unpinned per latest-by-default (global rule 5 / coding-standards §8); the auto-migration is safe. No workflow change required.
 
 - ✅ [mame-curator-1077] **Split `LibraryPage.tsx` (579 lines) under the frontend file-size hard cap.**
-  `frontend/src/pages/LibraryPage.tsx` is 579 lines, over the frontend file-size hard cap (`coding-standards.md` §2). It is NOT in the DS02 acknowledged-exceptions list (those are `copy/runner.py` 540, `strings_internal.ts` 646, `api/schemas.ts` 591). The breach predates P14 — `docs/specs/P14.md` § "Module layout" called it out as a follow-up concern ("extract a small `LibraryHeader.tsx` if convenient") and not a P14 blocker. Likely split lines: the header/progress-chip + walkthrough-toggle block into `LibraryHeader.tsx`, and/or the review-state + cart wiring into a hook. Note: `coding-standards.md` §2 and `docs/specs/P14.md` disagree on the exact frontend cap (350 vs the 500 DS02 treats as hard) — confirm the canonical number when picking this up.
+  `frontend/src/pages/LibraryPage.tsx` is 579 lines, over the frontend file-size hard cap (`coding-standards.md` §2). It is NOT in the DS02 acknowledged-exceptions list (those are `copy/runner.py` 540, `strings_internal.ts` 646, `api/schemas.ts` 591). The breach predates P14 — `docs/specs/P14-review-state.md` § "Module layout" called it out as a follow-up concern ("extract a small `LibraryHeader.tsx` if convenient") and not a P14 blocker. Likely split lines: the header/progress-chip + walkthrough-toggle block into `LibraryHeader.tsx`, and/or the review-state + cart wiring into a hook. Note: `coding-standards.md` §2 and `docs/specs/P14-review-state.md` disagree on the exact frontend cap (350 vs the 500 DS02 treats as hard) — confirm the canonical number when picking this up.
   **Layman:** One of the library screen's source files has grown too big and should be broken into smaller pieces for readability.
   Kind: refactor.
   Lanes: frontend.
@@ -366,7 +366,7 @@ wave lands.
   Resolved (2026-06-30): split LibraryPage.tsx 579→314 lines, under the coding-standards §2 frontend component hard cap (350). The §15-precedence-authoritative cap is 350 (the bullet's 350-vs-500 doubt resolved in favour of coding-standards.md). Non-render logic extracted to new pages/useLibraryController.ts (318 lines) + pure pages/libraryPageHelpers.ts (61 lines); all JSX kept in the page so the source-text structural tests (LibraryPage_error_boundary, landmark_labels) keep asserting the rendered shape. Behaviour-preserving — 323 frontend tests green, tsc -b + eslint clean.
 
 - ✅ [mame-curator-1078] **Surface the "review state isn't snapshotted" caveat in the Snapshots UI.**
-  `docs/specs/P14.md` § "Snapshot policy" specified a one-line caption (`settings.snapshots.stateExclusionNote`) noting that `data/state.yaml` is not snapshotted, so review-state changes cannot be rolled back via Settings → Snapshots (recovery is `activity.jsonl` replay only). That caption was never shipped — `frontend/src/strings_internal.ts` has no such string and `SnapshotsTab.tsx` shows no review-state caveat. Add the caption so the exclusion is visible to the user. Low priority (behavioural gap is documented, just not surfaced in-app).
+  `docs/specs/P14-review-state.md` § "Snapshot policy" specified a one-line caption (`settings.snapshots.stateExclusionNote`) noting that `data/state.yaml` is not snapshotted, so review-state changes cannot be rolled back via Settings → Snapshots (recovery is `activity.jsonl` replay only). That caption was never shipped — `frontend/src/strings_internal.ts` has no such string and `SnapshotsTab.tsx` shows no review-state caveat. Add the caption so the exclusion is visible to the user. Low priority (behavioural gap is documented, just not surfaced in-app).
   **Layman:** The app saves restore-points for your settings but not for your per-game review marks. The screen never tells you that, so add a one-line note.
   Kind: fix.
   Lanes: frontend.
@@ -534,7 +534,7 @@ wave lands.
   Source: cold-eyes-2026-08-03 (mame-curator-1088 review).
   Resolved (2026-08-04): closed in two halves. Defects (a)-(g) were spec text and were fixed during the cold-eyes gate on cli/spec.md (loops 1-3, 2026-08-04). The code half landed in 5933127: (h) --no-open-browser is now read rather than merely registered; (i) OverflowError is caught at the bind alongside OSError, so `--port 99999` reports exit 1 instead of the traceback (d) claimed could not happen. The rich-markup escape rule is now enforced across all six Console.print sites in _cmd_serve, not just the $PORT message -- the config-not-found path was the likeliest of them to contain brackets.
 
-- 📋 [mame-curator-1092] **Rename the sixteen `docs/specs/<ID>.md` files to `<ID>-<topic>.md`.**
+- ✅ [mame-curator-1092] **Rename the sixteen `docs/specs/<ID>.md` files to `<ID>-<topic>.md`.**
   `docs/standards/spec-format.md` §2 requires `<ID>-<topic>.md`; sixteen
   legacy files (DS01-DS05, FP05-FP08, FP27, FP28, P04, P05, P06, P10, P14)
   carry the bare id. Deliberately not bundled with the 2026-08-03 doc-layout
@@ -543,6 +543,13 @@ wave lands.
   citation is easy to miss in that volume. `P15-cart-curated-library.md`
   already uses the new form, so the directory is mixed until this lands.
   Recorded as override O1 in spec-format.md.
+  Resolved (2026-09-26): git mv'd all sixteen to `<ID>-<topic>.md` and
+  rewrote 238 citations: 222 `specs/`-prefixed and 16 bare, across docs,
+  source comments, tests and CI comments, plus 16 in ten roadmap items
+  via amend_body. `journal/<ID>.md` references were left alone, since
+  the journals share the bare names. A final grep finds no old name
+  outside docs/journal/. spec-format.md O1 is retired, and CLAUDE.md no
+  longer mentions legacy names.
   **Layman:** Spec filenames say only an ID; adding a short topic to each makes the folder readable at a glance.
   Kind: doc-fix.
   Source: doc-layout-audit-2026-08-03.
@@ -586,8 +593,8 @@ wave lands.
   but the paragraph names no flags, no exit codes and no output shape.
   Either add a small flag/exit-code table or file the contract as its
   own item.
-  5. The supersession paragraph enumerates P04.md:856/:859/:885 but omits
-  `P04.md:16`, which states the serve flag surface without
+  5. The supersession paragraph enumerates P04-http-api.md:856/:859/:885 but omits
+  `P04-http-api.md:16`, which states the serve flag surface without
   `--no-open-browser` and with `--port 8080` as a default. Add it and
   declare this spec canonical for the flag surface too.
   6. `_serve_args` blast radius is stated as "all four `_cmd_serve`
@@ -614,7 +621,7 @@ wave lands.
   § Browser and § Entry points constantly. Add those four H3s.
 
   Also recorded, needing a decision rather than an edit:
-  - **Reciprocal `docs/specs/P04.md` edit** (:16, :856, :859, :885) — two
+  - **Reciprocal `docs/specs/P04-http-api.md` edit** (:16, :856, :859, :885) — two
   contract docs still assert opposite exit codes and different flag
   surfaces. This spec declares itself canonical; P04 has not been
   amended. Owner's call.
@@ -636,7 +643,7 @@ wave lands.
   tables, owner-approved; found mame-curator-1112), 5, 7, 8, 9, 10, 11
   (section->block, layer (3)->rule (3)), 12, 13, the two test docstrings,
   and CLAUDE.md's P10 marker. Already fixed before this pass: 6 (the
-  "all four tests" claim is gone) and the reciprocal P04.md edit (P04
+  "all four tests" claim is gone) and the reciprocal P04-http-api.md edit (P04
   § Contract and § CLI integration defer to cli/spec.md).
   **Layman:** A doc review found 13 smaller wording and completeness gaps in the CLI contract; they are written up and just need folding in.
   Kind: doc-fix.
@@ -732,7 +739,7 @@ wave lands.
   (+2, red on `ModuleNotFoundError` first). `tests/api/test_static_mount.py`
   now monkeypatches the *function* rather than a module constant, which
   is itself the guard against the path being captured at import again.
-  `docs/specs/P06.md`'s app.py excerpt corrected reciprocally (it still
+  `docs/specs/P06-frontend-mvp.md`'s app.py excerpt corrected reciprocally (it still
   showed the `parents[3]` constant). DS05 test-count pin 752 → 754.
   Full backend gate green: ruff, ruff format, mypy (213 files), bandit,
   960 tests, 88.97% coverage (f6b8e62; all 8 CI jobs green).
@@ -2016,7 +2023,7 @@ documenting test-audit-specific false positives.
   - M2 (frontend): AboutSection binds the server-supplied Wikipedia `url` into an href with no scheme check (WikipediaExtractSchema.url is `z.string()`). Trusted source today, but a poisoned/MITM `javascript:` URL would render clickable. Fix: validate `https:` (or `z.url()`) before rendering; drop the link otherwise.
 
   LOW:
-  - api/spec.md still documents the retired 502 MediaUpstreamError / media_upstream_error surface (P05-era) — update to the resolve_image fallback-chain (miss → 404) per P10.md Route contract.
+  - api/spec.md still documents the retired 502 MediaUpstreamError / media_upstream_error surface (P05-era) — update to the resolve_image fallback-chain (miss → 404) per P10-media-coverage.md Route contract.
   - MediaUpstreamError (errors.py:179-183) is now dead code (raised nowhere) + its frontend byCode/strings_internal entry — remove or annotate as intentionally retained (CLAUDE.md rule 11: surfaced, not silently deleted).
   - TokenBucket.acquire leaves _last stale when elapsed<=0 (prod-safe under monotonic; latent under an injected non-monotonic clock) — set _last unconditionally.
   - resolve.py file:// short-circuit uses `.exists()` not `.is_file()` (a dir named x.png would return; url_for already is_file-gates, so practically unreachable).
@@ -2028,7 +2035,7 @@ documenting test-audit-specific false positives.
 
 - ✅ [mame-curator-1086] **FP33 — second closing-review fold-in after P10 (nested parse-before-trust + file:// LFI).**
   Second 3-lane closing indie-review after FP32 shipped. Audit static-analysis clean (28 findings all allowlist-015 env-mypy false positive; CI mypy clean). FP32's 4 fixes verified correct; these are the residual + newly-surfaced defects.
-  Resolved 2026-07-02 (commit c50c58b). All 2 HIGH + 1 MEDIUM + 5 LOW + 2 INFO fixed TDD (a failing regression test landed first for each behavioural finding). H1 file:// LFI gated to the local pack source (by name); H2 nested type guards across ArcadeDB (result/first/URL-fields), WikipediaImage (thumbnail), wiki-extract (content_urls.desktop); M1 progettoSnaps probe wrapped in except OSError → self-disable; L1 DownloadPackModal resets copied on close; L2 api/spec.md +3 routes +MediaSourceUnknownError +corrected chain order; L3 stale check_error_codes_sync.py comment fixed; L4 SourceSecret .strip() (whitespace-only → 422); L5 secret-route coupling documented; INFO ConfigureSourceKeyModal onSuccess→handleOpenChange, P06.md media_upstream_error dropped. Gates: 854 backend @88% / 342 frontend vitest, all lint/type/security clean; DS05 pins 677→685 / 324→325. Parent P10 stays 🚧 pending the /close-phase re-run.
+  Resolved 2026-07-02 (commit c50c58b). All 2 HIGH + 1 MEDIUM + 5 LOW + 2 INFO fixed TDD (a failing regression test landed first for each behavioural finding). H1 file:// LFI gated to the local pack source (by name); H2 nested type guards across ArcadeDB (result/first/URL-fields), WikipediaImage (thumbnail), wiki-extract (content_urls.desktop); M1 progettoSnaps probe wrapped in except OSError → self-disable; L1 DownloadPackModal resets copied on close; L2 api/spec.md +3 routes +MediaSourceUnknownError +corrected chain order; L3 stale check_error_codes_sync.py comment fixed; L4 SourceSecret .strip() (whitespace-only → 422); L5 secret-route coupling documented; INFO ConfigureSourceKeyModal onSuccess→handleOpenChange, P06-frontend-mvp.md media_upstream_error dropped. Gates: 854 backend @88% / 342 frontend vitest, all lint/type/security clean; DS05 pins 677→685 / 324→325. Parent P10 stays 🚧 pending the /close-phase re-run.
 
   HIGH:
   - H1 (media, SECURITY/LFI): resolve_image's `file://` short-circuit (resolve.py:80-88) fires for ANY source's url_for, not just the local ProgettoSnaps pack. ArcadeDB's first hop is plaintext HTTP (sources.py:220) and returns upstream-controlled URL strings with no scheme/type check, so a MITM/hostile `file:///etc/passwd` is served as an image — bypassing the cache-layer `_ALLOWED_URL_SCHEMES` guard (which runs after the short-circuit). Fix: gate the file:// branch to the local-pack source only (isinstance ProgettoSnapsSource or a per-source local_pack flag) AND/OR confine the resolved path within snap_dir; any non-local source emitting file:// → treat as a miss.
@@ -2042,7 +2049,7 @@ documenting test-audit-specific false positives.
   - L4 (api): SourceSecret stores the pasted key verbatim (schemas.py:129) — a trailing newline/space is written to the 0600 file. Fix: .strip() validator.
   - L5 (api): secret route hardcodes mobygames_key_path() ignoring `name` (media.py:189) — safe today (only mobyGames in _SECRET_SOURCES) but clobbers on a 2nd source; add a name→path map or guard comment.
 
-  INFO (fold if cheap): ConfigureSourceKeyModal onSuccess uses onOpenChange not handleOpenChange (skips save.reset — harmless while conditionally mounted); docs/specs/P06.md:161 still lists retired media_upstream_error; per-request snap-dir re-stat (perf, defer).
+  INFO (fold if cheap): ConfigureSourceKeyModal onSuccess uses onOpenChange not handleOpenChange (skips save.reset — harmless while conditionally mounted); docs/specs/P06-frontend-mvp.md:161 still lists retired media_upstream_error; per-request snap-dir re-stat (perf, defer).
 
   Convergence: 2 FP in a row (FP32, FP33) — under the checkpoint of 5.
   **Layman:** A deeper re-review of the artwork feature found two more real bugs FP32's first pass missed: an art site could be tricked into serving a private file off your computer, and a few more "unexpected response shape crashes the request" spots. This pass burns them off before we call P10 done.
@@ -2096,7 +2103,7 @@ under a docs-review skill.
   Lanes: media, docs.
   Source: cold-eyes-2026-05-18 lanes standards + per-feature-specs.
   Re-checked 2026-06-30 (1060/1061 session): still blocked. P10 remains in flight per .claude/workflow.md §1 — Step 3, chunk 6 (MobyGames) plus chunks 7–11 (registry/orchestrator) unshipped. Gate holds: drafting media/spec.md now would document a partial source surface (MobyGames absent). Stays parked until P10 closes.
-  Resolved 2026-07-03: authored src/mame_curator/media/spec.md — the co-located module contract for the shipped media/ package (P10). Distilled from docs/specs/P05.md + P10.md and verified clause-by-clause against src/mame_curator/media/*.py. Ran 5 /cold-eyes loops to convergence (severity fell HIGH→MEDIUM→LOW; 6 independent cold readers); all verified findings (1 HIGH, 2 MEDIUM, ~11 LOW) fixed inline. media/ is no longer the sole shipped module without a co-located spec.md audit surface.
+  Resolved 2026-07-03: authored src/mame_curator/media/spec.md — the co-located module contract for the shipped media/ package (P10). Distilled from docs/specs/P05-media.md + P10-media-coverage.md and verified clause-by-clause against src/mame_curator/media/*.py. Ran 5 /cold-eyes loops to convergence (severity fell HIGH→MEDIUM→LOW; 6 independent cold readers); all verified findings (1 HIGH, 2 MEDIUM, ~11 LOW) fixed inline. media/ is no longer the sole shipped module without a co-located spec.md audit surface.
 
 - ✅ [mame-curator-1059] **Author `src/mame_curator/updates/spec.md`.**
   Shipped P07 module ships without a co-located `spec.md`. Same rule
@@ -2133,7 +2140,7 @@ under a docs-review skill.
   Kind: doc.
   Lanes: filter, docs.
   Source: cold-eyes-2026-05-18 lane spec/P14.
-  Resolved 2026-06-30: created src/mame_curator/filter/review_state_spec.md — the per-feature co-located contract (model/loader/enums, the three /api/state routes, the ?review_state= per-request filter, the passive-swap fact, 13 invariants) extracted from docs/specs/P14.md and verified clause-by-clause against shipped code. De-staled P14's two promotion notes and added a filter/spec.md back-pointer. User elected the separate-file option over merging into filter/spec.md. Ran /cold-eyes to a clean pass (3 loops): fixed a world-lock over-claim (GET is lock-free), an unshipped-snapshot-caption claim (→ roadmapped 1078), a GET-can't-404 nit, and a coupled copy/spec.md ReviewStateDetails type bug (str, not ReviewStateValue).
+  Resolved 2026-06-30: created src/mame_curator/filter/review_state_spec.md — the per-feature co-located contract (model/loader/enums, the three /api/state routes, the ?review_state= per-request filter, the passive-swap fact, 13 invariants) extracted from docs/specs/P14-review-state.md and verified clause-by-clause against shipped code. De-staled P14's two promotion notes and added a filter/spec.md back-pointer. User elected the separate-file option over merging into filter/spec.md. Ran /cold-eyes to a clean pass (3 loops): fixed a world-lock over-claim (GET is lock-free), an unshipped-snapshot-caption claim (→ roadmapped 1078), a GET-can't-404 nit, and a coupled copy/spec.md ReviewStateDetails type bug (str, not ReviewStateValue).
 
 - ✅ [mame-curator-1062] **Re-introduce a Radix-Esc regression lock for FP27 A6a.**
   `frontend/src/components/__tests__/EscOverlayBehavior.test.tsx`
@@ -2226,7 +2233,7 @@ P14 (per-game review state).
   localStorage. Activity log gains a `review_state` event for every
   mutation (state/previous as plain strings so the log records the
   sparse-store sentinel `"pending"`). 13 INVs codified in
-  `docs/specs/P14.md`. Lanes: api, frontend, persist, tests.
+  `docs/specs/P14-review-state.md`. Lanes: api, frontend, persist, tests.
   Kind: implement.
   Lanes: api, frontend, persist, tests.
 
@@ -2365,7 +2372,7 @@ through.
   correctly without a real API key (none on this machine; no anonymous
   API access). To close: register a free key at mobygames.com, capture
   `tests/fixtures/mobygames_pacman.json`, pin the cover field path in
-  docs/specs/P10.md § "4. MobyGames", implement the 200-path parse in
+  docs/specs/P10-media-coverage.md § "4. MobyGames", implement the 200-path parse in
   `src/mame_curator/media/mobygames.py` (replacing the deferred no-op),
   add a happy-path `prepare`-populates-cover test, and delete
   `test_mobygames_source_200_does_not_populate_cover_yet`. Until then

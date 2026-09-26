@@ -41,14 +41,15 @@ def test_parse_listxml_bios_chain_in_all() -> None:
     """`parse_listxml_bios_chain` must be part of `mame_curator.parser.__all__`."""
     assert "parse_listxml_bios_chain" in parser.__all__, (
         "mame_curator.parser.__all__ must export 'parse_listxml_bios_chain' "
-        "(see `docs/specs/FP27.md` § A9)."
+        "(see `docs/specs/FP27-zombie-features-data-integrity.md` § A9)."
     )
 
 
 def test_bios_chain_entry_in_all() -> None:
     """`BIOSChainEntry` must be part of `mame_curator.parser.__all__`."""
     assert "BIOSChainEntry" in parser.__all__, (
-        "mame_curator.parser.__all__ must export 'BIOSChainEntry' (see `docs/specs/FP27.md` § A9)."
+        "mame_curator.parser.__all__ must export 'BIOSChainEntry' (see "
+        "`docs/specs/FP27-zombie-features-data-integrity.md` § A9)."
     )
 
 
@@ -56,7 +57,7 @@ def test_parse_listxml_bios_chain_importable_from_package() -> None:
     """The symbol must be accessible as `mame_curator.parser.parse_listxml_bios_chain`."""
     assert hasattr(parser, "parse_listxml_bios_chain"), (
         "mame_curator.parser.parse_listxml_bios_chain must be importable "
-        "from the package surface (see `docs/specs/FP27.md` § A9)."
+        "from the package surface (see `docs/specs/FP27-zombie-features-data-integrity.md` § A9)."
     )
 
 
@@ -64,7 +65,7 @@ def test_bios_chain_entry_importable_from_package() -> None:
     """The symbol must be accessible as `mame_curator.parser.BIOSChainEntry`."""
     assert hasattr(parser, "BIOSChainEntry"), (
         "mame_curator.parser.BIOSChainEntry must be importable from the "
-        "package surface (see `docs/specs/FP27.md` § A9)."
+        "package surface (see `docs/specs/FP27-zombie-features-data-integrity.md` § A9)."
     )
 
 
@@ -78,7 +79,7 @@ def test_parser_spec_md_documents_parse_listxml_bios_chain() -> None:
     text = _parser_spec_path().read_text(encoding="utf-8")
     assert "`parse_listxml_bios_chain`" in text, (
         "parser/spec.md must document 'parse_listxml_bios_chain' inside "
-        "backticks (see `docs/specs/FP27.md` § A9)."
+        "backticks (see `docs/specs/FP27-zombie-features-data-integrity.md` § A9)."
     )
 
 
@@ -87,5 +88,5 @@ def test_parser_spec_md_documents_bios_chain_entry() -> None:
     text = _parser_spec_path().read_text(encoding="utf-8")
     assert "`BIOSChainEntry`" in text, (
         "parser/spec.md must document 'BIOSChainEntry' inside backticks "
-        "(see `docs/specs/FP27.md` § A9)."
+        "(see `docs/specs/FP27-zombie-features-data-integrity.md` § A9)."
     )

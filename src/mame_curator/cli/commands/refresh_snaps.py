@@ -2,7 +2,7 @@
 
 Downloads the progettoSnaps snap pack and extracts ``<name>.png`` files
 into ``--dest/snap/``. Snap is the only kind progettoSnaps maintains
-upstream — see ``docs/specs/P10.md`` § "1. progettoSnaps — local pack
+upstream — see ``docs/specs/P10-media-coverage.md`` § "1. progettoSnaps — local pack
 model" for the architectural decision.
 """
 

@@ -1,6 +1,6 @@
 """P10 chunk 7 — ``MediaSourceRegistry`` ordering + filtering tests.
 
-Per ``docs/specs/P10.md`` § "class MediaSourceRegistry" + § "Registry tests".
+Per ``docs/specs/P10-media-coverage.md`` § "class MediaSourceRegistry" + § "Registry tests".
 The registry is a pure filter/orderer: it maps a configured name tuple through
 a ``name → MediaSource`` map, drops unknown names (one-time WARNING, deduped
 process-wide), appends the ``libretro`` baseline if absent, and filters out

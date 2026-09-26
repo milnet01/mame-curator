@@ -106,7 +106,7 @@ def test_restore_snapshot_atomic_writes_land_in_staging_area(
         "FP27 B2 — `restore_snapshot` must write all atomic_write_bytes "
         "destinations under `_restore_staging/`, never directly to live "
         "targets. Saw direct-live writes: "
-        f"{live_writes!r}. See `docs/specs/FP27.md` § B2."
+        f"{live_writes!r}. See `docs/specs/FP27-zombie-features-data-integrity.md` § B2."
     )
 
     # End state: live targets correctly restored (sanity check on the

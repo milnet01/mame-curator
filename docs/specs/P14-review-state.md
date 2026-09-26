@@ -692,7 +692,7 @@ These are the choices baked into this spec; flag any to revise before sign-off.
 - [x] Full `uv run pytest && uv run ruff check && uv run ruff format --check && uv run mypy && uv run bandit -c pyproject.toml -r src` pipeline passes.
 - [x] `npm run test && npm run lint && npm run typecheck` passes in `frontend/`.
 - [x] One E2E Playwright spec exercises the full flow: load library → arrow-key focus → R on focused card → progress chip updates → DELETE via toggle → `state.yaml` on disk reflects final state.
-- [x] Per `CLAUDE.md` close-of-phase rule: spec promoted from `docs/specs/P14.md` to `src/mame_curator/filter/review_state_spec.md` (the module-co-located spec). **Done 2026-06-30 (mame-curator-1061)** — the co-located file is the live audit surface; this P14 doc remains the design record.
+- [x] Per `CLAUDE.md` close-of-phase rule: spec promoted from `docs/specs/P14-review-state.md` to `src/mame_curator/filter/review_state_spec.md` (the module-co-located spec). **Done 2026-06-30 (mame-curator-1061)** — the co-located file is the live audit surface; this P14 doc remains the design record.
 - [x] Phase tag `P14-complete` (annotated) on the closing commit.
 
 ## Implementation plan (Step 2)
@@ -823,9 +823,9 @@ Per global rule 6 (PUBLIC repo): push each chunk. Per project memory `feedback_m
 
 16. **`docs(p14): promote spec to module + close P14`**
     - Files:
-      - move `docs/specs/P14.md` → `src/mame_curator/filter/review_state_spec.md` (per CLAUDE.md "no feature merges without a `spec.md` next to its code")
+      - move `docs/specs/P14-review-state.md` → `src/mame_curator/filter/review_state_spec.md` (per CLAUDE.md "no feature merges without a `spec.md` next to its code")
       - strip the `Status: in-flight` line and the "Implementation plan (Step 2)" section (plan is implementation history at this point); leave INVs, data model, API contract, frontend layout, activity-log integration, snapshot policy, coverage gates, design calls, acceptance criteria, strings — those are the load-bearing audit surface going forward
-      - update CLAUDE.md if it references `docs/specs/P14.md` (verify with one grep)
+      - update CLAUDE.md if it references `docs/specs/P14-review-state.md` (verify with one grep)
     - Verify: paths resolve; pre-commit clean; this is the chunk that gets the annotated tag `P14-complete` per CLAUDE.md "Closing a phase"
     - Depends on: 15
     - Push policy: doc-only chunk — per memory `feedback_monitor_ci_after_push.md`, skip CI watch if chunk 15's CI was green

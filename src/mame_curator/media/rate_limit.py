@@ -1,6 +1,6 @@
 """Per-source rate-limit primitives for the P10 media-source chain.
 
-Per ``docs/specs/P10.md`` § "Public API" + § "Source contracts". Each
+Per ``docs/specs/P10-media-coverage.md`` § "Public API" + § "Source contracts". Each
 source that hits an upstream owns a ``TokenBucket`` instance constructed
 at lifespan startup; the source calls ``bucket.acquire()`` before any
 upstream I/O and raises ``MediaRateLimited`` on a False return so the

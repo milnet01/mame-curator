@@ -1,6 +1,6 @@
 """P10 chunk 7 — ``resolve_image`` orchestrator + ``build_registry`` factory.
 
-Per ``docs/specs/P10.md`` § "async resolve_image" + § chunk-7 notes. The
+Per ``docs/specs/P10-media-coverage.md`` § "async resolve_image" + § chunk-7 notes. The
 orchestrator walks the registry chain, awaiting each source's ``prepare`` then
 reading ``url_for``, and returns the first cached image ``Path``. A per-source
 ``MediaRateLimited`` / ``MediaFetchError`` is swallowed and the chain advances;

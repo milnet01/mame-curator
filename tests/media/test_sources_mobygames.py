@@ -1,6 +1,6 @@
 """Tests for ``MobyGamesSource`` (P10 chunk 6) — key resolution + disabled states.
 
-Per ``docs/specs/P10.md`` § "4. MobyGames". Chunk 6 ships the *key-handling*
+Per ``docs/specs/P10-media-coverage.md`` § "4. MobyGames". Chunk 6 ships the *key-handling*
 half of the source:
 
 - API-key resolution: ``MOBYGAMES_API_KEY`` env var first, then a mode-0600

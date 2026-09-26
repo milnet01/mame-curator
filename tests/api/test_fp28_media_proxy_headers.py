@@ -11,7 +11,7 @@ exercised deterministically — without respx the request escapes to the
 real network and the test silently passes (the original draft had a
 ``if status != 200: return`` short-circuit that hid this regression).
 
-See ``docs/specs/FP28.md`` § C2.
+See ``docs/specs/FP28-hardening-correctness.md`` § C2.
 """
 
 from __future__ import annotations

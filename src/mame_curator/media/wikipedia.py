@@ -7,7 +7,7 @@ same Wikipedia REST summary the chunk-5 image source uses (shared cache slot
 extract / title / canonical URL, and returns the model — or ``None`` on a
 genuine upstream 404 or a summary that lacks the fields we need.
 
-Per ``docs/specs/P10.md`` § "async resolve_wikipedia_extract" +
+Per ``docs/specs/P10-media-coverage.md`` § "async resolve_wikipedia_extract" +
 § "Wikipedia flavor-text surface". The route (``GET /media/{name}/wiki``)
 catches ``MediaError`` and degrades to ``null`` — the About paragraph is
 non-essential, so a rate-limit / network / parse failure never 500s.

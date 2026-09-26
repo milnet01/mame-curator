@@ -6,7 +6,7 @@
  * The zod runtime validators were lifted to `./schemas.ts` in DS02 A1 to keep
  * both files under the 500-line cap; this file re-exports them at the bottom
  * so call-sites can keep importing `{ FooType, FooSchema }` from `@/api/types`
- * unchanged. See `docs/specs/P06.md` § "API contract surface".
+ * unchanged. See `docs/specs/P06-frontend-mvp.md` § "API contract surface".
  */
 
 // === Error envelope (api/errors.py) ========================================

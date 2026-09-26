@@ -1,6 +1,6 @@
 """R35 (setup-check) + R36 (updates-check) shape tests.
 
-Per ``docs/specs/P04.md`` § Stub endpoints.
+Per ``docs/specs/P04-http-api.md`` § Stub endpoints.
 """
 
 from __future__ import annotations

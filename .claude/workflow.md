@@ -176,7 +176,7 @@ later."**
   network/other-non-200 → `MediaFetchError` with the key redacted.
 
 **Three deliberate divergences from the spec (all documented inline in
-docs/specs/P10.md § "4. MobyGames" → "Chunk 6 implementation notes"):**
+docs/specs/P10-media-coverage.md § "4. MobyGames" → "Chunk 6 implementation notes"):**
 
 1. **`SourceDisabledFlag` holder, not a bare `app.state` string.** `media/`
    is HTTP-agnostic (no `api/` import) and `prepare` only gets an httpx
@@ -1226,9 +1226,9 @@ P05 (`media/` module) shipped + closed in a two-pass close: P05's closing `/audi
 
 - `/indie-review --fix HEAD` is the right shape for narrow fix-passes (≤5 findings, ≤4 files). Full-sweep `/indie-review` is calibrated for ≥5 commits across ≥3 subsystems; FP10's 113-line patch didn't earn the 5-min multi-lane cost. The single focused subagent took ~60s and produced tighter signal.
 - Smaller fix-passes converge faster — FP10 had no patch-introduced drift because the surface was too narrow. Compare FP02/FP05/FP06/FP07/FP08/FP09 each closing with 1-5 Cluster-R items. Pattern: tighter scope → faster converge.
-- "Specs are for features, not fixes" + "fix-pass amends parent spec when contract-touching" is the right combination. A1 + A2 modified the contract (`follow_redirects=True` is now part of the lifespan-client invariant; empty-body 200 is now a fetch error); `docs/specs/P05.md` updated inline. A3/A4/A5 are message/comment-only and correctly need no spec change.
+- "Specs are for features, not fixes" + "fix-pass amends parent spec when contract-touching" is the right combination. A1 + A2 modified the contract (`follow_redirects=True` is now part of the lifespan-client invariant; empty-body 200 is now a fetch error); `docs/specs/P05-media.md` updated inline. A3/A4/A5 are message/comment-only and correctly need no spec change.
 - R39's `kind=video` short-circuit is structurally load-bearing (MediaUrls has no `video` field), not just behaviorally. P06+ progettoSnaps wiring needs three coordinated changes (add field + drop short-circuit + extend the no-video AttributeError test).
-- `media_cache_dir` fixture in `tests/api/conftest.py` (tmp_path-isolated per-test) caught a real cross-test bug during Step-4: default `./data/media-cache/` gets shared between tests, hiding upstream-call assertions. Saved as a one-liner under `docs/specs/P05.md` § R39 wiring so future test authors don't re-trip.
+- `media_cache_dir` fixture in `tests/api/conftest.py` (tmp_path-isolated per-test) caught a real cross-test bug during Step-4: default `./data/media-cache/` gets shared between tests, hiding upstream-call assertions. Saved as a one-liner under `docs/specs/P05-media.md` § R39 wiring so future test authors don't re-trip.
 
 Tags: `FP10-complete` + `P05-complete`. Next active item P06 (Frontend MVP).
 

@@ -2,7 +2,7 @@
 
 Bridges sync ``run_copy`` → async event consumers via a worker thread plus
 a ``_ProgressSynthesizer`` that schedules events on the FastAPI event loop
-through ``loop.call_soon_threadsafe``. See ``docs/specs/P04.md`` §
+through ``loop.call_soon_threadsafe``. See ``docs/specs/P04-http-api.md`` §
 JobManager + SSE contract.
 """
 

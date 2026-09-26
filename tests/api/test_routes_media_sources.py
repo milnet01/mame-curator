@@ -1,6 +1,6 @@
 """P10 chunk 9 — readiness surface + secret write route tests.
 
-Per ``docs/specs/P10.md`` § "Readiness surface" + § "Readiness-surface tests".
+Per ``docs/specs/P10-media-coverage.md`` § "Readiness surface" + § "Readiness-surface tests".
 ``GET /api/media/sources`` reports every known source's real constructed state
 (surface-only, no upstream hits); ``PUT /api/media/sources/{name}/secret``
 atomically writes the MobyGames key dotfile at mode 0600.

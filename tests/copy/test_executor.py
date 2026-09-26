@@ -237,7 +237,8 @@ def test_copy_one_fsyncs_tmp_before_replace_chunked_path(
     assert replace_count >= 1, "os.replace must have been called"
     assert fsync_count_at_first_replace is not None and fsync_count_at_first_replace >= 1, (
         "FP27 B1 — `copy_one` (chunked path) must call os.fsync on the "
-        "tmp fd at least once before os.replace; see `docs/specs/FP27.md` § B1."
+        "tmp fd at least once before os.replace; see "
+        "`docs/specs/FP27-zombie-features-data-integrity.md` § B1."
     )
 
 
@@ -278,5 +279,5 @@ def test_copy_one_fsyncs_tmp_before_replace_no_progress_path(
     assert fsync_count_at_first_replace is not None and fsync_count_at_first_replace >= 1, (
         "FP27 B1 — `copy_one` (no-progress branch) must also call os.fsync "
         "before os.replace post-fix (both branches funnel through "
-        "_chunked_copy); see `docs/specs/FP27.md` § B1."
+        "_chunked_copy); see `docs/specs/FP27-zombie-features-data-integrity.md` § B1."
     )

@@ -1,6 +1,6 @@
 """Tests for ``cache_path_for`` and ``fetch_with_cache``.
 
-Per ``docs/specs/P05.md`` § Public API. SHA-256-keyed flat cache; 404 returns
+Per ``docs/specs/P05-media.md`` § Public API. SHA-256-keyed flat cache; 404 returns
 ``None`` (no negative caching); other upstream errors raise ``MediaFetchError``.
 """
 
@@ -371,5 +371,6 @@ async def test_fetch_with_cache_streams_to_disk(tmp_path: Path) -> None:
     upper = int(2.5 * 5 * 1024 * 1024)  # 12.5 MiB
     assert peak < upper, (
         f"FP27 B4 — fetch_with_cache must stream to disk, not buffer; "
-        f"tracemalloc peak {peak} ≥ {upper}. See `docs/specs/FP27.md` § B4."
+        f"tracemalloc peak {peak} ≥ {upper}. See "
+        "`docs/specs/FP27-zombie-features-data-integrity.md` § B4."
     )

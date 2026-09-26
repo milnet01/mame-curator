@@ -3,13 +3,13 @@
     {
       "name": "ds05-spec",
       "doc_paths": [
-        "docs/specs/DS05.md"
+        "docs/specs/DS05-test-file-seam-split.md"
       ],
       "cross_reference_docs": [
         "CLAUDE.md",
         "docs/standards/coding-standards.md",
         "docs/journal/DS02.md",
-        "docs/specs/DS02.md"
+        "docs/specs/DS02-structural-debt-sweep.md"
       ],
       "cited_code_paths": [
         "frontend/src/pages/__tests__/SettingsPage.test.tsx",

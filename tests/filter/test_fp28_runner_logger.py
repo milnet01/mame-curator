@@ -13,7 +13,7 @@ three sites alongside the existing ``warnings.append``.
 Pre-fix: ``caplog.records`` is empty at WARNING level — assertions fail.
 Post-fix: each test seeds exactly one override → exactly one WARNING record.
 
-See ``docs/specs/FP28.md`` § B4.
+See ``docs/specs/FP28-hardening-correctness.md`` § B4.
 """
 
 from __future__ import annotations

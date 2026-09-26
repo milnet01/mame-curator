@@ -1,6 +1,6 @@
 """R14–R19 shape tests + L07 / L08 / L09 behavioral + P01 property test.
 
-Per ``docs/specs/P04.md`` § Routes (Config) and § Tests.
+Per ``docs/specs/P04-http-api.md`` § Routes (Config) and § Tests.
 """
 
 from __future__ import annotations

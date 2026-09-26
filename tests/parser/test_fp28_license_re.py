@@ -12,7 +12,7 @@ open-paren before ``license)``.
 Pre-fix: second parametrise case fails — publisher = ``"Atari"`` (wrong).
 Post-fix: publisher = ``"Atari (JSA III)"``, developer = ``"Williams"``.
 
-See ``docs/specs/FP28.md`` § B1.
+See ``docs/specs/FP28-hardening-correctness.md`` § B1.
 """
 
 from __future__ import annotations

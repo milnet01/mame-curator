@@ -93,7 +93,7 @@ export function CopyModal({
             // buttons silently dropped the user's choice. The banner
             // now states the only real path forward: restart the copy
             // with an updated append_decisions payload. A real
-            // backend endpoint is post-v1 work (see docs/specs/FP27.md
+            // backend endpoint is post-v1 work (see docs/specs/FP27-zombie-features-data-integrity.md
             // § A4 + "Deliberately not in scope").
             <div
               role="region"

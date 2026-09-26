@@ -1,6 +1,6 @@
 """Tests for ``mame_curator.updates.snaps`` (P10 chunk 3a).
 
-Per ``docs/specs/P10.md`` § "1. progettoSnaps — local pack model" and
+Per ``docs/specs/P10-media-coverage.md`` § "1. progettoSnaps — local pack model" and
 § "`mame-curator refresh-snaps` CLI". Snap is the only kind progettoSnaps
 maintains upstream (verified 2026-05-18); chunk 3a downloads the
 versioned ZIP pack and extracts ``<name>.png`` entries into

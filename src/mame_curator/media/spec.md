@@ -482,7 +482,7 @@ Also deferred (out of `media/`'s current scope):
 
 - **Video thumbnails**, **EmuMovies**, **per-image license inspection**,
   **`keyring`-stored keys**, **source-specific retries**, **plugin
-  auto-discovery** — all post-P10 per `docs/specs/P10.md` § "Out of scope (deferred)".
+  auto-discovery** — all post-P10 per `docs/specs/P10-media-coverage.md` § "Out of scope (deferred)".
 - **MobyGames 200-path cover parse + JSON-body caching** — deferred to
   `mame-curator-1079`. Until then a valid key validates but yields no covers
   (`_url_cache` stays empty; `url_for` → `None`).

@@ -1,6 +1,6 @@
 """R28 shape test + L11 behavioral test (paginated activity log).
 
-Per ``docs/specs/P04.md`` § Routes (Activity) and § Tests.
+Per ``docs/specs/P04-http-api.md`` § Routes (Activity) and § Tests.
 """
 
 from __future__ import annotations
@@ -168,7 +168,7 @@ def test_activity_route_streams_log_does_not_buffer_full_file(
     assert peak < upper, (
         f"FP27 B5 — GET /api/activity must stream line-by-line; "
         f"tracemalloc peak {peak} ≥ {upper} suggests the whole file is "
-        f"still buffered. See `docs/specs/FP27.md` § B5."
+        f"still buffered. See `docs/specs/FP27-zombie-features-data-integrity.md` § B5."
     )
 
 
@@ -198,7 +198,7 @@ def test_activity_route_page2_slice_correct(client: Any, planted_50k_activity_lo
             indexes.append(int(rp[len("sample://") :]))
     assert indexes[0] == 49_979, (
         f"FP27 B5 — page-2 newest item index expected 49979, got {indexes[0]}. "
-        f"See `docs/specs/FP27.md` § B5."
+        f"See `docs/specs/FP27-zombie-features-data-integrity.md` § B5."
     )
     assert indexes[-1] == 49_960, (
         f"FP27 B5 — page-2 oldest item index expected 49960, got {indexes[-1]}."

@@ -1,6 +1,6 @@
 """Atomic-write + snapshot helpers shared across config / overrides / sessions / notes routes.
 
-Per ``docs/specs/P04.md`` § Atomic-write protocol.
+Per ``docs/specs/P04-http-api.md`` § Atomic-write protocol.
 """
 
 from __future__ import annotations

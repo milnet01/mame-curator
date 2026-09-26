@@ -490,7 +490,7 @@ walkthrough auto-advance toggle.
   `localStorage['mame-curator:walkthrough-mode']` (default `true`).
 - 19 backend tests + 7 hook tests + 4 GameCard badge tests + 1
   cross-side parity contract test (INV-12) covering all 13
-  invariants in `docs/specs/P14.md`.
+  invariants in `docs/specs/P14-review-state.md`.
 
 **Notes**
 
@@ -548,7 +548,7 @@ docs bundle.
 8 clusters folding every direct dep + GitHub Actions pin + pre-commit
 hook rev forward to its current latest stable, plus a new frontend CI
 lane that gates `npm run lint` / `tsc --noEmit` / `npm test` on every
-push. Spec at [`docs/specs/DS03.md`](docs/specs/DS03.md); closing
+push. Spec at [`docs/specs/DS03-dependency-freshness.md`](docs/specs/DS03-dependency-freshness.md); closing
 `/audit` returned clean (trivy/gitleaks/semgrep/ruff/bandit all zero
 findings); closing `/indie-review` 4-lane sweep surfaced 7 actionable
 findings folded as Cluster R1. Shipped across 10 commits
@@ -591,7 +591,7 @@ local missed" gap cannot recur for dep pins.
   `8.24.3`) is closed and the test prevents recurrence.
 - **Spec-text drift caught.** Cluster H corrected `pnpm` →
   `npm` command samples in `docs/specs/{DS02,DS05}.md` that had
-  diverged from `P06.md`'s source-of-truth ("npm not pnpm/yarn/bun").
+  diverged from `P06-frontend-mvp.md`'s source-of-truth ("npm not pnpm/yarn/bun").
 
 **Deferred to follow-up phases (per the spec's non-breaking-only
 rule):** pydantic v3, fastapi 1.0, react 20, vite 9, mypy 3.x,
@@ -603,7 +603,7 @@ rule):** pydantic v3, fastapi 1.0, react 20, vite 9, mypy 3.x,
 
 Three test files breaching their size caps split along stable seams;
 one permanent fix for the DS02 R2 lesson wired into pre-commit.
-Spec at [`docs/specs/DS05.md`](docs/specs/DS05.md); two cold-eyes
+Spec at [`docs/specs/DS05-test-file-seam-split.md`](docs/specs/DS05-test-file-seam-split.md); two cold-eyes
 review loops converged on the implementation; closing `/audit`
 returned clean (10/10 gates pass); closing `/indie-review` 5/5
 lanes PASS with 2 LOW spec-history nits folded as Cluster R1.
@@ -675,7 +675,7 @@ and after, just organised across more files.
 
 **R1 — Closing-review fold-in (2 spec-history corrections)** `d9c6817`:
 
-- **R1a:** `docs/specs/DS05.md` § "Tests to write first" said
+- **R1a:** `docs/specs/DS05-test-file-seam-split.md` § "Tests to write first" said
   "three structural-assertion tests"; HEAD has 18 cases across
   two files. Spec updated.
 - **R1b:** spec named `_settingsPageFixtures.ts`; HEAD is `.tsx`
@@ -693,7 +693,7 @@ Five backend gates green at close: 605 pytest pass / 87% coverage /
 2026-05-14 indie-review Tier 3 partitions and the 2026-05-14
 debt-sweep mechanical-drift batch, scoped down by Step 1
 verification (6 of 17 original sub-items dropped as verified stale).
-Spec at [`docs/specs/DS02.md`](docs/specs/DS02.md); cold-eyes review
+Spec at [`docs/specs/DS02-structural-debt-sweep.md`](docs/specs/DS02-structural-debt-sweep.md); cold-eyes review
 converged through 2 loops; closing `/audit` returned clean; closing
 `/indie-review` surfaced 3 MED + 1 LOW on the DS02 surface itself,
 folded as Cluster R1. Shipped across 4 commits (`c0a6ad6..eb000e4`).
@@ -826,7 +826,7 @@ Five backend gates green at close: 583 pytest pass / 87.27% coverage
 ### FP28 — Tier 2 review fold-in: hardening + correctness (closed 2026-05-15)
 
 14 sub-fixes sourced from the 2026-05-14 11-lane `/indie-review` (Tier 2
-partition). Spec at [`docs/specs/FP28.md`](docs/specs/FP28.md); cold-eyes
+partition). Spec at [`docs/specs/FP28-hardening-correctness.md`](docs/specs/FP28-hardening-correctness.md); cold-eyes
 review converged through 3 loops (33 verified findings folded inline);
 closing `/indie-review` surfaced 3 findings (1 HIGH + 2 MEDIUM) folded
 as Cluster R1. Shipped across 6 commits (`cb35f26..72505d8`).
@@ -952,7 +952,7 @@ the wizard-vs-runtime trust-model split for INI refresh.
   factory and config validation happens inside the async lifespan.
   Amended the inline comment to name the dead-code constraint as
   defence-in-depth for a future refactor.
-- **R1.3:** FP28.md § B2 spec text described a single-branch regex
+- **R1.3:** FP28-hardening-correctness.md § B2 spec text described a single-branch regex
   tightening; updated the spec body to document the two-branch
   lookahead form that shipped, naming the regression that drove
   the refinement.
@@ -962,7 +962,7 @@ the wizard-vs-runtime trust-model split for INI refresh.
 37 sub-fixes sourced from the 2026-05-15 5-lane test-suite audit
 (parser+filter / copy / api+media+downloads / frontend components /
 frontend pages+e2e) on commit `06fe3b8` (post-FP27). Spec at
-[`docs/specs/DS04.md`](docs/specs/DS04.md); cold-eyes loop converged
+[`docs/specs/DS04-test-suite-quality.md`](docs/specs/DS04-test-suite-quality.md); cold-eyes loop converged
 on a single pass (10 findings folded inline); closing review surfaced
 3 comment-drift findings folded as Cluster R1. Shipped across
 5 commits (`dca57b2..d5918a0`).
@@ -1046,7 +1046,7 @@ calls under vitest auto-cleanup, and a hardcoded `/tmp/` path with
 Tier 1 partition: 9 zombie-feature reconciliations (with A6 split
 a/b/c = 11 sub-fixes), 5 data-integrity hardening fixes, 2 doc-drift
 fixes, plus closing-review Cluster R1 (4 fixes on the FP27 surface
-itself). Spec at [`docs/specs/FP27.md`](docs/specs/FP27.md);
+itself). Spec at [`docs/specs/FP27-zombie-features-data-integrity.md`](docs/specs/FP27-zombie-features-data-integrity.md);
 cold-eyes review converged on loop 5 (0 residual findings). Shipped
 across 5 commits (`cfe612c..976b119`).
 
@@ -2173,7 +2173,7 @@ finding-by-finding bullet list in ROADMAP.md § FP11.
 
 ### P05 — Media subsystem (closed 2026-05-02)
 
-**P05 (`media/` module) shipped** — `src/mame_curator/media/` (3 files, ~120 LoC) implementing the libretro-thumbnails URL builder + lazy-fetch sha256 disk cache per `docs/specs/P05.md`. `escape_libretro` applies the 10-character filename rule (`&*/:\<>?|"` → `_`); `urls_for(machine)` returns frozen `MediaUrls` with `boxart`/`title`/`snap` (no `video` field — design §6.3 routes video through progettoSnaps in P06+, MediaUrls absence is load-bearing for the R39 short-circuit). `fetch_with_cache(url, cache_dir, *, client)` returns the on-disk path on cache hit, downloads-then-atomic-writes on miss, returns `None` on upstream 404 (no negative caching), raises `MediaFetchError` on other upstream/network failures. `cache_path_for(url, cache_dir)` is a pure helper (no I/O); cache key = `sha256(url).hexdigest()` with the URL path's suffix appended. R39 (`/media/{name}/{kind}`) swapped from inline URL build + bare `client.get` to `urls_for` + `fetch_with_cache`; `kind=video` short-circuits with `media_upstream_not_found` BEFORE `urls_for` (load-bearing — `MediaUrls` has no `video` attribute). `app.state.media_client` migrated from bare `httpx.AsyncClient()` to `AsyncClient(timeout=10.0, follow_redirects=True)` so the 10s timeout moves from per-call to client construction and libretro CDN 301/302 redirects transit transparently.
+**P05 (`media/` module) shipped** — `src/mame_curator/media/` (3 files, ~120 LoC) implementing the libretro-thumbnails URL builder + lazy-fetch sha256 disk cache per `docs/specs/P05-media.md`. `escape_libretro` applies the 10-character filename rule (`&*/:\<>?|"` → `_`); `urls_for(machine)` returns frozen `MediaUrls` with `boxart`/`title`/`snap` (no `video` field — design §6.3 routes video through progettoSnaps in P06+, MediaUrls absence is load-bearing for the R39 short-circuit). `fetch_with_cache(url, cache_dir, *, client)` returns the on-disk path on cache hit, downloads-then-atomic-writes on miss, returns `None` on upstream 404 (no negative caching), raises `MediaFetchError` on other upstream/network failures. `cache_path_for(url, cache_dir)` is a pure helper (no I/O); cache key = `sha256(url).hexdigest()` with the URL path's suffix appended. R39 (`/media/{name}/{kind}`) swapped from inline URL build + bare `client.get` to `urls_for` + `fetch_with_cache`; `kind=video` short-circuits with `media_upstream_not_found` BEFORE `urls_for` (load-bearing — `MediaUrls` has no `video` attribute). `app.state.media_client` migrated from bare `httpx.AsyncClient()` to `AsyncClient(timeout=10.0, follow_redirects=True)` so the 10s timeout moves from per-call to client construction and libretro CDN 301/302 redirects transit transparently.
 
 **423 tests pass project-wide; coverage 89.12%; `media/` aggregate 100% (above 90% gate); all five gates green.** 47 net new tests (23 escape + 6 urls + 12 cache in `tests/media/` + 6 new integration tests in `tests/api/test_routes_media.py` + `media_cache_dir` fixture in `tests/api/conftest.py` for tmp_path-isolated per-test cache).
 
@@ -2187,7 +2187,7 @@ P05's closing `/audit` returned clean across ruff / bandit / gitleaks; `/indie-r
 - **A4 (Tier 3):** `media/cache.py:60-62` one-line invariant comment naming the append-only-via-`atomic_write_bytes` assumption that makes the `path.exists()` race benign. Future "verify checksum" or "delete corrupt entry" paths would reintroduce TOCTOU; the comment makes the contract visible.
 - **A5 (Tier 3):** `media/cache.py:68` network-error message uses `{url!r}: {exc}` (single `!r`). `ConnectTimeout(...)` class name no longer leaks into the user-facing detail; chained `__cause__` already carries the typed exception.
 
-`docs/specs/P05.md` updated for A1 + A2 (contract-touching). A3 / A4 / A5 are message/comment-only and need no spec change. No `docs/specs/FP10.md` per the "specs are for features, not fixes" rule. See [`docs/journal/FP10.md`](docs/journal/FP10.md) and [`docs/journal/P05.md`](docs/journal/P05.md). Next phase: **P06 — Frontend MVP.**
+`docs/specs/P05-media.md` updated for A1 + A2 (contract-touching). A3 / A4 / A5 are message/comment-only and need no spec change. No `docs/specs/FP10.md` per the "specs are for features, not fixes" rule. See [`docs/journal/FP10.md`](docs/journal/FP10.md) and [`docs/journal/P05.md`](docs/journal/P05.md). Next phase: **P06 — Frontend MVP.**
 
 ### P04 — HTTP API (closed 2026-05-01)
 
@@ -2220,7 +2220,7 @@ The smallest fix-pass yet — 2 source edits + 2 regression tests. FP07 closing 
 - **Tier 1 (1 — A1):** `copy/runner.py:233` warning emit now interpolates `{old_zip.name!r}`. The `{exc}` portion is a `CopyError` subclass already repr-quoted post-FP07 A4.
 - **Cluster R (1 — R1):** `copy/runner.py:92` BIOS-warning list-comp now interpolates `{w.name!r}: {w.kind}`. Audit-pattern lesson logged: `warnings.append(f"...")` grep doesn't find the list-comp form; future fix-passes should trace value-flow into `CopyReport.warnings` rather than relying on a single grep pattern.
 
-2 new regression tests added to `tests/copy/test_fp01_fixes.py` covering both sites end-to-end via `run_copy` (LF-bearing winner short-name for R1; LF-bearing existing-zip basename for A1). **295 tests pass project-wide; coverage 95.03%; all five gates green.** Long-form contract: [`docs/specs/FP08.md`](docs/specs/FP08.md). Follow-ups: FP04 (parser hardening, unchanged); P04 (HTTP API).
+2 new regression tests added to `tests/copy/test_fp01_fixes.py` covering both sites end-to-end via `run_copy` (LF-bearing winner short-name for R1; LF-bearing existing-zip basename for A1). **295 tests pass project-wide; coverage 95.03%; all five gates green.** Long-form contract: [`docs/specs/FP08-runner-warning-quoting.md`](docs/specs/FP08-runner-warning-quoting.md). Follow-ups: FP04 (parser hardening, unchanged); P04 (HTTP API).
 
 ### FP07 — `cli/` + typed-error path-quoting sweep (closed 2026-05-01)
 
@@ -2229,7 +2229,7 @@ Completes the path-quoting sweep that FP06 scoped to `filter/`. Five surgical ed
 - **Tier 1 (5 — A1, A2, A3, A4, A5):** A1-A3 quote `args.dat`, `args.out`, `args.filter_report` via `{!r}` at three error-message f-strings in `cli/__init__.py:139, 200, 249`. A4 fixes `CopyError.__str__` at `copy/errors.py:26` to render `(path={self.path!r})` — single rendering site covers every CopyError subclass (`RecycleError`, `PlaylistError`, `CopyExecutionError`, `PreflightError`) at every raise site without 7+ duplicate edits. A5 mirrors the fix in `parser/errors.py:14` `ParserError.__init__` for every ParserError subclass (`DATError`, `INIError`, `ListxmlError`). Strategy is a deliberate single-point-of-change at the base class — future raise sites added to either module inherit the fix automatically; this is the right level of abstraction for a contract change of this shape (Rule of Three's intent — when 5+ near-identical sites would be touched, fix at the base instead).
 - **Cluster R (1 — R1):** Closing-review M1 — original CLI test assertion `assert "\n" not in err.rstrip("\n")` only strips trailing LFs; if any future `{exc}` value contains an embedded LF (e.g. multi-line `ValidationError.__str__`) the assertion fires on the exception body, not on the path. Narrowed the three CLI test assertions to `assert "evil\nname.<ext>" not in err` (literal-LF form of the path) — directly tests the contract without over-claiming about the rest of the message.
 
-**Out of scope (deferred to FP08):** `copy/runner.py:233` `warnings.append(f"recycle of {old_zip.name} failed: ...")` — `old_zip.name` flows from DAT machine short names (user-data path); same threat model. One-line edit + regression test next fix-pass. 9 new tests across `tests/copy/test_errors.py` (NEW), `tests/parser/test_errors.py` (NEW), `tests/parser/test_cli_parse.py`, `tests/filter/test_cli_filter.py`, `tests/copy/test_cli_copy.py` — plus 1 updated test in `tests/copy/test_fp01_fixes.py` for the new repr-quoted shape. **293 tests pass project-wide; coverage 94.93%; all five gates green.** Long-form contract: [`docs/specs/FP07.md`](docs/specs/FP07.md). Follow-ups: FP08 (one-line `runner.py:233` warning fix); FP04 (parser hardening, unchanged).
+**Out of scope (deferred to FP08):** `copy/runner.py:233` `warnings.append(f"recycle of {old_zip.name} failed: ...")` — `old_zip.name` flows from DAT machine short names (user-data path); same threat model. One-line edit + regression test next fix-pass. 9 new tests across `tests/copy/test_errors.py` (NEW), `tests/parser/test_errors.py` (NEW), `tests/parser/test_cli_parse.py`, `tests/filter/test_cli_filter.py`, `tests/copy/test_cli_copy.py` — plus 1 updated test in `tests/copy/test_fp01_fixes.py` for the new repr-quoted shape. **293 tests pass project-wide; coverage 94.93%; all five gates green.** Long-form contract: [`docs/specs/FP07-error-path-quoting.md`](docs/specs/FP07-error-path-quoting.md). Follow-ups: FP08 (one-line `runner.py:233` warning fix); FP04 (parser hardening, unchanged).
 
 ### FP06 — FP05 closing-review fold-in (closed 2026-05-01)
 
@@ -2239,15 +2239,15 @@ Closing `/indie-review` on FP05 surfaced 4 actionable findings in surrounding co
 - **Tier 2 (3 — B1, B2, B3):** B1 lock-in tests for `Sessions` exception-shape contract (direct construction → `ValidationError` with `errors()[0]['ctx']['error']` shape; loader path → `SessionsError` with path-prefixed message). B2 `Sessions._active_must_reference_a_defined_session` flipped from `raise SessionsError(...)` to `raise ValueError(...)`, restoring Pydantic's `ValidationError` wrapping and matching `Session._validate_session`'s convention; loader's existing `try: Sessions(...) except ValidationError → SessionsError(f"{path!r}: ...")` rewrap now fires correctly. B3 quote user-controlled strings via `repr()` at 13 sites total (10 path + 3 name post-R2): `_io.py:32, 35, 40`; `sessions.py:50, 81, 86, 93, 107, 119, 138, 150`; `overrides.py:35, 41, 45`. Defends single-line error contract against control-byte spoofing in filenames or YAML keys (newlines, ANSI escapes).
 - **Cluster R (3 — R1, R2, R3):** R1 fixes the misleading `__cause__` docstring at `sessions.py:27-30` (Pydantic v2 leaves `__cause__=None`; the original `ValueError` is at `validation_error.errors()[0]['ctx']['error']`) and adds a parallel comment block above `_active_must_reference_a_defined_session` documenting the same wrap behavior post-B2. R2 — closing-review caught a B3 scope error: `sessions.py:81` interpolates `self.active` (loaded from YAML) without `repr` quoting; the bare interpolation leaks raw LF bytes through `ValidationError.__str__`. Reproduced at the prompt: `Sessions(active="evil\nname", sessions={"other": Session(include_genres=("X*",))})` produces a multi-line error message. Fixed inline as Cluster R per fix-pass precedent. New `test_active_with_control_char_quoted_in_error` pins. R3 — closing-review M1 caught that the original B1b path-context assertion `assert repr(f) in msg or repr(str(f)) in msg` was satisfied both pre-fix and post-fix on a clean fixture path because `repr` of a clean string-path coincidentally produces the same single-quote characters a bare interpolation would. Strengthened to a fixture path with literal LF (`tmp_path / "evil\nname.yaml"`) plus strict "no LF in head" assertion that survives a future "I'll just simplify the f-string" refactor.
 
-**Out of scope (deferred to FP07):** `cli/__init__.py:139, 187, 200, 225, 233, 240, 260` and `copy/recyclebin.py` path-quoting (different module surface; FP06 deliberately scoped to `filter/`'s loaders so each fix-pass keeps a cohesive audit surface). 8 new tests across `tests/filter/test_io.py` (NEW), `test_overrides.py`, `test_sessions.py`, plus the A1 monkeypatched-OSError test in `tests/copy/test_cli_copy.py` and the R2 control-char test. **284 tests pass project-wide; coverage 94.63%; all five gates green.** Long-form contract: [`docs/specs/FP06.md`](docs/specs/FP06.md). Follow-ups: FP07 (cli/ + copy/recyclebin.py path-quoting); FP04 (parser hardening, unchanged).
+**Out of scope (deferred to FP07):** `cli/__init__.py:139, 187, 200, 225, 233, 240, 260` and `copy/recyclebin.py` path-quoting (different module surface; FP06 deliberately scoped to `filter/`'s loaders so each fix-pass keeps a cohesive audit surface). 8 new tests across `tests/filter/test_io.py` (NEW), `test_overrides.py`, `test_sessions.py`, plus the A1 monkeypatched-OSError test in `tests/copy/test_cli_copy.py` and the R2 control-char test. **284 tests pass project-wide; coverage 94.63%; all five gates green.** Long-form contract: [`docs/specs/FP06-fp05-review-fold-in.md`](docs/specs/FP06-fp05-review-fold-in.md). Follow-ups: FP07 (cli/ + copy/recyclebin.py path-quoting); FP04 (parser hardening, unchanged).
 
 ### FP05 — DS01 closing-review fold-in (closed 2026-05-01)
 
-DS01's closing `/indie-review` returned 14+ surrounding-code findings; FP05 absorbed 20 actionable sub-bullets across Tier 1 (3 real bugs: recycle_partial=True implementation, empty-string `active` rejection, `MemoryError` swallow narrowing), Tier 2 (8 hardening items + 2 reclassified after empirical investigation: B1 transitive-missing-warning conflated with leaf BIOS machines; B4 pause/cancel race didn't apply because `pause()` already short-circuits on `_cancel_flag`), Tier 3 (3 refactors: `_io.read_capped_text` + `_atomic.atomic_write_text` helper extraction; EXDEV handling), and 6 minor LOWs. Three rounds of cold-eyes spec review preceded sign-off (round 1: 8 issues; round 2: 5 + 2 contradictions; round 3: clean). FP05's own closing review surfaced 6 FP05-introduced drift items (Cluster R per the FP02 precedent), all closed inside FP05: recycle_root path mismatch, residual self-reference guard in bios.py, lingering BIOSResolutionError spec mention, dead OSError clause in _atomic.py, atomic_write_text call outside the try block, and cli/spec.md exit-code table out of sync with B10. 275 tests pass; coverage 94.67%; all five gates green. Long-form contract: [`docs/specs/FP05.md`](docs/specs/FP05.md). Follow-ups: FP06 (4 findings in surrounding code from FP05 closing review); FP04 (parser hardening, unchanged).
+DS01's closing `/indie-review` returned 14+ surrounding-code findings; FP05 absorbed 20 actionable sub-bullets across Tier 1 (3 real bugs: recycle_partial=True implementation, empty-string `active` rejection, `MemoryError` swallow narrowing), Tier 2 (8 hardening items + 2 reclassified after empirical investigation: B1 transitive-missing-warning conflated with leaf BIOS machines; B4 pause/cancel race didn't apply because `pause()` already short-circuits on `_cancel_flag`), Tier 3 (3 refactors: `_io.read_capped_text` + `_atomic.atomic_write_text` helper extraction; EXDEV handling), and 6 minor LOWs. Three rounds of cold-eyes spec review preceded sign-off (round 1: 8 issues; round 2: 5 + 2 contradictions; round 3: clean). FP05's own closing review surfaced 6 FP05-introduced drift items (Cluster R per the FP02 precedent), all closed inside FP05: recycle_root path mismatch, residual self-reference guard in bios.py, lingering BIOSResolutionError spec mention, dead OSError clause in _atomic.py, atomic_write_text call outside the try block, and cli/spec.md exit-code table out of sync with B10. 275 tests pass; coverage 94.67%; all five gates green. Long-form contract: [`docs/specs/FP05-ds01-review-fold-in.md`](docs/specs/FP05-ds01-review-fold-in.md). Follow-ups: FP06 (4 findings in surrounding code from FP05 closing review); FP04 (parser hardening, unchanged).
 
 ### DS01 — Pre-P04 debt-sweep fold-in (closed 2026-05-01)
 
-`/debt-sweep` 2026-05-01 (scope `P02-complete..HEAD`) surfaced findings; four rounds of cold-eyes spec review converged on **20 actionable sub-bullets** (with C9 retained in the spec body as a footnoted stale-finding entry — flags already had `help=` strings at HEAD; shipped silently in DOC01/P03). D3 was added during cold-eyes review to prune two stale Tier-3 entries from this same `[Unreleased]` block. Folded into one fix-pass per the App-Build "every audit finding is tracked" hard rule. Prefix is `DS##` (debt-sweep) per the App-Build ID scheme — sourced from `/debt-sweep`, even though many sub-bullets are recovered FP-shaped findings (FP01 deferrals that did not actually close in FP02; pre-P03 sweep `[Unreleased]` Tier-2/3 hardening items; the `runner.py:258` swallow that FP02 deferred forward; record drift on commit `179325a`). Long-form contract: [`docs/specs/DS01.md`](docs/specs/DS01.md). Roadmap: [`ROADMAP.md` § DS01](ROADMAP.md). 20 sub-bullets across four clusters:
+`/debt-sweep` 2026-05-01 (scope `P02-complete..HEAD`) surfaced findings; four rounds of cold-eyes spec review converged on **20 actionable sub-bullets** (with C9 retained in the spec body as a footnoted stale-finding entry — flags already had `help=` strings at HEAD; shipped silently in DOC01/P03). D3 was added during cold-eyes review to prune two stale Tier-3 entries from this same `[Unreleased]` block. Folded into one fix-pass per the App-Build "every audit finding is tracked" hard rule. Prefix is `DS##` (debt-sweep) per the App-Build ID scheme — sourced from `/debt-sweep`, even though many sub-bullets are recovered FP-shaped findings (FP01 deferrals that did not actually close in FP02; pre-P03 sweep `[Unreleased]` Tier-2/3 hardening items; the `runner.py:258` swallow that FP02 deferred forward; record drift on commit `179325a`). Long-form contract: [`docs/specs/DS01-pre-p04-debt-sweep.md`](docs/specs/DS01-pre-p04-debt-sweep.md). Roadmap: [`ROADMAP.md` § DS01](ROADMAP.md). 20 sub-bullets across four clusters:
 
 - **Cluster A — `copy/` spec+code drift (5):** `data/copy-history` persistence claim drop (3 sites: per-module spec + long-form roadmap); `session_id` ULID claim narrow; unused `self_reference` enum arm drop; `wait_if_paused` race-safety comment; `logger.exception()` on `runner.py:258` bare `except`.
 - **Cluster B — Test gaps (4):** Hypothesis property tests for `resolve_bios_dependencies`; `test_cancel_with_keep_partial` strengthened to mid-session cancel; `test_lpl_no_bom` strengthened to UTF-8 round-trip; `source_dir` fixture widened to `scope="module"`.

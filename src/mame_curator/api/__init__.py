@@ -1,6 +1,6 @@
 """HTTP API surface for MAME Curator (Phase 4 — in flight).
 
-Public surface (per `docs/specs/P04.md`):
+Public surface (per `docs/specs/P04-http-api.md`):
 
 - ``create_app(config) -> FastAPI`` — application factory.
 - ``JobManager`` — singleton owning the in-flight copy job.

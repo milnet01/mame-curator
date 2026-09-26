@@ -2,7 +2,7 @@
 
 Every model is ``frozen=True, extra="forbid"`` per project convention. Where a
 type comes from ``parser/`` / ``filter/`` / ``copy/`` we re-export rather than
-re-declare; see ``docs/specs/P04.md`` § Schemas.
+re-declare; see ``docs/specs/P04-http-api.md`` § Schemas.
 
 **DS02 A5 — file split.** This module now holds only the Config schema +
 small per-route request bodies. Games / Overrides / Copy / Activity /

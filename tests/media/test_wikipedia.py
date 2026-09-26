@@ -1,6 +1,6 @@
 """Tests for ``resolve_wikipedia_extract`` + ``WikipediaExtract`` (P10 chunk 8).
 
-Per ``docs/specs/P10.md`` § "async resolve_wikipedia_extract" +
+Per ``docs/specs/P10-media-coverage.md`` § "async resolve_wikipedia_extract" +
 § "WikipediaExtract". The extract hits the same REST summary endpoint (and
 therefore the same ``fetch_text_with_cache`` slot + rate-limit bucket) as the
 chunk-5 ``WikipediaImageSource``; it parses ``extract`` / ``title`` /

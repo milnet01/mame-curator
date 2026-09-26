@@ -1,7 +1,7 @@
 """FP25-A: ``world_lock`` covers all seven remaining mutation routes.
 
 FP20-C wired the lock across five of the seven routes named in
-``docs/specs/P04.md`` lines 104-115 (PATCH /api/config, two snapshot
+``docs/specs/P04-http-api.md`` lines 104-115 (PATCH /api/config, two snapshot
 restore-shaped routes, fs grant/revoke). The remaining seven are in
 ``api/routes/curate.py`` (overrides POST/DELETE; sessions POST/DELETE,
 activate, _deactivate) and ``api/routes/games.py`` (notes PUT). All seven
@@ -57,7 +57,7 @@ def test_fp25_a_mutation_route_is_async(module: str, name: str) -> None:
 
     Sync handlers run in Starlette's threadpool — the read-merge-write block
     races with itself across threads. Converting to async + lock eliminates
-    the threadpool race entirely. (``docs/specs/P04.md`` lines 104-115;
+    the threadpool race entirely. (``docs/specs/P04-http-api.md`` lines 104-115;
     ROADMAP § FP25-A.)
     """
     import importlib
@@ -65,7 +65,7 @@ def test_fp25_a_mutation_route_is_async(module: str, name: str) -> None:
     fn = getattr(importlib.import_module(module), name)
     assert inspect.iscoroutinefunction(fn), (
         f"{name} must be `async def` after FP25-A (see ROADMAP § FP25-A "
-        "and docs/specs/P04.md lines 104-115)"
+        "and docs/specs/P04-http-api.md lines 104-115)"
     )
 
 

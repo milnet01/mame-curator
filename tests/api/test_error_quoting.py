@@ -1,6 +1,6 @@
 """L15 — paths in responses are safe (repr-quoted across error paths).
 
-Per ``docs/specs/P04.md`` § Tests L15: continuation of the FP06–FP08
+Per ``docs/specs/P04-http-api.md`` § Tests L15: continuation of the FP06–FP08
 contract — every user-controlled string in error bodies is interpolated via
 ``repr()`` so control bytes can't spoof error messages or break JSON.
 """

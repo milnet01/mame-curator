@@ -10,7 +10,7 @@ GitHub workflow files. Asserts no entry carries a pre-release marker
 (alpha / beta / rc / preview / next / dev) that PEP 440 or npm dist-tag
 semantics would resolve to a non-stable build.
 
-See `docs/specs/DS03.md` §§ Tests to write first.
+See `docs/specs/DS03-dependency-freshness.md` §§ Tests to write first.
 """
 
 from __future__ import annotations

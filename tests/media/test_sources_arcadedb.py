@@ -1,6 +1,6 @@
 """Tests for ``ArcadeDBSource`` (P10 chunk 4).
 
-Per ``docs/specs/P10.md`` § "2. ArcadeDB". Two-step lookup: ``prepare``
+Per ``docs/specs/P10-media-coverage.md`` § "2. ArcadeDB". Two-step lookup: ``prepare``
 acquires from the per-source ``TokenBucket``, calls ``fetch_text_with_cache``
 against the scraper endpoint, parses ``{"release": N, "result": [...]}``
 (parse-before-trust — invalid JSON unlinks the cache slot and raises

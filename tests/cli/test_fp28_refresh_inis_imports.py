@@ -23,7 +23,7 @@ crashes with a non-zero exit but the message format doesn't contain "failed
 to import dependencies" → assertion fails.
 Post-fix: typed exit 1 with the stable error string.
 
-See ``docs/specs/FP28.md`` § D3.
+See ``docs/specs/FP28-hardening-correctness.md`` § D3.
 """
 
 from __future__ import annotations

@@ -11,7 +11,7 @@ whole subtree including child element text and the tail after each child.
 Pre-fix: assertion fails — ``machine.description == "Foo "``.
 Post-fix: assertion passes — ``machine.description == "Foo bar baz"``.
 
-See ``docs/specs/FP28.md`` § B3.
+See ``docs/specs/FP28-hardening-correctness.md`` § B3.
 
 MAME DATs do not currently ship mixed-content ``<description>`` elements,
 so the fix is defensive; the test exercises the failure mode that would

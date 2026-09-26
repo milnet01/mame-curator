@@ -69,7 +69,7 @@ def _extract_design_spec_bullets() -> list[str]:
     section_start = text.find("### Keyboard shortcuts")
     assert section_start >= 0, (
         "design spec must contain a `### Keyboard shortcuts` H3 heading "
-        "(see `docs/specs/FP27.md` § A6c)."
+        "(see `docs/specs/FP27-zombie-features-data-integrity.md` § A6c)."
     )
     # Find the next H2/H3 heading after this one to bound the section.
     rest = text[section_start + len("### Keyboard shortcuts") :]
@@ -121,7 +121,7 @@ def test_design_spec_keyboard_shortcuts_match_post_fix_set() -> None:
         f"design-spec keyboard shortcuts must be exactly "
         f"{sorted(DESIGN_SPEC_EXPECTED)}, got "
         f"{sorted(canonical)} (raw bullets: {raw_bullets!r}). "
-        f"See `docs/specs/FP27.md` § A6c."
+        f"See `docs/specs/FP27-zombie-features-data-integrity.md` § A6c."
     )
 
 
@@ -135,7 +135,7 @@ def test_app_tsx_use_keyboard_bindings_match_post_fix_set() -> None:
         f"App.tsx useKeyboard bindings must be exactly "
         f"{sorted(WIRED_EXPECTED)}, got "
         f"{sorted(canonical)} (raw combos: {raw_combos!r}). "
-        f"See `docs/specs/FP27.md` § A6b + A6c."
+        f"See `docs/specs/FP27-zombie-features-data-integrity.md` § A6b + A6c."
     )
 
 
@@ -154,16 +154,17 @@ def test_ini_refresh_trust_model_adr_exists() -> None:
     Post-fix: ADR drafted with wizard-vs-refresh split + current trust posture
     + post-v1 hardening path; required substrings present.
 
-    See ``docs/specs/FP28.md`` § E1.
+    See ``docs/specs/FP28-hardening-correctness.md`` § E1.
     """
     assert ADR_PATH.is_file(), (
-        f"FP28 E1a — expected ADR at {ADR_PATH} (not found). See `docs/specs/FP28.md` § E1."
+        f"FP28 E1a — expected ADR at {ADR_PATH} (not found). See "
+        "`docs/specs/FP28-hardening-correctness.md` § E1."
     )
     body = ADR_PATH.read_text(encoding="utf-8")
     for needle in ("wizard", "refresh", "sha256"):
         assert needle in body.lower(), (
             f"FP28 E1a — ADR body must mention '{needle}' (wizard-vs-refresh "
-            f"split + trust posture); see `docs/specs/FP28.md` § E1."
+            f"split + trust posture); see `docs/specs/FP28-hardening-correctness.md` § E1."
         )
 
 
@@ -177,7 +178,7 @@ def test_design_spec_section_6_7_cross_links_trust_model_adr() -> None:
     Post-fix: a one-line "See ADR-0004 for the runtime refresh trust model."
     sits within § 6.7.
 
-    See ``docs/specs/FP28.md`` § E1.
+    See ``docs/specs/FP28-hardening-correctness.md`` § E1.
     """
     text = DESIGN_SPEC.read_text(encoding="utf-8")
     section_pattern = re.compile(
@@ -192,5 +193,5 @@ def test_design_spec_section_6_7_cross_links_trust_model_adr() -> None:
     section_body = match.group(0)
     assert ADR_BASENAME in section_body, (
         f"FP28 E1b — design.md § 6.7 body must cross-link {ADR_BASENAME!r}; "
-        f"see `docs/specs/FP28.md` § E1."
+        f"see `docs/specs/FP28-hardening-correctness.md` § E1."
     )

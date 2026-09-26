@@ -66,7 +66,7 @@ jobs:
     # Vitest, TypeScript) is OS-agnostic; the cross-platform quirks
     # are all in the backend (Windows path semantics, macOS fsync).
     # Adding a matrix here would 3× the CI runtime for zero coverage
-    # gain. See `docs/specs/DS03.md § Cluster G` for the design call.
+    # gain. See `docs/specs/DS03-dependency-freshness.md § Cluster G` for the design call.
     defaults:
       run:
         working-directory: frontend

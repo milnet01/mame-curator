@@ -19,7 +19,7 @@ Post-fix: D2 — ``RuntimeError`` propagates; ``pytest.raises`` catches it.
 
 D1 test is slow (subprocess + port + signal); marked ``@pytest.mark.slow``.
 
-See ``docs/specs/FP28.md`` §§ D1, D2.
+See ``docs/specs/FP28-hardening-correctness.md`` §§ D1, D2.
 """
 
 from __future__ import annotations

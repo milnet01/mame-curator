@@ -1,6 +1,6 @@
 """Tests for ``fetch_text_with_cache`` and ``DEFAULT_TEXT_MAX_BYTES``.
 
-Per ``docs/specs/P10.md`` § Public API — parallel to P05's
+Per ``docs/specs/P10-media-coverage.md`` § Public API — parallel to P05's
 ``fetch_with_cache`` but for text / JSON bodies, returning ``str``.
 Same SHA-256-keyed cache; same atomic-write protocol; same 404
 sentinel; UTF-8 decode failure raises ``MediaFetchError``.

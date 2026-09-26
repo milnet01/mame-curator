@@ -102,7 +102,7 @@ ignore = [
 # D-class lints are also relaxed inside `api/`: the Pydantic-schema classes in
 # `schemas.py` are pure type definitions whose names already convey intent,
 # and route-handler functions are documented at the spec level
-# (`docs/specs/P04.md` § Routes).
+# (`docs/specs/P04-http-api.md` § Routes).
 "src/mame_curator/api/routes/*.py" = ["B008", "D102", "D103"]
 "src/mame_curator/api/schemas.py" = ["D101", "D106"]
 # FP24-EE: schemas.py extracted Setup/Updates/Help and Filesystem into

@@ -12,7 +12,12 @@ you installed MAME Curator into.
 
 ## Choosing the port
 
-The app listens on port 8080 unless told otherwise. To change it,
-set `server.port` in `config.yaml`, or set the `PORT` environment
-variable before starting. `PORT` must be a number from 1024 to 65535.
-An invalid value stops the app with a message saying so.
+The app listens on port 8080 unless told otherwise. Three settings
+can change it; the first one present wins:
+
+1. `--port` on the `serve` command;
+2. the `PORT` environment variable;
+3. `server.port` in `config.yaml`.
+
+`PORT` must be a number from 1024 to 65535. An invalid value stops the
+app with a message saying so.

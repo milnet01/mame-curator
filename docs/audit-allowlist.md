@@ -92,7 +92,7 @@ Do not delete revoked entries — the history is the value.
 - **Status:** active
 - **Tool / rule:** eslint `react-hooks/incompatible-library` (FP11 closing /audit, 2026-05-02).
 - **Location:** `frontend/src/components/library/LibraryGrid.tsx:35` (`useVirtualizer({ ... })`).
-- **Why this is a false positive:** the lint rule warns that `@tanstack/react-virtual`'s `useVirtualizer` returns functions that cannot be safely memoized by the React Compiler. This is documented and intentional behaviour of the library — every grid + list virtualizer has the same shape (the returned `getVirtualItems()` is intentionally non-stable so consumers re-render on scroll). The warning is a generic library-compat advisory, not a project-level defect; the spec mandates `@tanstack/react-virtual` (P06.md § Toolchain).
+- **Why this is a false positive:** the lint rule warns that `@tanstack/react-virtual`'s `useVirtualizer` returns functions that cannot be safely memoized by the React Compiler. This is documented and intentional behaviour of the library — every grid + list virtualizer has the same shape (the returned `getVirtualItems()` is intentionally non-stable so consumers re-render on scroll). The warning is a generic library-compat advisory, not a project-level defect; the spec mandates `@tanstack/react-virtual` (P06-frontend-mvp.md § Toolchain).
 - **Suppression applied:** none — the rule emits only a `warning`, not an `error`, and is correct to surface as a project-onboarding hint. Future contributors who pipe values from the virtualizer through a `useMemo`-d child should heed the warning; the audit-fold check should pre-discard it.
 - **Logged:** 2026-05-02
 - **Confirmed by phase:** FP11.

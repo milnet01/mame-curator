@@ -442,15 +442,12 @@ don't compute it.
 ## MAME Curator overrides
 
 Everything above is the upstream copy, verbatim, and stays that way so the
-two remain diffable. Only these four things differ in this repo.
+two remain diffable. Only these three things differ in this repo (O1 is
+retired and kept so the numbers stay stable).
 
-**O1 — sixteen legacy specs use the bare `<ID>.md` name.** `docs/specs/`
-holds `P04.md`, `FP28.md`, `DS05.md` and thirteen more, written before this
-standard landed here. §2's `<ID>-<topic>.md` is the rule for **every new
-spec**; the rename of the sixteen is tracked as **mame-curator-1092** and
-is deliberately not bundled with unrelated work — it rewrites ~207
-citations across journals, ROADMAP, CHANGELOG and the specs themselves.
-Until it lands, expect both spellings in one directory.
+**O1 — retired 2026-09-26.** It exempted sixteen legacy specs named
+bare `<ID>.md`. mame-curator-1092 renamed them to `<ID>-<topic>.md`, so
+§2 now holds for every file in `docs/specs/`.
 
 **O2 — phase ids, not `<PREFIX>-NNNN`, on the older specs.** This project
 predates the counter-allocated id scheme: its specs and journals key on
@@ -477,8 +474,6 @@ with catching drift before implementation.
 
 Unnumbered because this is a standard — see `documentation.md` §1.8.
 
-- **O1** — nothing mechanical today. The mixed directory is the signal, and
-  mame-curator-1092 is where it gets resolved.
 - **O4** — `tests/` enforces each module `spec.md` clause-by-clause; that
   is the check `coding-standards.md` §7 refers to.
 

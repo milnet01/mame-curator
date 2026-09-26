@@ -18,7 +18,7 @@ fails. The rmdir-counter assertion fires.
 Post-fix: both source files land at distinct counter-walked targets; no
 rollback fires; the lockfile is released cleanly.
 
-See ``docs/specs/FP28.md`` §§ A2, A3.
+See ``docs/specs/FP28-hardening-correctness.md`` §§ A2, A3.
 """
 
 from __future__ import annotations

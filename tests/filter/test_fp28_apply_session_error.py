@@ -19,7 +19,7 @@ sessions.sessions")``.
 Pre-fix: ``pytest.raises(SessionsError)`` doesn't catch ``KeyError`` — test fails.
 Post-fix: ``SessionsError`` raised; ``isinstance(exc, FilterError)`` is True.
 
-See ``docs/specs/FP28.md`` § B5.
+See ``docs/specs/FP28-hardening-correctness.md`` § B5.
 """
 
 from __future__ import annotations

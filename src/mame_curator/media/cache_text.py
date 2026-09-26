@@ -1,6 +1,6 @@
 """Lazy-fetch disk cache for text / JSON bodies.
 
-Per ``docs/specs/P10.md`` § "Public API". Parallel to P05's
+Per ``docs/specs/P10-media-coverage.md`` § "Public API". Parallel to P05's
 ``fetch_with_cache`` (binary images) but returns ``str``, decodes
 UTF-8, defaults to a smaller ``max_bytes`` cap matching the text
 payloads we're storing (Wikipedia extracts < 2 KiB, ArcadeDB

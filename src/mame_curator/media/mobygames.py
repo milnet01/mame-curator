@@ -6,7 +6,7 @@ Split out of ``sources.py`` so that file stays under the 500-line hard cap
 machinery; keeping it here also isolates the deliberate divergence from the
 ``fetch_text_with_cache`` path the other two-step sources use.
 
-Per ``docs/specs/P10.md`` § "4. MobyGames" + § "Disabled-source mechanism".
+Per ``docs/specs/P10-media-coverage.md`` § "4. MobyGames" + § "Disabled-source mechanism".
 
 **Chunk 6 scope (key-handling).** Resolve the API key (``MOBYGAMES_API_KEY``
 env var, then a mode-0600 ``<secrets_dir>/mobygames.key`` dotfile),

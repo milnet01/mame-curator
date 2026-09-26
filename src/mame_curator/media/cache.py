@@ -1,6 +1,6 @@
 """Lazy-fetch disk cache for media URLs.
 
-Per ``docs/specs/P05.md`` § Public API:
+Per ``docs/specs/P05-media.md`` § Public API:
 
 - ``cache_path_for`` is pure (no I/O).
 - ``fetch_with_cache`` returns the on-disk path if cached; otherwise downloads

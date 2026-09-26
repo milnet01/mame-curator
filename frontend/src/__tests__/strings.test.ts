@@ -25,7 +25,7 @@
  *    of that parent are NOT flagged as orphans if the parent itself
  *    is consumed. Keeps false positives low.
  *
- * See `docs/specs/FP27.md` § A8.
+ * See `docs/specs/FP27-zombie-features-data-integrity.md` § A8.
  */
 import { describe, expect, it } from 'vitest'
 

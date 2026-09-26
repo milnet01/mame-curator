@@ -106,7 +106,8 @@ def test_claude_md_architecture_diagram_matches_source_tree() -> None:
             )
     assert not failures, (
         "CLAUDE.md architecture-diagram rows do not match `src/mame_curator/` "
-        "package layout (see `docs/specs/FP27.md` § C1 + C2):\n" + "\n".join(failures)
+        "package layout (see `docs/specs/FP27-zombie-features-data-integrity.md` § C1 + C2):\n"
+        + "\n".join(failures)
     )
 
 
@@ -125,7 +126,7 @@ def test_claude_md_diagram_has_no_future_marker_for_shipped_api() -> None:
     assert "(P04 — next)" not in api_row, (
         f"CLAUDE.md's api/ row still carries the `(P04 — next)` "
         f"annotation though P04 shipped 2026-05-01: {api_row!r} "
-        f"(see `docs/specs/FP27.md` § C1)."
+        f"(see `docs/specs/FP27-zombie-features-data-integrity.md` § C1)."
     )
 
 
@@ -154,6 +155,6 @@ def test_readme_md_architecture_diagram_matches_source_tree() -> None:
             )
     assert not failures, (
         "README.md architecture-diagram rows do not match "
-        "`src/mame_curator/` package layout (see `docs/specs/FP27.md` § C2):\n"
-        + "\n".join(failures)
+        "`src/mame_curator/` package layout (see "
+        "`docs/specs/FP27-zombie-features-data-integrity.md` § C2):\n" + "\n".join(failures)
     )

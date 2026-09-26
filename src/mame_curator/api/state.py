@@ -1,6 +1,6 @@
 """WorldState — frozen blob of parsed-data + filter-result on ``app.state.world``.
 
-Per ``docs/specs/P04.md`` § Lifespan + ``app.state`` model.
+Per ``docs/specs/P04-http-api.md`` § Lifespan + ``app.state`` model.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 """Tests for ``TokenBucket`` + ``MediaRateLimited``.
 
-Per ``docs/specs/P10.md`` § Public API. Pure tests — no network, no real
+Per ``docs/specs/P10-media-coverage.md`` § Public API. Pure tests — no network, no real
 clock. The bucket takes an injectable ``time_fn`` so tests advance time
 deterministically via a fake monotonic clock.
 """

@@ -1,6 +1,6 @@
 """R20–R27 shape tests + L10 behavioral test (pause/resume/abort).
 
-Per ``docs/specs/P04.md`` § Routes (Copy) and § Tests.
+Per ``docs/specs/P04-http-api.md`` § Routes (Copy) and § Tests.
 """
 
 from __future__ import annotations

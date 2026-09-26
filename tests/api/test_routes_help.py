@@ -1,6 +1,6 @@
 """R37 / R38 shape tests + L14 (help index renders) behavioral test.
 
-Per ``docs/specs/P04.md`` § Help routes.
+Per ``docs/specs/P04-http-api.md`` § Help routes.
 """
 
 from __future__ import annotations

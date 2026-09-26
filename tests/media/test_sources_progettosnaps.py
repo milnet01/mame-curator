@@ -1,6 +1,6 @@
 """Tests for ``ProgettoSnapsSource`` (P10 chunk 3b).
 
-Per ``docs/specs/P10.md`` § "1. progettoSnaps — local pack model". The
+Per ``docs/specs/P10-media-coverage.md`` § "1. progettoSnaps — local pack model". The
 source covers ``snap`` kind only (upstream removed flyers/titles — see
 2026-05-18 spec amendment). ``url_for`` returns a ``file://`` URL when the
 corresponding ``<name>.png`` exists under ``snap_dir``; sets

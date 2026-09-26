@@ -1,6 +1,6 @@
 """R39 shape + integration tests for the media proxy.
 
-Per ``docs/specs/P04.md`` § Media proxy and ``docs/specs/P05.md`` § R39 wiring.
+Per ``docs/specs/P04-http-api.md`` § Media proxy and ``docs/specs/P05-media.md`` § R39 wiring.
 P04 ships a minimal pass-through proxy; P05 swaps in the real URL builder +
 cache and short-circuits ``kind=video``.
 """

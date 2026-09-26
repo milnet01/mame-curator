@@ -262,7 +262,7 @@ def test_recycle_file_appends_file_recycled_activity_event(tmp_path: Path) -> No
 
     assert activity_log.exists(), (
         "FP27 A3 — recycle_file must append a FILE_RECYCLED event to "
-        f"{activity_log!s}; see `docs/specs/FP27.md` § A3."
+        f"{activity_log!s}; see `docs/specs/FP27-zombie-features-data-integrity.md` § A3."
     )
     lines = [ln for ln in activity_log.read_text(encoding="utf-8").splitlines() if ln.strip()]
     assert len(lines) == 1, (
@@ -323,7 +323,7 @@ def test_purge_recycle_appends_recycle_purged_activity_event(tmp_path: Path) -> 
 
     assert activity_log.exists(), (
         "FP27 A3 — purge_recycle must append a RECYCLE_PURGED event to "
-        f"{activity_log!s}; see `docs/specs/FP27.md` § A3."
+        f"{activity_log!s}; see `docs/specs/FP27-zombie-features-data-integrity.md` § A3."
     )
     lines = [ln for ln in activity_log.read_text(encoding="utf-8").splitlines() if ln.strip()]
     assert len(lines) == 1, (

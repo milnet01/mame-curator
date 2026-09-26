@@ -1,6 +1,6 @@
 """Tests for ``WikipediaImageSource`` (P10 chunk 5) + the shared user-agent.
 
-Per ``docs/specs/P10.md`` § "3. Wikipedia (image)". One-step lookup against
+Per ``docs/specs/P10-media-coverage.md`` § "3. Wikipedia (image)". One-step lookup against
 the REST summary endpoint; ``thumbnail.source`` is the only image field.
 ``boxart`` kind only; ``machine.description`` passes through
 ``re.sub(r"\\s*\\([^)]*\\)\\s*$", "", desc).strip()`` before being URL-quoted

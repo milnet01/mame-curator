@@ -1,6 +1,6 @@
 """Media subsystem — libretro-thumbnails URL builder and lazy-fetch disk cache.
 
-Public surface per ``docs/specs/P05.md`` + ``docs/specs/P10.md``:
+Public surface per ``docs/specs/P05-media.md`` + ``docs/specs/P10-media-coverage.md``:
 
 P05 (image cache):
 

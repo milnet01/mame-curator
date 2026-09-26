@@ -1,6 +1,6 @@
 """Download + extract progettoSnaps snap pack into ``data/snaps/snap/``.
 
-Per ``docs/specs/P10.md`` § "1. progettoSnaps — local pack model" and
+Per ``docs/specs/P10-media-coverage.md`` § "1. progettoSnaps — local pack model" and
 § "``mame-curator refresh-snaps`` CLI".
 
 Snap is the only kind progettoSnaps actively publishes (verified

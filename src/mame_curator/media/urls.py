@@ -1,6 +1,6 @@
 r"""URL builder for libretro-thumbnails MAME images.
 
-Per ``docs/specs/P05.md`` § Public API. Mirrors the upstream filename rule:
+Per ``docs/specs/P05-media.md`` § Public API. Mirrors the upstream filename rule:
 characters in ``& * / : \ < > ? | "`` are escaped to ``_``; the result is
 percent-encoded for URL safety.
 """

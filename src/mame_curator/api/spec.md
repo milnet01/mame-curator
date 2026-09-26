@@ -25,7 +25,7 @@ of this spec:
 Layering: `api/ ← parser/ + filter/ + copy/ + media/` (all of the
 above). The CLI launches the server; this spec owns the HTTP contract,
 not the launch wiring (see `cli/spec.md`). The long-form design is
-`docs/specs/P04.md`; this file is the co-located, audit-facing contract.
+`docs/specs/P04-http-api.md`; this file is the co-located, audit-facing contract.
 
 ## App factory + lifespan
 
@@ -325,7 +325,7 @@ All FS browsing crosses `api/fs.py`:
   `MediaRateLimited`) is swallowed and the chain advances — there is **no
   502 surface for media**. If the whole chain misses (every source returns
   no candidate), the route raises `MediaUpstreamNotFoundError` (404). See
-  `docs/specs/P10.md` § "Route contract".
+  `docs/specs/P10-media-coverage.md` § "Route contract".
 - A cache hit returns a `FileResponse` (content-type sniffed from the
   cached file's suffix) with a 30-day `immutable` `Cache-Control`.
 - This proxy path (libretro-thumbnails) is **not** rate-limited. The

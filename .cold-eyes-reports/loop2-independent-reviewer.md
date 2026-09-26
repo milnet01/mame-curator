@@ -24,7 +24,7 @@ belongs in its own FP## (Karpathy rule 9 push-back on complexity).
 
 ### HIGH
 
-- HIGH at `docs/specs/DS05.md:94` — Cluster A1's seam description
+- HIGH at `docs/specs/DS05-test-file-seam-split.md:94` — Cluster A1's seam description
   ("covers the `it.each` Updates banner table + Filters/Picker
   chip-list tests…") conflates two distinct tests. The `it.each` at
   `frontend/src/pages/__tests__/SettingsPage.test.tsx:122` is for
@@ -42,7 +42,7 @@ belongs in its own FP## (Karpathy rule 9 push-back on complexity).
   tests + Updates/Interface dropdown render-and-patch pairs (through
   L349 — cards_per_row_hint patch ends at L349, not L341)."
 
-- HIGH at `docs/specs/DS05.md:327` — Cluster D's regression-test
+- HIGH at `docs/specs/DS05-test-file-seam-split.md:327` — Cluster D's regression-test
   design is unsound. "Commit a copy of a known-broken state … Clean
   up immediately after" is a side-channel pattern that (a) mutates
   the local repo state under the test, (b) requires the test to be
@@ -61,8 +61,8 @@ belongs in its own FP## (Karpathy rule 9 push-back on complexity).
 
 ### MED
 
-- MED at `docs/specs/DS05.md:288` — Cluster D scope creep. The spec
-  opens (`docs/specs/DS05.md:5`) as a "refactor (test files only —
+- MED at `docs/specs/DS05-test-file-seam-split.md:288` — Cluster D scope creep. The spec
+  opens (`docs/specs/DS05-test-file-seam-split.md:5`) as a "refactor (test files only —
   no production-code changes)" sweep bundling three test-file
   splits. Cluster D modifies `.pre-commit-config.yaml` (not a test
   file), adds a new regression test, and updates `docs/journal/DS02.md`.
@@ -74,11 +74,11 @@ belongs in its own FP## (Karpathy rule 9 push-back on complexity).
   bundling (one close-phase audit instead of two) is small given
   Cluster D has zero overlap with A/B/C's test-moves; the cost is
   scope drift on a refactor labeled "test files only". Fix: either
-  (a) re-scope the spec header at `docs/specs/DS05.md:5` to drop
+  (a) re-scope the spec header at `docs/specs/DS05-test-file-seam-split.md:5` to drop
   the "test files only" claim, **or** (b) extract Cluster D into a
   separate sibling spec.
 
-- MED at `docs/specs/DS05.md:31` — Soft-cap framing on test files
+- MED at `docs/specs/DS05-test-file-seam-split.md:31` — Soft-cap framing on test files
   is asserted without authority. The spec says "the soft cap (300
   lines for test files, mirroring backend Python)" but
   `docs/standards/coding-standards.md:43` says "**Backend Python
@@ -94,7 +94,7 @@ belongs in its own FP## (Karpathy rule 9 push-back on complexity).
   the same 300/500 thresholds as backend Python" note, OR cite a
   pre-existing standard if one exists at a path I missed.
 
-- MED at `docs/specs/DS05.md:107` — Cluster A's "Combined, A1 + A2
+- MED at `docs/specs/DS05-test-file-seam-split.md:107` — Cluster A's "Combined, A1 + A2
   lift ~353 lines, leaving the main file at ~390 lines" arithmetic
   doesn't square with the shared `config` object. Spec at L120-127
   describes the shared `render` wrapper at
@@ -105,11 +105,11 @@ belongs in its own FP## (Karpathy rule 9 push-back on complexity).
   files (so each gets `config`) or extracting them to a sibling
   helper. The "≤500 lines" gate is comfortable so duplication is
   cheap, but the spec should name the decision. Fix: add a
-  sentence at `docs/specs/DS05.md:127` explicitly stating that the
+  sentence at `docs/specs/DS05-test-file-seam-split.md:127` explicitly stating that the
   `config: AppConfigResponse` fixture moves to the same shared
   location chosen for `render`.
 
-- MED at `docs/specs/DS05.md:204` — Tests-first RED batch
+- MED at `docs/specs/DS05-test-file-seam-split.md:204` — Tests-first RED batch
   meaningfulness. The spec's three structural tests (file-size,
   test-count-stable, per-cluster grep) are useful but they don't
   RED *before* Step 4 in the conventional sense — they go RED
@@ -122,12 +122,12 @@ belongs in its own FP## (Karpathy rule 9 push-back on complexity).
   CLAUDE.md global rule 10 (reproduce-before-fix) doesn't apply
   here (no bug), so this is an honest framing nit, not a
   workflow violation. Fix: add a one-line clarifier at
-  `docs/specs/DS05.md:206` distinguishing state-pin tests from
+  `docs/specs/DS05-test-file-seam-split.md:206` distinguishing state-pin tests from
   TDD-driver tests.
 
 ### LOW
 
-- LOW at `docs/specs/DS05.md:96` — Line range "L72-~341" is
+- LOW at `docs/specs/DS05-test-file-seam-split.md:96` — Line range "L72-~341" is
   imprecise. Actual: A1's upper extent ends at L349 (close brace
   of the `cards_per_row_hint` patch test), not L341. L341-348 is
   the body of that test. The `~` qualifier acknowledges
@@ -135,7 +135,7 @@ belongs in its own FP## (Karpathy rule 9 push-back on complexity).
   the implementer at Step 4 will want the exact number. Fix:
   change "L72-~341" to "L72-349" (precise).
 
-- LOW at `docs/specs/DS05.md:325` — Hook config `types: [text]` is
+- LOW at `docs/specs/DS05-test-file-seam-split.md:325` — Hook config `types: [text]` is
   redundant when `always_run: true` is set. Per
   `.pre-commit-config.yaml:55-62`, the project's existing
   `pytest-fast` local hook uses `types: [python]` precisely
@@ -147,7 +147,7 @@ belongs in its own FP## (Karpathy rule 9 push-back on complexity).
   because the script's drift-detection wants to fire on any
   text-file change, including the TS side).
 
-- LOW at `docs/specs/DS05.md:189` — Cluster C's 100-line fallback
+- LOW at `docs/specs/DS05-test-file-seam-split.md:189` — Cluster C's 100-line fallback
   threshold ("neither file drops below 100 lines of net test
   bodies") is under-specified. "Net test bodies" excludes imports,
   fixtures, and section markers — but the spec doesn't define how

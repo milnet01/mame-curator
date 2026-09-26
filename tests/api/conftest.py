@@ -145,7 +145,7 @@ def config_file(
 ) -> Path:
     """Write a config.yaml under tmp_path that points at all reference files.
 
-    Per ``docs/specs/P04.md`` § AppConfig schema. The shape mirrors
+    Per ``docs/specs/P04-http-api.md`` § AppConfig schema. The shape mirrors
     ``config.example.yaml`` at the repo root.
     """
     # mame-curator-1081: only emit snaps_dir when a test overrides it, so the

@@ -59,7 +59,7 @@ jobs:
   frontend-lint-types-test:
     name: Frontend lint, type-check, test at tag
     runs-on: ubuntu-latest
-    # Mirrors ci.yml's frontend lane (see docs/specs/DS03.md
+    # Mirrors ci.yml's frontend lane (see docs/specs/DS03-dependency-freshness.md
     # § Cluster G). Release pipeline re-runs every CI gate at the
     # tagged commit before the build/publish stages fire.
     defaults:

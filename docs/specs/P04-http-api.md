@@ -61,7 +61,7 @@ Source files under `src/mame_curator/api/`:
 
 Domain-split chosen up front (Karpathy 9 with full arithmetic): 40 routes × realistic average of ~17 lines per handler ≈ 680 lines, plus imports/decorators ≈ 750. A single file busts the 500-line hard cap (`coding-standards.md` § 7); split-on-Day-1 keeps every domain file under the 300-line **soft** cap. Worst-case file is `routes/copy.py` (8 routes including the SSE handler whose generator + terminal-event detection runs ~60–100 lines on its own); realistic ceiling ~250 lines. Boundaries match how the test suite is organised (`tests/api/test_routes_<domain>.py`). A `services.py`-with-thin-handlers alternative was considered and rejected: handlers ARE the service layer for ~half of these (simple GETs against `app.state.world`); a service shim would just be a forwarder.
 
-The per-module `spec.md` ships at P04 close (moves from `docs/specs/P04.md` to `src/mame_curator/api/spec.md` per the App-Build "specs are for shipped modules" rule).
+The per-module `spec.md` ships at P04 close (moves from `docs/specs/P04-http-api.md` to `src/mame_curator/api/spec.md` per the App-Build "specs are for shipped modules" rule).
 
 ## Lifespan + `app.state` model
 

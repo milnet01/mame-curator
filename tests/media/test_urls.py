@@ -1,6 +1,6 @@
 """Tests for ``urls_for`` and ``MediaUrls``.
 
-Per ``docs/specs/P05.md`` § Public API. Builds three libretro-thumbnails URLs
+Per ``docs/specs/P05-media.md`` § Public API. Builds three libretro-thumbnails URLs
 per machine: boxart, title, snap. Video is intentionally absent — design §6.3
 routes video through progettoSnaps; deferred to P06+.
 """

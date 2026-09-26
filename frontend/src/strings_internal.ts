@@ -650,7 +650,7 @@ export const strings = {
     sections: {
       // FP27 A5: dropped 'games' + 'settings'. Zero production
       // producers ever populated those sections; only test fixtures
-      // did. See docs/specs/FP27.md § A5.
+      // did. See docs/specs/FP27-zombie-features-data-integrity.md § A5.
       actions: 'Actions',
       help: 'Help topics',
     },

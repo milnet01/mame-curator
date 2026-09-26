@@ -1,6 +1,6 @@
 """R01–R07 shape tests + L04 / L05 / L06 behavioral tests.
 
-Per ``docs/specs/P04.md`` § Routes (Games + metadata) and § Tests.
+Per ``docs/specs/P04-http-api.md`` § Routes (Games + metadata) and § Tests.
 
 Until Step 4 lands ``create_app``, every test fails at fixture-setup with
 ``NotImplementedError``. Step 4 makes them green by wiring the handlers.

@@ -1,6 +1,6 @@
 """Tests for ``LibretroSource`` + the MediaSource Protocol-compliance shape.
 
-Per ``docs/specs/P10.md`` § "Public API" and § "Source contracts". The
+Per ``docs/specs/P10-media-coverage.md`` § "Public API" and § "Source contracts". The
 Protocol-compliance check pins the registry-time ``isinstance`` shape every
 future source must satisfy. Split from the original ``test_sources.py``
 (FP31 / mame-curator-1046).

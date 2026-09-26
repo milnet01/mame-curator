@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bidirectional drift gate for the Python ↔ TypeScript API type contract.
 
-Per `docs/specs/P06.md` § "API contract surface": the frontend hand-mirrors
+Per `docs/specs/P06-frontend-mvp.md` § "API contract surface": the frontend hand-mirrors
 Pydantic models from `mame_curator.api.schemas` (and re-exports) into
 `frontend/src/api/types.ts`. This script enforces field parity across both
 sides at PR time so a Pydantic-only field doesn't silently get dropped on

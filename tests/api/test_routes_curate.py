@@ -1,6 +1,6 @@
 """R08–R13b shape tests + L02 / L03 behavioral tests.
 
-Per ``docs/specs/P04.md`` § Routes (Overrides + sessions) and § Tests.
+Per ``docs/specs/P04-http-api.md`` § Routes (Overrides + sessions) and § Tests.
 """
 
 from __future__ import annotations
