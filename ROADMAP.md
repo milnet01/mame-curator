@@ -90,6 +90,49 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: frontend.
 
+- 📋 [mame-curator-1102] **Library grid shows 'No games match your filters' while a new filter's results are still loading.**
+  Observed 2026-09-26 in the tour recording: clicking the Capcom Classics
+  tile showed the empty-state message for about a second before 121 games
+  rendered. Same family as mame-curator-1100 (drawer '0 versions' while
+  loading): the empty state should not render while the query is pending.
+  **Layman:** Clicking a featured tile briefly says there are no games before the games appear.
+  Kind: ux.
+  Source: in-session-2026-09-26.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1103] **Copy progress window reads '0 / 0 —' for the whole of a multi-file copy.**
+  Observed 2026-09-26 copying 4 cart games (6 zips, one 43 MB) against the
+  real library: the Copy in progress window showed '0 / 0 —' and State:
+  Copying until it closed. Cause not traced; could be the SSE progress
+  events or how CopyModal reads totals.
+  **Layman:** While copying games, the progress window shows 0 out of 0 instead of how many are done.
+  Kind: investigate.
+  Source: in-session-2026-09-26.
+  Lanes: frontend, api.
+
+- 📋 [mame-curator-1104] **RetroArch playlist is written into the ROM destination folder, not the configured retroarch_playlist path.**
+  Observed 2026-09-26 with paths.retroarch_playlist set to
+  /tmp/mame-curator-demo/mame.lpl and dest_roms to
+  /tmp/mame-curator-demo/roms: mame.lpl appeared in roms/ and not at the
+  configured path. Not yet checked against copy/spec.md; may be intended.
+  **Layman:** After a copy, the RetroArch game list lands next to the ROMs instead of where settings say it should go.
+  Kind: investigate.
+  Source: in-session-2026-09-26.
+  Lanes: copy.
+
+- 📋 [mame-curator-1105] **Copy runner writes activity.jsonl relative to the process cwd, not the config's data dir.**
+  copy/runner.py run_copy passes log_path=Path("data/activity.jsonl")
+  (also copy/activity.py's default), which resolves against the working
+  directory. The Activity route and curate.py read world.data_dir /
+  "activity.jsonl" (config_path.parent / "data"). Observed 2026-09-26: a
+  server started with an absolute --config from frontend/ wrote
+  frontend/data/activity.jsonl. recycle_root and the MobyGames secrets dir
+  default to relative data/ paths too; check them in the same pass.
+  **Layman:** If the app is started from a different folder, copies are logged in the wrong place and never show up on the Activity page.
+  Kind: fix.
+  Source: in-session-2026-09-26.
+  Lanes: copy, api.
+
 ### 🧹 Cleanup / debt
 
 - ✅ [mame-curator-1033] **DS04 — Test-suite quality sweep.**
