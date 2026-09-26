@@ -158,13 +158,13 @@ export const strings = {
           id: 'beat-em-ups',
           title: "Beat 'em Ups",
           description: 'Side-scrolling brawlers',
-          query: { genre: "Beat'em up" },
+          query: { genre: 'Platform / Fighter Scrolling' },
         },
         {
           id: 'run-and-gun',
           title: 'Run & Gun Shooters',
           description: 'Run-and-gun shooters',
-          query: { genre: 'Shooter / Run-and-Gun' },
+          query: { genre: 'Platform / Shooter Scrolling' },
         },
         {
           id: 'best-of-1992',
@@ -176,7 +176,7 @@ export const strings = {
           id: 'shmups-vertical',
           title: 'SHMUPS — Vertical',
           description: 'Vertical-scroll shoot-em-up classics',
-          query: { genre: 'Shooter / Vertical' },
+          query: { genre: 'Shooter / Flying Vertical' },
         },
       ] as readonly FeaturedTile[],
       countLabel: (n: number) =>

@@ -143,13 +143,13 @@ export const FEATURED_TILES: FeaturedTile[] = [
     id: 'beat-em-ups',
     title: "Beat 'em Ups",
     description: 'Side-scrolling brawlers',
-    query: { genre: "Beat'em up" },     // verified
+    query: { genre: 'Platform / Fighter Scrolling' },     // verified
   },
   {
     id: 'run-and-gun',
     title: 'Run & Gun Shooters',
     description: 'Run-and-gun shooters',
-    query: { genre: 'Shooter / Run-and-Gun' },     // verified
+    query: { genre: 'Platform / Shooter Scrolling' },     // verified
   },
   {
     id: 'best-of-1992',
@@ -161,7 +161,7 @@ export const FEATURED_TILES: FeaturedTile[] = [
     id: 'shmups-vertical',
     title: 'SHMUPS — Vertical',
     description: 'Vertical-scroll shoot-em-up classics',
-    query: { genre: 'Shooter / Vertical' },     // verified
+    query: { genre: 'Shooter / Flying Vertical' },     // verified
   },
   // 5–8 total at v1; growing the list is a one-file PR.
   // Implementation step: pull the actual category-value distribution

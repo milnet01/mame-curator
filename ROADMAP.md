@@ -37,13 +37,19 @@ every dependency to its latest stable release. No user-visible
 features; the goal is a cleaner foundation before the next feature
 wave lands.
 
-- 📋 [mame-curator-1098] **catver.ini [VerAdded] section overwrites [Category], so every game's genre is a MAME version string.**
+- ✅ [mame-curator-1098] **catver.ini [VerAdded] section overwrites [Category], so every game's genre is a MAME version string.**
   data/ini/catver.ini carries both [Category] and [VerAdded]; the INI reader
   merges both sections into one map, so the later [VerAdded] value wins.
   Observed: /api/games/sf2 returns category "0.64"; /api/stats by_genre is
   keyed by versions; the Beat 'em Ups / Run & Gun / SHMUPS featured tiles
   show 0 games. Server start logs a 'duplicate catver key ... overwriting'
   warning per machine (tens of thousands of lines).
+  Resolved (2026-09-26): parse_catver skips [VerAdded] (test
+  test_parse_catver_ignores_veradded_section, red then green). A second
+  cause kept three tiles at 0: their genre strings predate the current
+  catver edition. Updated in strings_internal.ts and the P15 spec.
+  Verified on the real library: tiles 85 / 83 / 260, Stats lists real
+  genres, no duplicate-key warnings at start.
   **Layman:** Every game's genre shows up as a version number like 0.162, so genre filters, genre tiles and the Stats genre chart are all wrong.
   Kind: fix.
   Source: in-session-2026-09-26.

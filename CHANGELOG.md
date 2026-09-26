@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Fixed — Beat 'em Ups, Run & Gun and SHMUPS tiles show games again
+
+These featured tiles searched for genre names that the current `catver.ini` no longer uses, so each showed "0 games". They now use the current names: "Platform / Fighter Scrolling", "Platform / Shooter Scrolling" and "Shooter / Flying Vertical".
+
 ### 2026-09-26 Fixed — Genres are real genres again, not version numbers (mame-curator-1098)
 
 `catver.ini` also lists the MAME version that added each game, under the same game names. That list overwrote every category, so genres read like "0.162" in the genre filter and on the Stats page. The parser now skips it, and server start no longer logs a duplicate-key warning for every game.
