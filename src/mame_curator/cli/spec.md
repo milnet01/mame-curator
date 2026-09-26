@@ -62,11 +62,8 @@ and an empty answer re-prompts. With all four path flags supplied,
 | `setup` exit | When |
 |---|---|
 | `0` | The config was written. |
-| `1` | `--out` exists without `--force`; `source_roms` is not a directory; `source_dat` is not a file; or the write failed. Each prints one `error:` line on stderr. |
+| `1` | `--out` exists without `--force`; stdin closes before a prompt is answered (the line names the four path flags); `source_roms` is not a directory; `source_dat` is not a file; or the write failed. Each prints one `error:` line on stderr. |
 | `2` | argparse usage error. |
-
-A closed stdin at a prompt currently escapes as a traceback (exit 1).
-That violates § "Errors the CLI catches"; tracked as mame-curator-1112.
 
 The CLI MUST refuse to run with no subcommand (argparse `required=True` on the subparsers group). Adding a subcommand is a change to `build_parser()` alone — register the subparser and attach its handler with `set_defaults(func=...)`; `run()` is never edited. See § "Dispatch pattern" for the mandatory form. Handlers live one-per-module in `cli/commands/<name>.py` (dashes in the subcommand name become underscores in the module name: `refresh-inis` → `cli/commands/refresh_inis.py`) and are re-exported from `cli/__init__.py` as `_cmd_<name>` so tests can import them from their historical location.
 

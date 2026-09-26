@@ -1073,7 +1073,7 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: api.
 
-- 📋 [mame-curator-1112] **`mame-curator setup` prints a traceback when stdin closes mid-prompt.**
+- ✅ [mame-curator-1112] **`mame-curator setup` prints a traceback when stdin closes mid-prompt.**
   `_prompt_path` calls `rich.prompt.Prompt.ask`, which raises `EOFError` on
   a closed stdin; nothing catches it, so `setup </dev/null` without all
   four path flags dumps a traceback (exit 1). Verified 2026-09-26.
@@ -1082,6 +1082,15 @@ wave lands.
   missing flags, exit 1; decide whether Ctrl-C (`KeyboardInterrupt`)
   maps to 130 like `copy`. Found while writing setup's flag and exit-code
   table for mame-curator-1094.
+  Resolved (2026-09-26): _cmd_setup catches EOFError around the four
+  prompts and prints one error line naming --source-roms, --source-dat,
+  --dest-roms and --retroarch-playlist, exit 1. Test
+  test_setup_closed_stdin_exits_1_without_traceback was red first on
+  EOFError. A real `setup </dev/null` run now exits 1 with that line.
+  Ctrl-C left unchanged: making it 130 would be a new contract choice,
+  not this defect. cli/spec.md's setup exit table updated in the same
+  commit. The section was cold-read by retroarch-1c earlier the same
+  day; none of its statements were false.
   **Layman:** Running the setup step with no keyboard attached crashes with a wall of Python text instead of a clear message.
   Kind: fix.
   Source: in-session-2026-09-26 (mame-curator-1094 fold-in).

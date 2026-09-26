@@ -39,12 +39,21 @@ def _cmd_setup(args: argparse.Namespace) -> int:
     console.print("[bold]MAME Curator setup[/bold] — writes a starter config.yaml.")
     console.print("Press Enter after each path. Tilde (~) is expanded.\n")
 
-    source_roms = _prompt_path("Source ROM directory (non-merged)", args.source_roms)
-    source_dat = _prompt_path("Source DAT file (.xml or .zip)", args.source_dat)
-    dest_roms = _prompt_path("Destination ROM directory", args.dest_roms)
-    retroarch_playlist = _prompt_path(
-        "RetroArch playlist target (e.g. <dest>/mame.lpl)", args.retroarch_playlist
-    )
+    try:
+        source_roms = _prompt_path("Source ROM directory (non-merged)", args.source_roms)
+        source_dat = _prompt_path("Source DAT file (.xml or .zip)", args.source_dat)
+        dest_roms = _prompt_path("Destination ROM directory", args.dest_roms)
+        retroarch_playlist = _prompt_path(
+            "RetroArch playlist target (e.g. <dest>/mame.lpl)", args.retroarch_playlist
+        )
+    except EOFError:
+        # A closed stdin (piped from /dev/null, a CI job) is a user-caused
+        # failure: one line naming the non-interactive route, exit 1.
+        err_console.print(
+            "[red]error:[/red] no input to answer the prompts — pass --source-roms, "
+            "--source-dat, --dest-roms and --retroarch-playlist instead."
+        )
+        return 1
 
     if not source_roms.is_dir():
         err_console.print(

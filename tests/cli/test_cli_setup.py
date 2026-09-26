@@ -264,3 +264,25 @@ def test_setup_interactive_prompts_for_each_path(
     # Confirm a friendly summary went to stdout (not stderr).
     captured = capsys.readouterr()
     assert "config.yaml" in captured.out or str(out) in captured.out
+
+
+def test_setup_closed_stdin_exits_1_without_traceback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """mame-curator-1112: no path flags and a closed stdin is a user error, not a crash.
+
+    `rich.prompt.Prompt.ask` raises `EOFError` when stdin is closed (piped
+    from /dev/null, a CI job, a double-clicked launcher). cli/spec.md
+    § "Errors the CLI catches" makes that one `error:` line naming the
+    flags that avoid the prompt, exit 1 — not a traceback.
+    """
+    import io
+
+    out = tmp_path / "config.yaml"
+    monkeypatch.setattr("sys.stdin", io.StringIO(""))
+    args = build_parser().parse_args(["setup", "--out", str(out)])
+    assert run(args) == 1
+    assert not out.exists()
+    err = capsys.readouterr().err
+    assert "Traceback" not in err
+    assert "--source-roms" in err and "--retroarch-playlist" in err
