@@ -221,7 +221,28 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #     SKIPPED_MISSING_SOURCE winner must still drive on_progress once,
 #     done == total).
 # 760 → 762.
-EXPECTED_PYTEST_DECLARATIONS = 762
+# Bumped 2026-09-26 (mame-curator-1109 — BIOS resolver copied biossets/clone
+# parents as BIOS romsets, defect still live): +8 declarations:
+#   • +4 tests/copy/test_bios.py —
+#     test_parse_listxml_bios_chain_records_is_bios (is_bios parsed from
+#     isbios="yes"), test_resolve_bios_chain_clone_reaches_bios_through_non_bios_parent
+#     (kof94a → {neogeo} through a non-BIOS parent),
+#     test_resolve_bios_chain_clone_with_non_bios_parent_and_no_bios_is_empty
+#     (a clone whose chain never reaches a BIOS resolves to ∅),
+#     test_resolve_bios_chain_biossets_never_in_returned_set (biosset option
+#     names never appear in the resolved set).
+#   • +4 tests/api/test_bios_badge_polarity.py — BIOS_MISSING badge true
+#     positive / absent-when-no-dependency / false-positive regression, and
+#     only_bios_missing keeps exactly the badged games (polarity).
+# 762 → 770.
+# Bumped 2026-09-26 (mame-curator-1105 — data-dir path anchoring): +3
+# pytest declarations in tests/api/test_data_dir_path_anchoring.py
+# (activity log, recycle bin and MobyGames key under world.data_dir, not
+# the process cwd). 770 → 773.
+# Bumped 2026-09-26 (mame-curator-1111 — late status subscriber): +1
+# pytest declaration in tests/api/test_mame_curator_1111_status_after_finish.py.
+# 773 → 774.
+EXPECTED_PYTEST_DECLARATIONS = 774
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

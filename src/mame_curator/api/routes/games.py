@@ -33,6 +33,7 @@ from mame_curator.api.schemas import (
     ValidateResponse,
 )
 from mame_curator.api.state import WorldState, replace_world
+from mame_curator.copy import resolve_bios_dependencies
 from mame_curator.filter import ReviewStateFilter, ReviewStateValue
 from mame_curator.filter.picker import explain_pick
 from mame_curator.parser.models import Machine
@@ -51,15 +52,21 @@ def _badges(short: str, world: WorldState) -> tuple[Badge, ...]:
         out.append(Badge.OVERRIDDEN)
     if short in world.chd_required:
         out.append(Badge.CHD_MISSING)
-    # FP24-DD: BIOS_MISSING was declared in the Badge enum and accepted as
-    # a filter param (only_bios_missing) but never appended. A machine
-    # whose parent appears in world.bios_chain is BIOS-dependent — that's
-    # the canonical "needs a BIOS" signal already used elsewhere.
-    if _parent_of(short, world) in world.bios_chain:
+    if _needs_bios(short, world):
         out.append(Badge.BIOS_MISSING)
     if world.notes.get(short):
         out.append(Badge.HAS_NOTES)
     return tuple(out)
+
+
+def _needs_bios(short: str, world: WorldState) -> bool:
+    """True when ``short`` depends on a BIOS machine (``copy/spec.md``).
+
+    mame-curator-1109: every listxml machine now has a chain entry, so chain
+    membership is no longer a BIOS signal; resolve the game's own romof walk.
+    """
+    bios, _warnings = resolve_bios_dependencies([short], world.bios_chain)
+    return bool(bios)
 
 
 def _parent_of(short: str, world: WorldState) -> str:
@@ -146,7 +153,9 @@ def list_games(
             return False
         if only_chd_missing and short not in world.chd_required:
             return False
-        return not (only_bios_missing and short in world.bios_chain)
+        # Same predicate as the badge, so the filter keeps exactly the
+        # badged games (copy/spec.md, mame-curator-1109).
+        return not (only_bios_missing and not _needs_bios(short, world))
 
     filtered = [s for s in winners if keep(s)]
 

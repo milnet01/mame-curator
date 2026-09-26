@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Fixed — A very fast copy no longer leaves the progress window stuck (mame-curator-1111)
+
+If a copy finished before the window connected, the window never heard
+that it started or finished. The server now replays the finished copy.
+
+### 2026-09-26 Fixed — Copies take only the files a game needs, and app data stays beside the config (mame-curator-1109, mame-curator-1105)
+
+- **Copying no longer plans dozens of files that don't exist** (mame-curator-1109)
+  BIOS option names (euro, japan, …) were treated as files; now only real
+  BIOS machines are copied, and a clone's parent is no longer copied as a
+  "BIOS". The "BIOS missing" badge and filter now agree with each other.
+
+- **The activity log, recycle bin and MobyGames key stay in the data folder beside config.yaml** (mame-curator-1105)
+  Starting the app from another folder used to write them there, so
+  copies never appeared on the Activity page.
+
 ### 2026-09-26 Fixed — BIOS warnings say which game and why (mame-curator-1110)
 
 The copy window listed each BIOS problem as a bare "BIOS warning".

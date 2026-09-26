@@ -179,7 +179,7 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: copy.
 
-- 📋 [mame-curator-1105] **Copy runner writes activity.jsonl relative to the process cwd, not the config's data dir.**
+- ✅ [mame-curator-1105] **Copy runner writes activity.jsonl relative to the process cwd, not the config's data dir.**
   copy/runner.py run_copy passes log_path=Path("data/activity.jsonl")
   (also copy/activity.py's default), which resolves against the working
   directory. The Activity route and curate.py read world.data_dir /
@@ -193,6 +193,15 @@ wave lands.
   anchor is world.data_dir (config_path.parent / "data"), which the Activity
   route already uses; the runner should receive it rather than default to a
   relative path. Pairs with 1095's read-only vs writable root split.
+  Resolved (2026-09-26): run_copy takes `data_dir` and writes every
+  activity event and recycle move under it; the job manager passes
+  `world.data_dir` (config_path.parent / "data"). The MobyGames key is
+  saved to and read from `world.data_dir / "secrets"`. Locked by
+  tests/api/test_data_dir_path_anchoring.py, which runs from a different
+  cwd than the config. Not directly tested: the OVERWRITE_DELETE_EXISTING
+  and CANCELLED_RECYCLE_PARTIAL recycle calls, which take the same
+  `recycle_root` argument as the tested path. The CLI `copy` command keeps
+  the relative `data/` default: it has no config file to anchor on.
   **Layman:** If the app is started from a different folder, copies are logged in the wrong place and never show up on the Activity page.
   Kind: fix.
   Source: in-session-2026-09-26.
@@ -929,7 +938,7 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: frontend.
 
-- 📋 [mame-curator-1109] **BIOS resolver copies `<biosset>` option names and clone parents as BIOS romsets.**
+- ✅ [mame-curator-1109] **BIOS resolver copies `<biosset>` option names and clone parents as BIOS romsets.**
   Split from mame-curator-1103. copy/bios.py and copy/spec.md add every
   `<biosset name>` as a romset; those are BIOS option names (euro,
   japan, unibios10), not zips. It also adds every romof target, so a
@@ -938,6 +947,15 @@ wave lands.
   BIOS (`isbios="yes"`); the parser must record that flag in the chain.
   The copy/spec.md amendment runs the review-contract gate before code
   (global rule 14). Fixing this makes files_total honest.
+  Resolved (2026-09-26): the listxml chain records every machine with an
+  `is_bios` flag; resolve_bios_dependencies walks romof and keeps only
+  isbios machines, never <biosset> option names or non-BIOS parents, and
+  warns only for an absent winner. api/routes/games.py badges and filters
+  on that predicate, with the filter now keeping the badged games.
+  copy/spec.md was amended and cold-reviewed first (2 loops, capped; log in
+  docs/reviews/copy-spec-loop-log.md). Five tests that encoded the old
+  contract were re-fixtured; a mutation probe kills every mutant of the
+  parser, resolver, badge and filter.
   **Layman:** Copying games tries to copy dozens of files that don't exist and copies parent games you didn't pick.
   Kind: fix.
   Source: in-session-2026-09-26.
@@ -958,6 +976,28 @@ wave lands.
   Kind: fix.
   Source: in-session-2026-09-26.
   Lanes: frontend.
+
+- ✅ [mame-curator-1111] **GET /api/copy/status returns 404 when the job finished before the client subscribed.**
+  JobManager sets `_current = None` on finish and abort, and copy_status
+  raises JobNotFoundError when `jobs.current is None`. A copy that ends
+  before the frontend's EventSource connects therefore gets 404: no
+  job_started, no job_finished, and the modal sits on "Copying" with no
+  total. This is the likely cause of the unreproduced "0 / 0" half of
+  mame-curator-1103. Found 2026-09-26: test_c1_subscriber_after_start_sees_job_started_via_history_replay
+  failed 3 of 8 runs (`assert 404 == 200`) once mame-curator-1109 made
+  fixture copies faster. That test's docstring claims replay covers
+  "worker already terminated"; it does not.
+  Resolved (2026-09-26): JobManager keeps the last retired job as `_last`;
+  `replayable` returns the current job or that one, and both copy_status
+  and the event iterator use it. A late subscriber gets the full replay,
+  job_started to job_finished; 404 now means no job has run since
+  startup. Locked by tests/api/test_mame_curator_1111_status_after_finish.py,
+  which waits for the job to retire first (deterministic red: 404). The
+  flaky C1 test passed 8 of 8 afterwards. Mutation probe kills both parts.
+  **Layman:** If a copy finishes very quickly, the progress window never learns it started or finished.
+  Kind: fix.
+  Source: in-session-2026-09-26.
+  Lanes: api.
 
 ### 🧪 Test Audit 2026-05-20
 

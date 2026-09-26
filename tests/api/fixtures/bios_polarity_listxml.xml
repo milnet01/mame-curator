@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!-- mame-curator-1109: matching official-listxml half of bios_polarity_dat.xml.
+     Three cases:
+       needsbios      romof=realbios,      realbios isbios="yes":  genuinely BIOS-dependent.
+       nobios         no romof, no biosset:                        no BIOS dependency at all.
+       falsepositive  romof=regularparent, regularparent NOT bios: has a romof, but the
+         chain never reaches an is_bios machine; the pre-fix membership-only signal
+         badges this one anyway (mame-curator-1109 false positive).
+     realbios and regularparent are listxml-only (not machines in bios_polarity_dat.xml);
+     that mirrors production: a BIOS/parent romset need not be a machine in the curated
+     library at all, only present in the official -listxml this chain is sourced from. -->
+<mame build="0.284 (mame0284)">
+  <machine name="needsbios" romof="realbios">
+    <description>Needs BIOS Game</description>
+  </machine>
+  <machine name="realbios" isbios="yes">
+    <description>Real BIOS</description>
+  </machine>
+  <machine name="nobios">
+    <description>No BIOS Dependency Game</description>
+  </machine>
+  <machine name="falsepositive" romof="regularparent">
+    <description>Ordinary Game, Non-BIOS Parent</description>
+  </machine>
+  <machine name="regularparent">
+    <description>Ordinary Non-BIOS Parent</description>
+  </machine>
+</mame>

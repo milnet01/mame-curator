@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 # pack keeps the reader and ``refresh-snaps`` bound to one config field
 # (mame-curator-1081; supersedes the P10 chunk-7 "deferred follow-up" note).
 _DEFAULT_SNAP_DIR = Path("./data/snaps/snap")
+_DEFAULT_SECRETS_DIR = Path("data/secrets")
 
 
 async def resolve_image(
@@ -125,6 +126,7 @@ def _source_factories(
     mobygames_limiter: TokenBucket,
     mobygames_disabled: SourceDisabledFlag,
     snap_dir: Path,
+    secrets_dir: Path,
 ) -> dict[str, Callable[[], MediaSource]]:
     """The name → source-constructor table (insertion order = default order).
 
@@ -144,6 +146,7 @@ def _source_factories(
             limiter=mobygames_limiter,
             cache_dir=cache_dir,
             disabled_flag=mobygames_disabled,
+            secrets_dir=secrets_dir,
         ),
     }
 
@@ -157,6 +160,7 @@ def build_registry(
     mobygames_limiter: TokenBucket,
     mobygames_disabled: SourceDisabledFlag,
     snap_dir: Path = _DEFAULT_SNAP_DIR,
+    secrets_dir: Path = _DEFAULT_SECRETS_DIR,
 ) -> MediaSourceRegistry:
     """Construct the configured sources (+ libretro baseline) and wrap them.
 
@@ -174,6 +178,7 @@ def build_registry(
         mobygames_limiter=mobygames_limiter,
         mobygames_disabled=mobygames_disabled,
         snap_dir=snap_dir,
+        secrets_dir=secrets_dir,
     )
     wanted = set(configured) | {"libretro"}
     available = {name: make() for name, make in factories.items() if name in wanted}
@@ -188,6 +193,7 @@ def build_all_sources(
     mobygames_limiter: TokenBucket,
     mobygames_disabled: SourceDisabledFlag,
     snap_dir: Path = _DEFAULT_SNAP_DIR,
+    secrets_dir: Path = _DEFAULT_SECRETS_DIR,
 ) -> dict[str, MediaSource]:
     """Construct ALL five known sources, regardless of config.
 
@@ -205,5 +211,6 @@ def build_all_sources(
         mobygames_limiter=mobygames_limiter,
         mobygames_disabled=mobygames_disabled,
         snap_dir=snap_dir,
+        secrets_dir=secrets_dir,
     )
     return {name: make() for name, make in factories.items()}

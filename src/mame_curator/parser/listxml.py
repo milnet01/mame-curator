@@ -27,12 +27,15 @@ class BIOSChainEntry(BaseModel):
     """One machine's BIOS-chain references from `-listxml`.
 
     `romof` is the parent ROM-of relation (often equal to `cloneof` but not
-    always). `biossets` is the tuple of `<biosset name="...">` children.
+    always). `biossets` is the tuple of `<biosset name="...">` children —
+    BIOS option names inside this machine's own romset, not other romsets.
+    `is_bios` is `<machine isbios="yes">` (mame-curator-1109).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
     romof: str | None = None
     biossets: tuple[str, ...] = ()
+    is_bios: bool = False
 
 
 def parse_listxml_disks(path: Path) -> set[str]:
@@ -130,8 +133,11 @@ def parse_listxml_bios_chain(path: Path) -> dict[str, BIOSChainEntry]:
                 continue
             romof = elem.get("romof") or None
             biossets = tuple(bs.get("name", "") for bs in elem.findall("biosset") if bs.get("name"))
-            if romof or biossets:
-                chain[name] = BIOSChainEntry(romof=romof, biossets=biossets)
+            # mame-curator-1109: every machine gets an entry, so a name absent
+            # from the chain is absent from the listxml.
+            chain[name] = BIOSChainEntry(
+                romof=romof, biossets=biossets, is_bios=elem.get("isbios") == "yes"
+            )
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]

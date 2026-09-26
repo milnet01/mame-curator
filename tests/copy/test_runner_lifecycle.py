@@ -203,8 +203,15 @@ def test_cancel_recycle_partial_recycles_winner_and_bios(
     src = tmp_path / "src"
     src.mkdir()
     payload = b"X" * (2 * 1024 * 1024)  # 2 MiB > _CHUNK so progress fires
-    # kof94's chain is neogeo (romof) + euro + us (biossets).
-    for name in ("kof94", "neogeo", "euro", "us"):
+    # mame-curator-1109: only isbios machines are copied, so the chain
+    # needs two real BIOS files for a cancel after the first to leave work
+    # pending: kof94 -> biosa -> biosb, copied in order kof94, biosa, biosb.
+    bios_chain = {
+        "kof94": BIOSChainEntry(romof="biosa"),
+        "biosa": BIOSChainEntry(romof="biosb", is_bios=True),
+        "biosb": BIOSChainEntry(is_bios=True),
+    }
+    for name in ("kof94", "biosa", "biosb"):
         (src / f"{name}.zip").write_bytes(payload)
     dest = tmp_path / "dest"
     dest.mkdir()
@@ -224,7 +231,7 @@ def test_cancel_recycle_partial_recycles_winner_and_bios(
         if (
             not triggered
             and done == total
-            and short in ("euro", "us")  # second-or-later BIOS finished
+            and short == "biosa"  # first BIOS finished; biosb still pending
         ):
             triggered.append(True)
             controller.cancel(recycle_partial=True)
@@ -237,7 +244,7 @@ def test_cancel_recycle_partial_recycles_winner_and_bios(
     # filename stem.
     recycled_shorts = {r.original_path.stem for r in report.recycled}
     assert "kof94" in recycled_shorts, "winner must be recycled per 'every file' contract"
-    assert recycled_shorts & {"neogeo", "euro", "us"}, (
+    assert recycled_shorts & {"biosa", "biosb"}, (
         "at least one BIOS file must be recycled per 'every file' contract"
     )
     # Originals at dst no longer exist (move, not copy).

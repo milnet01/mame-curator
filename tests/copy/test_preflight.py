@@ -106,7 +106,12 @@ def test_fp21_e_preflight_total_needed_includes_bios_chain(
         winners=("kof94",),
         source_dir=src,
         dest_dir=dest,
-        bios_chain={"kof94": BIOSChainEntry(romof="neogeo")},
+        # mame-curator-1109: a romof target counts as BIOS only when its
+        # own entry says isbios.
+        bios_chain={
+            "kof94": BIOSChainEntry(romof="neogeo"),
+            "neogeo": BIOSChainEntry(is_bios=True),
+        },
     )
     plan_no_bios = _plan(
         winners=("kof94",),

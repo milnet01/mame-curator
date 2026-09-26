@@ -1,4 +1,4 @@
-"""BIOS chain resolution — transitive `romof` + `<biosset>` walk."""
+"""BIOS chain resolution — transitive `romof` walk keeping `isbios` machines."""
 
 from __future__ import annotations
 
@@ -13,18 +13,18 @@ def resolve_bios_dependencies(
     winners: Iterable[str],
     bios_chain: dict[str, BIOSChainEntry],
 ) -> tuple[frozenset[str], tuple[BIOSResolutionWarning, ...]]:
-    """Walk romof + biosset chains transitively; return (bios set, sorted warnings).
+    """Walk `romof` transitively; return (BIOS set, sorted warnings).
 
-    Cycle safety is provided by the `seen` set checked at pop time;
-    self-referencing romof entries (an unusual but possible MAME shape)
-    are dropped on their second pop without further enqueue.
+    Only machines the listxml flags `isbios="yes"` enter the set
+    (`copy/spec.md` § BIOS chain resolution, mame-curator-1109). The walk
+    passes through non-BIOS parents, so a clone of a Neo Geo game still
+    reaches `neogeo`, but a parent that is not a BIOS is never copied: a
+    non-merged clone zip already holds its ROMs. `<biosset>` names are BIOS
+    options inside one zip and are never treated as short names.
 
-    Only top-level winners absent from `bios_chain` produce a warning
-    (`kind="missing_from_listxml"`). Transitive descendants absent from
-    `bios_chain` are silently treated as leaf BIOS files — the real
-    "missing BIOS" failure mode is surfaced later as
-    `SKIPPED_MISSING_SOURCE` during the copy phase if the `.zip` is
-    absent from the source directory.
+    Cycle safety is provided by the `seen` set checked at pop time. Only an
+    absent WINNER warns (`kind="missing_from_listxml"`); an absent name
+    reached through `romof` is skipped silently. No absent name is added.
     """
     winners_list = list(winners)
     winner_set = set(winners_list)
@@ -45,17 +45,9 @@ def resolve_bios_dependencies(
                 warnings.append(BIOSResolutionWarning(name=name, kind="missing_from_listxml"))
             continue
 
-        for b in entry.biossets:
-            if b not in winner_set:
-                bios.add(b)
-            queue.append((b, False))
-
-        # Closing-review R2: no `entry.romof != name` guard — a self-
-        # referencing romof is caught on its second pop by the `seen`
-        # check (matches `copy/spec.md` § Cycle safety wording).
+        if entry.is_bios and name not in winner_set:
+            bios.add(name)
         if entry.romof:
-            if entry.romof not in winner_set:
-                bios.add(entry.romof)
             queue.append((entry.romof, False))
 
     sorted_warnings = tuple(sorted(warnings, key=lambda w: w.name))

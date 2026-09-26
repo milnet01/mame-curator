@@ -113,6 +113,8 @@ async def media_proxy(
         # tracks `refresh-snaps --dest` / `media.snaps_dir` instead of the fixed
         # ./data/snaps/snap default. Pack PNGs live under `<snaps_dir>/snap/`.
         snap_dir=world.config.media.snaps_dir / "snap",
+        # mame-curator-1105: read the key from the config's data dir.
+        secrets_dir=world.data_dir / "secrets",
     )
     # `kind` is one of boxart/title/snap here (video short-circuited above,
     # invalid kinds rejected above) — narrow the untyped route param to Kind.
@@ -174,6 +176,8 @@ def media_sources(request: Request, world: WorldState = Depends(get_world)) -> S
         # too, else Settings → Media shows progettoSnaps disabled while the
         # media-proxy route (which now reads snaps_dir) serves it, or vice versa.
         snap_dir=world.config.media.snaps_dir / "snap",
+        # mame-curator-1105: read the key from the config's data dir.
+        secrets_dir=world.data_dir / "secrets",
     )
     configured = world.config.media.sources
     ordered = [n for n in configured if n in sources]
@@ -182,7 +186,9 @@ def media_sources(request: Request, world: WorldState = Depends(get_world)) -> S
 
 
 @router.put("/api/media/sources/{name}/secret", status_code=204)
-def media_source_secret(name: str, body: SourceSecret) -> None:
+def media_source_secret(
+    name: str, body: SourceSecret, world: WorldState = Depends(get_world)
+) -> None:
     """Atomically write a per-source secret to its 0600 dotfile.
 
     Only ``mobyGames`` is supported (the sole value-paste source) — any other
@@ -198,5 +204,6 @@ def media_source_secret(name: str, body: SourceSecret) -> None:
     # necessarily mobyGames here and the hardcoded mobygames_key_path() is
     # correct. Adding a second value-paste source MUST replace this with a
     # name -> key_path map — else the new source's secret clobbers this one.
-    atomic_write_text(mobygames_key_path(), body.secret, mode=0o600)
+    # mame-curator-1105: the config's data dir, never the process cwd.
+    atomic_write_text(mobygames_key_path(world.data_dir / "secrets"), body.secret, mode=0o600)
     logger.info("media/sources: secret saved for %s", name)

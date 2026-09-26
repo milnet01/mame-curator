@@ -125,7 +125,9 @@ def test_copy_report_completeness(
         dest_dir=dest_dir,
     )
     report = run_copy(plan)
-    expected = {"kof94", "sf2ce", "neogeo", "euro", "us", "sf2", "cps1bios"}
+    # mame-curator-1109: only isbios machines join the plan — not the
+    # <biosset> option names (euro, us) or the non-BIOS parent sf2.
+    expected = {"kof94", "sf2ce", "neogeo", "cps1bios"}
     actual = {o.short_name for o in (*report.succeeded, *report.skipped, *report.failed)}
     assert actual == expected
     # Disjoint.
@@ -152,8 +154,9 @@ def test_copy_progress_callback_emits_per_file(
             file_events.append(short)
 
     run_copy(plan, on_progress=on_progress)
-    # 1 winner + 3 BIOS = 4 files.
-    assert len(file_events) == 4
+    # 1 winner + 1 BIOS (neogeo) = 2 files; euro/us are biosset option
+    # names, not files (mame-curator-1109).
+    assert len(file_events) == 2
 
 
 def test_copy_missing_source_still_invokes_on_progress(

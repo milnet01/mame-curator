@@ -84,12 +84,11 @@ def test_overwrite_record_populated_on_replace(
     # The recycled file's content matches what we seeded (the OLD sf2).
     recycled_record = next(r for r in report.recycled if r.original_path.name == "sf2.zip")
     assert recycled_record.recycled_path.read_bytes() == b"old sf2 content"
-    # A fresh sf2.zip lands at dest because sf2 is a BIOS dep of sf2ce —
-    # source-copied after the recycle. Its content matches source, not the
-    # old user-installed copy. (This is the design: BIOS deps are always
-    # the source's version, not whatever was previously at dest.)
-    assert (dest_dir / "sf2.zip").exists()
-    assert (dest_dir / "sf2.zip").read_bytes() == (source_dir / "sf2.zip").read_bytes()
+    # mame-curator-1109: sf2 is sf2ce's parent, not a BIOS (isbios is on
+    # cps1bios), so nothing copies it back after the recycle — the replace
+    # really replaces. The true BIOS still lands.
+    assert not (dest_dir / "sf2.zip").exists()
+    assert (dest_dir / "cps1bios.zip").exists()
 
 
 def test_overwrite_record_populated_on_plain_replace_no_recycle(

@@ -169,6 +169,7 @@ def run_copy(
     *,
     controller: CopyController | None = None,
     on_progress: Callable[[str, int, int], None] | None = None,
+    data_dir: Path = Path("data"),
 ) -> CopyReport:
     """Execute a CopyPlan; return a CopyReport. See spec.md for the full contract."""
     started_at = datetime.now(UTC)
@@ -190,7 +191,7 @@ def run_copy(
                 conflict_strategy=plan.conflict_strategy,
             ),
         ),
-        log_path=Path("data/activity.jsonl"),
+        log_path=data_dir / "activity.jsonl",
     )
 
     pre = preflight(plan)
@@ -206,6 +207,7 @@ def run_copy(
             plan=plan,
             started_at=started_at,
             session_id=session_id,
+            data_dir=data_dir,
             status=CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT,
             plan_summary=plan_summary,
             bios_set=bios_set,
@@ -237,6 +239,7 @@ def run_copy(
             plan=plan,
             started_at=started_at,
             session_id=session_id,
+            data_dir=data_dir,
             status=CopyReportStatus.CANCELLED,
             plan_summary=plan_summary,
             bios_set=bios_set,
@@ -309,6 +312,7 @@ def run_copy(
                                 old_zip,
                                 reason="REPLACE_AND_RECYCLE",
                                 session_id=session_id,
+                                recycle_root=data_dir / "recycle",
                             )
                             recycled.append(
                                 RecycleRecord(
@@ -395,6 +399,7 @@ def run_copy(
                 existing,
                 reason="OVERWRITE_DELETE_EXISTING",
                 session_id=session_id,
+                recycle_root=data_dir / "recycle",
             )
             recycled.append(
                 RecycleRecord(
@@ -424,6 +429,7 @@ def run_copy(
                     outcome.dst,
                     reason="CANCELLED_RECYCLE_PARTIAL",
                     session_id=session_id,
+                    recycle_root=data_dir / "recycle",
                 )
             except (OSError, RecycleError):
                 logger.exception(
@@ -493,7 +499,7 @@ def run_copy(
                     )
                 ),
             ),
-            log_path=Path("data/activity.jsonl"),
+            log_path=data_dir / "activity.jsonl",
         )
     else:
         append_activity(
@@ -507,7 +513,7 @@ def run_copy(
                     recycled_count=len(recycled),
                 ),
             ),
-            log_path=Path("data/activity.jsonl"),
+            log_path=data_dir / "activity.jsonl",
         )
 
     return report
@@ -523,6 +529,7 @@ def _finalize(
     bios_set: frozenset[str],
     warnings: list[str],
     recycled: tuple[RecycleRecord, ...] = (),
+    data_dir: Path,
 ) -> CopyReport:
     finished_at = datetime.now(UTC)
     report = CopyReport(
@@ -544,6 +551,6 @@ def _finalize(
             session_id=session_id,
             details=CopyAbortedDetails(reason=status.value, recycled_count=len(recycled)),
         ),
-        log_path=Path("data/activity.jsonl"),
+        log_path=data_dir / "activity.jsonl",
     )
     return report

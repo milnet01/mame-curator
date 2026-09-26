@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!-- mame-curator-1109: private 3-machine DAT for the BIOS_MISSING badge /
+     only_bios_missing filter polarity regression (tests/api/test_bios_badge_polarity.py).
+     Independent of the shared 6-machine tests/api/fixtures/api_listxml.xml DAT so the
+     three cases below stay unambiguous. Pleasuredome DATs strip romof/cloneof (see
+     parser/spec.md), so none of these carry either attribute here; the BIOS-chain
+     romof/isbios data lives entirely in bios_polarity_listxml.xml. -->
+<mame build="0.284 (mame0284)">
+  <machine name="needsbios">
+    <description>Needs BIOS Game</description>
+    <year>1994</year>
+    <manufacturer>Testco</manufacturer>
+    <rom name="needsbios.bin" size="1024" crc="11111111" sha1="0000000000000000000000000000000000000010"/>
+  </machine>
+  <machine name="nobios">
+    <description>No BIOS Dependency Game</description>
+    <year>1994</year>
+    <manufacturer>Testco</manufacturer>
+    <rom name="nobios.bin" size="1024" crc="22222222" sha1="0000000000000000000000000000000000000011"/>
+  </machine>
+  <machine name="falsepositive">
+    <description>Ordinary Game, Non-BIOS Parent</description>
+    <year>1994</year>
+    <manufacturer>Testco</manufacturer>
+    <rom name="falsepositive.bin" size="1024" crc="33333333" sha1="0000000000000000000000000000000000000012"/>
+  </machine>
+</mame>

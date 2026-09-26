@@ -170,6 +170,9 @@ class JobManager:
         self._history_dir = history_dir
         self._lock = asyncio.Lock()
         self._current: Job | None = None
+        # mame-curator-1111: the most recently retired job, kept so a client
+        # that subscribes after a fast job finished still gets its replay.
+        self._last: Job | None = None
         if loop is None:
             try:
                 loop = asyncio.get_running_loop()
@@ -181,6 +184,11 @@ class JobManager:
     def current(self) -> Job | None:
         """The in-flight Job, or None when idle."""
         return self._current
+
+    @property
+    def replayable(self) -> Job | None:
+        """The in-flight Job, else the last finished one; None before any job."""
+        return self._current or self._last
 
     async def start(self, plan: CopyPlan, world: WorldState) -> Job:
         """Spawn the worker thread + initial events. Raises if a job is running."""
@@ -205,7 +213,14 @@ class JobManager:
 
             def worker() -> None:
                 try:
-                    report = run_copy(plan, controller=controller, on_progress=synth)
+                    report = run_copy(
+                        plan,
+                        controller=controller,
+                        on_progress=synth,
+                        # mame-curator-1105: anchor on the config's data dir,
+                        # never the process cwd.
+                        data_dir=world.data_dir,
+                    )
                 except Exception as exc:  # pragma: no cover - defense in depth
                     logger.exception("copy worker crashed")
                     self._loop and self._loop.call_soon_threadsafe(self._on_worker_error, str(exc))
@@ -384,7 +399,7 @@ class JobManager:
                 pass
         self._emit(terminal)
         self._close_subscribers()
-        self._current = None
+        self._last, self._current = self._current, None
 
     def _on_worker_error(self, message: str) -> None:
         job = self._current
@@ -402,7 +417,7 @@ class JobManager:
         )
         self._emit(ev)
         self._close_subscribers()
-        self._current = None
+        self._last, self._current = self._current, None
 
     def _close_subscribers(self) -> None:
         if self._current is None:
@@ -412,9 +427,9 @@ class JobManager:
                 q.put_nowait(None)
 
     async def _events_iterator(self) -> AsyncIterator[JobEvent]:
-        if self._current is None:
+        job = self.replayable
+        if job is None:
             raise JobNotFoundError("no active copy job")
-        job = self._current
         q: asyncio.Queue[JobEvent | None] = asyncio.Queue(maxsize=_QUEUE_SIZE)
         # FP21-K: register the subscriber FIRST, then snapshot history
         # into a local tuple, then drain the snapshot into ``q``. Two

@@ -98,7 +98,9 @@ async def abort_copy(body: CopyAbortRequest, jobs: JobManager = Depends(get_jobs
 
 @router.get("/api/copy/status")
 async def copy_status(jobs: JobManager = Depends(get_jobs)) -> EventSourceResponse:
-    if jobs.current is None:
+    # mame-curator-1111: a job that finished before the client subscribed
+    # still replays; only "no job yet this process" is a 404.
+    if jobs.replayable is None:
         raise JobNotFoundError("no active copy job")
 
     async def event_stream() -> Any:
