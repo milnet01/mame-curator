@@ -126,13 +126,36 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: frontend.
 
-- 📋 [mame-curator-1103] **Copy progress window reads '0 / 0 —' for the whole of a multi-file copy.**
+- 📋 [mame-curator-1103] **Copy progress counter never counts finished or skipped files, and reads '0 / 0 —' before the job starts.**
   Observed 2026-09-26 copying 4 cart games (6 zips, one 43 MB) against the
   real library: the Copy in progress window showed '0 / 0 —' and State:
   Copying until it closed. Cause not traced; could be the SSE progress
   events or how CopyModal reads totals.
   Follow-up owed (2026-09-26): the site tour video ends on this '0 / 0'
   counter. See 1102's note for the media refresh owed once both are fixed.
+  Investigated 2026-09-26 against a real-library server (dest on
+  /mnt/Emulators). The server's SSE stream is correct in shape: job_started
+  carries files_total, then file_started/file_finished per file, then
+  job_finished. Headless Chromium showed "0 / 50" for a 4-game cart and
+  "Finished" with done still 0. Three causes:
+  1. useCopySession never counts done files. file_progress carries no
+     files_done, and the hook ignores file_finished.
+  2. files_total is inflated. copy/bios.py adds every `<biosset name>` of a
+     BIOS machine as a romset to copy. Those are BIOS option names (euro,
+     japan, unibios10), not zips. copy/spec.md mandates the same step. A
+     3-game copy planned 33 BIOS entries; 31 were bogus and skipped.
+  3. The runner skips a missing source with no progress event, so a
+     skipped file never counts as done.
+  "0 / 0" did not reproduce. It is the modal's initial state before
+  job_started arrives, so a slow stream start shows it (unverified).
+  Also seen: the romof walk copies a clone's parent (puckman for pacman)
+  as "BIOS", which a non-merged set does not need. And the modal shows a
+  bare "BIOS warning" because the hook reads payload.message while the
+  server sends name and kind.
+  Split 2026-09-26 (user decision): the resolver is mame-curator-1109,
+  the bare "BIOS warning" text is mame-curator-1110. This item keeps the
+  counter. The user chose to count a skipped file as processed, so the
+  counter reaches its total and the finish screen lists what was skipped.
   **Layman:** While copying games, the progress window shows 0 out of 0 instead of how many are done.
   Kind: investigate.
   Source: in-session-2026-09-26.
@@ -895,6 +918,30 @@ wave lands.
   P06 spec sets. Unverified whether it predates this session.
   **Layman:** The app's main code file is large enough that the build tool warns it may load slowly.
   Kind: perf.
+  Source: in-session-2026-09-26.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1109] **BIOS resolver copies `<biosset>` option names and clone parents as BIOS romsets.**
+  Split from mame-curator-1103. copy/bios.py and copy/spec.md add every
+  `<biosset name>` as a romset; those are BIOS option names (euro,
+  japan, unibios10), not zips. It also adds every romof target, so a
+  clone's parent (puckman for pacman) is copied as "BIOS".
+  Decided by the user 2026-09-26: copy only machines MAME marks as a
+  BIOS (`isbios="yes"`); the parser must record that flag in the chain.
+  The copy/spec.md amendment runs the review-contract gate before code
+  (global rule 14). Fixing this makes files_total honest.
+  **Layman:** Copying games tries to copy dozens of files that don't exist and copies parent games you didn't pick.
+  Kind: fix.
+  Source: in-session-2026-09-26.
+  Lanes: copy, parser.
+
+- 📋 [mame-curator-1110] **Copy modal shows a bare 'BIOS warning' instead of which BIOS and why.**
+  Split from mame-curator-1103. useCopySession's bios_warning case reads
+  `payload.message`; the server sends `{name, kind}` (jobs.py, JobManager.start),
+  so every warning falls back to the literal "BIOS warning". Render the
+  name and a readable kind (e.g. missing_from_listxml).
+  **Layman:** The copy window warns about a BIOS problem without saying which BIOS or what is wrong.
+  Kind: fix.
   Source: in-session-2026-09-26.
   Lanes: frontend.
 
