@@ -1072,6 +1072,23 @@ wave lands.
   Source: in-session-2026-09-26 (mame-curator-1094 fold-in).
   Lanes: cli.
 
+- 📋 [mame-curator-1113] **Declare which `docs/standards/` files are owned here, not drifted copies of the global set.**
+  `~/.claude/tools/align-report` (2026-09-26) reports commits.md,
+  coding.md, documentation.md, roadmap-format.md and testing.md as
+  UNDECLARED: they share the global standards' names, barely overlap
+  them, and carry no OWNED-HERE marker. spec-format.md reads PARTIAL
+  (upstream v1 plus overrides O1-O4, per CLAUDE.md). Each needs an
+  OWNED-HERE marker or a rename to a `-overrides` file per
+  `~/.claude/standards/README.md`. Also reported: no
+  `docs/standards/versioning-overrides.md`. Not gaps, deliberate: the
+  repo-local `core.hooksPath` (pre-commit's pre-push runs local-CI.sh)
+  and the missing commit-msg hook (Conventional Commits, not
+  `<ID>: <description>`).
+  **Layman:** Some of the project's rule documents share names with the machine-wide ones without saying which one is in charge here.
+  Kind: doc.
+  Source: peer-claude-2a-2026-09-26 (align-report).
+  Lanes: docs.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
