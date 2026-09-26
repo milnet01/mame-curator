@@ -1,3 +1,6 @@
+<!-- ants-roadmap-format: 1 -->
+<!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
+
 <!-- mame-roadmap-format: 1 -->
 
 # MAME Curator — Roadmap
@@ -33,6 +36,49 @@
 every dependency to its latest stable release. No user-visible
 features; the goal is a cleaner foundation before the next feature
 wave lands.
+
+- 📋 [mame-curator-1098] **catver.ini [VerAdded] section overwrites [Category], so every game's genre is a MAME version string.**
+  data/ini/catver.ini carries both [Category] and [VerAdded]; the INI reader
+  merges both sections into one map, so the later [VerAdded] value wins.
+  Observed: /api/games/sf2 returns category "0.64"; /api/stats by_genre is
+  keyed by versions; the Beat 'em Ups / Run & Gun / SHMUPS featured tiles
+  show 0 games. Server start logs a 'duplicate catver key ... overwriting'
+  warning per machine (tens of thousands of lines).
+  **Layman:** Every game's genre shows up as a version number like 0.162, so genre filters, genre tiles and the Stats genre chart are all wrong.
+  Kind: fix.
+  Source: in-session-2026-09-26.
+  Lanes: parser.
+
+- 📋 [mame-curator-1099] **Stats page reports driver status 'unknown' for every game in the library.**
+  Observed on the Stats page with the real config: Driver status panel shows a
+  single 'unknown' bar for all games. Cause not yet traced (driver status may
+  come only from -listxml and not be joined into stats).
+  **Layman:** The Stats page says it doesn't know whether any game emulates well, which is not true.
+  Kind: investigate.
+  Source: in-session-2026-09-26.
+  Lanes: api, parser.
+
+- 📋 [mame-curator-1100] **Alternatives drawer shows '0 versions in this family' while its list is still loading.**
+  Opening the drawer for mshvsf and screenshotting after ~2.5 s showed
+  '0 versions in this family' with an empty list; the API returns many
+  versions, and waiting longer shows them. The loading state should read as
+  loading, not as an empty family.
+  **Layman:** When you open a game's versions panel it briefly claims there are no versions before they appear.
+  Kind: ux.
+  Source: in-session-2026-09-26.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1101] **Dry-run preview's Copy button only closes the modal instead of starting the copy.**
+  frontend/src/pages/LibraryPage.tsx passes
+  `onConfirm={() => setDryRunReport(null)}` to DryRunModal, so its Copy button
+  is a second Cancel. The modal hint reads "Review the diff and confirm to
+  copy." Observed 2026-09-26: clicking it sent no POST /api/copy/start; the
+  cart-bar Copy button does start a copy. Wire onConfirm to the same handler
+  as the cart-bar Copy (handleCopy in useLibraryController).
+  **Layman:** In the copy preview window, pressing Copy just closes the window and nothing gets copied, even though the window says to confirm to copy.
+  Kind: fix.
+  Source: in-session-2026-09-26.
+  Lanes: frontend.
 
 ### 🧹 Cleanup / debt
 
@@ -94,14 +140,20 @@ wave lands.
   Source: test-audit-2026-05-15 (1034/1035/1036) +
   DS02-R2-post-mortem (Cluster D).
 
-- ✅ [mame-curator-1034] **`SettingsPage.test.tsx` seam-split** —
+- ✅ [mame-curator-1034] **`SettingsPage.test.tsx` seam-split**
+  —
   closed in DS05 Cluster A (2026-05-16).
+  Kind: implement.
 
-- ✅ [mame-curator-1035] **`tests/copy/test_runner.py` seam-split** —
+- ✅ [mame-curator-1035] **`tests/copy/test_runner.py` seam-split**
+  —
   closed in DS05 Cluster B (2026-05-16).
+  Kind: implement.
 
-- ✅ [mame-curator-1036] **`tests/parser/test_dat.py` split** —
+- ✅ [mame-curator-1036] **`tests/parser/test_dat.py` split**
+  —
   closed in DS05 Cluster C (2026-05-16).
+  Kind: implement.
 
 - ✅ [mame-curator-1021] **DS02 — Tier 3 structural debt sweep.**
   Closed 2026-05-15 (`c0a6ad6..eb000e4`). 18 sub-bullets across 7
@@ -227,8 +279,8 @@ wave lands.
   machine — the check has to land with a CI run as its first execution.
   **Layman:** On Windows, a bad PORT setting still produces a confusing error instead of the clear one Linux and macOS now give.
   Kind: fix.
-  Lanes: cli, tooling.
   Source: cold-eyes-2026-08-03 (mame-curator-1088 review).
+  Lanes: cli, tooling.
 
 - ✅ [mame-curator-1090] **`serve --port` / `--host` help text claims a config lookup that does not exist.**
   `cli/__init__.py:204-205` — `--host` and `--port` are both described as
@@ -267,20 +319,20 @@ wave lands.
   above, but four things an implementer needs were missing and are now
   pinned:
   (a) layer (3) selection MUST re-derive presence from `args.port` /
-      `os.environ["PORT"]` — inferring it from `_resolve_port`'s return
-      value lets `server.port` beat an explicit `--port 8080`. Verified by
-      executing both forms: the naive `port == DEFAULT_PORT` form passes
-      9500 and 9600 cases, so the test surface MUST include an
-      8080-vs-9000 pair or the inversion ships green.
+  `os.environ["PORT"]` — inferring it from `_resolve_port`'s return
+  value lets `server.port` beat an explicit `--port 8080`. Verified by
+  executing both forms: the naive `port == DEFAULT_PORT` form passes
+  9500 and 9600 cases, so the test surface MUST include an
+  8080-vs-9000 pair or the inversion ships green.
   (b) resolution is two STATEMENTS, not one if/else — `$PORT` validation
-      stays in stage 1 before any config I/O, or the pinned ordering test
-      (`PORT=abc` + missing config must name `abc`) goes red.
+  stays in stage 1 before any config I/O, or the pinned ordering test
+  (`PORT=abc` + missing config must name `abc`) goes red.
   (c) `run.sh` needs THREE changes, not two: dropping `:-8080` without
-      guarding the regex block on `[ -n "${PORT}" ]` aborts every default
-      bootstrap (verified in bash). The announce line changes too — `URL`
-      is built from `$PORT`.
+  guarding the regex block on `[ -n "${PORT}" ]` aborts every default
+  bootstrap (verified in bash). The announce line changes too — `URL`
+  is built from `$PORT`.
   (d) the wildcard test cannot be a bare `ip_address(host).is_unspecified`
-      — it raises on `""` (itself a wildcard) and on any hostname.
+  — it raises on `""` (itself a wildcard) and on any hostname.
   Next action is implementation via /write-code, TDD first.
   Resolved (2026-08-04): implemented in 5933127, TDD. `serve` now resolves port as --port -> $PORT -> server.port -> 8080 and host as --host -> server.host -> 127.0.0.1, reading only config.yaml's `server:` block (never the whole AppConfig, so a config whose other sections are mid-edit still starts). The browser opens from a daemon thread that polls the resolved address until it accepts, replacing run.sh's blind 2 s sleep. All four implementation pins held: layer (3) is selected by re-deriving presence from args.port/$PORT (the 8080-vs-9000 pair is the only test that reds the naive form -- verified by running both); resolution is two statements so the invalid-$PORT error still precedes the config check; run.sh took all three changes; _is_wildcard is the guarded form. run.bat also lost its browser open (two tabs otherwise) -- its unconditional --port stays with 1089. +33 tests; full local-CI green.
 
@@ -325,8 +377,8 @@ wave lands.
   Recorded as override O1 in spec-format.md.
   **Layman:** Spec filenames say only an ID; adding a short topic to each makes the folder readable at a glance.
   Kind: doc-fix.
-  Lanes: docs.
   Source: doc-layout-audit-2026-08-03.
+  Lanes: docs.
 
 - 💭 [mame-curator-1093] **`docs/discovery.md` deliberately not written — do not re-raise.**
   The app-workflow Phase A output `docs/discovery.md` (problem, users,
@@ -340,8 +392,8 @@ wave lands.
   will flag this again — this bullet is the answer, not a to-do.
   **Layman:** A "what problem are we solving" document that the workflow normally asks for up front; we decided not to invent one after the fact.
   Kind: doc.
-  Lanes: docs.
   Source: user-decision-2026-08-03 (doc-layout audit).
+  Lanes: docs.
 
 - 📋 [mame-curator-1094] **Fold in the 13 deferred cold-eyes findings on `cli/spec.md`.**
   The /cold-eyes gate on `src/mame_curator/cli/spec.md` converged by cap at
@@ -352,57 +404,57 @@ wave lands.
 
   MEDIUM:
   1. § Browser — the poll TARGET is undefined for a wildcard bind. The doc
-     rewrites only the browser URL to 127.0.0.1; say both the poll target
-     and the opened URL use `_is_wildcard(host) and "127.0.0.1" or host`,
-     else the poller connects to 0.0.0.0/:: and burns the 300 s budget.
+  rewrites only the browser URL to 127.0.0.1; say both the poll target
+  and the opened URL use `_is_wildcard(host) and "127.0.0.1" or host`,
+  else the poller connects to 0.0.0.0/:: and burns the 300 s budget.
   2. § config layer — three undefined edge cases: a bare `server:` key
-     parsing to None, a `server:` value that is a scalar or list, and an
-     empty file. Add: absent OR null -> ServerConfig() defaults; any
-     non-mapping value -> exit 1.
+  parsing to None, a `server:` value that is a scalar or list, and an
+  empty file. Add: absent OR null -> ServerConfig() defaults; any
+  non-mapping value -> exit 1.
   3. Exit-1 path 1 reads "`$PORT` set and invalid", omitting the
-     precondition § Port states — `$PORT` is not read at all when `--port`
-     is present. Reword to "`--port` absent and `$PORT` set and invalid".
+  precondition § Port states — `$PORT` is not read at all when `--port`
+  is present. Reword to "`--port` absent and `$PORT` set and invalid".
   4. § "Subcommand inventory" claims `setup`'s contract is stated below,
-     but the paragraph names no flags, no exit codes and no output shape.
-     Either add a small flag/exit-code table or file the contract as its
-     own item.
+  but the paragraph names no flags, no exit codes and no output shape.
+  Either add a small flag/exit-code table or file the contract as its
+  own item.
   5. The supersession paragraph enumerates P04.md:856/:859/:885 but omits
-     `P04.md:16`, which states the serve flag surface without
-     `--no-open-browser` and with `--port 8080` as a default. Add it and
-     declare this spec canonical for the flag surface too.
+  `P04.md:16`, which states the serve flag surface without
+  `--no-open-browser` and with `--port 8080` as a default. Add it and
+  declare this spec canonical for the flag surface too.
   6. `_serve_args` blast radius is stated as "all four `_cmd_serve`
-     end-to-end tests"; there are five, and only two reach the browser
-     decision (the other three exit at port resolution).
+  end-to-end tests"; there are five, and only two reach the browser
+  decision (the other three exit at port resolution).
   7. The browser log table has four rows but covers five outcomes — row 3
-     folds config-false and `--no-open-browser` behind one placeholder,
-     while the test surface asks for "each of the four outcomes".
+  folds config-false and `--no-open-browser` behind one placeholder,
+  while the test surface asks for "each of the four outcomes".
   8. Port 0 and "disabled by config/flag" can both hold; state which log
-     line wins (disabled first, then port 0).
+  line wins (disabled first, then port 0).
 
   LOW:
   9. `:183` "widens `_resolve_port`'s signature reds all of them" is true
-     only for a REQUIRED added parameter; a defaulted one reds nothing.
+  only for a REQUIRED added parameter; a defaulted one reds nothing.
   10. The layer-3/4 "one read, not two" note is now stated twice (§ table
-      and § Port rule 4). Keep the § Port copy, reduce the table to a
-      pointer. (dim 1 — the duplication this run otherwise removed.)
+  and § Port rule 4). Keep the § Port copy, reduce the table to a
+  pointer. (dim 1 — the duplication this run otherwise removed.)
   11. Noun drift: "the `server:` section" vs "the `server:` block"; and
-      "layer" vs "rule" for the same numbered list.
+  "layer" vs "rule" for the same numbered list.
   12. § Port requires the `$PORT` value "verbatim" while § Entry points
-      concedes Python uses `repr` (which quotes and escapes). Say
-      "verbatim modulo `repr` quoting".
+  concedes Python uses `repr` (which quotes and escapes). Say
+  "verbatim modulo `repr` quoting".
   13. The TOC lists H2s only, but the doc cross-references § Port, § Host,
-      § Browser and § Entry points constantly. Add those four H3s.
+  § Browser and § Entry points constantly. Add those four H3s.
 
   Also recorded, needing a decision rather than an edit:
   - **Reciprocal `docs/specs/P04.md` edit** (:16, :856, :859, :885) — two
-    contract docs still assert opposite exit codes and different flag
-    surfaces. This spec declares itself canonical; P04 has not been
-    amended. Owner's call.
+  contract docs still assert opposite exit codes and different flag
+  surfaces. This spec declares itself canonical; P04 has not been
+  amended. Owner's call.
   - `CLAUDE.md:58` shows `P10 🚧`; P10 closed 2026-07-02 (out of scope for
-    this run — CLAUDE.md was not the document under review).
+  this run — CLAUDE.md was not the document under review).
   - `tests/cli/test_serve_port_env.py` and `tests/tools/test_run_sh_port.py`
-    docstrings cite this spec's former section name, "serve port
-    resolution". Code-side; fold into the mame-curator-1090 commit.
+  docstrings cite this spec's former section name, "serve port
+  resolution". Code-side; fold into the mame-curator-1090 commit.
 
   **Size signal:** the doc went 203 -> 432 lines across the three loops.
   Not past the design point, but if a fourth loop is ever wanted, split it
@@ -410,8 +462,8 @@ wave lands.
   looping a doc this size again.
   **Layman:** A doc review found 13 smaller wording and completeness gaps in the CLI contract; they are written up and just need folding in.
   Kind: doc-fix.
-  Lanes: cli.
   Source: cold-eyes-2026-08-04 (cli/spec.md rule-14 gate, loop 3 deferred tail).
+  Lanes: cli.
 
 - 📋 [mame-curator-1095] **Ship self-contained desktop bundles for Linux, Windows and macOS.**
   Three artefacts built by `release.yml` and attached to each `v*.*.*`
@@ -652,17 +704,17 @@ wave lands.
 
   **Ruled out, with evidence (do not re-check these):**
   - The CLI test suite. Every `_cmd_serve` call site in `tests/cli/`
-    suppresses the open: `test_serve_config_layer.py` and
-    `test_config_location.py` default `no_open_browser=True`,
-    `test_fp28_serve_signal.py` passes it explicitly,
-    `test_serve_port_env.py`'s remaining calls exit on a bad `$PORT`
-    before the browser step, and `test_serve_browser.py`'s
-    `_serve_capturing_thread` replaces `serve_mod`'s whole `threading`
-    module so no poller thread ever starts.
+  suppresses the open: `test_serve_config_layer.py` and
+  `test_config_location.py` default `no_open_browser=True`,
+  `test_fp28_serve_signal.py` passes it explicitly,
+  `test_serve_port_env.py`'s remaining calls exit on a bad `$PORT`
+  before the browser step, and `test_serve_browser.py`'s
+  `_serve_capturing_thread` replaces `serve_mod`'s whole `threading`
+  module so no poller thread ever starts.
   - The e2e Playwright suite: `frontend/e2e/fixtures/config.yaml` sets
-    `open_browser_on_start: false`.
+  `open_browser_on_start: false`.
   - The screenshots Playwright suite: fixed in 1096 (`--no-open-browser`
-    added). Real defect, still fixed, evidently not the reported symptom.
+  added). Real defect, still fixed, evidently not the reported symptom.
 
   **First thing to capture next session — ask the user, don't infer:**
   the tab's URL and port, and what was running when it appeared. A port
@@ -734,8 +786,8 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
 
 **Deferred to roadmap (this sub-section):**
 
-- ✅ [mame-curator-1065] **Test-audit 2026-05-20 — dedup nits beyond
-  [mame-curator-1054].** (a) `tests/api/test_fp21_fixes.py` — extract a
+- ✅ [mame-curator-1065] **Test-audit 2026-05-20 — dedup nits beyond [mame-curator-1054].**
+  (a) `tests/api/test_fp21_fixes.py` — extract a
   `_make_job(tmp_path, history=0)` helper for the byte-identical
   CopyPlan+Job construction (chunk c-001). (b)
   `frontend/.../CartBar.test.tsx` — extract `renderCartBar(overrides)`;
@@ -756,9 +808,12 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   `beforeEach` render (d); `renderAt()` reuse (e); `findLastJsxOpenTag()`
   (f); (g) folded into 1066(b)'s parametrized snaps test. 764 backend +
   320 frontend tests green; ruff/format/mypy/bandit/eslint/tsc clean.
+  Kind: refactor.
+  Source: test-audit-2026-05-20.
+  Lanes: backend tests, frontend.
 
-- ✅ [mame-curator-1066] **Test-audit 2026-05-20 — verbosity / parametrize
-  polish beyond [mame-curator-1055] (a).** (a)
+- ✅ [mame-curator-1066] **Test-audit 2026-05-20 — verbosity / parametrize polish beyond [mame-curator-1055] (a).**
+  (a)
   `tests/api/test_routes_copy.py:36` — parametrize the r22/r23/r24 shape
   tests (chunk c-002). (b) `tests/updates/test_snaps.py` — parametrize the
   `force=False/True` overwrite pair (chunk c-010). (c)
@@ -774,9 +829,12 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   useValidateCart all-existing/all-missing → `it.each` (c); test_drops
   4-predicate split into per-rule parametrize ids (d). DS05 count pins
   bumped 611→608 / 305→303 with cited reasons.
+  Kind: refactor.
+  Source: test-audit-2026-05-20.
+  Lanes: backend tests, frontend.
 
-- ✅ [mame-curator-1067] **Test-audit 2026-05-20 — coverage gaps beyond
-  [mame-curator-1053].** (a) `tests/filter/test_drops.py` — only
+- ✅ [mame-curator-1067] **Test-audit 2026-05-20 — coverage gaps beyond [mame-curator-1053].**
+  (a) `tests/filter/test_drops.py` — only
   `drop_bios_devices_mechanical` has a flag-disabled (`=False`) "keeps
   them" test; add the equivalents for `drop_mature`,
   `drop_preliminary_emulation`, `drop_chd_required`,
@@ -786,9 +844,12 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   exists but is never directly asserted (chunk c-010). Kind: test. Lanes:
   backend tests. Source: test-audit-2026-05-20.
   Resolved (2026-06-10): (a) added `test_togglable_drop_flags_false_keeps_them` in test_drops.py — flag-disabled `=False` keeps-them locks for drop_mature / drop_preliminary_emulation / drop_chd_required / drop_japanese_only_text (every togglable predicate now has one). (b) added `test_refresh_snaps_rejects_zip_path_traversal` in test_snaps.py — `../evil.png` skipped, files_extracted==1, nothing escapes dest; mutation-checked (guard off → 2 extracted → test fails). DS05 pin 608→610.
+  Kind: test.
+  Source: test-audit-2026-05-20.
+  Lanes: backend tests.
 
-- ✅ [mame-curator-1068] **Test-audit 2026-05-20 — reliability /
-  assertion hardening.** (a) `tests/api/test_fp09_fixes.py:247`
+- ✅ [mame-curator-1068] **Test-audit 2026-05-20 — reliability / assertion hardening.**
+  (a) `tests/api/test_fp09_fixes.py:247`
   (`test_b7_fs_list_parent_filtered_against_allowlist`) — the assertion is
   vacuous when `body["parent"] is None`; a regression that always returns
   `parent=null` passes silently. Needs a deterministic allowlist setup so
@@ -801,18 +862,24 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   still passes (chunk c-008). Kind: fix. Lanes: backend tests. Source:
   test-audit-2026-05-20.
   Resolved (2026-06-10): (a) `test_b7_fs_list_parent_filtered_against_allowlist` rewritten deterministically via the `fake_home` allowlist root — lists a subdir (parent exposed) then the root (parent=None, up escapes sandbox); no longer vacuous on the parent-is-None case. (b) both `*_prepare_is_noop` tests now mount a catch-all respx route returning 500 and assert `not catch_all.called` — a swallowed network call flips that flag (verified respx trips on a real GET). Count-neutral.
+  Kind: fix.
+  Source: test-audit-2026-05-20.
+  Lanes: backend tests.
 
-- ✅ [mame-curator-1069] **Test-audit 2026-05-20 — fixture-scope perf in
-  `tests/api/conftest.py:27-66`.** Seven read-only static-file `Path`
+- ✅ [mame-curator-1069] **Test-audit 2026-05-20 — fixture-scope perf in `tests/api/conftest.py:27-66`.**
+  Seven read-only static-file `Path`
   fixtures (`mini_dat`, `listxml`, `catver_ini`, `languages_ini`,
   `bestgames_ini`, `mature_ini`, `series_ini`) are function-scoped and
   rebuilt for every api test; promote to `scope="session"` (they are
   never mutated). Kind: perf. Lanes: backend tests. Source:
   test-audit-2026-05-20 chunk c-001.
   Resolved (2026-06-10): the 7 read-only static-file Path fixtures (mini_dat, listxml, catver_ini, languages_ini, bestgames_ini, mature_ini, series_ini) in tests/api/conftest.py promoted to scope="session" — never mutated, so built once for the api suite. Count-neutral; full suite 769 green @ 87.51%.
+  Kind: perf.
+  Source: test-audit-2026-05-20 chunk c-001.
+  Lanes: backend tests.
 
-- ✅ [mame-curator-1070] **Test-audit 2026-05-20 — ruff `# noqa`
-  false-directive noise in `tests/media/test_cache.py:20`.** The FP31
+- ✅ [mame-curator-1070] **Test-audit 2026-05-20 — ruff `# noqa` false-directive noise in `tests/media/test_cache.py:20`.**
+  The FP31
   hoist comment contains the literal token `# noqa: E402` in prose
   (describing the old import); ruff parses it as a malformed `# noqa`
   directive and emits a warning on every `ruff check` run (does not fail
@@ -825,9 +892,12 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   directive-shaped token. This item (`test_cache.py:20`, `# noqa: E402`)
   remains open.
   Resolved (2026-06-10): reworded the prose `# noqa: E402` in test_cache.py:20 to "an E402 import-not-at-top waiver" (no directive-shaped token). `ruff check --no-cache` now emits no "Invalid `# noqa` directive" warning (the prior runs were cache-masked; --no-cache surfaced it).
+  Kind: doc-fix.
+  Source: test-audit-2026-05-20 (discovered during the closing gate run).
+  Lanes: backend tests.
 
-- ✅ [mame-curator-1071] **CI — GitHub Actions Node 20 deprecation +
-  runner redirect.** The closing CI run (`26187276453`) annotated:
+- ✅ [mame-curator-1071] **CI — GitHub Actions Node 20 deprecation + runner redirect.**
+  The closing CI run (`26187276453`) annotated:
   `actions/upload-artifact@v4` runs on Node.js 20 — GitHub forces Node 24
   from 2026-06-02 and removes Node 20 on 2026-09-16; bump to a
   Node-24-compatible release (`@v5`) or set
@@ -844,9 +914,11 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   ≥2.327.1). `windows-latest` left floating by design — pinning to
   `windows-2025-vs2026` is a maintenance burden the informational redirect
   doesn't warrant for this project.
+  Kind: chore.
+  Lanes: ci.
 
-- ✅ [mame-curator-1072] **Frontend `npm run build` (`tsc -b`) is broken —
-  3 pre-existing type errors in `src/test/` not caught by CI.** Discovered
+- ✅ [mame-curator-1072] **Frontend `npm run build` (`tsc -b`) is broken — 3 pre-existing type errors in `src/test/` not caught by CI.**
+  Discovered
   during the 2026-06-10 dep-freshness sweep; **proven pre-existing** (the
   identical 3 errors reproduce on the pre-bump lockfile — NOT caused by the
   dep bump). CI's frontend type gate is `npx tsc --noEmit`, but
@@ -873,6 +945,9 @@ by mirroring the README exception — a test-asymmetry defect (dimensions 1 +
   a build-only type error now fails CI. `frontend/dist/` regenerated
   against the 2026-06-10 bumped deps (React 19.2.7 / Vite 8.0.16). Build,
   eslint, vitest (320) all green.
+  Kind: fix.
+  Source: dep-freshness sweep 2026-06-10.
+  Lanes: frontend, ci.
 
 ### 🧪 Test Audit 2026-05-18 (FP31 — second sweep)
 
@@ -891,15 +966,18 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   bound, a regression that breaks `history_replay` or the terminal-state
   sentinel would hang the suite forever waiting for a `job_finished`
   event that never lands.
+
 - ✅ `tests/api/test_fp09_fixes.py:64` — tightened the corrupt-report
   assertion from `status_code in (404, 502)` to `== 502` with a typed
   code check. The 404 fallback masked the actual contract (corrupt
   content must surface as `CopyReportCorruptError`, not "missing file").
+
 - ✅ `tests/copy/test_fp28_recyclebin_lock.py:116-117` — added 10-second
   timeouts + `is_alive()` checks to the dual-worker thread joins. A
   regression that leaves the O_EXCL lockfile held would otherwise hang
   the test runner indefinitely (threads were not daemons; joins were
   unbounded).
+
 - ✅ `tests/media/test_cache.py:275` — hoisted the late `from
   mame_curator.media.cache import …` (behind `# noqa: E402`) to the
   top, alongside the public `from mame_curator.media import …` imports
@@ -907,11 +985,13 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   regression where the public re-export silently diverges from the
   internal module fails loudly. Previously: a public re-export break
   would have left half the file's tests silently passing.
+
 - ✅ `frontend/src/hooks/__tests__/useValidateCart.test.tsx` — hoisted
   the byte-for-byte MSW handler (3 verbatim copies) into a single
   `beforeEach`. Also added a 4th test that exercises the
   500-error path (`isError flips true when the server returns 500`),
   closing the chunk fc-002 coverage gap.
+
 - ✅ `frontend/src/hooks/__tests__/useCart.test.tsx` — migrated the
   two `Storage.prototype.setItem` failure tests from direct prototype
   reassignment in `try/finally` to `vi.spyOn(...).mockImplementation(...)`
@@ -923,91 +1003,117 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
 - ✅ `test_fp21_fixes.py:60-67` — staggered the 500 progress-event
   timestamps by `timedelta(microseconds=i)` so `heapq.merge` has
   unambiguous ordering (chunk c-001 MED).
+
 - ✅ `test_fp28_media_proxy_headers.py:38` — flipped `respx.mock(
   assert_all_called=True)` so a regression that bypasses the upstream
   surfaces as "registered mock not called" (chunk c-001 MED).
+
 - ✅ `test_fp25_world_lock.py` — added `releases == acquires` assertions
   to the four route tests that previously only checked `acquires >= 1`
   (chunk c-001 MED). A route that acquires but never releases
   (production deadlock) now fails the test.
+
 - ✅ `test_review_state_parity.py:23-24` — guarded the `/api/state`
   setup POSTs with 200-checks so a regression returning 404/422 from
   state-set doesn't collapse both predicates to "all pending" and
   trivially pass (chunk c-001 MED).
+
 - ✅ `test_routes_config.py:38` — dropped the `or snaps.get("snapshots")`
   fallback (silently masking schema drift), tightened to `len(items) >= 1`
   (chunk c-002 MED).
+
 - ✅ `test_sse.py:23` — added `@pytest.mark.slow` to the 18 MiB-I/O SSE
   end-to-end test (chunk c-002 MED).
+
 - ✅ `test_routes_fs.py:96-104` — added an actual HTTP assertion to the
   symlink-traversal sandbox case (chunk c-002 MED — the case had been
   set up but never executed).
+
 - ✅ `test_routes_fs.py:107` — removed unused `monkeypatch:
   pytest.MonkeyPatch` parameter from `test_fs_roots_per_platform`
   (chunk c-002 LOW).
+
 - ✅ `test_world_state_bytes_cache.py:51-53` — replaced
   `hasattr(__getitem__) + hasattr(__iter__)` with `isinstance(bbm,
   Mapping)` (chunk c-003 MED — a `list` satisfied the old shape check).
+
 - ✅ `test_filter_snapshot.py:54` — added an early `return` after the
   `UPDATE_SNAPSHOTS=1` write so update mode doesn't trivially assert
   the just-written snapshot equals itself (chunk c-007 MED).
+
 - ✅ `test_filter/conftest.py`-anchored `OVER_CAP` — hoisted the
   in-body `from tests.filter.conftest import OVER_CAP` to module level
   in `test_overrides.py:8` + `test_sessions.py:8`; dropped the
   underscore alias in `test_io.py:15` (chunk c-007 LOW/MED).
+
 - ✅ `test_listxml.py` + `test_listxml_cloneof.py` — folded the duplicated
   `test_missing_file_raises` + `test_malformed_xml_raises` standalones
   into a single parametrized pair in `test_listxml.py` covering all
   three `parse_listxml_*` functions; removed both standalones from
   `test_listxml_cloneof.py`; added a `match="parse"` guard on the
   malformed-XML case (chunk c-009 MED + LOW).
+
 - ✅ `test_smoke.py:8` — removed the tautological `assert mame_curator
   is not None`; collapsed into the `test_version_is_set` test whose
   attribute lookup already proves importability (chunk c-009 LOW).
+
 - ✅ `test_parser/test_cli_parse.py:28-37` — removed
   `test_parse_command_unknown_path_returns_nonzero` (byte-for-byte
   duplicate of `test_runtime_error_returns_exit_code_1_not_2`; chunk
   c-008 MED).
+
 - ✅ `test_parser/test_fp28_license_re.py` — stripped the three
   parametrize cases already covered verbatim in `test_manufacturer.py`;
   kept only the FP28 nested-parens regression-lock and the closest-shape
   negative control (chunk c-009 MED).
+
 - ✅ `test_filter/test_drops.py` — added
   `test_year_none_survives_year_range_filter` to close the year-None
   guard coverage gap (chunk c-006 LOW).
+
 - ✅ `test_docs/test_no_pre_release_pins.py:67-73` — `FileNotFoundError`
   caught per-file inside `_gitleaks_env_pins` so a stripped CI image
   missing one workflow still reports the other file's pin (chunk c-006
   LOW).
+
 - ✅ `test_docs/test_version_lockstep.py:34,41` — added message args to
   the `isinstance(version, str)` assertions naming the file + observed
   type (chunk c-006 LOW).
+
 - ✅ `tests/copy/_runner_helpers._machine` — moved as the canonical
   `_machine` for `test_fp01_fixes.py` / `test_fp02_fixes.py` /
   `test_preflight.py`; deleted the three byte-for-byte duplicates
   (chunks c-004 / c-005 MED).
+
 - ✅ `tests/filter/test_fp28_runner_logger.py` — replaced 19-line
   `_make_machine` builder with conftest `m(**kwargs)` helper (chunk
   c-006 LOW).
+
 - ✅ `tests/filter/test_fp28_apply_session_error.py:48` — hoisted
   in-body `make_empty_ctx` import to module top (chunk c-006 LOW).
+
 - ✅ `tests/copy/test_fp28_recyclebin_lock.py:65` — `monkeypatch: object`
   → `monkeypatch: pytest.MonkeyPatch`; removed accompanying
   `type: ignore[attr-defined]` (chunk c-004 MED).
+
 - ✅ `tests/updates/test_snaps.py:109` — replaced set-membership
   assertion with per-file equality so a loop-variable-capture
   regression that wrote the same bytes to every output path is caught
   (chunk c-010 MED).
+
 - ✅ `frontend/src/pages/__tests__/SessionsPage.test.tsx:38` —
   `toBeGreaterThan(0)` → `toHaveLength(1)` for the Active badge
   (chunk fc-003 MED).
+
 - ✅ `frontend/src/components/library/__tests__/LibraryGrid.test.tsx:103-106`
   — `expect(spacer).toBeTruthy()` → typed `querySelector<HTMLElement>` +
   `.toBeInTheDocument()`; removed two `as HTMLElement` casts (chunk
   fc-004 MED).
+
 - ✅ `frontend/src/hooks/__tests__/useCopySession.test.tsx:99` — removed
   redundant `cleanup()` in `afterEach`; vitest `globals: true` auto-cleans
   via RTL (chunk fc-002 MED).
+
 - ✅ `frontend/src/hooks/__tests__/useCopySession.test.tsx:300-310` —
   emit `job_started` before sending the malformed payload so the
   "state is running; bad message must not crash it back to null"
@@ -1022,8 +1128,7 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
 
 **Deferred to roadmap (this sub-section):**
 
-- ✅ [mame-curator-1046] **FP31 follow-up — file-size cap splits in
-  `tests/media/test_sources.py` + `tests/copy/test_fp01_fixes.py`.**
+- ✅ [mame-curator-1046] **FP31 follow-up — file-size cap splits in `tests/media/test_sources.py` + `tests/copy/test_fp01_fixes.py`.**
   `tests/media/test_sources.py` is 546 lines (over the 500-line hard
   cap) — covers four independent source implementations (Libretro,
   ProgettoSnaps, ArcadeDB, Wikipedia) separated by section comments.
@@ -1039,9 +1144,11 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   `_make_unbounded_limiter`; split `test_fp01_fixes.py` (423 → 272) into it
   + new `test_fp01_error_branches.py` (164, the Tier-3 playlist + FP08
   control-byte tests). Count-neutral; 216 copy+media tests green.
+  Source: test-audit-2026-05-18 FP31 chunks c-004 + c-008 (HIGH for c-008's hard-cap violation).
+  Lanes: backend tests.
 
-- ✅ [mame-curator-1047] **FP31 follow-up — FsBrowser prefetch policy
-  when dialog is closed.** Surfaced when adding a request-spy assertion
+- ✅ [mame-curator-1047] **FP31 follow-up — FsBrowser prefetch policy when dialog is closed.**
+  Surfaced when adding a request-spy assertion
   to `FsBrowser.test.tsx`'s "does not render when open=false" test:
   the spy caught 3 requests (home / roots / allowed-roots) even though
   the component renders nothing. Either gate the queries with
@@ -1051,9 +1158,11 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   Kind: fix. Lanes: frontend, frontend tests. Source:
   test-audit-2026-05-18 FP31 chunk fc-003 MED.
   Resolved 2026-06-30: gated useFsHome/useFsDriveRoots/useFsAllowedRoots/useFsListing on `enabled: open` (default-true params; FsBrowser passes `open`). A closed-but-mounted FsBrowser now issues zero fs requests. Regression-locked by the rewritten 'does not render OR fetch when open=false' request:start spy test.
+  Source: test-audit-2026-05-18 FP31 chunk fc-003 MED.
+  Lanes: frontend, frontend tests.
 
-- ✅ [mame-curator-1048] **FP31 follow-up — frontend
-  `fireEvent.click` → `userEvent.click` migration sweep.** Across at
+- ✅ [mame-curator-1048] **FP31 follow-up — frontend `fireEvent.click` → `userEvent.click` migration sweep.**
+  Across at
   least 8 files (`CartPanel`, `CartBar`, `GameCard`, `FeaturedTilesRow`,
   `AppShell`, `OnboardingBanner`, `DryRunModal`, `CopyModal`,
   `YearRangeEditor`) — `fireEvent` skips the pointer/hover synthetic
@@ -1065,9 +1174,10 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   test-audit-2026-05-18 FP31 chunks fc-001/fc-002/fc-003/fc-004/fc-005
   (LOW/MED across the suite).
   Resolved (2026-06-11): migrated every fireEvent.click site (AppShell, CartPanel, CartBar, OnboardingBanner, FeaturedTilesRow, GameCard) to `await user.click` via `userEvent.setup()`. fireEvent.error (GameCard image-error) and fireEvent.change (YearRangeEditor direct value-set) kept — no userEvent equivalent / out of .click scope. 320 vitest green; tsc/eslint clean.
+  Source: test-audit-2026-05-18 FP31 chunks fc-001/fc-002/fc-003/fc-004/fc-005 (LOW/MED across the suite).
+  Lanes: frontend tests.
 
-- ✅ [mame-curator-1049] **FP31 follow-up — `userEvent` static API →
-  `userEvent.setup()` migration in 3 components**
+- ✅ [mame-curator-1049] **FP31 follow-up — `userEvent` static API → `userEvent.setup()` migration in 3 components**
   (`CmdKPalette.test.tsx`, `ConfirmationDialog.test.tsx`,
   `no-checkbox-for-prefs.test.tsx`). The static API is deprecated in
   `@testing-library/user-event` v14; the setup-instance form shares
@@ -1075,9 +1185,11 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   Kind: refactor. Lanes: frontend tests. Source:
   test-audit-2026-05-18 FP31 chunk fc-001 MED.
   Resolved (2026-06-11): scope expanded to a full-suite sweep (user-approved) — all 30 userEvent test files migrated to the `userEvent.setup()` instance form; zero static `userEvent.<method>` calls remain (was 3-file scope, but 3-of-25 would have worsened consistency). FiltersSidebar fake-timer test uses `setup({ advanceTimers })`. 320 vitest green; tsc/eslint clean.
+  Source: test-audit-2026-05-18 FP31 chunk fc-001 MED.
+  Lanes: frontend tests.
 
-- ✅ [mame-curator-1050] **FP31 follow-up — `@pytest.mark.asyncio`
-  decorator cleanup under `asyncio_mode = "auto"`.** Redundant
+- ✅ [mame-curator-1050] **FP31 follow-up — `@pytest.mark.asyncio` decorator cleanup under `asyncio_mode = "auto"`.**
+  Redundant
   decorators identified in `test_fp28_jobs_loop_thread.py` (1),
   `test_downloads.py` (11), and `test_ini.py` (3). Auto mode collects
   every `async def test_*` as a coroutine without the decorator — the
@@ -1088,11 +1200,11 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   decorators (1 in test_fp28_jobs_loop_thread + 11 in test_downloads + 3 in
   test_ini); `asyncio_mode = "auto"` still collects them. Dropped the
   now-unused `import pytest` in test_ini.py. Count-neutral.
+  Source: test-audit-2026-05-18 FP31 chunks c-001 / c-009 / c-010 LOW.
+  Lanes: backend tests.
 
-- ✅ [mame-curator-1051] **FP31 follow-up — broaden
-  `pytest.raises((SessionsError, ValueError))` unions in
-  `test_filter/test_sessions.py` (4 sites) + `test_filter/test_types.py`
-  (1 site).** Now that the FP06 B2 migration is shipped, the precise
+- ✅ [mame-curator-1051] **FP31 follow-up — broaden `pytest.raises((SessionsError, ValueError))` unions in `test_filter/test_sessions.py` (4 sites) + `test_filter/test_types.py` (1 site).**
+  Now that the FP06 B2 migration is shipped, the precise
   post-fix exception is known: `ValidationError` (Pydantic) for direct
   construction paths, `SessionsError` for loader paths. Pin each to the
   specific type and add `match=` patterns (chunk c-007 LOW).
@@ -1104,9 +1216,11 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   test_types.py all raise Pydantic's `ValidationError` (a `ValueError`
   subclass — which is why the old union passed); each now carries a specific
   `match=` for its validator message.
+  Source: test-audit-2026-05-18 FP31 chunk c-007 LOW.
+  Lanes: backend tests.
 
-- ✅ [mame-curator-1052] **FP31 follow-up — `test_routes_copy.py:79`
-  pause/resume/abort test passes vacuously on fast runners.** Both
+- ✅ [mame-curator-1052] **FP31 follow-up — `test_routes_copy.py:79` pause/resume/abort test passes vacuously on fast runners.**
+  Both
   `pause` and `abort` accept `status_code in (200, 404)`; on fast CI
   the tiny fixture files complete in microseconds and both return 404,
   so the test passes having exercised nothing. Decision needed:
@@ -1114,38 +1228,39 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   of the `test_sse.py` coverage. Kind: fix. Lanes: backend tests.
   Source: test-audit-2026-05-18 FP31 chunk c-002 MED.
   Resolved 2026-06-30: rewrote the vacuous test_pause_resume_abort_copy to assert the transitional state on the 200 branch and job_not_found on the 404 branch (non-vacuous on both race outcomes), added the missing resume call, and corrected the false docstring (real deterministic pause/resume/cancel coverage is test_controller.py + test_runner_lifecycle.py, NOT test_sse.py).
+  Kind: fix.
+  Lanes: backend tests.
 
-- ✅ [mame-curator-1053] **FP31 follow-up — coverage gaps in `test_routes_media.py`
-  (no `httpx.TransportError` mock), `test_activity.py` (7 of 10
-  `ActivityEventType` variants have no round-trip test), and
-  `test_useFs.test.tsx` (success-path of `useFsGrantRoot` untested).**
+- ✅ [mame-curator-1053] **FP31 follow-up — coverage gaps in `test_routes_media.py` (no `httpx.TransportError` mock), `test_activity.py` (7 of 10 `ActivityEventType` variants have no round-trip test), and `test_useFs.test.tsx` (success-path of `useFsGrantRoot` untested).**
   Three small additive coverage items grouped by theme: "happy path
   tested, error/alternate branch in same file untested."
   Kind: fix. Lanes: backend tests, frontend tests. Source:
   test-audit-2026-05-18 FP31 chunks c-002 / c-003 / fc-002 LOW.
   Resolved 2026-06-30: added httpx.TransportError test in test_routes_media.py (->502 media_upstream_error, exercises the previously-uncovered except httpx.HTTPError branch), a parametrized round-trip over all 10 ActivityEventType variants + a coverage guard in test_activity.py, and the useFsGrantRoot onSuccess->cache test in useFs.test.tsx.
+  Source: test-audit-2026-05-18 FP31 chunks c-002 / c-003 / fc-002 LOW.
+  Lanes: backend tests, frontend tests.
 
 - ✅ [mame-curator-1054] **FP31 follow-up — refactoring & dedup nits:**
   (a) `tests/api/test_static_mount.py` extract `_rebuilt_client(stub,
-      monkeypatch, config_file)` helper (4 duplicated app-rebuild
-      blocks). chunk c-003 MED.
+  monkeypatch, config_file)` helper (4 duplicated app-rebuild
+  blocks). chunk c-003 MED.
   (b) `tests/cli/test_fp28_serve_signal.py:45-67` —
-      `_build_minimal_config` duplicates `tests/api/conftest.py`'s
-      `config_file` fixture; move the fixture to the top-level
-      `tests/conftest.py` so both trees share it. chunk c-003 LOW.
+  `_build_minimal_config` duplicates `tests/api/conftest.py`'s
+  `config_file` fixture; move the fixture to the top-level
+  `tests/conftest.py` so both trees share it. chunk c-003 LOW.
   (c) `tests/copy/test_fp01_fixes.py` + `test_fp02_fixes.py` — extract
-      `_seed_existing_playlist` 12-line helper to
-      `tests/copy/conftest.py`. chunk c-004 MED.
+  `_seed_existing_playlist` 12-line helper to
+  `tests/copy/conftest.py`. chunk c-004 MED.
   (d) `tests/filter/test_runner.py:98,112,156` — add an
-      `o(**entries)` factory in `tests/filter/conftest.py` to absorb
-      the 3 repeated `Overrides(entries={...})` constructions and
-      drop the matching `# type: ignore[call-arg, unused-ignore]`
-      suppressions. chunk c-007 MED.
+  `o(**entries)` factory in `tests/filter/conftest.py` to absorb
+  the 3 repeated `Overrides(entries={...})` constructions and
+  drop the matching `# type: ignore[call-arg, unused-ignore]`
+  suppressions. chunk c-007 MED.
   (e) `tests/copy/test_fp01_fixes.py:34,49` — `_machine` lifted in
-      the inline pass; `_seed_existing_playlist` deferred to (c).
+  the inline pass; `_seed_existing_playlist` deferred to (c).
   (f) `tests/updates/conftest.py` — replace per-file `_no_sleep`
-      passthroughs in `test_ini.py` + `test_snaps.py` with a
-      subdirectory autouse fixture. chunk c-010 LOW.
+  passthroughs in `test_ini.py` + `test_snaps.py` with a
+  subdirectory autouse fixture. chunk c-010 LOW.
   Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
   FP31 chunks c-003/c-004/c-007/c-010 MEDIUM/LOW.
   Resolved (2026-06-10): (a) `_rebuilt_client(dist, monkeypatch, config_file)`
@@ -1162,58 +1277,60 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   `tests/copy/conftest.py`'s same-named fixtures; over-engineering for a LOW
   dedup nit, and the cli `_build_minimal_config` is a documented minimal
   subset (4 paths), not a true duplicate of the 11-fixture `config_file`.
+  Source: test-audit-2026-05-18 FP31 chunks c-003/c-004/c-007/c-010 MEDIUM/LOW.
+  Lanes: backend tests.
 
 - ✅ [mame-curator-1055] **FP31 follow-up — assorted LOW/INFO test polish:**
   (a) `tests/api/test_fp25_world_lock.py:47-73` — parametrize 7
-      structurally-identical per-route world-lock tests. chunk c-001
-      LOW.
+  structurally-identical per-route world-lock tests. chunk c-001
+  LOW.
   (b) `tests/api/test_fp28_validate_paths_retroarch.py` — add
-      "exists but not executable" (`chmod 0o644`) test for the
-      `os.X_OK` branch. chunk c-001 LOW.
+  "exists but not executable" (`chmod 0o644`) test for the
+  `os.X_OK` branch. chunk c-001 LOW.
   (c) `tests/cli/test_cli_setup.py` + `tests/copy/test_activity.py` —
-      add docstrings to 4 named tests (`test_setup_overwrites_with_force`,
-      `test_setup_errors_on_missing_source_dat`,
-      `test_activity_log_append_writes_one_line`,
-      `test_read_activity_yields_newest_first`). chunk c-003 LOW.
+  add docstrings to 4 named tests (`test_setup_overwrites_with_force`,
+  `test_setup_errors_on_missing_source_dat`,
+  `test_activity_log_append_writes_one_line`,
+  `test_read_activity_yields_newest_first`). chunk c-003 LOW.
   (d) `tests/api/test_fp21_fixes.py:254` — rename
-      `test_under_pressure` to
-      `test_fp21_l_progress_history_deque_has_finite_maxlen` (no
-      pressure is applied). chunk c-001 LOW.
+  `test_under_pressure` to
+  `test_fp21_l_progress_history_deque_has_finite_maxlen` (no
+  pressure is applied). chunk c-001 LOW.
   (e) `tests/test_downloads.py:241-286` — calibrate the tracemalloc
-      threshold comment against the active respx/httpx version pin.
-      chunk c-009 LOW.
+  threshold comment against the active respx/httpx version pin.
+  chunk c-009 LOW.
   (f) `tests/parser/test_exports.py:65,75` — add a `pyproject.toml`
-      sentinel check before resolving `parents[2]` for `spec.md`
-      lookup. chunk c-009 LOW.
+  sentinel check before resolving `parents[2]` for `spec.md`
+  lookup. chunk c-009 LOW.
   (g) `tests/copy/test_preflight.py:159` — tighten
-      `free_space_gap_bytes >= -sf2_size` to a two-run gap-difference
-      check (chunk c-005 LOW).
+  `free_space_gap_bytes >= -sf2_size` to a two-run gap-difference
+  check (chunk c-005 LOW).
   (h) `tests/media/test_escape.py:47` — fix misleading inline
-      parametrize comment. chunk c-008 LOW.
+  parametrize comment. chunk c-008 LOW.
   (i) `tests/media/test_sources.py:448` — fold the private
-      `_url_cache` write into the `prepare()`-mocked test (deferred
-      until the file-split lands per [mame-curator-1046]). chunk
-      c-008 MED.
+  `_url_cache` write into the `prepare()`-mocked test (deferred
+  until the file-split lands per [mame-curator-1046]). chunk
+  c-008 MED.
   (j) `tests/media/test_sources.py:509` — replace dead
-      `url.endswith("Pac_flyer.png")` branch with `"Pac_flyer.png" in
-      url`. chunk c-008 LOW.
+  `url.endswith("Pac_flyer.png")` branch with `"Pac_flyer.png" in
+  url`. chunk c-008 LOW.
   (k) `frontend/src/components/library/__tests__/{DryRunModal,CopyModal,
-      CartBar}.test.tsx` — `toHaveBeenCalled()` →
-      `toHaveBeenCalledOnce()` on `onConfirm` / `onPause` / `onResume`
-      / `onBulkAdd` (chunk fc-004 LOW).
+  CartBar}.test.tsx` — `toHaveBeenCalled()` →
+  `toHaveBeenCalledOnce()` on `onConfirm` / `onPause` / `onResume`
+  / `onBulkAdd` (chunk fc-004 LOW).
   (l) `frontend/src/lib/__tests__/queryClient.test.tsx` — add
-      `{ timeout: 3000 }` to `waitFor` calls (chunk fc-001 LOW).
+  `{ timeout: 3000 }` to `waitFor` calls (chunk fc-001 LOW).
   (m) `frontend/src/components/__tests__/{ErrorBoundary,Confirmation
-      Dialog}.test.tsx` — add file-level `afterEach(() =>
-      vi.restoreAllMocks())` so `console.error` spies survive
-      assertion failures (chunk fc-001 LOW).
+  Dialog}.test.tsx` — add file-level `afterEach(() =>
+  vi.restoreAllMocks())` so `console.error` spies survive
+  assertion failures (chunk fc-001 LOW).
   (n) `frontend/src/components/alternatives/__tests__/AlternativesDrawer.test.tsx`
-      — add missing `manufacturer_raw`/`bytes`/`parent` to fixture
-      objects or extract a `makeGameCard()` factory (chunk fc-002
-      MED).
+  — add missing `manufacturer_raw`/`bytes`/`parent` to fixture
+  objects or extract a `makeGameCard()` factory (chunk fc-002
+  MED).
   (o) `frontend/src/components/library/__tests__/OnboardingBanner.test.tsx`
-      — switch hardcoded regex fragments to `strings.library.onboarding.body`
-      references (chunk fc-005 LOW).
+  — switch hardcoded regex fragments to `strings.library.onboarding.body`
+  references (chunk fc-005 LOW).
   Kind: refactor. Lanes: backend tests, frontend tests. Source:
   test-audit-2026-05-18 FP31 chunks c-001/c-003/c-005/c-008/c-009 +
   fc-001/fc-002/fc-004/fc-005 LOW.
@@ -1233,9 +1350,10 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   stale; adding them would break `tsc`); (o) OnboardingBanner asserts via
   `strings.library.onboarding.body`. +1 backend test (b); frontend
   count-neutral.
+  Source: test-audit-2026-05-18 FP31 chunks c-001/c-003/c-005/c-008/c-009 + fc-001/fc-002/fc-004/fc-005 LOW.
+  Lanes: backend tests, frontend tests.
 
-- ✅ [mame-curator-1056] **FP31 follow-up — `tests/api/test_fp09_fixes.py:159-177`
-  convert `asyncio.run()` sync wrapper to `@pytest.mark.asyncio async def`.**
+- ✅ [mame-curator-1056] **FP31 follow-up — `tests/api/test_fp09_fixes.py:159-177` convert `asyncio.run()` sync wrapper to `@pytest.mark.asyncio async def`.**
   Today the test manages the lifespan context manually inside a sync
   function. Benign under `asyncio_mode = "auto"` but
   incompatible with the strict-mode opt-in some teams adopt later.
@@ -1245,7 +1363,8 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   to a native `async def` (auto-mode collects it) — dropped the
   `asyncio.run(_check())` wrapper + the nested `_check` coroutine; the
   lifespan context is now entered directly with `async with`.
-
+  Source: test-audit-2026-05-18 FP31 chunk c-001 MEDIUM.
+  Lanes: backend tests.
 
 - ✅ [mame-curator-1074] **FP31 follow-up — decide keep-vs-migrate for the 3 remaining non-click `fireEvent` calls in the frontend tests.**
   After the 1048/1049 sweep the only `fireEvent` calls left are 3 non-click ones, left alone deliberately: `fireEvent.error(img)` in GameCard.test.tsx (simulates an image load failure) and `fireEvent.change(input, ...)` x2 in YearRangeEditor.test.tsx (directly sets a number input's value). `fireEvent.error` has NO userEvent equivalent and MUST stay (an image error is not a user action). `fireEvent.change` is a legitimate RTL idiom for controlled inputs but could migrate to `user.clear()` + `user.type()` for full consistency. Low priority. NOTE: migrating the change calls is not free -- `user.type('2000')` fires an onChange per keystroke, so the `toHaveBeenLastCalledWith(2000)` / `(null)` assertions must be re-checked. Do NOT blindly sweep `fireEvent.error`.
@@ -1257,8 +1376,8 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
 - 📋 [mame-curator-1075] **Repo-wide Prettier formatting debt in the frontend tree (not CI-gated).**
   `npx prettier --check` flags ~45 frontend files, including many untouched by recent work -- pre-existing, repo-wide debt. `npm run format` (prettier --check) is NOT part of the CI gate (CI runs eslint + tsc -b + vitest only), which is why it has never blocked. Every file touched in the 1048/1049 userEvent sweep was already prettier-dirty at HEAD, so the sweep neither introduced nor fixed it. Fix: one standalone `prettier --write` debt-sweep commit across the frontend tree (kept separate so the pure-formatting churn doesn't muddy feature diffs), and optionally add `npm run format` to the CI workflow to stop re-drift.
   Kind: chore.
-  Lanes: frontend.
   Source: in-session-2026-06-11.
+  Lanes: frontend.
 
 ### 🧪 Test Audit 2026-05-18
 
@@ -1274,49 +1393,62 @@ documenting test-audit-specific false positives.
 - ✅ Orphaned `it()` blocks in `GameCard.test.tsx:174,188` (outside
   `describe()`, reported as anonymous top-level tests). Hoisted into the
   closing `})` of the parent describe.
+
 - ✅ `vi.useFakeTimers()` without try/finally in `FiltersSidebar.test.tsx`
   (a failing assertion would leak fake timers into the next test).
   Wrapped in try/finally so cleanup always runs.
+
 - ✅ Tautological / disjunction assertions in `test_routes_copy.py:21,65`,
   `test_routes_curate.py:108`, `test_routes_activity.py:54,58`,
   `test_error_quoting.py:47`, `test_routes_games.py:125` — replaced with
   schema-anchored `and` conjunctions or `assert response.status_code in
   (...); if 404: pytest.skip(...)`.
+
 - ✅ Byte-for-byte duplicate test (`test_b6_no_op_patch_preserves_filter
   _result` in `test_fp09_fixes.py:221` duplicated
   `test_filter_recompute_idempotent_under_no_op_patch` in
   `test_routes_config.py:123`). Deleted the duplicate; pin bumped in
   `test_ds05_test_count_stable.py` (and the regex now matches `async
   def test_…` too — previously 37 async tests escaped the count guard).
+
 - ✅ Builder-/fixture-duplication: `m(**kw)` Machine builder (3 filter
   test files), `_empty_ctx()` (3 files), `_raise_oserror` (2 parser
   files), `_no_sleep` autouse fixture (2 root/updates files),
   `renderWithClient()` (5 hook test files), `_OVER_CAP` byte constant
   (3 filter files). All hoisted to the relevant `conftest.py` /
   `frontend/src/test/renderWithClient.tsx`.
+
 - ✅ Loop-over-cases anti-patterns: `test_static_mount.py:180` (10
   cases), `test_sessions.py:117` (3 cases). Both now use
   `@pytest.mark.parametrize` so the first failure doesn't hide the rest.
+
 - ✅ Hypothesis `@settings(deadline=None)` in `test_property.py` lacked
   `suppress_health_check=[HealthCheck.too_slow]` — added; prevents the
   cold-CI flake mode.
+
 - ✅ `pytest.raises(RuntimeError)` without `match=` in
   `test_fp28_jobs_loop_thread.py:58` — added match pattern so the test
   fires for the right RuntimeError source.
+
 - ✅ Stale RED-phase docstring drift in `test_world_state_bytes_cache.py:25`
   (claimed `@pytest.mark.xfail(strict=True)` markers exist; they
   don't). Docstring updated to reflect GREEN status.
+
 - ✅ `tracemalloc` baseline pollution in `test_routes_activity.py:148` —
   added `tracemalloc.clear_traces()` immediately before the request so
   fixture-setup allocations don't inflate the baseline.
+
 - ✅ Microtask hack in `NotesEditor.test.tsx:23` (`await Promise.resolve()`
   after `blur()`) — replaced with `await waitFor(...)`.
+
 - ✅ Redundant `cleanup()` calls in `no-checkbox-for-prefs.test.tsx`
   (4 sites) — vitest `globals: true` already auto-cleans (DS04 T3.1
   pattern); removed.
+
 - ✅ Dead conftest fixtures in `tests/copy/conftest.py`
   (`machine_kof94`, `machine_sf2ce`, `make_zip` — declared, never
   consumed). Removed; bumped `bios_chain` to module scope.
+
 - ✅ Parser CLI assertion strength: `test_cli_parse.py:20-22` was
   label-only (`"bios:" in output`); fixture has known counts so changed
   to `"bios: 1" in output`. Same file's `exit_code != 0` tightened to
@@ -1324,8 +1456,8 @@ documenting test-audit-specific false positives.
 
 **Retained as roadmap follow-ups:**
 
-- 📋 [mame-curator-1040] **Test-audit FP01 — fixture-scope optimisation for
-  `api/conftest.py::client`.** Verified 2026-05-18: actually **117 api
+- 📋 [mame-curator-1040] **Test-audit FP01 — fixture-scope optimisation for `api/conftest.py::client`.**
+  Verified 2026-05-18: actually **117 api
   tests** (not 37 as the chunk reported) consume `client`/`app` across
   19 files, totalling 169 api tests in 15.43 s locally. Microbench shows
   `create_app + TestClient lifespan` costs **~48 ms warm (~82 ms cold)**
@@ -1334,21 +1466,23 @@ documenting test-audit-specific false positives.
   `app` (function-scoped) is still real engineering work, but it
   requires:
   (1) classifying every api test as read-only vs mutation (almost every
-      non-GET route mutates `app.state.world` via `replace_world` — the
-      read-only set is narrower than the chunk implied);
+  non-GET route mutates `app.state.world` via `replace_world` — the
+  read-only set is narrower than the chunk implied);
   (2) hoisting `tmp_path` → `tmp_path_factory` for the session-scoped
-      branch, plus `monkeypatch.MonkeyPatch` context for `fake_home`;
+  branch, plus `monkeypatch.MonkeyPatch` context for `fake_home`;
   (3) deciding whether to snapshot+restore `app.state.world` between
-      tests (alternative to a strict read-only-only split).
+  tests (alternative to a strict read-only-only split).
   Deferred to a dedicated phase with that classification pass up front —
   fixing it as a one-shot fold-in risks subtle cross-test pollution. See
   `tests/api/conftest.py` and the `app_started` fixture (added by FP06,
   2026-05-18) as the foundation.
   Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
   chunk-3 (HIGH); verification 2026-05-18 fold-in.
+  Source: test-audit-2026-05-18 chunk-3 (HIGH); verification 2026-05-18 fold-in.
+  Lanes: backend tests.
 
-- ✅ [mame-curator-1041] **Test-audit FP02 — eliminate file-size timing
-  trick in SSE C1 test.** Closed 2026-05-18 in the FP-fold-in commit:
+- ✅ [mame-curator-1041] **Test-audit FP02 — eliminate file-size timing trick in SSE C1 test.**
+  Closed 2026-05-18 in the FP-fold-in commit:
   `test_c1_subscriber_after_start_sees_job_started_via_history_replay`
   no longer writes 3-MiB fake zips. Verified that `_events_iterator`'s
   register-then-snapshot ordering (FP21-K) plus the post-replay sentinel
@@ -1358,9 +1492,11 @@ documenting test-audit-specific false positives.
   crutch is gone.
   Kind: refactor. Lanes: backend tests. Source: test-audit-2026-05-18
   chunk-4 (HIGH).
+  Source: test-audit-2026-05-18 chunk-4 (HIGH).
+  Lanes: backend tests.
 
-- ✅ [mame-curator-1042] **Test-audit FP03 — SettingsPage invariant
-  coverage gap.** Closed 2026-05-18 in the FP-fold-in commit. Test no
+- ✅ [mame-curator-1042] **Test-audit FP03 — SettingsPage invariant coverage gap.**
+  Closed 2026-05-18 in the FP-fold-in commit. Test no
   longer iterates a hardcoded subset of 5 tab labels; instead it queries
   `screen.getAllByRole('tab')` and visits every tab the page renders,
   so a future preference landing on Paths/Snapshots/Backup/About is
@@ -1368,9 +1504,11 @@ documenting test-audit-specific false positives.
   string list staying in sync with `SECTION_KEYS` in SettingsPage.tsx.
   Kind: refactor. Lanes: frontend tests. Source: test-audit-2026-05-18
   chunk-8 (MEDIUM).
+  Source: test-audit-2026-05-18 chunk-8 (MEDIUM).
+  Lanes: frontend tests.
 
-- ✅ [mame-curator-1043] **Test-audit FP04 — collection-time file reads
-  in parametrized docs tests.** Closed 2026-05-18 in the FP-fold-in
+- ✅ [mame-curator-1043] **Test-audit FP04 — collection-time file reads in parametrized docs tests.**
+  Closed 2026-05-18 in the FP-fold-in
   commit. Verified: `test_dep_pin_coupling.py:54` parametrizes over the
   static `_COUPLED_TOOLS` tuple (no I/O) and was a false positive (now
   in `docs/audit-allowlist.md` allowlist-011). The real finding —
@@ -1381,9 +1519,11 @@ documenting test-audit-specific false positives.
   exception.
   Kind: refactor. Lanes: backend tests, ci. Source:
   test-audit-2026-05-18 chunk-6 (HIGH).
+  Source: test-audit-2026-05-18 chunk-6 (HIGH).
+  Lanes: backend tests, ci.
 
-- ✅ [mame-curator-1044] **Test-audit FP05 — fixture / handler dedup
-  follow-ups.** Closed 2026-05-18 in the FP-fold-in commit. Verified
+- ✅ [mame-curator-1044] **Test-audit FP05 — fixture / handler dedup follow-ups.**
+  Closed 2026-05-18 in the FP-fold-in commit. Verified
   the five sub-claims and extracted the two clear Rule-of-Three wins:
   (1) `FsBrowser` sandbox-error MSW handler (5 inlined copies) →
   `makeSandboxedListHandler(home, homeListing)` in
@@ -1396,9 +1536,11 @@ documenting test-audit-specific false positives.
   single file (below Rule-of-Three).
   Kind: refactor. Lanes: backend tests, frontend tests. Source:
   test-audit-2026-05-18 chunks 2/4/7/8 (MEDIUM).
+  Source: test-audit-2026-05-18 chunks 2/4/7/8 (MEDIUM).
+  Lanes: backend tests, frontend tests.
 
-- ✅ [mame-curator-1045] **Test-audit FP06 — `del client` antipattern
-  in api tests.** Closed 2026-05-18 in the FP-fold-in commit. New
+- ✅ [mame-curator-1045] **Test-audit FP06 — `del client` antipattern in api tests.**
+  Closed 2026-05-18 in the FP-fold-in commit. New
   `app_started` fixture in `tests/api/conftest.py` yields `app` after
   the FastAPI lifespan has fired, without exposing an unused
   `TestClient`. Migrated the 4 cited call-sites in `test_state.py` and
@@ -1406,12 +1548,13 @@ documenting test-audit-specific false positives.
   for the larger 1040 (FP01) split when that phase lands.
   Kind: refactor. Lanes: backend tests. Source:
   test-audit-2026-05-18 chunk-3 (MEDIUM).
-
+  Source: test-audit-2026-05-18 chunk-3 (MEDIUM).
+  Lanes: backend tests.
 
 ### 🔍 Indie-review fold-in (2026-05-14)
 
-- ✅ [mame-curator-1031] **FP27 — Tier 1 review fold-in: zombie
-  features + data integrity.** Closed 2026-05-14
+- ✅ [mame-curator-1031] **FP27 — Tier 1 review fold-in: zombie features + data integrity.**
+  Closed 2026-05-14
   (`cfe612c..976b119`). 16 sub-bullets across 5 commits + cluster
   R1 fold-in; spec converged on cold-eyes loop 5 (0 residual
   findings); 551 backend + 279 frontend tests green at close. See
@@ -1459,11 +1602,10 @@ documenting test-audit-specific false positives.
   surprise people later. A fix-pass to burn them off before any new
   feature lands.
   Kind: review-fix.
-  Lanes: backend, frontend, docs.
   Source: indie-review-2026-05-14 Tier 1.
+  Lanes: backend, frontend, docs.
 
-- ✅ [mame-curator-1032] **FP28 — Tier 2 review fold-in: hardening
-  + correctness.**
+- ✅ [mame-curator-1032] **FP28 — Tier 2 review fold-in: hardening + correctness.**
   Bundles ~12 second-tier findings from the same sweep. Concurrency:
   `JobManager._emit` mutates `lifecycle_history` + `subscribers`
   without the lock (`src/mame_curator/api/jobs.py:282`); recyclebin
@@ -1494,8 +1636,8 @@ documenting test-audit-specific false positives.
   small minority of games, wrong exit codes that break shell
   scripts. Lower-urgency than FP27 but still bound for v1.3.
   Kind: review-fix.
-  Lanes: backend, frontend, cli.
   Source: indie-review-2026-05-14 Tier 2.
+  Lanes: backend, frontend, cli.
 
 - ✅ [mame-curator-1085] **FP32 — closing-review fold-in after P10 (media coverage expansion).**
   Findings from the 3-lane closing indie-review (audit static-analysis clean; its 29 mypy 'cannot find fastapi/yaml' warnings are the scrubbed-env false positive — CI mypy passes; logged as allowlist-015).
@@ -1517,8 +1659,8 @@ documenting test-audit-specific false positives.
   - ConfigureSourceKeyModal shows a fixed generic 422 string, discarding the ApiError detail (can't tell unknown-source from bad-key); and clears the secret only via unmount (correct-by-accident) — add a defensive clear on close.
   **Layman:** The closing review of the new artwork-fetching feature found a few real bugs to fix before we call it done. The most important: if an art site returns an unexpected (but valid) response, an image request could error out — and stay broken — instead of quietly trying the next site. Also a "copy command" button that can wrongly say "Copied!" when it didn't. A quick fix-pass to burn these off.
   Kind: review-fix.
-  Lanes: media, api, frontend, docs.
   Source: indie-review-2026-07-01 (P10 /close-phase; audit clean modulo the env-mypy false positive).
+  Lanes: media, api, frontend, docs.
 
 - ✅ [mame-curator-1086] **FP33 — second closing-review fold-in after P10 (nested parse-before-trust + file:// LFI).**
   Second 3-lane closing indie-review after FP32 shipped. Audit static-analysis clean (28 findings all allowlist-015 env-mypy false positive; CI mypy clean). FP32's 4 fixes verified correct; these are the residual + newly-surfaced defects.
@@ -1614,8 +1756,8 @@ under a docs-review skill.
   Source: cold-eyes-2026-05-18 lane spec/P14.
   Resolved 2026-06-30: authored docs/journal/P14.md from the P14-complete tag body + CHANGELOG ### P14 — chunk→commit map, the passive-swap (INV-4) / per-request-filter architecture, the chunk 8+15 folding, and the 507→535 backend / 289→300 frontend test deltas.
 
-- ✅ [mame-curator-1061] **Promote P14 review-state contract to a
-  module-co-located spec.** P14 spec § Files-touched lists
+- ✅ [mame-curator-1061] **Promote P14 review-state contract to a module-co-located spec.**
+  P14 spec § Files-touched lists
   `src/mame_curator/filter/review_state_spec.md` as the close-time
   promotion target; it doesn't exist on disk and the contract lives
   inside `filter/spec.md` for now. Extract the review-state clauses
@@ -1629,8 +1771,8 @@ under a docs-review skill.
   Source: cold-eyes-2026-05-18 lane spec/P14.
   Resolved 2026-06-30: created src/mame_curator/filter/review_state_spec.md — the per-feature co-located contract (model/loader/enums, the three /api/state routes, the ?review_state= per-request filter, the passive-swap fact, 13 invariants) extracted from docs/specs/P14.md and verified clause-by-clause against shipped code. De-staled P14's two promotion notes and added a filter/spec.md back-pointer. User elected the separate-file option over merging into filter/spec.md. Ran /cold-eyes to a clean pass (3 loops): fixed a world-lock over-claim (GET is lock-free), an unshipped-snapshot-caption claim (→ roadmapped 1078), a GET-can't-404 nit, and a coupled copy/spec.md ReviewStateDetails type bug (str, not ReviewStateValue).
 
-- 📋 [mame-curator-1062] **Re-introduce a Radix-Esc regression lock
-  for FP27 A6a.** `frontend/src/components/__tests__/EscOverlayBehavior.test.tsx`
+- 📋 [mame-curator-1062] **Re-introduce a Radix-Esc regression lock for FP27 A6a.**
+  `frontend/src/components/__tests__/EscOverlayBehavior.test.tsx`
   was deleted by DS04 ("-2 from EscOverlayBehavior deletion") but
   FP27 § A6a / R1d depend on it as the lock that ambient Esc handling
   in Radix `Dialog` + `AlertDialog` is honored. If Radix ever drops
@@ -1641,8 +1783,8 @@ under a docs-review skill.
   was deleted; restore it so a future library upgrade can't quietly
   break this.
   Kind: test.
-  Lanes: frontend, tests.
   Source: cold-eyes-2026-05-18 lane spec/FP27.
+  Lanes: frontend, tests.
 
 - 📋 [mame-curator-1063] **Resolve `docs/help/` build-tooling gap.**
   FP27 pre-spec verification noted that `docs/help/` doesn't exist
@@ -1654,11 +1796,11 @@ under a docs-review skill.
   checkout — wire up the missing piece that populates the help
   directory.
   Kind: fix.
-  Lanes: api, docs.
   Source: cold-eyes-2026-05-18 lane spec/FP27.
+  Lanes: api, docs.
 
-- ✅ [mame-curator-1064] **Reconcile `CLAUDE.md` "fix-passes don't
-  get specs" rule with the FP05/FP25/FP27/FP28 precedent.** CLAUDE.md
+- ✅ [mame-curator-1064] **Reconcile `CLAUDE.md` "fix-passes don't get specs" rule with the FP05/FP25/FP27/FP28 precedent.**
+  CLAUDE.md
   states *"Fix-passes (`FP##` / `DS##`) don't get specs — they
   correct code against the existing module spec."* In practice every
   recent multi-tier fold-in (FP05, FP25, FP27, FP28, DS02–DS05) has
@@ -1706,6 +1848,8 @@ P14 (per-game review state).
   mutation (state/previous as plain strings so the log records the
   sparse-store sentinel `"pending"`). 13 INVs codified in
   `docs/specs/P14.md`. Lanes: api, frontend, persist, tests.
+  Kind: implement.
+  Lanes: api, frontend, persist, tests.
 
 - 📋 [mame-curator-1038] **FP30 — Auto-save indicator on Settings page.**
   Settings page already auto-saves on every change via
@@ -1762,8 +1906,8 @@ P14 (per-game review state).
   `config.yaml`. The settings-paths capture was deliberately
   omitted (it shows personal `/mnt/...` mount paths).
   Kind: doc.
-  Lanes: docs.
   Source: planned (deferred from P09 slim, 2026-05-04).
+  Lanes: docs.
 
 - ✅ [mame-curator-1030] **CONTRIBUTING.md (closed 2026-05-16).**
   Shipped: top-level `CONTRIBUTING.md` covering local-dev quickstart,
@@ -1774,8 +1918,8 @@ P14 (per-game review state).
   project deliberately does not do" section. README's short
   Contributing stub now points at `CONTRIBUTING.md`.
   Kind: doc.
-  Lanes: docs.
   Source: planned (deferred from P09 slim, 2026-05-04).
+  Lanes: docs.
 
 ---
 
@@ -1810,8 +1954,7 @@ through.
   Dependencies: P05 ✅, FP10 ✅.
   Closed 2026-07-02 (tag P10-complete). All 11 chunks shipped + CI-green, then 3 closing-review rounds hardened the media source chain: FP32 (mame-curator-1085), FP33 (1086), FP34 (1087) — 4 HIGH + 5 MEDIUM + LOW/INFO fixed TDD across media/api/frontend/docs, severity trailing to one-liners by round 3. Audit clean throughout (allowlist-015 mypy env FP, now in .ants_review_falsepos.jsonl). Final gates: 855 backend @88% / 342 frontend vitest, all lint/type/security clean; CI green all 8 jobs. Deferred (own items): media/spec.md co-located contract → mame-curator-1058 (now unblocked, next up); MobyGames cover-URL fetch → 1079; Settings enable/disable → 1084; media.snaps_dir binding → 1081; Starlette httpx deprecation → 1082.
 
-- 💭 [mame-curator-1010] **P12 — In-app self-update + INI
-  diff-preview UI.**
+- 💭 [mame-curator-1010] **P12 — In-app self-update + INI diff-preview UI.**
   App self-update via `updates/app.py` (version compare; snapshot
   config / overrides / sessions before update; git-pull on dev
   mode or release-download on frozen install; one-click rollback).
@@ -1884,15 +2027,15 @@ through.
   multi-arg, `n.toLocaleString()` (e.g. `progressChip(handled, total, pct)`,
   `bulkAdd(n)`). A naive `strings.<lang>.ts` object-swap can't localise
   those cleanly. Two credible approaches:
-    (a) Adopt a real i18n library (react-i18next or FormatJS/react-intl)
-        with ICU message format — proper plural/gender rules, locale
-        detection + switching, an extraction pipeline for translators. Cost
-        is migrating the 682-line catalogue + 45 functions to message keys.
-    (b) Keep the typed hand-rolled catalogue: one `strings.<lang>.ts` per
-        locale implementing the same shape (functions included) + a light
-        locale-switch context. No new dependency, keeps the typed call
-        sites, cheaper to start — but each translator writes plural logic
-        in code and there's no ICU tooling.
+  (a) Adopt a real i18n library (react-i18next or FormatJS/react-intl)
+  with ICU message format — proper plural/gender rules, locale
+  detection + switching, an extraction pipeline for translators. Cost
+  is migrating the 682-line catalogue + 45 functions to message keys.
+  (b) Keep the typed hand-rolled catalogue: one `strings.<lang>.ts` per
+  locale implementing the same shape (functions included) + a light
+  locale-switch context. No new dependency, keeps the typed call
+  sites, cheaper to start — but each translator writes plural logic
+  in code and there's no ICU tooling.
 
   **Sub-pieces (regardless of fork):** browser-locale detection
   (`navigator.language`); a persisted UI-language config field (distinct
@@ -1911,7 +2054,7 @@ through.
   fork before sizing. Dependencies: none hard.
   **Layman:** Today every menu, button, and message is English only. Add the ability to display the interface in other languages (Spanish, French, German, …) with a language picker in Settings, next to the existing theme and layout pickers.
   Kind: feature.
-  Source: user-request-2026-07-01 ("Please roadmap adding support for additional languages" → clarified: translate the UI)..
+  Source: user-request-2026-07-01 ("Please roadmap adding support for additional languages" → clarified: translate the UI).
 
 - ✅ [mame-curator-1081] **Bind progettoSnaps source read-path to refresh-snaps --dest via a media.snaps_dir config field.**
   P10 chunk 7 wires ProgettoSnapsSource into the fallback chain reading a FIXED `./data/snaps/snap` default (mirrors `refresh-snaps --dest`'s default). No config field couples the source's read path to the CLI's `--dest`, so a user who runs `mame-curator refresh-snaps --dest /elsewhere` downloads a pack the source never sees. Fix: add `media.snaps_dir: Path = Path("./data/snaps")` to MediaConfig; have both `build_registry` (source read path = snaps_dir/"snap") and the `refresh-snaps` CLI default read it, so they can't diverge. Frontend type-sync + a Settings surface come with it. Sized as its own small pass. Lane: media.
@@ -1942,8 +2085,7 @@ through.
 
 ### 🔌 Plugins / extensions
 
-- 💭 [mame-curator-1007] **P11 — Contribute missing thumbnails
-  back to libretro-thumbnails.**
+- 💭 [mame-curator-1007] **P11 — Contribute missing thumbnails back to libretro-thumbnails.**
   When the user has a CC-compatible image for a game the upstream
   repo doesn't have, generate a staged-files-plus-PR flow so the
   artwork can be contributed back. Default manual-PR path (`git
