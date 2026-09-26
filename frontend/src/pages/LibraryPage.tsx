@@ -168,6 +168,14 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
                 onRetry={() => games.refetch()}
                 isFetching={games.isFetching}
               />
+            ) : games.isPending ? (
+              // mame-curator-1102: no data yet for this query — `cards` is
+              // the `[]` default, so the grid would claim nothing matched.
+              // isPending, not isFetching: a background refetch of data
+              // already on screen must not blank the grid.
+              <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+                {strings.loading.library}
+              </div>
             ) : (
               <LibraryGrid
                 cards={cards}
@@ -213,6 +221,7 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
             onOpenChange={(o) => !o && setOpenedShortName(null)}
             winner={openedWinner}
             alternatives={alternatives.data?.items ?? []}
+            loading={alternatives.isPending}
             onOverride={(req) => {
               override.mutate(req, {
                 onSuccess: () => {

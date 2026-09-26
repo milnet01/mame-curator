@@ -72,6 +72,8 @@ export const strings = {
     stats: 'Loading stats…',
     help: 'Loading help…',
     settings: 'Loading settings…',
+    /** mame-curator-1102 — grid placeholder while /api/games has no data yet. */
+    library: 'Loading games…',
     generic: 'Loading…',
   },
 
@@ -272,6 +274,8 @@ export const strings = {
     wikipediaLicense: 'Text from Wikipedia, CC BY-SA 4.0.',
     /** Subtitle when the family contains only the winner. */
     onlyVersionText: 'This is the only version in the library.',
+    /** mame-curator-1100 — subtitle while the family list is still loading. */
+    loadingVersions: 'Loading versions…',
     /** Subtitle when the family contains multiple versions. */
     familySummary: (n: number) =>
       `${n.toLocaleString()} version${n === 1 ? '' : 's'} in this family`,

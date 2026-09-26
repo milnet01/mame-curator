@@ -25,6 +25,9 @@ interface AlternativesDrawerProps {
   onOpenChange: (open: boolean) => void
   winner: GameCard
   alternatives: GameCard[]
+  /** mame-curator-1100: true while the family list has not loaded yet.
+   *  The subtitle then reads as loading, not as an empty family. */
+  loading?: boolean
   onOverride: (request: OverridePostRequest) => void
   /** FP19: optional Launch handler. Hides the button when not provided
    *  (e.g. unit tests that don't mock the launch endpoint). */
@@ -123,6 +126,7 @@ export function AlternativesDrawer({
   onOpenChange,
   winner,
   alternatives,
+  loading = false,
   onOverride,
   onLaunch,
   launching = false,
@@ -191,7 +195,9 @@ export function AlternativesDrawer({
         <SheetHeader>
           <SheetTitle>{strings.alternatives.drawerTitle}</SheetTitle>
           <SheetDescription>
-            {onlyOne
+            {loading
+              ? strings.alternatives.loadingVersions
+              : onlyOne
               ? strings.alternatives.onlyVersionText
               : strings.alternatives.familySummary(alternatives.length)}
           </SheetDescription>

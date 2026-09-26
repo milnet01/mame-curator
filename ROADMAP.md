@@ -64,11 +64,15 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: api, parser.
 
-- 📋 [mame-curator-1100] **Alternatives drawer shows '0 versions in this family' while its list is still loading.**
+- ✅ [mame-curator-1100] **Alternatives drawer shows '0 versions in this family' while its list is still loading.**
   Opening the drawer for mshvsf and screenshotting after ~2.5 s showed
   '0 versions in this family' with an empty list; the API returns many
   versions, and waiting longer shows them. The loading state should read as
   loading, not as an empty family.
+  Resolved (2026-09-26): LibraryPage passes `loading={alternatives.isPending}`
+  to AlternativesDrawer, whose subtitle reads "Loading versions…" until
+  the list arrives. Locked by LibraryPage_loading_state.test.tsx. The
+  failed-request case is split out as mame-curator-1107.
   **Layman:** When you open a game's versions panel it briefly claims there are no versions before they appear.
   Kind: ux.
   Source: in-session-2026-09-26.
@@ -90,7 +94,7 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: frontend.
 
-- 📋 [mame-curator-1102] **Library grid shows 'No games match your filters' while a new filter's results are still loading.**
+- ✅ [mame-curator-1102] **Library grid shows 'No games match your filters' while a new filter's results are still loading.**
   Observed 2026-09-26 in the tour recording: clicking the Capcom Classics
   tile showed the empty-state message for about a second before 121 games
   rendered. Same family as mame-curator-1100 (drawer '0 versions' while
@@ -112,6 +116,11 @@ wave lands.
   video, pass `--ozone-platform=x11` to Chromium. Pick the poster frame
   past any white loading page. Write outputs to disk, not /tmp. The
   website session is now ants-projects-hub-website-87.
+  Resolved (2026-09-26): LibraryPage shows "Loading games…" instead of
+  the grid while `games.isPending`. It gates on isPending, not
+  isFetching, so a background refetch keeps the grid. Locked by
+  LibraryPage_loading_state.test.tsx. The site-media refresh above is
+  still owed, after mame-curator-1103.
   **Layman:** Clicking a featured tile briefly says there are no games before the games appear.
   Kind: ux.
   Source: in-session-2026-09-26.
@@ -862,6 +871,32 @@ wave lands.
   Kind: chore.
   Source: user-request-2026-09-26.
   Lanes: packaging, ci.
+
+- 📋 [mame-curator-1107] **Alternatives drawer shows '0 versions in this family' when the alternatives request fails.**
+  useAlternatives sets no throwOnError, and LibraryPage passes
+  `alternatives.data?.items ?? []` with no isError check. On a failed
+  request the query is no longer pending, data stays undefined, and the
+  drawer renders the empty-family subtitle. The ErrorBoundary around the
+  drawer only catches render throws, so it never sees this. Found while
+  fixing mame-curator-1100, which covers the pending case only. The
+  games grid already has an error path (LibraryErrorPanel); the drawer
+  needs its own.
+  **Layman:** If the app cannot load a game's other versions, the panel wrongly says there are none instead of saying something went wrong.
+  Kind: fix.
+  Source: in-session-2026-09-26.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1108] **Vite build warns that a JS chunk exceeds the chunk-size warning limit.**
+  `npm run build` prints the rolldown chunk-size warning and suggests
+  `build.rolldownOptions.output.codeSplitting` or raising
+  `build.chunkSizeWarningLimit`. Seen 2026-09-26 while building for
+  mame-curator-1100/1102. Decide between splitting (e.g. lazy routes or a
+  vendor chunk) and raising the limit to match the size-limit budget the
+  P06 spec sets. Unverified whether it predates this session.
+  **Layman:** The app's main code file is large enough that the build tool warns it may load slowly.
+  Kind: perf.
+  Source: in-session-2026-09-26.
+  Lanes: frontend.
 
 ### 🧪 Test Audit 2026-05-20
 

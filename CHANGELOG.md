@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Fixed — Loading no longer reads as "nothing here" (mame-curator-1100, mame-curator-1102)
+
+The library and the versions panel now say they are loading while
+their data is on its way.
+
+- **Library grid shows "Loading games…" while a filter's results load** (mame-curator-1102)
+  It used to flash "No games match your filters" first.
+
+- **Versions panel reads "Loading versions…" until its list arrives** (mame-curator-1100)
+  It used to claim "0 versions in this family" first.
+
 ### 2026-09-26 Fixed — Beat 'em Ups, Run & Gun and SHMUPS tiles show games again
 
 These featured tiles searched for genre names that the current `catver.ini` no longer uses, so each showed "0 games". They now use the current names: "Platform / Fighter Scrolling", "Platform / Shooter Scrolling" and "Shooter / Flying Vertical".
