@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Fixed — BIOS warnings say which game and why (mame-curator-1110)
+
+The copy window listed each BIOS problem as a bare "BIOS warning".
+It now names the game and the reason.
+
 ### 2026-09-26 Fixed — Copy progress now counts up (mame-curator-1103)
 
 The copy window's counter used to stay at zero for the whole copy.

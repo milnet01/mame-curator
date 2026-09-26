@@ -614,6 +614,11 @@ export const strings = {
         : 'Cancel the copy? Already-copied files will be kept.',
     abortKeepFiles: 'Keep files',
     abortRecycleFiles: 'Move to recycle bin',
+    /** mame-curator-1110 — one BIOS-resolution warning from the copy job. */
+    biosWarning: (name: string, kind: string) =>
+      kind === 'missing_from_listxml'
+        ? `${name}: not in MAME's machine list (listxml), so its BIOS can't be worked out`
+        : `${name}: ${kind}`,
     /** mame-curator-1103 — shown until the server reports the job's total. */
     preparing: 'Preparing copy…',
     progressLine: (done: number, total: number, currentFile: string) =>

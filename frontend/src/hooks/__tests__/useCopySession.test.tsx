@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { server, http, HttpResponse } from '@/test/handlers'
 import { makeClientWrapper } from '@/test/renderWithClient'
 import { useCopySession } from '../useCopySession'
+import { strings } from '@/strings'
 
 // ---------------------------------------------------------------------------
 // MockEventSource — jsdom has no native EventSource
@@ -231,6 +232,37 @@ describe('useCopySession', () => {
     await waitFor(() => {
       expect(result.current.state?.filesDone).toBe(3)
     })
+  })
+
+  // mame-curator-1110: the server sends bios_warning as {name, kind}
+  // (api/jobs.py JobManager.start). Pre-fix the hook read payload.message,
+  // which never exists, so every warning rendered as a bare "BIOS warning".
+  it('bios_warning names the machine and the reason (mame-curator-1110)', async () => {
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    })
+    act(() => {
+      result.current.start({
+        selected_names: ['sf2'],
+        conflict_strategy: 'CANCEL',
+        append_decisions: {},
+      })
+    })
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(1))
+    const es = MockEventSource.instances[0]
+    act(() => {
+      es.emit({
+        event: 'bios_warning',
+        payload: { name: 'sf2', kind: 'missing_from_listxml' },
+        ts: new Date().toISOString(),
+      })
+    })
+    await waitFor(() => {
+      expect(result.current.state?.warnings).toEqual([
+        strings.copy.biosWarning('sf2', 'missing_from_listxml'),
+      ])
+    })
+    expect(result.current.state?.warnings[0]).toContain('sf2')
   })
 
   it('job_finished closes the SSE source and flips state to finished', async () => {

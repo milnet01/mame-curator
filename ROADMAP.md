@@ -943,11 +943,17 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: copy, parser.
 
-- 📋 [mame-curator-1110] **Copy modal shows a bare 'BIOS warning' instead of which BIOS and why.**
+- ✅ [mame-curator-1110] **Copy modal shows a bare 'BIOS warning' instead of which BIOS and why.**
   Split from mame-curator-1103. useCopySession's bios_warning case reads
   `payload.message`; the server sends `{name, kind}` (jobs.py, JobManager.start),
   so every warning falls back to the literal "BIOS warning". Render the
   name and a readable kind (e.g. missing_from_listxml).
+  Resolved (2026-09-26): useCopySession builds each warning from the
+  payload's `name` and `kind` through `strings.copy.biosWarning`, e.g.
+  "sf2: not in MAME's machine list (listxml), so its BIOS can't be worked
+  out". Locked by a useCopySession test run red first (it received
+  "BIOS warning"). Once mame-curator-1109 lands, the spurious sf2-style
+  warnings stop; the text still applies to genuine listxml mismatches.
   **Layman:** The copy window warns about a BIOS problem without saying which BIOS or what is wrong.
   Kind: fix.
   Source: in-session-2026-09-26.

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { apiRequest } from '@/api/client'
+import { strings } from '@/strings'
 import {
   JobAcceptedSchema,
   JobStatusSchema,
@@ -122,9 +123,14 @@ export function useCopySession() {
             case 'bios_warning':
               return {
                 ...prev,
+                // mame-curator-1110: the server sends {name, kind}
+                // (api/jobs.py JobManager.start), never a message.
                 warnings: [
                   ...prev.warnings,
-                  (msg.payload.message as string | undefined) ?? 'BIOS warning',
+                  strings.copy.biosWarning(
+                    String(msg.payload.name ?? '?'),
+                    String(msg.payload.kind ?? 'unknown'),
+                  ),
                 ],
               }
             case 'job_finished':

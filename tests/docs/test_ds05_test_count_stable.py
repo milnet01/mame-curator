@@ -283,7 +283,10 @@ EXPECTED_PYTEST_DECLARATIONS = 762
 #   • +1 CopyModal.test.tsx — "0 / 0" must not render while running with
 #     no job_started yet.
 # 338 → 340.
-EXPECTED_VITEST_DECLARATIONS = 340
+# Bumped 2026-09-26 (mame-curator-1110 — BIOS warning text): +1 vitest
+# declaration in frontend/src/hooks/__tests__/useCopySession.test.tsx
+# (bios_warning names the machine and the reason). 340 → 341.
+EXPECTED_VITEST_DECLARATIONS = 341
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
