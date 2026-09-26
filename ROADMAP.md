@@ -121,6 +121,12 @@ wave lands.
   isFetching, so a background refetch keeps the grid. Locked by
   LibraryPage_loading_state.test.tsx. The site-media refresh above is
   still owed, after mame-curator-1103.
+  Media refresh delivered (2026-09-26): mame-curator-tour.mp4 (1280x720
+  H.264 faststart), its poster jpg and a copy-progress still, sent to
+  ants-projects-hub-website-87 via /tmp/aph-handoff/mame-curator/. The tour
+  shows "Loading games…" after the tile click and the counter climbing
+  1/4 to 4/4. Recorded with the Playwright kit against an isolated config
+  on /mnt/Emulators; scratch deleted afterwards.
   **Layman:** Clicking a featured tile briefly says there are no games before the games appear.
   Kind: ux.
   Source: in-session-2026-09-26.
