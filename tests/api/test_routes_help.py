@@ -104,3 +104,24 @@ def test_help_dir_resolves_default_package_path(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.delenv("MAME_CURATOR_HELP_DIR", raising=False)
     p = _help_dir()
     assert p == p.resolve(), f"default _help_dir() returned non-canonical path {p}"
+
+
+# ---- mame-curator-1063: the shipped help pages ------------------------------
+
+
+def test_shipped_help_pages_are_listed_and_render(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """mame-curator-1063: the repo's own `docs/help/` is non-empty and every page renders.
+
+    Before 1063 the directory did not exist, so the Help page always showed
+    its empty state. No override here: this reads the default location.
+    """
+    monkeypatch.delenv("MAME_CURATOR_HELP_DIR", raising=False)
+    topics = client.get("/api/help/index").json()["topics"]
+    assert topics, "docs/help/ ships no pages"
+    for topic in topics:
+        assert topic["title"] != topic["slug"], f"{topic['slug']} has no '# ' title"
+        rendered = client.get(f"/api/help/{topic['slug']}")
+        assert rendered.status_code == 200, topic["slug"]
+        assert "<h1>" in rendered.json()["html"], topic["slug"]

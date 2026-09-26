@@ -844,6 +844,14 @@ wave lands.
   run. A Windows test machine is reachable as `ssh wintest` (see DOOM_Ants
   ROADMAP); it has Git but no Python, so it can prove a bundle runs on a
   clean box.
+  Progress (2026-09-26): docs/help/ now ships real pages (1063). The
+  bundles must include it, and `api/routes/help.py::_help_dir()` finds it
+  as `Path(__file__).parents[3].parent / "docs" / "help"` (the repo
+  root), which will not exist inside a PyInstaller bundle. The spec
+  fold-in must name where help lives in a bundle (sys._MEIPASS or the
+  MAME_CURATOR_HELP_DIR override). tests/api/test_routes_help.py::
+  test_shipped_help_pages_are_listed_and_render is the check to run
+  against a built bundle.
 
 - ✅ [mame-curator-1096] **Stop the test suite opening real browser tabs.**
   Reported by the user 2026-08-04: "every now and then you open a new
@@ -1096,6 +1104,20 @@ wave lands.
   Kind: doc.
   Source: peer-claude-2a-2026-09-26 (align-report).
   Lanes: docs.
+
+- 📋 [mame-curator-1114] **Settings → Updates still tells users the apply flow "ships in Phase 7".**
+  `frontend/src/strings_internal.ts` has the update-available message
+  "Update available: X → Y. Apply flow ships in Phase 7.", and
+  `components/settings/UpdatesTab.tsx` carries a comment saying Phase 7
+  will swap it. Phase 7 shipped long ago. Decide whether an apply-update
+  flow is still planned: if so, say "not available yet" without a phase
+  name; if not, tell the user how to update (re-run the launcher after a
+  `git pull`, or download the new release once 1095 ships). Found
+  2026-09-26 while fixing the same stale wording on the Help page (1063).
+  **Layman:** The Updates tab promises a feature by an old internal phase name that means nothing to users.
+  Kind: ux.
+  Source: in-session-2026-09-26 (mame-curator-1063).
+  Lanes: frontend.
 
 ### 🧪 Test Audit 2026-05-20
 
@@ -2134,7 +2156,7 @@ under a docs-review skill.
   Source: cold-eyes-2026-05-18 lane spec/FP27.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1063] **Resolve `docs/help/` build-tooling gap.**
+- ✅ [mame-curator-1063] **Resolve `docs/help/` build-tooling gap.**
   FP27 pre-spec verification noted that `docs/help/` doesn't exist
   at repo root; running help routes in dev returns 404 unless
   `MAME_CURATOR_HELP_DIR` is set. Either build tooling that populates
@@ -2143,6 +2165,15 @@ under a docs-review skill.
   Layman: The in-app Help pages route silently 404s on a fresh
   checkout — wire up the missing piece that populates the help
   directory.
+  Resolved (2026-09-26, owner chose "write starter pages"): the route
+  code was fine; docs/help/ simply never existed, so Help showed its
+  empty state. Added four pages (01-getting-started, 02-choosing-games,
+  03-copying-games, 04-command-line), each claim checked against the
+  README, strings_internal.ts and the components. New test
+  test_shipped_help_pages_are_listed_and_render reads the default
+  location (red with the folder moved aside, green with it). Empty-state
+  hint no longer says "Phase 7". Bundling note added to 1095; the same
+  stale wording in Settings → Updates filed as 1114.
   Kind: fix.
   Source: cold-eyes-2026-05-18 lane spec/FP27.
   Lanes: api, docs.

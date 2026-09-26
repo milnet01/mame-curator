@@ -640,7 +640,7 @@ export const strings = {
   help: {
     pageTitle: 'Help',
     emptyTitle: 'No help topics available',
-    emptyHint: 'The bundled help library will land in Phase 7.',
+    emptyHint: 'No help pages were found in the docs/help folder.',
     loadingTopic: 'Loading topic…',
     loadError: 'Could not load help topics.',
   },

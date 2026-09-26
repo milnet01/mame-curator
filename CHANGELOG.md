@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Added — The Help page has content (mame-curator-1063)
+
+Help used to open on "No help topics available". It now has four
+pages: getting started, choosing your games, copying games to
+RetroArch, and command-line use. The empty-page message no longer
+refers to an internal phase name.
+
 ### 2026-09-26 Fixed — The Windows launcher starts again and reads PORT like Linux does (mame-curator-1089)
 
 `run.bat` stopped before starting the app on every Windows machine: its
