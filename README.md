@@ -22,7 +22,8 @@ cd mame-curator
 ./run.sh             # macOS / Linux  —  use run.bat on Windows
 ```
 
-`run.sh` provisions Python 3.12+, installs `uv`, syncs deps, runs the
+`run.sh` checks for Python 3.12+ (and says how to install it if
+missing), installs `uv`, syncs deps, runs the
 interactive setup wizard the first time (it asks for your ROM
 directory, MAME DAT, destination, and RetroArch playlist path), then opens
 [http://127.0.0.1:8080](http://127.0.0.1:8080) in your browser.
@@ -49,7 +50,7 @@ Re-run `./run.sh` anytime — it's idempotent.
 - **Writes a RetroArch playlist** (`mame.lpl`) so games show pretty
   descriptions in RetroArch without renaming files.
 - **Stays local-only** — no telemetry, no analytics, no cloud sync,
-  ever (grep-gated; see `docs/standards/coding-standards.md`).
+  ever (enforced by `tests/docs/test_no_telemetry.py`).
 
 ## Requirements
 

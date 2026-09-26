@@ -247,7 +247,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # skipped elsewhere but counted by declaration). 774 → 777.
 # Bumped 2026-09-26 (mame-curator-1063 — shipped help pages): +1 pytest
 # declaration in tests/api/test_routes_help.py. 777 → 778.
-EXPECTED_PYTEST_DECLARATIONS = 778
+# Bumped 2026-09-26 (no-telemetry gate): +2 pytest declarations in
+# tests/docs/test_no_telemetry.py. 778 → 780.
+EXPECTED_PYTEST_DECLARATIONS = 780
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
