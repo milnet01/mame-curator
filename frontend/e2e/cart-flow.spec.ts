@@ -61,3 +61,24 @@ test('first visit shows onboarding banner; +Add populates the cart', async ({
   // Card flips to ✓ Added (the same card we just clicked)
   await expect(page.getByText('✓ Added')).toBeVisible()
 })
+
+test('Copy inside the dry-run preview starts the copy', async ({ page }) => {
+  // mame-curator-1101: the preview's Copy button was wired to close the
+  // modal only, so "Review the diff and confirm to copy" copied nothing.
+  // Assert on the request, not the copy result, so the fixture ROMs'
+  // presence on disk doesn't decide the outcome.
+  await page.goto('/')
+  await page.getByRole('button', { name: /add .+ to cart/i }).first().click()
+  await page.getByRole('button', { name: 'Dry-run' }).click()
+
+  const preview = page.getByRole('dialog', { name: /dry-run preview/i })
+  await expect(preview).toBeVisible()
+
+  const copyStarted = page.waitForRequest(
+    (req) => req.method() === 'POST' && req.url().endsWith('/api/copy/start'),
+    { timeout: 10_000 },
+  )
+  await preview.getByRole('button', { name: 'Copy', exact: true }).click()
+  await copyStarted
+  await expect(preview).not.toBeVisible()
+})

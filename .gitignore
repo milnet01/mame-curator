@@ -47,6 +47,7 @@ htmlcov/
 
 # Project-specific (never committed)
 /data/
+/frontend/e2e/fixtures/data/
 /wheels/
 /config.yaml
 /overrides.yaml

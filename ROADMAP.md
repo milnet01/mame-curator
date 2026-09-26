@@ -68,13 +68,17 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: frontend.
 
-- 📋 [mame-curator-1101] **Dry-run preview's Copy button only closes the modal instead of starting the copy.**
+- ✅ [mame-curator-1101] **Dry-run preview's Copy button only closes the modal instead of starting the copy.**
   frontend/src/pages/LibraryPage.tsx passes
   `onConfirm={() => setDryRunReport(null)}` to DryRunModal, so its Copy button
   is a second Cancel. The modal hint reads "Review the diff and confirm to
   copy." Observed 2026-09-26: clicking it sent no POST /api/copy/start; the
   cart-bar Copy button does start a copy. Wire onConfirm to the same handler
   as the cart-bar Copy (handleCopy in useLibraryController).
+  Resolved (2026-09-26): onConfirm now clears the report and calls
+  handleCopy. Regression test in frontend/e2e/cart-flow.spec.ts asserts
+  the POST /api/copy/start fires from the preview's Copy; red before the
+  fix, full e2e suite green after.
   **Layman:** In the copy preview window, pressing Copy just closes the window and nothing gets copied, even though the window says to confirm to copy.
   Kind: fix.
   Source: in-session-2026-09-26.

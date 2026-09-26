@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-26 Fixed — Copy in the dry-run preview now copies (mame-curator-1101)
+
+The preview says "Review the diff and confirm to copy", but its Copy button only closed the window. It now closes the preview and starts the same copy as the cart bar's Copy button.
+
 ### 2026-09-26 Fixed — Launching the app no longer uninstalls developer tools
 
 `run.sh` and `run.bat` now sync with `uv sync --inexact`. A plain sync uninstalled mypy, ruff and the test tools from a developer's environment, which made the next check run fail as if the code were broken.

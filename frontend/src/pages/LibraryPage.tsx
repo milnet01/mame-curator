@@ -246,7 +246,10 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
           open={true}
           onOpenChange={(open) => !open && setDryRunReport(null)}
           report={dryRunReport}
-          onConfirm={() => setDryRunReport(null)}
+          onConfirm={() => {
+            setDryRunReport(null)
+            handleCopy()
+          }}
         />
       )}
 
