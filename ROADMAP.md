@@ -410,6 +410,30 @@ wave lands.
   `_resolve_port` read the inherited environment (one-line, no batch regex,
   but needs a Windows runner to verify). Neither is verifiable on this
   machine — the check has to land with a CI run as its first execution.
+  Progress (2026-09-26): a Windows runner now exists: `ssh wintest`
+  (Windows 10, Git installed; alias in ~/.ssh/config, used by DOOM_Ants).
+  The user authorised installing whatever testing needs. Python 3.13.15 is
+  installed per-user from python.org and verified in a fresh session
+  (`python -V` -> 3.13.15; winget fails over SSH with 0x8a15000f). Not yet
+  done: uv, clone, config, the fix.
+  Chosen fix (the item's second option, matching run.sh): drop the
+  unconditional `--port %PORT%` and the `PORT=8080` default. Echo the URL
+  only when %PORT% is set, else say the address prints on bind. Run
+  `uv run mame-curator serve` and let `_resolve_port` validate %PORT%. No
+  batch regex.
+  Test plan on wintest:
+  1. git clone https://github.com/milnet01/mame-curator.git into
+     C:\mame-curator-test.
+  2. Run run.bat once so it installs uv itself; expect its "open a new
+     window" exit; then `uv --version` in a new ssh session.
+  3. Write config.yaml from frontend/e2e/fixtures/config.yaml with
+     server.port 8765 and open_browser_on_start false; mkdir the
+     data/e2e/source-roms and dest-roms dirs.
+  4. Baseline on the unfixed run.bat: PORT=abc shows argparse's exit 2.
+  5. After the fix (scp or pull): PORT=abc and PORT=80 fail with the
+     named error and exit 1; unset PORT binds 8765 from server.port;
+     PORT=8766 binds 8766. Stop the server after each; SSH has no desktop,
+     and the config opens no browser.
   **Layman:** On Windows, a bad PORT setting still produces a confusing error instead of the clear one Linux and macOS now give.
   Kind: fix.
   Source: cold-eyes-2026-08-03 (mame-curator-1088 review).
@@ -791,6 +815,14 @@ wave lands.
   (e) the frozen binary opens the browser itself, since only the server knows
   the resolved port. Not yet checked against our plan in
   docs/plans/mame-curator-1095-desktop-bundles.md.
+  User requirement (2026-09-26, verbatim): "when you create the various
+  releases for the OSes, I want everything bundled together with the
+  release. I don't want the user to have to download anything extra to get
+  the app to work." So each OS release carries its own Python runtime, every
+  dependency and the built frontend; no uv, Python or network fetch at first
+  run. A Windows test machine is reachable as `ssh wintest` (see DOOM_Ants
+  ROADMAP); it has Git but no Python, so it can prove a bundle runs on a
+  clean box.
 
 - ✅ [mame-curator-1096] **Stop the test suite opening real browser tabs.**
   Reported by the user 2026-08-04: "every now and then you open a new
