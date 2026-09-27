@@ -1,4 +1,5 @@
 <!-- ants-commit-standards: 1 (redirect) -->
+<!-- OWNED-HERE commits.md — slot pointer into this project's own coding-standards.md, read instead of the global commits.md; decided 2026-09-27 (mame-curator-1113) -->
 # Commit Standards — MAME Curator
 
 This file is a **redirect pointer** for the
@@ -44,8 +45,8 @@ or scope. Real examples from `git log`:
 Per-bullet stable IDs from `.roadmap-counter` are assigned
 **lazily** (only when an item really needs cross-referenced
 identity — typically multi-commit features or fix-passes). New
-P##/FP##/DS##/DOC## phase IDs use the convention from
-`docs/standards/roadmap-format.md`.
+P##/FP##/DS##/DOC## phase IDs are described in
+[`spec-format-overrides.md`](spec-format-overrides.md) O2.
 
 ## Governs
 

@@ -1,4 +1,5 @@
 <!-- ants-coding-standards: 1 (redirect) -->
+<!-- OWNED-HERE coding.md — slot pointer into this project's own coding-standards.md, read instead of the global coding.md; decided 2026-09-27 (mame-curator-1113) -->
 # Coding Standards — MAME Curator
 
 This file is a **redirect pointer** for the

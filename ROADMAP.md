@@ -1135,6 +1135,17 @@ wave lands.
   Source: in-session-2026-09-26 (mame-curator-1063).
   Lanes: frontend.
 
+- 📋 [mame-curator-1115] **coding-standards.md says pre-commit runs frontend eslint/prettier; it does not.**
+  The pre-commit bullet in docs/standards/coding-standards.md lists frontend
+  `eslint`/`prettier` among pre-commit hooks. .pre-commit-config.yaml has
+  no such hook: both run only via the `local-ci` hook (local-CI.sh) at
+  pre-push. It also lists `pytest -q -x`, while the hook id is pytest-fast.
+  Found while closing mame-curator-1075.
+  **Layman:** A project rule document describes the automatic checks slightly wrongly.
+  Kind: doc-fix.
+  Source: in-session-2026-09-27 (mame-curator-1075).
+  Lanes: docs.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
@@ -1748,8 +1759,13 @@ test_runner_lifecycle.py negative-wait pattern (same shape as 008).
   Source: in-session-2026-06-11 (1048/1049 userEvent sweep leftovers).
   Resolved 2026-06-30: decision is KEEP all 3 non-click fireEvent calls. fireEvent.error has no userEvent equivalent (image error is not a user action); fireEvent.change is the idiomatic atomic set for controlled inputs and migrating to user.type would break the toHaveBeenLastCalledWith assertions per-keystroke. Documented the rationale at each call site.
 
-- 📋 [mame-curator-1075] **Repo-wide Prettier formatting debt in the frontend tree (not CI-gated).**
+- ✅ [mame-curator-1075] **Repo-wide Prettier formatting debt in the frontend tree (not CI-gated).**
   `npx prettier --check` flags ~45 frontend files, including many untouched by recent work -- pre-existing, repo-wide debt. `npm run format` (prettier --check) is NOT part of the CI gate (CI runs eslint + tsc -b + vitest only), which is why it has never blocked. Every file touched in the 1048/1049 userEvent sweep was already prettier-dirty at HEAD, so the sweep neither introduced nor fixed it. Fix: one standalone `prettier --write` debt-sweep commit across the frontend tree (kept separate so the pure-formatting churn doesn't muddy feature diffs), and optionally add `npm run format` to the CI workflow to stop re-drift.
+  Resolved (2026-09-27, f727d18): `prettier --write .` over 166 frontend
+  files; frontend/.prettierignore excludes dist/ (rebuilt; code
+  identical, chunk-hash names only). ci.yml and local-CI.sh both gained
+  a Prettier step after ESLint (owner chose to gate it). Frontend: 361
+  vitest passed.
   Kind: chore.
   Source: in-session-2026-06-11.
   Lanes: frontend.
@@ -2528,19 +2544,12 @@ the queue.
 5. **Category** — which release target + theme section it belongs
    under.
 
-Open a PR adding a bullet to the right section. Set the status
-emoji to 📋 (planned) or 💭 (still researching). New bullets get
-the next free `[mame-curator-NNNN]` from `.roadmap-counter` at the
-repo root; bump the counter in the same PR.
-
-```bash
-# Allocate the next ID:
-echo $(($(cat .roadmap-counter) + 1)) > .roadmap-counter
-printf "mame-curator-%04d\n" $(cat .roadmap-counter)
-```
-
-See [`docs/standards/roadmap-format.md`](docs/standards/roadmap-format.md)
-for the full format spec (`mame-roadmap-format: 1`).
+Open an issue or PR describing the item. `ROADMAP.md` is generated
+from the Ants roadmap store, so hand edits to it are discarded: the
+maintainer files the bullet with `roadmap_log`, which allocates the
+next free `[mame-curator-NNNN]` and sets the status emoji (📋
+planned, 💭 still researching). The format is the global
+`~/.claude/standards/roadmap-format.md` (`mame-roadmap-format: 1`).
 
 ---
 

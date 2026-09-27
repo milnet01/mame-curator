@@ -1,12 +1,13 @@
 <!-- ants-doc-standards: 1 (redirect) -->
+<!-- OWNED-HERE documentation.md — slot pointer into this project's own coding-standards.md, read instead of the global documentation.md; decided 2026-09-27 (mame-curator-1113) -->
 # Documentation Standards — MAME Curator
 
 This file is a **redirect pointer** for the
 [`app-workflow` skill](~/.claude/skills/app-workflow/SKILL.md).
 The canonical rules live in the consolidated
-[`coding-standards.md`](coding-standards.md), §§ 5 and 7, plus
-the dedicated [`roadmap-format.md`](roadmap-format.md) sub-spec
-for `ROADMAP.md` and `CHANGELOG.md` authoring.
+[`coding-standards.md`](coding-standards.md), §§ 5 and 7.
+`ROADMAP.md` and `CHANGELOG.md` follow the global
+`~/.claude/standards/roadmap-format.md`, read in place.
 
 ## Sections this slot covers
 
@@ -32,7 +33,7 @@ for `ROADMAP.md` and `CHANGELOG.md` authoring.
 | `docs/known-issues.md` | Findings deferred until a named dependency lands |
 | `docs/audit-allowlist.md` | Closed-loop memory for confirmed false positives |
 | `docs/ideas.md` | Mid-flight user-proposed ideas, pending placement decision |
-| `docs/specs/<ID>-<topic>.md` | Per-roadmap-item spec (lazy — written at Step 1 of the per-item loop). Format: [`spec-format.md`](spec-format.md). Sixteen legacy files still use the bare `<ID>.md`; rename tracked as mame-curator-1092 (override O1). |
+| `docs/specs/<ID>-<topic>.md` | Per-roadmap-item spec (lazy — written at Step 1 of the per-item loop). Format: the global `~/.claude/standards/spec-format.md` plus [`spec-format-overrides.md`](spec-format-overrides.md). |
 | `docs/plans/<ID>-<topic>.md` | Build steps for that item. `phase-plan.md` is the pre-existing long-form Phase 0–9 plan and has no single id. |
 | `src/mame_curator/<module>/spec.md` | Per-module feature contract; the audit surface for that module |
 

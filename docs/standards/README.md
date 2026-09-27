@@ -9,8 +9,8 @@ conventions, frontend quality, anti-patterns, and the conflict-
 precedence rule (§15).
 
 The slot files in this folder
-(`coding.md`, `testing.md`, `commits.md`, `documentation.md`,
-`roadmap-format.md`) are **redirect pointers** to the relevant
+(`coding.md`, `testing.md`, `commits.md`, `documentation.md`)
+are **redirect pointers** to the relevant
 sections of the consolidated document — they exist so the
 [`app-workflow` skill](~/.claude/skills/app-workflow/SKILL.md)
 auto-loaders find each governance domain at its expected path,
@@ -37,28 +37,23 @@ without breaking that ordering.
 | [`testing.md`](testing.md) | §6 Testing, §7 Specs and feature audits | `Kind: test`; regression-test follow-through for fixes |
 | [`commits.md`](commits.md) | §12 Git, commits, and CI | Every commit |
 | [`documentation.md`](documentation.md) | §5 Comments and documentation, §7 Specs | `Kind: doc / doc-fix` |
-| [`roadmap-format.md`](roadmap-format.md) | App-Build's standard `roadmap-format.md` v1 (structure verbatim; examples customised for MAME Curator) | `ROADMAP.md` and `CHANGELOG.md` authoring |
-| [`spec-format.md`](spec-format.md) | App-Build's `spec-format.md` v1 verbatim, plus a `## MAME Curator overrides` section (O1–O4) | `docs/specs/` and `docs/plans/` authoring |
-| [`spec-skeleton.md`](spec-skeleton.md) · [`plan-skeleton.md`](plan-skeleton.md) | Templates, not rules — copied by `/write-spec` | The shape of a new spec / plan |
+| [`spec-format-overrides.md`](spec-format-overrides.md) | Deltas O1–O4 from the global `~/.claude/standards/spec-format.md`, read in place | `docs/specs/` and `docs/plans/` authoring |
 
-`spec-format.md` and the two skeletons are **not** redirect stubs: they are
-the sub-spec pair `roadmap-format.md` already models, carrying the format
-contract the consolidated document does not (`coding-standards.md` §7 owns
-the *co-located module* `spec.md`, which is a different document — see
-override O4). Landed 2026-08-03; before that the project fell back to
-`~/.claude/skills/_shared/spec-format.md`.
+Two formats are not owned here and are read in place from the global set:
+`~/.claude/standards/spec-format.md` (plus the overrides file above, which
+is **not** a redirect stub — `coding-standards.md` §7 owns the *co-located
+module* `spec.md`, a different document; see override O4) and
+`~/.claude/standards/roadmap-format.md`, which the roadmap store's renderer
+enforces on `ROADMAP.md`. New specs and plans start from the global
+skeletons in `~/.claude/standards/skeletons/`. mame-curator-1113 removed
+this folder's stale v1 copies of all three on 2026-09-27.
 
 ## Editing rules
 
 - **Edit `coding-standards.md`**, not the slot files. The slots
   are pointers; editing them creates drift.
-- **Exception:** `roadmap-format.md` ships with **structure
-  verbatim from the App-Build template** (the format spec is
-  cross-project shared, not MAME-Curator-specific) and
-  **examples customised to MAME Curator's `mame-curator-NNNN`
-  ID prefix**. Edits to it should track upstream template
-  revisions; project-specific tweaks live only in the example
-  blocks.
+- **Spec-format deltas** go in `spec-format-overrides.md`, one
+  line of why each. Never copy the global standard back in.
 - **Adding a new section to `coding-standards.md`?** If it falls
   under a new governance domain (e.g. localisation), update the
   slot index above so the relevant slot file's redirect covers
