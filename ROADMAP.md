@@ -55,10 +55,15 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: parser.
 
-- 📋 [mame-curator-1099] **Stats page reports driver status 'unknown' for every game in the library.**
+- ✅ [mame-curator-1099] **Stats page reports driver status 'unknown' for every game in the library.**
   Observed on the Stats page with the real config: Driver status panel shows a
   single 'unknown' bar for all games. Cause not yet traced (driver status may
   come only from -listxml and not be joined into stats).
+  Resolved (2026-09-27, c0d362f): Pleasuredome DATs carry no <driver>;
+  driver_status now joins from -listxml (parse_listxml_driver_status +
+  apply_driver_status) in build_world and the filter CLI. Wider than
+  stats: the PRELIMINARY_DRIVER drop and the picker's driver tiebreak
+  were dead on real data too. Real files: unknown 43579 → 1268.
   **Layman:** The Stats page says it doesn't know whether any game emulates well, which is not true.
   Kind: investigate.
   Source: in-session-2026-09-26.
@@ -867,6 +872,13 @@ wave lands.
   MAME_CURATOR_HELP_DIR override). tests/api/test_routes_help.py::
   test_shipped_help_pages_are_listed_and_render is the check to run
   against a built bundle.
+  Note (2026-09-27, CFG-0504 field pass): spec § 11 has two catcher-cell
+  issues to settle on resume. (1) INV-12/14/15 cite
+  tests/tools/test_release_scripts.py, which does not exist yet (the
+  plan creates it); the cells do not say planned. (2) INV-3's catcher
+  test_invalid_port_checked_before_config passes an explicit --config,
+  so it pins the error ordering but never exercises starter-config
+  creation; the cell reads as full coverage.
 
 - ✅ [mame-curator-1096] **Stop the test suite opening real browser tabs.**
   Reported by the user 2026-08-04: "every now and then you open a new
@@ -1206,6 +1218,18 @@ wave lands.
   Kind: doc-fix.
   Source: in-session-2026-09-27 (CFG-0492 sweep).
   Lanes: docs.
+
+- 📋 [mame-curator-1118] **Read -listxml once instead of four times at startup.**
+  build_world calls parse_listxml_cloneof, _bios_chain, _disks and
+  _driver_status, each a full iterparse over the ~300 MB listxml
+  (5.5-8.7 s per pass measured 2026-09-27 on listxml-0.287.xml). One
+  pass collecting all four would cut library load time by most of that.
+  Deferred from mame-curator-1099 by the owner, who chose the simpler
+  fourth pass first.
+  **Layman:** The app reads the same big MAME file four times when it starts; reading it once would make startup much faster.
+  Kind: perf.
+  Source: in-session-2026-09-27 (mame-curator-1099).
+  Lanes: parser, api.
 
 ### 🧪 Test Audit 2026-05-20
 
