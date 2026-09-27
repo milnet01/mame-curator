@@ -28,7 +28,7 @@
 | `runnable` | `bool` | DAT attribute `runnable="no"` → `False`; default `True` |
 | `roms` | `tuple[Rom, ...]` | DAT `<rom>` children |
 | `biossets` | `tuple[BiosSet, ...]` | DAT `<biosset>` children |
-| `driver_status` | `DriverStatus \| None` | DAT `<driver status="...">`; absent → `None` |
+| `driver_status` | `DriverStatus \| None` | DAT `<driver status="...">`; absent → filled from `-listxml` by `apply_driver_status`, else `None` |
 | `sample_of` | `str \| None` | DAT attribute |
 
 `Machine` is `frozen=True` (immutability per coding standards §3) and uses `model_config = ConfigDict(frozen=True, extra="forbid")`.
@@ -119,6 +119,15 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 - Returns `{machine_short_name: BIOSChainEntry}` with one entry for **every** `<machine>` that carries a `name`, joining the listxml's `romof` chain with the per-machine `<biosset>` children and `isbios` flag. A name absent from the result is absent from the listxml. Consumed by `copy/bios.py` (BIOS-dependency resolution), `copy/types.py` (`bios_chain` field of `CopyPlan`), `api/state.py` (WorldState assembly), `api/routes/games.py` (the `BIOS_MISSING` badge and filter, through `resolve_bios_dependencies` — membership alone is not a BIOS signal), and `cli/__init__.py` (the `copy` subcommand path).
 - The accompanying `BIOSChainEntry` Pydantic model carries `romof: str | None` + `biossets: tuple[str, ...]` + `is_bios: bool` — the per-machine view of the chain.
 - Streaming + hardening contract identical to the other `parse_listxml_*` functions above.
+
+### `parse_listxml_driver_status(path: Path) -> dict[str, DriverStatus]`
+
+- Returns `{machine_short_name: DriverStatus}` from each `<machine>`'s `<driver status="...">`. Pleasuredome DATs carry no `<driver>` element, so this is where `driver_status` comes from on real data (mame-curator-1099). A machine with no `<driver>`, or a status outside `DriverStatus`, is absent; unknown statuses follow `DriverStatus`'s open-membership rule (logged once each).
+- Streaming + hardening contract identical to the other `parse_listxml_*` functions above.
+
+### `apply_driver_status(machines: dict[str, Machine], statuses: dict[str, DriverStatus]) -> dict[str, Machine]`
+
+- Returns `machines` with each `driver_status` that is `None` filled from `statuses`. A value the DAT supplied wins; a machine absent from `statuses` stays `None`. `api/state.py` (WorldState assembly) and the `filter` subcommand apply it whenever a listxml is configured, before the filter runs.
 
 ### `split_manufacturer(raw: str | None) -> tuple[str | None, str | None]`
 

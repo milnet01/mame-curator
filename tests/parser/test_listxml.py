@@ -10,6 +10,7 @@ from mame_curator.parser.listxml import (
     parse_listxml_bios_chain,
     parse_listxml_cloneof,
     parse_listxml_disks,
+    parse_listxml_driver_status,
 )
 from tests.parser.conftest import raise_oserror as _raise_oserror
 
@@ -29,8 +30,13 @@ def test_machines_without_disk_excluded(listxml_with_disks: Path) -> None:
 
 @pytest.mark.parametrize(
     "parse_fn",
-    [parse_listxml_disks, parse_listxml_cloneof, parse_listxml_bios_chain],
-    ids=["disks", "cloneof", "bios_chain"],
+    [
+        parse_listxml_disks,
+        parse_listxml_cloneof,
+        parse_listxml_bios_chain,
+        parse_listxml_driver_status,
+    ],
+    ids=["disks", "cloneof", "bios_chain", "driver_status"],
 )
 def test_missing_file_raises(
     tmp_path: Path,
@@ -43,8 +49,13 @@ def test_missing_file_raises(
 
 @pytest.mark.parametrize(
     "parse_fn",
-    [parse_listxml_disks, parse_listxml_cloneof, parse_listxml_bios_chain],
-    ids=["disks", "cloneof", "bios_chain"],
+    [
+        parse_listxml_disks,
+        parse_listxml_cloneof,
+        parse_listxml_bios_chain,
+        parse_listxml_driver_status,
+    ],
+    ids=["disks", "cloneof", "bios_chain", "driver_status"],
 )
 def test_malformed_xml_raises(
     tmp_path: Path,
@@ -64,8 +75,13 @@ def test_malformed_xml_raises(
 
 @pytest.mark.parametrize(
     "parse_fn",
-    [parse_listxml_disks, parse_listxml_cloneof, parse_listxml_bios_chain],
-    ids=["disks", "cloneof", "bios_chain"],
+    [
+        parse_listxml_disks,
+        parse_listxml_cloneof,
+        parse_listxml_bios_chain,
+        parse_listxml_driver_status,
+    ],
+    ids=["disks", "cloneof", "bios_chain", "driver_status"],
 )
 def test_iterparse_oserror_raises_ListxmlError(
     tmp_path: Path,

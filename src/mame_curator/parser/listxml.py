@@ -19,8 +19,9 @@ from pathlib import Path
 from lxml import etree  # nosec B410
 from pydantic import BaseModel, ConfigDict
 
-from mame_curator.parser.dat import HARDENED_ITERPARSE_KWARGS
+from mame_curator.parser.dat import HARDENED_ITERPARSE_KWARGS, _driver_status_from_element
 from mame_curator.parser.errors import ListxmlError
+from mame_curator.parser.models import DriverStatus, Machine
 
 
 class BIOSChainEntry(BaseModel):
@@ -104,6 +105,51 @@ def parse_listxml_cloneof(path: Path) -> dict[str, str]:
         # raw past the CLI's ParserError catch. Typed at the parser/CLI seam.
         raise ListxmlError(f"failed to read listxml: {exc}", path=path) from exc
     return cloneof
+
+
+def parse_listxml_driver_status(path: Path) -> dict[str, DriverStatus]:
+    """Return {short_name: DriverStatus} from MAME `-listxml` `<driver status>`.
+
+    Pleasuredome ROM-set DATs carry no `<driver>` element (mame-curator-1099).
+    Machines with no `<driver>`, or a status outside `DriverStatus`, are absent;
+    unknown statuses log once each, as in the DAT parser.
+    """
+    if not path.exists():
+        raise ListxmlError("listxml path does not exist", path=path)
+
+    statuses: dict[str, DriverStatus] = {}
+    seen_unknown: set[str] = set()
+    try:
+        for _event, elem in etree.iterparse(
+            str(path),
+            events=("end",),
+            tag="machine",
+            **HARDENED_ITERPARSE_KWARGS,
+        ):
+            name = elem.get("name")
+            status = _driver_status_from_element(elem.find("driver"), seen_unknown)
+            if name and status is not None:
+                statuses[name] = status
+            elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+    except etree.XMLSyntaxError as exc:
+        raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
+    except OSError as exc:
+        raise ListxmlError(f"failed to read listxml: {exc}", path=path) from exc
+    return statuses
+
+
+def apply_driver_status(
+    machines: dict[str, Machine], statuses: dict[str, DriverStatus]
+) -> dict[str, Machine]:
+    """Fill each machine's missing `driver_status` from `statuses`; a DAT value wins."""
+    return {
+        name: m.model_copy(update={"driver_status": statuses[name]})
+        if m.driver_status is None and name in statuses
+        else m
+        for name, m in machines.items()
+    }
 
 
 def parse_listxml_bios_chain(path: Path) -> dict[str, BIOSChainEntry]:

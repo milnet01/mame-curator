@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-27 Fixed — Emulation quality is known again (mame-curator-1099)
+
+Pleasuredome DATs carry no emulation-quality ("driver status") data,
+so every game read as "unknown". It now comes from MAME's `-listxml`,
+as parent/clone links already did. The Stats page shows real figures,
+the "drop preliminary emulation" setting now drops barely-working
+games, and the picker prefers the better-emulated version of a game.
+Expect your winners list to change if that setting is on. Loading the
+library takes a few seconds longer (one more `-listxml` read).
+
 ### 2026-09-27 Fixed — Playlist goes where Settings says (mame-curator-1104)
 
 Copying now writes the RetroArch playlist to the path set in

@@ -85,7 +85,7 @@ CLI entry: `mame_curator.main:main`; subcommands dispatch in `cli/__init__.py` v
 
 - **DAT parsing streams via `lxml.iterparse`** with per-element `.clear()` — never `etree.parse`; the real DAT is too large to load whole.
 - **DAT input may be `.xml` or `.zip`** (single XML inside); both route through `parse_dat()`.
-- **Pleasuredome DATs strip `cloneof` / `romof`.** Parent/clone relationships come from MAME `-listxml` joined by short name — see [ADR-0002](docs/decisions/0002-cloneof-from-listxml.md).
+- **Pleasuredome DATs strip `cloneof` / `romof`.** Parent/clone relationships come from MAME `-listxml` joined by short name — see [ADR-0002](docs/decisions/0002-cloneof-from-listxml.md). They carry no `<driver>` either; `driver_status` is filled from `-listxml` by `apply_driver_status`.
 - **`Machine` is a frozen Pydantic model** (`extra="forbid"`); all parser data structures are immutable.
 - **Manufacturer carries two facts.** `"Capcom (Sega license)"` → `(publisher="Capcom", developer="Sega")` via `split_manufacturer()`.
 

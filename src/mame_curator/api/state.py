@@ -40,9 +40,11 @@ from mame_curator.parser import (
 )
 from mame_curator.parser.listxml import (
     BIOSChainEntry,
+    apply_driver_status,
     parse_listxml_bios_chain,
     parse_listxml_cloneof,
     parse_listxml_disks,
+    parse_listxml_driver_status,
 )
 
 logger = logging.getLogger(__name__)
@@ -138,6 +140,8 @@ def build_world(config_path: Path) -> WorldState:
         cloneof_map = parse_listxml_cloneof(paths.listxml)
         bios_chain = parse_listxml_bios_chain(paths.listxml)
         chd_required: frozenset[str] = frozenset(parse_listxml_disks(paths.listxml))
+        # mame-curator-1099: Pleasuredome DATs carry no <driver>; -listxml does.
+        machines = apply_driver_status(machines, parse_listxml_driver_status(paths.listxml))
     else:
         cloneof_map = {}
         bios_chain = {}

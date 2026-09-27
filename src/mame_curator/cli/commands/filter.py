@@ -25,14 +25,22 @@ from mame_curator.parser import (
     parse_languages,
     parse_mature,
 )
-from mame_curator.parser.listxml import parse_listxml_cloneof, parse_listxml_disks
+from mame_curator.parser.listxml import (
+    apply_driver_status,
+    parse_listxml_cloneof,
+    parse_listxml_disks,
+    parse_listxml_driver_status,
+)
 
 
 def _cmd_filter(args: argparse.Namespace) -> int:
     console = Console()
     err_console = Console(stderr=True, soft_wrap=True)
     try:
-        machines = parse_dat(args.dat)
+        # mame-curator-1099: Pleasuredome DATs carry no <driver>; -listxml does.
+        machines = apply_driver_status(
+            parse_dat(args.dat), parse_listxml_driver_status(args.listxml)
+        )
         mature = frozenset(parse_mature(args.mature)) if args.mature else frozenset()
         ctx = FilterContext(
             category=parse_catver(args.catver),
