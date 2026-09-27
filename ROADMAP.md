@@ -1168,19 +1168,24 @@ wave lands.
   Source: in-session-2026-09-27 (mame-curator-1075).
   Lanes: docs.
 
-- 📋 [mame-curator-1116] **copy/spec.md § CLI lists a `--config` flag the copy command does not have.**
+- ✅ [mame-curator-1116] **copy/spec.md § CLI lists a `--config` flag the copy command does not have.**
   The spec says `copy` requires `--config <path>` carrying
   paths.source_roms, dest_roms and retroarch_playlist. The parser in
   cli/__init__.py takes --dat, --listxml, --filter-report, --source and
   --dest instead, and has no playlist option (it writes <dest>/mame.lpl).
   Either correct the spec or add the flag; decide which. Found while
   closing mame-curator-1104.
+  Resolved (2026-09-27): spec corrected, no flag added (owner's call).
+  Beyond --config, § CLI also listed nonexistent --decisions /
+  --auto-keep and an append-decision prompt, and omitted
+  --dat/--source/--dest; all now match cli/__init__.py and _cmd_copy's
+  exit codes.
   **Layman:** The copy command's reference page lists an option the command doesn't actually accept.
   Kind: doc-fix.
   Source: in-session-2026-09-27 (mame-curator-1104).
   Lanes: copy, docs.
 
-- 📋 [mame-curator-1117] **CLAUDE.md cites retired global rule numbers and dead skill names.**
+- ✅ [mame-curator-1117] **CLAUDE.md cites retired global rule numbers and dead skill names.**
   Found during the 2026-09-27 history sweep (CFG-0492), left in place
   because a sweep moves pedigree and does not fix stale rules:
   - line "Layered on ~/.claude/CLAUDE.md (global rules 1–12, with
@@ -1194,6 +1199,9 @@ wave lands.
   - /mnt/Games/CLAUDE.md forbids counts and sizes in documents; this
     file keeps "~48 MB / 43k machines" and "the five that must pass".
     Decide whether the parser figure is calibration worth keeping.
+  Resolved (2026-09-27, 363a81a): all five points fixed. The parser size
+  figure was dropped rather than kept as calibration ("too large to load
+  whole" carries the rule).
   **Layman:** The project's instruction file for Claude still points at some rules and tools that have since been renamed or retired.
   Kind: doc-fix.
   Source: in-session-2026-09-27 (CFG-0492 sweep).
