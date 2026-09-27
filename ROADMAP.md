@@ -1144,12 +1144,17 @@ wave lands.
   Source: in-session-2026-09-26 (mame-curator-1063).
   Lanes: frontend.
 
-- 📋 [mame-curator-1115] **coding-standards.md says pre-commit runs frontend eslint/prettier; it does not.**
+- ✅ [mame-curator-1115] **coding-standards.md says pre-commit runs frontend eslint/prettier; it does not.**
   The pre-commit bullet in docs/standards/coding-standards.md lists frontend
   `eslint`/`prettier` among pre-commit hooks. .pre-commit-config.yaml has
   no such hook: both run only via the `local-ci` hook (local-CI.sh) at
   pre-push. It also lists `pytest -q -x`, while the hook id is pytest-fast.
   Found while closing mame-curator-1075.
+  Resolved (2026-09-27, 11f5b67): the line now splits per-commit hooks
+  from the pre-push local-CI.sh run and names .pre-commit-config.yaml as
+  the source of truth. Correction to the body above: the pytest-fast
+  hook's entry IS `pytest -q -x` (plus --no-cov), so that part was
+  right; bandit and the API type-sync check were the real omissions.
   **Layman:** A project rule document describes the automatic checks slightly wrongly.
   Kind: doc-fix.
   Source: in-session-2026-09-27 (mame-curator-1075).
