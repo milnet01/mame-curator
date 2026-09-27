@@ -1096,7 +1096,7 @@ wave lands.
   Source: in-session-2026-09-26 (mame-curator-1094 fold-in).
   Lanes: cli.
 
-- 📋 [mame-curator-1113] **Declare which `docs/standards/` files are owned here, not drifted copies of the global set.**
+- ✅ [mame-curator-1113] **Declare which `docs/standards/` files are owned here, not drifted copies of the global set.**
   `~/.claude/tools/align-report` (2026-09-26) reports commits.md,
   coding.md, documentation.md, roadmap-format.md and testing.md as
   UNDECLARED: they share the global standards' names, barely overlap
@@ -1116,6 +1116,15 @@ wave lands.
   CLAUDE.md and the skeletons beside it. Check first for a MIRROR BEGIN
   marker; rule 14a says the sanctioned mirror is not dismantled. The
   other five files still need OWNED-HERE or an override rename.
+  Resolved (2026-09-27, bae14ef):
+  coding/commits/documentation/testing.md carry OWNED-HERE markers (slot
+  pointers into coding-standards.md). spec-format.md's O1-O4 moved
+  verbatim to spec-format-overrides.md; the v1 copy and both skeleton
+  copies deleted (global read in place). roadmap-format.md was a stale
+  upstream copy, not owned: deleted, references repointed to the global
+  file. check-copied-standards: clean. versioning-overrides.md not added
+  and not assessed: release tags (vX.Y.Z) match the global form; a full
+  comparison with the global versioning.md was not done.
   **Layman:** Some of the project's rule documents share names with the machine-wide ones without saying which one is in charge here.
   Kind: doc.
   Source: peer-claude-2a-2026-09-26 (align-report).
