@@ -201,7 +201,7 @@ Given an approved set of winner short names:
 
 1. **Resolve dependencies.** For each winner, walk the `romof` chain. The machines on it that MAME flags `isbios="yes"` are the BIOS set required; a non-BIOS parent is not copied, since a non-merged clone zip already holds its ROMs. `<biosset>` names are BIOS options inside one zip, not files.
 2. **Preflight.** Confirm each `.zip` (game + BIOS) exists in the source dir. Confirm destination is writable and has enough free space.
-3. **Detect existing playlist.** If `mame.lpl` already exists at the destination, prompt the user with three options (see "Playlist conflict resolution" below).
+3. **Detect existing playlist.** If `mame.lpl` already exists at the configured playlist path (`paths.retroarch_playlist`), prompt the user with three options (see "Playlist conflict resolution" below).
 4. **Copy.** Stream each `.zip` from source to destination. Use `shutil.copy2` to preserve mtime. BIOS files are deduped (copied once even if 100 games need `neogeo.zip`).
 5. **Write `mame.lpl`.** RetroArch playlist format — JSON; one entry per game with full path, description as label, MAME core path placeholder.
 6. **Write copy report.** `report.json` with: succeeded, skipped (with reason), failed (with reason), overwritten (with old → new), total bytes copied, BIOS files included, CHD-missing games skipped.
@@ -211,7 +211,7 @@ Copy progress is streamed via SSE so the GUI shows a live progress bar with **pa
 
 #### Playlist conflict resolution
 
-When `mame.lpl` already exists at the destination (a previous session was run), the user is asked how to proceed:
+When `mame.lpl` already exists at the configured playlist path (a previous session was run), the user is asked how to proceed:
 
 - **Append** — add new games to the existing playlist; resolve per-game conflicts as below.
 - **Overwrite** — discard the entire existing playlist (and optionally the existing `.zip` files in the destination — confirmation required).

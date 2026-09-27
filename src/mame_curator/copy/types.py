@@ -178,10 +178,16 @@ class CopyPlan(BaseModel):
     chd_required: frozenset[str] = frozenset()
     source_dir: Path
     dest_dir: Path
+    playlist_path: Path | None = None
     conflict_strategy: ConflictStrategy = ConflictStrategy.CANCEL
     append_decisions: dict[str, AppendDecision] = {}
     delete_existing_zips: bool = False
     dry_run: bool = False
+
+    @property
+    def playlist_file(self) -> Path:
+        """Where `mame.lpl` is read and written; `dest_dir / "mame.lpl"` when unset."""
+        return self.playlist_path or self.dest_dir / "mame.lpl"
 
 
 class CopyReport(BaseModel):

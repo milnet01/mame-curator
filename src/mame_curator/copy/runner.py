@@ -151,7 +151,7 @@ def _resolve_conflicts(
     existing_items: list[dict[str, str]] = []
     if pre.existing_playlist and plan.conflict_strategy is ConflictStrategy.APPEND:
         try:
-            existing_items = read_lpl(plan.dest_dir / "mame.lpl")
+            existing_items = read_lpl(plan.playlist_file)
         except PlaylistError as exc:
             warnings.append(f"existing playlist could not be parsed (will be overwritten): {exc}")
             logger.warning("playlist parse failed; existing entries discarded: %s", exc)
@@ -452,7 +452,7 @@ def run_copy(
     # Write playlist (skip when dry-run or cancelled-mid-flight).
     if not plan.dry_run and not cancelled_mid:
         entries = _build_playlist_entries(plan, succeeded, skipped, existing_items, replaced_shorts)
-        write_lpl(plan.dest_dir / "mame.lpl", entries)
+        write_lpl(plan.playlist_file, entries)
 
     finished_at = datetime.now(UTC)
     if cancelled_mid:

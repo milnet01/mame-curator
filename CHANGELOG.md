@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-27 Fixed — Playlist goes where Settings says (mame-curator-1104)
+
+Copying now writes the RetroArch playlist to the path set in
+Settings → Paths. It used to go into the ROM destination folder
+whatever the setting said, where RetroArch usually does not look.
+The "playlist already exists" check now looks at the configured
+path too. The command-line `copy` still writes `<dest>/mame.lpl`.
+
 ### 2026-09-26 Added — The Help page has content (mame-curator-1063)
 
 Help used to open on "No help topics available". It now has four

@@ -251,7 +251,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/docs/test_no_telemetry.py. 778 → 780.
 # Bumped 2026-09-26 (mame-curator-1112 — setup closed stdin): +1 pytest
 # declaration in tests/cli/test_cli_setup.py. 780 → 781.
-EXPECTED_PYTEST_DECLARATIONS = 781
+# Bumped 2026-09-27 (mame-curator-1104 — playlist path honoured): +5 pytest
+# declarations in tests/{copy,api}/test_mame_curator_1104_playlist_path.py.
+# 781 → 786.
+EXPECTED_PYTEST_DECLARATIONS = 786
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

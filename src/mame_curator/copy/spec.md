@@ -7,7 +7,7 @@ Given a Phase-2 `FilterResult` (winner short names), a source ROM directory, and
 1. Resolves the **transitive BIOS chain** for every winner by walking the official MAME `-listxml`'s `romof` references, keeping only machines the listxml flags `isbios="yes"`.
 2. **Pre-flights** the plan (source-side existence, destination writability, free-space estimate, existing-playlist detection).
 3. **Atomically copies** every winner's `.zip` plus the deduplicated BIOS-set `.zip`s from source to destination. Already-copied files (size + mtime match) are skipped (idempotency).
-4. Writes a **RetroArch v6+ JSON `mame.lpl` playlist** with one entry per winner.
+4. Writes a **RetroArch v6+ JSON `mame.lpl` playlist** with one entry per winner, at `plan.playlist_file` (§ CopyPlan; mame-curator-1104).
 5. Resolves **playlist conflicts** (append vs overwrite vs cancel; per-game version replace; project-internal recycle-bin retention).
 6. Emits a **frozen `CopyReport`** Pydantic model and **appends one or more `ActivityEvent` lines** to `<data_dir>/activity.jsonl`, where `data_dir` is `run_copy`'s keyword argument (default `data/`). The API passes the config's data dir, `config_path.parent / "data"`, and the same `data_dir` roots the recycle bin (mame-curator-1105). (In-memory only; persistence to disk is Phase 4 scope.)
 7. Streams progress via callback at file boundaries; supports **pause / resume / cancel** between files. Every planned file ends with one tick where `bytes_done == bytes_total` — a skipped or failed file reports `(short, 0, 0)` — so a consumer counting those ticks reaches the plan's total (mame-curator-1103).
@@ -110,7 +110,7 @@ Checks (all non-fatal — accumulate into `PreflightResult`; the caller decides 
 | Each `<short>.zip` exists in `plan.source_dir` | `missing_source: tuple[str, ...]` |
 | `plan.dest_dir` exists or can be created | `dest_writable: bool` |
 | Sum of source-zip sizes ≤ free space at dest | `free_space_gap_bytes: int` (positive = sufficient; negative = shortfall) |
-| `plan.dest_dir / "mame.lpl"` exists | `existing_playlist: bool` |
+| `plan.playlist_file` exists | `existing_playlist: bool` |
 | Each existing dest zip's size+mtime matches source (idempotency hit count) | `already_copied: tuple[str, ...]` |
 
 A preflight finding is **not** an error — the CLI may proceed with `--dry-run` regardless and `--apply` proceeds unless `missing_source` is non-empty AND `--strict` is set.
@@ -179,7 +179,7 @@ The writer routes through **`_atomic.atomic_write_text`** (FP20-B): unique tmp n
 
 ## Playlist conflict resolution
 
-When `plan.dest_dir / "mame.lpl"` exists at preflight time, the caller (CLI or API) chooses one of three modes via `plan.conflict_strategy: ConflictStrategy`:
+When `plan.playlist_file` exists at preflight time, the caller (CLI or API) chooses one of three modes via `plan.conflict_strategy: ConflictStrategy`:
 
 | Strategy | Behaviour |
 |---|---|
@@ -422,11 +422,14 @@ class CopyPlan(BaseModel):
     chd_required: frozenset[str]                      # from parse_listxml_disks
     source_dir: Path
     dest_dir: Path
+    playlist_path: Path | None = None                 # the API passes paths.retroarch_playlist
     conflict_strategy: ConflictStrategy
     append_decisions: dict[str, AppendDecision]       # one entry per cross-version conflict; key = winner short, value = (kind, replaces)
     delete_existing_zips: bool = False                # only meaningful with OVERWRITE
     dry_run: bool = False
 ```
+
+**`plan.playlist_file`** is `playlist_path` when set, else `dest_dir / "mame.lpl"`. `run_copy` writes the playlist there, the APPEND reader and `preflight` read it there, and the API's CANCEL pre-check (`check_playlist_conflict`) tests it there. The API sets `playlist_path` from `paths.retroarch_playlist`; the CLI leaves it unset (mame-curator-1104). Entry `path`s stay absolute, so the playlist need not share a folder with the ROMs.
 
 **Multiple winners targeting the same `replaces` is undefined.** The runner records one `OverwriteRecord` per decision (so duplicates surface in the report), but only the first `recycle_file` call moves the file; subsequent calls find the source missing. The caller-responsibility contract (§ "Playlist conflict resolution") requires each `replaces` short to be unique within `append_decisions`.
 

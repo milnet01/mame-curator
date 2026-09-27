@@ -48,7 +48,7 @@ def preflight(plan: CopyPlan) -> PreflightResult:
             already.append(short)
 
     dest_writable = _can_create_dir(plan.dest_dir)
-    existing_playlist = (plan.dest_dir / "mame.lpl").exists()
+    existing_playlist = plan.playlist_file.exists()
 
     free_space_gap = 0
     if dest_writable:

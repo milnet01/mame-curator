@@ -41,6 +41,7 @@ def _build_plan(body: CopyJobRequest, world: WorldState) -> CopyPlan:
         chd_required=world.chd_required,
         source_dir=world.config.paths.source_roms,
         dest_dir=world.config.paths.dest_roms,
+        playlist_path=world.config.paths.retroarch_playlist,
         conflict_strategy=body.conflict_strategy,
         append_decisions=dict(body.append_decisions),
     )

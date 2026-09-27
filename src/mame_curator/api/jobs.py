@@ -492,12 +492,12 @@ def check_playlist_conflict(plan: CopyPlan) -> None:
     """Pre-flight: raise PlaylistConflictCancelledError if CANCEL would abort."""
     if plan.conflict_strategy is not ConflictStrategy.CANCEL:
         return
-    if not (plan.dest_dir / "mame.lpl").exists():
+    if not plan.playlist_file.exists():
         return
     # Only raise if not idempotent — let run_copy handle the no-op case.
     all_present = all((plan.dest_dir / f"{w}.zip").exists() for w in plan.winners)
     if not all_present:
         raise PlaylistConflictCancelledError(
-            f"existing playlist at {str(plan.dest_dir)!r}; "
+            f"existing playlist at {str(plan.playlist_file)!r}; "
             "use APPEND or OVERWRITE conflict strategy"
         )
