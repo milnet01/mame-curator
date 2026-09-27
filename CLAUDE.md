@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Layered on `~/.claude/CLAUDE.md` (global rules 1–12, with Karpathy clarity / surgical-edit at 8–12). Both apply; project rules below extend, never contradict.
+Layered on `~/.claude/CLAUDE.md`. Both apply; project rules below extend, never contradict.
 
 This project follows the [**Ants App-Build** workflow](~/.claude/skills/app-workflow/SKILL.md); the skill auto-loads when `.claude/workflow.md` is present.
 
@@ -9,7 +9,7 @@ This project follows the [**Ants App-Build** workflow](~/.claude/skills/app-work
 1. **This file** + **`.claude/workflow.md` § 1 status header** — one parallel read.
 2. **Summarise back to the user**: "We're on `<ID>` step `<N>`, last did `<X>`, next is `<Y>`." Wait for confirm or redirect. **Never skip this step**.
 3. When the active item's `Kind` is known, read the matching `docs/standards/<which>.md` (one read).
-4. Before invoking `/audit` or `/indie-review`, additionally read `docs/audit-allowlist.md`.
+4. Before invoking `check-code` or `review-code`, additionally read `docs/audit-allowlist.md`.
 
 For shipped status and what's next, see [`ROADMAP.md`](ROADMAP.md) and [`CHANGELOG.md`](CHANGELOG.md). Per-phase journals live in [`docs/journal/`](docs/journal/). Rule pedigree moved out of this file is in [`docs/history/claude-md.md`](docs/history/claude-md.md).
 
@@ -19,7 +19,7 @@ For shipped status and what's next, see [`ROADMAP.md`](ROADMAP.md) and [`CHANGEL
 - [`docs/plans/phase-plan.md`](docs/plans/phase-plan.md) — long-form phase plan with anti-jump rules. **Do not import or stub modules from a later phase**, and do not advance until current acceptance checkboxes are ticked.
 - [`docs/design.md`](docs/design.md) — full design spec.
 - `~/.claude/standards/spec-format.md` (global, read in place) + [`docs/standards/spec-format-overrides.md`](docs/standards/spec-format-overrides.md) (this project's deltas O1–O4) — how `docs/specs/` and `docs/plans/` files are named and structured. Skeletons are the global ones in `~/.claude/standards/skeletons/`.
-- `src/mame_curator/<module>/spec.md` — per-feature contract for shipped modules; the audit surface. **No feature merges without a `spec.md` next to its code**, and the test file enforces every clause. In-flight `P##` items use `docs/specs/<ID>-<topic>.md`. Fix-passes (`FP##` / `DS##`) correct code against the existing module spec and don't *require* one of their own — but a **multi-tier fold-in** (one spanning several themed clusters) MAY carry a long-form spec at `docs/specs/<ID>.md` when an upfront contract earns its keep by catching drift before implementation.
+- `src/mame_curator/<module>/spec.md` — per-feature contract for shipped modules; the audit surface. **No feature merges without a `spec.md` next to its code**, and the test file enforces every clause. In-flight `P##` items use `docs/specs/<ID>-<topic>.md`. Fix-passes (`FP##` / `DS##`) correct code against the existing module spec and don't *require* one of their own — but a **multi-tier fold-in** (one spanning several themed clusters) MAY carry a long-form spec at `docs/specs/<ID>-<topic>.md` when an upfront contract earns its keep by catching drift before implementation.
 - [`docs/decisions/`](docs/decisions/) — ADRs for non-obvious choices.
 
 ## Common commands
@@ -33,7 +33,7 @@ uv sync --extra dev && uv run pre-commit install
 # in lockstep with ci.yml. `--fresh` provisions first (uv sync + npm ci).
 ./local-CI.sh
 
-# Backend-only gate (the five that must pass on `main`; a subset of the above)
+# Backend-only gate (must pass on `main`; a subset of the above)
 uv run ruff check && uv run ruff format --check && uv run mypy \
     && uv run bandit -c pyproject.toml -r src && uv run pytest
 
@@ -83,7 +83,7 @@ CLI entry: `mame_curator.main:main`; subcommands dispatch in `cli/__init__.py` v
 
 ### Load-bearing parser facts
 
-- **DAT parsing streams via `lxml.iterparse`** with per-element `.clear()` — never `etree.parse`; the real DAT is ~48 MB / 43k machines.
+- **DAT parsing streams via `lxml.iterparse`** with per-element `.clear()` — never `etree.parse`; the real DAT is too large to load whole.
 - **DAT input may be `.xml` or `.zip`** (single XML inside); both route through `parse_dat()`.
 - **Pleasuredome DATs strip `cloneof` / `romof`.** Parent/clone relationships come from MAME `-listxml` joined by short name — see [ADR-0002](docs/decisions/0002-cloneof-from-listxml.md).
 - **`Machine` is a frozen Pydantic model** (`extra="forbid"`); all parser data structures are immutable.
@@ -105,18 +105,18 @@ CLI entry: `mame_curator.main:main`; subcommands dispatch in `cli/__init__.py` v
 - **Phase-closing commits** name the phase and tag with `<ID>-complete` (annotated). E.g. `feat(parser): close FP04 — typed-error OSError catches`.
 - **Direct push to `main`**. Repo is **PUBLIC** (cached in `.claude/workflow.md`), so push freely per global rule 6.
 
-## Karpathy clarity (global 8–12) — where they land here
+## Karpathy clarity — where it lands here
 
 The 9-step App-Build loop is itself the verify-step plan global 12 mandates. Beyond that:
 
-- **(8) surface ambiguity** → cold-eyes spec review on every `P##` Step 1, before user sign-off — independent reviewer dispatched to catch author bias up front.
-- **(9) push back on complexity** → Step 1 again: name the simpler alternative *before* writing tests, defer to user on the call.
-- **(10) reproduce-before-fix** → Step 3 on every `FP##` / `DS##`: failing test lands first, proves the diagnosis, locks in regression coverage.
-- **(11) stay in your lane** → Steps 4 & 7: every changed line traces to the active item; no drive-by reformat or preferred-idiom rewrite of working code; pre-existing dead code is surfaced in the reply, not deleted.
+- **Surface ambiguity** → cold-eyes spec review on every `P##` Step 1, before user sign-off — independent reviewer dispatched to catch author bias up front.
+- **Push back on complexity** → Step 1 again: name the simpler alternative *before* writing tests, defer to user on the call.
+- **Reproduce before fixing** → Step 3 on every `FP##` / `DS##`: failing test lands first, proves the diagnosis, locks in regression coverage.
+- **Stay in your lane** → Steps 4 & 7: every changed line traces to the active item; no drive-by reformat or preferred-idiom rewrite of working code; pre-existing dead code is surfaced in the reply, not deleted.
 
 ## Closing a phase
 
-Run **`/close-phase`** after steps 1–4 of the 9-step loop. The skill orchestrates `/audit` + `/indie-review` in parallel, triages, and either closes cleanly (tag + push prompt) or spawns the next `FP##`.
+Run **`/close-phase`** after steps 1–4 of the 9-step loop. The skill orchestrates `check-code` + `review-code` in parallel, triages, and either closes cleanly (tag + push prompt) or spawns the next `FP##`.
 
 ## Things this project deliberately does not do
 
