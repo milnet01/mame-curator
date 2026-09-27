@@ -5,10 +5,10 @@
 | Field | Value |
 |-------|-------|
 | **Project phase** | P10 (Media coverage expansion) **CLOSED 2026-07-02**, tag `P10-complete`. Phase history in `docs/journal/P10.md` + `CHANGELOG.md`; App-Build mapping in § "Phase history" below. |
-| **Active item ID** | None active. Session 2 on 2026-09-26 closed mame-curator-1089, 1094, 1062, 1063, 1092 and 1112, dropped 1040, and added a no-telemetry test. Still paused: **mame-curator-1095** (desktop bundles; its roadmap notes carry the spec fold-in brief and the help-pages bundling note). Open queues are listed by `roadmap_query status:active`. |
-| **Active step** | Between items. Next backlog, in order: 1104, 1099, 1107, 1108, 1106, 1113 (declare the project-owned standards; spec-format.md is a fork, see its note), then 1114. |
+| **Active item ID** | None active. Session 1 on 2026-09-27 closed mame-curator-1075, 1113, 1115, 1104, 1116, 1117 and 1099, and filed 1118. Still paused: **mame-curator-1095** (desktop bundles; its roadmap notes carry the spec fold-in brief, the help-pages bundling note and two catcher-cell issues in spec § 11). Open queues are listed by `roadmap_query status:active`. |
+| **Active step** | Between items. Next backlog, in order: 1107, 1108, 1106, 1114, then 1118 (read -listxml once instead of four times). |
 | **Blocked on** | nothing — every open item except 1079 (needs a real MobyGames key to capture `tests/fixtures/mobygames_pacman.json`) is startable. |
-| **Last update** | 2026-09-26 (session 2). run.bat works on Windows again, verified on the `ssh wintest` host and in CI's Windows leg (1089). cli/spec.md folded in its 13 deferred findings (1094). Help has four real pages (1063). The sixteen bare-ID specs were renamed to `<ID>-<topic>.md` (1092). setup handles a closed stdin (1112). tests/docs/test_no_telemetry.py enforces the no-telemetry promise. HEAD 5909c93, CI green on every push. |
+| **Last update** | 2026-09-27 (session 1). Frontend Prettier-formatted and gated in ci.yml + local-CI.sh (1075). docs/standards: four slot files marked OWNED-HERE, spec-format.md fork reduced to spec-format-overrides.md, stale roadmap-format.md and skeleton copies deleted (1113). Copy writes the playlist to paths.retroarch_playlist (1104). Driver status joined from -listxml; the preliminary drop and picker tiebreak now work on real data (1099). CLAUDE.md pedigree moved to docs/history/claude-md.md (CFG-0492). Backend 996 passed. |
 | **Next gate** | User picks the next item. 1079 stays blocked on a MobyGames key; everything else is startable. |
 | **Convergence checkpoint** | 5 (pause + check in after this many fix-passes in a row) |
 | **Debt-sweep phase threshold** | 5 (auto-prompt `/debt-sweep` after this many phases without one) |
