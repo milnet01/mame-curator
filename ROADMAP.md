@@ -175,11 +175,19 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: frontend, api.
 
-- 📋 [mame-curator-1104] **RetroArch playlist is written into the ROM destination folder, not the configured retroarch_playlist path.**
+- ✅ [mame-curator-1104] **RetroArch playlist is written into the ROM destination folder, not the configured retroarch_playlist path.**
   Observed 2026-09-26 with paths.retroarch_playlist set to
   /tmp/mame-curator-demo/mame.lpl and dest_roms to
   /tmp/mame-curator-demo/roms: mame.lpl appeared in roms/ and not at the
   configured path. Not yet checked against copy/spec.md; may be intended.
+  Resolved (2026-09-27, e1b8c3f): not intended. The setting was
+  collected, validated and sandboxed but never used by copy.
+  CopyPlan.playlist_path (API fills it from paths.retroarch_playlist;
+  CLI leaves it unset, keeping dest/mame.lpl) feeds write, APPEND read,
+  preflight and the CANCEL pre-check. copy/spec.md and design.md
+  amended. Surfaced, not fixed: copy/spec.md § CLI says `copy` takes
+  `--config` carrying the three paths; the real CLI takes
+  --source/--dest and has no --config.
   **Layman:** After a copy, the RetroArch game list lands next to the ROMs instead of where settings say it should go.
   Kind: investigate.
   Source: in-session-2026-09-26.
@@ -1159,6 +1167,18 @@ wave lands.
   Kind: doc-fix.
   Source: in-session-2026-09-27 (mame-curator-1075).
   Lanes: docs.
+
+- 📋 [mame-curator-1116] **copy/spec.md § CLI lists a `--config` flag the copy command does not have.**
+  The spec says `copy` requires `--config <path>` carrying
+  paths.source_roms, dest_roms and retroarch_playlist. The parser in
+  cli/__init__.py takes --dat, --listxml, --filter-report, --source and
+  --dest instead, and has no playlist option (it writes <dest>/mame.lpl).
+  Either correct the spec or add the flag; decide which. Found while
+  closing mame-curator-1104.
+  **Layman:** The copy command's reference page lists an option the command doesn't actually accept.
+  Kind: doc-fix.
+  Source: in-session-2026-09-27 (mame-curator-1104).
+  Lanes: copy, docs.
 
 ### 🧪 Test Audit 2026-05-20
 
