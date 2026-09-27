@@ -7,7 +7,7 @@
  * state") instead of redeclaring 11 fields and forces every consumer to
  * move together if the underlying interface changes.
  */
-import type { FilterSidebarState } from '@/components/library/FiltersSidebar'
+import type { FilterSidebarState } from "@/components/library/FiltersSidebar";
 
 /**
  * Canonical neutral ``FilterSidebarState`` used as the starting state
@@ -17,7 +17,7 @@ import type { FilterSidebarState } from '@/components/library/FiltersSidebar'
  * Use ``{ ...baseFiltersValue, search: 'pac' }`` to vary one field.
  */
 export const baseFiltersValue: FilterSidebarState = {
-  search: '',
+  search: "",
   yearRange: [1980, 2010],
   letter: null,
   genre: null,
@@ -27,5 +27,5 @@ export const baseFiltersValue: FilterSidebarState = {
   onlyOverridden: false,
   onlyChdMissing: false,
   onlyBiosMissing: false,
-  reviewState: 'all',
-}
+  reviewState: "all",
+};

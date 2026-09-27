@@ -1,18 +1,18 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { strings } from '@/strings'
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { strings } from "@/strings";
 
 // FP11 § E1 finishing: surface the retry label via the catalogue.
 
 interface ErrorBoundaryProps {
-  children: ReactNode
+  children: ReactNode;
   /** Override the recoverable fallback panel. */
-  fallback?: (error: Error, retry: () => void) => ReactNode
+  fallback?: (error: Error, retry: () => void) => ReactNode;
   /** Reset key — when this changes, the boundary clears its caught error. */
-  resetKey?: unknown
+  resetKey?: unknown;
 }
 
 interface ErrorBoundaryState {
-  error: Error | null
+  error: Error | null;
 }
 
 /**
@@ -29,28 +29,28 @@ export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  state: ErrorBoundaryState = { error: null }
+  state: ErrorBoundaryState = { error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { error }
+    return { error };
   }
 
   override componentDidUpdate(prev: ErrorBoundaryProps) {
     if (prev.resetKey !== this.props.resetKey && this.state.error !== null) {
-      this.setState({ error: null })
+      this.setState({ error: null });
     }
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('ErrorBoundary caught', error, info.componentStack)
+    console.error("ErrorBoundary caught", error, info.componentStack);
   }
 
-  retry = () => this.setState({ error: null })
+  retry = () => this.setState({ error: null });
 
   override render() {
-    const { error } = this.state
+    const { error } = this.state;
     if (error) {
-      if (this.props.fallback) return this.props.fallback(error, this.retry)
+      if (this.props.fallback) return this.props.fallback(error, this.retry);
       return (
         <div
           role="alert"
@@ -66,8 +66,8 @@ export class ErrorBoundary extends Component<
             {strings.common.retry}
           </button>
         </div>
-      )
+      );
     }
-    return this.props.children
+    return this.props.children;
   }
 }

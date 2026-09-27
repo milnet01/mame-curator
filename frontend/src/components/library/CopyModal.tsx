@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,36 +6,36 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { strings } from '@/strings'
-import type { JobState } from '@/api/types'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { strings } from "@/strings";
+import type { JobState } from "@/api/types";
 
 export interface CopyModalConflict {
-  short_name: string
-  existing: string
+  short_name: string;
+  existing: string;
 }
 
 export interface CopyModalState {
-  jobId: string
-  state: JobState
-  filesDone: number
-  filesTotal: number
-  bytesDone: number
-  bytesTotal: number
-  currentFile: string
-  warnings: string[]
-  conflict: CopyModalConflict | null
+  jobId: string;
+  state: JobState;
+  filesDone: number;
+  filesTotal: number;
+  bytesDone: number;
+  bytesTotal: number;
+  currentFile: string;
+  warnings: string[];
+  conflict: CopyModalConflict | null;
 }
 
 interface CopyModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  state: CopyModalState
-  onPause: () => void
-  onResume: () => void
-  onAbort: (req: { recycle_partial: boolean }) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  state: CopyModalState;
+  onPause: () => void;
+  onResume: () => void;
+  onAbort: (req: { recycle_partial: boolean }) => void;
 }
 
 export function CopyModal({
@@ -46,9 +46,10 @@ export function CopyModal({
   onResume,
   onAbort,
 }: CopyModalProps) {
-  const [abortOpen, setAbortOpen] = useState(false)
+  const [abortOpen, setAbortOpen] = useState(false);
 
-  const pct = state.filesTotal === 0 ? 0 : (state.filesDone / state.filesTotal) * 100
+  const pct =
+    state.filesTotal === 0 ? 0 : (state.filesDone / state.filesTotal) * 100;
 
   return (
     <>
@@ -62,9 +63,13 @@ export function CopyModal({
           <p className="font-mono text-sm" data-testid="progress-line">
             {/* mame-curator-1103: no total until job_started arrives, so
                 "0 / 0" would read as an empty job. */}
-            {state.state === 'running' && state.filesTotal === 0
+            {state.state === "running" && state.filesTotal === 0
               ? strings.copy.preparing
-              : strings.copy.progressLine(state.filesDone, state.filesTotal, state.currentFile)}
+              : strings.copy.progressLine(
+                  state.filesDone,
+                  state.filesTotal,
+                  state.currentFile,
+                )}
           </p>
 
           <p className="text-xs text-muted-foreground">
@@ -80,8 +85,8 @@ export function CopyModal({
                   re-mount each <li> on each event — replacing with
                   absolute index keeps DOM identity stable. */}
               {state.warnings.slice(-3).map((w, sliceIndex) => {
-                const absoluteIndex = state.warnings.length - 3 + sliceIndex
-                return <li key={absoluteIndex}>{w}</li>
+                const absoluteIndex = state.warnings.length - 3 + sliceIndex;
+                return <li key={absoluteIndex}>{w}</li>;
               })}
             </ul>
           )}
@@ -104,7 +109,8 @@ export function CopyModal({
                 {strings.copy.conflictTitle}
               </p>
               <p className="text-xs">
-                {state.conflict.short_name} would replace {state.conflict.existing}.
+                {state.conflict.short_name} would replace{" "}
+                {state.conflict.existing}.
               </p>
               <p className="text-xs text-muted-foreground">
                 {strings.copy.conflictReadOnlyBanner}
@@ -119,30 +125,36 @@ export function CopyModal({
               status only. `running` / `paused` are the only states
               with Pause/Resume + Cancel. */}
           <div className="flex justify-end gap-2">
-            {(state.state === 'finished' || state.state === 'aborted') && (
+            {(state.state === "finished" || state.state === "aborted") && (
               <Button onClick={() => onOpenChange(false)}>
                 {strings.copy.done}
               </Button>
             )}
-            {state.state === 'terminating' && (
+            {state.state === "terminating" && (
               <Button variant="outline" disabled>
                 {strings.copy.sessionState.terminating}
               </Button>
             )}
-            {state.state === 'paused' && (
+            {state.state === "paused" && (
               <>
                 <Button onClick={onResume}>{strings.copy.resume}</Button>
-                <Button variant="destructive" onClick={() => setAbortOpen(true)}>
+                <Button
+                  variant="destructive"
+                  onClick={() => setAbortOpen(true)}
+                >
                   {strings.copy.abort}
                 </Button>
               </>
             )}
-            {state.state === 'running' && (
+            {state.state === "running" && (
               <>
                 <Button variant="outline" onClick={onPause}>
                   {strings.copy.pause}
                 </Button>
-                <Button variant="destructive" onClick={() => setAbortOpen(true)}>
+                <Button
+                  variant="destructive"
+                  onClick={() => setAbortOpen(true)}
+                >
                   {strings.copy.abort}
                 </Button>
               </>
@@ -174,8 +186,8 @@ export function CopyModal({
             <Button
               variant="outline"
               onClick={() => {
-                onAbort({ recycle_partial: false })
-                setAbortOpen(false)
+                onAbort({ recycle_partial: false });
+                setAbortOpen(false);
               }}
             >
               {strings.copy.abortKeepFiles}
@@ -183,8 +195,8 @@ export function CopyModal({
             <Button
               variant="destructive"
               onClick={() => {
-                onAbort({ recycle_partial: true })
-                setAbortOpen(false)
+                onAbort({ recycle_partial: true });
+                setAbortOpen(false);
               }}
             >
               {strings.copy.abortRecycleFiles}
@@ -193,5 +205,5 @@ export function CopyModal({
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }

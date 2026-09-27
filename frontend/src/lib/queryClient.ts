@@ -1,6 +1,6 @@
-import { QueryCache, QueryClient } from '@tanstack/react-query'
+import { QueryCache, QueryClient } from "@tanstack/react-query";
 
-import { toastApiError } from './apiErrorToast'
+import { toastApiError } from "./apiErrorToast";
 
 /**
  * FP20-G: shared QueryClient factory. The ``queryCache.onError`` hook
@@ -18,5 +18,5 @@ export function createAppQueryClient(): QueryClient {
       queries: { retry: 1 },
     },
     queryCache: new QueryCache({ onError: toastApiError }),
-  })
+  });
 }

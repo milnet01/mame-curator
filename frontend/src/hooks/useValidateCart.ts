@@ -1,10 +1,10 @@
-import { useMutation } from '@tanstack/react-query'
-import { apiRequest } from '@/api/client'
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/api/client";
 import {
   ValidateResponseSchema,
   type ValidateRequest,
   type ValidateResponse,
-} from '@/api/types'
+} from "@/api/types";
 
 /**
  * P15 § 5.1 — POST /api/games/validate.
@@ -17,9 +17,13 @@ import {
 export function useValidateCart() {
   return useMutation({
     mutationFn: (req: ValidateRequest) =>
-      apiRequest<ValidateResponse>('/api/games/validate', ValidateResponseSchema, {
-        method: 'POST',
-        body: req,
-      }),
-  })
+      apiRequest<ValidateResponse>(
+        "/api/games/validate",
+        ValidateResponseSchema,
+        {
+          method: "POST",
+          body: req,
+        },
+      ),
+  });
 }

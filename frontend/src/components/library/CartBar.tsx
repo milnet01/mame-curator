@@ -1,18 +1,18 @@
-import { ChevronDown, ChevronUp, ShoppingCart } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { strings } from '@/strings'
+import { ChevronDown, ChevronUp, ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { strings } from "@/strings";
 
 interface CartBarProps {
-  itemCount: number
-  bulkAddTotal: number | null
-  expanded: boolean
-  onBulkAdd: () => void
-  onToggleExpand: () => void
-  onDryRun: () => void
-  onCopy: () => void
+  itemCount: number;
+  bulkAddTotal: number | null;
+  expanded: boolean;
+  onBulkAdd: () => void;
+  onToggleExpand: () => void;
+  onDryRun: () => void;
+  onCopy: () => void;
   // FP24-N: disabled while a Copy is in flight (validate or job
   // running) so a second click can't fire validate+start twice.
-  copyDisabled?: boolean
+  copyDisabled?: boolean;
 }
 
 // FP24-B: byte total dropped from the cart bar. `useCart.totalBytes` is
@@ -30,14 +30,14 @@ export function CartBar({
   onCopy,
   copyDisabled = false,
 }: CartBarProps) {
-  const empty = itemCount === 0
-  const ChevronIcon = expanded ? ChevronDown : ChevronUp
+  const empty = itemCount === 0;
+  const ChevronIcon = expanded ? ChevronDown : ChevronUp;
 
   return (
     <footer className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t bg-background/95 px-4 py-2 backdrop-blur">
       <div className="flex items-center gap-2 text-sm tabular-nums">
         <ShoppingCart className="h-4 w-4" aria-hidden="true" />
-        <span className={empty ? 'text-muted-foreground' : 'font-medium'}>
+        <span className={empty ? "text-muted-foreground" : "font-medium"}>
           {empty
             ? strings.library.cart.summaryEmpty
             : strings.library.cart.summary(itemCount)}
@@ -52,7 +52,11 @@ export function CartBar({
             {strings.library.cart.bulkAdd(bulkAddTotal)}
           </Button>
         )}
-        <Button variant="outline" onClick={onDryRun} disabled={empty || copyDisabled}>
+        <Button
+          variant="outline"
+          onClick={onDryRun}
+          disabled={empty || copyDisabled}
+        >
           {strings.library.actions.dryRun}
         </Button>
         <Button onClick={onCopy} disabled={empty || copyDisabled}>
@@ -63,7 +67,9 @@ export function CartBar({
           variant="ghost"
           onClick={onToggleExpand}
           aria-label={
-            expanded ? strings.library.cart.collapse : strings.library.cart.expand
+            expanded
+              ? strings.library.cart.collapse
+              : strings.library.cart.expand
           }
           // FP24-W: WAI-ARIA disclosure pattern — aria-expanded reflects
           // panel state; aria-controls anchors to the panel's id.
@@ -74,5 +80,5 @@ export function CartBar({
         </Button>
       </div>
     </footer>
-  )
+  );
 }

@@ -1,14 +1,14 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import js from "@eslint/js";
+import globals from "globals";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
+import tseslint from "typescript-eslint";
+import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(["dist"]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
@@ -25,13 +25,13 @@ export default defineConfig([
     // existing convention; the bare default rejected `_unused` /
     // `_req` despite the leading underscore.
     rules: {
-      '@typescript-eslint/no-unused-vars': [
-        'error',
+      "@typescript-eslint/no-unused-vars": [
+        "error",
         {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
-          destructuredArrayIgnorePattern: '^_',
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
         },
       ],
     },
@@ -42,9 +42,9 @@ export default defineConfig([
   // diverges from the registry and breaks the next `shadcn add`'s diff
   // (audit-allowlist.md § allowlist-003).
   {
-    files: ['src/components/ui/**/*.{ts,tsx}'],
+    files: ["src/components/ui/**/*.{ts,tsx}"],
     rules: {
-      'react-refresh/only-export-components': 'off',
+      "react-refresh/only-export-components": "off",
     },
   },
   // `@tanstack/react-virtual`'s `useVirtualizer()` returns non-stable
@@ -52,9 +52,9 @@ export default defineConfig([
   // emits an "incompatible library" warning every render. Library-by-
   // design, not a project defect (audit-allowlist.md § allowlist-002).
   {
-    files: ['src/components/library/LibraryGrid.tsx'],
+    files: ["src/components/library/LibraryGrid.tsx"],
     rules: {
-      'react-hooks/incompatible-library': 'off',
+      "react-hooks/incompatible-library": "off",
     },
   },
-])
+]);

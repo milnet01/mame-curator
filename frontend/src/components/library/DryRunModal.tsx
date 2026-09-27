@@ -5,24 +5,24 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { strings } from '@/strings'
-import type { DryRunReport } from '@/api/types'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { strings } from "@/strings";
+import type { DryRunReport } from "@/api/types";
 
 interface DryRunModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  report: DryRunReport
-  onConfirm: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  report: DryRunReport;
+  onConfirm: () => void;
 }
 
 const SECTIONS: Array<{ key: string; label: string }> = [
-  { key: 'new', label: 'new' },
-  { key: 'replace', label: 'replace' },
-  { key: 'skip', label: 'skip' },
-  { key: 'bios_included', label: 'BIOS included' },
-]
+  { key: "new", label: "new" },
+  { key: "replace", label: "replace" },
+  { key: "skip", label: "skip" },
+  { key: "bios_included", label: "BIOS included" },
+];
 
 export function DryRunModal({
   open,
@@ -60,5 +60,5 @@ export function DryRunModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

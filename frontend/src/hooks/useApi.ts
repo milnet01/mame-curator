@@ -1,6 +1,6 @@
-import { useQuery, type UseQueryOptions } from '@tanstack/react-query'
-import type { ZodType } from 'zod'
-import { apiRequest } from '@/api/client'
+import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import type { ZodType } from "zod";
+import { apiRequest } from "@/api/client";
 
 /**
  * Thin wrapper that turns an `apiRequest` call into a react-query query.
@@ -13,7 +13,7 @@ export function useApiQuery<T>(
   schema: ZodType<T>,
   options?: Omit<
     UseQueryOptions<T, Error, T, readonly unknown[]>,
-    'queryKey' | 'queryFn'
+    "queryKey" | "queryFn"
   >,
 ) {
   return useQuery({
@@ -21,5 +21,5 @@ export function useApiQuery<T>(
     queryFn: () => apiRequest(url, schema),
     staleTime: 30_000,
     ...options,
-  })
+  });
 }

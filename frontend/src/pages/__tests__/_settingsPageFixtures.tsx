@@ -7,13 +7,13 @@
  * `SettingsPage_destructive_confirm.test.tsx` all import the
  * `render` wrapper + `config` AppConfig literal from here.
  */
-import type { ReactElement } from 'react'
-import { render as rtlRender } from '@testing-library/react'
-import type { RenderOptions } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router'
+import type { ReactElement } from "react";
+import { render as rtlRender } from "@testing-library/react";
+import type { RenderOptions } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router";
 
-import type { AppConfigResponse } from '@/api/types'
+import type { AppConfigResponse } from "@/api/types";
 
 // DS02 D1 — SettingsPage now calls `useSearchParams()` and therefore
 // must render inside a Router. Wrap `@testing-library/react`'s render
@@ -26,22 +26,22 @@ export function render(
   ui: ReactElement,
   options?: RenderOptions & { initialPath?: string },
 ) {
-  const { initialPath = '/settings', ...rtlOptions } = options ?? {}
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const { initialPath = "/settings", ...rtlOptions } = options ?? {};
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return rtlRender(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[initialPath]}>{ui}</MemoryRouter>
     </QueryClientProvider>,
     rtlOptions,
-  )
+  );
 }
 
 export const config: AppConfigResponse = {
   paths: {
-    source_roms: '/mnt/roms',
-    source_dat: '/mnt/dat.xml',
-    dest_roms: '/mnt/dest',
-    retroarch_playlist: '/mnt/mame.lpl',
+    source_roms: "/mnt/roms",
+    source_dat: "/mnt/dat.xml",
+    dest_roms: "/mnt/dest",
+    retroarch_playlist: "/mnt/mame.lpl",
     catver: null,
     languages: null,
     bestgames: null,
@@ -51,7 +51,7 @@ export const config: AppConfigResponse = {
     retroarch: null,
     retroarch_core: null,
   },
-  server: { host: '127.0.0.1', port: 8080, open_browser_on_start: true },
+  server: { host: "127.0.0.1", port: 8080, open_browser_on_start: true },
   filters: {
     drop_bios_devices_mechanical: true,
     drop_categories: [],
@@ -64,7 +64,7 @@ export const config: AppConfigResponse = {
     drop_preliminary_emulation: true,
     drop_chd_required: true,
     drop_mature: true,
-    region_priority: ['World'],
+    region_priority: ["World"],
     preferred_genres: [],
     preferred_publishers: [],
     preferred_developers: [],
@@ -73,21 +73,31 @@ export const config: AppConfigResponse = {
   },
   media: {
     fetch_videos: false,
-    cache_dir: './data/media-cache',
-    snaps_dir: './data/snaps',
+    cache_dir: "./data/media-cache",
+    snaps_dir: "./data/snaps",
     arcadedb_rate_limit_per_min: 30,
     mobygames_rate_limit_per_min: 5,
-    sources: ['libretro', 'progettoSnaps', 'arcadeDB', 'wikipediaImage', 'mobyGames'],
+    sources: [
+      "libretro",
+      "progettoSnaps",
+      "arcadeDB",
+      "wikipediaImage",
+      "mobyGames",
+    ],
   },
   ui: {
-    theme: 'dark',
-    layout: 'masonry',
-    default_sort: 'name',
+    theme: "dark",
+    layout: "masonry",
+    default_sort: "name",
     show_alternatives_indicator: true,
-    cards_per_row_hint: 'auto',
-    cart_clear_on_copy: 'on_success',
+    cards_per_row_hint: "auto",
+    cart_clear_on_copy: "on_success",
   },
-  updates: { channel: 'stable', check_on_startup: true, ini_check_on_startup: true },
+  updates: {
+    channel: "stable",
+    check_on_startup: true,
+    ini_check_on_startup: true,
+  },
   fs: { granted_roots: [] },
   restart_required: false,
-}
+};

@@ -4,13 +4,13 @@
  * hard cap of 350 lines). No component state lives here; the page's
  * stateful logic is in `useLibraryController.ts`.
  */
-import type { FilterSidebarState } from '@/components/library/FiltersSidebar'
-import { apiRequest } from '@/api/client'
-import { GamesPageSchema, type GamesPage } from '@/api/types'
-import { strings } from '@/strings'
+import type { FilterSidebarState } from "@/components/library/FiltersSidebar";
+import { apiRequest } from "@/api/client";
+import { GamesPageSchema, type GamesPage } from "@/api/types";
+import { strings } from "@/strings";
 
 export const DEFAULT_FILTERS: FilterSidebarState = {
-  search: '',
+  search: "",
   yearRange: [1975, 2025],
   letter: null,
   genre: null,
@@ -20,19 +20,19 @@ export const DEFAULT_FILTERS: FilterSidebarState = {
   onlyOverridden: false,
   onlyChdMissing: false,
   onlyBiosMissing: false,
-  reviewState: 'all',
-}
+  reviewState: "all",
+};
 
 // P14 — walkthrough-mode toggle persists across reloads.
-export const WALKTHROUGH_KEY = 'mame-curator:walkthrough-mode'
+export const WALKTHROUGH_KEY = "mame-curator:walkthrough-mode";
 
 export function readWalkthroughPref(): boolean {
   try {
-    const raw = localStorage.getItem(WALKTHROUGH_KEY)
-    if (raw === null) return true
-    return raw === 'true'
+    const raw = localStorage.getItem(WALKTHROUGH_KEY);
+    if (raw === null) return true;
+    return raw === "true";
   } catch {
-    return true
+    return true;
   }
 }
 
@@ -51,11 +51,11 @@ export function readWalkthroughPref(): boolean {
 export async function fetchTileCount(
   tile: (typeof strings.library.featured.tiles)[number],
 ): Promise<GamesPage> {
-  const p = new URLSearchParams({ page: '1', page_size: '1' })
-  if (tile.query.publisher) p.set('publisher', tile.query.publisher)
-  if (tile.query.developer) p.set('developer', tile.query.developer)
-  if (tile.query.genre) p.set('genre', tile.query.genre)
-  if (tile.query.yearFrom) p.set('year_min', String(tile.query.yearFrom))
-  if (tile.query.yearTo) p.set('year_max', String(tile.query.yearTo))
-  return apiRequest<GamesPage>(`/api/games?${p}`, GamesPageSchema)
+  const p = new URLSearchParams({ page: "1", page_size: "1" });
+  if (tile.query.publisher) p.set("publisher", tile.query.publisher);
+  if (tile.query.developer) p.set("developer", tile.query.developer);
+  if (tile.query.genre) p.set("genre", tile.query.genre);
+  if (tile.query.yearFrom) p.set("year_min", String(tile.query.yearFrom));
+  if (tile.query.yearTo) p.set("year_max", String(tile.query.yearTo));
+  return apiRequest<GamesPage>(`/api/games?${p}`, GamesPageSchema);
 }

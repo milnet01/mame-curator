@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { strings } from '@/strings'
+import { useEffect, useState } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { strings } from "@/strings";
 
-export const ONBOARDING_DISMISS_KEY = 'mame-curator:onboarding-dismissed:v1'
+export const ONBOARDING_DISMISS_KEY = "mame-curator:onboarding-dismissed:v1";
 
 interface OnboardingBannerProps {
-  cartHasItems: boolean
+  cartHasItems: boolean;
 }
 
 /**
@@ -21,29 +21,29 @@ export function OnboardingBanner({ cartHasItems }: OnboardingBannerProps) {
   // effect (eslint react-hooks/set-state-in-effect). The effect still
   // persists the auto-dismissal so the banner stays gone across reloads.
   const [explicitlyDismissed, setExplicitlyDismissed] = useState(
-    () => localStorage.getItem(ONBOARDING_DISMISS_KEY) === '1',
-  )
+    () => localStorage.getItem(ONBOARDING_DISMISS_KEY) === "1",
+  );
 
   useEffect(() => {
     if (cartHasItems && !explicitlyDismissed) {
       try {
-        localStorage.setItem(ONBOARDING_DISMISS_KEY, '1')
+        localStorage.setItem(ONBOARDING_DISMISS_KEY, "1");
       } catch {
         /* private browsing / quota — degrade silently */
       }
     }
-  }, [cartHasItems, explicitlyDismissed])
+  }, [cartHasItems, explicitlyDismissed]);
 
-  if (explicitlyDismissed || cartHasItems) return null
+  if (explicitlyDismissed || cartHasItems) return null;
 
   const handleDismiss = () => {
-    setExplicitlyDismissed(true)
+    setExplicitlyDismissed(true);
     try {
-      localStorage.setItem(ONBOARDING_DISMISS_KEY, '1')
+      localStorage.setItem(ONBOARDING_DISMISS_KEY, "1");
     } catch {
       /* see above */
     }
-  }
+  };
 
   return (
     // FP24-Y: no live-region role — this banner is static instructional
@@ -61,5 +61,5 @@ export function OnboardingBanner({ cartHasItems }: OnboardingBannerProps) {
         <X className="h-3 w-3" aria-hidden="true" />
       </Button>
     </div>
-  )
+  );
 }

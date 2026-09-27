@@ -16,65 +16,65 @@
 // can name the type and the row component can import it back as the
 // single source of truth (no inline-cast duplication).
 export interface FeaturedTileQuery {
-  publisher?: string
-  developer?: string
-  genre?: string
-  yearFrom?: number
-  yearTo?: number
+  publisher?: string;
+  developer?: string;
+  genre?: string;
+  yearFrom?: number;
+  yearTo?: number;
 }
 
 export interface FeaturedTile {
-  id: string
-  title: string
-  description: string
-  query: FeaturedTileQuery
+  id: string;
+  title: string;
+  description: string;
+  query: FeaturedTileQuery;
 }
 
 export const strings = {
   app: {
-    name: 'MAME Curator',
-    tagline: 'Curate, copy, and verify your MAME library.',
+    name: "MAME Curator",
+    tagline: "Curate, copy, and verify your MAME library.",
   },
 
   /** Layout option labels (LayoutSwitcher dropdown). */
   layouts: {
-    masonry: 'Masonry',
-    list: 'List',
-    covers: 'Covers',
-    grouped: 'Grouped',
+    masonry: "Masonry",
+    list: "List",
+    covers: "Covers",
+    grouped: "Grouped",
   },
 
   /** Theme palette labels (ThemeSwitcher dropdown). Keys mirror `ThemeName`. */
   themes: {
-    dark: 'Dark',
-    light: 'Light',
-    double_dragon: 'Double Dragon',
-    pacman: 'Pac-Man',
-    sf2: 'SF2',
-    neogeo: 'Neo Geo',
+    dark: "Dark",
+    light: "Light",
+    double_dragon: "Double Dragon",
+    pacman: "Pac-Man",
+    sf2: "SF2",
+    neogeo: "Neo Geo",
   },
 
   common: {
-    cancel: 'Cancel',
-    save: 'Save',
-    retry: 'Try again',
+    cancel: "Cancel",
+    save: "Save",
+    retry: "Try again",
     // FP25-H: in-flight label for the Retry button while LibraryErrorPanel's
     // refetch is running — gates double-clicks and gives a visible signal.
-    retrying: 'Retrying…',
+    retrying: "Retrying…",
   },
 
   // DS02 B1 — route-level Suspense / data-fetch loading labels. Until
   // DS02 these strings were hardcoded JSX text inside App.tsx; the
   // catalogue is the only acceptable source per design § "Strings".
   loading: {
-    sessions: 'Loading sessions…',
-    activity: 'Loading activity…',
-    stats: 'Loading stats…',
-    help: 'Loading help…',
-    settings: 'Loading settings…',
+    sessions: "Loading sessions…",
+    activity: "Loading activity…",
+    stats: "Loading stats…",
+    help: "Loading help…",
+    settings: "Loading settings…",
     /** mame-curator-1102 — grid placeholder while /api/games has no data yet. */
-    library: 'Loading games…',
-    generic: 'Loading…',
+    library: "Loading games…",
+    generic: "Loading…",
   },
 
   // DS02 Cluster C — a11y labels for landmarks + skip-link. Kept in
@@ -82,185 +82,186 @@ export const strings = {
   // know it's screen-reader-only copy; visual labels live in `nav` /
   // `library` / `help` per their domain.
   a11y: {
-    skipToMain: 'Skip to main content',
-    mainLandmark: 'Main content',
-    helpTopicsLandmark: 'Help topics',
-    helpContentLandmark: 'Help content',
-    filtersLandmark: 'Filters',
-    cartLandmark: 'Cart',
+    skipToMain: "Skip to main content",
+    mainLandmark: "Main content",
+    helpTopicsLandmark: "Help topics",
+    helpContentLandmark: "Help content",
+    filtersLandmark: "Filters",
+    cartLandmark: "Cart",
   },
 
   nav: {
-    library: 'Library',
-    sessions: 'Sessions',
-    activity: 'Activity',
-    stats: 'Stats',
-    settings: 'Settings',
-    help: 'Help',
-    commandPalette: 'Search games, settings, and actions',
+    library: "Library",
+    sessions: "Sessions",
+    activity: "Activity",
+    stats: "Stats",
+    settings: "Settings",
+    help: "Help",
+    commandPalette: "Search games, settings, and actions",
     cart: (n: number) => `Cart (${n})`,
-    more: 'More',
+    more: "More",
   },
 
   library: {
     /** FP21-T — accessible name for the LibraryGrid composite. */
-    gridLabel: 'Game library grid',
-    emptyTitle: 'No games match your filters',
+    gridLabel: "Game library grid",
+    emptyTitle: "No games match your filters",
     emptyHint:
-      'Adjust the filters in the sidebar or clear them to see your full library.',
+      "Adjust the filters in the sidebar or clear them to see your full library.",
     /** FP20-I — inline error panel when the games query fails. */
-    loadFailedTitle: 'Could not load the game library',
+    loadFailedTitle: "Could not load the game library",
     loadFailedHint:
-      'The backend may be down or unreachable. Check the server, then retry.',
-    placeholderFlyer: 'No artwork available',
+      "The backend may be down or unreachable. Check the server, then retry.",
+    placeholderFlyer: "No artwork available",
     countSummary: (n: number, gb: string, biosDeps: number) =>
-      `${n.toLocaleString()} games · ${gb} · ${biosDeps} BIOS dep${biosDeps === 1 ? '' : 's'}`,
+      `${n.toLocaleString()} games · ${gb} · ${biosDeps} BIOS dep${biosDeps === 1 ? "" : "s"}`,
     actions: {
-      dryRun: 'Dry-run',
-      copy: 'Copy',
+      dryRun: "Dry-run",
+      copy: "Copy",
     },
     badges: {
-      contested: 'Has alternative versions',
-      overridden: 'Manually overridden',
-      chd_missing: 'CHD file missing',
-      bios_missing: 'BIOS dependency missing',
-      has_notes: 'Has user notes',
+      contested: "Has alternative versions",
+      overridden: "Manually overridden",
+      chd_missing: "CHD file missing",
+      bios_missing: "BIOS dependency missing",
+      has_notes: "Has user notes",
       // P14 — review-state badges (chunk 10), rendered frontend-side from
       // the cached review-state map (NOT emitted by backend `_badges()`).
-      reviewed: 'Reviewed',
-      skipped: 'Skipped',
-      needsDecision: 'Needs decision',
+      reviewed: "Reviewed",
+      skipped: "Skipped",
+      needsDecision: "Needs decision",
     },
     // P14 — toast copy for the optimistic mutation rollback path
     // (`useReviewState` onError).
     stateUpdateFailed: "Couldn't update review state — try again.",
     /** P14 — segmented review-state filter (chunk 11) + walkthrough chip (chunk 13). */
     reviewState: {
-      legendLabel: 'Review state',
-      optionAll: 'All',
-      optionPending: 'Pending',
-      optionReviewed: 'Reviewed',
-      optionSkipped: 'Skipped',
-      optionNeedsDecision: 'Needs decision',
+      legendLabel: "Review state",
+      optionAll: "All",
+      optionPending: "Pending",
+      optionReviewed: "Reviewed",
+      optionSkipped: "Skipped",
+      optionNeedsDecision: "Needs decision",
     },
     progressChip: (handled: number, total: number, pct: string) =>
       `${handled.toLocaleString()} / ${total.toLocaleString()} handled · ${pct}%`,
-    walkthroughToggle: 'Walkthrough mode',
-    walkthroughCaughtUp: 'All caught up in this view.',
+    walkthroughToggle: "Walkthrough mode",
+    walkthroughCaughtUp: "All caught up in this view.",
     featured: {
-      heading: 'Featured',
+      heading: "Featured",
       tiles: [
         {
-          id: 'capcom-classics',
-          title: 'Capcom Classics',
-          description: 'Capcom CPS-1 / CPS-2 era arcade hits',
-          query: { publisher: 'Capcom', yearTo: 2000 },
+          id: "capcom-classics",
+          title: "Capcom Classics",
+          description: "Capcom CPS-1 / CPS-2 era arcade hits",
+          query: { publisher: "Capcom", yearTo: 2000 },
         },
         {
-          id: 'beat-em-ups',
+          id: "beat-em-ups",
           title: "Beat 'em Ups",
-          description: 'Side-scrolling brawlers',
-          query: { genre: 'Platform / Fighter Scrolling' },
+          description: "Side-scrolling brawlers",
+          query: { genre: "Platform / Fighter Scrolling" },
         },
         {
-          id: 'run-and-gun',
-          title: 'Run & Gun Shooters',
-          description: 'Run-and-gun shooters',
-          query: { genre: 'Platform / Shooter Scrolling' },
+          id: "run-and-gun",
+          title: "Run & Gun Shooters",
+          description: "Run-and-gun shooters",
+          query: { genre: "Platform / Shooter Scrolling" },
         },
         {
-          id: 'best-of-1992',
-          title: 'Best of 1992',
-          description: 'Arcade titles released in 1992',
+          id: "best-of-1992",
+          title: "Best of 1992",
+          description: "Arcade titles released in 1992",
           query: { yearFrom: 1992, yearTo: 1992 },
         },
         {
-          id: 'shmups-vertical',
-          title: 'SHMUPS — Vertical',
-          description: 'Vertical-scroll shoot-em-up classics',
-          query: { genre: 'Shooter / Flying Vertical' },
+          id: "shmups-vertical",
+          title: "SHMUPS — Vertical",
+          description: "Vertical-scroll shoot-em-up classics",
+          query: { genre: "Shooter / Flying Vertical" },
         },
       ] as readonly FeaturedTile[],
       countLabel: (n: number) =>
-        `${n.toLocaleString()} game${n === 1 ? '' : 's'}`,
+        `${n.toLocaleString()} game${n === 1 ? "" : "s"}`,
     },
     cart: {
-      summaryEmpty: 'Cart empty',
-      summary: (n: number) =>
-        `${n.toLocaleString()} game${n === 1 ? '' : 's'}`,
+      summaryEmpty: "Cart empty",
+      summary: (n: number) => `${n.toLocaleString()} game${n === 1 ? "" : "s"}`,
       addToCart: (gameName: string) => `Add ${gameName} to cart`,
       removeFromCart: (gameName: string) => `Remove ${gameName} from cart`,
-      added: '✓ Added',
-      add: '+Add',
+      added: "✓ Added",
+      add: "+Add",
       bulkAdd: (n: number) => `Add all ${n.toLocaleString()}`,
-      expand: 'Expand cart',
-      collapse: 'Collapse cart',
-      clearAll: 'Clear all',
+      expand: "Expand cart",
+      collapse: "Collapse cart",
+      clearAll: "Clear all",
       // FP24-O: AlertDialog labels for the destructive Clear-all flow.
       clearAllConfirm: {
-        title: 'Clear cart?',
+        title: "Clear cart?",
         description: (n: number) =>
-          `This removes ${n.toLocaleString()} game${n === 1 ? '' : 's'} from your cart. This cannot be undone.`,
+          `This removes ${n.toLocaleString()} game${n === 1 ? "" : "s"} from your cart. This cannot be undone.`,
         action: (n: number) =>
-          `Remove ${n.toLocaleString()} game${n === 1 ? '' : 's'} from cart`,
+          `Remove ${n.toLocaleString()} game${n === 1 ? "" : "s"} from cart`,
       },
       validateDroppedToast: (n: number) =>
-        `${n} cart item${n === 1 ? '' : 's'} removed — they're no longer in your library.`,
+        `${n} cart item${n === 1 ? "" : "s"} removed — they're no longer in your library.`,
       variantBadge: (variantName: string) => `⇄ ${variantName}`,
       storageUnavailableToast:
-        'Browser storage unavailable; cart will not persist for this session.',
+        "Browser storage unavailable; cart will not persist for this session.",
       maxCartReachedToast: (max: number) =>
         `Cart full (max ${max.toLocaleString()}); some items were not added.`,
     },
     onboarding: {
       body: "Tap a game to add it to your list. Click COPY when you're done.",
-      dismissAriaLabel: 'Dismiss onboarding banner',
+      dismissAriaLabel: "Dismiss onboarding banner",
     },
     filters: {
-      searchLabel: 'Search',
-      searchPlaceholder: 'Search games…',
-      yearRangeLabel: 'Year range',
-      onlyContested: 'Only contested picks',
-      onlyOverridden: 'Only manual overrides',
-      onlyChdMissing: 'Only CHD missing',
-      onlyBiosMissing: 'Only BIOS missing',
-      saveAsSession: 'Save as session',
-      sessionNameLabel: 'Session name',
+      searchLabel: "Search",
+      searchPlaceholder: "Search games…",
+      yearRangeLabel: "Year range",
+      onlyContested: "Only contested picks",
+      onlyOverridden: "Only manual overrides",
+      onlyChdMissing: "Only CHD missing",
+      onlyBiosMissing: "Only BIOS missing",
+      saveAsSession: "Save as session",
+      sessionNameLabel: "Session name",
       /** FP15 § C — one-line explainer above the Save button.
        *  FP16: clarified that this is filter-bookmark, not per-game
        *  progress tracking, after a user reported the mental-model
        *  mismatch ("I meant I went through games A to C"). */
       sessionsExplainer:
-        'Sessions are named filter bookmarks (year range + preferred genres / publishers / developers). They do not track per-game review progress.',
+        "Sessions are named filter bookmarks (year range + preferred genres / publishers / developers). They do not track per-game review progress.",
       /** FP17 § C — letter / genre / publisher / developer filters. */
-      letterLabel: 'Starting letter',
+      letterLabel: "Starting letter",
       letterAriaLabel: (l: string) =>
-        l === '#' ? 'Filter to games starting with a digit' : `Filter to games starting with ${l.toUpperCase()}`,
-      genreLabel: 'Genre',
-      publisherLabel: 'Publisher',
-      developerLabel: 'Developer',
-      anyOption: '(any)',
+        l === "#"
+          ? "Filter to games starting with a digit"
+          : `Filter to games starting with ${l.toUpperCase()}`,
+      genreLabel: "Genre",
+      publisherLabel: "Publisher",
+      developerLabel: "Developer",
+      anyOption: "(any)",
     },
     /** FP15 § A toast on successful session save. */
     sessionSaved: (name: string) => `Saved session "${name}".`,
     /** FP16 § B toast on successful manual override. */
-    overrideApplied: 'Override applied.',
+    overrideApplied: "Override applied.",
     /** FP15 § B header pill copy (active + idle states). */
     activeSessionPill: (name: string) => `Session: ${name}`,
     activeSessionTitle: (name: string) =>
       `Active session "${name}". Click to manage sessions.`,
-    noActiveSessionPill: 'No active session',
-    noActiveSessionTitle: 'No active session — save the current filters as one to focus your library.',
+    noActiveSessionPill: "No active session",
+    noActiveSessionTitle:
+      "No active session — save the current filters as one to focus your library.",
     /** FP23 — Library-page banner shown when paths.listxml is unset
      *  (per ADR-0002, the picker can't collapse parent/clone groups
      *  without it, so every machine surfaces as its own card). */
     listxmlMissing: {
-      title: 'MAME listxml not configured',
-      body:
-        'Without a MAME listxml file, region and version variants of the same game appear as separate cards. Configure the listxml path in Settings to collapse them into one card per game.',
-      cta: 'Open Settings',
+      title: "MAME listxml not configured",
+      body: "Without a MAME listxml file, region and version variants of the same game appear as separate cards. Configure the listxml path in Settings to collapse them into one card per game.",
+      cta: "Open Settings",
       emptyParseBody:
-        'Listxml loaded but contains no cloneof entries — region/version variants will appear separately.',
+        "Listxml loaded but contains no cloneof entries — region/version variants will appear separately.",
     },
     // FP24-FF: dryRunConfirmDeferred deleted — the FP23-era toast for
     // the deferred Copy wiring is no longer needed; P15's cart redesign
@@ -268,258 +269,260 @@ export const strings = {
   },
 
   alternatives: {
-    drawerTitle: 'Alternative versions',
+    drawerTitle: "Alternative versions",
     // P10 chunk 11 — Wikipedia "About" flavor text (CC-BY-SA attribution).
-    wikipediaReadMore: 'Read more on Wikipedia',
-    wikipediaLicense: 'Text from Wikipedia, CC BY-SA 4.0.',
+    wikipediaReadMore: "Read more on Wikipedia",
+    wikipediaLicense: "Text from Wikipedia, CC BY-SA 4.0.",
     /** Subtitle when the family contains only the winner. */
-    onlyVersionText: 'This is the only version in the library.',
+    onlyVersionText: "This is the only version in the library.",
     /** mame-curator-1100 — subtitle while the family list is still loading. */
-    loadingVersions: 'Loading versions…',
+    loadingVersions: "Loading versions…",
     /** Subtitle when the family contains multiple versions. */
     familySummary: (n: number) =>
-      `${n.toLocaleString()} version${n === 1 ? '' : 's'} in this family`,
-    pickedLabel: 'Currently selected',
-    overrideButton: 'Use this version',
+      `${n.toLocaleString()} version${n === 1 ? "" : "s"} in this family`,
+    pickedLabel: "Currently selected",
+    overrideButton: "Use this version",
     /** AT-only labels for the per-row Use button. */
-    selectedAriaLabel: (description: string) => `${description} — currently selected`,
+    selectedAriaLabel: (description: string) =>
+      `${description} — currently selected`,
     useAriaLabel: (description: string) => `Use ${description}`,
-    whyPickedTitle: 'Why was this picked?',
+    whyPickedTitle: "Why was this picked?",
     whyPickedSubtitle:
-      'Each line shows a tiebreaker rule and the trait that decided.',
+      "Each line shows a tiebreaker rule and the trait that decided.",
     whyPickedEmpty:
-      'No tiebreaker chain — only one candidate survived filtering.',
+      "No tiebreaker chain — only one candidate survived filtering.",
     candidatesConsidered: (names: string[]) =>
-      `Candidates considered: ${names.join(', ')}`,
-    notesLabel: 'Notes',
-    notesPlaceholder: 'Notes (saved automatically when you click away)…',
+      `Candidates considered: ${names.join(", ")}`,
+    notesLabel: "Notes",
+    notesPlaceholder: "Notes (saved automatically when you click away)…",
     flyerAlt: (description: string) => `Box art for ${description}`,
     /** FP19 — Launch button + status copy. */
-    launch: 'Launch in RetroArch',
-    launching: 'Launching…',
+    launch: "Launch in RetroArch",
+    launching: "Launching…",
     launchSuccess: (name: string) => `Launched ${name}.`,
     /** FP22-B — inline hint under the disabled Launch button. Split into
      *  prefix / link-label / suffix so the link in the middle is a real
      *  <Link> component and screen readers announce a normal sentence. */
-    launchConfigurePrefix: 'Configure RetroArch in',
-    launchConfigureLinkLabel: 'Settings → Paths',
-    launchConfigureSuffix: ' to enable launching.',
+    launchConfigurePrefix: "Configure RetroArch in",
+    launchConfigureLinkLabel: "Settings → Paths",
+    launchConfigureSuffix: " to enable launching.",
   },
 
   sessions: {
-    pageTitle: 'Sessions',
-    emptyTitle: 'No saved sessions yet',
+    pageTitle: "Sessions",
+    emptyTitle: "No saved sessions yet",
     emptyHint:
-      'Save the current filter set as a named session to switch between focuses.',
-    activeBadge: 'Active',
+      "Save the current filter set as a named session to switch between focuses.",
+    activeBadge: "Active",
     actions: {
-      newSession: 'New session',
-      activate: 'Activate',
-      deactivate: 'Deactivate',
-      rename: 'Rename',
-      delete: 'Delete',
+      newSession: "New session",
+      activate: "Activate",
+      deactivate: "Deactivate",
+      rename: "Rename",
+      delete: "Delete",
       activateAriaLabel: (name: string) => `Activate ${name}`,
       deleteAriaLabel: (name: string) => `Delete ${name}`,
     },
     metaLabels: {
-      genres: 'Genres',
-      publishers: 'Publishers',
-      developers: 'Developers',
-      years: 'Years',
+      genres: "Genres",
+      publishers: "Publishers",
+      developers: "Developers",
+      years: "Years",
     },
-    metaJoiner: ' · ',
+    metaJoiner: " · ",
     confirmDelete: {
-      title: 'Delete saved session',
+      title: "Delete saved session",
       description: (name: string) =>
         `Permanently remove the saved session "${name}". This cannot be undone.`,
     },
     newSessionHint:
       'To create a session, configure filters in the library and click "Save as session".',
-    loadError: 'Could not load sessions.',
+    loadError: "Could not load sessions.",
   },
 
   activity: {
-    pageTitle: 'Activity',
-    emptyTitle: 'No activity yet',
-    emptyHint: 'Run a copy to see events here.',
-    loadError: 'Could not load activity.',
+    pageTitle: "Activity",
+    emptyTitle: "No activity yet",
+    emptyHint: "Run a copy to see events here.",
+    loadError: "Could not load activity.",
     pagination: {
-      next: 'Next',
-      prev: 'Previous',
+      next: "Next",
+      prev: "Previous",
       page: (p: number, total: number) => `Page ${p} of ${total}`,
     },
   },
 
   stats: {
-    pageTitle: 'Stats',
+    pageTitle: "Stats",
     sections: {
-      genre: 'By genre',
-      decade: 'By decade',
-      publisher: 'Top publishers',
-      driverStatus: 'Driver status',
+      genre: "By genre",
+      decade: "By decade",
+      publisher: "Top publishers",
+      driverStatus: "Driver status",
     },
     totalSize: (gb: string) => `Total library size: ${gb}`,
-    loadError: 'Could not load stats.',
+    loadError: "Could not load stats.",
   },
 
   settings: {
-    pageTitle: 'Settings',
+    pageTitle: "Settings",
     sections: {
-      paths: 'Paths',
-      filters: 'Filters',
-      picker: 'Picker',
-      ui: 'Interface',
-      updates: 'Updates',
-      media: 'Media',
-      snapshots: 'Snapshots',
-      backup: 'Backup & restore',
-      about: 'About',
+      paths: "Paths",
+      filters: "Filters",
+      picker: "Picker",
+      ui: "Interface",
+      updates: "Updates",
+      media: "Media",
+      snapshots: "Snapshots",
+      backup: "Backup & restore",
+      about: "About",
     },
     filterLabels: {
-      drop_bios_devices_mechanical: 'Drop BIOS / device / mechanical',
-      drop_japanese_only_text: 'Drop Japanese-only text games',
-      drop_preliminary_emulation: 'Drop preliminary emulation',
-      drop_chd_required: 'Drop CHD-required games',
-      drop_mature: 'Drop mature content',
+      drop_bios_devices_mechanical: "Drop BIOS / device / mechanical",
+      drop_japanese_only_text: "Drop Japanese-only text games",
+      drop_preliminary_emulation: "Drop preliminary emulation",
+      drop_chd_required: "Drop CHD-required games",
+      drop_mature: "Drop mature content",
     },
     /** FP12 § A — chip-list field labels (filters tab). */
     filterChipLists: {
-      drop_categories: 'Drop categories',
-      drop_genres: 'Drop genres',
-      drop_publishers: 'Drop publishers',
-      drop_developers: 'Drop developers',
+      drop_categories: "Drop categories",
+      drop_genres: "Drop genres",
+      drop_publishers: "Drop publishers",
+      drop_developers: "Drop developers",
     },
     filterChipPlaceholders: {
-      drop_categories: 'Add category…',
-      drop_genres: 'Add genre…',
-      drop_publishers: 'Add publisher…',
-      drop_developers: 'Add developer…',
+      drop_categories: "Add category…",
+      drop_genres: "Add genre…",
+      drop_publishers: "Add publisher…",
+      drop_developers: "Add developer…",
     },
     pickerLabels: {
-      prefer_parent_over_clone: 'Prefer parent over clone',
-      prefer_good_driver: 'Prefer good driver',
-      region_priority: 'Region priority',
+      prefer_parent_over_clone: "Prefer parent over clone",
+      prefer_good_driver: "Prefer good driver",
+      region_priority: "Region priority",
     },
     /** FP12 § B — drag-reorder list (region_priority) helper copy. */
     regionPriorityHelp:
-      'Order matters: when multiple region variants exist, the one nearest the top wins.',
+      "Order matters: when multiple region variants exist, the one nearest the top wins.",
     /** FP12 § A — chip-list field labels (picker tab). */
     pickerChipLists: {
-      preferred_genres: 'Preferred genres',
-      preferred_publishers: 'Preferred publishers',
-      preferred_developers: 'Preferred developers',
+      preferred_genres: "Preferred genres",
+      preferred_publishers: "Preferred publishers",
+      preferred_developers: "Preferred developers",
     },
     pickerChipPlaceholders: {
-      preferred_genres: 'Add genre…',
-      preferred_publishers: 'Add publisher…',
-      preferred_developers: 'Add developer…',
+      preferred_genres: "Add genre…",
+      preferred_publishers: "Add publisher…",
+      preferred_developers: "Add developer…",
     },
     uiLabels: {
-      show_alternatives_indicator: 'Show alternatives indicator',
-      default_sort: 'Default sort order',
-      cards_per_row_hint: 'Cards per row',
-      cart_clear_on_copy: 'Clear cart after copy',
+      show_alternatives_indicator: "Show alternatives indicator",
+      default_sort: "Default sort order",
+      cards_per_row_hint: "Cards per row",
+      cart_clear_on_copy: "Clear cart after copy",
       cart_clear_on_copy_options: {
-        always: 'Always',
-        on_success: 'On success only',
-        never: 'Never',
+        always: "Always",
+        on_success: "On success only",
+        never: "Never",
       },
     },
     /** FP12 § D — `default_sort` dropdown options (UI tab). */
     defaultSortOptions: {
-      name: 'By name',
-      year: 'By year',
-      manufacturer: 'By manufacturer',
-      rating: 'By rating',
+      name: "By name",
+      year: "By year",
+      manufacturer: "By manufacturer",
+      rating: "By rating",
     },
     /** P07 § C — `cards_per_row_hint` dropdown options (UI tab). */
     cardsPerRowOptions: {
-      auto: 'Automatic',
-      '4': '4 columns',
-      '5': '5 columns',
-      '6': '6 columns',
-      '8': '8 columns',
+      auto: "Automatic",
+      "4": "4 columns",
+      "5": "5 columns",
+      "6": "6 columns",
+      "8": "8 columns",
     },
     updatesLabels: {
-      check_on_startup: 'Check for app updates on startup',
-      ini_check_on_startup: 'Check for INI updates on startup',
-      channel: 'Update channel',
+      check_on_startup: "Check for app updates on startup",
+      ini_check_on_startup: "Check for INI updates on startup",
+      channel: "Update channel",
     },
     /** FP12 § E — `updates.channel` dropdown options. */
     updateChannelOptions: {
-      stable: 'Stable',
-      dev: 'Dev',
+      stable: "Stable",
+      dev: "Dev",
     },
     mediaLabels: {
-      fetch_videos: 'Fetch video previews (post-P06)',
+      fetch_videos: "Fetch video previews (post-P06)",
     },
     pathRowLabels: {
-      sourceRoms: 'Source ROMs',
-      destination: 'Destination',
-      dat: 'DAT',
-      retroarchPlaylist: 'RetroArch playlist',
+      sourceRoms: "Source ROMs",
+      destination: "Destination",
+      dat: "DAT",
+      retroarchPlaylist: "RetroArch playlist",
       /** FP29 — paired Launch-button gate (FP19 + FP22-B). Empty input
           round-trips to ``null`` so the backend ``str | None`` schema
           stays clean. */
-      retroarchExecutable: 'RetroArch executable',
-      retroarchCore: 'RetroArch core',
+      retroarchExecutable: "RetroArch executable",
+      retroarchCore: "RetroArch core",
     },
     /** FP12 § H — DAT swap is destructive (replaces the entire library). */
-    datSwapConfirmTitle: 'Swap DAT?',
+    datSwapConfirmTitle: "Swap DAT?",
     datSwapConfirm:
-      'Switching the DAT replaces every machine in the library. Existing sessions, overrides, and notes that reference removed games stay on disk but are unreachable until you swap back.',
+      "Switching the DAT replaces every machine in the library. Existing sessions, overrides, and notes that reference removed games stay on disk but are unreachable until you swap back.",
     datSwapActionLabel: (path: string) => `Swap DAT to ${path}`,
-    mediaCacheLabel: 'Media cache directory',
-    mediaCacheBrowseLabel: 'Browse for media cache directory',
+    mediaCacheLabel: "Media cache directory",
+    mediaCacheBrowseLabel: "Browse for media cache directory",
     // mame-curator-1081 — progettoSnaps pack folder (the source reads <dir>/snap).
-    mediaSnapsLabel: 'Snapshot pack folder',
+    mediaSnapsLabel: "Snapshot pack folder",
     mediaSnapsHelp:
-      'Where the progettoSnaps snapshot pack lives. `refresh-snaps` downloads here and the viewer reads it from the same place (images under <folder>/snap).',
-    mediaSnapsBrowseLabel: 'Browse for snapshot pack folder',
+      "Where the progettoSnaps snapshot pack lives. `refresh-snaps` downloads here and the viewer reads it from the same place (images under <folder>/snap).",
+    mediaSnapsBrowseLabel: "Browse for snapshot pack folder",
     // P10 chunk 10 — Media source readiness list + key/pack modals.
     mediaSources: {
-      sectionLabel: 'Art sources (priority order)',
+      sectionLabel: "Art sources (priority order)",
       sectionHelp:
-        'Sources are tried top-to-bottom; the first with an image wins. Use the arrows to reorder.',
-      reorderAriaLabel: 'Art source priority',
-      statusActive: 'Active',
-      statusDisabled: 'Disabled',
-      configureButton: 'Configure…',
-      downloadPackButton: 'Download pack…',
+        "Sources are tried top-to-bottom; the first with an image wins. Use the arrows to reorder.",
+      reorderAriaLabel: "Art source priority",
+      statusActive: "Active",
+      statusDisabled: "Disabled",
+      configureButton: "Configure…",
+      downloadPackButton: "Download pack…",
       // mame-curator-1084 — per-source on/off toggle + the "available (off)" list.
       toggleAriaLabel: (name: string) => `Toggle ${name} art source`,
-      lockedHint: 'always on',
-      unconfiguredLabel: 'Available sources (off)',
-      unconfiguredHelp: 'Turn one on to add it to the fallback chain above.',
+      lockedHint: "always on",
+      unconfiguredLabel: "Available sources (off)",
+      unconfiguredHelp: "Turn one on to add it to the fallback chain above.",
     },
     mediaKeyModal: {
-      title: 'Configure MobyGames API key',
-      body: 'Paste your MobyGames API key. It is saved to data/secrets/mobygames.key (owner-only, mode 0600) and never written to config.yaml.',
-      inputLabel: 'API key',
-      save: 'Save',
-      cancel: 'Cancel',
-      error: 'Could not save the key — check it and try again.',
+      title: "Configure MobyGames API key",
+      body: "Paste your MobyGames API key. It is saved to data/secrets/mobygames.key (owner-only, mode 0600) and never written to config.yaml.",
+      inputLabel: "API key",
+      save: "Save",
+      cancel: "Cancel",
+      error: "Could not save the key — check it and try again.",
     },
     mediaPackModal: {
-      title: 'Download the progettoSnaps snapshot pack',
-      body: 'The snapshot pack is large (~500 MB). Run this command in a terminal, then reopen this tab:',
-      command: 'mame-curator refresh-snaps',
-      copyButton: 'Copy command',
-      copied: 'Copied!',
-      close: 'Close',
+      title: "Download the progettoSnaps snapshot pack",
+      body: "The snapshot pack is large (~500 MB). Run this command in a terminal, then reopen this tab:",
+      command: "mame-curator refresh-snaps",
+      copyButton: "Copy command",
+      copied: "Copied!",
+      close: "Close",
     },
     backupBlurb:
-      'Configuration snapshots can be restored from disk. Restore confirmation surfaces a destructive-action dialog.',
+      "Configuration snapshots can be restored from disk. Restore confirmation surfaces a destructive-action dialog.",
     banners: {
       // R35 & R36 read-only banners; Phase-7 will add wizard / apply paths.
-      setupReady: 'Configuration looks ready.',
+      setupReady: "Configuration looks ready.",
       setupIncomplete:
-        'Some paths or reference files are missing — open the Paths section to fix.',
+        "Some paths or reference files are missing — open the Paths section to fix.",
       updateAvailable: (current: string, latest: string) =>
         `Update available: ${current} → ${latest}. Apply flow ships in Phase 7.`,
-      updateCurrent: (version: string) => `You're on the latest version (${version}).`,
+      updateCurrent: (version: string) =>
+        `You're on the latest version (${version}).`,
       restartRequired:
-        'Server settings changed — restart `mame-curator serve` for the new bind address to take effect.',
+        "Server settings changed — restart `mame-curator serve` for the new bind address to take effect.",
       /** FP16 § C — per-INI status line under the setup banner. */
       iniStatusLine: (
         present: number,
@@ -528,152 +531,153 @@ export const strings = {
       ) =>
         missing.length === 0
           ? `Reference INIs: ${present} / ${required} present.`
-          : `Reference INIs: ${present} / ${required} present. Missing: ${missing.join(', ')}. Run \`uv run mame-curator refresh-inis --dest data/ini\` to download.`,
+          : `Reference INIs: ${present} / ${required} present. Missing: ${missing.join(", ")}. Run \`uv run mame-curator refresh-inis --dest data/ini\` to download.`,
       /** FP22-C — RetroArch readiness line under the setup banner. */
-      retroarchConfigured: 'RetroArch: configured.',
+      retroarchConfigured: "RetroArch: configured.",
       retroarchNotConfigured:
-        'RetroArch: not configured — set paths.retroarch and paths.retroarch_core in the Paths tab to enable launching.',
+        "RetroArch: not configured — set paths.retroarch and paths.retroarch_core in the Paths tab to enable launching.",
     },
     snapshotRestoreConfirm: (count: number) =>
-      `Restore ${count} configuration file${count === 1 ? '' : 's'} from this snapshot? Current settings will be replaced.`,
+      `Restore ${count} configuration file${count === 1 ? "" : "s"} from this snapshot? Current settings will be replaced.`,
     /** FP12 § I — Snapshots tab copy. */
-    snapshotsTitle: 'Saved snapshots',
-    snapshotsLoading: 'Loading snapshots…',
-    snapshotsLoadError: 'Could not load snapshots.',
+    snapshotsTitle: "Saved snapshots",
+    snapshotsLoading: "Loading snapshots…",
+    snapshotsLoadError: "Could not load snapshots.",
     /** FP20-J — generic fallback when ``restore.error`` is non-ApiError. */
-    snapshotRestoreError: 'Could not restore that snapshot.',
-    snapshotsEmpty: 'No snapshots yet — one is written automatically before each PATCH.',
+    snapshotRestoreError: "Could not restore that snapshot.",
+    snapshotsEmpty:
+      "No snapshots yet — one is written automatically before each PATCH.",
     /** P14 / mame-curator-1078 — snapshots cover config only, not
      * per-game review state (`data/state.yaml` is excluded by design;
      * see P14 spec § "Snapshot policy"). Surface the caveat so the
      * user knows review marks can't be rolled back here. */
     snapshotsStateExclusionNote:
-      'Review state is not snapshotted — to roll back, use Activity to undo individual changes.',
+      "Review state is not snapshotted — to roll back, use Activity to undo individual changes.",
     snapshotItemFiles: (count: number) =>
-      `${count} file${count === 1 ? '' : 's'}`,
-    snapshotRestoreLabel: 'Restore',
-    snapshotRestoreConfirmTitle: 'Restore configuration?',
+      `${count} file${count === 1 ? "" : "s"}`,
+    snapshotRestoreLabel: "Restore",
+    snapshotRestoreConfirmTitle: "Restore configuration?",
     snapshotRestoreActionLabel: (count: number) =>
-      `Restore ${count} file${count === 1 ? '' : 's'}`,
+      `Restore ${count} file${count === 1 ? "" : "s"}`,
     /** FP12 § J — Backup tab copy. */
     backupTabBlurb:
-      'Export a JSON bundle of every config / session / override file, or replace them all from a previously-exported bundle.',
-    backupExportLabel: 'Export bundle',
-    backupImportLabel: 'Import bundle',
-    backupExportError: 'Could not export configuration.',
-    backupImportError: 'Could not import configuration.',
-    backupImportInvalidJson: 'That file is not a valid JSON bundle.',
+      "Export a JSON bundle of every config / session / override file, or replace them all from a previously-exported bundle.",
+    backupExportLabel: "Export bundle",
+    backupImportLabel: "Import bundle",
+    backupExportError: "Could not export configuration.",
+    backupImportError: "Could not import configuration.",
+    backupImportInvalidJson: "That file is not a valid JSON bundle.",
     backupImportInvalidShape:
-      'That JSON is not a configuration bundle (expected `config`, `overrides`, `sessions`, `notes` keys).',
+      "That JSON is not a configuration bundle (expected `config`, `overrides`, `sessions`, `notes` keys).",
     backupImportTooLarge:
-      'That file is too large — configuration bundles should be well under 5 MB.',
-    backupImportConfirmTitle: 'Replace configuration?',
+      "That file is too large — configuration bundles should be well under 5 MB.",
+    backupImportConfirmTitle: "Replace configuration?",
     backupImportConfirm: (filename: string) =>
       `Replace every configuration file with the contents of ${filename}? Current settings will be overwritten.`,
     backupImportActionLabel: (filename: string) =>
       `Replace settings from ${filename}`,
-    backupWizardForwardLink:
-      'Re-running the setup wizard ships in Phase 8.',
+    backupWizardForwardLink: "Re-running the setup wizard ships in Phase 8.",
     /** FP12 § G — `<FsBrowser>` modal copy. */
-    fsBrowserTitle: 'Pick a path',
+    fsBrowserTitle: "Pick a path",
     fsBrowserDescription:
-      'Browse directories on this machine. Picking a path outside the existing allowlist surfaces a grant prompt.',
-    fsBrowserHome: 'Home',
-    fsBrowserUp: 'Up',
-    fsBrowserUpAtTop: 'Already at the top of the allowed area.',
-    fsBrowserBrowse: 'Browse…',
-    fsBrowserUseDirectory: 'Use this directory',
-    fsBrowserLoading: 'Loading…',
-    fsBrowserListError: 'Could not list this directory.',
+      "Browse directories on this machine. Picking a path outside the existing allowlist surfaces a grant prompt.",
+    fsBrowserHome: "Home",
+    fsBrowserUp: "Up",
+    fsBrowserUpAtTop: "Already at the top of the allowed area.",
+    fsBrowserBrowse: "Browse…",
+    fsBrowserUseDirectory: "Use this directory",
+    fsBrowserLoading: "Loading…",
+    fsBrowserListError: "Could not list this directory.",
     fsBrowserHomeError:
-      'Could not detect home directory — pick a drive root or quick-jump to continue.',
-    fsBrowserEmpty: 'Empty.',
-    fsBrowserDirTag: 'dir',
+      "Could not detect home directory — pick a drive root or quick-jump to continue.",
+    fsBrowserEmpty: "Empty.",
+    fsBrowserDirTag: "dir",
     /** FP13 § D4 — accessible name for the per-row Browse button. */
     fsBrowseAriaLabel: (target: string) => `Browse for ${target}`,
-    fsGrantTitle: 'Grant filesystem access?',
+    fsGrantTitle: "Grant filesystem access?",
     fsGrantConfirm: (path: string) =>
       `${path} is outside the current allowlist. Grant access so the picker can list its contents?`,
     fsGrantActionLabel: (path: string) => `Grant access to ${path}`,
   },
 
   copy: {
-    dryRunTitle: 'Dry-run preview',
-    dryRunHint: 'No files are written. Review the diff and confirm to copy.',
+    dryRunTitle: "Dry-run preview",
+    dryRunHint: "No files are written. Review the diff and confirm to copy.",
     /** AT-only label on the progress indicator. */
-    progressAriaLabel: 'Copy progress',
+    progressAriaLabel: "Copy progress",
     /** AT-only label on the conflict-resolution panel. */
-    conflictRegionAriaLabel: 'Existing playlist conflict',
-    modalTitle: 'Copy in progress',
-    pause: 'Pause',
-    resume: 'Resume',
-    abort: 'Cancel',
+    conflictRegionAriaLabel: "Existing playlist conflict",
+    modalTitle: "Copy in progress",
+    pause: "Pause",
+    resume: "Resume",
+    abort: "Cancel",
     abortConfirm: (recyclable: boolean) =>
       recyclable
-        ? 'Cancel the copy? Already-copied files can be moved to the recycle bin or kept.'
-        : 'Cancel the copy? Already-copied files will be kept.',
-    abortKeepFiles: 'Keep files',
-    abortRecycleFiles: 'Move to recycle bin',
+        ? "Cancel the copy? Already-copied files can be moved to the recycle bin or kept."
+        : "Cancel the copy? Already-copied files will be kept.",
+    abortKeepFiles: "Keep files",
+    abortRecycleFiles: "Move to recycle bin",
     /** mame-curator-1110 — one BIOS-resolution warning from the copy job. */
     biosWarning: (name: string, kind: string) =>
-      kind === 'missing_from_listxml'
+      kind === "missing_from_listxml"
         ? `${name}: not in MAME's machine list (listxml), so its BIOS can't be worked out`
         : `${name}: ${kind}`,
     /** mame-curator-1103 — shown until the server reports the job's total. */
-    preparing: 'Preparing copy…',
+    preparing: "Preparing copy…",
     progressLine: (done: number, total: number, currentFile: string) =>
       `${done.toLocaleString()} / ${total.toLocaleString()} — ${currentFile}`,
-    conflictTitle: 'Existing playlist detected',
+    conflictTitle: "Existing playlist detected",
     conflictReadOnlyBanner:
-      'Restart the copy with updated append_decisions to change the conflict strategy.',
+      "Restart the copy with updated append_decisions to change the conflict strategy.",
     sessionState: {
-      running: 'Copying',
-      paused: 'Paused',
-      terminating: 'Stopping',
-      finished: 'Finished',
-      aborted: 'Cancelled',
+      running: "Copying",
+      paused: "Paused",
+      terminating: "Stopping",
+      finished: "Finished",
+      aborted: "Cancelled",
     },
     /** Modal-close affordance shown in terminal states. */
-    done: 'Done',
+    done: "Done",
   },
 
   help: {
-    pageTitle: 'Help',
-    emptyTitle: 'No help topics available',
-    emptyHint: 'No help pages were found in the docs/help folder.',
-    loadingTopic: 'Loading topic…',
-    loadError: 'Could not load help topics.',
+    pageTitle: "Help",
+    emptyTitle: "No help topics available",
+    emptyHint: "No help pages were found in the docs/help folder.",
+    loadingTopic: "Loading topic…",
+    loadError: "Could not load help topics.",
   },
 
   cmdK: {
-    placeholder: 'Type a command, game, or setting…',
+    placeholder: "Type a command, game, or setting…",
     sections: {
       // FP27 A5: dropped 'games' + 'settings'. Zero production
       // producers ever populated those sections; only test fixtures
       // did. See docs/specs/FP27-zombie-features-data-integrity.md § A5.
-      actions: 'Actions',
-      help: 'Help topics',
+      actions: "Actions",
+      help: "Help topics",
     },
-    emptyHint: 'No matches.',
+    emptyHint: "No matches.",
   },
 
   destructive: {
     // Concrete labels per design §8 / spec § ConfirmationDialog rule.
-    clearMediaCache: (entries: number) => `Clear ${entries} cached image${entries === 1 ? '' : 's'}`,
+    clearMediaCache: (entries: number) =>
+      `Clear ${entries} cached image${entries === 1 ? "" : "s"}`,
     deleteSession: (name: string) => `Delete session "${name}"`,
     revokeRoot: (path: string) => `Revoke filesystem access to ${path}`,
   },
 
   errors: {
     /** Friendly headline for a generic toast when no specific copy applies. */
-    genericTitle: 'Something went wrong',
-    networkTitle: 'Connection problem',
+    genericTitle: "Something went wrong",
+    networkTitle: "Connection problem",
     networkBody:
-      'The backend did not respond. Make sure `mame-curator serve` is running.',
+      "The backend did not respond. Make sure `mame-curator serve` is running.",
     /** DS02 E1: fallback shown when the alternatives drawer's render tree throws. */
-    alternativesFailed: 'Alternatives unavailable',
+    alternativesFailed: "Alternatives unavailable",
     /** DS02 E2: fallback shown when the copy modal's render tree throws. */
-    copyModalFailed: 'Copy options unavailable',
+    copyModalFailed: "Copy options unavailable",
     /** Map of `ApiError.code` → friendly message. Unmapped codes fall back to `detail`.
      *
      * Keys MUST exist as `code = "..."` ClassVar values in
@@ -687,50 +691,56 @@ export const strings = {
      * the backend `ApiException.code` set. Keep this map in sync with
      * `api/errors.py` by hand until that gate lands. */
     byCode: {
-      game_not_found: 'No game with that short name in the loaded DAT.',
-      override_not_found: 'No override registered for that parent.',
+      game_not_found: "No game with that short name in the loaded DAT.",
+      override_not_found: "No override registered for that parent.",
       session_name_invalid:
-        'Session names must start with a letter and use only letters, numbers, hyphens, and underscores.',
-      session_not_found: 'No session by that name.',
+        "Session names must start with a letter and use only letters, numbers, hyphens, and underscores.",
+      session_not_found: "No session by that name.",
       fs_sandboxed:
-        'That path is outside the allowed filesystem roots. Add it under Settings → Paths first.',
-      fs_already_covered: 'That path is already inside an allowed root.',
-      fs_path_invalid: 'The supplied path is not a valid directory.',
-      fs_not_found: 'That path does not exist.',
-      fs_root_not_found: 'That allowed root is no longer registered.',
+        "That path is outside the allowed filesystem roots. Add it under Settings → Paths first.",
+      fs_already_covered: "That path is already inside an allowed root.",
+      fs_path_invalid: "The supplied path is not a valid directory.",
+      fs_not_found: "That path does not exist.",
+      fs_root_not_found: "That allowed root is no longer registered.",
       fs_config_root_not_revocable:
-        'Roots from `config.yaml` cannot be revoked here — edit the config and restart.',
-      job_already_running: 'Another copy job is already running. Wait or cancel it first.',
-      job_not_found: 'No active copy job — it may have finished or never started.',
+        "Roots from `config.yaml` cannot be revoked here — edit the config and restart.",
+      job_already_running:
+        "Another copy job is already running. Wait or cancel it first.",
+      job_not_found:
+        "No active copy job — it may have finished or never started.",
       copy_report_corrupt:
-        'The copy report on disk is unreadable. Check disk integrity.',
+        "The copy report on disk is unreadable. Check disk integrity.",
       playlist_conflict_cancelled:
-        'A playlist already exists at the destination — choose APPEND or OVERWRITE to continue.',
-      snapshot_not_found: 'No configuration snapshot with that ID.',
-      help_topic_not_found: 'That help topic is unavailable.',
-      media_kind_invalid: 'That media kind is not supported.',
-      media_source_unknown: 'That media source does not accept a configuration key.',
-      media_upstream_not_found: 'The requested media is not in the libretro library.',
+        "A playlist already exists at the destination — choose APPEND or OVERWRITE to continue.",
+      snapshot_not_found: "No configuration snapshot with that ID.",
+      help_topic_not_found: "That help topic is unavailable.",
+      media_kind_invalid: "That media kind is not supported.",
+      media_source_unknown:
+        "That media source does not accept a configuration key.",
+      media_upstream_not_found:
+        "The requested media is not in the libretro library.",
       // FP21-J / FP22-D: typed launch_game errors lifted out of bare HTTPException.
       retroarch_not_configured:
-        'RetroArch is not configured. Set paths.retroarch and paths.retroarch_core under Settings → Paths, then restart.',
+        "RetroArch is not configured. Set paths.retroarch and paths.retroarch_core under Settings → Paths, then restart.",
       rom_file_not_found:
-        'The ROM file is missing on disk. Run a curated Copy first so the .zip is in your destination folder.',
-      validation_error: 'The form has invalid values. Check the highlighted fields.',
-      config_invalid: 'The configuration is not valid — see field errors below.',
+        "The ROM file is missing on disk. Run a curated Copy first so the .zip is in your destination folder.",
+      validation_error:
+        "The form has invalid values. Check the highlighted fields.",
+      config_invalid:
+        "The configuration is not valid — see field errors below.",
       response_shape_invalid:
-        'The server returned an unexpected shape. Refresh and try again.',
-      response_not_json: 'The server response was not JSON.',
-      network: 'Could not reach the backend.',
-      internal: 'The backend hit an unexpected error.',
+        "The server returned an unexpected shape. Refresh and try again.",
+      response_not_json: "The server response was not JSON.",
+      network: "Could not reach the backend.",
+      internal: "The backend hit an unexpected error.",
     } as Record<string, string>,
   },
 
   notes: {
-    saving: 'Saving…',
-    saved: 'Saved',
-    saveError: 'Could not save — check the connection.',
+    saving: "Saving…",
+    saved: "Saved",
+    saveError: "Could not save — check the connection.",
   },
-}
+};
 
-export type StringsCatalogue = typeof strings
+export type StringsCatalogue = typeof strings;

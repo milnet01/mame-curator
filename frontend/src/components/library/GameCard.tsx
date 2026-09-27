@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   AlertTriangle,
   Ban,
@@ -9,26 +9,26 @@ import {
   Pencil,
   StickyNote,
   type LucideIcon,
-} from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-import { strings } from '@/strings'
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { strings } from "@/strings";
 import type {
   Badge,
   GameCard as GameCardType,
   ReviewBadgeKind,
   ReviewStateValue,
-} from '@/api/types'
+} from "@/api/types";
 
 interface GameCardProps {
-  card: GameCardType
-  focused?: boolean
-  inCart: boolean
-  onOpen: () => void
-  onAdd: (shortName: string) => void
+  card: GameCardType;
+  focused?: boolean;
+  inCart: boolean;
+  onOpen: () => void;
+  onAdd: (shortName: string) => void;
   /** P14 — per-card review state, rendered as a frontend-only badge in
    *  the same top-right slot as the existing backend-emitted badges. */
-  reviewState?: ReviewStateValue
+  reviewState?: ReviewStateValue;
 }
 
 const BADGE_LABELS: Record<Badge, string> = {
@@ -37,7 +37,7 @@ const BADGE_LABELS: Record<Badge, string> = {
   chd_missing: strings.library.badges.chd_missing,
   bios_missing: strings.library.badges.bios_missing,
   has_notes: strings.library.badges.has_notes,
-}
+};
 
 // FP11 § D5: emoji-as-functional-UI replaced by Lucide icons per
 // coding-standards § 4 ("No emojis as functional UI; use proper
@@ -49,7 +49,7 @@ const BADGE_ICONS: Record<Badge, LucideIcon> = {
   chd_missing: Disc,
   bios_missing: AlertTriangle,
   has_notes: StickyNote,
-}
+};
 
 // P14 — parallel maps for the frontend-only review-state badges. NOT
 // merged into BADGE_LABELS / BADGE_ICONS because those are typed
@@ -58,20 +58,20 @@ const BADGE_ICONS: Record<Badge, LucideIcon> = {
 const REVIEW_BADGE_LABELS: Record<ReviewBadgeKind, string> = {
   reviewed: strings.library.badges.reviewed,
   skipped: strings.library.badges.skipped,
-  'needs-decision': strings.library.badges.needsDecision,
-}
+  "needs-decision": strings.library.badges.needsDecision,
+};
 
 const REVIEW_BADGE_ICONS: Record<ReviewBadgeKind, LucideIcon> = {
   reviewed: CheckCircle,
   skipped: Ban,
-  'needs-decision': HelpCircle,
-}
+  "needs-decision": HelpCircle,
+};
 
 const REVIEW_BADGE_TINT: Record<ReviewBadgeKind, string> = {
-  reviewed: 'text-emerald-500',
-  skipped: 'text-rose-500',
-  'needs-decision': 'text-amber-500',
-}
+  reviewed: "text-emerald-500",
+  skipped: "text-rose-500",
+  "needs-decision": "text-amber-500",
+};
 
 export function GameCard({
   card,
@@ -81,8 +81,8 @@ export function GameCard({
   onAdd,
   reviewState,
 }: GameCardProps) {
-  const [imgFailed, setImgFailed] = useState(false)
-  const flyerSrc = `/media/${encodeURIComponent(card.short_name)}/boxart`
+  const [imgFailed, setImgFailed] = useState(false);
+  const flyerSrc = `/media/${encodeURIComponent(card.short_name)}/boxart`;
   // FP20-H: stable id wires aria-labelledby on the outer card to the
   // inner heading, so the button's accessible name is exactly the
   // game description — not the screen-reader-clobbering aria-label
@@ -96,7 +96,7 @@ export function GameCard({
   // tech announces the wrong title. Mitigation when that happens:
   // prefix `titleId` with the calling surface ("grid", "drawer") so
   // duplicates differ across surfaces.
-  const titleId = `gamecard-title-${card.short_name}`
+  const titleId = `gamecard-title-${card.short_name}`;
 
   // FP24-E + Q: outer wrapper is role="button" div, not a native
   // <button>. The inner +Add is itself a real button and nested
@@ -106,11 +106,11 @@ export function GameCard({
   // visible focus to attach to (FP11 § D4's `className="contents"`
   // ate the button's CSS box, leaving the ring nowhere to render).
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      onOpen()
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onOpen();
     }
-  }
+  };
 
   return (
     <div
@@ -123,8 +123,8 @@ export function GameCard({
     >
       <Card
         className={cn(
-          'flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg',
-          focused && 'ring-2 ring-ring',
+          "flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg",
+          focused && "ring-2 ring-ring",
         )}
       >
         {/* FP14: image area uses flex-1 + object-contain instead of
@@ -137,8 +137,8 @@ export function GameCard({
           <button
             type="button"
             onClick={(e) => {
-              e.stopPropagation()
-              onAdd(card.short_name)
+              e.stopPropagation();
+              onAdd(card.short_name);
             }}
             aria-label={
               inCart
@@ -169,7 +169,7 @@ export function GameCard({
           {(card.badges.length > 0 || reviewState !== undefined) && (
             <ul className="absolute right-1 top-1 flex flex-col gap-1">
               {card.badges.map((b) => {
-                const Icon = BADGE_ICONS[b]
+                const Icon = BADGE_ICONS[b];
                 return (
                   <li
                     key={b}
@@ -179,7 +179,7 @@ export function GameCard({
                   >
                     <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                   </li>
-                )
+                );
               })}
               {reviewState !== undefined && (
                 <li
@@ -190,13 +190,16 @@ export function GameCard({
                   className="flex h-6 w-6 items-center justify-center rounded-full bg-background/90 shadow-sm"
                 >
                   {(() => {
-                    const ReviewIcon = REVIEW_BADGE_ICONS[reviewState]
+                    const ReviewIcon = REVIEW_BADGE_ICONS[reviewState];
                     return (
                       <ReviewIcon
-                        className={cn('h-3.5 w-3.5', REVIEW_BADGE_TINT[reviewState])}
+                        className={cn(
+                          "h-3.5 w-3.5",
+                          REVIEW_BADGE_TINT[reviewState],
+                        )}
                         aria-hidden="true"
                       />
-                    )
+                    );
                   })()}
                 </li>
               )}
@@ -214,10 +217,10 @@ export function GameCard({
             {card.short_name}
           </p>
           <p className="text-xs text-muted-foreground">
-            {[card.year, card.publisher].filter(Boolean).join(' · ') || '—'}
+            {[card.year, card.publisher].filter(Boolean).join(" · ") || "—"}
           </p>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -1,8 +1,8 @@
-import { Button } from '@/components/ui/button'
-import { strings } from '@/strings'
+import { Button } from "@/components/ui/button";
+import { strings } from "@/strings";
 
 interface LibraryErrorPanelProps {
-  onRetry: () => void
+  onRetry: () => void;
   /**
    * FP25-H: gates the Retry button's enabled state. While the in-flight
    * refetch is running, the button disables + label switches to
@@ -10,7 +10,7 @@ interface LibraryErrorPanelProps {
    * Optional with a default of `false` so the FP20-I call sites don't
    * have to thread the prop until they care.
    */
-  isFetching?: boolean
+  isFetching?: boolean;
 }
 
 /**
@@ -45,5 +45,5 @@ export function LibraryErrorPanel({
         </Button>
       </div>
     </div>
-  )
+  );
 }

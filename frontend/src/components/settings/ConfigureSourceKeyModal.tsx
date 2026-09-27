@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,19 +8,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { ApiError } from '@/api/client'
-import { useSaveSourceSecret } from '@/hooks/useMediaSources'
-import { strings } from '@/strings'
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ApiError } from "@/api/client";
+import { useSaveSourceSecret } from "@/hooks/useMediaSources";
+import { strings } from "@/strings";
 
 interface ConfigureSourceKeyModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  sourceName: string
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  sourceName: string;
 }
-
 
 /**
  * P10 chunk 10 — paste a value-paste source's API key (currently mobyGames).
@@ -32,18 +31,18 @@ export function ConfigureSourceKeyModal({
   onOpenChange,
   sourceName,
 }: ConfigureSourceKeyModalProps) {
-  const [secret, setSecret] = useState('')
-  const save = useSaveSourceSecret()
+  const [secret, setSecret] = useState("");
+  const save = useSaveSourceSecret();
 
   // Defensive clear: wipe the typed key (and any stale error) on close so a
   // reopen starts blank instead of relying on unmount to drop the state.
   const handleOpenChange = (next: boolean) => {
     if (!next) {
-      setSecret('')
-      save.reset()
+      setSecret("");
+      save.reset();
     }
-    onOpenChange(next)
-  }
+    onOpenChange(next);
+  };
 
   const onSave = () => {
     save.mutate(
@@ -51,23 +50,29 @@ export function ConfigureSourceKeyModal({
       // Close through handleOpenChange so the secret clear + mutation reset are
       // the single close path (FP33 INFO — was onOpenChange, skipping reset).
       { onSuccess: () => handleOpenChange(false) },
-    )
-  }
+    );
+  };
 
   // Surface the server's ApiError detail (e.g. unknown-source vs bad-key)
   // rather than a fixed generic string the user can't act on.
   const errorText =
-    save.error instanceof ApiError ? save.error.detail : strings.settings.mediaKeyModal.error
+    save.error instanceof ApiError
+      ? save.error.detail
+      : strings.settings.mediaKeyModal.error;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{strings.settings.mediaKeyModal.title}</DialogTitle>
-          <DialogDescription>{strings.settings.mediaKeyModal.body}</DialogDescription>
+          <DialogDescription>
+            {strings.settings.mediaKeyModal.body}
+          </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="media-source-key">{strings.settings.mediaKeyModal.inputLabel}</Label>
+          <Label htmlFor="media-source-key">
+            {strings.settings.mediaKeyModal.inputLabel}
+          </Label>
           <Input
             id="media-source-key"
             type="password"
@@ -84,11 +89,14 @@ export function ConfigureSourceKeyModal({
           <Button variant="ghost" onClick={() => handleOpenChange(false)}>
             {strings.settings.mediaKeyModal.cancel}
           </Button>
-          <Button onClick={onSave} disabled={secret.length === 0 || save.isPending}>
+          <Button
+            onClick={onSave}
+            disabled={secret.length === 0 || save.isPending}
+          >
             {strings.settings.mediaKeyModal.save}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

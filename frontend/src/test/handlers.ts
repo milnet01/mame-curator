@@ -1,5 +1,5 @@
-import { setupServer } from 'msw/node'
-import { http, HttpResponse, type JsonBodyType } from 'msw'
+import { setupServer } from "msw/node";
+import { http, HttpResponse, type JsonBodyType } from "msw";
 
 /**
  * MSW base handlers shared across the Vitest suite.
@@ -13,16 +13,16 @@ import { http, HttpResponse, type JsonBodyType } from 'msw'
  * readiness override it with their own `server.use(...)`.
  */
 export const baseHandlers: Parameters<typeof setupServer> = [
-  http.get('/api/media/sources', () => HttpResponse.json({ sources: [] })),
+  http.get("/api/media/sources", () => HttpResponse.json({ sources: [] })),
   // P10 chunk 11: the Alternatives drawer's AboutSection fires
   // useWikipediaExtract on mount; default to "no page" so drawer-rendering
   // tests don't hit an unhandled request. Tests that assert the About text
   // override this with their own server.use(...).
-  http.get('/media/:name/wiki', () => HttpResponse.json(null)),
-]
+  http.get("/media/:name/wiki", () => HttpResponse.json(null)),
+];
 
-export const server = setupServer(...baseHandlers)
-export { http, HttpResponse }
+export const server = setupServer(...baseHandlers);
+export { http, HttpResponse };
 
 /**
  * Build a ``GET /api/fs/list`` handler that returns ``homeListing`` for
@@ -34,13 +34,16 @@ export { http, HttpResponse }
  * (the JSON payload to return for it), keeping the helper free of
  * test-file globals.
  */
-export function makeSandboxedListHandler(home: string, homeListing: JsonBodyType) {
-  return http.get('/api/fs/list', ({ request }) => {
-    const path = new URL(request.url).searchParams.get('path')
-    if (path === home) return HttpResponse.json(homeListing)
+export function makeSandboxedListHandler(
+  home: string,
+  homeListing: JsonBodyType,
+) {
+  return http.get("/api/fs/list", ({ request }) => {
+    const path = new URL(request.url).searchParams.get("path");
+    if (path === home) return HttpResponse.json(homeListing);
     return HttpResponse.json(
-      { code: 'fs_sandboxed', detail: `${path} outside allowlist`, fields: [] },
+      { code: "fs_sandboxed", detail: `${path} outside allowlist`, fields: [] },
       { status: 403 },
-    )
-  })
+    );
+  });
 }

@@ -1,15 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
-import { ConfirmationDialog } from '../ConfirmationDialog'
+import { ConfirmationDialog } from "../ConfirmationDialog";
 
-describe('ConfirmationDialog', () => {
+describe("ConfirmationDialog", () => {
   // Restore the console.error spy even if the .toThrow assertion fails,
   // so a leaked silencer can't mask real errors in later tests.
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => vi.restoreAllMocks());
 
-  it('renders the concrete action label and target description', () => {
+  it("renders the concrete action label and target description", () => {
     render(
       <ConfirmationDialog
         open
@@ -19,19 +19,19 @@ describe('ConfirmationDialog', () => {
         actionLabel="Delete 3 files from drive"
         onConfirm={() => {}}
       />,
-    )
+    );
     // The action label must NOT be a generic "OK".
-    expect(screen.queryByRole('button', { name: /^OK$/ })).toBeNull()
+    expect(screen.queryByRole("button", { name: /^OK$/ })).toBeNull();
     expect(
-      screen.getByRole('button', { name: 'Delete 3 files from drive' }),
-    ).toBeInTheDocument()
+      screen.getByRole("button", { name: "Delete 3 files from drive" }),
+    ).toBeInTheDocument();
     // Both the AlertDialog description and the action button carry the
     // concrete target text.
-    expect(screen.getAllByText('Delete 3 files from drive')).toHaveLength(2)
-  })
+    expect(screen.getAllByText("Delete 3 files from drive")).toHaveLength(2);
+  });
 
   it('throws if the action label is "OK"', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() =>
       render(
         <ConfirmationDialog
@@ -43,13 +43,13 @@ describe('ConfirmationDialog', () => {
           onConfirm={() => {}}
         />,
       ),
-    ).toThrow(/concrete/i)
-  })
+    ).toThrow(/concrete/i);
+  });
 
-  it('calls onConfirm and closes when the action button is clicked', async () => {
-    const user = userEvent.setup()
-    const onConfirm = vi.fn()
-    const onOpenChange = vi.fn()
+  it("calls onConfirm and closes when the action button is clicked", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    const onOpenChange = vi.fn();
     render(
       <ConfirmationDialog
         open
@@ -59,11 +59,11 @@ describe('ConfirmationDialog', () => {
         actionLabel="Reset configuration"
         onConfirm={onConfirm}
       />,
-    )
+    );
     await user.click(
-      screen.getByRole('button', { name: 'Reset configuration' }),
-    )
-    expect(onConfirm).toHaveBeenCalled()
-    expect(onOpenChange).toHaveBeenCalledWith(false)
-  })
-})
+      screen.getByRole("button", { name: "Reset configuration" }),
+    );
+    expect(onConfirm).toHaveBeenCalled();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});

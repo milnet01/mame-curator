@@ -1,5 +1,5 @@
-import { WikipediaExtractSchema, type WikipediaExtract } from '@/api/types'
-import { useApiQuery } from './useApi'
+import { WikipediaExtractSchema, type WikipediaExtract } from "@/api/types";
+import { useApiQuery } from "./useApi";
 
 /**
  * P10 chunk 11 — the Wikipedia "About" paragraph for the Alternatives drawer.
@@ -10,9 +10,9 @@ import { useApiQuery } from './useApi'
  */
 export function useWikipediaExtract(shortName: string, enabled = true) {
   return useApiQuery<WikipediaExtract | null>(
-    ['wikipedia', shortName],
+    ["wikipedia", shortName],
     `/media/${encodeURIComponent(shortName)}/wiki`,
     WikipediaExtractSchema.nullable(),
     { enabled, staleTime: Infinity },
-  )
+  );
 }

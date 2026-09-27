@@ -13,32 +13,32 @@
  * then break the promise with nothing failing. If this ever fails,
  * FP27 A6a escalates to A6c: wire `Esc` ourselves or drop the promise.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet'
-import { ConfirmationDialog } from '../ConfirmationDialog'
+} from "@/components/ui/sheet";
+import { ConfirmationDialog } from "../ConfirmationDialog";
 
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});
 
-describe('FP27 A6a — Radix overlays close on Esc', () => {
-  it('AlertDialog (via ConfirmationDialog) closes when Esc is dispatched', async () => {
-    const onOpenChange = vi.fn()
+describe("FP27 A6a — Radix overlays close on Esc", () => {
+  it("AlertDialog (via ConfirmationDialog) closes when Esc is dispatched", async () => {
+    const onOpenChange = vi.fn();
     render(
       <ConfirmationDialog
         open
@@ -48,16 +48,16 @@ describe('FP27 A6a — Radix overlays close on Esc', () => {
         actionLabel="Delete 3 files from drive"
         onConfirm={() => {}}
       />,
-    )
+    );
     expect(
-      screen.getByRole('alertdialog', { name: 'Delete 3 files' }),
-    ).toBeInTheDocument()
-    await userEvent.keyboard('{Escape}')
-    expect(onOpenChange).toHaveBeenCalledWith(false)
-  })
+      screen.getByRole("alertdialog", { name: "Delete 3 files" }),
+    ).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
 
-  it('plain Dialog closes when Esc is dispatched', async () => {
-    const onOpenChange = vi.fn()
+  it("plain Dialog closes when Esc is dispatched", async () => {
+    const onOpenChange = vi.fn();
     render(
       <Dialog open onOpenChange={onOpenChange}>
         <DialogContent>
@@ -66,16 +66,16 @@ describe('FP27 A6a — Radix overlays close on Esc', () => {
           </DialogHeader>
         </DialogContent>
       </Dialog>,
-    )
+    );
     expect(
-      screen.getByRole('dialog', { name: 'Plain dialog under test' }),
-    ).toBeInTheDocument()
-    await userEvent.keyboard('{Escape}')
-    expect(onOpenChange).toHaveBeenCalledWith(false)
-  })
+      screen.getByRole("dialog", { name: "Plain dialog under test" }),
+    ).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
 
-  it('drawer (Sheet) closes when Esc is dispatched', async () => {
-    const onOpenChange = vi.fn()
+  it("drawer (Sheet) closes when Esc is dispatched", async () => {
+    const onOpenChange = vi.fn();
     render(
       <Sheet open onOpenChange={onOpenChange}>
         <SheetContent>
@@ -85,11 +85,11 @@ describe('FP27 A6a — Radix overlays close on Esc', () => {
           </SheetHeader>
         </SheetContent>
       </Sheet>,
-    )
+    );
     expect(
-      screen.getByRole('dialog', { name: 'Drawer under test' }),
-    ).toBeInTheDocument()
-    await userEvent.keyboard('{Escape}')
-    expect(onOpenChange).toHaveBeenCalledWith(false)
-  })
-})
+      screen.getByRole("dialog", { name: "Drawer under test" }),
+    ).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});

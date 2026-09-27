@@ -1,6 +1,6 @@
-import { defineConfig, devices } from '@playwright/test'
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
+import { defineConfig, devices } from "@playwright/test";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
 /**
  * Playwright config for README screenshots — separate from the
@@ -16,24 +16,22 @@ import path from 'node:path'
  */
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../..',
-)
-const realConfig = path.join(projectRoot, 'config.yaml')
+  "../..",
+);
+const realConfig = path.join(projectRoot, "config.yaml");
 
 export default defineConfig({
-  testDir: '.',
+  testDir: ".",
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  reporter: [['list']],
+  reporter: [["list"]],
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: "http://127.0.0.1:4173",
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
   },
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  ],
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
       // `--no-open-browser` because this one runs against the REAL config,
@@ -49,10 +47,10 @@ export default defineConfig({
       timeout: 60_000,
     },
     {
-      command: 'npm run preview -- --port 4173 --host 127.0.0.1',
+      command: "npm run preview -- --port 4173 --host 127.0.0.1",
       port: 4173,
       reuseExistingServer: true,
       timeout: 30_000,
     },
   ],
-})
+});

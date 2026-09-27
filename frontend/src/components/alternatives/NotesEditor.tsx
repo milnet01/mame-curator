@@ -1,13 +1,13 @@
-import { useState } from 'react'
-import { Label } from '@/components/ui/label'
-import { strings } from '@/strings'
+import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { strings } from "@/strings";
 
 interface NotesEditorProps {
-  initial: string
-  onSave: (notes: string) => Promise<void>
+  initial: string;
+  onSave: (notes: string) => Promise<void>;
 }
 
-type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 /**
  * Notes editor for the alternatives drawer.
@@ -31,21 +31,21 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error'
  * flight.
  */
 export function NotesEditor({ initial, onSave }: NotesEditorProps) {
-  const [draft, setDraft] = useState(initial)
-  const [lastSaved, setLastSaved] = useState(initial)
-  const [saveState, setSaveState] = useState<SaveState>('idle')
+  const [draft, setDraft] = useState(initial);
+  const [lastSaved, setLastSaved] = useState(initial);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
 
   const handleBlur = async () => {
-    if (draft === lastSaved) return
-    setSaveState('saving')
+    if (draft === lastSaved) return;
+    setSaveState("saving");
     try {
-      await onSave(draft)
-      setLastSaved(draft)
-      setSaveState('saved')
+      await onSave(draft);
+      setLastSaved(draft);
+      setSaveState("saved");
     } catch {
-      setSaveState('error')
+      setSaveState("error");
     }
-  }
+  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -53,13 +53,13 @@ export function NotesEditor({ initial, onSave }: NotesEditorProps) {
         <Label htmlFor="notes-editor">{strings.alternatives.notesLabel}</Label>
         <span
           className="text-xs text-muted-foreground"
-          role={saveState === 'error' ? 'alert' : 'status'}
-          aria-live={saveState === 'error' ? 'assertive' : 'polite'}
+          role={saveState === "error" ? "alert" : "status"}
+          aria-live={saveState === "error" ? "assertive" : "polite"}
           aria-atomic="true"
         >
-          {saveState === 'saving' && strings.notes.saving}
-          {saveState === 'saved' && strings.notes.saved}
-          {saveState === 'error' && strings.notes.saveError}
+          {saveState === "saving" && strings.notes.saving}
+          {saveState === "saved" && strings.notes.saved}
+          {saveState === "error" && strings.notes.saveError}
         </span>
       </div>
       <textarea
@@ -72,5 +72,5 @@ export function NotesEditor({ initial, onSave }: NotesEditorProps) {
         className="w-full rounded border bg-background p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
     </div>
-  )
+  );
 }

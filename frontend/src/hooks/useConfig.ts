@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiRequest } from '@/api/client'
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/api/client";
 import {
   AppConfigResponseSchema,
   ConfigExportBundleSchema,
@@ -7,58 +7,62 @@ import {
   type AppConfigResponse,
   type ConfigExportBundle,
   type SnapshotsListing,
-} from '@/api/types'
-import { toastApiError } from '@/lib/apiErrorToast'
-import { useApiQuery } from './useApi'
+} from "@/api/types";
+import { toastApiError } from "@/lib/apiErrorToast";
+import { useApiQuery } from "./useApi";
 
-const KEY = ['config'] as const
-const SNAPSHOTS_KEY = ['config', 'snapshots'] as const
+const KEY = ["config"] as const;
+const SNAPSHOTS_KEY = ["config", "snapshots"] as const;
 
 export function useConfig() {
-  return useApiQuery<AppConfigResponse>(KEY, '/api/config', AppConfigResponseSchema)
+  return useApiQuery<AppConfigResponse>(
+    KEY,
+    "/api/config",
+    AppConfigResponseSchema,
+  );
 }
 
 export function useConfigPatch() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (patch: Partial<AppConfigResponse>) =>
-      apiRequest<AppConfigResponse>('/api/config', AppConfigResponseSchema, {
-        method: 'PATCH',
+      apiRequest<AppConfigResponse>("/api/config", AppConfigResponseSchema, {
+        method: "PATCH",
         body: patch,
       }),
     onSuccess: (next) => {
-      qc.setQueryData(KEY, next)
+      qc.setQueryData(KEY, next);
       // Each PATCH writes a fresh snapshot server-side (R15 contract);
       // invalidate so the Snapshots tab reflects the new entry on next read.
-      qc.invalidateQueries({ queryKey: SNAPSHOTS_KEY })
+      qc.invalidateQueries({ queryKey: SNAPSHOTS_KEY });
     },
     onError: toastApiError,
-  })
+  });
 }
 
 export function useSnapshots() {
   return useApiQuery<SnapshotsListing>(
     SNAPSHOTS_KEY,
-    '/api/config/snapshots',
+    "/api/config/snapshots",
     SnapshotsListingSchema,
-  )
+  );
 }
 
 export function useSnapshotRestore() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
       apiRequest<AppConfigResponse>(
         `/api/config/snapshots/${encodeURIComponent(id)}/restore`,
         AppConfigResponseSchema,
-        { method: 'POST' },
+        { method: "POST" },
       ),
     onSuccess: (next) => {
-      qc.setQueryData(KEY, next)
-      qc.invalidateQueries({ queryKey: SNAPSHOTS_KEY })
+      qc.setQueryData(KEY, next);
+      qc.invalidateQueries({ queryKey: SNAPSHOTS_KEY });
     },
     onError: toastApiError,
-  })
+  });
 }
 
 // FP12 § J — R18 export + R19 import. Backend takes / returns the full
@@ -68,25 +72,25 @@ export function useConfigExport() {
   return useMutation({
     mutationFn: () =>
       apiRequest<ConfigExportBundle>(
-        '/api/config/export',
+        "/api/config/export",
         ConfigExportBundleSchema,
-        { method: 'POST' },
+        { method: "POST" },
       ),
-  })
+  });
 }
 
 export function useConfigImport() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (bundle: ConfigExportBundle) =>
       apiRequest<AppConfigResponse>(
-        '/api/config/import',
+        "/api/config/import",
         AppConfigResponseSchema,
-        { method: 'POST', body: bundle },
+        { method: "POST", body: bundle },
       ),
     onSuccess: (next) => {
-      qc.setQueryData(KEY, next)
-      qc.invalidateQueries({ queryKey: SNAPSHOTS_KEY })
+      qc.setQueryData(KEY, next);
+      qc.invalidateQueries({ queryKey: SNAPSHOTS_KEY });
     },
-  })
+  });
 }

@@ -11,344 +11,344 @@
 
 // === Error envelope (api/errors.py) ========================================
 export interface FieldError {
-  loc: string
-  msg: string
-  type: string
+  loc: string;
+  msg: string;
+  type: string;
 }
 
 export interface ApiErrorBody {
-  detail: string
-  code: string
-  fields: FieldError[]
+  detail: string;
+  code: string;
+  fields: FieldError[];
 }
 
 // === Parser models (re-exported from schemas via Machine) ==================
-export type DriverStatus = 'good' | 'imperfect' | 'preliminary'
+export type DriverStatus = "good" | "imperfect" | "preliminary";
 
 export interface Rom {
-  name: string
-  size: number | null
-  crc: string | null
-  sha1: string | null
+  name: string;
+  size: number | null;
+  crc: string | null;
+  sha1: string | null;
 }
 
 export interface BiosSet {
-  name: string
-  description: string | null
-  default: boolean
+  name: string;
+  description: string | null;
+  default: boolean;
 }
 
 export interface Machine {
-  name: string
-  description: string
-  year: number | null
-  manufacturer_raw: string | null
-  publisher: string | null
-  developer: string | null
-  cloneof: string | null
-  romof: string | null
-  is_bios: boolean
-  is_device: boolean
-  is_mechanical: boolean
-  runnable: boolean
-  roms: Rom[]
-  biossets: BiosSet[]
-  driver_status: DriverStatus | null
-  sample_of: string | null
+  name: string;
+  description: string;
+  year: number | null;
+  manufacturer_raw: string | null;
+  publisher: string | null;
+  developer: string | null;
+  cloneof: string | null;
+  romof: string | null;
+  is_bios: boolean;
+  is_device: boolean;
+  is_mechanical: boolean;
+  runnable: boolean;
+  roms: Rom[];
+  biossets: BiosSet[];
+  driver_status: DriverStatus | null;
+  sample_of: string | null;
 }
 
 // === Filter types (TiebreakerHit, Session) =================================
 export interface TiebreakerHit {
-  name: string
-  detail: string
+  name: string;
+  detail: string;
 }
 
 export interface Session {
-  include_genres: string[]
-  include_publishers: string[]
-  include_developers: string[]
-  include_year_range: [number, number] | null
+  include_genres: string[];
+  include_publishers: string[];
+  include_developers: string[];
+  include_year_range: [number, number] | null;
 }
 
 // === Copy types (re-exported) ==============================================
-export type ConflictStrategy = 'APPEND' | 'OVERWRITE' | 'CANCEL'
+export type ConflictStrategy = "APPEND" | "OVERWRITE" | "CANCEL";
 
 export type AppendDecisionKind =
-  | 'KEEP_EXISTING'
-  | 'REPLACE'
-  | 'REPLACE_AND_RECYCLE'
+  | "KEEP_EXISTING"
+  | "REPLACE"
+  | "REPLACE_AND_RECYCLE";
 
 export interface AppendDecision {
-  kind: AppendDecisionKind
-  replaces: string | null
+  kind: AppendDecisionKind;
+  replaces: string | null;
 }
 
 export type CopyReportStatus =
-  | 'OK'
-  | 'CANCELLED'
-  | 'CANCELLED_PLAYLIST_CONFLICT'
-  | 'PARTIAL_FAILURE'
+  | "OK"
+  | "CANCELLED"
+  | "CANCELLED_PLAYLIST_CONFLICT"
+  | "PARTIAL_FAILURE";
 
 // === Config (api/schemas.py) ===============================================
 export interface PathsConfig {
-  source_roms: string
-  source_dat: string
-  dest_roms: string
-  retroarch_playlist: string
-  catver: string | null
-  languages: string | null
-  bestgames: string | null
-  mature: string | null
-  series: string | null
-  listxml: string | null
-  retroarch: string | null
-  retroarch_core: string | null
+  source_roms: string;
+  source_dat: string;
+  dest_roms: string;
+  retroarch_playlist: string;
+  catver: string | null;
+  languages: string | null;
+  bestgames: string | null;
+  mature: string | null;
+  series: string | null;
+  listxml: string | null;
+  retroarch: string | null;
+  retroarch_core: string | null;
 }
 
 export interface ServerConfig {
-  host: string
-  port: number
-  open_browser_on_start: boolean
+  host: string;
+  port: number;
+  open_browser_on_start: boolean;
 }
 
 export interface FsConfig {
-  granted_roots: string[]
+  granted_roots: string[];
 }
 
 export interface MediaConfig {
-  fetch_videos: boolean
-  cache_dir: string
+  fetch_videos: boolean;
+  cache_dir: string;
   // mame-curator-1081 — progettoSnaps pack root; the source reads snaps_dir/snap
-  snaps_dir: string
-  arcadedb_rate_limit_per_min: number
-  mobygames_rate_limit_per_min: number
+  snaps_dir: string;
+  arcadedb_rate_limit_per_min: number;
+  mobygames_rate_limit_per_min: number;
   // P10 chunk 7 — fallback source order (see api/schemas.py MediaConfig.sources)
-  sources: string[]
+  sources: string[];
 }
 
 // P10 chunk 8 — response body of GET /media/{name}/wiki (may be null).
 // Mirrors media/wikipedia.py WikipediaExtract; consumed by chunk 11's
 // useWikipediaExtract / AboutSection.
 export interface WikipediaExtract {
-  title: string
-  extract: string
-  url: string
-  license: string
+  title: string;
+  extract: string;
+  url: string;
+  license: string;
 }
 
 // P10 chunk 9 — media source readiness surface (GET /api/media/sources) +
 // secret write (PUT /api/media/sources/{name}/secret). Mirrors api/schemas.py
 // SourceReadinessRow / SourceReadiness / SourceSecret; consumed by chunk 10's
 // Settings → Media tab.
-export type MediaKind = 'boxart' | 'title' | 'snap'
+export type MediaKind = "boxart" | "title" | "snap";
 
 export interface SourceReadinessRow {
-  name: string
-  enabled: boolean
-  in_chain: boolean
-  kinds: MediaKind[]
-  license_compatible: boolean
-  disabled_reason: string | null
-  needs_config: boolean
+  name: string;
+  enabled: boolean;
+  in_chain: boolean;
+  kinds: MediaKind[];
+  license_compatible: boolean;
+  disabled_reason: string | null;
+  needs_config: boolean;
 }
 
 export interface SourceReadiness {
-  sources: SourceReadinessRow[]
+  sources: SourceReadinessRow[];
 }
 
 export interface SourceSecret {
-  secret: string
+  secret: string;
 }
 
 export type ThemeName =
-  | 'dark'
-  | 'light'
-  | 'double_dragon'
-  | 'pacman'
-  | 'sf2'
-  | 'neogeo'
+  | "dark"
+  | "light"
+  | "double_dragon"
+  | "pacman"
+  | "sf2"
+  | "neogeo";
 
-export type LayoutName = 'masonry' | 'list' | 'covers' | 'grouped'
+export type LayoutName = "masonry" | "list" | "covers" | "grouped";
 
-export type SortKey = 'name' | 'year' | 'manufacturer' | 'rating'
+export type SortKey = "name" | "year" | "manufacturer" | "rating";
 
-export type CardsPerRowHint = 'auto' | 4 | 5 | 6 | 8
+export type CardsPerRowHint = "auto" | 4 | 5 | 6 | 8;
 
 export interface UiConfig {
-  theme: ThemeName
-  layout: LayoutName
-  default_sort: SortKey
-  show_alternatives_indicator: boolean
-  cards_per_row_hint: CardsPerRowHint
-  cart_clear_on_copy: 'always' | 'on_success' | 'never'
+  theme: ThemeName;
+  layout: LayoutName;
+  default_sort: SortKey;
+  show_alternatives_indicator: boolean;
+  cards_per_row_hint: CardsPerRowHint;
+  cart_clear_on_copy: "always" | "on_success" | "never";
 }
 
 export interface UpdatesConfig {
-  channel: 'stable' | 'dev'
-  check_on_startup: boolean
-  ini_check_on_startup: boolean
+  channel: "stable" | "dev";
+  check_on_startup: boolean;
+  ini_check_on_startup: boolean;
 }
 
 export interface FilterConfig {
-  drop_bios_devices_mechanical: boolean
-  drop_categories: string[]
-  drop_genres: string[]
-  drop_publishers: string[]
-  drop_developers: string[]
-  drop_year_before: number | null
-  drop_year_after: number | null
-  drop_japanese_only_text: boolean
-  drop_preliminary_emulation: boolean
-  drop_chd_required: boolean
-  drop_mature: boolean
-  region_priority: string[]
-  preferred_genres: string[]
-  preferred_publishers: string[]
-  preferred_developers: string[]
-  prefer_parent_over_clone: boolean
-  prefer_good_driver: boolean
+  drop_bios_devices_mechanical: boolean;
+  drop_categories: string[];
+  drop_genres: string[];
+  drop_publishers: string[];
+  drop_developers: string[];
+  drop_year_before: number | null;
+  drop_year_after: number | null;
+  drop_japanese_only_text: boolean;
+  drop_preliminary_emulation: boolean;
+  drop_chd_required: boolean;
+  drop_mature: boolean;
+  region_priority: string[];
+  preferred_genres: string[];
+  preferred_publishers: string[];
+  preferred_developers: string[];
+  prefer_parent_over_clone: boolean;
+  prefer_good_driver: boolean;
 }
 
 export interface AppConfigResponse {
-  paths: PathsConfig
-  server: ServerConfig
-  filters: FilterConfig
-  media: MediaConfig
-  ui: UiConfig
-  updates: UpdatesConfig
-  fs: FsConfig
-  restart_required: boolean
+  paths: PathsConfig;
+  server: ServerConfig;
+  filters: FilterConfig;
+  media: MediaConfig;
+  ui: UiConfig;
+  updates: UpdatesConfig;
+  fs: FsConfig;
+  restart_required: boolean;
 }
 
 // === Games + metadata ======================================================
 export type Badge =
-  | 'contested'
-  | 'overridden'
-  | 'chd_missing'
-  | 'bios_missing'
-  | 'has_notes'
+  | "contested"
+  | "overridden"
+  | "chd_missing"
+  | "bios_missing"
+  | "has_notes";
 
 export interface GameCard {
-  short_name: string
-  description: string
-  year: number | null
-  manufacturer: string | null
-  publisher: string | null
-  developer: string | null
-  badges: Badge[]
+  short_name: string;
+  description: string;
+  year: number | null;
+  manufacturer: string | null;
+  publisher: string | null;
+  developer: string | null;
+  badges: Badge[];
 }
 
 export interface GamesPage {
-  items: GameCard[]
-  page: number
-  page_size: number
-  total: number
-  total_bytes: number
+  items: GameCard[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_bytes: number;
 }
 
 export interface ValidateRequest {
-  short_names: string[]
+  short_names: string[];
 }
 
 export interface ValidateResponse {
-  existing: string[]
-  missing: string[]
+  existing: string[];
+  missing: string[];
 }
 
 export interface GameDetail {
-  short_name: string
-  machine: Machine
-  category: string | null
-  languages: string[]
-  bestgames_tier: string | null
-  mature: boolean
-  chd_required: boolean
-  badges: Badge[]
-  override: string | null
-  parent: string
+  short_name: string;
+  machine: Machine;
+  category: string | null;
+  languages: string[];
+  bestgames_tier: string | null;
+  mature: boolean;
+  chd_required: boolean;
+  badges: Badge[];
+  override: string | null;
+  parent: string;
 }
 
 export interface Alternatives {
-  items: GameCard[]
+  items: GameCard[];
 }
 
 /** FP17: facets for FiltersSidebar dropdowns. ``letters`` uses ``'#'`` for digit-prefixed games. */
 export interface LibraryFacets {
-  genres: string[]
-  publishers: string[]
-  developers: string[]
-  letters: string[]
+  genres: string[];
+  publishers: string[];
+  developers: string[];
+  letters: string[];
 }
 
 /** FP19: outcome of POST /api/games/{name}/launch. */
 export interface LaunchResponse {
-  pid: number
-  rom_path: string
-  argv: string[]
+  pid: number;
+  rom_path: string;
+  argv: string[];
 }
 
 export interface Explanation {
-  short_name: string
-  parent: string
-  candidates: string[]
-  hits: TiebreakerHit[]
+  short_name: string;
+  parent: string;
+  candidates: string[];
+  hits: TiebreakerHit[];
 }
 
 export interface Notes {
-  notes: string
+  notes: string;
 }
 
 export interface NotesPutRequest {
-  notes: string
+  notes: string;
 }
 
 export interface Stats {
-  by_genre: Record<string, number>
-  by_decade: Record<string, number>
-  by_publisher: Record<string, number>
-  by_driver_status: Record<string, number>
-  total_bytes: number
+  by_genre: Record<string, number>;
+  by_decade: Record<string, number>;
+  by_publisher: Record<string, number>;
+  by_driver_status: Record<string, number>;
+  total_bytes: number;
 }
 
 // === Overrides + sessions ==================================================
 export interface OverridesView {
-  entries: Record<string, string>
-  warnings: string[]
+  entries: Record<string, string>;
+  warnings: string[];
 }
 
 export interface OverridePostRequest {
-  parent: string
-  winner: string
+  parent: string;
+  winner: string;
 }
 
 export interface SessionsListing {
-  active: string | null
-  sessions: Record<string, Session>
+  active: string | null;
+  sessions: Record<string, Session>;
 }
 
 export interface SessionUpsertRequest {
-  name: string
-  session: Session
+  name: string;
+  session: Session;
 }
 
 // === P14 — per-game review state ===========================================
-export type ReviewStateValue = 'reviewed' | 'skipped' | 'needs-decision'
+export type ReviewStateValue = "reviewed" | "skipped" | "needs-decision";
 
 /** Query-param values for ?review_state=; adds two sentinels. */
 export type ReviewStateFilter =
-  | 'all'
-  | 'pending'
-  | 'reviewed'
-  | 'skipped'
-  | 'needs-decision'
+  | "all"
+  | "pending"
+  | "reviewed"
+  | "skipped"
+  | "needs-decision";
 
 export interface StateView {
-  entries: Record<string, ReviewStateValue>
+  entries: Record<string, ReviewStateValue>;
 }
 
 export interface StatePostRequest {
-  short_name: string
-  state: ReviewStateValue
+  short_name: string;
+  state: ReviewStateValue;
 }
 
 /**
@@ -359,205 +359,205 @@ export interface StatePostRequest {
  * the locally cached `StateView`, so adding them to `Badge` would fail
  * the gate (no backend emitter).
  */
-export type ReviewBadgeKind = 'reviewed' | 'skipped' | 'needs-decision'
+export type ReviewBadgeKind = "reviewed" | "skipped" | "needs-decision";
 
 // === Snapshots / export-import =============================================
 export interface Snapshot {
-  id: string
-  ts: Date
-  files: string[]
+  id: string;
+  ts: Date;
+  files: string[];
 }
 
 export interface SnapshotsListing {
-  items: Snapshot[]
+  items: Snapshot[];
 }
 
 export interface ConfigExportBundle {
-  config: Record<string, unknown>
-  overrides: Record<string, unknown>
-  sessions: Record<string, unknown>
-  notes: Record<string, string>
+  config: Record<string, unknown>;
+  overrides: Record<string, unknown>;
+  sessions: Record<string, unknown>;
+  notes: Record<string, string>;
 }
 
 // === Copy job ==============================================================
 export interface CopyJobRequest {
-  selected_names: string[]
-  conflict_strategy: ConflictStrategy
-  append_decisions: Record<string, AppendDecision>
+  selected_names: string[];
+  conflict_strategy: ConflictStrategy;
+  append_decisions: Record<string, AppendDecision>;
 }
 
 export interface DryRunReport {
-  counts: Record<string, number>
-  summary: Record<string, unknown>
+  counts: Record<string, number>;
+  summary: Record<string, unknown>;
 }
 
 export interface JobAccepted {
-  job_id: string
+  job_id: string;
 }
 
 export type JobState =
-  | 'running'
-  | 'paused'
-  | 'terminating'
-  | 'finished'
-  | 'aborted'
+  | "running"
+  | "paused"
+  | "terminating"
+  | "finished"
+  | "aborted";
 
 export interface JobStatus {
-  job_id: string
-  state: JobState
-  started_at: Date
-  files_done: number
-  files_total: number
-  bytes_done: number
-  bytes_total: number
+  job_id: string;
+  state: JobState;
+  started_at: Date;
+  files_done: number;
+  files_total: number;
+  bytes_done: number;
+  bytes_total: number;
 }
 
 export type JobEventName =
-  | 'job_started'
-  | 'file_started'
-  | 'file_progress'
-  | 'file_finished'
-  | 'paused'
-  | 'resumed'
-  | 'bios_warning'
-  | 'job_finished'
-  | 'job_aborted'
+  | "job_started"
+  | "file_started"
+  | "file_progress"
+  | "file_finished"
+  | "paused"
+  | "resumed"
+  | "bios_warning"
+  | "job_finished"
+  | "job_aborted";
 
 export interface JobEvent {
-  event: JobEventName
-  payload: Record<string, unknown>
-  ts: Date
+  event: JobEventName;
+  payload: Record<string, unknown>;
+  ts: Date;
 }
 
 export interface CopyAbortRequest {
-  recycle_partial: boolean
+  recycle_partial: boolean;
 }
 
 export interface HistoryItem {
-  job_id: string
-  started_at: Date
-  finished_at: Date
-  status: CopyReportStatus
-  succeeded: number
-  failed: number
-  bytes_copied: number
+  job_id: string;
+  started_at: Date;
+  finished_at: Date;
+  status: CopyReportStatus;
+  succeeded: number;
+  failed: number;
+  bytes_copied: number;
 }
 
 export interface HistoryListing {
-  items: HistoryItem[]
-  page: number
-  page_size: number
-  total: number
+  items: HistoryItem[];
+  page: number;
+  page_size: number;
+  total: number;
 }
 
 // === Activity ==============================================================
 export interface ActivityPage {
-  items: Record<string, unknown>[]
-  page: number
-  page_size: number
-  total: number
+  items: Record<string, unknown>[];
+  page: number;
+  page_size: number;
+  total: number;
 }
 
 // === Filesystem ============================================================
 export interface FsEntry {
-  name: string
-  path: string
-  is_dir: boolean
-  size: number | null
-  mtime: Date
+  name: string;
+  path: string;
+  is_dir: boolean;
+  size: number | null;
+  mtime: Date;
 }
 
 export interface FsListing {
-  path: string
-  entries: FsEntry[]
-  parent: string | null
+  path: string;
+  entries: FsEntry[];
+  parent: string | null;
 }
 
 export interface FsPath {
-  path: string
+  path: string;
 }
 
 export interface FsAllowedRoot {
-  id: string
-  path: string
-  source: 'config' | 'granted'
+  id: string;
+  path: string;
+  source: "config" | "granted";
 }
 
 export interface FsAllowedRoots {
-  roots: FsAllowedRoot[]
+  roots: FsAllowedRoot[];
 }
 
 export interface FsDriveRoots {
-  roots: string[]
+  roots: string[];
 }
 
 export interface FsGrantRootRequest {
-  path: string
+  path: string;
 }
 
 // === Setup / updates stubs =================================================
 export interface SetupPathStatus {
-  path: string
-  exists: boolean
-  readable: boolean
-  writable: boolean
-  dat_parses: boolean | null
+  path: string;
+  exists: boolean;
+  readable: boolean;
+  writable: boolean;
+  dat_parses: boolean | null;
 }
 
 export interface SetupPaths {
-  source_roms: SetupPathStatus
-  source_dat: SetupPathStatus
-  dest_roms: SetupPathStatus
+  source_roms: SetupPathStatus;
+  source_dat: SetupPathStatus;
+  dest_roms: SetupPathStatus;
 }
 
 export interface SetupReferenceStatus {
-  path: string
-  exists: boolean
+  path: string;
+  exists: boolean;
 }
 
 export interface SetupReferenceFiles {
-  catver: SetupReferenceStatus
-  languages: SetupReferenceStatus
-  bestgames: SetupReferenceStatus
-  mature: SetupReferenceStatus
-  series: SetupReferenceStatus
-  listxml: SetupReferenceStatus
+  catver: SetupReferenceStatus;
+  languages: SetupReferenceStatus;
+  bestgames: SetupReferenceStatus;
+  mature: SetupReferenceStatus;
+  series: SetupReferenceStatus;
+  listxml: SetupReferenceStatus;
 }
 
 export interface SetupCheck {
-  config_present: boolean
-  paths: SetupPaths
-  reference_files: SetupReferenceFiles
-  cloneof_map_size: number
-  retroarch_configured: boolean
+  config_present: boolean;
+  paths: SetupPaths;
+  reference_files: SetupReferenceFiles;
+  cloneof_map_size: number;
+  retroarch_configured: boolean;
 }
 
 export interface AppUpdateInfo {
-  current_version: string
-  latest_version: string | null
-  update_available: boolean
+  current_version: string;
+  latest_version: string | null;
+  update_available: boolean;
 }
 
 export interface UpdatesCheck {
-  app: AppUpdateInfo
-  ini: unknown[]
+  app: AppUpdateInfo;
+  ini: unknown[];
 }
 
 // === Help ==================================================================
 export interface HelpTopic {
-  slug: string
-  title: string
+  slug: string;
+  title: string;
 }
 
 export interface HelpIndex {
-  topics: HelpTopic[]
+  topics: HelpTopic[];
 }
 
 export interface HelpContent {
-  slug: string
-  title: string
-  html: string
+  slug: string;
+  title: string;
+  html: string;
 }
 
 // === Re-export zod schemas (DS02 A3: split to keep both files ≤ caps) ======
-export * from './schemas'
+export * from "./schemas";

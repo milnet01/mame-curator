@@ -7,17 +7,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { strings } from '@/strings'
+} from "@/components/ui/alert-dialog";
+import { strings } from "@/strings";
 
 interface ConfirmationDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  title: string
-  description: string
-  actionLabel: string
-  onConfirm: () => void
-  destructive?: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  actionLabel: string;
+  onConfirm: () => void;
+  destructive?: boolean;
 }
 
 /**
@@ -28,16 +28,16 @@ interface ConfirmationDialogProps {
  * files from drive" or "Reset configuration to defaults".
  */
 const FORBIDDEN_LABELS_LOWER = new Set([
-  'ok',
-  'confirm',
-  'yes',
-  'continue',
-  'proceed',
-  'submit',
-  'done',
-  'apply',
-  'save',
-])
+  "ok",
+  "confirm",
+  "yes",
+  "continue",
+  "proceed",
+  "submit",
+  "done",
+  "apply",
+  "save",
+]);
 
 export function ConfirmationDialog({
   open,
@@ -56,13 +56,13 @@ export function ConfirmationDialog({
     throw new Error(
       `ConfirmationDialog: actionLabel must be concrete, not "${actionLabel}". ` +
         'Per design §8, name the verb + target (e.g. "Delete 3 files from drive").',
-    )
+    );
   }
 
   const handleConfirm = () => {
-    onConfirm()
-    onOpenChange(false)
-  }
+    onConfirm();
+    onOpenChange(false);
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -77,7 +77,7 @@ export function ConfirmationDialog({
             onClick={handleConfirm}
             className={
               destructive
-                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 : undefined
             }
           >
@@ -86,5 +86,5 @@ export function ConfirmationDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }

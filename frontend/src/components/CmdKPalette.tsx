@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -6,32 +6,32 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command'
-import { strings } from '@/strings'
+} from "@/components/ui/command";
+import { strings } from "@/strings";
 
 // FP27 A5: dropped 'games' and 'settings'. Zero production producers
 // ever populated those sections; only test fixtures did. Re-adding
 // them is a one-line per call-site change. See docs/specs/FP27-zombie-features-data-integrity.md § A5.
-export type CmdKSection = 'actions' | 'help'
+export type CmdKSection = "actions" | "help";
 
 export interface CmdKItem {
-  id: string
-  section: CmdKSection
-  label: string
-  value: string
+  id: string;
+  section: CmdKSection;
+  label: string;
+  value: string;
   /** Optional secondary text shown after the label. */
-  hint?: string
+  hint?: string;
 }
 
 interface CmdKPaletteProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  items: CmdKItem[]
-  onSelect: (value: string, item: CmdKItem) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  items: CmdKItem[];
+  onSelect: (value: string, item: CmdKItem) => void;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- SECTION_ORDER is the post-FP27 contract surface; A5 test imports it
-export const SECTION_ORDER: CmdKSection[] = ['actions', 'help']
+export const SECTION_ORDER: CmdKSection[] = ["actions", "help"];
 
 export function CmdKPalette({
   open,
@@ -47,24 +47,28 @@ export function CmdKPalette({
     const out: Record<CmdKSection, CmdKItem[]> = {
       actions: [],
       help: [],
-    }
-    for (const item of items) out[item.section].push(item)
-    return out
-  }, [items])
+    };
+    for (const item of items) out[item.section].push(item);
+    return out;
+  }, [items]);
 
   // cmdk's `<CommandItem value={...}>` is the field its fuzzy matcher
   // scores against — we set it to the **id** (stable, opaque) so
   // routing-shaped values (e.g. `/settings/paths`) don't leak into
   // the search match. Free-text matching is driven by `keywords`.
   const handleSelect = (id: string) => {
-    const picked = items.find((i) => i.id === id)
-    if (!picked) return
-    onSelect(picked.value, picked)
-    onOpenChange(false)
-  }
+    const picked = items.find((i) => i.id === id);
+    if (!picked) return;
+    onSelect(picked.value, picked);
+    onOpenChange(false);
+  };
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange} title={strings.app.name}>
+    <CommandDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={strings.app.name}
+    >
       <CommandInput placeholder={strings.cmdK.placeholder} />
       <CommandList>
         <CommandEmpty>{strings.cmdK.emptyHint}</CommandEmpty>
@@ -98,5 +102,5 @@ export function CmdKPalette({
         )}
       </CommandList>
     </CommandDialog>
-  )
+  );
 }

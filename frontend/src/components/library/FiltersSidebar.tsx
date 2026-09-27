@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import { Search } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Slider } from '@/components/ui/slider'
-import { Button } from '@/components/ui/button'
+import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,71 +12,74 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { cn } from '@/lib/utils'
-import { strings } from '@/strings'
-import type { LibraryFacets, ReviewStateFilter } from '@/api/types'
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
+import { strings } from "@/strings";
+import type { LibraryFacets, ReviewStateFilter } from "@/api/types";
 
-const DEBOUNCE_MS = 200
+const DEBOUNCE_MS = 200;
 
 /** Year-range slider extents. Earliest MAME machine is 1971; max
  *  pulled from the user's stats / DAT (FP11 § D6) — until that wiring
  *  lands, default to currentYear so the slider doesn't misclamp. */
-const YEAR_MIN = 1971
-const YEAR_MAX_FALLBACK = new Date().getFullYear()
+const YEAR_MIN = 1971;
+const YEAR_MAX_FALLBACK = new Date().getFullYear();
 
 export interface FilterSidebarState {
-  search: string
-  yearRange: [number, number]
+  search: string;
+  yearRange: [number, number];
   /** FP17: single-letter prefix bucket, ``'#'`` for digit-prefixed games. */
-  letter: string | null
+  letter: string | null;
   /** FP17: discrete genre / publisher / developer filters. */
-  genre: string | null
-  publisher: string | null
-  developer: string | null
-  onlyContested: boolean
-  onlyOverridden: boolean
-  onlyChdMissing: boolean
-  onlyBiosMissing: boolean
+  genre: string | null;
+  publisher: string | null;
+  developer: string | null;
+  onlyContested: boolean;
+  onlyOverridden: boolean;
+  onlyChdMissing: boolean;
+  onlyBiosMissing: boolean;
   /** P14 — segmented review-state filter. Default `all`. */
-  reviewState: ReviewStateFilter
+  reviewState: ReviewStateFilter;
 }
 
-const REVIEW_STATE_OPTIONS: { value: ReviewStateFilter; labelKey: keyof typeof strings.library.reviewState }[] = [
-  { value: 'all', labelKey: 'optionAll' },
-  { value: 'pending', labelKey: 'optionPending' },
-  { value: 'reviewed', labelKey: 'optionReviewed' },
-  { value: 'skipped', labelKey: 'optionSkipped' },
-  { value: 'needs-decision', labelKey: 'optionNeedsDecision' },
-]
+const REVIEW_STATE_OPTIONS: {
+  value: ReviewStateFilter;
+  labelKey: keyof typeof strings.library.reviewState;
+}[] = [
+  { value: "all", labelKey: "optionAll" },
+  { value: "pending", labelKey: "optionPending" },
+  { value: "reviewed", labelKey: "optionReviewed" },
+  { value: "skipped", labelKey: "optionSkipped" },
+  { value: "needs-decision", labelKey: "optionNeedsDecision" },
+];
 
 interface FiltersSidebarProps {
-  value: FilterSidebarState
-  onChange: (next: FilterSidebarState) => void
-  onSaveSession: (name: string) => void
+  value: FilterSidebarState;
+  onChange: (next: FilterSidebarState) => void;
+  onSaveSession: (name: string) => void;
   /** Optional bounds passed from the library data (max year in the
    *  visible set). Falls back to currentYear when absent. */
-  yearBounds?: { min: number; max: number }
+  yearBounds?: { min: number; max: number };
   /** FP17: facet values (genres / publishers / developers / letters)
    *  drawn from /api/library/facets. Falls back to empty arrays before
    *  the hook resolves so the sidebar still renders. */
-  facets?: LibraryFacets
+  facets?: LibraryFacets;
 }
 
 const SWITCH_KEYS = [
-  'onlyContested',
-  'onlyOverridden',
-  'onlyChdMissing',
-  'onlyBiosMissing',
-] as const
+  "onlyContested",
+  "onlyOverridden",
+  "onlyChdMissing",
+  "onlyBiosMissing",
+] as const;
 
 export function FiltersSidebar({
   value,
@@ -85,57 +88,59 @@ export function FiltersSidebar({
   yearBounds,
   facets,
 }: FiltersSidebarProps) {
-  const [searchDraft, setSearchDraft] = useState(value.search)
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
-  const [sessionName, setSessionName] = useState('')
+  const [searchDraft, setSearchDraft] = useState(value.search);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [sessionName, setSessionName] = useState("");
 
   // FP11 § D7: canonical debounce — single useEffect, single timer,
   // single cleanup. The prior implementation used a useRef + manual
   // double-clear; the React-canonical shape (timer is closed-over by
   // the cleanup) is shorter and equivalent.
   useEffect(() => {
-    if (searchDraft === value.search) return
+    if (searchDraft === value.search) return;
     const id = setTimeout(() => {
-      onChange({ ...value, search: searchDraft })
-    }, DEBOUNCE_MS)
-    return () => clearTimeout(id)
+      onChange({ ...value, search: searchDraft });
+    }, DEBOUNCE_MS);
+    return () => clearTimeout(id);
     // Watching only `searchDraft` is intentional — the parent `value`
     // identity churns on every dispatch and would re-arm the timer
     // in a loop. The `searchDraft === value.search` short-circuit
     // above handles the steady-state case.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchDraft])
+  }, [searchDraft]);
 
   const handleSwitch =
     (key: (typeof SWITCH_KEYS)[number]) => (next: boolean) => {
-      onChange({ ...value, [key]: next })
-    }
+      onChange({ ...value, [key]: next });
+    };
 
   const handleYearChange = (range: number[]) => {
-    if (range.length !== 2) return
-    onChange({ ...value, yearRange: [range[0]!, range[1]!] })
-  }
+    if (range.length !== 2) return;
+    onChange({ ...value, yearRange: [range[0]!, range[1]!] });
+  };
 
   const handleSave = () => {
-    if (!sessionName.trim()) return
-    onSaveSession(sessionName.trim())
-    setSessionName('')
-    setSaveDialogOpen(false)
-  }
+    if (!sessionName.trim()) return;
+    onSaveSession(sessionName.trim());
+    setSessionName("");
+    setSaveDialogOpen(false);
+  };
 
-  const yearMin = yearBounds?.min ?? YEAR_MIN
-  const yearMax = yearBounds?.max ?? YEAR_MAX_FALLBACK
+  const yearMin = yearBounds?.min ?? YEAR_MIN;
+  const yearMax = yearBounds?.max ?? YEAR_MAX_FALLBACK;
   const switchLabel: Record<(typeof SWITCH_KEYS)[number], string> = {
     onlyContested: strings.library.filters.onlyContested,
     onlyOverridden: strings.library.filters.onlyOverridden,
     onlyChdMissing: strings.library.filters.onlyChdMissing,
     onlyBiosMissing: strings.library.filters.onlyBiosMissing,
-  }
+  };
 
   return (
     <aside className="flex h-full flex-col gap-6 border-r p-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="filters-search">{strings.library.filters.searchLabel}</Label>
+        <Label htmlFor="filters-search">
+          {strings.library.filters.searchLabel}
+        </Label>
         <div className="relative">
           <Search
             className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground"
@@ -178,7 +183,7 @@ export function FiltersSidebar({
           <Label>{strings.library.filters.letterLabel}</Label>
           <div className="flex flex-wrap gap-1">
             {facets.letters.map((l) => {
-              const active = value.letter === l
+              const active = value.letter === l;
               return (
                 <button
                   key={l}
@@ -189,15 +194,15 @@ export function FiltersSidebar({
                   aria-pressed={active}
                   aria-label={strings.library.filters.letterAriaLabel(l)}
                   className={cn(
-                    'h-7 w-7 rounded border text-xs font-medium uppercase',
+                    "h-7 w-7 rounded border text-xs font-medium uppercase",
                     active
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-muted bg-muted/30 hover:bg-muted',
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-muted bg-muted/30 hover:bg-muted",
                   )}
                 >
-                  {l === '#' ? '#' : l.toUpperCase()}
+                  {l === "#" ? "#" : l.toUpperCase()}
                 </button>
-              )
+              );
             })}
           </div>
         </div>
@@ -233,7 +238,10 @@ export function FiltersSidebar({
       )}
 
       {/* P14 — segmented review-state filter (above the Only* switches). */}
-      <fieldset className="flex flex-col gap-2" data-testid="filters-review-state">
+      <fieldset
+        className="flex flex-col gap-2"
+        data-testid="filters-review-state"
+      >
         <legend className="text-sm font-medium">
           {strings.library.reviewState.legendLabel}
         </legend>
@@ -282,7 +290,9 @@ export function FiltersSidebar({
       </p>
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline">{strings.library.filters.saveAsSession}</Button>
+          <Button variant="outline">
+            {strings.library.filters.saveAsSession}
+          </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -308,7 +318,7 @@ export function FiltersSidebar({
         </DialogContent>
       </Dialog>
     </aside>
-  )
+  );
 }
 
 /** FP17 § C: facet Select with a sentinel "(any)" first option that
@@ -321,14 +331,14 @@ function FacetSelect({
   options,
   onChange,
 }: {
-  id: string
-  label: string
-  value: string | null
-  options: readonly string[]
-  onChange: (next: string | null) => void
+  id: string;
+  label: string;
+  value: string | null;
+  options: readonly string[];
+  onChange: (next: string | null) => void;
 }) {
-  if (options.length === 0) return null
-  const ANY = '__any__'
+  if (options.length === 0) return null;
+  const ANY = "__any__";
   return (
     <div className="flex flex-col gap-1">
       <Label htmlFor={id}>{label}</Label>
@@ -340,7 +350,9 @@ function FacetSelect({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ANY}>{strings.library.filters.anyOption}</SelectItem>
+          <SelectItem value={ANY}>
+            {strings.library.filters.anyOption}
+          </SelectItem>
           {options.map((o) => (
             <SelectItem key={o} value={o}>
               {o}
@@ -349,5 +361,5 @@ function FacetSelect({
         </SelectContent>
       </Select>
     </div>
-  )
+  );
 }

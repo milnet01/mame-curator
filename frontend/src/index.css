@@ -193,7 +193,12 @@
        as a bundled @font-face, so referencing it was misleading
        (system-ui always won). If a future P09 polish wants Inter
        on disk, add `@fontsource/inter` and re-introduce it here. */
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
   }
   body {
     @apply bg-background text-foreground;

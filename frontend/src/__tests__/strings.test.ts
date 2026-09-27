@@ -27,31 +27,30 @@
  *
  * See `docs/specs/FP27-zombie-features-data-integrity.md` § A8.
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from "vitest";
 
-import { strings } from '../strings'
+import { strings } from "../strings";
 
-type CatalogueNode = string | { [k: string]: CatalogueNode } | Array<CatalogueNode>
+type CatalogueNode =
+  | string
+  | { [k: string]: CatalogueNode }
+  | Array<CatalogueNode>;
 
-function flattenKeys(
-  node: CatalogueNode,
-  prefix: string,
-  out: string[],
-): void {
-  if (typeof node === 'string') {
-    out.push(prefix)
-    return
+function flattenKeys(node: CatalogueNode, prefix: string, out: string[]): void {
+  if (typeof node === "string") {
+    out.push(prefix);
+    return;
   }
   if (Array.isArray(node)) {
     // The catalogue uses arrays for tile lists with id+title objects;
     // skip them — they're not user-facing string keys per se, and the
     // sweep should ignore the array index as a "key".
-    return
+    return;
   }
-  if (node && typeof node === 'object') {
+  if (node && typeof node === "object") {
     for (const [k, v] of Object.entries(node)) {
-      const child = prefix ? `${prefix}.${k}` : k
-      flattenKeys(v as CatalogueNode, child, out)
+      const child = prefix ? `${prefix}.${k}` : k;
+      flattenKeys(v as CatalogueNode, child, out);
     }
   }
 }
@@ -72,50 +71,50 @@ const DYNAMIC_ACCESS_PARENTS = new Set<string>([
   // when a new pattern lands.
   //
   // CopyModal.tsx: `strings.copy.sessionState[state.state]`
-  'copy.sessionState',
+  "copy.sessionState",
   // CmdKPalette.tsx: `strings.cmdK.sections[item.section]`
-  'cmdK.sections',
+  "cmdK.sections",
   // apiErrorToast.ts: `strings.errors.byCode[err.code]`
-  'errors.byCode',
+  "errors.byCode",
   // LayoutSwitcher.tsx / ThemeSwitcher.tsx
-  'layouts',
-  'themes',
+  "layouts",
+  "themes",
   // SessionsPage.tsx — actions/metaLabels accessed by key
-  'sessions.actions',
-  'sessions.metaLabels',
+  "sessions.actions",
+  "sessions.metaLabels",
   // SettingsPage.tsx — section tabs, default-sort + cards-per-row
   // options + cart-clear options accessed by key
-  'settings.sections',
-  'settings.defaultSortOptions',
-  'settings.cardsPerRowOptions',
-  'settings.uiLabels.cart_clear_on_copy_options',
+  "settings.sections",
+  "settings.defaultSortOptions",
+  "settings.cardsPerRowOptions",
+  "settings.uiLabels.cart_clear_on_copy_options",
   // FiltersTab.tsx / PickerTab.tsx — chip list / placeholder accessed
   // by key
-  'settings.filterChipLists',
-  'settings.filterChipPlaceholders',
-  'settings.pickerChipLists',
-  'settings.pickerChipPlaceholders',
+  "settings.filterChipLists",
+  "settings.filterChipPlaceholders",
+  "settings.pickerChipLists",
+  "settings.pickerChipPlaceholders",
   // UpdatesTab.tsx — channel options accessed by key
-  'settings.updateChannelOptions',
+  "settings.updateChannelOptions",
   // P14 — FiltersSidebar.tsx: `strings.library.reviewState[opt.labelKey]`
-  'library.reviewState',
-])
+  "library.reviewState",
+]);
 
 function isDynamicAllowlisted(leafPath: string): boolean {
   for (const parent of DYNAMIC_ACCESS_PARENTS) {
-    if (leafPath === parent || leafPath.startsWith(parent + '.')) {
-      return true
+    if (leafPath === parent || leafPath.startsWith(parent + ".")) {
+      return true;
     }
   }
-  return false
+  return false;
 }
 
 // Load every TS/TSX file in frontend/src/ at test time as raw text.
 // Vite 8's `import.meta.glob` with `query: '?raw'` is stable.
 const consumerSources = import.meta.glob<string>(
-  ['../**/*.ts', '../**/*.tsx'],
-  { query: '?raw', import: 'default', eager: true },
-)
+  ["../**/*.ts", "../**/*.tsx"],
+  { query: "?raw", import: "default", eager: true },
+);
 
 const EXCLUDED_PATH_FRAGMENTS = [
   // DS02 A3 — the catalogue itself moved to `strings_internal.ts`;
@@ -124,41 +123,41 @@ const EXCLUDED_PATH_FRAGMENTS = [
   // contains the substring `strings.loading.sessions` after dotted
   // flattening), which would defeat the orphan sweep. Excluding both
   // halves of the re-export pair keeps the sweep strict.
-  '/strings.ts',
-  '/strings_internal.ts',
-  '/__tests__/',
-  '.test.tsx',
-  '.test.ts',
-]
+  "/strings.ts",
+  "/strings_internal.ts",
+  "/__tests__/",
+  ".test.tsx",
+  ".test.ts",
+];
 
 const CONSUMER_HAYSTACK: string = Object.entries(consumerSources)
   .filter(([path]) => !EXCLUDED_PATH_FRAGMENTS.some((f) => path.includes(f)))
   .map(([, src]) => src)
-  .join('\n')
+  .join("\n");
 
-describe('FP27 A8 — strings.ts has no orphan keys', () => {
-  it('every flat dotted-path is consumed somewhere in frontend/src/', () => {
-    const flat: string[] = []
-    flattenKeys(strings as unknown as CatalogueNode, '', flat)
-    expect(flat.length).toBeGreaterThan(0)
+describe("FP27 A8 — strings.ts has no orphan keys", () => {
+  it("every flat dotted-path is consumed somewhere in frontend/src/", () => {
+    const flat: string[] = [];
+    flattenKeys(strings as unknown as CatalogueNode, "", flat);
+    expect(flat.length).toBeGreaterThan(0);
 
-    const orphans: string[] = []
+    const orphans: string[] = [];
     for (const dotted of flat) {
       // Strict: require the EXACT full dotted path
       // `strings.<dotted>` to appear in some consumer file. Dynamic-
       // access patterns (e.g. `strings.cmdK.sections[section]`) opt
       // in via DYNAMIC_ACCESS_PARENTS.
       if (isDynamicAllowlisted(dotted)) {
-        continue
+        continue;
       }
-      const fullPath = 'strings.' + dotted
+      const fullPath = "strings." + dotted;
       if (!CONSUMER_HAYSTACK.includes(fullPath)) {
-        orphans.push(fullPath)
+        orphans.push(fullPath);
       }
     }
 
     // Helpful failure: print the orphan list so the developer can
     // delete them directly.
-    expect(orphans, `orphan strings keys:\n${orphans.join('\n')}`).toEqual([])
-  })
-})
+    expect(orphans, `orphan strings keys:\n${orphans.join("\n")}`).toEqual([]);
+  });
+});

@@ -1,169 +1,175 @@
-import { describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
-import { DragReorderList } from '../DragReorderList'
+import { DragReorderList } from "../DragReorderList";
 
 // DS04 T3.1: removed redundant `afterEach(() => cleanup())` — vitest
 // `globals: true` enables RTL's auto-cleanup.
 
-describe('DragReorderList', () => {
-  it('exposes the list with the supplied ariaLabel and renders items in order', () => {
+describe("DragReorderList", () => {
+  it("exposes the list with the supplied ariaLabel and renders items in order", () => {
     render(
       <DragReorderList
         ariaLabel="Region priority"
-        items={['us', 'eu', 'jp']}
+        items={["us", "eu", "jp"]}
         onChange={() => {}}
       />,
-    )
-    const list = screen.getByRole('list', { name: 'Region priority' })
-    const items = within(list).getAllByRole('listitem')
-    expect(items).toHaveLength(3)
-    expect(within(items[0]).getByText('us')).toBeInTheDocument()
-    expect(within(items[1]).getByText('eu')).toBeInTheDocument()
-    expect(within(items[2]).getByText('jp')).toBeInTheDocument()
-  })
+    );
+    const list = screen.getByRole("list", { name: "Region priority" });
+    const items = within(list).getAllByRole("listitem");
+    expect(items).toHaveLength(3);
+    expect(within(items[0]).getByText("us")).toBeInTheDocument();
+    expect(within(items[1]).getByText("eu")).toBeInTheDocument();
+    expect(within(items[2]).getByText("jp")).toBeInTheDocument();
+  });
 
-  it('moves an item down when its Down button is clicked', async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
+  it("moves an item down when its Down button is clicked", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
     render(
       <DragReorderList
         ariaLabel="Region priority"
-        items={['us', 'eu', 'jp']}
+        items={["us", "eu", "jp"]}
         onChange={onChange}
       />,
-    )
-    await user.click(screen.getByRole('button', { name: 'Move us down' }))
-    expect(onChange).toHaveBeenCalledWith(['eu', 'us', 'jp'])
-  })
+    );
+    await user.click(screen.getByRole("button", { name: "Move us down" }));
+    expect(onChange).toHaveBeenCalledWith(["eu", "us", "jp"]);
+  });
 
-  it('moves an item up when its Up button is clicked', async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
+  it("moves an item up when its Up button is clicked", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
     render(
       <DragReorderList
         ariaLabel="Region priority"
-        items={['us', 'eu', 'jp']}
+        items={["us", "eu", "jp"]}
         onChange={onChange}
       />,
-    )
-    await user.click(screen.getByRole('button', { name: 'Move jp up' }))
-    expect(onChange).toHaveBeenCalledWith(['us', 'jp', 'eu'])
-  })
+    );
+    await user.click(screen.getByRole("button", { name: "Move jp up" }));
+    expect(onChange).toHaveBeenCalledWith(["us", "jp", "eu"]);
+  });
 
-  it('disables the Up button on the first item', () => {
+  it("disables the Up button on the first item", () => {
     render(
       <DragReorderList
         ariaLabel="Region priority"
-        items={['us', 'eu', 'jp']}
+        items={["us", "eu", "jp"]}
         onChange={() => {}}
       />,
-    )
-    expect(screen.getByRole('button', { name: 'Move us up' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Move eu up' })).not.toBeDisabled()
-  })
+    );
+    expect(screen.getByRole("button", { name: "Move us up" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Move eu up" }),
+    ).not.toBeDisabled();
+  });
 
-  it('disables the Down button on the last item', () => {
+  it("disables the Down button on the last item", () => {
     render(
       <DragReorderList
         ariaLabel="Region priority"
-        items={['us', 'eu', 'jp']}
+        items={["us", "eu", "jp"]}
         onChange={() => {}}
       />,
-    )
-    expect(screen.getByRole('button', { name: 'Move jp down' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Move eu down' })).not.toBeDisabled()
-  })
+    );
+    expect(screen.getByRole("button", { name: "Move jp down" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Move eu down" }),
+    ).not.toBeDisabled();
+  });
 
-  it('reorders downward via ArrowDown when an item is focused', async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
+  it("reorders downward via ArrowDown when an item is focused", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
     render(
       <DragReorderList
         ariaLabel="Region priority"
-        items={['us', 'eu', 'jp']}
+        items={["us", "eu", "jp"]}
         onChange={onChange}
       />,
-    )
-    const items = screen.getAllByRole('listitem')
-    items[0].focus()
-    await user.keyboard('{ArrowDown}')
-    expect(onChange).toHaveBeenCalledWith(['eu', 'us', 'jp'])
-  })
+    );
+    const items = screen.getAllByRole("listitem");
+    items[0].focus();
+    await user.keyboard("{ArrowDown}");
+    expect(onChange).toHaveBeenCalledWith(["eu", "us", "jp"]);
+  });
 
-  it('reorders upward via ArrowUp when an item is focused', async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
+  it("reorders upward via ArrowUp when an item is focused", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
     render(
       <DragReorderList
         ariaLabel="Region priority"
-        items={['us', 'eu', 'jp']}
+        items={["us", "eu", "jp"]}
         onChange={onChange}
       />,
-    )
-    const items = screen.getAllByRole('listitem')
-    items[2].focus()
-    await user.keyboard('{ArrowUp}')
-    expect(onChange).toHaveBeenCalledWith(['us', 'jp', 'eu'])
-  })
+    );
+    const items = screen.getAllByRole("listitem");
+    items[2].focus();
+    await user.keyboard("{ArrowUp}");
+    expect(onChange).toHaveBeenCalledWith(["us", "jp", "eu"]);
+  });
 
-  it('ignores ArrowUp on the first item (no onChange)', async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
+  it("ignores ArrowUp on the first item (no onChange)", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
     render(
       <DragReorderList
         ariaLabel="Region priority"
-        items={['us', 'eu', 'jp']}
+        items={["us", "eu", "jp"]}
         onChange={onChange}
       />,
-    )
-    const items = screen.getAllByRole('listitem')
-    items[0].focus()
-    await user.keyboard('{ArrowUp}')
-    expect(onChange).not.toHaveBeenCalled()
-  })
+    );
+    const items = screen.getAllByRole("listitem");
+    items[0].focus();
+    await user.keyboard("{ArrowUp}");
+    expect(onChange).not.toHaveBeenCalled();
+  });
 
-  it('ignores ArrowDown on the last item (no onChange)', async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
+  it("ignores ArrowDown on the last item (no onChange)", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
     render(
       <DragReorderList
         ariaLabel="Region priority"
-        items={['us', 'eu', 'jp']}
+        items={["us", "eu", "jp"]}
         onChange={onChange}
       />,
-    )
-    const items = screen.getAllByRole('listitem')
-    items[2].focus()
-    await user.keyboard('{ArrowDown}')
-    expect(onChange).not.toHaveBeenCalled()
-  })
+    );
+    const items = screen.getAllByRole("listitem");
+    items[2].focus();
+    await user.keyboard("{ArrowDown}");
+    expect(onChange).not.toHaveBeenCalled();
+  });
 
-  it('renders an empty list without crashing', () => {
+  it("renders an empty list without crashing", () => {
     render(
       <DragReorderList
         ariaLabel="Region priority"
         items={[]}
         onChange={() => {}}
       />,
-    )
-    expect(screen.getByRole('list', { name: 'Region priority' })).toBeInTheDocument()
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
-  })
+    );
+    expect(
+      screen.getByRole("list", { name: "Region priority" }),
+    ).toBeInTheDocument();
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
 
-  it('announces moves via an aria-live region (FP13 § D2)', async () => {
-    const user = userEvent.setup()
+  it("announces moves via an aria-live region (FP13 § D2)", async () => {
+    const user = userEvent.setup();
     render(
       <DragReorderList
         ariaLabel="Region priority"
-        items={['us', 'eu', 'jp']}
+        items={["us", "eu", "jp"]}
         onChange={() => {}}
       />,
-    )
-    const status = screen.getByRole('status')
-    expect(status).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Move us down' }))
-    expect(status).toHaveTextContent(/Moved us to position 2 of 3/i)
-  })
-})
+    );
+    const status = screen.getByRole("status");
+    expect(status).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Move us down" }));
+    expect(status).toHaveTextContent(/Moved us to position 2 of 3/i);
+  });
+});

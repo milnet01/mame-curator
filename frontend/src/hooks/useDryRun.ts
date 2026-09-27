@@ -1,10 +1,10 @@
-import { useMutation } from '@tanstack/react-query'
-import { apiRequest } from '@/api/client'
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/api/client";
 import {
   DryRunReportSchema,
   type CopyJobRequest,
   type DryRunReport,
-} from '@/api/types'
+} from "@/api/types";
 
 /**
  * FP23 — POST /api/copy/dry-run mutation.
@@ -23,9 +23,9 @@ import {
 export function useDryRun() {
   return useMutation({
     mutationFn: (req: CopyJobRequest) =>
-      apiRequest<DryRunReport>('/api/copy/dry-run', DryRunReportSchema, {
-        method: 'POST',
+      apiRequest<DryRunReport>("/api/copy/dry-run", DryRunReportSchema, {
+        method: "POST",
         body: req,
       }),
-  })
+  });
 }

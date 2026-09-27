@@ -1,17 +1,17 @@
-import { useState } from 'react'
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { FsBrowser } from '@/components/settings/FsBrowser'
-import { strings } from '@/strings'
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { FsBrowser } from "@/components/settings/FsBrowser";
+import { strings } from "@/strings";
 
 interface PathRowProps {
-  id: string
-  label: string
-  value: string
-  mode?: 'directory' | 'file'
-  onChange: (next: string) => void
+  id: string;
+  label: string;
+  value: string;
+  mode?: "directory" | "file";
+  onChange: (next: string) => void;
 }
 
 // FP12 § H — single Label + Input + Browse cell. The Input patches on blur
@@ -25,11 +25,11 @@ export function PathRow({
   id,
   label,
   value,
-  mode = 'directory',
+  mode = "directory",
   onChange,
 }: PathRowProps) {
-  const [draft, setDraft] = useState(value)
-  const [browseOpen, setBrowseOpen] = useState(false)
+  const [draft, setDraft] = useState(value);
+  const [browseOpen, setBrowseOpen] = useState(false);
   return (
     <div className="flex flex-col gap-1">
       <Label htmlFor={id}>{label}</Label>
@@ -39,7 +39,7 @@ export function PathRow({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => {
-            if (draft !== value) onChange(draft)
+            if (draft !== value) onChange(draft);
           }}
         />
         <Button
@@ -55,13 +55,13 @@ export function PathRow({
           open
           onOpenChange={setBrowseOpen}
           onPick={(picked) => {
-            setDraft(picked)
-            onChange(picked)
+            setDraft(picked);
+            onChange(picked);
           }}
           mode={mode}
           initialPath={value || undefined}
         />
       )}
     </div>
-  )
+  );
 }

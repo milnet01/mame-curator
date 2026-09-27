@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { Virtualizer } from '@tanstack/react-virtual'
+import { useCallback, useEffect, useState } from "react";
+import type { Virtualizer } from "@tanstack/react-virtual";
 
-import type { GameCard as GameCardType, StateView } from '@/api/types'
+import type { GameCard as GameCardType, StateView } from "@/api/types";
 
 /**
  * P14 — owns the LibraryGrid roving-tabindex focus that was historically
@@ -24,10 +24,10 @@ import type { GameCard as GameCardType, StateView } from '@/api/types'
  * virtualizer to the new row.
  */
 export interface UseGameGridFocusResult {
-  activeIndex: number
-  move: (delta: number) => void
-  setActive: (idx: number) => void
-  focusNextPending: (startIndex: number) => number | null
+  activeIndex: number;
+  move: (delta: number) => void;
+  setActive: (idx: number) => void;
+  focusNextPending: (startIndex: number) => number | null;
 }
 
 export function useGameGridFocus(
@@ -36,8 +36,8 @@ export function useGameGridFocus(
   columns: number,
   virtualizer: Virtualizer<HTMLDivElement, Element>,
 ): UseGameGridFocusResult {
-  const [activeIndex, setActiveIndex] = useState(0)
-  const cardsLen = cards.length
+  const [activeIndex, setActiveIndex] = useState(0);
+  const cardsLen = cards.length;
 
   // Clamp activeIndex when `cards` shrinks (filter change, pagination).
   // Effect-set is intentional here: the derive-in-render alternative
@@ -47,47 +47,49 @@ export function useGameGridFocus(
   useEffect(() => {
     if (activeIndex >= cardsLen && cardsLen > 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setActiveIndex(cardsLen - 1)
+      setActiveIndex(cardsLen - 1);
     }
-  }, [activeIndex, cardsLen])
+  }, [activeIndex, cardsLen]);
 
   const move = useCallback(
     (delta: number) => {
       setActiveIndex((prev) => {
-        const next = Math.max(0, Math.min(cardsLen - 1, prev + delta))
+        const next = Math.max(0, Math.min(cardsLen - 1, prev + delta));
         if (next !== prev) {
           virtualizer.scrollToIndex(Math.floor(next / columns), {
-            align: 'auto',
-          })
+            align: "auto",
+          });
         }
-        return next
-      })
+        return next;
+      });
     },
     [cardsLen, columns, virtualizer],
-  )
+  );
 
   const setActive = useCallback(
     (idx: number) => {
-      const clamped = Math.max(0, Math.min(cardsLen - 1, idx))
-      setActiveIndex(clamped)
+      const clamped = Math.max(0, Math.min(cardsLen - 1, idx));
+      setActiveIndex(clamped);
       if (cardsLen > 0) {
-        virtualizer.scrollToIndex(Math.floor(clamped / columns), { align: 'auto' })
+        virtualizer.scrollToIndex(Math.floor(clamped / columns), {
+          align: "auto",
+        });
       }
     },
     [cardsLen, columns, virtualizer],
-  )
+  );
 
   const focusNextPending = useCallback(
     (startIndex: number): number | null => {
-      const entries = reviewState?.entries ?? {}
+      const entries = reviewState?.entries ?? {};
       for (let i = startIndex; i < cards.length; i++) {
-        const card = cards[i]
-        if (card && !(card.short_name in entries)) return i
+        const card = cards[i];
+        if (card && !(card.short_name in entries)) return i;
       }
-      return null
+      return null;
     },
     [cards, reviewState],
-  )
+  );
 
-  return { activeIndex, move, setActive, focusNextPending }
+  return { activeIndex, move, setActive, focusNextPending };
 }

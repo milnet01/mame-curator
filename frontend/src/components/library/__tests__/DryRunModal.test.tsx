@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
-import { DryRunModal } from '../DryRunModal'
-import type { DryRunReport } from '@/api/types'
+import { DryRunModal } from "../DryRunModal";
+import type { DryRunReport } from "@/api/types";
 
 const report: DryRunReport = {
   counts: {
@@ -13,10 +13,10 @@ const report: DryRunReport = {
     bios_included: 2,
   },
   summary: {},
-}
+};
 
-describe('DryRunModal', () => {
-  it('renders new / replace / skip counts when open', () => {
+describe("DryRunModal", () => {
+  it("renders new / replace / skip counts when open", () => {
     render(
       <DryRunModal
         open
@@ -24,14 +24,14 @@ describe('DryRunModal', () => {
         report={report}
         onConfirm={() => {}}
       />,
-    )
-    expect(screen.getByText(/12 new/)).toBeInTheDocument()
-    expect(screen.getByText(/3 replace/)).toBeInTheDocument()
-    expect(screen.getByText(/5 skip/)).toBeInTheDocument()
-    expect(screen.getByText(/2 BIOS/)).toBeInTheDocument()
-  })
+    );
+    expect(screen.getByText(/12 new/)).toBeInTheDocument();
+    expect(screen.getByText(/3 replace/)).toBeInTheDocument();
+    expect(screen.getByText(/5 skip/)).toBeInTheDocument();
+    expect(screen.getByText(/2 BIOS/)).toBeInTheDocument();
+  });
 
-  it('does not render when closed', () => {
+  it("does not render when closed", () => {
     render(
       <DryRunModal
         open={false}
@@ -39,13 +39,13 @@ describe('DryRunModal', () => {
         report={report}
         onConfirm={() => {}}
       />,
-    )
-    expect(screen.queryByText(/12 new/)).not.toBeInTheDocument()
-  })
+    );
+    expect(screen.queryByText(/12 new/)).not.toBeInTheDocument();
+  });
 
-  it('calls onConfirm when the confirm button is clicked', async () => {
-    const user = userEvent.setup()
-    const onConfirm = vi.fn()
+  it("calls onConfirm when the confirm button is clicked", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
     render(
       <DryRunModal
         open
@@ -53,8 +53,8 @@ describe('DryRunModal', () => {
         report={report}
         onConfirm={onConfirm}
       />,
-    )
-    await user.click(screen.getByRole('button', { name: /^copy/i }))
-    expect(onConfirm).toHaveBeenCalledOnce()
-  })
-})
+    );
+    await user.click(screen.getByRole("button", { name: /^copy/i }));
+    expect(onConfirm).toHaveBeenCalledOnce();
+  });
+});

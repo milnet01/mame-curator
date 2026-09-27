@@ -11,4 +11,8 @@
  * `strings_internal.ts`).
  */
 
-export { strings, type FeaturedTile, type FeaturedTileQuery } from './strings_internal'
+export {
+  strings,
+  type FeaturedTile,
+  type FeaturedTileQuery,
+} from "./strings_internal";

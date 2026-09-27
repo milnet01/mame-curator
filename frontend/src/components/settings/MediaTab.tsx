@@ -1,66 +1,70 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState } from "react";
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { ConfigureSourceKeyModal } from '@/components/settings/ConfigureSourceKeyModal'
-import { DownloadPackModal } from '@/components/settings/DownloadPackModal'
-import { DragReorderList } from '@/components/settings/DragReorderList'
-import { FsBrowser } from '@/components/settings/FsBrowser'
-import { MediaSourceRow } from '@/components/settings/MediaSourceRow'
-import { PrefSwitch } from '@/components/settings/PrefSwitch'
-import { useMediaSources } from '@/hooks/useMediaSources'
-import { strings } from '@/strings'
-import type { AppConfigResponse, SourceReadinessRow } from '@/api/types'
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ConfigureSourceKeyModal } from "@/components/settings/ConfigureSourceKeyModal";
+import { DownloadPackModal } from "@/components/settings/DownloadPackModal";
+import { DragReorderList } from "@/components/settings/DragReorderList";
+import { FsBrowser } from "@/components/settings/FsBrowser";
+import { MediaSourceRow } from "@/components/settings/MediaSourceRow";
+import { PrefSwitch } from "@/components/settings/PrefSwitch";
+import { useMediaSources } from "@/hooks/useMediaSources";
+import { strings } from "@/strings";
+import type { AppConfigResponse, SourceReadinessRow } from "@/api/types";
 
-type MediaCfg = AppConfigResponse['media']
+type MediaCfg = AppConfigResponse["media"];
 
 // mame-curator-1084 — the backend registry always re-appends this source
 // (`MediaSourceRegistry.chain_for`), so its toggle is locked on.
-const BASELINE_SOURCE = 'libretro'
+const BASELINE_SOURCE = "libretro";
 
 interface MediaTabProps {
-  media: MediaCfg
-  onChange: <K extends keyof MediaCfg>(key: K, value: MediaCfg[K]) => void
+  media: MediaCfg;
+  onChange: <K extends keyof MediaCfg>(key: K, value: MediaCfg[K]) => void;
 }
 
 export function MediaTab({ media, onChange }: MediaTabProps) {
-  const [cacheDirDraft, setCacheDirDraft] = useState(media.cache_dir)
-  const [browseOpen, setBrowseOpen] = useState(false)
-  const [snapsDirDraft, setSnapsDirDraft] = useState(media.snaps_dir)
-  const [snapsBrowseOpen, setSnapsBrowseOpen] = useState(false)
-  const [configureSource, setConfigureSource] = useState<string | null>(null)
-  const [packOpen, setPackOpen] = useState(false)
+  const [cacheDirDraft, setCacheDirDraft] = useState(media.cache_dir);
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const [snapsDirDraft, setSnapsDirDraft] = useState(media.snaps_dir);
+  const [snapsBrowseOpen, setSnapsBrowseOpen] = useState(false);
+  const [configureSource, setConfigureSource] = useState<string | null>(null);
+  const [packOpen, setPackOpen] = useState(false);
 
-  const { data: readiness } = useMediaSources()
+  const { data: readiness } = useMediaSources();
   const readinessByName = useMemo(
     () =>
       Object.fromEntries(
-        (readiness?.sources ?? []).map((r): [string, SourceReadinessRow] => [r.name, r]),
+        (readiness?.sources ?? []).map((r): [string, SourceReadinessRow] => [
+          r.name,
+          r,
+        ]),
       ),
     [readiness],
-  )
+  );
   // mame-curator-1084 — known sources the user has turned off (not in the
   // fallback chain). The backend readiness surface returns them in_chain=false,
   // already alphabetised; we render them below the reorderable list.
   const unconfigured = useMemo(
     () => (readiness?.sources ?? []).filter((r) => !r.in_chain),
     [readiness],
-  )
+  );
 
   // Add/remove a source from the media.sources fallback chain (PATCH via
   // onChange). Toggling on appends to the end (lowest priority); reorder moves
   // it up. Toggling off drops it. libretro is locked, so it never reaches here.
   const toggleSource = (name: string, next: boolean) => {
     if (next) {
-      if (!media.sources.includes(name)) onChange('sources', [...media.sources, name])
+      if (!media.sources.includes(name))
+        onChange("sources", [...media.sources, name]);
     } else {
       onChange(
-        'sources',
+        "sources",
         media.sources.filter((n) => n !== name),
-      )
+      );
     }
-  }
+  };
 
   return (
     <>
@@ -68,10 +72,12 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
         id="media-fetch-videos"
         label={strings.settings.mediaLabels.fetch_videos}
         checked={media.fetch_videos}
-        onChange={(v) => onChange('fetch_videos', v)}
+        onChange={(v) => onChange("fetch_videos", v)}
       />
       <div className="flex flex-col gap-1">
-        <Label htmlFor="media-cache-dir">{strings.settings.mediaCacheLabel}</Label>
+        <Label htmlFor="media-cache-dir">
+          {strings.settings.mediaCacheLabel}
+        </Label>
         <div className="flex items-center gap-2">
           <Input
             id="media-cache-dir"
@@ -79,7 +85,7 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
             onChange={(e) => setCacheDirDraft(e.target.value)}
             onBlur={() => {
               if (cacheDirDraft !== media.cache_dir) {
-                onChange('cache_dir', cacheDirDraft)
+                onChange("cache_dir", cacheDirDraft);
               }
             }}
           />
@@ -97,8 +103,8 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
           open
           onOpenChange={setBrowseOpen}
           onPick={(picked) => {
-            setCacheDirDraft(picked)
-            onChange('cache_dir', picked)
+            setCacheDirDraft(picked);
+            onChange("cache_dir", picked);
           }}
           initialPath={media.cache_dir || undefined}
         />
@@ -107,7 +113,9 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
       {/* mame-curator-1081 — progettoSnaps pack folder; kept in sync with the
           folder `refresh-snaps` downloads into so the source can't miss it. */}
       <div className="flex flex-col gap-1">
-        <Label htmlFor="media-snaps-dir">{strings.settings.mediaSnapsLabel}</Label>
+        <Label htmlFor="media-snaps-dir">
+          {strings.settings.mediaSnapsLabel}
+        </Label>
         <div className="flex items-center gap-2">
           <Input
             id="media-snaps-dir"
@@ -115,7 +123,7 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
             onChange={(e) => setSnapsDirDraft(e.target.value)}
             onBlur={() => {
               if (snapsDirDraft !== media.snaps_dir) {
-                onChange('snaps_dir', snapsDirDraft)
+                onChange("snaps_dir", snapsDirDraft);
               }
             }}
           />
@@ -127,15 +135,17 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
             {strings.settings.fsBrowserBrowse}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">{strings.settings.mediaSnapsHelp}</p>
+        <p className="text-xs text-muted-foreground">
+          {strings.settings.mediaSnapsHelp}
+        </p>
       </div>
       {snapsBrowseOpen && (
         <FsBrowser
           open
           onOpenChange={setSnapsBrowseOpen}
           onPick={(picked) => {
-            setSnapsDirDraft(picked)
-            onChange('snaps_dir', picked)
+            setSnapsDirDraft(picked);
+            onChange("snaps_dir", picked);
           }}
           initialPath={media.snaps_dir || undefined}
         />
@@ -152,9 +162,9 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
         <DragReorderList
           ariaLabel={strings.settings.mediaSources.reorderAriaLabel}
           items={media.sources}
-          onChange={(next) => onChange('sources', next)}
+          onChange={(next) => onChange("sources", next)}
           renderItem={(name) => {
-            const row = readinessByName[name]
+            const row = readinessByName[name];
             return row ? (
               <MediaSourceRow
                 row={row}
@@ -165,7 +175,7 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
               />
             ) : (
               <span>{name}</span>
-            )
+            );
           }}
         />
 
@@ -201,12 +211,12 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
         <ConfigureSourceKeyModal
           open
           onOpenChange={(o) => {
-            if (!o) setConfigureSource(null)
+            if (!o) setConfigureSource(null);
           }}
           sourceName={configureSource}
         />
       )}
       <DownloadPackModal open={packOpen} onOpenChange={setPackOpen} />
     </>
-  )
+  );
 }

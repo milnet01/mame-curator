@@ -22,26 +22,26 @@
  * Post-fix: each `Loading <route>…` text node sits inside a wrapper
  * carrying `role="status"` and `aria-live="polite"`.
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from "vitest";
 
-import appTsxSource from '../App.tsx?raw'
+import appTsxSource from "../App.tsx?raw";
 
 // Five route-level loading variants. The exact wording lives in
 // `strings.loading.*` post-B2, but the spec is "one fallback per
 // route container", so the test counts wrappers rather than text
 // content. Pattern: a `<div role="status" aria-live="polite">` that
 // contains a JSX expression / literal naming the loading state.
-const EXPECTED_LIVE_REGIONS = 5
+const EXPECTED_LIVE_REGIONS = 5;
 
-describe('DS02 C3 — route-level loading fallbacks announce', () => {
-  it('App.tsx exposes ≥5 role=status + aria-live=polite wrappers for route fallbacks', () => {
+describe("DS02 C3 — route-level loading fallbacks announce", () => {
+  it("App.tsx exposes ≥5 role=status + aria-live=polite wrappers for route fallbacks", () => {
     // Match any opening JSX tag carrying BOTH attrs; order-insensitive.
     const re =
-      /<[A-Za-z][\w.]*\b[^>]*\brole\s*=\s*["']status["'][^>]*\baria-live\s*=\s*["']polite["'][^>]*>|<[A-Za-z][\w.]*\b[^>]*\baria-live\s*=\s*["']polite["'][^>]*\brole\s*=\s*["']status["'][^>]*>/g
-    const matches = appTsxSource.match(re) ?? []
+      /<[A-Za-z][\w.]*\b[^>]*\brole\s*=\s*["']status["'][^>]*\baria-live\s*=\s*["']polite["'][^>]*>|<[A-Za-z][\w.]*\b[^>]*\baria-live\s*=\s*["']polite["'][^>]*\brole\s*=\s*["']status["'][^>]*>/g;
+    const matches = appTsxSource.match(re) ?? [];
     expect(
       matches.length,
       `expected ≥${EXPECTED_LIVE_REGIONS} role=status+aria-live=polite wrappers in App.tsx, found ${matches.length}`,
-    ).toBeGreaterThanOrEqual(EXPECTED_LIVE_REGIONS)
-  })
-})
+    ).toBeGreaterThanOrEqual(EXPECTED_LIVE_REGIONS);
+  });
+});

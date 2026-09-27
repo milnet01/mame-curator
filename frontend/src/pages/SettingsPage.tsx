@@ -1,93 +1,93 @@
-import { useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useState } from "react";
+import { useSearchParams } from "react-router";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { ConfirmationDialog } from '@/components/ConfirmationDialog'
-import { BackupTab } from '@/components/settings/BackupTab'
-import { FiltersTab } from '@/components/settings/FiltersTab'
-import { MediaTab } from '@/components/settings/MediaTab'
-import { PathRow } from '@/components/settings/PathRow'
-import { PickerTab } from '@/components/settings/PickerTab'
-import { PrefSwitch } from '@/components/settings/PrefSwitch'
-import { SnapshotsTab } from '@/components/settings/SnapshotsTab'
-import { UpdatesTab } from '@/components/settings/UpdatesTab'
-import { strings } from '@/strings'
+} from "@/components/ui/select";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { BackupTab } from "@/components/settings/BackupTab";
+import { FiltersTab } from "@/components/settings/FiltersTab";
+import { MediaTab } from "@/components/settings/MediaTab";
+import { PathRow } from "@/components/settings/PathRow";
+import { PickerTab } from "@/components/settings/PickerTab";
+import { PrefSwitch } from "@/components/settings/PrefSwitch";
+import { SnapshotsTab } from "@/components/settings/SnapshotsTab";
+import { UpdatesTab } from "@/components/settings/UpdatesTab";
+import { strings } from "@/strings";
 import type {
   AppConfigResponse,
   AppUpdateInfo,
   ConfigExportBundle,
   SetupCheck,
   Snapshot,
-} from '@/api/types'
+} from "@/api/types";
 
-type FilterCfg = AppConfigResponse['filters']
-type UiCfg = AppConfigResponse['ui']
-type UpdatesCfg = AppConfigResponse['updates']
-type DefaultSort = UiCfg['default_sort']
-type CardsPerRowHint = UiCfg['cards_per_row_hint']
-type CartClearOnCopy = UiCfg['cart_clear_on_copy']
+type FilterCfg = AppConfigResponse["filters"];
+type UiCfg = AppConfigResponse["ui"];
+type UpdatesCfg = AppConfigResponse["updates"];
+type DefaultSort = UiCfg["default_sort"];
+type CardsPerRowHint = UiCfg["cards_per_row_hint"];
+type CartClearOnCopy = UiCfg["cart_clear_on_copy"];
 
 const DEFAULT_SORT_VALUES: readonly DefaultSort[] = [
-  'name',
-  'year',
-  'manufacturer',
-  'rating',
-]
+  "name",
+  "year",
+  "manufacturer",
+  "rating",
+];
 
-const CARDS_PER_ROW_VALUES: readonly CardsPerRowHint[] = ['auto', 4, 5, 6, 8]
+const CARDS_PER_ROW_VALUES: readonly CardsPerRowHint[] = ["auto", 4, 5, 6, 8];
 
 const CART_CLEAR_VALUES: readonly CartClearOnCopy[] = [
-  'always',
-  'on_success',
-  'never',
-]
+  "always",
+  "on_success",
+  "never",
+];
 
-const ARCADE_FLOOR_YEAR = 1971
-const CURRENT_YEAR = new Date().getFullYear()
+const ARCADE_FLOOR_YEAR = 1971;
+const CURRENT_YEAR = new Date().getFullYear();
 
 const SECTION_KEYS = [
-  'paths',
-  'filters',
-  'picker',
-  'ui',
-  'updates',
-  'media',
-  'snapshots',
-  'backup',
-  'about',
-] as const
+  "paths",
+  "filters",
+  "picker",
+  "ui",
+  "updates",
+  "media",
+  "snapshots",
+  "backup",
+  "about",
+] as const;
 
 interface SettingsPageProps {
-  config: AppConfigResponse
-  onPatch: (patch: Partial<AppConfigResponse>) => void
-  onSnapshotRestore: (id: string) => void
+  config: AppConfigResponse;
+  onPatch: (patch: Partial<AppConfigResponse>) => void;
+  onSnapshotRestore: (id: string) => void;
   /** R36 update-check payload — when present, drives the Updates banner. */
-  updateInfo?: AppUpdateInfo
+  updateInfo?: AppUpdateInfo;
   /** R35 setup-check payload — when present, drives the Setup banner. */
-  setupInfo?: SetupCheck
+  setupInfo?: SetupCheck;
   /** FP12 § I — R16 snapshot listing. Defaults to empty for callers that
       haven't wired the hook yet (e.g. pre-cluster-I tests). */
-  snapshots?: readonly Snapshot[]
-  snapshotsLoading?: boolean
-  snapshotsError?: string | null
+  snapshots?: readonly Snapshot[];
+  snapshotsLoading?: boolean;
+  snapshotsError?: string | null;
   /** FP20-J — surfaces a failed restore mutation as a persistent
       alert above the snapshot list (the toastApiError flash already
       fires; this is the inline counterpart so the failure stays
       visible after the toast dismisses). */
-  snapshotRestoreError?: string | null
+  snapshotRestoreError?: string | null;
   /** FP12 § J — Backup tab callbacks. No-op defaults so callers without
       export/import wiring still compile. */
-  onBackupExport?: () => void
-  onBackupImport?: (bundle: ConfigExportBundle) => void
-  backupError?: string | null
+  onBackupExport?: () => void;
+  onBackupImport?: (bundle: ConfigExportBundle) => void;
+  backupError?: string | null;
 }
 
 export function SettingsPage({
@@ -105,8 +105,8 @@ export function SettingsPage({
   backupError = null,
 }: SettingsPageProps) {
   const updateUi = <K extends keyof UiCfg>(key: K, value: UiCfg[K]) => {
-    onPatch({ ui: { ...config.ui, [key]: value } })
-  }
+    onPatch({ ui: { ...config.ui, [key]: value } });
+  };
   // FP12 § A: generic so chip-list (string[]) and toggle (boolean) fields
   // share one helper. P06's original boolean-only signature blocked the
   // list editors; per-key inference keeps callers type-safe.
@@ -114,26 +114,26 @@ export function SettingsPage({
     key: K,
     value: FilterCfg[K],
   ) => {
-    onPatch({ filters: { ...config.filters, [key]: value } })
-  }
-  const updateMedia = <K extends keyof AppConfigResponse['media']>(
+    onPatch({ filters: { ...config.filters, [key]: value } });
+  };
+  const updateMedia = <K extends keyof AppConfigResponse["media"]>(
     key: K,
-    value: AppConfigResponse['media'][K],
+    value: AppConfigResponse["media"][K],
   ) => {
-    onPatch({ media: { ...config.media, [key]: value } })
-  }
-  const updatePaths = <K extends keyof AppConfigResponse['paths']>(
+    onPatch({ media: { ...config.media, [key]: value } });
+  };
+  const updatePaths = <K extends keyof AppConfigResponse["paths"]>(
     key: K,
-    value: AppConfigResponse['paths'][K],
+    value: AppConfigResponse["paths"][K],
   ) => {
-    onPatch({ paths: { ...config.paths, [key]: value } })
-  }
+    onPatch({ paths: { ...config.paths, [key]: value } });
+  };
   const updateUpdates = <K extends keyof UpdatesCfg>(
     key: K,
     value: UpdatesCfg[K],
   ) => {
-    onPatch({ updates: { ...config.updates, [key]: value } })
-  }
+    onPatch({ updates: { ...config.updates, [key]: value } });
+  };
 
   // DS02 D1 — Settings active-tab persists in the URL `?tab=…` so
   // deep-linking + browser-back move between tabs. The URL is the
@@ -141,32 +141,33 @@ export function SettingsPage({
   // via setSearchParams when the user clicks a new tab. Default tab
   // (`paths`) holds when the param is absent or names an unknown
   // section.
-  const [searchParams, setSearchParams] = useSearchParams()
-  const requestedTab = searchParams.get('tab')
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
   const activeTab =
-    requestedTab !== null && (SECTION_KEYS as readonly string[]).includes(requestedTab)
+    requestedTab !== null &&
+    (SECTION_KEYS as readonly string[]).includes(requestedTab)
       ? requestedTab
-      : 'paths'
+      : "paths";
   const setActiveTab = (next: string) => {
-    const params = new URLSearchParams(searchParams)
-    if (next === 'paths') {
+    const params = new URLSearchParams(searchParams);
+    if (next === "paths") {
       // Keep the default tab implicit in the URL — drop the ?tab=
       // param so the address bar stays clean when the user returns
       // to the default tab.
-      params.delete('tab')
+      params.delete("tab");
     } else {
-      params.set('tab', next)
+      params.set("tab", next);
     }
-    setSearchParams(params, { replace: false })
-  }
+    setSearchParams(params, { replace: false });
+  };
 
   // FP12 § H — DAT swap is destructive (replaces the whole library);
   // hold the pending value here until the user confirms.
-  const [pendingDat, setPendingDat] = useState<string | null>(null)
+  const [pendingDat, setPendingDat] = useState<string | null>(null);
   // FP13 § B2: bumped after each pendingDat resolution (cancel or confirm)
   // so the source_dat PathRow re-mounts and `draft` re-seeds from `value`.
   // Without this, a typed-then-cancelled DAT path stays stale in the input.
-  const [datResetTick, setDatResetTick] = useState(0)
+  const [datResetTick, setDatResetTick] = useState(0);
 
   return (
     <section className="flex flex-col gap-4 p-4">
@@ -190,16 +191,16 @@ export function SettingsPage({
             // FP18 § B: count all 5 INIs that refresh-inis ships by default
             // (mature.ini was added in v1.0.1 once we discovered AntoPISA
             // hosts it at catver.ini/mature.ini).
-            const ref = setupInfo.reference_files
+            const ref = setupInfo.reference_files;
             const required = [
-              { name: 'catver.ini', present: ref.catver.exists },
-              { name: 'languages.ini', present: ref.languages.exists },
-              { name: 'bestgames.ini', present: ref.bestgames.exists },
-              { name: 'series.ini', present: ref.series.exists },
-              { name: 'mature.ini', present: ref.mature.exists },
-            ]
-            const missing = required.filter((r) => !r.present)
-            const presentCount = required.length - missing.length
+              { name: "catver.ini", present: ref.catver.exists },
+              { name: "languages.ini", present: ref.languages.exists },
+              { name: "bestgames.ini", present: ref.bestgames.exists },
+              { name: "series.ini", present: ref.series.exists },
+              { name: "mature.ini", present: ref.mature.exists },
+            ];
+            const missing = required.filter((r) => !r.present);
+            const presentCount = required.length - missing.length;
             return (
               <span className="text-xs text-muted-foreground">
                 {strings.settings.banners.iniStatusLine(
@@ -208,7 +209,7 @@ export function SettingsPage({
                   missing.map((r) => r.name),
                 )}
               </span>
-            )
+            );
           })()}
           {/* FP22-C: RetroArch status mirrors the INI line so the user
               sees their launch readiness without clicking through to
@@ -246,13 +247,13 @@ export function SettingsPage({
             id="paths-source-roms"
             label={strings.settings.pathRowLabels.sourceRoms}
             value={config.paths.source_roms}
-            onChange={(next) => updatePaths('source_roms', next)}
+            onChange={(next) => updatePaths("source_roms", next)}
           />
           <PathRow
             id="paths-dest-roms"
             label={strings.settings.pathRowLabels.destination}
             value={config.paths.dest_roms}
-            onChange={(next) => updatePaths('dest_roms', next)}
+            onChange={(next) => updatePaths("dest_roms", next)}
           />
           <PathRow
             key={`paths-source-dat-${datResetTick}`}
@@ -261,7 +262,7 @@ export function SettingsPage({
             value={config.paths.source_dat}
             mode="file"
             onChange={(next) => {
-              if (next !== config.paths.source_dat) setPendingDat(next)
+              if (next !== config.paths.source_dat) setPendingDat(next);
             }}
           />
           <PathRow
@@ -269,7 +270,7 @@ export function SettingsPage({
             label={strings.settings.pathRowLabels.retroarchPlaylist}
             value={config.paths.retroarch_playlist}
             mode="file"
-            onChange={(next) => updatePaths('retroarch_playlist', next)}
+            onChange={(next) => updatePaths("retroarch_playlist", next)}
           />
           {/* FP29 — Launch-button gate (FP22-B) reads
               ``retroarch_configured = retroarch && retroarch_core``;
@@ -278,19 +279,19 @@ export function SettingsPage({
           <PathRow
             id="paths-retroarch"
             label={strings.settings.pathRowLabels.retroarchExecutable}
-            value={config.paths.retroarch ?? ''}
+            value={config.paths.retroarch ?? ""}
             mode="file"
             onChange={(next) =>
-              updatePaths('retroarch', next === '' ? null : next)
+              updatePaths("retroarch", next === "" ? null : next)
             }
           />
           <PathRow
             id="paths-retroarch-core"
             label={strings.settings.pathRowLabels.retroarchCore}
-            value={config.paths.retroarch_core ?? ''}
+            value={config.paths.retroarch_core ?? ""}
             mode="file"
             onChange={(next) =>
-              updatePaths('retroarch_core', next === '' ? null : next)
+              updatePaths("retroarch_core", next === "" ? null : next)
             }
           />
           {pendingDat !== null && (
@@ -298,8 +299,8 @@ export function SettingsPage({
               open
               onOpenChange={(o) => {
                 if (!o) {
-                  setPendingDat(null)
-                  setDatResetTick((n) => n + 1)
+                  setPendingDat(null);
+                  setDatResetTick((n) => n + 1);
                 }
               }}
               title={strings.settings.datSwapConfirmTitle}
@@ -307,8 +308,8 @@ export function SettingsPage({
               actionLabel={strings.settings.datSwapActionLabel(pendingDat)}
               destructive
               onConfirm={() => {
-                updatePaths('source_dat', pendingDat)
-                setDatResetTick((n) => n + 1)
+                updatePaths("source_dat", pendingDat);
+                setDatResetTick((n) => n + 1);
               }}
             />
           )}
@@ -332,7 +333,7 @@ export function SettingsPage({
             id="ui-show-alternatives"
             label={strings.settings.uiLabels.show_alternatives_indicator}
             checked={config.ui.show_alternatives_indicator}
-            onChange={(v) => updateUi('show_alternatives_indicator', v)}
+            onChange={(v) => updateUi("show_alternatives_indicator", v)}
           />
           <div className="flex items-center justify-between">
             <Label htmlFor="ui-default-sort">
@@ -340,7 +341,7 @@ export function SettingsPage({
             </Label>
             <Select
               value={config.ui.default_sort}
-              onValueChange={(v) => updateUi('default_sort', v as DefaultSort)}
+              onValueChange={(v) => updateUi("default_sort", v as DefaultSort)}
             >
               <SelectTrigger
                 id="ui-default-sort"
@@ -365,7 +366,7 @@ export function SettingsPage({
             <Select
               value={config.ui.cart_clear_on_copy}
               onValueChange={(v) =>
-                updateUi('cart_clear_on_copy', v as CartClearOnCopy)
+                updateUi("cart_clear_on_copy", v as CartClearOnCopy)
               }
             >
               <SelectTrigger
@@ -392,8 +393,8 @@ export function SettingsPage({
               value={String(config.ui.cards_per_row_hint)}
               onValueChange={(v) =>
                 updateUi(
-                  'cards_per_row_hint',
-                  v === 'auto' ? 'auto' : (Number(v) as 4 | 5 | 6 | 8),
+                  "cards_per_row_hint",
+                  v === "auto" ? "auto" : (Number(v) as 4 | 5 | 6 | 8),
                 )
               }
             >
@@ -409,7 +410,9 @@ export function SettingsPage({
                   <SelectItem key={String(v)} value={String(v)}>
                     {
                       strings.settings.cardsPerRowOptions[
-                        String(v) as keyof typeof strings.settings.cardsPerRowOptions
+                        String(
+                          v,
+                        ) as keyof typeof strings.settings.cardsPerRowOptions
                       ]
                     }
                   </SelectItem>
@@ -459,5 +462,5 @@ export function SettingsPage({
         </TabsContent>
       </Tabs>
     </section>
-  )
+  );
 }

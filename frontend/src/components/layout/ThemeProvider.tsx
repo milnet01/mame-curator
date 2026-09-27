@@ -1,16 +1,16 @@
-import { useEffect, type ReactNode } from 'react'
-import type { ThemeName } from '@/api/types'
-import { applyTheme } from '@/lib/theme'
+import { useEffect, type ReactNode } from "react";
+import type { ThemeName } from "@/api/types";
+import { applyTheme } from "@/lib/theme";
 
 interface ThemeProviderProps {
-  theme: ThemeName
-  children: ReactNode
+  theme: ThemeName;
+  children: ReactNode;
 }
 
 /** Sets `data-theme` on `<html>` whenever the prop changes. */
 export function ThemeProvider({ theme, children }: ThemeProviderProps) {
   useEffect(() => {
-    applyTheme(theme)
-  }, [theme])
-  return <>{children}</>
+    applyTheme(theme);
+  }, [theme]);
+  return <>{children}</>;
 }

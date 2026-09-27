@@ -1,31 +1,31 @@
-import { Layout, LayoutGrid, Rows, ListIcon } from 'lucide-react'
+import { Layout, LayoutGrid, Rows, ListIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { strings } from '@/strings'
-import type { LayoutName } from '@/api/types'
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { strings } from "@/strings";
+import type { LayoutName } from "@/api/types";
 
 interface LayoutSwitcherProps {
-  value: LayoutName
-  onChange: (layout: LayoutName) => void
+  value: LayoutName;
+  onChange: (layout: LayoutName) => void;
 }
 
-const LAYOUT_ORDER: LayoutName[] = ['masonry', 'list', 'covers', 'grouped']
+const LAYOUT_ORDER: LayoutName[] = ["masonry", "list", "covers", "grouped"];
 
 const LAYOUT_ICONS: Record<LayoutName, typeof Layout> = {
   masonry: LayoutGrid,
   list: ListIcon,
   covers: Layout,
   grouped: Rows,
-}
+};
 
 export function LayoutSwitcher({ value, onChange }: LayoutSwitcherProps) {
-  const Icon = LAYOUT_ICONS[value]
+  const Icon = LAYOUT_ICONS[value];
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -47,5 +47,5 @@ export function LayoutSwitcher({ value, onChange }: LayoutSwitcherProps) {
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

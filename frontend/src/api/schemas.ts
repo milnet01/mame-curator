@@ -14,7 +14,7 @@
  * re-exports everything from this module at the bottom of the file.
  */
 
-import { z } from 'zod'
+import { z } from "zod";
 
 // === Common ================================================================
 /**
@@ -30,7 +30,7 @@ import { z } from 'zod'
  */
 const zDateTime = z.iso
   .datetime({ offset: true, local: true })
-  .pipe(z.coerce.date())
+  .pipe(z.coerce.date());
 
 // === Error envelope (api/errors.py) ========================================
 export const FieldErrorSchema = z
@@ -39,7 +39,7 @@ export const FieldErrorSchema = z
     msg: z.string(),
     type: z.string(),
   })
-  .strict()
+  .strict();
 
 export const ApiErrorBodySchema = z
   .object({
@@ -47,10 +47,10 @@ export const ApiErrorBodySchema = z
     code: z.string(),
     fields: z.array(FieldErrorSchema),
   })
-  .strict()
+  .strict();
 
 // === Parser models (re-exported from schemas via Machine) ==================
-export const DriverStatusSchema = z.enum(['good', 'imperfect', 'preliminary'])
+export const DriverStatusSchema = z.enum(["good", "imperfect", "preliminary"]);
 
 export const RomSchema = z
   .object({
@@ -60,7 +60,7 @@ export const RomSchema = z
     crc: z.string().nullable(),
     sha1: z.string().nullable(),
   })
-  .strict()
+  .strict();
 
 export const BiosSetSchema = z
   .object({
@@ -68,7 +68,7 @@ export const BiosSetSchema = z
     description: z.string().nullable(),
     default: z.boolean(),
   })
-  .strict()
+  .strict();
 
 export const MachineSchema = z
   .object({
@@ -89,44 +89,46 @@ export const MachineSchema = z
     driver_status: DriverStatusSchema.nullable(),
     sample_of: z.string().nullable(),
   })
-  .strict()
+  .strict();
 
 // === Filter types (TiebreakerHit, Session) =================================
 export const TiebreakerHitSchema = z
   .object({ name: z.string(), detail: z.string() })
-  .strict()
+  .strict();
 
 export const SessionSchema = z
   .object({
     include_genres: z.array(z.string()),
     include_publishers: z.array(z.string()),
     include_developers: z.array(z.string()),
-    include_year_range: z.tuple([z.number().int(), z.number().int()]).nullable(),
+    include_year_range: z
+      .tuple([z.number().int(), z.number().int()])
+      .nullable(),
   })
-  .strict()
+  .strict();
 
 // === Copy types (re-exported) ==============================================
-export const ConflictStrategySchema = z.enum(['APPEND', 'OVERWRITE', 'CANCEL'])
+export const ConflictStrategySchema = z.enum(["APPEND", "OVERWRITE", "CANCEL"]);
 
 export const AppendDecisionKindSchema = z.enum([
-  'KEEP_EXISTING',
-  'REPLACE',
-  'REPLACE_AND_RECYCLE',
-])
+  "KEEP_EXISTING",
+  "REPLACE",
+  "REPLACE_AND_RECYCLE",
+]);
 
 export const AppendDecisionSchema = z
   .object({
     kind: AppendDecisionKindSchema,
     replaces: z.string().nullable(),
   })
-  .strict()
+  .strict();
 
 export const CopyReportStatusSchema = z.enum([
-  'OK',
-  'CANCELLED',
-  'CANCELLED_PLAYLIST_CONFLICT',
-  'PARTIAL_FAILURE',
-])
+  "OK",
+  "CANCELLED",
+  "CANCELLED_PLAYLIST_CONFLICT",
+  "PARTIAL_FAILURE",
+]);
 
 // === Config (api/schemas.py) ===============================================
 export const PathsConfigSchema = z
@@ -144,7 +146,7 @@ export const PathsConfigSchema = z
     retroarch: z.string().nullable(),
     retroarch_core: z.string().nullable(),
   })
-  .strict()
+  .strict();
 
 export const ServerConfigSchema = z
   .object({
@@ -152,11 +154,11 @@ export const ServerConfigSchema = z
     port: z.number().int(),
     open_browser_on_start: z.boolean(),
   })
-  .strict()
+  .strict();
 
 export const FsConfigSchema = z
   .object({ granted_roots: z.array(z.string()) })
-  .strict()
+  .strict();
 
 export const MediaConfigSchema = z
   .object({
@@ -167,7 +169,7 @@ export const MediaConfigSchema = z
     mobygames_rate_limit_per_min: z.number(),
     sources: z.array(z.string()),
   })
-  .strict()
+  .strict();
 
 // P10 chunk 8 — GET /media/{name}/wiki returns this or null. Mirrors
 // media/wikipedia.py WikipediaExtract; used by chunk 11's useWikipediaExtract.
@@ -178,12 +180,12 @@ export const WikipediaExtractSchema = z
     url: z.string(),
     license: z.string(),
   })
-  .strict()
+  .strict();
 
 // P10 chunk 9 — media source readiness + secret write. Mirrors api/schemas.py
 // SourceReadinessRow / SourceReadiness / SourceSecret; used by chunk 10's
 // Settings → Media tab (useMediaSources).
-export const MediaKindSchema = z.enum(['boxart', 'title', 'snap'])
+export const MediaKindSchema = z.enum(["boxart", "title", "snap"]);
 
 export const SourceReadinessRowSchema = z
   .object({
@@ -195,40 +197,45 @@ export const SourceReadinessRowSchema = z
     disabled_reason: z.string().nullable(),
     needs_config: z.boolean(),
   })
-  .strict()
+  .strict();
 
 export const SourceReadinessSchema = z
   .object({
     sources: z.array(SourceReadinessRowSchema),
   })
-  .strict()
+  .strict();
 
 export const SourceSecretSchema = z
   .object({
     secret: z.string().min(1),
   })
-  .strict()
+  .strict();
 
 export const ThemeNameSchema = z.enum([
-  'dark',
-  'light',
-  'double_dragon',
-  'pacman',
-  'sf2',
-  'neogeo',
-])
+  "dark",
+  "light",
+  "double_dragon",
+  "pacman",
+  "sf2",
+  "neogeo",
+]);
 
-export const LayoutNameSchema = z.enum(['masonry', 'list', 'covers', 'grouped'])
+export const LayoutNameSchema = z.enum([
+  "masonry",
+  "list",
+  "covers",
+  "grouped",
+]);
 
-export const SortKeySchema = z.enum(['name', 'year', 'manufacturer', 'rating'])
+export const SortKeySchema = z.enum(["name", "year", "manufacturer", "rating"]);
 
 export const CardsPerRowHintSchema = z.union([
-  z.literal('auto'),
+  z.literal("auto"),
   z.literal(4),
   z.literal(5),
   z.literal(6),
   z.literal(8),
-])
+]);
 
 export const UiConfigSchema = z
   .object({
@@ -237,17 +244,19 @@ export const UiConfigSchema = z
     default_sort: SortKeySchema,
     show_alternatives_indicator: z.boolean(),
     cards_per_row_hint: CardsPerRowHintSchema,
-    cart_clear_on_copy: z.enum(['always', 'on_success', 'never']).default('on_success'),
+    cart_clear_on_copy: z
+      .enum(["always", "on_success", "never"])
+      .default("on_success"),
   })
-  .strict()
+  .strict();
 
 export const UpdatesConfigSchema = z
   .object({
-    channel: z.enum(['stable', 'dev']),
+    channel: z.enum(["stable", "dev"]),
     check_on_startup: z.boolean(),
     ini_check_on_startup: z.boolean(),
   })
-  .strict()
+  .strict();
 
 export const FilterConfigSchema = z
   .object({
@@ -269,7 +278,7 @@ export const FilterConfigSchema = z
     prefer_parent_over_clone: z.boolean(),
     prefer_good_driver: z.boolean(),
   })
-  .strict()
+  .strict();
 
 export const AppConfigResponseSchema = z
   .object({
@@ -282,16 +291,16 @@ export const AppConfigResponseSchema = z
     fs: FsConfigSchema,
     restart_required: z.boolean(),
   })
-  .strict()
+  .strict();
 
 // === Games + metadata ======================================================
 export const BadgeSchema = z.enum([
-  'contested',
-  'overridden',
-  'chd_missing',
-  'bios_missing',
-  'has_notes',
-])
+  "contested",
+  "overridden",
+  "chd_missing",
+  "bios_missing",
+  "has_notes",
+]);
 
 export const GameCardSchema = z
   .object({
@@ -303,7 +312,7 @@ export const GameCardSchema = z
     developer: z.string().nullable(),
     badges: z.array(BadgeSchema),
   })
-  .strict()
+  .strict();
 
 export const GamesPageSchema = z
   .object({
@@ -313,20 +322,20 @@ export const GamesPageSchema = z
     total: z.number().int(),
     total_bytes: z.number().int().nonnegative(),
   })
-  .strict()
+  .strict();
 
 export const ValidateRequestSchema = z
   .object({
     short_names: z.array(z.string()),
   })
-  .strict()
+  .strict();
 
 export const ValidateResponseSchema = z
   .object({
     existing: z.array(z.string()),
     missing: z.array(z.string()),
   })
-  .strict()
+  .strict();
 
 export const GameDetailSchema = z
   .object({
@@ -341,11 +350,11 @@ export const GameDetailSchema = z
     override: z.string().nullable(),
     parent: z.string(),
   })
-  .strict()
+  .strict();
 
 export const AlternativesSchema = z
   .object({ items: z.array(GameCardSchema) })
-  .strict()
+  .strict();
 
 export const LibraryFacetsSchema = z
   .object({
@@ -354,7 +363,7 @@ export const LibraryFacetsSchema = z
     developers: z.array(z.string()),
     letters: z.array(z.string()),
   })
-  .strict()
+  .strict();
 
 export const LaunchResponseSchema = z
   .object({
@@ -362,7 +371,7 @@ export const LaunchResponseSchema = z
     rom_path: z.string(),
     argv: z.array(z.string()),
   })
-  .strict()
+  .strict();
 
 export const ExplanationSchema = z
   .object({
@@ -371,13 +380,13 @@ export const ExplanationSchema = z
     candidates: z.array(z.string()),
     hits: z.array(TiebreakerHitSchema),
   })
-  .strict()
+  .strict();
 
-export const NotesSchema = z.object({ notes: z.string().max(4096) }).strict()
+export const NotesSchema = z.object({ notes: z.string().max(4096) }).strict();
 
 export const NotesPutRequestSchema = z
   .object({ notes: z.string().max(4096) })
-  .strict()
+  .strict();
 
 export const StatsSchema = z
   .object({
@@ -387,7 +396,7 @@ export const StatsSchema = z
     by_driver_status: z.record(z.string(), z.number().int()),
     total_bytes: z.number().int(),
   })
-  .strict()
+  .strict();
 
 // === Overrides + sessions ==================================================
 export const OverridesViewSchema = z
@@ -395,33 +404,37 @@ export const OverridesViewSchema = z
     entries: z.record(z.string(), z.string()),
     warnings: z.array(z.string()),
   })
-  .strict()
+  .strict();
 
 export const OverridePostRequestSchema = z
   .object({ parent: z.string(), winner: z.string() })
-  .strict()
+  .strict();
 
 export const SessionsListingSchema = z
   .object({
     active: z.string().nullable(),
     sessions: z.record(z.string(), SessionSchema),
   })
-  .strict()
+  .strict();
 
 export const SessionUpsertRequestSchema = z
   .object({ name: z.string(), session: SessionSchema })
-  .strict()
+  .strict();
 
 // === P14 — per-game review state ===========================================
-export const ReviewStateValueSchema = z.enum(['reviewed', 'skipped', 'needs-decision'])
+export const ReviewStateValueSchema = z.enum([
+  "reviewed",
+  "skipped",
+  "needs-decision",
+]);
 
 export const StateViewSchema = z
   .object({ entries: z.record(z.string(), ReviewStateValueSchema) })
-  .strict()
+  .strict();
 
 export const StatePostRequestSchema = z
   .object({ short_name: z.string(), state: ReviewStateValueSchema })
-  .strict()
+  .strict();
 
 // === Snapshots / export-import =============================================
 export const SnapshotSchema = z
@@ -430,11 +443,11 @@ export const SnapshotSchema = z
     ts: zDateTime,
     files: z.array(z.string()),
   })
-  .strict()
+  .strict();
 
 export const SnapshotsListingSchema = z
   .object({ items: z.array(SnapshotSchema) })
-  .strict()
+  .strict();
 
 export const ConfigExportBundleSchema = z
   .object({
@@ -443,7 +456,7 @@ export const ConfigExportBundleSchema = z
     sessions: z.record(z.string(), z.unknown()),
     notes: z.record(z.string(), z.string()),
   })
-  .strict()
+  .strict();
 
 // === Copy job ==============================================================
 export const CopyJobRequestSchema = z
@@ -452,24 +465,24 @@ export const CopyJobRequestSchema = z
     conflict_strategy: ConflictStrategySchema,
     append_decisions: z.record(z.string(), AppendDecisionSchema),
   })
-  .strict()
+  .strict();
 
 export const DryRunReportSchema = z
   .object({
     counts: z.record(z.string(), z.number().int()),
     summary: z.record(z.string(), z.unknown()),
   })
-  .strict()
+  .strict();
 
-export const JobAcceptedSchema = z.object({ job_id: z.string() }).strict()
+export const JobAcceptedSchema = z.object({ job_id: z.string() }).strict();
 
 export const JobStateSchema = z.enum([
-  'running',
-  'paused',
-  'terminating',
-  'finished',
-  'aborted',
-])
+  "running",
+  "paused",
+  "terminating",
+  "finished",
+  "aborted",
+]);
 
 export const JobStatusSchema = z
   .object({
@@ -481,19 +494,19 @@ export const JobStatusSchema = z
     bytes_done: z.number().int(),
     bytes_total: z.number().int(),
   })
-  .strict()
+  .strict();
 
 export const JobEventNameSchema = z.enum([
-  'job_started',
-  'file_started',
-  'file_progress',
-  'file_finished',
-  'paused',
-  'resumed',
-  'bios_warning',
-  'job_finished',
-  'job_aborted',
-])
+  "job_started",
+  "file_started",
+  "file_progress",
+  "file_finished",
+  "paused",
+  "resumed",
+  "bios_warning",
+  "job_finished",
+  "job_aborted",
+]);
 
 export const JobEventSchema = z
   .object({
@@ -501,11 +514,11 @@ export const JobEventSchema = z
     payload: z.record(z.string(), z.unknown()),
     ts: zDateTime,
   })
-  .strict()
+  .strict();
 
 export const CopyAbortRequestSchema = z
   .object({ recycle_partial: z.boolean() })
-  .strict()
+  .strict();
 
 export const HistoryItemSchema = z
   .object({
@@ -517,7 +530,7 @@ export const HistoryItemSchema = z
     failed: z.number().int(),
     bytes_copied: z.number().int(),
   })
-  .strict()
+  .strict();
 
 export const HistoryListingSchema = z
   .object({
@@ -526,7 +539,7 @@ export const HistoryListingSchema = z
     page_size: z.number().int(),
     total: z.number().int(),
   })
-  .strict()
+  .strict();
 
 // === Activity ==============================================================
 export const ActivityPageSchema = z
@@ -536,7 +549,7 @@ export const ActivityPageSchema = z
     page_size: z.number().int(),
     total: z.number().int(),
   })
-  .strict()
+  .strict();
 
 // === Filesystem ============================================================
 export const FsEntrySchema = z
@@ -547,7 +560,7 @@ export const FsEntrySchema = z
     size: z.number().int().nullable(),
     mtime: zDateTime,
   })
-  .strict()
+  .strict();
 
 export const FsListingSchema = z
   .object({
@@ -555,29 +568,27 @@ export const FsListingSchema = z
     entries: z.array(FsEntrySchema),
     parent: z.string().nullable(),
   })
-  .strict()
+  .strict();
 
-export const FsPathSchema = z.object({ path: z.string() }).strict()
+export const FsPathSchema = z.object({ path: z.string() }).strict();
 
 export const FsAllowedRootSchema = z
   .object({
     id: z.string(),
     path: z.string(),
-    source: z.enum(['config', 'granted']),
+    source: z.enum(["config", "granted"]),
   })
-  .strict()
+  .strict();
 
 export const FsAllowedRootsSchema = z
   .object({ roots: z.array(FsAllowedRootSchema) })
-  .strict()
+  .strict();
 
 export const FsDriveRootsSchema = z
   .object({ roots: z.array(z.string()) })
-  .strict()
+  .strict();
 
-export const FsGrantRootRequestSchema = z
-  .object({ path: z.string() })
-  .strict()
+export const FsGrantRootRequestSchema = z.object({ path: z.string() }).strict();
 
 // === Setup / updates stubs =================================================
 export const SetupPathStatusSchema = z
@@ -588,7 +599,7 @@ export const SetupPathStatusSchema = z
     writable: z.boolean(),
     dat_parses: z.boolean().nullable(),
   })
-  .strict()
+  .strict();
 
 export const SetupPathsSchema = z
   .object({
@@ -596,11 +607,11 @@ export const SetupPathsSchema = z
     source_dat: SetupPathStatusSchema,
     dest_roms: SetupPathStatusSchema,
   })
-  .strict()
+  .strict();
 
 export const SetupReferenceStatusSchema = z
   .object({ path: z.string(), exists: z.boolean() })
-  .strict()
+  .strict();
 
 export const SetupReferenceFilesSchema = z
   .object({
@@ -611,7 +622,7 @@ export const SetupReferenceFilesSchema = z
     series: SetupReferenceStatusSchema,
     listxml: SetupReferenceStatusSchema,
   })
-  .strict()
+  .strict();
 
 export const SetupCheckSchema = z
   .object({
@@ -621,7 +632,7 @@ export const SetupCheckSchema = z
     cloneof_map_size: z.number().int().nonnegative(),
     retroarch_configured: z.boolean(),
   })
-  .strict()
+  .strict();
 
 export const AppUpdateInfoSchema = z
   .object({
@@ -629,21 +640,21 @@ export const AppUpdateInfoSchema = z
     latest_version: z.string().nullable(),
     update_available: z.boolean(),
   })
-  .strict()
+  .strict();
 
 export const UpdatesCheckSchema = z
   .object({ app: AppUpdateInfoSchema, ini: z.array(z.unknown()) })
-  .strict()
+  .strict();
 
 // === Help ==================================================================
 export const HelpTopicSchema = z
   .object({ slug: z.string(), title: z.string() })
-  .strict()
+  .strict();
 
 export const HelpIndexSchema = z
   .object({ topics: z.array(HelpTopicSchema) })
-  .strict()
+  .strict();
 
 export const HelpContentSchema = z
   .object({ slug: z.string(), title: z.string(), html: z.string() })
-  .strict()
+  .strict();

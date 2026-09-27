@@ -1,18 +1,18 @@
-import { Card } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 // FP24-GG: FeaturedTile / FeaturedTileQuery hoisted into strings.ts
 // so the catalogue and this component share one type definition.
-import { strings, type FeaturedTile, type FeaturedTileQuery } from '@/strings'
+import { strings, type FeaturedTile, type FeaturedTileQuery } from "@/strings";
 
-export type { FeaturedTile, FeaturedTileQuery }
+export type { FeaturedTile, FeaturedTileQuery };
 
 interface FeaturedTilesRowProps {
   // FP24-Z: each value may be undefined while the per-tile count
   // query is in flight, so the label can suppress until real data
   // arrives instead of flashing "0 games".
-  counts: Record<string, number | undefined>
-  activeTileId: string | null
-  onTileSelect: (tileId: string) => void
+  counts: Record<string, number | undefined>;
+  activeTileId: string | null;
+  onTileSelect: (tileId: string) => void;
 }
 
 /**
@@ -33,14 +33,17 @@ export function FeaturedTilesRow({
   onTileSelect,
 }: FeaturedTilesRowProps) {
   return (
-    <section className="px-4 py-3" aria-label={strings.library.featured.heading}>
+    <section
+      className="px-4 py-3"
+      aria-label={strings.library.featured.heading}
+    >
       <h2 className="mb-2 text-sm font-semibold">
         {strings.library.featured.heading}
       </h2>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {strings.library.featured.tiles.map((tile) => {
-          const count = counts[tile.id]
-          const isActive = activeTileId === tile.id
+          const count = counts[tile.id];
+          const isActive = activeTileId === tile.id;
           return (
             <button
               key={tile.id}
@@ -57,12 +60,16 @@ export function FeaturedTilesRow({
             >
               <Card
                 className={cn(
-                  'flex w-40 flex-col gap-1 p-3 transition-shadow hover:shadow-lg',
-                  isActive && 'ring-2 ring-ring',
+                  "flex w-40 flex-col gap-1 p-3 transition-shadow hover:shadow-lg",
+                  isActive && "ring-2 ring-ring",
                 )}
               >
-                <p className="text-sm font-semibold leading-tight">{tile.title}</p>
-                <p className="text-xs text-muted-foreground">{tile.description}</p>
+                <p className="text-sm font-semibold leading-tight">
+                  {tile.title}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {tile.description}
+                </p>
                 {count !== undefined && (
                   <p className="mt-auto text-xs tabular-nums text-muted-foreground">
                     {strings.library.featured.countLabel(count)}
@@ -70,9 +77,9 @@ export function FeaturedTilesRow({
                 )}
               </Card>
             </button>
-          )
+          );
         })}
       </div>
     </section>
-  )
+  );
 }

@@ -1,15 +1,15 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { CartPanel } from '@/components/library/CartPanel'
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { CartPanel } from "@/components/library/CartPanel";
 
 const items = [
-  { shortName: 'pacman' },
-  { shortName: '1942', chosenVariant: '1942j' },
-]
+  { shortName: "pacman" },
+  { shortName: "1942", chosenVariant: "1942j" },
+];
 
-describe('CartPanel', () => {
-  it('does not render when open=false', () => {
+describe("CartPanel", () => {
+  it("does not render when open=false", () => {
     render(
       <CartPanel
         open={false}
@@ -17,11 +17,11 @@ describe('CartPanel', () => {
         onRemove={() => {}}
         onClearAll={() => {}}
       />,
-    )
-    expect(screen.queryByText(/pacman/)).not.toBeInTheDocument()
-  })
+    );
+    expect(screen.queryByText(/pacman/)).not.toBeInTheDocument();
+  });
 
-  it('renders one row per cart item when open=true', () => {
+  it("renders one row per cart item when open=true", () => {
     render(
       <CartPanel
         open={true}
@@ -29,12 +29,12 @@ describe('CartPanel', () => {
         onRemove={() => {}}
         onClearAll={() => {}}
       />,
-    )
-    expect(screen.getByText('pacman')).toBeInTheDocument()
-    expect(screen.getByText('1942')).toBeInTheDocument()
-  })
+    );
+    expect(screen.getByText("pacman")).toBeInTheDocument();
+    expect(screen.getByText("1942")).toBeInTheDocument();
+  });
 
-  it('shows variant badge when chosenVariant is set', () => {
+  it("shows variant badge when chosenVariant is set", () => {
     render(
       <CartPanel
         open={true}
@@ -42,13 +42,13 @@ describe('CartPanel', () => {
         onRemove={() => {}}
         onClearAll={() => {}}
       />,
-    )
-    expect(screen.getByText('⇄ 1942j')).toBeInTheDocument()
-  })
+    );
+    expect(screen.getByText("⇄ 1942j")).toBeInTheDocument();
+  });
 
-  it('emits onRemove(shortName) when ✕ is clicked', async () => {
-    const user = userEvent.setup()
-    const onRemove = vi.fn()
+  it("emits onRemove(shortName) when ✕ is clicked", async () => {
+    const user = userEvent.setup();
+    const onRemove = vi.fn();
     render(
       <CartPanel
         open={true}
@@ -56,14 +56,14 @@ describe('CartPanel', () => {
         onRemove={onRemove}
         onClearAll={() => {}}
       />,
-    )
-    await user.click(screen.getByRole('button', { name: /remove pacman/i }))
-    expect(onRemove).toHaveBeenCalledWith('pacman')
-  })
+    );
+    await user.click(screen.getByRole("button", { name: /remove pacman/i }));
+    expect(onRemove).toHaveBeenCalledWith("pacman");
+  });
 
-  it('emits onClearAll when Clear all is clicked', async () => {
-    const user = userEvent.setup()
-    const onClearAll = vi.fn()
+  it("emits onClearAll when Clear all is clicked", async () => {
+    const user = userEvent.setup();
+    const onClearAll = vi.fn();
     render(
       <CartPanel
         open={true}
@@ -71,8 +71,8 @@ describe('CartPanel', () => {
         onRemove={() => {}}
         onClearAll={onClearAll}
       />,
-    )
-    await user.click(screen.getByRole('button', { name: /clear all/i }))
-    expect(onClearAll).toHaveBeenCalled()
-  })
-})
+    );
+    await user.click(screen.getByRole("button", { name: /clear all/i }));
+    expect(onClearAll).toHaveBeenCalled();
+  });
+});

@@ -7,15 +7,15 @@
  * ``retry: false`` for both queries and mutations so test failures
  * don't get rebrand from "broken handler" to "took N retries to fail".
  */
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ReactElement, ReactNode } from 'react'
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactElement, ReactNode } from "react";
 
 export interface RenderWithClientResult {
   /** A wrapper component to pass to ``renderHook`` / ``render``. */
-  wrapper: (props: { children: ReactNode }) => ReactElement
+  wrapper: (props: { children: ReactNode }) => ReactElement;
   /** The underlying ``QueryClient`` — useful for tests that need to
    * seed cache entries via ``qc.setQueryData(...)`` before rendering. */
-  qc: QueryClient
+  qc: QueryClient;
 }
 
 /**
@@ -30,11 +30,11 @@ export function renderWithClient(): RenderWithClientResult {
       queries: { retry: false },
       mutations: { retry: false },
     },
-  })
+  });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={qc}>{children}</QueryClientProvider>
-  )
-  return { qc, wrapper }
+  );
+  return { qc, wrapper };
 }
 
 /**
@@ -42,6 +42,8 @@ export function renderWithClient(): RenderWithClientResult {
  * underlying ``QueryClient`` — keeps the call-site short for the
  * common case where the hook itself owns its cache interactions.
  */
-export function makeClientWrapper(): (props: { children: ReactNode }) => ReactElement {
-  return renderWithClient().wrapper
+export function makeClientWrapper(): (props: {
+  children: ReactNode;
+}) => ReactElement {
+  return renderWithClient().wrapper;
 }

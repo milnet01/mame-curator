@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { test, expect } from "@playwright/test";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 /**
  * README screenshot capture pass.
@@ -18,57 +18,57 @@ import { fileURLToPath } from 'node:url'
  */
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../..',
-)
+  "../..",
+);
 const out = (name: string) =>
-  path.join(repoRoot, 'docs', 'screenshots', `${name}.png`)
+  path.join(repoRoot, "docs", "screenshots", `${name}.png`);
 
-test('library page (hero shot)', async ({ page }) => {
-  await page.goto('/')
+test("library page (hero shot)", async ({ page }) => {
+  await page.goto("/");
   // Wait for at least one game card to render.
   await expect(
-    page.getByRole('button', { name: /add .+ to cart/i }).first(),
-  ).toBeVisible({ timeout: 30_000 })
+    page.getByRole("button", { name: /add .+ to cart/i }).first(),
+  ).toBeVisible({ timeout: 30_000 });
   // Give cover-art lazy-fetch a beat to settle so tiles aren't blank.
-  await page.waitForTimeout(3_000)
-  await page.screenshot({ path: out('library'), fullPage: false })
-})
+  await page.waitForTimeout(3_000);
+  await page.screenshot({ path: out("library"), fullPage: false });
+});
 
-test('alternatives drawer (parent/clone picker)', async ({ page }) => {
-  await page.goto('/')
+test("alternatives drawer (parent/clone picker)", async ({ page }) => {
+  await page.goto("/");
   await expect(
-    page.getByRole('button', { name: /add .+ to cart/i }).first(),
-  ).toBeVisible({ timeout: 30_000 })
-  await page.waitForTimeout(2_000)
+    page.getByRole("button", { name: /add .+ to cart/i }).first(),
+  ).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(2_000);
   // GameCard renders as <div role="button" aria-labelledby="...">; clicking
   // it dispatches onOpen which opens the AlternativesDrawer for that game.
-  const firstCard = page.locator('[role="button"][aria-labelledby]').first()
-  await firstCard.click()
-  await page.waitForTimeout(2_000)
-  await page.screenshot({ path: out('alternatives-drawer'), fullPage: false })
-})
+  const firstCard = page.locator('[role="button"][aria-labelledby]').first();
+  await firstCard.click();
+  await page.waitForTimeout(2_000);
+  await page.screenshot({ path: out("alternatives-drawer"), fullPage: false });
+});
 
 // `settings — paths tab` capture intentionally omitted — the Paths
 // inputs render the user's real /mnt/... mount paths, which we don't
 // want as the README's first impression. Add it back behind a redaction
 // step if it's wanted later.
 
-test('settings — filters tab', async ({ page }) => {
-  await page.goto('/settings')
-  await expect(page.getByRole('tab', { name: /filters/i })).toBeVisible({
+test("settings — filters tab", async ({ page }) => {
+  await page.goto("/settings");
+  await expect(page.getByRole("tab", { name: /filters/i })).toBeVisible({
     timeout: 15_000,
-  })
-  await page.getByRole('tab', { name: /filters/i }).click()
+  });
+  await page.getByRole("tab", { name: /filters/i }).click();
   // Tab content swap is animated; wait a beat so the panel is fully rendered.
-  await page.waitForTimeout(800)
-  await page.screenshot({ path: out('settings-filters'), fullPage: false })
-})
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: out("settings-filters"), fullPage: false });
+});
 
-test('sessions panel', async ({ page }) => {
-  await page.goto('/sessions')
-  await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({
+test("sessions panel", async ({ page }) => {
+  await page.goto("/sessions");
+  await expect(page.getByRole("heading", { name: /sessions/i })).toBeVisible({
     timeout: 15_000,
-  })
-  await page.waitForTimeout(500)
-  await page.screenshot({ path: out('sessions'), fullPage: false })
-})
+  });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: out("sessions"), fullPage: false });
+});

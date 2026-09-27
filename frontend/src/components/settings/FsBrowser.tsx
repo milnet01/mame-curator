@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,51 +6,51 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { ConfirmationDialog } from '@/components/ConfirmationDialog'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import {
   useFsAllowedRoots,
   useFsDriveRoots,
   useFsGrantRoot,
   useFsHome,
   useFsListing,
-} from '@/hooks/useFs'
-import { strings } from '@/strings'
+} from "@/hooks/useFs";
+import { strings } from "@/strings";
 
 interface FsBrowserProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onPick: (path: string) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onPick: (path: string) => void;
   /** 'directory' (default) shows / picks dirs only; 'file' also shows files
       and clicking a file fires onPick. */
-  mode?: 'directory' | 'file'
+  mode?: "directory" | "file";
   /** Path to start at; falls back to the home directory once it loads. */
-  initialPath?: string
+  initialPath?: string;
 }
 
 export function FsBrowser({
   open,
   onOpenChange,
   onPick,
-  mode = 'directory',
+  mode = "directory",
   initialPath,
 }: FsBrowserProps) {
   // mame-curator-1047: gate the fs queries on `open` so a closed (but still
   // mounted) browser issues no requests. The hooks run unconditionally
   // (rules-of-hooks); `enabled: open` is what suppresses the fetch.
-  const home = useFsHome(open)
-  const driveRoots = useFsDriveRoots(open)
-  const allowed = useFsAllowedRoots(open)
-  const grant = useFsGrantRoot()
+  const home = useFsHome(open);
+  const driveRoots = useFsDriveRoots(open);
+  const allowed = useFsAllowedRoots(open);
+  const grant = useFsGrantRoot();
 
   // userPath holds a user-navigated path; falls back to home until they
   // pick something. Derived `path` keeps default-on-async-load drift-free
   // (project rule against setState-in-effect).
-  const [userPath, setUserPath] = useState<string | null>(initialPath ?? null)
-  const path = userPath ?? home.data?.path ?? null
+  const [userPath, setUserPath] = useState<string | null>(initialPath ?? null);
+  const path = userPath ?? home.data?.path ?? null;
 
-  const listing = useFsListing(path, open)
+  const listing = useFsListing(path, open);
 
   // R33 grant flow — surface a confirm dialog if `path` is outside the
   // allowlist (`fs_sandboxed` 403 from R29). On confirm we POST the path
@@ -58,36 +58,36 @@ export function FsBrowser({
   // tolerates module-identity differences across vitest's module graph.
   const errCode =
     listing.error &&
-    typeof (listing.error as unknown as { code?: unknown }).code === 'string'
+    typeof (listing.error as unknown as { code?: unknown }).code === "string"
       ? (listing.error as unknown as { code: string }).code
-      : null
-  const sandboxBlocked = errCode === 'fs_sandboxed' ? path : null
+      : null;
+  const sandboxBlocked = errCode === "fs_sandboxed" ? path : null;
 
-  if (!open) return null
+  if (!open) return null;
 
   const goUp = () => {
-    if (listing.data?.parent) setUserPath(listing.data.parent)
-  }
+    if (listing.data?.parent) setUserPath(listing.data.parent);
+  };
 
   const handleEntryClick = (entryPath: string, isDir: boolean) => {
     if (isDir) {
-      setUserPath(entryPath)
-    } else if (mode === 'file') {
-      onPick(entryPath)
-      onOpenChange(false)
+      setUserPath(entryPath);
+    } else if (mode === "file") {
+      onPick(entryPath);
+      onOpenChange(false);
     }
-  }
+  };
 
   const usePath = () => {
     if (path) {
-      onPick(path)
-      onOpenChange(false)
+      onPick(path);
+      onOpenChange(false);
     }
-  }
+  };
 
   const visibleEntries = (listing.data?.entries ?? []).filter(
-    (e) => mode === 'file' || e.is_dir,
-  )
+    (e) => mode === "file" || e.is_dir,
+  );
 
   // FP20-K: render only one dialog layer at a time. Previously both
   // the browse Dialog and the grant ConfirmationDialog were siblings
@@ -104,7 +104,7 @@ export function FsBrowser({
         onOpenChange={(o) => {
           // FP13 § C2: cancel = close FsBrowser entirely (avoid the
           // re-prompt loop when home isn't loaded — see C2 comment).
-          if (!o) onOpenChange(false)
+          if (!o) onOpenChange(false);
         }}
         title={strings.settings.fsGrantTitle}
         description={strings.settings.fsGrantConfirm(sandboxBlocked)}
@@ -112,7 +112,7 @@ export function FsBrowser({
         onConfirm={() => grant.mutate(sandboxBlocked)}
         destructive={false}
       />
-    )
+    );
   }
 
   return (
@@ -148,8 +148,7 @@ export function FsBrowser({
               root would otherwise render as a visual duplicate. */}
           {(driveRoots.data?.roots ?? [])
             .filter(
-              (r) =>
-                !(allowed.data?.roots ?? []).some((a) => a.path === r),
+              (r) => !(allowed.data?.roots ?? []).some((a) => a.path === r),
             )
             .map((r) => (
               <Button
@@ -177,7 +176,7 @@ export function FsBrowser({
           >
             {strings.settings.fsBrowserUp}
           </Button>
-          <code className="flex-1 truncate">{path ?? ''}</code>
+          <code className="flex-1 truncate">{path ?? ""}</code>
         </div>
 
         {/* FP13 § C7: home detection failed and the user hasn't quick-jumped
@@ -209,7 +208,7 @@ export function FsBrowser({
                 >
                   <span>{entry.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {entry.is_dir ? strings.settings.fsBrowserDirTag : ''}
+                    {entry.is_dir ? strings.settings.fsBrowserDirTag : ""}
                   </span>
                 </button>
               </li>
@@ -228,16 +227,13 @@ export function FsBrowser({
           </Button>
           {/* FP13 § C3: in file mode the user picks via clicking a row;
               the directory-confirm button is meaningless here. */}
-          {mode === 'directory' && (
-            <Button
-              onClick={usePath}
-              disabled={!path || !!sandboxBlocked}
-            >
+          {mode === "directory" && (
+            <Button onClick={usePath} disabled={!path || !!sandboxBlocked}>
               {strings.settings.fsBrowserUseDirectory}
             </Button>
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

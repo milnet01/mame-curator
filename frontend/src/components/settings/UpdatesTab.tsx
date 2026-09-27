@@ -1,25 +1,25 @@
-import { Label } from '@/components/ui/label'
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { PrefSwitch } from '@/components/settings/PrefSwitch'
-import { strings } from '@/strings'
-import type { AppConfigResponse, AppUpdateInfo } from '@/api/types'
+} from "@/components/ui/select";
+import { PrefSwitch } from "@/components/settings/PrefSwitch";
+import { strings } from "@/strings";
+import type { AppConfigResponse, AppUpdateInfo } from "@/api/types";
 
-type UpdatesCfg = AppConfigResponse['updates']
-type UpdateChannel = UpdatesCfg['channel']
+type UpdatesCfg = AppConfigResponse["updates"];
+type UpdateChannel = UpdatesCfg["channel"];
 
-const UPDATE_CHANNEL_VALUES: readonly UpdateChannel[] = ['stable', 'dev']
+const UPDATE_CHANNEL_VALUES: readonly UpdateChannel[] = ["stable", "dev"];
 
 interface UpdatesTabProps {
-  updates: UpdatesCfg
-  onChange: <K extends keyof UpdatesCfg>(key: K, value: UpdatesCfg[K]) => void
+  updates: UpdatesCfg;
+  onChange: <K extends keyof UpdatesCfg>(key: K, value: UpdatesCfg[K]) => void;
   /** R36 update-check payload — when present, drives the Updates banner. */
-  updateInfo?: AppUpdateInfo
+  updateInfo?: AppUpdateInfo;
 }
 
 export function UpdatesTab({ updates, onChange, updateInfo }: UpdatesTabProps) {
@@ -37,7 +37,9 @@ export function UpdatesTab({ updates, onChange, updateInfo }: UpdatesTabProps) {
                 updateInfo.current_version,
                 updateInfo.latest_version,
               )
-            : strings.settings.banners.updateCurrent(updateInfo.current_version)}
+            : strings.settings.banners.updateCurrent(
+                updateInfo.current_version,
+              )}
         </p>
       )}
       <div className="flex items-center justify-between">
@@ -46,7 +48,7 @@ export function UpdatesTab({ updates, onChange, updateInfo }: UpdatesTabProps) {
         </Label>
         <Select
           value={updates.channel}
-          onValueChange={(v) => onChange('channel', v as UpdateChannel)}
+          onValueChange={(v) => onChange("channel", v as UpdateChannel)}
         >
           <SelectTrigger
             id="updates-channel"
@@ -68,14 +70,14 @@ export function UpdatesTab({ updates, onChange, updateInfo }: UpdatesTabProps) {
         id="updates-check-on-startup"
         label={strings.settings.updatesLabels.check_on_startup}
         checked={updates.check_on_startup}
-        onChange={(v) => onChange('check_on_startup', v)}
+        onChange={(v) => onChange("check_on_startup", v)}
       />
       <PrefSwitch
         id="updates-ini-check-on-startup"
         label={strings.settings.updatesLabels.ini_check_on_startup}
         checked={updates.ini_check_on_startup}
-        onChange={(v) => onChange('ini_check_on_startup', v)}
+        onChange={(v) => onChange("ini_check_on_startup", v)}
       />
     </>
-  )
+  );
 }

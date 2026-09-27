@@ -1,4 +1,4 @@
-import type { ThemeName } from '@/api/types'
+import type { ThemeName } from "@/api/types";
 
 /**
  * Mutates `<html data-theme>` so the matching `@theme` block in
@@ -14,5 +14,5 @@ import type { ThemeName } from '@/api/types'
  * the DOM mutation happens once, not twice.
  */
 export function applyTheme(theme: ThemeName) {
-  document.documentElement.setAttribute('data-theme', theme)
+  document.documentElement.setAttribute("data-theme", theme);
 }

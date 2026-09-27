@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from "@playwright/test";
 
 /**
  * FP26-Q / -R / -S / -T — UX walkthroughs validating the FP25
@@ -16,7 +16,7 @@ import { expect, test } from '@playwright/test'
 
 // ---- FP26-Q: cold-start outage produces ONE toast, not nine ----------------
 
-test('FP26-Q: cold-start backend outage produces one toast (FP25-G dedup window)', async ({
+test("FP26-Q: cold-start backend outage produces one toast (FP25-G dedup window)", async ({
   page,
 }) => {
   // Fail every /api/* call with a 500 to mimic a cold-start outage
@@ -27,19 +27,19 @@ test('FP26-Q: cold-start backend outage produces one toast (FP25-G dedup window)
   // pairs to one. Using 500 (not abort) so the response goes through
   // `rejectIfErrorResponse` and lands as ApiError with a uniform
   // (code='internal_error', detail='backend unavailable') key shape.
-  await page.route('**/api/**', (route) =>
+  await page.route("**/api/**", (route) =>
     route.fulfill({
       status: 500,
-      contentType: 'application/json',
+      contentType: "application/json",
       body: JSON.stringify({
-        code: 'internal_error',
-        detail: 'backend unavailable',
+        code: "internal_error",
+        detail: "backend unavailable",
         fields: [],
       }),
     }),
-  )
+  );
 
-  await page.goto('/')
+  await page.goto("/");
 
   // DS04 T1.11: Sonner renders each toast as a `<li data-sonner-toast>`
   // inside `[data-sonner-toaster]`. After the FP25-G dedup window
@@ -48,13 +48,13 @@ test('FP26-Q: cold-start backend outage produces one toast (FP25-G dedup window)
   // no fixed `waitForTimeout` needed. If a regression breaks dedup, the
   // count stays > 1 and the assertion fails at the timeout instead of
   // racing on a hardcoded sleep.
-  const toasts = page.locator('[data-sonner-toast]')
-  await expect(toasts).toHaveCount(1)
-})
+  const toasts = page.locator("[data-sonner-toast]");
+  await expect(toasts).toHaveCount(1);
+});
 
 // ---- FP26-R: LibraryErrorPanel Retry disables while refetch in-flight ------
 
-test('FP26-R + FP26-V: LibraryErrorPanel stays mounted during refetch; Retry disables + relabels (FP25-H end-to-end)', async ({
+test("FP26-R + FP26-V: LibraryErrorPanel stays mounted during refetch; Retry disables + relabels (FP25-H end-to-end)", async ({
   page,
 }) => {
   // FP26-V fix verified end-to-end: `LibraryPage` keeps the error
@@ -68,45 +68,45 @@ test('FP26-R + FP26-V: LibraryErrorPanel stays mounted during refetch; Retry dis
   // Locks BOTH halves of the contract:
   //   1. (FP26-V) panel stays visible across the click; no flicker.
   //   2. (FP25-H) button disables + relabels while in flight.
-  await page.route('**/api/games?**', async (route) => {
-    await new Promise((r) => setTimeout(r, 1200))
+  await page.route("**/api/games?**", async (route) => {
+    await new Promise((r) => setTimeout(r, 1200));
     await route.fulfill({
       status: 500,
-      contentType: 'application/json',
+      contentType: "application/json",
       body: JSON.stringify({
-        code: 'internal_error',
-        detail: 'forced 500',
+        code: "internal_error",
+        detail: "forced 500",
         fields: [],
       }),
-    })
-  })
+    });
+  });
 
-  await page.goto('/')
+  await page.goto("/");
 
-  const panel = page.getByRole('alert')
-  await expect(panel).toBeVisible({ timeout: 10000 })
-  const retry = page.getByRole('button', { name: /try again|retrying/i })
-  await expect(retry).toBeEnabled()
-  await expect(retry).toHaveText(/try again/i)
+  const panel = page.getByRole("alert");
+  await expect(panel).toBeVisible({ timeout: 10000 });
+  const retry = page.getByRole("button", { name: /try again|retrying/i });
+  await expect(retry).toBeEnabled();
+  await expect(retry).toHaveText(/try again/i);
 
   // Click Retry — refetch begins. FP26-V: panel STAYS visible across
   // the click (no flicker). FP25-H: button disables + relabels.
-  await retry.click()
-  await expect(panel).toBeVisible() // sticky
-  await expect(retry).toBeDisabled({ timeout: 5000 })
-  await expect(retry).toHaveText(/retrying/i)
+  await retry.click();
+  await expect(panel).toBeVisible(); // sticky
+  await expect(retry).toBeDisabled({ timeout: 5000 });
+  await expect(retry).toHaveText(/retrying/i);
 
   // After refetch settles (~1.2s × 2 attempts via retry: 1 ≈ 2.4–3.5s),
   // the panel is still visible (back to errored state) and the button
   // re-enables with the original label.
-  await expect(retry).toBeEnabled({ timeout: 10000 })
-  await expect(retry).toHaveText(/try again/i)
-  await expect(panel).toBeVisible()
-})
+  await expect(retry).toBeEnabled({ timeout: 10000 });
+  await expect(retry).toHaveText(/try again/i);
+  await expect(panel).toBeVisible();
+});
 
 // ---- FP26-S: HelpPage DOMPurify scoping + deterministic data-URL -----------
 
-test('FP26-S: HelpPage sanitizes data: URLs and adds rel-noopener (FP25-I/J)', async ({
+test("FP26-S: HelpPage sanitizes data: URLs and adds rel-noopener (FP25-I/J)", async ({
   page,
 }) => {
   // Mock the help endpoints so the rendered article carries the
@@ -114,125 +114,130 @@ test('FP26-S: HelpPage sanitizes data: URLs and adds rel-noopener (FP25-I/J)', a
   // <script>, a data:-URL <img>, a target="_blank" anchor without
   // rel. The fixture backend has an empty help dir, so without
   // mocks the article wouldn't render at all.
-  await page.route('**/api/help/index', (route) =>
+  await page.route("**/api/help/index", (route) =>
     route.fulfill({
-      contentType: 'application/json',
+      contentType: "application/json",
       body: JSON.stringify({
-        topics: [{ slug: 'fp26-s', title: 'FP26-S sanitization probe' }],
+        topics: [{ slug: "fp26-s", title: "FP26-S sanitization probe" }],
       }),
     }),
-  )
-  await page.route('**/api/help/fp26-s', (route) =>
+  );
+  await page.route("**/api/help/fp26-s", (route) =>
     route.fulfill({
-      contentType: 'application/json',
+      contentType: "application/json",
       body: JSON.stringify({
-        slug: 'fp26-s',
-        title: 'FP26-S sanitization probe',
+        slug: "fp26-s",
+        title: "FP26-S sanitization probe",
         html: [
-          '<h1>probe</h1>',
-          '<script>window.PWND = true</script>',
+          "<h1>probe</h1>",
+          "<script>window.PWND = true</script>",
           '<a href="https://example.com" target="_blank">external link</a>',
           '<img src="data:image/png;base64,iVBORw0KGgo=" alt="datapayload" />',
-          '<p>safe paragraph</p>',
-        ].join('\n'),
+          "<p>safe paragraph</p>",
+        ].join("\n"),
       }),
     }),
-  )
+  );
 
-  await page.goto('/help?topic=fp26-s')
+  await page.goto("/help?topic=fp26-s");
 
-  const article = page.locator('article')
-  await expect(article).toBeVisible({ timeout: 5000 })
+  const article = page.locator("article");
+  await expect(article).toBeVisible({ timeout: 5000 });
   // Anchor on the safe paragraph so we know the article body rendered.
-  await expect(article.getByText('safe paragraph')).toBeVisible()
+  await expect(article.getByText("safe paragraph")).toBeVisible();
 
   // FP25-I assertion: <script> is stripped regardless of how the
   // upstream markdown attempted to inject one. AND no global
   // side-effect from a leaked DOMPurify hook fires (window.PWND
   // would only be set if the script ran).
-  await expect(article.locator('script')).toHaveCount(0)
+  await expect(article.locator("script")).toHaveCount(0);
   const pwned = await page.evaluate(
     () => (window as unknown as { PWND?: boolean }).PWND === true,
-  )
-  expect(pwned).toBe(false)
+  );
+  expect(pwned).toBe(false);
 
   // FP25-I (scoped DOMPurify hook): the target="_blank" anchor
   // survives WITH `rel="noopener noreferrer"` injected by the
   // afterSanitizeAttributes hook on the scoped instance.
-  const externalLink = article.getByRole('link', { name: 'external link' })
-  await expect(externalLink).toHaveAttribute('target', '_blank')
-  await expect(externalLink).toHaveAttribute('rel', 'noopener noreferrer')
+  const externalLink = article.getByRole("link", { name: "external link" });
+  await expect(externalLink).toHaveAttribute("target", "_blank");
+  await expect(externalLink).toHaveAttribute("rel", "noopener noreferrer");
 
   // FP25-J assertion: the data: <img> survives with NO src (the
   // deterministic outcome the strengthened FP25-J test pins).
-  const dataImg = article.locator('img[alt="datapayload"]')
+  const dataImg = article.locator('img[alt="datapayload"]');
   // The img element survives but its src has been stripped to empty
   // or removed entirely. Either outcome is acceptable per FP25-J.
   if ((await dataImg.count()) > 0) {
-    const src = await dataImg.getAttribute('src')
-    expect(src ?? '').not.toMatch(/^data:/i)
+    const src = await dataImg.getAttribute("src");
+    expect(src ?? "").not.toMatch(/^data:/i);
   }
-})
+});
 
 // ---- FP26-T: settings restore failure surfaces the alert ------------------
 
-test('FP26-T: settings restore failure surfaces the alert (FP25-K(12) UX shape)', async ({
+test("FP26-T: settings restore failure surfaces the alert (FP25-K(12) UX shape)", async ({
   page,
 }) => {
   // Stub the snapshots list endpoint with one fake entry so the
   // SnapshotsTab has something to render a Restore button against.
-  await page.route('**/api/config/snapshots', async (route) => {
+  await page.route("**/api/config/snapshots", async (route) => {
     await route.fulfill({
-      contentType: 'application/json',
+      contentType: "application/json",
       body: JSON.stringify({
         items: [
           {
-            id: '2026-05-11T08-30-00Z',
-            ts: '2026-05-11T08:30:00Z',
-            files: ['config.yaml', 'overrides.yaml', 'sessions.yaml', 'notes.json'],
+            id: "2026-05-11T08-30-00Z",
+            ts: "2026-05-11T08:30:00Z",
+            files: [
+              "config.yaml",
+              "overrides.yaml",
+              "sessions.yaml",
+              "notes.json",
+            ],
           },
         ],
       }),
-    })
-  })
+    });
+  });
   // Force the restore mutation to fail with a 422 carrying a
   // detail string the SettingsPage's snapshotRestoreError surface
   // should render.
-  await page.route('**/api/config/snapshots/*/restore', async (route) => {
+  await page.route("**/api/config/snapshots/*/restore", async (route) => {
     await route.fulfill({
       status: 422,
-      contentType: 'application/json',
+      contentType: "application/json",
       body: JSON.stringify({
-        code: 'snapshot_corrupt',
-        detail: 'snapshot integrity check failed',
+        code: "snapshot_corrupt",
+        detail: "snapshot integrity check failed",
         fields: [],
       }),
-    })
-  })
+    });
+  });
 
-  await page.goto('/settings')
+  await page.goto("/settings");
 
   // The Settings page uses defaultValue="paths" on its Tabs — switch
   // to the Snapshots tab by clicking the tab trigger first.
-  await page.getByRole('tab', { name: /snapshots/i }).click()
+  await page.getByRole("tab", { name: /snapshots/i }).click();
 
   // Click the first Restore button (label per SnapshotsTab spec).
-  const restore = page.getByRole('button', { name: /restore/i }).first()
-  await expect(restore).toBeVisible({ timeout: 5000 })
-  await restore.click()
+  const restore = page.getByRole("button", { name: /restore/i }).first();
+  await expect(restore).toBeVisible({ timeout: 5000 });
+  await restore.click();
 
   // The ConfirmationDialog surfaces — confirm the destructive
   // action so the mutation actually fires.
-  const confirm = page.getByRole('button', { name: /restore \d+ file/i })
-  await expect(confirm).toBeVisible({ timeout: 5000 })
-  await confirm.click()
+  const confirm = page.getByRole("button", { name: /restore \d+ file/i });
+  await expect(confirm).toBeVisible({ timeout: 5000 });
+  await confirm.click();
 
   // The persistent alert surfaces with the detail string we returned
   // (FP20-J surface; FP25-K(12) governs lifetime — see FP26-L for
   // the no-op verdict). Scope to the role=alert element so we match
   // the inline persistent surface, NOT the transient Sonner toast
   // which renders the same text in the Notifications region.
-  const alertRegion = page.locator('main [role="alert"]')
-  await expect(alertRegion).toBeVisible({ timeout: 5000 })
-  await expect(alertRegion).toContainText(/snapshot integrity check failed/i)
-})
+  const alertRegion = page.locator('main [role="alert"]');
+  await expect(alertRegion).toBeVisible({ timeout: 5000 });
+  await expect(alertRegion).toContainText(/snapshot integrity check failed/i);
+});

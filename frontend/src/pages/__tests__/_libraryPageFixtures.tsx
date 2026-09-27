@@ -15,15 +15,15 @@
  * the one endpoint its scenario cares about (`/api/games` or
  * `/api/games/:name/alternatives`).
  */
-import type { ReactElement } from 'react'
-import { render as rtlRender } from '@testing-library/react'
-import type { RenderOptions } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router'
+import type { ReactElement } from "react";
+import { render as rtlRender } from "@testing-library/react";
+import type { RenderOptions } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router";
 
-import { http, HttpResponse } from '@/test/handlers'
-import type { UseCartResult } from '@/hooks/useCart'
-import { config as appConfig } from './_settingsPageFixtures'
+import { http, HttpResponse } from "@/test/handlers";
+import type { UseCartResult } from "@/hooks/useCart";
+import { config as appConfig } from "./_settingsPageFixtures";
 
 /** A cart with nothing in it and every mutator a stable no-op. */
 export function makeFakeCart(): UseCartResult {
@@ -37,7 +37,7 @@ export function makeFakeCart(): UseCartResult {
     clear: () => {},
     totalBytes: 0,
     isStorageBroken: false,
-  }
+  };
 }
 
 /** Schema-valid `GET /api/setup/check` body — RetroArch left unconfigured;
@@ -45,21 +45,39 @@ export function makeFakeCart(): UseCartResult {
 export const setupCheckFixture = {
   config_present: true,
   paths: {
-    source_roms: { path: '/mnt/roms', exists: true, readable: true, writable: true, dat_parses: null },
-    source_dat: { path: '/mnt/dat.xml', exists: true, readable: true, writable: false, dat_parses: true },
-    dest_roms: { path: '/mnt/dest', exists: true, readable: true, writable: true, dat_parses: null },
+    source_roms: {
+      path: "/mnt/roms",
+      exists: true,
+      readable: true,
+      writable: true,
+      dat_parses: null,
+    },
+    source_dat: {
+      path: "/mnt/dat.xml",
+      exists: true,
+      readable: true,
+      writable: false,
+      dat_parses: true,
+    },
+    dest_roms: {
+      path: "/mnt/dest",
+      exists: true,
+      readable: true,
+      writable: true,
+      dat_parses: null,
+    },
   },
   reference_files: {
-    catver: { path: '', exists: false },
-    languages: { path: '', exists: false },
-    bestgames: { path: '', exists: false },
-    mature: { path: '', exists: false },
-    series: { path: '', exists: false },
-    listxml: { path: '', exists: false },
+    catver: { path: "", exists: false },
+    languages: { path: "", exists: false },
+    bestgames: { path: "", exists: false },
+    mature: { path: "", exists: false },
+    series: { path: "", exists: false },
+    listxml: { path: "", exists: false },
   },
   cloneof_map_size: 0,
   retroarch_configured: false,
-}
+};
 
 /**
  * Register the five always-needed handlers `LibraryPage` fires on
@@ -69,14 +87,21 @@ export const setupCheckFixture = {
  */
 export function libraryPageBaseHandlers() {
   return [
-    http.get('/api/config', () => HttpResponse.json(appConfig)),
-    http.get('/api/sessions', () => HttpResponse.json({ active: null, sessions: {} })),
-    http.get('/api/library/facets', () =>
-      HttpResponse.json({ genres: [], publishers: [], developers: [], letters: [] }),
+    http.get("/api/config", () => HttpResponse.json(appConfig)),
+    http.get("/api/sessions", () =>
+      HttpResponse.json({ active: null, sessions: {} }),
     ),
-    http.get('/api/setup/check', () => HttpResponse.json(setupCheckFixture)),
-    http.get('/api/state', () => HttpResponse.json({ entries: {} })),
-  ]
+    http.get("/api/library/facets", () =>
+      HttpResponse.json({
+        genres: [],
+        publishers: [],
+        developers: [],
+        letters: [],
+      }),
+    ),
+    http.get("/api/setup/check", () => HttpResponse.json(setupCheckFixture)),
+    http.get("/api/state", () => HttpResponse.json({ entries: {} })),
+  ];
 }
 
 /** A `GamesPage` envelope wrapping the given items. */
@@ -87,37 +112,40 @@ export function makeGamesPage(items: ReturnType<typeof makeGameCard>[]) {
     page_size: 200,
     total: items.length,
     total_bytes: 0,
-  }
+  };
 }
 
-export function makeGameCard(overrides: { short_name: string; description: string }) {
+export function makeGameCard(overrides: {
+  short_name: string;
+  description: string;
+}) {
   return {
     year: 1980,
-    manufacturer: 'Namco',
-    publisher: 'Midway',
-    developer: 'Namco',
+    manufacturer: "Namco",
+    publisher: "Midway",
+    developer: "Namco",
     badges: [],
     ...overrides,
-  }
+  };
 }
 
 /** A handler whose promise never settles — the query stays `isPending`
  *  for the lifetime of the test, same as a slow backend the user is
  *  still waiting on. */
 export function hangingGet(url: string) {
-  return http.get(url, () => new Promise(() => {}))
+  return http.get(url, () => new Promise(() => {}));
 }
 
 export function renderLibraryPageTree(
   ui: ReactElement,
   options?: RenderOptions & { initialPath?: string },
 ) {
-  const { initialPath = '/', ...rtlOptions } = options ?? {}
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const { initialPath = "/", ...rtlOptions } = options ?? {};
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return rtlRender(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[initialPath]}>{ui}</MemoryRouter>
     </QueryClientProvider>,
     rtlOptions,
-  )
+  );
 }

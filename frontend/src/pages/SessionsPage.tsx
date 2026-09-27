@@ -1,36 +1,36 @@
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { strings } from '@/strings'
-import type { Session } from '@/api/types'
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { strings } from "@/strings";
+import type { Session } from "@/api/types";
 
 interface SessionsPageProps {
-  sessions: Record<string, Session>
-  active: string | null
-  onActivate: (name: string) => void
-  onDeactivate: () => void
-  onDelete: (name: string) => void
-  onCreate: () => void
+  sessions: Record<string, Session>;
+  active: string | null;
+  onActivate: (name: string) => void;
+  onDeactivate: () => void;
+  onDelete: (name: string) => void;
+  onCreate: () => void;
 }
 
 function metaLine(session: Session): string {
-  const labels = strings.sessions.metaLabels
+  const labels = strings.sessions.metaLabels;
   const yearLabel = session.include_year_range
     ? `${session.include_year_range[0]}–${session.include_year_range[1]}`
-    : null
+    : null;
   return [
     session.include_genres.length
-      ? `${labels.genres}: ${session.include_genres.join(', ')}`
+      ? `${labels.genres}: ${session.include_genres.join(", ")}`
       : null,
     session.include_publishers.length
-      ? `${labels.publishers}: ${session.include_publishers.join(', ')}`
+      ? `${labels.publishers}: ${session.include_publishers.join(", ")}`
       : null,
     session.include_developers.length
-      ? `${labels.developers}: ${session.include_developers.join(', ')}`
+      ? `${labels.developers}: ${session.include_developers.join(", ")}`
       : null,
     yearLabel ? `${labels.years}: ${yearLabel}` : null,
   ]
     .filter(Boolean)
-    .join(strings.sessions.metaJoiner)
+    .join(strings.sessions.metaJoiner);
 }
 
 export function SessionsPage({
@@ -41,7 +41,7 @@ export function SessionsPage({
   onDelete,
   onCreate,
 }: SessionsPageProps) {
-  const names = Object.keys(sessions).sort()
+  const names = Object.keys(sessions).sort();
 
   return (
     <section className="flex flex-col gap-4 p-4">
@@ -53,20 +53,24 @@ export function SessionsPage({
               {strings.sessions.actions.deactivate}
             </Button>
           )}
-          <Button onClick={onCreate}>{strings.sessions.actions.newSession}</Button>
+          <Button onClick={onCreate}>
+            {strings.sessions.actions.newSession}
+          </Button>
         </div>
       </header>
 
       {names.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded border bg-muted/30 p-8 text-center">
           <p className="text-lg font-medium">{strings.sessions.emptyTitle}</p>
-          <p className="text-sm text-muted-foreground">{strings.sessions.emptyHint}</p>
+          <p className="text-sm text-muted-foreground">
+            {strings.sessions.emptyHint}
+          </p>
         </div>
       ) : (
         <ul className="grid gap-3">
           {names.map((name) => {
-            const isActive = name === active
-            const session = sessions[name]!
+            const isActive = name === active;
+            const session = sessions[name]!;
             return (
               <li key={name}>
                 <Card>
@@ -85,7 +89,9 @@ export function SessionsPage({
                         variant="outline"
                         onClick={() => onActivate(name)}
                         disabled={isActive}
-                        aria-label={strings.sessions.actions.activateAriaLabel(name)}
+                        aria-label={strings.sessions.actions.activateAriaLabel(
+                          name,
+                        )}
                       >
                         {strings.sessions.actions.activate}
                       </Button>
@@ -93,7 +99,9 @@ export function SessionsPage({
                         size="sm"
                         variant="ghost"
                         onClick={() => onDelete(name)}
-                        aria-label={strings.sessions.actions.deleteAriaLabel(name)}
+                        aria-label={strings.sessions.actions.deleteAriaLabel(
+                          name,
+                        )}
                       >
                         {strings.sessions.actions.delete}
                       </Button>
@@ -104,10 +112,10 @@ export function SessionsPage({
                   </CardContent>
                 </Card>
               </li>
-            )
+            );
           })}
         </ul>
       )}
     </section>
-  )
+  );
 }

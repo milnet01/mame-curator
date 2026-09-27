@@ -1,26 +1,26 @@
-import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
-import { CopyModal, type CopyModalState } from '../CopyModal'
+import { CopyModal, type CopyModalState } from "../CopyModal";
 
 const baseState: CopyModalState = {
-  jobId: 'job-1',
-  state: 'running',
+  jobId: "job-1",
+  state: "running",
   filesDone: 1,
   filesTotal: 3,
   bytesDone: 100,
   bytesTotal: 300,
-  currentFile: 'pacman.zip',
+  currentFile: "pacman.zip",
   warnings: [],
   conflict: null,
-}
+};
 
 // Render the modal in its default running state and click Cancel to open
 // the keep/recycle abort prompt; returns the onAbort spy so the caller can
 // assert which path the user picks.
 async function openAbortPrompt(user: ReturnType<typeof userEvent.setup>) {
-  const onAbort = vi.fn()
+  const onAbort = vi.fn();
   render(
     <CopyModal
       open
@@ -30,13 +30,13 @@ async function openAbortPrompt(user: ReturnType<typeof userEvent.setup>) {
       onResume={() => {}}
       onAbort={onAbort}
     />,
-  )
-  await user.click(screen.getByRole('button', { name: /cancel/i }))
-  return onAbort
+  );
+  await user.click(screen.getByRole("button", { name: /cancel/i }));
+  return onAbort;
 }
 
-describe('CopyModal', () => {
-  it('renders the progress line and current file', () => {
+describe("CopyModal", () => {
+  it("renders the progress line and current file", () => {
     render(
       <CopyModal
         open
@@ -46,10 +46,10 @@ describe('CopyModal', () => {
         onResume={() => {}}
         onAbort={() => {}}
       />,
-    )
-    expect(screen.getByText(/1 \/ 3/)).toBeInTheDocument()
-    expect(screen.getByText(/pacman\.zip/)).toBeInTheDocument()
-  })
+    );
+    expect(screen.getByText(/1 \/ 3/)).toBeInTheDocument();
+    expect(screen.getByText(/pacman\.zip/)).toBeInTheDocument();
+  });
 
   // mame-curator-1103 F2: "0 / 0" reads as the job having zero files, not
   // as "no job_started yet". Investigation: "'0 / 0' ... is the modal's
@@ -61,22 +61,22 @@ describe('CopyModal', () => {
       <CopyModal
         open
         onOpenChange={() => {}}
-        state={{ ...baseState, filesDone: 0, filesTotal: 0, currentFile: '' }}
+        state={{ ...baseState, filesDone: 0, filesTotal: 0, currentFile: "" }}
         onPause={() => {}}
         onResume={() => {}}
         onAbort={() => {}}
       />,
-    )
+    );
     expect(
       screen.queryByText(/0 \/ 0/),
       '"0 / 0" progress line rendered before job_started populated filesTotal',
-    ).not.toBeInTheDocument()
-  })
+    ).not.toBeInTheDocument();
+  });
 
-  it('shows pause when running and resume when paused', async () => {
-    const user = userEvent.setup()
-    const onPause = vi.fn()
-    const onResume = vi.fn()
+  it("shows pause when running and resume when paused", async () => {
+    const user = userEvent.setup();
+    const onPause = vi.fn();
+    const onResume = vi.fn();
     const { rerender } = render(
       <CopyModal
         open
@@ -86,89 +86,89 @@ describe('CopyModal', () => {
         onResume={onResume}
         onAbort={() => {}}
       />,
-    )
-    await user.click(screen.getByRole('button', { name: /pause/i }))
-    expect(onPause).toHaveBeenCalledOnce()
+    );
+    await user.click(screen.getByRole("button", { name: /pause/i }));
+    expect(onPause).toHaveBeenCalledOnce();
 
     rerender(
       <CopyModal
         open
         onOpenChange={() => {}}
-        state={{ ...baseState, state: 'paused' }}
+        state={{ ...baseState, state: "paused" }}
         onPause={onPause}
         onResume={onResume}
         onAbort={() => {}}
       />,
-    )
-    await user.click(screen.getByRole('button', { name: /resume/i }))
-    expect(onResume).toHaveBeenCalledOnce()
-  })
+    );
+    await user.click(screen.getByRole("button", { name: /resume/i }));
+    expect(onResume).toHaveBeenCalledOnce();
+  });
 
-  it('opens the abort prompt offering BOTH keep + recycle paths (FP11 § A3)', async () => {
-    const user = userEvent.setup()
-    await openAbortPrompt(user)
+  it("opens the abort prompt offering BOTH keep + recycle paths (FP11 § A3)", async () => {
+    const user = userEvent.setup();
+    await openAbortPrompt(user);
     // Spec / design §9: "Cancel asks whether to keep already-copied
     // files or remove them." Both paths must be reachable.
     expect(
-      await screen.findByRole('button', { name: /keep files/i }),
-    ).toBeInTheDocument()
+      await screen.findByRole("button", { name: /keep files/i }),
+    ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /move to recycle bin/i }),
-    ).toBeInTheDocument()
-  })
+      screen.getByRole("button", { name: /move to recycle bin/i }),
+    ).toBeInTheDocument();
+  });
 
-  it('aborts with recycle_partial=true when user picks recycle', async () => {
-    const user = userEvent.setup()
-    const onAbort = await openAbortPrompt(user)
+  it("aborts with recycle_partial=true when user picks recycle", async () => {
+    const user = userEvent.setup();
+    const onAbort = await openAbortPrompt(user);
     await user.click(
-      await screen.findByRole('button', { name: /move to recycle bin/i }),
-    )
-    expect(onAbort).toHaveBeenCalledWith({ recycle_partial: true })
-  })
+      await screen.findByRole("button", { name: /move to recycle bin/i }),
+    );
+    expect(onAbort).toHaveBeenCalledWith({ recycle_partial: true });
+  });
 
-  it('aborts with recycle_partial=false when user picks keep', async () => {
-    const user = userEvent.setup()
-    const onAbort = await openAbortPrompt(user)
+  it("aborts with recycle_partial=false when user picks keep", async () => {
+    const user = userEvent.setup();
+    const onAbort = await openAbortPrompt(user);
     await user.click(
-      await screen.findByRole('button', { name: /keep files/i }),
-    )
-    expect(onAbort).toHaveBeenCalledWith({ recycle_partial: false })
-  })
+      await screen.findByRole("button", { name: /keep files/i }),
+    );
+    expect(onAbort).toHaveBeenCalledWith({ recycle_partial: false });
+  });
 
-  it('shows a Done button in terminal states (FP11 § D8)', async () => {
-    const user = userEvent.setup()
-    const onOpenChange = vi.fn()
+  it("shows a Done button in terminal states (FP11 § D8)", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
     const { rerender } = render(
       <CopyModal
         open
         onOpenChange={onOpenChange}
-        state={{ ...baseState, state: 'finished' }}
+        state={{ ...baseState, state: "finished" }}
         onPause={() => {}}
         onResume={() => {}}
         onAbort={() => {}}
       />,
-    )
-    const done = screen.getByRole('button', { name: /^done$/i })
-    expect(done).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /pause/i })).toBeNull()
-    expect(screen.queryByRole('button', { name: /^cancel$/i })).toBeNull()
-    await user.click(done)
-    expect(onOpenChange).toHaveBeenCalledWith(false)
+    );
+    const done = screen.getByRole("button", { name: /^done$/i });
+    expect(done).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /pause/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^cancel$/i })).toBeNull();
+    await user.click(done);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
 
     rerender(
       <CopyModal
         open
         onOpenChange={onOpenChange}
-        state={{ ...baseState, state: 'aborted' }}
+        state={{ ...baseState, state: "aborted" }}
         onPause={() => {}}
         onResume={() => {}}
         onAbort={() => {}}
       />,
-    )
-    expect(screen.getByRole('button', { name: /^done$/i })).toBeInTheDocument()
-  })
+    );
+    expect(screen.getByRole("button", { name: /^done$/i })).toBeInTheDocument();
+  });
 
-  it('renders the conflict prompt as a read-only banner (FP27 A4)', () => {
+  it("renders the conflict prompt as a read-only banner (FP27 A4)", () => {
     // The prior three Keep/Replace/Replace-and-recycle buttons were
     // removed because there is no /api/copy/resolve-conflict endpoint
     // — they silently dropped the user's choice. The banner now
@@ -180,26 +180,26 @@ describe('CopyModal', () => {
         onOpenChange={() => {}}
         state={{
           ...baseState,
-          state: 'paused',
+          state: "paused",
           conflict: {
-            short_name: 'pacman',
-            existing: 'pacmanf',
+            short_name: "pacman",
+            existing: "pacmanf",
           },
         }}
         onPause={() => {}}
         onResume={() => {}}
         onAbort={() => {}}
       />,
-    )
-    expect(screen.getByText(/Existing playlist detected/i)).toBeInTheDocument()
+    );
+    expect(screen.getByText(/Existing playlist detected/i)).toBeInTheDocument();
     expect(
       screen.getByText(/Restart the copy with updated append_decisions/i),
-    ).toBeInTheDocument()
+    ).toBeInTheDocument();
     // The prior three buttons are gone.
-    expect(screen.queryByRole('button', { name: /keep existing/i })).toBeNull()
-    expect(screen.queryByRole('button', { name: /^replace$/i })).toBeNull()
+    expect(screen.queryByRole("button", { name: /keep existing/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^replace$/i })).toBeNull();
     expect(
-      screen.queryByRole('button', { name: /replace and recycle/i }),
-    ).toBeNull()
-  })
-})
+      screen.queryByRole("button", { name: /replace and recycle/i }),
+    ).toBeNull();
+  });
+});

@@ -1,5 +1,5 @@
-import { type ReactNode } from 'react'
-import { NavLink } from 'react-router'
+import { type ReactNode } from "react";
+import { NavLink } from "react-router";
 import {
   Activity,
   BarChart,
@@ -10,48 +10,53 @@ import {
   Settings,
   ShoppingCart,
   type LucideIcon,
-} from 'lucide-react'
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { strings } from '@/strings'
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { strings } from "@/strings";
 
 interface AppShellProps {
-  children: ReactNode
-  cartCount: number
-  onCmdK: () => void
-  onOpenCart: () => void
+  children: ReactNode;
+  cartCount: number;
+  onCmdK: () => void;
+  onOpenCart: () => void;
 }
 
 interface NavItem {
-  to: string
-  label: string
-  icon: LucideIcon
-  end?: boolean
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  end?: boolean;
 }
 
 const PRIMARY: NavItem[] = [
-  { to: '/', label: strings.nav.library, icon: Layers, end: true },
-  { to: '/settings', label: strings.nav.settings, icon: Settings },
-  { to: '/help', label: strings.nav.help, icon: BookOpen },
-]
+  { to: "/", label: strings.nav.library, icon: Layers, end: true },
+  { to: "/settings", label: strings.nav.settings, icon: Settings },
+  { to: "/help", label: strings.nav.help, icon: BookOpen },
+];
 
 const MORE: NavItem[] = [
-  { to: '/sessions', label: strings.nav.sessions, icon: Layers },
-  { to: '/activity', label: strings.nav.activity, icon: Activity },
-  { to: '/stats', label: strings.nav.stats, icon: BarChart },
-]
+  { to: "/sessions", label: strings.nav.sessions, icon: Layers },
+  { to: "/activity", label: strings.nav.activity, icon: Activity },
+  { to: "/stats", label: strings.nav.stats, icon: BarChart },
+];
 
 // FP24-C: the Cart entry was a NavLink to="/" so on Library it lit up
 // active simultaneously with Library and clicking re-navigated home
 // with no panel toggle. It is now a button that fires onOpenCart so
 // the parent shell can open the cart panel from any route.
-export function AppShell({ children, cartCount, onCmdK, onOpenCart }: AppShellProps) {
+export function AppShell({
+  children,
+  cartCount,
+  onCmdK,
+  onOpenCart,
+}: AppShellProps) {
   return (
     <div className="grid h-screen grid-rows-[auto_1fr] bg-background text-foreground">
       {/* DS02 C1 — WCAG skip-link. Visually hidden by default; revealed
@@ -73,8 +78,8 @@ export function AppShell({ children, cartCount, onCmdK, onOpenCart }: AppShellPr
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted',
-                  isActive && 'bg-muted font-medium',
+                  "flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted",
+                  isActive && "bg-muted font-medium",
                 )
               }
             >
@@ -110,8 +115,8 @@ export function AppShell({ children, cartCount, onCmdK, onOpenCart }: AppShellPr
                     to={to}
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center gap-2 rounded px-2 py-1.5',
-                        isActive && 'bg-muted font-medium',
+                        "flex items-center gap-2 rounded px-2 py-1.5",
+                        isActive && "bg-muted font-medium",
                       )
                     }
                   >
@@ -124,7 +129,12 @@ export function AppShell({ children, cartCount, onCmdK, onOpenCart }: AppShellPr
           </DropdownMenu>
         </nav>
         <div className="ml-auto">
-          <Button variant="outline" size="sm" onClick={onCmdK} className="gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onCmdK}
+            className="gap-2"
+          >
             <Search className="h-4 w-4" aria-hidden="true" />
             <span className="text-xs text-muted-foreground">
               {strings.nav.commandPalette}
@@ -135,9 +145,10 @@ export function AppShell({ children, cartCount, onCmdK, onOpenCart }: AppShellPr
                   Linux/Windows users see "Ctrl+K" instead of the macOS
                   glyph for a key that doesn't fire the chord on their
                   platform. */}
-              {typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform)
-                ? '⌘K'
-                : 'Ctrl+K'}
+              {typeof navigator !== "undefined" &&
+              /Mac|iPhone|iPad/i.test(navigator.platform)
+                ? "⌘K"
+                : "Ctrl+K"}
             </kbd>
           </Button>
         </div>
@@ -151,5 +162,5 @@ export function AppShell({ children, cartCount, onCmdK, onOpenCart }: AppShellPr
         {children}
       </main>
     </div>
-  )
+  );
 }

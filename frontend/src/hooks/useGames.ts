@@ -2,57 +2,58 @@ import {
   GamesPageSchema,
   type GamesPage,
   type ReviewStateFilter,
-} from '@/api/types'
-import { useApiQuery } from './useApi'
+} from "@/api/types";
+import { useApiQuery } from "./useApi";
 
 export interface GamesQuery {
-  page: number
-  pageSize: number
-  search?: string
-  yearFrom?: number
-  yearTo?: number
+  page: number;
+  pageSize: number;
+  search?: string;
+  yearFrom?: number;
+  yearTo?: number;
   /** FP17: backend `letter` param. ``'#'`` selects digit-prefixed games. */
-  letter?: string
+  letter?: string;
   /** FP17: backend `genre` / `publisher` / `developer` exact-match filters. */
-  genre?: string
-  publisher?: string
-  developer?: string
-  onlyContested?: boolean
-  onlyOverridden?: boolean
-  onlyChdMissing?: boolean
-  onlyBiosMissing?: boolean
+  genre?: string;
+  publisher?: string;
+  developer?: string;
+  onlyContested?: boolean;
+  onlyOverridden?: boolean;
+  onlyChdMissing?: boolean;
+  onlyBiosMissing?: boolean;
   /** P14 — review-state visibility filter. Default `all` on the backend. */
-  reviewState?: ReviewStateFilter
+  reviewState?: ReviewStateFilter;
 }
 
 function toQueryString(q: GamesQuery): string {
   // FP16 § A: backend (api/routes/games.py:60) accepts `q`, `year_min`,
   // `year_max` — the frontend was silently sending `search`, `year_from`,
   // `year_to`, so search + year-range filtering both no-op'd in production.
-  const params = new URLSearchParams()
-  params.set('page', String(q.page))
-  params.set('page_size', String(q.pageSize))
-  if (q.search) params.set('q', q.search)
-  if (q.yearFrom) params.set('year_min', String(q.yearFrom))
-  if (q.yearTo) params.set('year_max', String(q.yearTo))
-  if (q.letter) params.set('letter', q.letter)
-  if (q.genre) params.set('genre', q.genre)
-  if (q.publisher) params.set('publisher', q.publisher)
-  if (q.developer) params.set('developer', q.developer)
-  if (q.onlyContested) params.set('only_contested', '1')
-  if (q.onlyOverridden) params.set('only_overridden', '1')
-  if (q.onlyChdMissing) params.set('only_chd_missing', '1')
-  if (q.onlyBiosMissing) params.set('only_bios_missing', '1')
-  if (q.reviewState && q.reviewState !== 'all') params.set('review_state', q.reviewState)
-  return params.toString()
+  const params = new URLSearchParams();
+  params.set("page", String(q.page));
+  params.set("page_size", String(q.pageSize));
+  if (q.search) params.set("q", q.search);
+  if (q.yearFrom) params.set("year_min", String(q.yearFrom));
+  if (q.yearTo) params.set("year_max", String(q.yearTo));
+  if (q.letter) params.set("letter", q.letter);
+  if (q.genre) params.set("genre", q.genre);
+  if (q.publisher) params.set("publisher", q.publisher);
+  if (q.developer) params.set("developer", q.developer);
+  if (q.onlyContested) params.set("only_contested", "1");
+  if (q.onlyOverridden) params.set("only_overridden", "1");
+  if (q.onlyChdMissing) params.set("only_chd_missing", "1");
+  if (q.onlyBiosMissing) params.set("only_bios_missing", "1");
+  if (q.reviewState && q.reviewState !== "all")
+    params.set("review_state", q.reviewState);
+  return params.toString();
 }
 
 export function useGames(query: GamesQuery) {
-  const qs = toQueryString(query)
+  const qs = toQueryString(query);
   return useApiQuery<GamesPage>(
-    ['games', qs],
+    ["games", qs],
     `/api/games?${qs}`,
     GamesPageSchema,
     { staleTime: 5_000 },
-  )
+  );
 }

@@ -4,8 +4,8 @@ import {
   Loader2Icon,
   OctagonXIcon,
   TriangleAlertIcon,
-} from "lucide-react"
-import { Toaster as Sonner, type ToasterProps } from "sonner"
+} from "lucide-react";
+import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 /**
  * Project-tweak vs vendored shadcn `sonner.tsx`: dropped the
@@ -35,7 +35,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       {...props}
     />
-  )
-}
+  );
+};
 
-export { Toaster }
+export { Toaster };

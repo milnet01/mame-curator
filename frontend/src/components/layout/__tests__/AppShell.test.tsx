@@ -1,61 +1,61 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
-import { AppShell } from '@/components/layout/AppShell'
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
+import { AppShell } from "@/components/layout/AppShell";
 
 function renderShell(
   props: Partial<React.ComponentProps<typeof AppShell>> = {},
-  initialPath = '/',
+  initialPath = "/",
 ) {
   const defaults: React.ComponentProps<typeof AppShell> = {
     children: <div>content</div>,
     cartCount: 0,
     onCmdK: () => {},
     onOpenCart: () => {},
-  }
+  };
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
       <AppShell {...defaults} {...props} />
     </MemoryRouter>,
-  )
+  );
 }
 
-describe('AppShell', () => {
+describe("AppShell", () => {
   // FP24-C: the Cart entry in the navbar must NOT be a NavLink to "/" —
   // when it was, both Library and Cart highlighted simultaneously on
   // home and clicking re-navigated home with no panel toggle. The Cart
   // entry is now a button that fires onOpenCart().
-  it('renders Cart as a button, not a navigation link', () => {
-    renderShell({ cartCount: 3 })
-    const cart = screen.getByRole('button', { name: /cart/i })
+  it("renders Cart as a button, not a navigation link", () => {
+    renderShell({ cartCount: 3 });
+    const cart = screen.getByRole("button", { name: /cart/i });
     // DS04 T3.7 + R1c: dropped the redundant `cart.getAttribute('href')`
     // check. `getByRole('button')` already proves the element is a
     // <button>, and `href` is inert on <button> elements, so the prior
     // assertion was tautological.
-    expect(cart.tagName).toBe('BUTTON')
-  })
+    expect(cart.tagName).toBe("BUTTON");
+  });
 
-  it('fires onOpenCart when the Cart button is clicked', async () => {
-    const user = userEvent.setup()
-    const onOpenCart = vi.fn()
-    renderShell({ cartCount: 0, onOpenCart })
-    await user.click(screen.getByRole('button', { name: /cart/i }))
-    expect(onOpenCart).toHaveBeenCalledTimes(1)
-  })
+  it("fires onOpenCart when the Cart button is clicked", async () => {
+    const user = userEvent.setup();
+    const onOpenCart = vi.fn();
+    renderShell({ cartCount: 0, onOpenCart });
+    await user.click(screen.getByRole("button", { name: /cart/i }));
+    expect(onOpenCart).toHaveBeenCalledTimes(1);
+  });
 
-  it('Cart and Library do not both appear active on /', () => {
-    renderShell({ cartCount: 1 }, '/')
+  it("Cart and Library do not both appear active on /", () => {
+    renderShell({ cartCount: 1 }, "/");
     // DS04 T3.8: assert on `aria-current="page"` — the semantically
     // correct active-link signal — instead of the Tailwind
     // `font-medium` class (implementation detail; a future style
     // refactor could swap the visual indicator without breaking the
     // a11y contract).
-    const library = screen.getByRole('link', { name: /library/i })
-    expect(library.getAttribute('aria-current')).toBe('page')
-    const cart = screen.getByRole('button', { name: /cart/i })
-    expect(cart.getAttribute('aria-current')).not.toBe('page')
-  })
+    const library = screen.getByRole("link", { name: /library/i });
+    expect(library.getAttribute("aria-current")).toBe("page");
+    const cart = screen.getByRole("button", { name: /cart/i });
+    expect(cart.getAttribute("aria-current")).not.toBe("page");
+  });
 
   // DS02 C2 — the <main> landmark must carry an aria-label so screen
   // readers announce something more useful than "main, region". Per
@@ -63,8 +63,8 @@ describe('AppShell', () => {
   // anchors on the rendered text rather than the catalogue path so a
   // future namespace move (e.g. landmarks/) does not break the test.
   it('main landmark has aria-label "Main content"', () => {
-    renderShell()
-    const main = screen.getByRole('main')
-    expect(main.getAttribute('aria-label')).toMatch(/main content/i)
-  })
-})
+    renderShell();
+    const main = screen.getByRole("main");
+    expect(main.getAttribute("aria-label")).toMatch(/main content/i);
+  });
+});

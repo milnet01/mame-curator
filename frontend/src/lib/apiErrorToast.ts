@@ -1,7 +1,7 @@
-import { toast } from 'sonner'
+import { toast } from "sonner";
 
-import { ApiError } from '@/api/client'
-import { strings } from '@/strings'
+import { ApiError } from "@/api/client";
+import { strings } from "@/strings";
 
 /**
  * Render a thrown error from a react-query mutation as a user-visible toast.
@@ -31,17 +31,17 @@ import { strings } from '@/strings'
  * based dedup matches that intent; id-replace would let a stale toast
  * linger past its useful moment.
  */
-const DEDUP_WINDOW_MS = 1500
-const lastSeen = new Map<string, number>()
+const DEDUP_WINDOW_MS = 1500;
+const lastSeen = new Map<string, number>();
 
 function shouldSkipDuplicate(key: string): boolean {
-  const now = Date.now()
-  const last = lastSeen.get(key)
+  const now = Date.now();
+  const last = lastSeen.get(key);
   if (last !== undefined && now - last < DEDUP_WINDOW_MS) {
-    return true
+    return true;
   }
-  lastSeen.set(key, now)
-  return false
+  lastSeen.set(key, now);
+  return false;
 }
 
 /**
@@ -50,26 +50,26 @@ function shouldSkipDuplicate(key: string): boolean {
  * imports this — there's no UI path that needs to reset the window.
  */
 export function _resetApiErrorToastDedupForTests(): void {
-  lastSeen.clear()
+  lastSeen.clear();
 }
 
 export function toastApiError(err: unknown): void {
   if (err instanceof ApiError) {
-    if (err.code === 'network') {
-      if (shouldSkipDuplicate(`network::${err.detail}`)) return
+    if (err.code === "network") {
+      if (shouldSkipDuplicate(`network::${err.detail}`)) return;
       toast.error(strings.errors.networkTitle, {
         description: strings.errors.networkBody,
-      })
-      return
+      });
+      return;
     }
-    if (shouldSkipDuplicate(`${err.code}::${err.detail}`)) return
+    if (shouldSkipDuplicate(`${err.code}::${err.detail}`)) return;
     const friendly =
-      strings.errors.byCode[err.code as keyof typeof strings.errors.byCode]
-    toast.error(friendly ?? err.detail)
-    return
+      strings.errors.byCode[err.code as keyof typeof strings.errors.byCode];
+    toast.error(friendly ?? err.detail);
+    return;
   }
   // Non-ApiError: dedup on the generic key — same title for every
   // unmapped throw, so collapse the whole class to one toast per window.
-  if (shouldSkipDuplicate('generic')) return
-  toast.error(strings.errors.genericTitle)
+  if (shouldSkipDuplicate("generic")) return;
+  toast.error(strings.errors.genericTitle);
 }

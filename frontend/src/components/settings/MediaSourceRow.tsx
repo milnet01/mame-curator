@@ -1,20 +1,20 @@
-import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import { cn } from '@/lib/utils'
-import { strings } from '@/strings'
-import type { SourceReadinessRow } from '@/api/types'
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
+import { strings } from "@/strings";
+import type { SourceReadinessRow } from "@/api/types";
 
 interface MediaSourceRowProps {
-  row: SourceReadinessRow
-  onConfigure: (name: string) => void
-  onDownloadPack: (name: string) => void
-  onToggle: (name: string, next: boolean) => void
+  row: SourceReadinessRow;
+  onConfigure: (name: string) => void;
+  onDownloadPack: (name: string) => void;
+  onToggle: (name: string, next: boolean) => void;
   /**
    * mame-curator-1084 — libretro is the baseline the backend registry always
    * re-appends (`MediaSourceRegistry.chain_for`), so its toggle is locked on:
    * removing it from `media.sources` wouldn't take effect.
    */
-  locked?: boolean
+  locked?: boolean;
 }
 
 /**
@@ -33,27 +33,29 @@ export function MediaSourceRow({
   onToggle,
   locked = false,
 }: MediaSourceRowProps) {
-  const active = row.enabled
-  const showConfigure = row.needs_config && !row.enabled
-  const showDownload = row.name === 'progettoSnaps' && !row.enabled
-  const inChain = locked || row.in_chain
+  const active = row.enabled;
+  const showConfigure = row.needs_config && !row.enabled;
+  const showDownload = row.name === "progettoSnaps" && !row.enabled;
+  const inChain = locked || row.in_chain;
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
       <div className="flex items-center gap-2">
         <span
-          data-state={active ? 'active' : 'disabled'}
+          data-state={active ? "active" : "disabled"}
           aria-hidden="true"
           className={cn(
-            'inline-block h-2 w-2 shrink-0 rounded-full',
-            active ? 'bg-green-500' : 'bg-muted-foreground/40',
+            "inline-block h-2 w-2 shrink-0 rounded-full",
+            active ? "bg-green-500" : "bg-muted-foreground/40",
           )}
         />
         <span className="font-medium">{row.name}</span>
         <span className="text-xs text-muted-foreground">
-          {active ? strings.settings.mediaSources.statusActive : strings.settings.mediaSources.statusDisabled}
+          {active
+            ? strings.settings.mediaSources.statusActive
+            : strings.settings.mediaSources.statusDisabled}
         </span>
         <span className="ml-2 truncate text-xs text-muted-foreground">
-          {row.kinds.join(', ')}
+          {row.kinds.join(", ")}
         </span>
         {/* Inner controls must not let ArrowUp/Down bubble to the row-level
             reorder handler (DragReorderList <li> onKeyDown). */}
@@ -62,12 +64,20 @@ export function MediaSourceRow({
           onKeyDown={(e) => e.stopPropagation()}
         >
           {showConfigure && (
-            <Button variant="outline" size="sm" onClick={() => onConfigure(row.name)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onConfigure(row.name)}
+            >
               {strings.settings.mediaSources.configureButton}
             </Button>
           )}
           {showDownload && (
-            <Button variant="outline" size="sm" onClick={() => onDownloadPack(row.name)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDownloadPack(row.name)}
+            >
               {strings.settings.mediaSources.downloadPackButton}
             </Button>
           )}
@@ -85,8 +95,10 @@ export function MediaSourceRow({
         </div>
       </div>
       {row.disabled_reason && (
-        <p className="pl-4 text-xs text-muted-foreground">{row.disabled_reason}</p>
+        <p className="pl-4 text-xs text-muted-foreground">
+          {row.disabled_reason}
+        </p>
       )}
     </div>
-  )
+  );
 }

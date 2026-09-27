@@ -1,35 +1,39 @@
-import { Link } from 'react-router'
-import { toast } from 'sonner'
-import { AlternativesDrawer } from '@/components/alternatives/AlternativesDrawer'
-import { LibraryErrorPanel } from '@/components/library/LibraryErrorPanel'
-import { LibraryGrid } from '@/components/library/LibraryGrid'
-import { LayoutSwitcher } from '@/components/library/LayoutSwitcher'
-import { ListxmlBanner } from '@/components/library/ListxmlBanner'
-import { ThemeSwitcher } from '@/components/library/ThemeSwitcher'
-import { FiltersSidebar } from '@/components/library/FiltersSidebar'
-import { CartBar } from '@/components/library/CartBar'
-import { CartPanel } from '@/components/library/CartPanel'
-import { CopyModal } from '@/components/library/CopyModal'
-import { DryRunModal } from '@/components/library/DryRunModal'
-import { OnboardingBanner } from '@/components/library/OnboardingBanner'
-import { FeaturedTilesRow } from '@/components/library/FeaturedTilesRow'
-import { ConfirmationDialog } from '@/components/ConfirmationDialog'
-import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
-import { type UseCartResult } from '@/hooks/useCart'
-import { toastApiError } from '@/lib/apiErrorToast'
-import { strings } from '@/strings'
-import { WALKTHROUGH_KEY } from './libraryPageHelpers'
-import { useLibraryController } from './useLibraryController'
+import { Link } from "react-router";
+import { toast } from "sonner";
+import { AlternativesDrawer } from "@/components/alternatives/AlternativesDrawer";
+import { LibraryErrorPanel } from "@/components/library/LibraryErrorPanel";
+import { LibraryGrid } from "@/components/library/LibraryGrid";
+import { LayoutSwitcher } from "@/components/library/LayoutSwitcher";
+import { ListxmlBanner } from "@/components/library/ListxmlBanner";
+import { ThemeSwitcher } from "@/components/library/ThemeSwitcher";
+import { FiltersSidebar } from "@/components/library/FiltersSidebar";
+import { CartBar } from "@/components/library/CartBar";
+import { CartPanel } from "@/components/library/CartPanel";
+import { CopyModal } from "@/components/library/CopyModal";
+import { DryRunModal } from "@/components/library/DryRunModal";
+import { OnboardingBanner } from "@/components/library/OnboardingBanner";
+import { FeaturedTilesRow } from "@/components/library/FeaturedTilesRow";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
+import { type UseCartResult } from "@/hooks/useCart";
+import { toastApiError } from "@/lib/apiErrorToast";
+import { strings } from "@/strings";
+import { WALKTHROUGH_KEY } from "./libraryPageHelpers";
+import { useLibraryController } from "./useLibraryController";
 
 interface LibraryPageProps {
-  cart: UseCartResult
+  cart: UseCartResult;
   // FP24-C: cart panel state is owned by ShellWithPalette so the navbar
   // Cart button can open the panel from any route.
-  cartExpanded: boolean
-  onCartExpandedChange: (next: boolean) => void
+  cartExpanded: boolean;
+  onCartExpandedChange: (next: boolean) => void;
 }
 
-export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: LibraryPageProps) {
+export function LibraryPage({
+  cart,
+  cartExpanded,
+  onCartExpandedChange,
+}: LibraryPageProps) {
   // mame-curator-1077: all non-render logic lives in useLibraryController
   // (state, data hooks, derived values, handlers, effects). The JSX
   // below is intentionally kept in this file so the source-text
@@ -72,11 +76,14 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
     handleDryRun,
     handleCopy,
     handleSaveSession,
-  } = useLibraryController(cart)
+  } = useLibraryController(cart);
 
   return (
     <div className="grid h-full grid-cols-[16rem_1fr] grid-rows-[auto_1fr_auto]">
-      <aside aria-label={strings.a11y.filtersLandmark} className="row-span-2 overflow-y-auto">
+      <aside
+        aria-label={strings.a11y.filtersLandmark}
+        className="row-span-2 overflow-y-auto"
+      >
         <FiltersSidebar
           value={filters}
           onChange={setFilters}
@@ -89,19 +96,26 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
         <Link
           to="/sessions"
           className="rounded border bg-muted/50 px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
-          title={activeSession ? strings.library.activeSessionTitle(activeSession) : strings.library.noActiveSessionTitle}
+          title={
+            activeSession
+              ? strings.library.activeSessionTitle(activeSession)
+              : strings.library.noActiveSessionTitle
+          }
         >
-          {activeSession ? strings.library.activeSessionPill(activeSession) : strings.library.noActiveSessionPill}
+          {activeSession
+            ? strings.library.activeSessionPill(activeSession)
+            : strings.library.noActiveSessionPill}
         </Link>
         {/* P14 — progress chip + walkthrough toggle. */}
         {(() => {
-          const totalSlice = cards.length
-          const entries = reviewState.data?.entries ?? {}
+          const totalSlice = cards.length;
+          const entries = reviewState.data?.entries ?? {};
           const handled = cards.reduce(
             (n, c) => n + (c.short_name in entries ? 1 : 0),
             0,
-          )
-          const pct = totalSlice === 0 ? '0' : ((handled / totalSlice) * 100).toFixed(1)
+          );
+          const pct =
+            totalSlice === 0 ? "0" : ((handled / totalSlice) * 100).toFixed(1);
           return (
             <span
               data-testid="library-progress-chip"
@@ -109,7 +123,7 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
             >
               {strings.library.progressChip(handled, totalSlice, pct)}
             </span>
-          )
+          );
         })()}
         <label className="flex items-center gap-1 rounded border bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
           <input
@@ -117,9 +131,9 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
             data-testid="library-walkthrough-toggle"
             checked={walkthrough}
             onChange={(e) => {
-              setWalkthrough(e.target.checked)
+              setWalkthrough(e.target.checked);
               try {
-                localStorage.setItem(WALKTHROUGH_KEY, String(e.target.checked))
+                localStorage.setItem(WALKTHROUGH_KEY, String(e.target.checked));
               } catch {
                 /* localStorage unavailable; in-memory state still updates. */
               }
@@ -160,9 +174,9 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
             // window; once the refetch resolves successfully,
             // dataUpdatedAt moves ahead and the grid takes over.
             const lastSettleWasError =
-              (games.errorUpdatedAt ?? 0) > (games.dataUpdatedAt ?? 0)
+              (games.errorUpdatedAt ?? 0) > (games.dataUpdatedAt ?? 0);
             const showErrorPanel =
-              games.isError || (games.isFetching && lastSettleWasError)
+              games.isError || (games.isFetching && lastSettleWasError);
             return showErrorPanel ? (
               <LibraryErrorPanel
                 onRetry={() => games.refetch()}
@@ -173,7 +187,11 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
               // the `[]` default, so the grid would claim nothing matched.
               // isPending, not isFetching: a background refetch of data
               // already on screen must not blank the grid.
-              <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+              <div
+                role="status"
+                aria-live="polite"
+                className="p-4 text-sm text-muted-foreground"
+              >
                 {strings.loading.library}
               </div>
             ) : (
@@ -189,9 +207,11 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
                 onSetReviewState={(shortName, state) =>
                   setReviewState.mutate({ short_name: shortName, state })
                 }
-                onClearReviewState={(shortName) => clearReviewState.mutate(shortName)}
+                onClearReviewState={(shortName) =>
+                  clearReviewState.mutate(shortName)
+                }
               />
-            )
+            );
           })()}
         </ErrorBoundary>
       </div>
@@ -204,7 +224,9 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
               role="alert"
               className="flex flex-col items-center gap-2 rounded border border-destructive/40 bg-destructive/10 p-4 text-sm"
             >
-              <p className="font-semibold">{strings.errors.alternativesFailed}</p>
+              <p className="font-semibold">
+                {strings.errors.alternativesFailed}
+              </p>
               <p className="text-xs text-muted-foreground">{error.message}</p>
               <button
                 type="button"
@@ -226,18 +248,20 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
               override.mutate(req, {
                 onSuccess: () => {
                   // P15 § 5.2 — cart-aware variant tracking.
-                  if (cart.has(req.parent)) cart.setVariant(req.parent, req.winner)
-                  toast.success(strings.library.overrideApplied)
-                  setOpenedShortName(null)
+                  if (cart.has(req.parent))
+                    cart.setVariant(req.parent, req.winner);
+                  toast.success(strings.library.overrideApplied);
+                  setOpenedShortName(null);
                 },
                 onError: toastApiError,
-              })
+              });
             }}
             onLaunch={(short) => {
               launch.mutate(short, {
-                onSuccess: () => toast.success(strings.alternatives.launchSuccess(short)),
+                onSuccess: () =>
+                  toast.success(strings.alternatives.launchSuccess(short)),
                 onError: toastApiError,
-              })
+              });
             }}
             launching={launch.isPending}
             retroarchConfigured={setupCheck.data?.retroarch_configured}
@@ -245,7 +269,9 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
             onSetReviewState={(shortName, state) =>
               setReviewState.mutate({ short_name: shortName, state })
             }
-            onClearReviewState={(shortName) => clearReviewState.mutate(shortName)}
+            onClearReviewState={(shortName) =>
+              clearReviewState.mutate(shortName)
+            }
           />
         </ErrorBoundary>
       )}
@@ -256,8 +282,8 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
           onOpenChange={(open) => !open && setDryRunReport(null)}
           report={dryRunReport}
           onConfirm={() => {
-            setDryRunReport(null)
-            handleCopy()
+            setDryRunReport(null);
+            handleCopy();
           }}
         />
       )}
@@ -303,8 +329,12 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
           open={clearAllOpen}
           onOpenChange={setClearAllOpen}
           title={strings.library.cart.clearAllConfirm.title}
-          description={strings.library.cart.clearAllConfirm.description(cart.items.length)}
-          actionLabel={strings.library.cart.clearAllConfirm.action(cart.items.length)}
+          description={strings.library.cart.clearAllConfirm.description(
+            cart.items.length,
+          )}
+          actionLabel={strings.library.cart.clearAllConfirm.action(
+            cart.items.length,
+          )}
           onConfirm={() => cart.clear()}
           destructive
         />
@@ -322,5 +352,5 @@ export function LibraryPage({ cart, cartExpanded, onCartExpandedChange }: Librar
         />
       </div>
     </div>
-  )
+  );
 }

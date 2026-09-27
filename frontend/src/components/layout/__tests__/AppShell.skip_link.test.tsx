@@ -19,42 +19,42 @@
  * Pre-fix: AppShell has no skip-link; `<main>` has no `id` / `tabIndex`.
  * Post-fix: both assertions hold.
  */
-import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
-import { AppShell } from '@/components/layout/AppShell'
+import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
+import { AppShell } from "@/components/layout/AppShell";
 
 function renderShell() {
   return render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={["/"]}>
       <AppShell cartCount={0} onCmdK={() => {}} onOpenCart={() => {}}>
         <div>content</div>
       </AppShell>
     </MemoryRouter>,
-  )
+  );
 }
 
-describe('DS02 C1 — skip-to-main link', () => {
+describe("DS02 C1 — skip-to-main link", () => {
   it('renders an anchor with href="#main" and visible text', () => {
-    renderShell()
-    const link = screen.getByRole('link', { name: /skip to main content/i })
-    expect(link.getAttribute('href')).toBe('#main')
-  })
+    renderShell();
+    const link = screen.getByRole("link", { name: /skip to main content/i });
+    expect(link.getAttribute("href")).toBe("#main");
+  });
 
-  it('skip-link is the FIRST element in tab order', () => {
-    const { container } = renderShell()
+  it("skip-link is the FIRST element in tab order", () => {
+    const { container } = renderShell();
     // First focusable in the rendered shell — link / button / [tabindex >= 0].
     const focusables = container.querySelectorAll<HTMLElement>(
       'a[href], button, [tabindex]:not([tabindex="-1"])',
-    )
-    expect(focusables.length).toBeGreaterThan(0)
-    expect(focusables[0].textContent ?? '').toMatch(/skip to main content/i)
-  })
+    );
+    expect(focusables.length).toBeGreaterThan(0);
+    expect(focusables[0].textContent ?? "").toMatch(/skip to main content/i);
+  });
 
   it('main landmark carries id="main" and tabIndex=-1', () => {
-    renderShell()
-    const main = screen.getByRole('main')
-    expect(main.getAttribute('id')).toBe('main')
-    expect(main.getAttribute('tabindex')).toBe('-1')
-  })
-})
+    renderShell();
+    const main = screen.getByRole("main");
+    expect(main.getAttribute("id")).toBe("main");
+    expect(main.getAttribute("tabindex")).toBe("-1");
+  });
+});

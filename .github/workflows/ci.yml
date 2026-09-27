@@ -89,6 +89,11 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      # Formatting gate (mame-curator-1075): `prettier --check .`; dist/ is
+      # excluded by frontend/.prettierignore.
+      - name: Prettier
+        run: npm run format
+
       # Full build (`tsc -b && vite build`), not `tsc --noEmit`: the root
       # tsconfig is a solution file (files: [] + references), so
       # `tsc --noEmit` checks ZERO files. Only `tsc -b` follows the project

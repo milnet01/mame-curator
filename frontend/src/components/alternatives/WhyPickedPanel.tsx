@@ -1,9 +1,9 @@
-import { cn } from '@/lib/utils'
-import { strings } from '@/strings'
-import type { Explanation } from '@/api/types'
+import { cn } from "@/lib/utils";
+import { strings } from "@/strings";
+import type { Explanation } from "@/api/types";
 
 interface WhyPickedPanelProps {
-  explanation: Explanation
+  explanation: Explanation;
 }
 
 export function WhyPickedPanel({ explanation }: WhyPickedPanelProps) {
@@ -11,7 +11,7 @@ export function WhyPickedPanel({ explanation }: WhyPickedPanelProps) {
   // child) or the parent itself in the no-clones case. Highlight it
   // in the candidates list per design §8.523 ("with current pick
   // highlighted").
-  const winnerShortName = explanation.short_name
+  const winnerShortName = explanation.short_name;
 
   return (
     <section className="flex flex-col gap-3 border-t pt-4">
@@ -51,17 +51,17 @@ export function WhyPickedPanel({ explanation }: WhyPickedPanelProps) {
             <span key={name}>
               <span
                 className={cn(
-                  name === winnerShortName && 'font-semibold text-foreground',
+                  name === winnerShortName && "font-semibold text-foreground",
                 )}
-                aria-current={name === winnerShortName ? 'true' : undefined}
+                aria-current={name === winnerShortName ? "true" : undefined}
               >
                 {name}
               </span>
-              {i < explanation.candidates.length - 1 && ', '}
+              {i < explanation.candidates.length - 1 && ", "}
             </span>
           ))}
         </p>
       )}
     </section>
-  )
+  );
 }

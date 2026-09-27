@@ -1,59 +1,59 @@
-import { useState } from 'react'
-import { Link } from 'react-router'
+import { useState } from "react";
+import { Link } from "react-router";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet'
-import { AboutSection } from '@/components/alternatives/AboutSection'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { useKeyboard } from '@/hooks/useKeyboard'
-import { cn } from '@/lib/utils'
-import { strings } from '@/strings'
+} from "@/components/ui/sheet";
+import { AboutSection } from "@/components/alternatives/AboutSection";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useKeyboard } from "@/hooks/useKeyboard";
+import { cn } from "@/lib/utils";
+import { strings } from "@/strings";
 import type {
   GameCard,
   OverridePostRequest,
   ReviewStateValue,
   StateView,
-} from '@/api/types'
+} from "@/api/types";
 
 interface AlternativesDrawerProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  winner: GameCard
-  alternatives: GameCard[]
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  winner: GameCard;
+  alternatives: GameCard[];
   /** mame-curator-1100: true while the family list has not loaded yet.
    *  The subtitle then reads as loading, not as an empty family. */
-  loading?: boolean
-  onOverride: (request: OverridePostRequest) => void
+  loading?: boolean;
+  onOverride: (request: OverridePostRequest) => void;
   /** FP19: optional Launch handler. Hides the button when not provided
    *  (e.g. unit tests that don't mock the launch endpoint). */
-  onLaunch?: (shortName: string) => void
+  onLaunch?: (shortName: string) => void;
   /** True while the launch mutation is in flight. */
-  launching?: boolean
+  launching?: boolean;
   /** FP22-B: gates the Launch button on RetroArch config presence.
    *  ``true``  → button is enabled.
    *  ``false`` → button is disabled with an inline "Configure RetroArch
    *              in Settings → Paths" hint linking to /settings?tab=paths.
    *  ``undefined`` → setupCheck query still loading; treat as gated so a
    *  fast-clicker can't race the query into a 422. */
-  retroarchConfigured?: boolean
+  retroarchConfigured?: boolean;
   /** P14 — review-state cache for the drawer's per-row state read +
    *  R/S/? mutation callbacks. Optional so callers that don't wire
    *  review state (rare) render an unaltered drawer. */
-  reviewState?: StateView
-  onSetReviewState?: (shortName: string, state: ReviewStateValue) => void
-  onClearReviewState?: (shortName: string) => void
+  reviewState?: StateView;
+  onSetReviewState?: (shortName: string, state: ReviewStateValue) => void;
+  onClearReviewState?: (shortName: string) => void;
 }
 
 const DRAWER_KEY_TO_STATE: Record<string, ReviewStateValue> = {
-  r: 'reviewed',
-  s: 'skipped',
-  '?': 'needs-decision',
-}
+  r: "reviewed",
+  s: "skipped",
+  "?": "needs-decision",
+};
 
 function AlternativeRow({
   alt,
@@ -61,21 +61,21 @@ function AlternativeRow({
   onPick,
   highlighted = false,
 }: {
-  alt: GameCard
-  isWinner: boolean
-  onPick: () => void
-  highlighted?: boolean
+  alt: GameCard;
+  isWinner: boolean;
+  onPick: () => void;
+  highlighted?: boolean;
 }) {
-  const [imgFailed, setImgFailed] = useState(false)
+  const [imgFailed, setImgFailed] = useState(false);
   const buttonName = isWinner
     ? strings.alternatives.selectedAriaLabel(alt.description)
-    : strings.alternatives.useAriaLabel(alt.description)
+    : strings.alternatives.useAriaLabel(alt.description);
   return (
     <Card
       data-highlighted={highlighted || undefined}
       className={cn(
-        isWinner && 'border-primary',
-        highlighted && 'ring-2 ring-ring',
+        isWinner && "border-primary",
+        highlighted && "ring-2 ring-ring",
       )}
     >
       <CardContent className="flex items-center gap-3 p-3">
@@ -102,12 +102,12 @@ function AlternativeRow({
           <span className="text-xs text-muted-foreground">
             {[alt.short_name, alt.year, alt.publisher]
               .filter(Boolean)
-              .join(' · ')}
+              .join(" · ")}
           </span>
         </div>
         <Button
           size="sm"
-          variant={isWinner ? 'secondary' : 'default'}
+          variant={isWinner ? "secondary" : "default"}
           disabled={isWinner}
           aria-label={buttonName}
           onClick={onPick}
@@ -118,7 +118,7 @@ function AlternativeRow({
         </Button>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export function AlternativesDrawer({
@@ -135,71 +135,74 @@ export function AlternativesDrawer({
   onSetReviewState,
   onClearReviewState,
 }: AlternativesDrawerProps) {
-  const parent = winner.short_name
+  const parent = winner.short_name;
   const handleClick = (alt: GameCard) => {
-    onOverride({ parent, winner: alt.short_name })
-    onOpenChange(false)
-  }
+    onOverride({ parent, winner: alt.short_name });
+    onOpenChange(false);
+  };
 
   // FP11 § B5: spec / design §8 makes 1-element-list and N-element-list
   // distinct UX. With one alternative (= just the winner), show
   // "This is the only version" and skip the row list entirely. With
   // multiple, show the count line and the rows.
-  const onlyOne = alternatives.length === 1
+  const onlyOne = alternatives.length === 1;
 
   // P14 — highlight + R/S/? on drawer rows. Independent of grid focus.
-  const [highlightedRowIndex, setHighlightedRowIndex] = useState(0)
+  const [highlightedRowIndex, setHighlightedRowIndex] = useState(0);
 
   useKeyboard(
     open && !onlyOne
       ? [
           {
-            combo: 'ArrowDown',
+            combo: "ArrowDown",
             handler: (e) => {
-              e.preventDefault()
+              e.preventDefault();
               setHighlightedRowIndex((prev) =>
                 Math.min(alternatives.length - 1, prev + 1),
-              )
+              );
             },
           },
           {
-            combo: 'ArrowUp',
+            combo: "ArrowUp",
             handler: (e) => {
-              e.preventDefault()
-              setHighlightedRowIndex((prev) => Math.max(0, prev - 1))
+              e.preventDefault();
+              setHighlightedRowIndex((prev) => Math.max(0, prev - 1));
             },
           },
-          ...(['r', 's', '?'] as const).map((key) => ({
+          ...(["r", "s", "?"] as const).map((key) => ({
             combo: key,
             handler: (e: KeyboardEvent) => {
-              if (!onSetReviewState) return
-              const row = alternatives[highlightedRowIndex]
-              if (!row) return
-              e.preventDefault()
-              const target = DRAWER_KEY_TO_STATE[key]!
-              const current = reviewState?.entries[row.short_name]
+              if (!onSetReviewState) return;
+              const row = alternatives[highlightedRowIndex];
+              if (!row) return;
+              e.preventDefault();
+              const target = DRAWER_KEY_TO_STATE[key]!;
+              const current = reviewState?.entries[row.short_name];
               // INV-7 — drawer mutations do NOT auto-advance regardless
               // of walkthrough setting; the user typically opens the
               // drawer to compare clones individually.
-              if (current === target) onClearReviewState?.(row.short_name)
-              else onSetReviewState(row.short_name, target)
+              if (current === target) onClearReviewState?.(row.short_name);
+              else onSetReviewState(row.short_name, target);
             },
           })),
         ]
       : [],
-  )
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full max-w-md flex-col gap-4">
+      <SheetContent
+        side="right"
+        className="flex w-full max-w-md flex-col gap-4"
+      >
         <SheetHeader>
           <SheetTitle>{strings.alternatives.drawerTitle}</SheetTitle>
           <SheetDescription>
             {loading
               ? strings.alternatives.loadingVersions
               : onlyOne
-              ? strings.alternatives.onlyVersionText
-              : strings.alternatives.familySummary(alternatives.length)}
+                ? strings.alternatives.onlyVersionText
+                : strings.alternatives.familySummary(alternatives.length)}
           </SheetDescription>
         </SheetHeader>
 
@@ -240,15 +243,9 @@ export function AlternativesDrawer({
                 : strings.alternatives.launch}
             </Button>
             {retroarchConfigured === false && (
-              <p
-                role="status"
-                className="text-xs text-muted-foreground"
-              >
-                {strings.alternatives.launchConfigurePrefix}{' '}
-                <Link
-                  to="/settings?tab=paths"
-                  className="underline"
-                >
+              <p role="status" className="text-xs text-muted-foreground">
+                {strings.alternatives.launchConfigurePrefix}{" "}
+                <Link to="/settings?tab=paths" className="underline">
                   {strings.alternatives.launchConfigureLinkLabel}
                 </Link>
                 {strings.alternatives.launchConfigureSuffix}
@@ -258,5 +255,5 @@ export function AlternativesDrawer({
         )}
       </SheetContent>
     </Sheet>
-  )
+  );
 }

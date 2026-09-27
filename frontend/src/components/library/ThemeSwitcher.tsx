@@ -1,28 +1,28 @@
-import { Palette } from 'lucide-react'
+import { Palette } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { strings } from '@/strings'
-import type { ThemeName } from '@/api/types'
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { strings } from "@/strings";
+import type { ThemeName } from "@/api/types";
 
 interface ThemeSwitcherProps {
-  value: ThemeName
-  onChange: (theme: ThemeName) => void
+  value: ThemeName;
+  onChange: (theme: ThemeName) => void;
 }
 
 const THEME_ORDER: ThemeName[] = [
-  'dark',
-  'light',
-  'double_dragon',
-  'pacman',
-  'sf2',
-  'neogeo',
-]
+  "dark",
+  "light",
+  "double_dragon",
+  "pacman",
+  "sf2",
+  "neogeo",
+];
 
 export function ThemeSwitcher({ value, onChange }: ThemeSwitcherProps) {
   return (
@@ -46,5 +46,5 @@ export function ThemeSwitcher({ value, onChange }: ThemeSwitcherProps) {
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

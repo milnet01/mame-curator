@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -7,16 +7,16 @@ import {
   useLocation,
   useNavigate,
   useSearchParams,
-} from 'react-router'
-import { QueryClientProvider } from '@tanstack/react-query'
-import { createAppQueryClient } from '@/lib/queryClient'
-import { toast } from 'sonner'
-import { Toaster } from '@/components/ui/sonner'
-import { AppShell } from '@/components/layout/AppShell'
-import { ThemeProvider } from '@/components/layout/ThemeProvider'
-import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
-import { CmdKPalette, type CmdKItem } from '@/components/CmdKPalette'
-import { ConfirmationDialog } from '@/components/ConfirmationDialog'
+} from "react-router";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createAppQueryClient } from "@/lib/queryClient";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
+import { AppShell } from "@/components/layout/AppShell";
+import { ThemeProvider } from "@/components/layout/ThemeProvider";
+import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
+import { CmdKPalette, type CmdKItem } from "@/components/CmdKPalette";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import {
   useConfig,
   useConfigExport,
@@ -24,62 +24,94 @@ import {
   useConfigPatch,
   useSnapshotRestore,
   useSnapshots,
-} from '@/hooks/useConfig'
+} from "@/hooks/useConfig";
 import {
   useSessions,
   useSessionActivate,
   useSessionDeactivate,
   useSessionDelete,
-} from '@/hooks/useSessions'
-import { useActivity } from '@/hooks/useActivity'
-import { useStats } from '@/hooks/useStats'
-import { useHelpIndex, useHelpTopic } from '@/hooks/useHelp'
-import { useCart } from '@/hooks/useCart'
-import { useKeyboard } from '@/hooks/useKeyboard'
-import { useSetupCheck } from '@/hooks/useSetupCheck'
-import { strings } from '@/strings'
-import { ApiError } from '@/api/client'
-import type { ConfigExportBundle, ThemeName } from '@/api/types'
+} from "@/hooks/useSessions";
+import { useActivity } from "@/hooks/useActivity";
+import { useStats } from "@/hooks/useStats";
+import { useHelpIndex, useHelpTopic } from "@/hooks/useHelp";
+import { useCart } from "@/hooks/useCart";
+import { useKeyboard } from "@/hooks/useKeyboard";
+import { useSetupCheck } from "@/hooks/useSetupCheck";
+import { strings } from "@/strings";
+import { ApiError } from "@/api/client";
+import type { ConfigExportBundle, ThemeName } from "@/api/types";
 
 const LibraryPage = lazy(() =>
-  import('@/pages/LibraryPage').then((m) => ({ default: m.LibraryPage })),
-)
+  import("@/pages/LibraryPage").then((m) => ({ default: m.LibraryPage })),
+);
 const SessionsPage = lazy(() =>
-  import('@/pages/SessionsPage').then((m) => ({ default: m.SessionsPage })),
-)
+  import("@/pages/SessionsPage").then((m) => ({ default: m.SessionsPage })),
+);
 const ActivityPage = lazy(() =>
-  import('@/pages/ActivityPage').then((m) => ({ default: m.ActivityPage })),
-)
+  import("@/pages/ActivityPage").then((m) => ({ default: m.ActivityPage })),
+);
 const StatsPage = lazy(() =>
-  import('@/pages/StatsPage').then((m) => ({ default: m.StatsPage })),
-)
+  import("@/pages/StatsPage").then((m) => ({ default: m.StatsPage })),
+);
 const SettingsPage = lazy(() =>
-  import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
-)
+  import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+);
 const HelpPage = lazy(() =>
-  import('@/pages/HelpPage').then((m) => ({ default: m.HelpPage })),
-)
+  import("@/pages/HelpPage").then((m) => ({ default: m.HelpPage })),
+);
 
-const queryClient = createAppQueryClient()
+const queryClient = createAppQueryClient();
 
 const PALETTE_ITEMS: CmdKItem[] = [
-  { id: 'go-library', section: 'actions', label: 'Go to Library', value: 'nav:/' },
-  { id: 'go-sessions', section: 'actions', label: 'Go to Sessions', value: 'nav:/sessions' },
-  { id: 'go-activity', section: 'actions', label: 'Go to Activity', value: 'nav:/activity' },
-  { id: 'go-stats', section: 'actions', label: 'Go to Stats', value: 'nav:/stats' },
-  { id: 'go-settings', section: 'actions', label: 'Go to Settings', value: 'nav:/settings' },
-  { id: 'go-help', section: 'actions', label: 'Go to Help', value: 'nav:/help' },
-]
+  {
+    id: "go-library",
+    section: "actions",
+    label: "Go to Library",
+    value: "nav:/",
+  },
+  {
+    id: "go-sessions",
+    section: "actions",
+    label: "Go to Sessions",
+    value: "nav:/sessions",
+  },
+  {
+    id: "go-activity",
+    section: "actions",
+    label: "Go to Activity",
+    value: "nav:/activity",
+  },
+  {
+    id: "go-stats",
+    section: "actions",
+    label: "Go to Stats",
+    value: "nav:/stats",
+  },
+  {
+    id: "go-settings",
+    section: "actions",
+    label: "Go to Settings",
+    value: "nav:/settings",
+  },
+  {
+    id: "go-help",
+    section: "actions",
+    label: "Go to Help",
+    value: "nav:/help",
+  },
+];
 
 /**
  * Map a project theme to a Sonner theme variant. Sonner only knows
  * `light` / `dark` / `system`; the four arcade palettes (double_dragon,
  * pacman, sf2, neogeo) are all dark-flavoured so they map to `dark`.
  */
-function sonnerThemeFor(theme: ThemeName | undefined): 'light' | 'dark' | 'system' {
-  if (theme === 'light') return 'light'
-  if (theme === undefined) return 'system'
-  return 'dark'
+function sonnerThemeFor(
+  theme: ThemeName | undefined,
+): "light" | "dark" | "system" {
+  if (theme === "light") return "light";
+  if (theme === undefined) return "system";
+  return "dark";
 }
 
 // FP11 § B8: thin route containers own the data-fetching hooks so the
@@ -88,25 +120,33 @@ function sonnerThemeFor(theme: ThemeName | undefined): 'light' | 'dark' | 'syste
 // shared toaster.
 
 function SessionsRoute() {
-  const navigate = useNavigate()
-  const sessions = useSessions()
-  const activate = useSessionActivate()
-  const deactivate = useSessionDeactivate()
-  const del = useSessionDelete()
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const sessions = useSessions();
+  const activate = useSessionActivate();
+  const deactivate = useSessionDeactivate();
+  const del = useSessionDelete();
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   if (sessions.isLoading) {
     return (
-      <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+      <div
+        role="status"
+        aria-live="polite"
+        className="p-4 text-sm text-muted-foreground"
+      >
         {strings.loading.sessions}
       </div>
-    )
+    );
   }
   if (sessions.error) {
-    return <div className="p-4 text-sm text-destructive">{strings.sessions.loadError}</div>
+    return (
+      <div className="p-4 text-sm text-destructive">
+        {strings.sessions.loadError}
+      </div>
+    );
   }
 
-  const data = sessions.data ?? { active: null, sessions: {} }
+  const data = sessions.data ?? { active: null, sessions: {} };
 
   return (
     <>
@@ -117,8 +157,8 @@ function SessionsRoute() {
         onDeactivate={() => deactivate.mutate()}
         onDelete={(name) => setPendingDelete(name)}
         onCreate={() => {
-          toast.message(strings.sessions.newSessionHint)
-          navigate('/')
+          toast.message(strings.sessions.newSessionHint);
+          navigate("/");
         }}
       />
       <ConfirmationDialog
@@ -126,67 +166,91 @@ function SessionsRoute() {
         onOpenChange={(open) => !open && setPendingDelete(null)}
         title={strings.sessions.confirmDelete.title}
         description={
-          pendingDelete ? strings.sessions.confirmDelete.description(pendingDelete) : ''
+          pendingDelete
+            ? strings.sessions.confirmDelete.description(pendingDelete)
+            : ""
         }
         actionLabel={
-          pendingDelete ? strings.destructive.deleteSession(pendingDelete) : 'Delete'
+          pendingDelete
+            ? strings.destructive.deleteSession(pendingDelete)
+            : "Delete"
         }
         onConfirm={() => {
-          if (pendingDelete) del.mutate(pendingDelete)
+          if (pendingDelete) del.mutate(pendingDelete);
         }}
       />
     </>
-  )
+  );
 }
 
-const ACTIVITY_PAGE_SIZE = 50
+const ACTIVITY_PAGE_SIZE = 50;
 
 function ActivityRoute() {
-  const [searchParams] = useSearchParams()
-  const parsedPage = Number(searchParams.get('page'))
-  const page =
-    Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1
-  const activity = useActivity(page, ACTIVITY_PAGE_SIZE)
+  const [searchParams] = useSearchParams();
+  const parsedPage = Number(searchParams.get("page"));
+  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const activity = useActivity(page, ACTIVITY_PAGE_SIZE);
 
   if (activity.isLoading) {
     return (
-      <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+      <div
+        role="status"
+        aria-live="polite"
+        className="p-4 text-sm text-muted-foreground"
+      >
         {strings.loading.activity}
       </div>
-    )
+    );
   }
   if (activity.error) {
-    return <div className="p-4 text-sm text-destructive">{strings.activity.loadError}</div>
+    return (
+      <div className="p-4 text-sm text-destructive">
+        {strings.activity.loadError}
+      </div>
+    );
   }
 
-  const data = activity.data ?? { items: [], page, page_size: ACTIVITY_PAGE_SIZE, total: 0 }
+  const data = activity.data ?? {
+    items: [],
+    page,
+    page_size: ACTIVITY_PAGE_SIZE,
+    total: 0,
+  };
   return (
     <ActivityPage
       pageSize={data.page_size}
       total={data.total}
       items={data.items}
     />
-  )
+  );
 }
 
 function StatsRoute() {
-  const stats = useStats()
+  const stats = useStats();
   if (stats.isLoading) {
     return (
-      <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+      <div
+        role="status"
+        aria-live="polite"
+        className="p-4 text-sm text-muted-foreground"
+      >
         {strings.loading.stats}
       </div>
-    )
+    );
   }
   if (stats.error || !stats.data) {
-    return <div className="p-4 text-sm text-destructive">{strings.stats.loadError}</div>
+    return (
+      <div className="p-4 text-sm text-destructive">
+        {strings.stats.loadError}
+      </div>
+    );
   }
-  return <StatsPage stats={stats.data} />
+  return <StatsPage stats={stats.data} />;
 }
 
 function HelpRoute() {
-  const index = useHelpIndex()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const index = useHelpIndex();
+  const [searchParams, setSearchParams] = useSearchParams();
   // P07 § E: Cmd-K palette navigates to /help?topic=<slug>; HelpRoute
   // honours that query param so the picked topic is pre-selected.
   //
@@ -194,33 +258,41 @@ function HelpRoute() {
   // truth — onSelect rewrites the search param so the next render
   // reads the new value, no useEffect/setState sync. A second
   // Cmd-K pick re-navigates and re-runs the read here.
-  const selectedSlug = searchParams.get('topic')
-  const topic = useHelpTopic(selectedSlug)
+  const selectedSlug = searchParams.get("topic");
+  const topic = useHelpTopic(selectedSlug);
 
   if (index.isLoading) {
     return (
-      <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+      <div
+        role="status"
+        aria-live="polite"
+        className="p-4 text-sm text-muted-foreground"
+      >
         {strings.loading.help}
       </div>
-    )
+    );
   }
   if (index.error) {
-    return <div className="p-4 text-sm text-destructive">{strings.help.loadError}</div>
+    return (
+      <div className="p-4 text-sm text-destructive">
+        {strings.help.loadError}
+      </div>
+    );
   }
 
-  const topics = index.data?.topics ?? []
+  const topics = index.data?.topics ?? [];
   return (
     <HelpPage
       topics={topics}
       selectedSlug={selectedSlug}
-      topicHtml={topic.data?.html ?? ''}
+      topicHtml={topic.data?.html ?? ""}
       topicLoading={topic.isLoading}
       onSelect={(slug) => {
-        if (slug === null) setSearchParams({}, { replace: true })
-        else setSearchParams({ topic: slug }, { replace: true })
+        if (slug === null) setSearchParams({}, { replace: true });
+        else setSearchParams({ topic: slug }, { replace: true });
       }}
     />
-  )
+  );
 }
 
 // FP12 § I + § J: SettingsRoute owns the settings-page hooks (config +
@@ -228,62 +300,68 @@ function HelpRoute() {
 // pure-prop. Mirrors the FP11 § B8 container pattern used by Sessions /
 // Activity / Stats / Help.
 function SettingsRoute() {
-  const config = useConfig()
-  const configPatch = useConfigPatch()
-  const snapshots = useSnapshots()
-  const restore = useSnapshotRestore()
-  const exportConfig = useConfigExport()
-  const importConfig = useConfigImport()
+  const config = useConfig();
+  const configPatch = useConfigPatch();
+  const snapshots = useSnapshots();
+  const restore = useSnapshotRestore();
+  const exportConfig = useConfigExport();
+  const importConfig = useConfigImport();
   // FP16 § C: surface SetupCheck so the Setup banner can show per-INI
   // status (the user has no other way to tell whether refresh-inis
   // ever ran successfully).
-  const setupCheck = useSetupCheck()
-  const [backupError, setBackupError] = useState<string | null>(null)
+  const setupCheck = useSetupCheck();
+  const [backupError, setBackupError] = useState<string | null>(null);
 
   const handleExport = async () => {
-    setBackupError(null)
+    setBackupError(null);
     try {
-      const bundle = await exportConfig.mutateAsync()
+      const bundle = await exportConfig.mutateAsync();
       const blob = new Blob([JSON.stringify(bundle, null, 2)], {
-        type: 'application/json',
-      })
-      const url = URL.createObjectURL(blob)
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
       // FP13 § E3: drop millisecond noise from the export filename — second
       // resolution is plenty for a human-shaped backup name.
-      const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `mame-curator-config-${ts}.json`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `mame-curator-config-${ts}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     } catch {
-      setBackupError(strings.settings.backupExportError)
+      setBackupError(strings.settings.backupExportError);
     }
-  }
+  };
 
   // FP13 § B1: BackupTab now pre-validates (size + JSON parse + schema) and
   // hands us a typed bundle, so this handler is the mutate-only step.
   const handleImport = async (bundle: ConfigExportBundle) => {
-    setBackupError(null)
+    setBackupError(null);
     try {
-      await importConfig.mutateAsync(bundle)
+      await importConfig.mutateAsync(bundle);
     } catch (err) {
       // FP13 § E6: prefer the server's structured `detail` over the generic
       // import-error string so the user sees what specifically rejected.
       setBackupError(
-        err instanceof ApiError ? err.detail : strings.settings.backupImportError,
-      )
+        err instanceof ApiError
+          ? err.detail
+          : strings.settings.backupImportError,
+      );
     }
-  }
+  };
 
   if (!config.data) {
     return (
-      <div role="status" aria-live="polite" className="p-4 text-sm text-muted-foreground">
+      <div
+        role="status"
+        aria-live="polite"
+        className="p-4 text-sm text-muted-foreground"
+      >
         {strings.loading.settings}
       </div>
-    )
+    );
   }
 
   return (
@@ -318,26 +396,26 @@ function SettingsRoute() {
       backupError={backupError}
       setupInfo={setupCheck.data}
     />
-  )
+  );
 }
 
 function ShellWithPalette() {
-  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false);
   // FP24-C: cart-expanded state lives at the shell level so the AppShell's
   // Cart button can open the panel from any route, not just /.
-  const [cartExpanded, setCartExpanded] = useState(false)
-  const config = useConfig()
-  const cart = useCart()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const [cartExpanded, setCartExpanded] = useState(false);
+  const config = useConfig();
+  const cart = useCart();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useKeyboard([
     {
-      combo: 'k',
+      combo: "k",
       meta: true,
       handler: (e) => {
-        e.preventDefault()
-        setPaletteOpen((o) => !o)
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
       },
     },
     {
@@ -348,51 +426,51 @@ function ShellWithPalette() {
       // whether the search input is mounted. Off-route the focus call
       // no-ops silently — wiring "navigate-to-library-then-focus" is a
       // post-v1 enhancement (see FP27 spec § A6b "off-route behavior").
-      combo: '/',
+      combo: "/",
       handler: (e) => {
-        e.preventDefault()
-        const el = document.getElementById('filters-search')
+        e.preventDefault();
+        const el = document.getElementById("filters-search");
         if (el instanceof HTMLInputElement) {
-          el.focus()
-          el.select()
+          el.focus();
+          el.select();
         }
       },
     },
-  ])
+  ]);
 
   // P07 § E: merge bundled help-topic items into the palette so users
   // can search by topic title (e.g. "playlist conflicts") and jump
   // straight to that page. Topics arrive from /api/help/index — the
   // palette stays usable without them.
-  const helpIndex = useHelpIndex()
+  const helpIndex = useHelpIndex();
   const paletteItems = useMemo<CmdKItem[]>(() => {
     const helpItems: CmdKItem[] = (helpIndex.data?.topics ?? []).map((t) => ({
       id: `help-${t.slug}`,
-      section: 'help',
+      section: "help",
       label: t.title,
       value: `nav:/help?topic=${encodeURIComponent(t.slug)}`,
       hint: strings.cmdK.sections.help,
-    }))
-    return [...PALETTE_ITEMS, ...helpItems]
-  }, [helpIndex.data])
+    }));
+    return [...PALETTE_ITEMS, ...helpItems];
+  }, [helpIndex.data]);
 
   const handleSelect = (value: string) => {
-    if (value.startsWith('nav:')) {
+    if (value.startsWith("nav:")) {
       // FP11 § A1: SPA navigation via react-router's `useNavigate`.
-      navigate(value.slice(4))
+      navigate(value.slice(4));
     }
-  }
+  };
 
-  const theme = config.data?.ui.theme
+  const theme = config.data?.ui.theme;
 
   return (
-    <ThemeProvider theme={theme ?? 'dark'}>
+    <ThemeProvider theme={theme ?? "dark"}>
       <AppShell
         cartCount={cart.items.length}
         onCmdK={() => setPaletteOpen(true)}
         onOpenCart={() => {
-          setCartExpanded(true)
-          if (location.pathname !== '/') navigate('/')
+          setCartExpanded(true);
+          if (location.pathname !== "/") navigate("/");
         }}
       >
         {/* FP11 § B12: route-level ErrorBoundary, resets on pathname
@@ -402,7 +480,11 @@ function ShellWithPalette() {
         <ErrorBoundary resetKey={location.pathname}>
           <Suspense
             fallback={
-              <div role="status" aria-live="polite" className="p-8 text-sm text-muted-foreground">
+              <div
+                role="status"
+                aria-live="polite"
+                className="p-8 text-sm text-muted-foreground"
+              >
                 {strings.loading.generic}
               </div>
             }
@@ -444,7 +526,7 @@ function ShellWithPalette() {
 
       <Toaster theme={sonnerThemeFor(theme)} />
     </ThemeProvider>
-  )
+  );
 }
 
 export default function App() {
@@ -454,5 +536,5 @@ export default function App() {
         <ShellWithPalette />
       </BrowserRouter>
     </QueryClientProvider>
-  )
+  );
 }

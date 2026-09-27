@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from "@playwright/test";
 
 /**
  * P15 § F14 — cart-flow smoke.
@@ -24,61 +24,64 @@ import { expect, test } from '@playwright/test'
 test.beforeEach(async ({ context }) => {
   // Ensure each test starts with a clean cart + fresh onboarding banner.
   // localStorage is per-origin; clear for the test origin.
-  await context.clearCookies()
+  await context.clearCookies();
   await context.addInitScript(() => {
-    localStorage.clear()
-  })
-})
+    localStorage.clear();
+  });
+});
 
-test('first visit shows onboarding banner; +Add populates the cart', async ({
+test("first visit shows onboarding banner; +Add populates the cart", async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto("/");
 
   // Onboarding banner visible on first mount.
   // FP24-Y: banner has no role (it's static instructional content,
   // not a live region). Match by visible text instead.
-  const banner = page.getByText(/Tap a game to add it to your list/i)
-  await expect(banner).toBeVisible()
+  const banner = page.getByText(/Tap a game to add it to your list/i);
+  await expect(banner).toBeVisible();
 
   // Cart bar shows empty (footer-scoped to avoid ambiguity)
-  await expect(page.locator('footer').getByText('Cart empty')).toBeVisible()
+  await expect(page.locator("footer").getByText("Cart empty")).toBeVisible();
 
   // Click an Add button — pick the first card on the grid. Locator
   // auto-waits, so no explicit `waitForSelector` is needed.
   const addButton = page
-    .getByRole('button', { name: /add .+ to cart/i })
-    .first()
-  await addButton.click()
+    .getByRole("button", { name: /add .+ to cart/i })
+    .first();
+  await addButton.click();
 
   // Banner auto-dismisses on first add
-  await expect(banner).not.toBeVisible()
+  await expect(banner).not.toBeVisible();
 
   // Cart bar now shows the game count (FP24-B dropped the GB figure
   // until per-cart-item byte sums exist).
-  await expect(page.getByText(/^1 game/)).toBeVisible()
+  await expect(page.getByText(/^1 game/)).toBeVisible();
 
   // Card flips to ✓ Added (the same card we just clicked)
-  await expect(page.getByText('✓ Added')).toBeVisible()
-})
+  await expect(page.getByText("✓ Added")).toBeVisible();
+});
 
-test('Copy inside the dry-run preview starts the copy', async ({ page }) => {
+test("Copy inside the dry-run preview starts the copy", async ({ page }) => {
   // mame-curator-1101: the preview's Copy button was wired to close the
   // modal only, so "Review the diff and confirm to copy" copied nothing.
   // Assert on the request, not the copy result, so the fixture ROMs'
   // presence on disk doesn't decide the outcome.
-  await page.goto('/')
-  await page.getByRole('button', { name: /add .+ to cart/i }).first().click()
-  await page.getByRole('button', { name: 'Dry-run' }).click()
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: /add .+ to cart/i })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Dry-run" }).click();
 
-  const preview = page.getByRole('dialog', { name: /dry-run preview/i })
-  await expect(preview).toBeVisible()
+  const preview = page.getByRole("dialog", { name: /dry-run preview/i });
+  await expect(preview).toBeVisible();
 
   const copyStarted = page.waitForRequest(
-    (req) => req.method() === 'POST' && req.url().endsWith('/api/copy/start'),
+    (req) => req.method() === "POST" && req.url().endsWith("/api/copy/start"),
     { timeout: 10_000 },
-  )
-  await preview.getByRole('button', { name: 'Copy', exact: true }).click()
-  await copyStarted
-  await expect(preview).not.toBeVisible()
-})
+  );
+  await preview.getByRole("button", { name: "Copy", exact: true }).click();
+  await copyStarted;
+  await expect(preview).not.toBeVisible();
+});

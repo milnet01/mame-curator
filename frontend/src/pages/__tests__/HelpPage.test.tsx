@@ -1,18 +1,18 @@
-import DOMPurify from 'dompurify'
-import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import DOMPurify from "dompurify";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
-import { HelpPage } from '../HelpPage'
-import type { HelpTopic } from '@/api/types'
+import { HelpPage } from "../HelpPage";
+import type { HelpTopic } from "@/api/types";
 
 const topics: HelpTopic[] = [
-  { slug: 'getting-started', title: 'Getting started' },
-  { slug: 'overrides', title: 'Manual overrides' },
-]
+  { slug: "getting-started", title: "Getting started" },
+  { slug: "overrides", title: "Manual overrides" },
+];
 
-describe('HelpPage', () => {
-  it('lists topics from the index', () => {
+describe("HelpPage", () => {
+  it("lists topics from the index", () => {
     render(
       <HelpPage
         topics={topics}
@@ -20,14 +20,14 @@ describe('HelpPage', () => {
         topicHtml=""
         onSelect={() => {}}
       />,
-    )
-    expect(screen.getByText('Getting started')).toBeInTheDocument()
-    expect(screen.getByText('Manual overrides')).toBeInTheDocument()
-  })
+    );
+    expect(screen.getByText("Getting started")).toBeInTheDocument();
+    expect(screen.getByText("Manual overrides")).toBeInTheDocument();
+  });
 
-  it('calls onSelect when a topic is clicked', async () => {
-    const user = userEvent.setup()
-    const onSelect = vi.fn()
+  it("calls onSelect when a topic is clicked", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
     render(
       <HelpPage
         topics={topics}
@@ -35,12 +35,12 @@ describe('HelpPage', () => {
         topicHtml=""
         onSelect={onSelect}
       />,
-    )
-    await user.click(screen.getByText('Manual overrides'))
-    expect(onSelect).toHaveBeenCalledWith('overrides')
-  })
+    );
+    await user.click(screen.getByText("Manual overrides"));
+    expect(onSelect).toHaveBeenCalledWith("overrides");
+  });
 
-  it('renders the selected topic html', () => {
+  it("renders the selected topic html", () => {
     render(
       <HelpPage
         topics={topics}
@@ -48,11 +48,11 @@ describe('HelpPage', () => {
         topicHtml="<p>How to override</p>"
         onSelect={() => {}}
       />,
-    )
-    expect(screen.getByText(/How to override/)).toBeInTheDocument()
-  })
+    );
+    expect(screen.getByText(/How to override/)).toBeInTheDocument();
+  });
 
-  it('shows the empty state when topics is empty', () => {
+  it("shows the empty state when topics is empty", () => {
     render(
       <HelpPage
         topics={[]}
@@ -60,12 +60,12 @@ describe('HelpPage', () => {
         topicHtml=""
         onSelect={() => {}}
       />,
-    )
-    expect(screen.getByText(/no help topics/i)).toBeInTheDocument()
-  })
+    );
+    expect(screen.getByText(/no help topics/i)).toBeInTheDocument();
+  });
 
-  it('strips <script> tags from topic html (P07 § D — DOMPurify)', () => {
-    const malicious = '<p>Safe text</p><script>alert(1)</script>'
+  it("strips <script> tags from topic html (P07 § D — DOMPurify)", () => {
+    const malicious = "<p>Safe text</p><script>alert(1)</script>";
     const { container } = render(
       <HelpPage
         topics={topics}
@@ -73,13 +73,13 @@ describe('HelpPage', () => {
         topicHtml={malicious}
         onSelect={() => {}}
       />,
-    )
-    expect(screen.getByText(/Safe text/)).toBeInTheDocument()
-    expect(container.querySelector('script')).toBeNull()
-  })
+    );
+    expect(screen.getByText(/Safe text/)).toBeInTheDocument();
+    expect(container.querySelector("script")).toBeNull();
+  });
 
-  it('strips javascript: URLs from anchor hrefs (P07 § D — DOMPurify)', () => {
-    const malicious = '<a href="javascript:alert(1)">click</a>'
+  it("strips javascript: URLs from anchor hrefs (P07 § D — DOMPurify)", () => {
+    const malicious = '<a href="javascript:alert(1)">click</a>';
     const { container } = render(
       <HelpPage
         topics={topics}
@@ -87,11 +87,11 @@ describe('HelpPage', () => {
         topicHtml={malicious}
         onSelect={() => {}}
       />,
-    )
-    const link = container.querySelector('a')
-    const href = link?.getAttribute('href') ?? ''
-    expect(href.toLowerCase()).not.toContain('javascript:')
-  })
+    );
+    const link = container.querySelector("a");
+    const href = link?.getAttribute("href") ?? "";
+    expect(href.toLowerCase()).not.toContain("javascript:");
+  });
 
   // ---- FP20-L: DOMPurify config hardening ----------------------------------
 
@@ -103,7 +103,7 @@ describe('HelpPage', () => {
      * default profile leaves ``target="_blank"`` untouched; the
      * afterSanitizeAttributes hook closes the gap.
      */
-    const html = '<a href="https://example.com" target="_blank">click</a>'
+    const html = '<a href="https://example.com" target="_blank">click</a>';
     const { container } = render(
       <HelpPage
         topics={topics}
@@ -111,13 +111,13 @@ describe('HelpPage', () => {
         topicHtml={html}
         onSelect={() => {}}
       />,
-    )
-    const link = container.querySelector('a')
-    expect(link?.getAttribute('rel')).toBe('noopener noreferrer')
-  })
+    );
+    const link = container.querySelector("a");
+    expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
+  });
 
-  it('FP20-L: strips <style> tags (FORBID_TAGS)', () => {
-    const html = '<p>text</p><style>body{color:red}</style>'
+  it("FP20-L: strips <style> tags (FORBID_TAGS)", () => {
+    const html = "<p>text</p><style>body{color:red}</style>";
     const { container } = render(
       <HelpPage
         topics={topics}
@@ -125,12 +125,12 @@ describe('HelpPage', () => {
         topicHtml={html}
         onSelect={() => {}}
       />,
-    )
-    expect(container.querySelector('style')).toBeNull()
-  })
+    );
+    expect(container.querySelector("style")).toBeNull();
+  });
 
-  it('FP20-L: strips <form> tags (FORBID_TAGS — defends against credential-phishing inside help)', () => {
-    const html = '<form action="/steal"><input name="x"/></form><p>after</p>'
+  it("FP20-L: strips <form> tags (FORBID_TAGS — defends against credential-phishing inside help)", () => {
+    const html = '<form action="/steal"><input name="x"/></form><p>after</p>';
     const { container } = render(
       <HelpPage
         topics={topics}
@@ -138,14 +138,15 @@ describe('HelpPage', () => {
         topicHtml={html}
         onSelect={() => {}}
       />,
-    )
-    expect(container.querySelector('form')).toBeNull()
+    );
+    expect(container.querySelector("form")).toBeNull();
     // The trailing <p> still renders — the strip is surgical.
-    expect(screen.getByText('after')).toBeInTheDocument()
-  })
+    expect(screen.getByText("after")).toBeInTheDocument();
+  });
 
   it('FP20-L: strips style="..." attributes (FORBID_ATTR — defense-in-depth against CSS-injection-based phishing)', () => {
-    const html = '<p style="color:red; background:url(http://evil/track)">text</p>'
+    const html =
+      '<p style="color:red; background:url(http://evil/track)">text</p>';
     const { container } = render(
       <HelpPage
         topics={topics}
@@ -153,12 +154,12 @@ describe('HelpPage', () => {
         topicHtml={html}
         onSelect={() => {}}
       />,
-    )
-    const p = container.querySelector('p')
-    expect(p?.getAttribute('style')).toBeNull()
-  })
+    );
+    const p = container.querySelector("p");
+    expect(p?.getAttribute("style")).toBeNull();
+  });
 
-  it('FP20-L / FP25-J: strips data: URLs on <img> (no src survives)', () => {
+  it("FP20-L / FP25-J: strips data: URLs on <img> (no src survives)", () => {
     /**
      * FP25-J strengthens the original FP20-L assertion: the pre-FP25-J
      * test only stated "if <img> survives, its src must not start with
@@ -172,7 +173,7 @@ describe('HelpPage', () => {
      * test to match the new behaviour (rather than silently passing
      * via a vacuous early-return).
      */
-    const html = '<img src="data:image/png;base64,iVBORw0KGgo=" alt="x" />'
+    const html = '<img src="data:image/png;base64,iVBORw0KGgo=" alt="x" />';
     const { container } = render(
       <HelpPage
         topics={topics}
@@ -180,15 +181,15 @@ describe('HelpPage', () => {
         topicHtml={html}
         onSelect={() => {}}
       />,
-    )
-    const img = container.querySelector('img')
-    expect(img).not.toBeNull()
-    expect(img!.getAttribute('src')).toBeNull()
-  })
+    );
+    const img = container.querySelector("img");
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute("src")).toBeNull();
+  });
 
   // FP25-I: hooks isolation — the global DOMPurify must NOT inherit
   // HelpPage's target="_blank" / rel-injection / data:-URL strip hooks.
-  it('FP25-I: global DOMPurify singleton does not inherit HelpPage hooks', () => {
+  it("FP25-I: global DOMPurify singleton does not inherit HelpPage hooks", () => {
     // Render HelpPage so its module-load-time `addHook` calls run. If
     // those hooks landed on the global, the global sanitizer would
     // inject rel="noopener noreferrer" on target="_blank" anchors.
@@ -199,20 +200,20 @@ describe('HelpPage', () => {
         topicHtml="<p>warm-up</p>"
         onSelect={() => {}}
       />,
-    )
+    );
     // Use the global default profile (mirrors what an unrelated module
     // would get from `import DOMPurify from 'dompurify'`).
-    const html = '<a href="https://example.com" target="_blank">click</a>'
-    const result = DOMPurify.sanitize(html)
+    const html = '<a href="https://example.com" target="_blank">click</a>';
+    const result = DOMPurify.sanitize(html);
     // Without the leak, the global sanitizer either strips `target`
     // entirely (DOMPurify's default behaviour) OR keeps it without
     // injecting `rel`. Either is acceptable; the failure shape we're
     // guarding against is "global silently inherits rel injection".
-    expect(result).not.toMatch(/rel="noopener noreferrer"/)
-  })
+    expect(result).not.toMatch(/rel="noopener noreferrer"/);
+  });
 
-  it('FP20-L: preserves https URLs on <a> (allowlist must not over-strip)', () => {
-    const html = '<a href="https://example.com">click</a>'
+  it("FP20-L: preserves https URLs on <a> (allowlist must not over-strip)", () => {
+    const html = '<a href="https://example.com">click</a>';
     const { container } = render(
       <HelpPage
         topics={topics}
@@ -220,13 +221,13 @@ describe('HelpPage', () => {
         topicHtml={html}
         onSelect={() => {}}
       />,
-    )
-    const link = container.querySelector('a')
-    expect(link?.getAttribute('href')).toBe('https://example.com')
-  })
+    );
+    const link = container.querySelector("a");
+    expect(link?.getAttribute("href")).toBe("https://example.com");
+  });
 
-  it('FP20-L: preserves mailto: URLs (mailto is in the allowlist)', () => {
-    const html = '<a href="mailto:hi@example.com">email</a>'
+  it("FP20-L: preserves mailto: URLs (mailto is in the allowlist)", () => {
+    const html = '<a href="mailto:hi@example.com">email</a>';
     const { container } = render(
       <HelpPage
         topics={topics}
@@ -234,8 +235,8 @@ describe('HelpPage', () => {
         topicHtml={html}
         onSelect={() => {}}
       />,
-    )
-    const link = container.querySelector('a')
-    expect(link?.getAttribute('href')).toBe('mailto:hi@example.com')
-  })
-})
+    );
+    const link = container.querySelector("a");
+    expect(link?.getAttribute("href")).toBe("mailto:hi@example.com");
+  });
+});

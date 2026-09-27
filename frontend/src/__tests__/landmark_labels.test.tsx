@@ -22,56 +22,51 @@
  * no aria-label. CartPanel had a `strings.library.cart.*`-namespaced
  * label which DS02 C4 relocates to the shared `strings.a11y` family.
  */
-import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { HelpPage } from '../pages/HelpPage'
-import { CartPanel } from '../components/library/CartPanel'
-import libraryPageSource from '../pages/LibraryPage.tsx?raw'
+import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { HelpPage } from "../pages/HelpPage";
+import { CartPanel } from "../components/library/CartPanel";
+import libraryPageSource from "../pages/LibraryPage.tsx?raw";
 
-describe('DS02 C4 — landmark aria-labels', () => {
+describe("DS02 C4 — landmark aria-labels", () => {
   it('HelpPage topic-list aside carries aria-label "Help topics"', () => {
     render(
       <HelpPage
-        topics={[{ slug: 't', title: 'Topic' }]}
+        topics={[{ slug: "t", title: "Topic" }]}
         selectedSlug={null}
         topicHtml=""
         topicLoading={false}
         onSelect={() => {}}
       />,
-    )
+    );
     // Use the implicit `complementary` role for <aside> with a name.
-    const aside = screen.getByRole('complementary', { name: /help topics/i })
-    expect(aside).toBeInTheDocument()
-  })
+    const aside = screen.getByRole("complementary", { name: /help topics/i });
+    expect(aside).toBeInTheDocument();
+  });
 
   it('HelpPage rendered-topic article carries aria-label "Help content"', () => {
     render(
       <HelpPage
-        topics={[{ slug: 't', title: 'Topic' }]}
+        topics={[{ slug: "t", title: "Topic" }]}
         selectedSlug="t"
         topicHtml="<p>body</p>"
         topicLoading={false}
         onSelect={() => {}}
       />,
-    )
+    );
     // <article> with an accessible name maps to role="article".
-    const article = screen.getByRole('article', { name: /help content/i })
-    expect(article).toBeInTheDocument()
-  })
+    const article = screen.getByRole("article", { name: /help content/i });
+    expect(article).toBeInTheDocument();
+  });
 
   it('CartPanel <aside> carries aria-label "Cart"', () => {
     render(
-      <CartPanel
-        open
-        items={[]}
-        onRemove={() => {}}
-        onClearAll={() => {}}
-      />,
-    )
+      <CartPanel open items={[]} onRemove={() => {}} onClearAll={() => {}} />,
+    );
     // CartPanel renders <aside role="region">, so look up by region.
-    const aside = screen.getByRole('region', { name: /^cart$/i })
-    expect(aside).toBeInTheDocument()
-  })
+    const aside = screen.getByRole("region", { name: /^cart$/i });
+    expect(aside).toBeInTheDocument();
+  });
 
   it('LibraryPage FiltersSidebar <aside> source carries aria-label "Filters"', () => {
     // Source-text check — LibraryPage isn't worth a full render here,
@@ -80,10 +75,10 @@ describe('DS02 C4 — landmark aria-labels', () => {
     // <aside> tag carries `aria-label` referencing "Filters" (literal
     // OR strings.<…>filtersLandmark / strings.<…>filters).
     const re =
-      /<aside[^>]*\baria-label\s*=\s*(["'][^"']*[Ff]ilters[^"']*["']|\{[^}]*[Ff]ilters[^}]*\})[^>]*>/
+      /<aside[^>]*\baria-label\s*=\s*(["'][^"']*[Ff]ilters[^"']*["']|\{[^}]*[Ff]ilters[^}]*\})[^>]*>/;
     expect(
       re.test(libraryPageSource),
       'LibraryPage.tsx: no <aside aria-label="…Filters…"> found',
-    ).toBe(true)
-  })
-})
+    ).toBe(true);
+  });
+});

@@ -9,28 +9,28 @@
  * The complementary grep gate runs at PR time:
  *   git grep -l "Checkbox" frontend/src/ | grep -v src/components/ui
  */
-import { describe, expect, it } from 'vitest'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { describe, expect, it } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 
 // DS04 T3.1 pattern: vitest `globals: true` enables RTL's auto-cleanup;
 // no need for manual `cleanup()` calls in this file.
 
-import { FiltersSidebar } from '../library/FiltersSidebar'
-import { LayoutSwitcher } from '../library/LayoutSwitcher'
-import { ThemeSwitcher } from '../library/ThemeSwitcher'
-import { SettingsPage } from '@/pages/SettingsPage'
-import type { AppConfigResponse } from '@/api/types'
-import { baseFiltersValue } from '@/test/fixtures'
+import { FiltersSidebar } from "../library/FiltersSidebar";
+import { LayoutSwitcher } from "../library/LayoutSwitcher";
+import { ThemeSwitcher } from "../library/ThemeSwitcher";
+import { SettingsPage } from "@/pages/SettingsPage";
+import type { AppConfigResponse } from "@/api/types";
+import { baseFiltersValue } from "@/test/fixtures";
 
 const config: AppConfigResponse = {
   paths: {
-    source_roms: '/x',
-    source_dat: '/x',
-    dest_roms: '/x',
-    retroarch_playlist: '/x',
+    source_roms: "/x",
+    source_dat: "/x",
+    dest_roms: "/x",
+    retroarch_playlist: "/x",
     catver: null,
     languages: null,
     bestgames: null,
@@ -40,7 +40,7 @@ const config: AppConfigResponse = {
     retroarch: null,
     retroarch_core: null,
   },
-  server: { host: '127.0.0.1', port: 8080, open_browser_on_start: true },
+  server: { host: "127.0.0.1", port: 8080, open_browser_on_start: true },
   filters: {
     drop_bios_devices_mechanical: true,
     drop_categories: [],
@@ -62,55 +62,61 @@ const config: AppConfigResponse = {
   },
   media: {
     fetch_videos: false,
-    cache_dir: '/x',
-    snaps_dir: '/x/snaps',
+    cache_dir: "/x",
+    snaps_dir: "/x/snaps",
     arcadedb_rate_limit_per_min: 30,
     mobygames_rate_limit_per_min: 5,
-    sources: ['libretro'],
+    sources: ["libretro"],
   },
   ui: {
-    theme: 'dark',
-    layout: 'masonry',
-    default_sort: 'name',
+    theme: "dark",
+    layout: "masonry",
+    default_sort: "name",
     show_alternatives_indicator: true,
-    cards_per_row_hint: 'auto',
-    cart_clear_on_copy: 'on_success',
+    cards_per_row_hint: "auto",
+    cart_clear_on_copy: "on_success",
   },
-  updates: { channel: 'stable', check_on_startup: true, ini_check_on_startup: true },
+  updates: {
+    channel: "stable",
+    check_on_startup: true,
+    ini_check_on_startup: true,
+  },
   fs: { granted_roots: [] },
   restart_required: false,
-}
+};
 
-describe('no-checkbox-for-prefs invariant', () => {
-  it('FiltersSidebar prefs surface uses Switch, never Checkbox', () => {
+describe("no-checkbox-for-prefs invariant", () => {
+  it("FiltersSidebar prefs surface uses Switch, never Checkbox", () => {
     render(
       <FiltersSidebar
         value={baseFiltersValue}
         onChange={() => {}}
         onSaveSession={() => {}}
       />,
-    )
-    expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
-  })
+    );
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
 
-  it('LayoutSwitcher uses no Checkbox', () => {
-    render(<LayoutSwitcher value="masonry" onChange={() => {}} />)
-    expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
-  })
+  it("LayoutSwitcher uses no Checkbox", () => {
+    render(<LayoutSwitcher value="masonry" onChange={() => {}} />);
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
 
-  it('ThemeSwitcher uses no Checkbox', () => {
-    render(<ThemeSwitcher value="dark" onChange={() => {}} />)
-    expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
-  })
+  it("ThemeSwitcher uses no Checkbox", () => {
+    render(<ThemeSwitcher value="dark" onChange={() => {}} />);
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
 
-  it('SettingsPage prefs tabs use Switch, never Checkbox', async () => {
-    const user = userEvent.setup()
+  it("SettingsPage prefs tabs use Switch, never Checkbox", async () => {
+    const user = userEvent.setup();
     // DS02 D1: SettingsPage now reads its active tab via
     // `useSearchParams`, so it must render inside a Router.
     // P10 chunk 10: the Media tab calls useMediaSources (react-query), so a
     // QueryClient must wrap the page (the readiness GET is served by the
     // default MSW handler).
-    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     render(
       <QueryClientProvider client={qc}>
         <MemoryRouter>
@@ -121,22 +127,22 @@ describe('no-checkbox-for-prefs invariant', () => {
           />
         </MemoryRouter>
       </QueryClientProvider>,
-    )
+    );
     // Visit EVERY tab the page renders, not a hardcoded subset — test-audit
     // FP03 (2026-05-18) flagged that the 5-tab subset would let a future
     // checkbox-shaped preference landing on Paths/Snapshots/Backup/About
     // slip past this invariant. Enumerating `role="tab"` at runtime keeps
     // the test in lockstep with `SECTION_KEYS` in SettingsPage.tsx without
     // a hand-maintained mirror.
-    const tabs = screen.getAllByRole('tab')
-    expect(tabs.length, 'SettingsPage rendered zero tabs').toBeGreaterThan(0)
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.length, "SettingsPage rendered zero tabs").toBeGreaterThan(0);
     for (const tab of tabs) {
-      const label = tab.textContent ?? '<no label>'
-      await user.click(tab)
+      const label = tab.textContent ?? "<no label>";
+      await user.click(tab);
       expect(
-        screen.queryAllByRole('checkbox'),
+        screen.queryAllByRole("checkbox"),
         `Tab "${label}" leaked a Checkbox`,
-      ).toHaveLength(0)
+      ).toHaveLength(0);
     }
-  })
-})
+  });
+});

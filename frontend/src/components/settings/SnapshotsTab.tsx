@@ -1,13 +1,13 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { ConfirmationDialog } from '@/components/ConfirmationDialog'
-import { strings } from '@/strings'
-import type { Snapshot } from '@/api/types'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { strings } from "@/strings";
+import type { Snapshot } from "@/api/types";
 
 interface SnapshotsTabProps {
-  snapshots: readonly Snapshot[]
-  loading?: boolean
-  error?: string | null
+  snapshots: readonly Snapshot[];
+  loading?: boolean;
+  error?: string | null;
   /** FP20-J: persistent alert above the snapshot list when the most
    * recent restore mutation failed. The dialog auto-closes on
    * confirm, and the toastApiError flash dismisses — without this
@@ -23,14 +23,14 @@ interface SnapshotsTabProps {
    * The tab itself does NOT own the state — it would have no way to
    * distinguish "Settings just mounted" from "user opened the tab
    * after a fresh restore failed" once it remounted. */
-  restoreError?: string | null
-  onRestore: (id: string) => void
+  restoreError?: string | null;
+  onRestore: (id: string) => void;
 }
 
 const FORMAT = new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-})
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 export function SnapshotsTab({
   snapshots,
@@ -39,21 +39,21 @@ export function SnapshotsTab({
   restoreError = null,
   onRestore,
 }: SnapshotsTabProps) {
-  const [pending, setPending] = useState<Snapshot | null>(null)
+  const [pending, setPending] = useState<Snapshot | null>(null);
 
   if (loading) {
     return (
       <p className="text-sm text-muted-foreground">
         {strings.settings.snapshotsLoading}
       </p>
-    )
+    );
   }
   if (error) {
     return (
       <p role="alert" className="text-sm text-destructive">
         {error}
       </p>
-    )
+    );
   }
   if (snapshots.length === 0) {
     return (
@@ -65,7 +65,7 @@ export function SnapshotsTab({
           {strings.settings.snapshotsStateExclusionNote}
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -87,7 +87,7 @@ export function SnapshotsTab({
           >
             <span className="text-sm">
               <time dateTime={s.ts.toISOString()}>{FORMAT.format(s.ts)}</time>
-              {' · '}
+              {" · "}
               <span className="text-muted-foreground">
                 {strings.settings.snapshotItemFiles(s.files.length)}
               </span>
@@ -103,7 +103,7 @@ export function SnapshotsTab({
         <ConfirmationDialog
           open
           onOpenChange={(open) => {
-            if (!open) setPending(null)
+            if (!open) setPending(null);
           }}
           title={strings.settings.snapshotRestoreConfirmTitle}
           description={strings.settings.snapshotRestoreConfirm(
@@ -117,5 +117,5 @@ export function SnapshotsTab({
         />
       )}
     </div>
-  )
+  );
 }

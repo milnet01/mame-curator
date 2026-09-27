@@ -1,15 +1,15 @@
-import { useState, type KeyboardEvent, type ReactNode } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
-import { cn } from '@/lib/utils'
+import { cn } from "@/lib/utils";
 
 export interface DragReorderListProps {
   /** Accessible name for the list (e.g. "Region priority"). */
-  ariaLabel: string
+  ariaLabel: string;
   /** Current items, rendered top-to-bottom in priority order. */
-  items: string[]
+  items: string[];
   /** Called with the next list whenever an item is reordered. */
-  onChange: (next: string[]) => void
+  onChange: (next: string[]) => void;
   /**
    * P10 chunk 10: optionally render rich row content in place of the plain
    * item label (e.g. a media source's status dot + Configure button).
@@ -18,13 +18,13 @@ export interface DragReorderListProps {
    * inside `renderItem` should `stopPropagation` on keydown so they don't
    * also trigger a reorder. Defaults to the plain item string.
    */
-  renderItem?: (item: string) => ReactNode
+  renderItem?: (item: string) => ReactNode;
 }
 
 function swap(arr: string[], from: number, to: number): string[] {
-  const next = arr.slice()
-  ;[next[from], next[to]] = [next[to], next[from]]
-  return next
+  const next = arr.slice();
+  [next[from], next[to]] = [next[to], next[from]];
+  return next;
 }
 
 // FP13 § D3: the FP12 § Step 1 research contract called for `role="listbox"`
@@ -41,45 +41,39 @@ export function DragReorderList({
   onChange,
   renderItem,
 }: DragReorderListProps) {
-  const [announcement, setAnnouncement] = useState('')
+  const [announcement, setAnnouncement] = useState("");
 
   const move = (from: number, to: number) => {
-    if (to < 0 || to >= items.length) return
-    const moved = items[from]
-    onChange(swap(items, from, to))
+    if (to < 0 || to >= items.length) return;
+    const moved = items[from];
+    onChange(swap(items, from, to));
     // FP13 § D2: announce moves via an aria-live region so screen-reader
     // users hear that the action took effect. Without this the keyboard
     // reorder is silent to AT — failure mode flagged in FP12 closing review.
-    setAnnouncement(
-      `Moved ${moved} to position ${to + 1} of ${items.length}.`,
-    )
-  }
+    setAnnouncement(`Moved ${moved} to position ${to + 1} of ${items.length}.`);
+  };
 
   const onKeyDown = (event: KeyboardEvent<HTMLLIElement>, index: number) => {
-    if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      move(index, index - 1)
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      move(index, index + 1)
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      move(index, index - 1);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      move(index, index + 1);
     }
-  }
+  };
 
   return (
     <>
-      <ul
-        role="list"
-        aria-label={ariaLabel}
-        className="flex flex-col gap-1"
-      >
+      <ul role="list" aria-label={ariaLabel} className="flex flex-col gap-1">
         {/* FP13 § E4: `key={item}` keeps React reconciliation stable across
             reorder so focus survives the swap (important since this list is
             keyboard-driven). The contract is that items are unique; callers
             (today only `region_priority`, fed via `ChipListEditor` and
             server-validated config) enforce uniqueness upstream. */}
         {items.map((item, i) => {
-          const isFirst = i === 0
-          const isLast = i === items.length - 1
+          const isFirst = i === 0;
+          const isLast = i === items.length - 1;
           return (
             <li
               key={item}
@@ -95,8 +89,8 @@ export function DragReorderList({
                   disabled={isFirst}
                   onClick={() => move(i, i - 1)}
                   className={cn(
-                    'rounded p-0.5 hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    isFirst && 'opacity-40',
+                    "rounded p-0.5 hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isFirst && "opacity-40",
                   )}
                 >
                   <ChevronUp size={14} aria-hidden="true" />
@@ -107,15 +101,15 @@ export function DragReorderList({
                   disabled={isLast}
                   onClick={() => move(i, i + 1)}
                   className={cn(
-                    'rounded p-0.5 hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    isLast && 'opacity-40',
+                    "rounded p-0.5 hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isLast && "opacity-40",
                   )}
                 >
                   <ChevronDown size={14} aria-hidden="true" />
                 </button>
               </div>
             </li>
-          )
+          );
         })}
       </ul>
       <div
@@ -127,5 +121,5 @@ export function DragReorderList({
         {announcement}
       </div>
     </>
-  )
+  );
 }

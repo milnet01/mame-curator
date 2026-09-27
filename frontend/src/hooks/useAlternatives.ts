@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiRequest } from '@/api/client'
-import { toastApiError } from '@/lib/apiErrorToast'
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/api/client";
+import { toastApiError } from "@/lib/apiErrorToast";
 import {
   AlternativesSchema,
   LaunchResponseSchema,
@@ -9,10 +9,10 @@ import {
   type LaunchResponse,
   type OverridePostRequest,
   type OverridesView,
-} from '@/api/types'
-import { useApiQuery } from './useApi'
+} from "@/api/types";
+import { useApiQuery } from "./useApi";
 
-const KEY = (shortName: string) => ['alternatives', shortName] as const
+const KEY = (shortName: string) => ["alternatives", shortName] as const;
 
 /**
  * Fetch the parent + clones group for ``shortName``. The endpoint returns
@@ -23,11 +23,11 @@ const KEY = (shortName: string) => ['alternatives', shortName] as const
  */
 export function useAlternatives(shortName: string | null) {
   return useApiQuery<Alternatives>(
-    KEY(shortName ?? ''),
-    `/api/games/${encodeURIComponent(shortName ?? '')}/alternatives`,
+    KEY(shortName ?? ""),
+    `/api/games/${encodeURIComponent(shortName ?? "")}/alternatives`,
     AlternativesSchema,
     { enabled: shortName !== null },
-  )
+  );
 }
 
 /**
@@ -38,20 +38,20 @@ export function useAlternatives(shortName: string | null) {
  * remains possible per ``useMutation``'s contract.
  */
 export function useOverride() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (req: OverridePostRequest) =>
-      apiRequest<OverridesView>('/api/overrides', OverridesViewSchema, {
-        method: 'POST',
+      apiRequest<OverridesView>("/api/overrides", OverridesViewSchema, {
+        method: "POST",
         body: req,
       }),
     onSuccess: (_data, req) => {
-      qc.invalidateQueries({ queryKey: ['games'] })
-      qc.invalidateQueries({ queryKey: KEY(req.winner) })
-      qc.invalidateQueries({ queryKey: KEY(req.parent) })
+      qc.invalidateQueries({ queryKey: ["games"] });
+      qc.invalidateQueries({ queryKey: KEY(req.winner) });
+      qc.invalidateQueries({ queryKey: KEY(req.parent) });
     },
     onError: toastApiError,
-  })
+  });
 }
 
 /**
@@ -67,8 +67,8 @@ export function useLaunchGame() {
       apiRequest<LaunchResponse>(
         `/api/games/${encodeURIComponent(shortName)}/launch`,
         LaunchResponseSchema,
-        { method: 'POST' },
+        { method: "POST" },
       ),
     onError: toastApiError,
-  })
+  });
 }

@@ -1,11 +1,11 @@
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface PrefSwitchProps {
-  id: string
-  label: string
-  checked: boolean
-  onChange: (next: boolean) => void
+  id: string;
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
 }
 
 /** Label + Switch pair used across every settings tab for binary prefs. */
@@ -15,5 +15,5 @@ export function PrefSwitch({ id, label, checked, onChange }: PrefSwitchProps) {
       <Label htmlFor={id}>{label}</Label>
       <Switch id={id} checked={checked} onCheckedChange={onChange} />
     </div>
-  )
+  );
 }

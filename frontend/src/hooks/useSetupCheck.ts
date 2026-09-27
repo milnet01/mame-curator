@@ -1,5 +1,5 @@
-import { SetupCheckSchema, type SetupCheck } from '@/api/types'
-import { useApiQuery } from './useApi'
+import { SetupCheckSchema, type SetupCheck } from "@/api/types";
+import { useApiQuery } from "./useApi";
 
 /**
  * GET /api/setup/check — surfaces whether config + paths + reference INI
@@ -8,5 +8,9 @@ import { useApiQuery } from './useApi'
  * (FP16 § C).
  */
 export function useSetupCheck() {
-  return useApiQuery<SetupCheck>(['setup', 'check'], '/api/setup/check', SetupCheckSchema)
+  return useApiQuery<SetupCheck>(
+    ["setup", "check"],
+    "/api/setup/check",
+    SetupCheckSchema,
+  );
 }

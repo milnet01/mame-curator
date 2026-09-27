@@ -1,13 +1,13 @@
-import { X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { strings } from '@/strings'
-import type { CartItem } from '@/hooks/useCart'
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { strings } from "@/strings";
+import type { CartItem } from "@/hooks/useCart";
 
 interface CartPanelProps {
-  open: boolean
-  items: CartItem[]
-  onRemove: (shortName: string) => void
-  onClearAll: () => void
+  open: boolean;
+  items: CartItem[];
+  onRemove: (shortName: string) => void;
+  onClearAll: () => void;
 }
 
 /**
@@ -18,8 +18,13 @@ interface CartPanelProps {
  * only mount/unmount (no framer-motion dep needed at v1; spec
  * § 4.4 explicitly allows the simpler approach).
  */
-export function CartPanel({ open, items, onRemove, onClearAll }: CartPanelProps) {
-  if (!open) return null
+export function CartPanel({
+  open,
+  items,
+  onRemove,
+  onClearAll,
+}: CartPanelProps) {
+  if (!open) return null;
   return (
     <aside
       // FP24-W: id anchors CartBar's aria-controls disclosure pattern.
@@ -63,5 +68,5 @@ export function CartPanel({ open, items, onRemove, onClearAll }: CartPanelProps)
         </div>
       )}
     </aside>
-  )
+  );
 }
