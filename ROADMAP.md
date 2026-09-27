@@ -1180,6 +1180,25 @@ wave lands.
   Source: in-session-2026-09-27 (mame-curator-1104).
   Lanes: copy, docs.
 
+- 📋 [mame-curator-1117] **CLAUDE.md cites retired global rule numbers and dead skill names.**
+  Found during the 2026-09-27 history sweep (CFG-0492), left in place
+  because a sweep moves pedigree and does not fix stale rules:
+  - line "Layered on ~/.claude/CLAUDE.md (global rules 1–12, with
+    Karpathy clarity / surgical-edit at 8–12)": global rules 1–5, 8,
+    10, 11 and 13 are retired into the standards.
+  - § "Karpathy clarity (global 8–12)" maps onto those retired numbers.
+  - `/audit` and `/indie-review` (session start item 4, § Closing a
+    phase) are dead names; successors are check-code and review-code.
+  - the module-spec bullet names `docs/specs/<ID>.md`; since
+    mame-curator-1092 the shape is `<ID>-<topic>.md`.
+  - /mnt/Games/CLAUDE.md forbids counts and sizes in documents; this
+    file keeps "~48 MB / 43k machines" and "the five that must pass".
+    Decide whether the parser figure is calibration worth keeping.
+  **Layman:** The project's instruction file for Claude still points at some rules and tools that have since been renamed or retired.
+  Kind: doc-fix.
+  Source: in-session-2026-09-27 (CFG-0492 sweep).
+  Lanes: docs.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
