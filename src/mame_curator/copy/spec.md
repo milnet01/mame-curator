@@ -462,25 +462,28 @@ The CLI catches `CopyError` at the boundary and exits 1 with `error: ...` to std
 
 | Flag | Semantics |
 |---|---|
-| `--dry-run` | Run preflight + BIOS resolution + conflict detection. Print a copy plan summary. **No writes.** Exits 0. |
-| `--apply` | Run the full copy. Prompt for `append_decisions` if APPEND mode hits cross-version conflicts (or read from `--decisions <file>`). Exit 0 on `OK`, 1 on `PARTIAL_FAILURE` / `CANCELLED`. |
+| `--dry-run` | Run preflight + BIOS resolution + conflict detection. Print a copy plan summary. **No writes.** |
+| `--apply` | Run the full copy. |
+
+Exit codes (both modes): 0 on `OK`, 130 on `CANCELLED`, 3 on `CANCELLED_PLAYLIST_CONFLICT`, 1 otherwise.
 
 Required flags (both modes):
 
-- `--config <path>` — `config.yaml` carrying `paths.source_roms`, `paths.dest_roms`, `paths.retroarch_playlist`.
+- `--dat <path>` — the DAT (`.xml` or `.zip`).
 - `--listxml <path>` — official MAME `-listxml` for BIOS chain + CHD detection.
 - `--filter-report <path>` — JSON output of `mame-curator filter` (the `FilterResult` serialized).
+- `--source <dir>` — source ROM directory.
+- `--dest <dir>` — destination ROM directory. The playlist is written to `<dest>/mame.lpl`; the CLI leaves `CopyPlan.playlist_path` unset.
 
 Optional flags:
 
 | Flag | Default | Effect |
 |---|---|---|
-| `--conflict {append,overwrite,cancel}` | `cancel` | Strategy when `mame.lpl` already exists |
-| `--decisions <path>` | none | YAML/JSON file mapping `<short> -> AppendDecision` |
-| `--auto-keep` | false | Apply `KEEP_EXISTING` to every cross-version conflict (CI-friendly) |
+| `--conflict {append,overwrite,cancel}` | `cancel` | Strategy when `mame.lpl` already exists. The CLI passes no `append_decisions`. |
 | `--delete-existing-zips` | false | With `--conflict overwrite`, recycle existing dest zips |
 | `--purge-recycle` | none | One-shot: delete recycle entries older than 30 days; exits without copying |
-| `-v` / `--verbose` | INFO | Logging level |
+
+`-v` / `--verbose` is a top-level flag (`cli/spec.md`), given before `copy`.
 
 Output routing per `coding-standards.md` § 9 and `cli/spec.md`:
 
