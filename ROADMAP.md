@@ -2893,6 +2893,22 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: in-session-2026-09-28 (ci-gate WRAPPER advisory).
   Lanes: ci.
 
+- ✅ [mame-curator-1130] **Restoring a settings snapshot deleted overrides, sessions and notes.**
+  Every PATCH /api/config snapshots config.yaml alone into data/snapshots/,
+  and the restore route passes four targets. api/persist.py::restore_snapshot
+  deleted every target missing from the snapshot, so restoring a routine
+  settings snapshot deleted overrides.yaml, sessions.yaml and notes.json.
+  Found by a review lane on the 1010 spec; reproduced by
+  tests/api/test_snapshot_restore_keeps_other_files.py before the fix.
+  Resolved (2026-09-28): snapshot_files records the names it covered in
+  .covers.json; restore deletes only a covered name the snapshot holds no
+  file for; an older snapshot without the record covers only its own
+  files; the listing hides the record.
+  **Layman:** Undoing a settings change from Settings → Snapshots could wipe your saved picks, sessions and notes; it no longer touches anything the snapshot did not save.
+  Kind: review-fix.
+  Source: review-contract-2026-09-28 (mame-curator-1010 spec, loop 1 open question).
+  Lanes: api.
+
 ## Considered / under research (no target date)
 
 **Theme:** post-v1 features captured during user feedback. Each is

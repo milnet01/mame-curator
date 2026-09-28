@@ -31,6 +31,12 @@ logger = logging.getLogger(__name__)
 MAX_SNAPSHOTS = 200
 
 
+# Names a snapshot covered, whether or not each file existed at the time.
+# Restore deletes only a covered name the snapshot holds no file for, so a
+# snapshot of config.yaml alone never touches the other restore targets.
+_COVERS = ".covers.json"
+
+
 def snapshot_files(snapshots_dir: Path, files: Mapping[str, Path]) -> str:
     """Snapshot any files that currently exist into a new timestamped directory.
 
@@ -53,6 +59,7 @@ def snapshot_files(snapshots_dir: Path, files: Mapping[str, Path]) -> str:
             logger.exception("snapshot read failed for %r", str(src))
             continue
         atomic_write_bytes(snap_dir / name, data)
+    atomic_write_bytes(snap_dir / _COVERS, json.dumps(sorted(files)).encode("utf-8"))
     _prune_old_snapshots(snapshots_dir)
     return snap_id
 
@@ -87,7 +94,9 @@ def list_snapshots(snapshots_dir: Path) -> list[dict[str, Any]]:
             mtime = datetime.fromtimestamp(child.stat().st_mtime, tz=UTC)
         except OSError:
             continue
-        files = tuple(sorted(p.name for p in child.iterdir() if p.is_file()))
+        files = tuple(
+            sorted(p.name for p in child.iterdir() if p.is_file() and not p.name.startswith("."))
+        )
         items.append({"id": child.name, "ts": mtime, "files": files})
     return items
 
@@ -95,8 +104,12 @@ def list_snapshots(snapshots_dir: Path) -> list[dict[str, Any]]:
 def restore_snapshot(snapshots_dir: Path, snap_id: str, targets: Mapping[str, Path]) -> None:
     """Copy the named files from ``snapshots_dir/<id>/`` back to their targets.
 
-    Files absent from the snapshot are deleted from the live targets so the
-    restore reverts cleanly to the snapshot state.
+    A target the snapshot covered but holds no file for is deleted, so the
+    restore reverts cleanly to the snapshot state. A target the snapshot did
+    not cover is left alone: every settings save snapshots config.yaml by
+    itself, and restoring one must not delete overrides, sessions or notes.
+    A snapshot written before the covers record existed is read as covering
+    only the files it holds.
 
     FP27 B2: stage-then-promote. The previous per-iteration shape
     (``atomic_write_bytes(dst, ...)`` then ``dst.unlink()``) read from
@@ -118,6 +131,12 @@ def restore_snapshot(snapshots_dir: Path, snap_id: str, targets: Mapping[str, Pa
     # Stage every snapshot file into a sibling staging dir. The stage
     # writes use the existing atomic-write helper, so a crash inside
     # the stage step leaves no half-written staging file behind.
+    covers_path = snap_dir / _COVERS
+    try:
+        covered = set(json.loads(covers_path.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        covered = {p.name for p in snap_dir.iterdir() if p.is_file()}
+
     staging_dir = snap_dir / "_restore_staging"
     staging_dir.mkdir(parents=True, exist_ok=True)
     stage_paths: dict[str, Path] = {}  # name → staging path
@@ -129,7 +148,7 @@ def restore_snapshot(snapshots_dir: Path, snap_id: str, targets: Mapping[str, Pa
                 stage_path = staging_dir / name
                 atomic_write_bytes(stage_path, src.read_bytes())
                 stage_paths[name] = stage_path
-            else:
+            elif name in covered:
                 unlink_names.append(name)
 
         # Promote: replace live targets, then unlink absentees. The

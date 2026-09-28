@@ -28,6 +28,7 @@ Post-fix: calls land at `snap_dir / "_restore_staging" / name`.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -35,12 +36,20 @@ import pytest
 from mame_curator.api.persist import restore_snapshot
 
 
-def _stage_snapshot(snapshots_dir: Path, snap_id: str, files: dict[str, bytes]) -> Path:
-    """Write a synthetic snapshot dir under snapshots_dir/<snap_id>/."""
+def _stage_snapshot(
+    snapshots_dir: Path, snap_id: str, files: dict[str, bytes], covers: tuple[str, ...] = ()
+) -> Path:
+    """Write a synthetic snapshot dir under snapshots_dir/<snap_id>/.
+
+    ``covers`` names the files the snapshot recorded as covered; a covered
+    name with no file is one the restore removes (``persist._COVERS``).
+    """
     snap_dir = snapshots_dir / snap_id
     snap_dir.mkdir(parents=True)
     for name, payload in files.items():
         (snap_dir / name).write_bytes(payload)
+    if covers:
+        (snap_dir / ".covers.json").write_text(json.dumps(sorted(covers)), encoding="utf-8")
     return snap_dir
 
 
@@ -62,6 +71,7 @@ def test_restore_snapshot_atomic_writes_land_in_staging_area(
         snapshots_dir,
         "snap1",
         {"a.yaml": b"NEW A", "b.yaml": b"NEW B"},
+        covers=("a.yaml", "b.yaml", "x.yaml"),
     )
 
     live = tmp_path / "live"

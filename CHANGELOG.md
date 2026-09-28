@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Fixed — Undoing a settings change no longer deletes your picks, sessions and notes (mame-curator-1130)
+
+Restoring a snapshot from Settings → Snapshots could delete your
+overrides, sessions and notes, because a settings save snapshots only
+the config and the restore removed everything the snapshot lacked. A
+restore now touches only the files that snapshot actually saved.
+
 ### 2026-09-28 Added — Download one file and run it: desktop bundles for Linux, Windows and macOS (mame-curator-1095)
 
 Each release now attaches a Linux AppImage, a Windows .exe and a macOS
