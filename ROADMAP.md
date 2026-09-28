@@ -2486,12 +2486,19 @@ under a docs-review skill.
 
 ### 🤝 Community & funding
 
-- 📋 [mame-curator-1073] **Add a GitHub Sponsors donation link.**
+- ✅ [mame-curator-1073] **Add a GitHub Sponsors donation link.**
   User-requested. Minimal deliverable: `.github/FUNDING.yml` with `github: [<handle>]` so the GitHub repo shows a "Sponsor" button. Optional surfaces: a README sponsor badge/link and an in-app Support/Donate link (e.g. on the About / help surface — pulls in the frontend lane if added). Prerequisite: the maintainer must have GitHub Sponsors enabled on their account, and the Sponsors handle confirmed (repo owner is `milnet01`) before `.github/FUNDING.yml` is written — an unconfigured handle renders a dead button. Source: user-request 2026-06-10.
   **Layman:** Add a "Sponsor" button to the project so people can donate to the maintainer.
   Kind: chore.
   Lanes: packaging, docs.
   Source: user-request-2026-06-10.
+  Resolved (2026-09-28): the minimal deliverable already exists.
+  .github/FUNDING.yml lists `github: [milnet01]`, Patreon and a Paybru
+  tip link (last changed in dd88745, 2026-07-02). The prerequisite
+  holds: GitHub's API reports milnet01's Sponsors listing live and
+  public (hasSponsorsListing true, isPublic true). The optional README
+  badge and in-app Donate link were not added; they await the user's
+  choice.
 
 ---
 
