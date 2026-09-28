@@ -1,6 +1,7 @@
 # mame-curator-1095 — Ship self-contained desktop bundles for Linux, Windows and macOS
 
-**Status:** spec draft (2026-08-04).
+**Status:** spec draft (2026-08-04); amended 2026-09-28 (fold-in, see
+§12).
 **Kind:** package.
 **Source:** ROADMAP mame-curator-1095 (user request, 2026-08-04).
 
@@ -30,7 +31,7 @@ Today the only published artefacts are an sdist and a wheel
 network, and runs `uv sync`. There is no artefact a person without a
 Python toolchain can use.
 
-Four defects block a naive "just run PyInstaller over it" answer. All four
+Five defects block a naive "just run PyInstaller over it" answer. All five
 were verified against current source, not recalled:
 
 1. **The frontend would not be served.** `api/app.py` computes
@@ -81,6 +82,20 @@ were verified against current source, not recalled:
    Defect 4 is why this spec touches `api/` at all. Packaging alone
    yields three bundles that start and immediately die.
 
+5. **A bundle launched with no arguments exits with a usage error.**
+   `cli/__init__.py::build_parser` declares its subcommands with
+   `add_subparsers(dest="command", required=True)`, and a double-click
+   passes none:
+
+   ```
+   $ uv run mame-curator; echo "exit=$?"
+   mame-curator: error: the following arguments are required: command
+   exit=2
+   ```
+
+   `mame-curator --no-open-browser` fails the same way, so a launcher
+   that only adds flags does not rescue it (§4.14).
+
 The same failure already reaches existing users: if a configured DAT is
 moved or deleted, the whole application refuses to start rather than
 letting its owner correct the path in Settings.
@@ -99,6 +114,19 @@ four-question brief:
    AppImage is built locally for inspection; publishing stays a
    deliberate later act.
 4. **Windows is a single one-file `.exe`**, not an installer.
+
+Two more, made later and recorded here because they bind the design:
+
+7. **Everything ships inside the bundle** (user, 2026-09-26, verbatim):
+   "when you create the various releases for the OSes, I want everything
+   bundled together with the release. I don't want the user to have to
+   download anything extra to get the app to work." Each artefact carries
+   its own Python runtime, every dependency, the built frontend and the
+   Help pages. Nothing is fetched to install or start the app. Fetching
+   artwork while the app is in use is the app's job, not installation.
+8. **The bundles prove themselves with a self-test and a clean-room run**
+   (user-approved 2026-08-04, from the finbreak precedent): §4.13 and
+   §4.15.
 
 Two decisions follow from §2 rather than preference, and are recorded
 here because they widen the work beyond packaging:
@@ -387,6 +415,19 @@ def frontend_dist() -> Path:
 `frontend_dist()` inside `create_app`, so the path is resolved at app
 construction rather than at import.
 
+**The Help pages follow the same root.** `api/routes/help.py::_help_dir()`
+builds `Path(__file__).resolve().parents[3].parent / "docs" / "help"`,
+the repository root in a source tree, which does not exist inside a
+bundle. It becomes `bundle_root() / "docs" / "help"`, the same directory
+in a source tree and the bundled copy when frozen. The
+`MAME_CURATOR_HELP_DIR` override keeps precedence (INV-18).
+
+**Writable data never goes under `bundle_root()`.** The AppImage mounts
+it read-only and a one-file `.exe` deletes it on exit, so config, logs
+and data live in §4.1's per-user directories only. RetroDB, which ships
+PyInstaller bundles, reported joining user data onto the bundle root as
+a failure that appears only in frozen builds.
+
 ### 4.4 One PyInstaller spec, three platforms
 
 `packaging/mame-curator.spec` is shared; each platform's script invokes it
@@ -410,13 +451,23 @@ them:
   static analysis. This list is a starting point, not an inventory —
   INV-13 is the authority, because only launching the artefact and
   fetching a page proves the set is complete.
-- `datas` entries for `frontend/dist` (defect 2), `config.example.yaml`,
-  and `packaging/` (the icon renditions, referenced by INV-14's
-  allowlist). **The destination path matters as much as the source**:
+- `datas` entries for `frontend/dist` (defect 2), `docs/help` (§4.3),
+  `config.example.yaml`, and `packaging/` (the icon renditions,
+  referenced by INV-14's allowlist). **The destination path matters as much as the source**:
   `frontend/dist` must land at `frontend/dist` inside the bundle,
   because §4.3's `frontend_dist()` looks for `bundle_root() /
   "frontend" / "dist"`. A `datas=[("frontend/dist", ".")]` builds green
-  and 404s every page.
+  and 404s every page. `docs/help` likewise lands at `docs/help`.
+
+**No bundle build runs the frontend toolchain.** `frontend/dist/` is
+committed, and the pre-push gate fails a push whose committed build
+differs from a fresh one, so the bundles package the committed build.
+A build host needs no Node.
+
+**The package itself imports nothing by string**, verified with
+`grep -rn 'import_module\|__import__\|importlib' src/mame_curator`
+(no match). The `hiddenimports` list therefore covers third-party
+machinery only.
 
 Windows uses `--onefile`; Linux and macOS use one-dir, because the
 AppImage and the `.app` are themselves the single-file wrapper. This also
@@ -428,9 +479,27 @@ one-dir mode. Source: https://github.com/pyinstaller/pyinstaller/issues/8817
 
 ### 4.5 Linux — AppImage
 
-`local-appimage.sh` and the `build-appimage` CI job run: build the
-frontend, run PyInstaller one-dir, assemble an `AppDir` (`AppRun`,
-`mame-curator.desktop`, `mame-curator.png`), then run `appimagetool`.
+`local-appimage.sh` and the `build-appimage` CI job run: PyInstaller
+one-dir, assemble an `AppDir` (`AppRun`, `mame-curator.desktop`,
+`mame-curator.png`), then run `appimagetool`.
+
+**The build runs inside `python:3.13-slim-bookworm`, in both places.**
+The job declares it as its `container:`; the script runs the same steps
+in it through `podman`, or `docker` where `podman` is absent. Two
+reasons, both from finbreak's `scripts/_build-smoke-in-container.sh`:
+the image ships a shared `libpython`, which PyInstaller needs, and its
+glibc is older than any host this project builds on. An AppImage runs
+only on a glibc at least as new as the one it was built against, so a
+native build on this machine (openSUSE Tumbleweed) or on
+`ubuntu-latest` would refuse to start on exactly the older desktops an
+AppImage exists to serve (INV-20).
+
+The `AppDir` layout and the `appimagetool` call are adapted from
+OneUp's working recipe,
+`/mnt/Games/Scripts/Linux/OneUp/packaging/appimage/build-appimage.sh`:
+`appimagetool` runs with `--appimage-extract-and-run`, so no FUSE is
+needed inside the container. That recipe does not checksum the tool;
+this one does (below).
 
 `appimagetool` publishes only a rolling `continuous` tag (verified:
 `gh api repos/AppImage/appimagetool/releases/latest` → `tag_name:
@@ -443,8 +512,8 @@ decision, not a build detail.
 ### 4.6 Windows — single `.exe`
 
 The `build-exe` CI job runs on `windows-latest`; `local-exe.sh` runs the
-same steps **on this Linux machine under Wine**. Both invoke the same
-frontend build and PyInstaller with `--onefile --console`.
+same steps **on this Linux machine under Wine**. Both run PyInstaller
+with `--onefile --console` over the committed `frontend/dist` (§4.4).
 
 **Wine is the supported route, not a hack.** PyInstaller's FAQ states
 that cross-compilation is unsupported and directs Windows-from-Linux
@@ -496,7 +565,7 @@ to `release.yml` that it holds to `ci.yml`. **Two of the three run here**:
 
 | Script | Runs on this machine? | What local execution proves |
 |---|---|---|
-| `local-appimage.sh` | yes, natively | the whole path, end to end — the AppImage is produced and launched (INV-13) |
+| `local-appimage.sh` | yes, in the same `python:3.13-slim-bookworm` container CI uses (§4.5) | the whole path, end to end — the AppImage is produced, passes the clean-room self-test and is launched (INV-13) |
 | `local-exe.sh` | yes, **under Wine** (§4.6) | a real PE binary is produced and starts; catches missing hidden imports and absent `datas`. Not binary-identical to the CI build |
 | `local-macos.sh` | **no** — impossible, not merely unavailable (§4.7) | `shellcheck` only |
 
@@ -580,8 +649,77 @@ nothing:
 | Windows | `MAME_Curator-<version>-<arch>.exe` | `x86_64` |
 | macOS | `MAME_Curator-<version>-<arch>.dmg` | `arm64` (`macos-latest` is Apple Silicon) |
 
-`<version>` is `pyproject.toml`'s `version` (1.2.0 today), read by the
-scripts rather than hardcoded.
+`<version>` is `pyproject.toml`'s `version`, read by the scripts rather
+than hardcoded.
+
+### 4.13 Self-test entry point
+
+A new `self-test` subcommand, owned by `src/mame_curator/_selftest.py`
+and dispatched from `cli/__init__.py` like any other. It checks, in
+order, that each stack a bundle can silently lose is present:
+
+1. `lxml.etree` (the DAT parser);
+2. the implementations uvicorn's `.auto` selectors choose —
+   `httptools`, `websockets`, and `uvloop` except on Windows, where
+   `uvicorn[standard]` does not install it;
+3. `sse_starlette` (copy progress);
+4. `frontend_dist() / "index.html"` exists;
+5. `_help_dir()` is a directory holding at least one `.md` page.
+
+Each check imports its stack **lazily**, inside the check, so the
+module imports cleanly when a stack is missing and a unit test can
+replace one check. It prints exactly one line: `MAME_CURATOR_SELFTEST_OK`
+and exits 0, or `MAME_CURATOR_SELFTEST_FAIL: <stack>` naming the first
+failure and exits 1 (INV-17).
+
+It binds no port, so it runs identically under Wine and inside a
+container with no network. It does not replace the page fetch in
+INV-13 and INV-16: a present `index.html` is not a served one. The
+recipes run both, self-test first.
+
+### 4.14 A bare launch runs `serve`
+
+When `getattr(sys, "frozen", False)` is true and the first argument is
+absent or starts with `-`, `main()` inserts `serve` before parsing. So a
+double-click runs `serve`, `MAME_Curator.AppImage --no-open-browser`
+runs `serve --no-open-browser`, and `MAME_Curator.AppImage self-test`
+runs the self-test. A source-tree or `pip install` run keeps
+`required=True` and its usage error (INV-19). `serve` already opens the
+browser once the port answers, which is the behaviour a bundle wants.
+
+### 4.15 Clean-room proof
+
+`scripts/build-smoke.sh` runs each built Linux artefact inside
+`debian:13-slim` — no Python, a scrubbed environment, `--network none` —
+and asserts the self-test sentinel. It exits 0 only if every artefact
+passes. It is opt-in, gated on `MAME_CURATOR_BUILD_SMOKE=1` and a
+`podman` or `docker` runtime, so the everyday pre-push gate never pays
+for a bundle build. INV-13's recipe runs it. Precedent: finbreak's
+`scripts/build-smoke.sh`.
+
+### 4.16 Resource cost
+
+**One** new runtime dependency: `platformdirs>=4.11.0`, already in the
+lockfile transitively at 4.10.0. `pyinstaller>=6.21.0` is in the build-time-only `bundle`
+optional-dependency group, absent from the wheel's
+runtime requirements — `>=`, matching every other pin in
+`pyproject.toml` and the project's latest-versions posture, not the
+`==` an earlier draft of this section wrote.
+
+Three new CI jobs, each on a different runner OS. Their runtime is not
+estimated here — the first tagged release measures it, and a guess in a
+spec is indistinguishable from a measurement. The repository is public,
+so all three runners are free of minute quota; on a private repo the
+macOS job would bill at 10× the Linux rate.
+
+Artefact sizes and cold-start times are not yet measured. The first
+`local-appimage.sh` run in `docs/plans/mame-curator-1095-desktop-bundles.md`
+produces the first real figures, and no claim is made until it does —
+but **declining to guess is not declining to budget**: that step also
+writes the measured figures into this section as a ceiling, with a
+build-failing check in each local script at 1.5× the recorded size (see
+INV-15). A one-file `.exe` whose extraction cost is its main
+user-visible risk otherwise has no regression guard at all.
 
 ## 5. Invariants
 
@@ -689,6 +827,8 @@ scripts rather than hardcoded.
 
   ```bash
   ./local-appimage.sh
+  # Clean room first: no Python, no network, the self-test sentinel (§4.15).
+  MAME_CURATOR_BUILD_SMOKE=1 scripts/build-smoke.sh
   # Background: the bundle runs a server and never returns. A fresh HOME
   # forces the per-user config path; --no-open-browser stops the poller
   # spawning a tab on every run of the recipe.
@@ -717,8 +857,8 @@ scripts rather than hardcoded.
   page rather than testing liveness.
 
 - **INV-14** — `packaging/mame-curator.spec` declares no `datas` entry
-  outside an allowlist (`frontend/dist`, `config.example.yaml`,
-  `packaging/`), so `config.yaml`, `data/` and the media cache cannot be
+  outside an allowlist (`frontend/dist`, `docs/help`,
+  `config.example.yaml`, `packaging/`), so `config.yaml`, `data/` and the media cache cannot be
   swept into a bundle by a widened glob.
   *Test:* `tests/tools/test_release_scripts.py::test_spec_datas_are_allowlisted`.
   *Breaks when:* a `datas` glob widens to a parent directory — the
@@ -731,12 +871,12 @@ scripts rather than hardcoded.
   recipe's neighbour, and is not claimed here.
 
 - **INV-15** — Each local build script fails when its artefact exceeds
-  the size ceiling recorded in §10.
+  the size ceiling recorded in §4.16.
   *Test:* `tests/tools/test_release_scripts.py::test_scripts_carry_a_size_ceiling`
   — asserts each script contains a numeric ceiling and a non-zero exit
   on breach. It cannot assert the *artefact* is under it (that needs a
   build), only that the guard exists and is wired.
-  *Breaks when:* the ceiling is written into §10 as prose and never into
+  *Breaks when:* the ceiling is written into §4.16 as prose and never into
   the scripts — which is what "we will measure it later" degrades into
   when nothing checks.
 
@@ -747,6 +887,8 @@ scripts rather than hardcoded.
 
   ```bash
   ./local-exe.sh
+  WINEPREFIX="$PWD/.wine-build" wine dist/MAME_Curator-*-x86_64.exe self-test \
+      | grep -qx 'MAME_CURATOR_SELFTEST_OK' || echo FAIL
   WINEPREFIX="$PWD/.wine-build" wine dist/MAME_Curator-*-x86_64.exe --no-open-browser &
   for _ in $(seq 60); do
       curl -sf http://127.0.0.1:8080/ >/dev/null && break
@@ -762,12 +904,48 @@ scripts rather than hardcoded.
   assembled correctly, which is the failure class that would otherwise
   reach a tagged release.
 
+- **INV-17** — `mame-curator self-test` prints exactly one line:
+  `MAME_CURATOR_SELFTEST_OK` with exit 0 when every §4.13 check passes,
+  or `MAME_CURATOR_SELFTEST_FAIL: <stack>` naming the first failing
+  check with exit 1.
+  *Test:* `tests/cli/test_self_test.py` — green in the source tree, and
+  with one check replaced by a raising stub it names that check and
+  exits 1.
+  *Breaks when:* a check imports its stack at module level, so a missing
+  stack crashes the import with a traceback instead of printing the
+  sentinel — the failure the lazy imports exist to prevent.
+
+- **INV-18** — `_help_dir()` resolves under `bundle_root()` when frozen,
+  and `MAME_CURATOR_HELP_DIR` still wins when set.
+  *Test:* `tests/api/test_routes_help.py::test_help_dir_follows_bundle_root`
+  (monkeypatches `sys.frozen` / `sys._MEIPASS`, as INV-11's test does).
+  *Breaks when:* the `parents[3]` source-tree path stays — every Help
+  page then 404s in a bundle while the source tree stays green.
+
+- **INV-19** — When frozen, `main()` runs `serve` for an empty argument
+  list or one whose first item starts with `-`; unfrozen, it keeps the
+  usage error.
+  *Test:* `tests/cli/test_bundle_default_command.py`.
+  *Breaks when:* the default is applied unfrozen, silently turning a
+  mistyped command into a server start for every source-tree user.
+
+- **INV-20** — The Linux bundle is built inside
+  `python:3.13-slim-bookworm` in both `release.yml`'s `build-appimage`
+  job and `local-appimage.sh`, named once each.
+  *Test:* `tests/tools/test_release_scripts.py::test_appimage_builds_in_bookworm`
+  — reads the job's `container:` and the script's image variable and
+  asserts both name the same image.
+  *Breaks when:* either side builds natively, or the two drift to
+  different images — the AppImage then inherits the build host's newer
+  glibc and refuses to start on older systems.
+
 ## 6. Failure modes
 
 | Assumption | When it breaks | Result |
 |---|---|---|
 | PyInstaller finds every import | a dependency imports dynamically and is not in `hiddenimports` | the bundle starts and fails on the first request that touches it; caught only by INV-13's launch, which is why the recipe fetches a page rather than checking the process is alive |
 | `sys._MEIPASS` exists when frozen | a future PyInstaller changes the attribute | `bundle_root()` falls back to the source tree and the SPA 404s; INV-11 pins the current contract |
+| the AppImage runs on older desktops | the build glibc is newer than the user's | the AppImage refuses to start with a `GLIBC_2.xx not found` error; INV-20 keeps the build on bookworm's older glibc |
 | `appimagetool` continuous asset is stable | upstream rebuilds it | the pinned sha256 mismatches and the build stops rather than silently using a new binary (§4.5) |
 | one-file uvicorn shutdown is merely untidy | it turns out to hang rather than exit | Windows users cannot close the app cleanly; the fallback is the one-dir-plus-zip alternative in §8 |
 | the user leaves setup mode | they correct `source_dat` in Settings and restart | `setup_required` returns to false and the library populates — via the two `api/` changes in §4.2, not via the pre-existing `restart_required` flow, which fires on `server:` changes only |
@@ -779,11 +957,18 @@ scripts rather than hardcoded.
 
 New files:
 
-- `tests/cli/test_config_location.py` — INV-1, INV-2, INV-4 to INV-6
+- `tests/cli/test_config_location.py` — INV-1, INV-2, INV-4, INV-5, INV-6
   (INV-3 is the existing `test_serve_port_env.py` case, unedited).
 - `tests/api/test_setup_mode.py` — INV-7, INV-8, INV-9, INV-10.
 - `tests/test_resources.py` — INV-11.
-- `tests/tools/test_release_scripts.py` — INV-12, INV-14.
+- `tests/tools/test_release_scripts.py` — INV-12, INV-14, INV-15, INV-20.
+- `tests/cli/test_self_test.py` — INV-17.
+- `tests/cli/test_bundle_default_command.py` — INV-19.
+
+INV-18 adds a case to the existing `tests/api/test_routes_help.py`.
+
+INV-13 and INV-16 are manual recipes (§5) with no test file: each needs
+a built artefact and a bound port.
 
 Each must be seen failing against pre-change code first. INV-1's and
 INV-2's tests fail at import today — `config_location.py` does not
@@ -855,6 +1040,15 @@ added, in the same commit.
   would have. GitHub's `macos-latest` runner is the supported answer and
   costs nothing on a public repo.
 
+- **RetroDB's shape: per-OS one-dir ZIPs, built by a manual
+  `workflow_dispatch`, left as a draft release.** Its bundles are large,
+  so it builds on demand. Rejected for this project because §1 ties the
+  bundles to every `v*.*.*` tag and §3 decision 4 asks for single files;
+  its two lessons that do apply are taken — writable data off the bundle
+  root (§4.3) and a native runner per OS in CI (§4.10).
+- **Building the AppImage natively on the build host.** Simplest, and
+  what OneUp does. Rejected on glibc: the artefact would require the
+  host's glibc (§4.5, INV-20).
 - **Hand-rolled per-OS config paths instead of `platformdirs`.** Twenty
   lines and three branches to re-derive a solved problem, against a
   dependency already in the lockfile (rule 3).
@@ -873,41 +1067,21 @@ added, in the same commit.
   Both are separate items, and §4.12 puts the architecture in the
   filename so the gap is visible rather than implied.
 - `run.bat`'s unconditional `--port` — mame-curator-1089.
-- Auto-update for installed bundles.
+- Auto-update for installed bundles, and the Updates banner's wording for
+  them. `strings_internal.ts`'s `updateAvailable` tells the user to
+  `git pull`, which a bundle user cannot do. The banner cannot show
+  until update checking works, which is mame-curator-1010, so 1010 owns
+  the bundle wording.
 - Any local macOS build path (§4.7, §8) — closed on PyInstaller's own
   documentation, not deferred to a later item.
 
-## 10. Resource cost
-
-**One** new runtime dependency: `platformdirs>=4.11.0`, already in the
-lockfile transitively at 4.10.0. `pyinstaller>=6.21.0` is in the build-time-only `bundle`
-optional-dependency group, absent from the wheel's
-runtime requirements — `>=`, matching every other pin in
-`pyproject.toml` and the project's latest-versions posture, not the
-`==` an earlier draft of this section wrote.
-
-Three new CI jobs, each on a different runner OS. Their runtime is not
-estimated here — the first tagged release measures it, and a guess in a
-spec is indistinguishable from a measurement. The repository is public,
-so all three runners are free of minute quota; on a private repo the
-macOS job would bill at 10× the Linux rate.
-
-Artefact sizes and cold-start times are not yet measured. The first
-`local-appimage.sh` run in `docs/plans/mame-curator-1095-desktop-bundles.md`
-produces the first real figures, and no claim is made until it does —
-but **declining to guess is not declining to budget**: that step also
-writes the measured figures into this section as a ceiling, with a
-build-failing check in each local script at 1.5× the recorded size (see
-INV-15). A one-file `.exe` whose extraction cost is its main
-user-visible risk otherwise has no regression guard at all.
-
-## 11. What checks this
+## 10. What checks this
 
 | Rule | What catches a breach |
 |------|----------------------|
 | INV-1 | `tests/cli/test_config_location.py::test_starter_config_and_dirs_are_created` |
 | INV-2 | `tests/cli/test_config_location.py::test_serve_starts_with_generated_config` |
-| INV-3 | `tests/cli/test_serve_port_env.py::test_invalid_port_checked_before_config` (existing) |
+| INV-3 | `tests/cli/test_serve_port_env.py::test_invalid_port_checked_before_config` (existing) — pins the ordering only: it passes an explicit `--config`, so starter-config creation is INV-1's to catch |
 | INV-4 | `tests/cli/test_config_location.py::test_explicit_missing_config_still_exits_1` |
 | INV-5 | `tests/cli/test_config_location.py::test_cwd_config_beats_user_config` |
 | INV-6 | `tests/cli/test_config_location.py::test_starter_config_is_valid_appconfig` |
@@ -916,30 +1090,32 @@ user-visible risk otherwise has no regression guard at all.
 | INV-9 | `tests/api/test_setup_mode.py::test_patch_persists_while_only_dat_missing` |
 | INV-10 | `tests/api/test_setup_mode.py::test_dat_change_requests_restart` |
 | INV-11 | `tests/test_resources.py::test_frontend_dist_follows_meipass` |
-| INV-12 | `tests/tools/test_release_scripts.py::test_local_scripts_mirror_release_yml` — Linux leg only |
+| INV-12 | `tests/tools/test_release_scripts.py::test_local_scripts_mirror_release_yml` — planned, created by plan step 9; Linux leg only |
 | INV-13 | **nothing** automated — needs a built AppImage and a bound port; the manual recipe in §5 is run before each release, and CI's own build job proves only that the file is produced, not that it runs |
-| INV-14 | `tests/tools/test_release_scripts.py::test_spec_datas_are_allowlisted` |
+| INV-14 | `tests/tools/test_release_scripts.py::test_spec_datas_are_allowlisted` — planned, plan step 9 |
 | §4.2 SPA field | `tools/check_api_types_sync.py` via the `API type sync` step in `ci.yml` and `release.yml` |
 | macOS `.app` actually works | **nothing** local — building a macOS bundle on Linux is impossible, not merely unavailable (§4.7); the CI job's first run is the first execution |
 | one-file uvicorn shutdown | **nothing** — upstream defect with no test surface on a Linux dev box; surfaces as a user report |
 | §4.1 unwritable config dir exits 1 | **nothing** — no test drives an unwritable `$XDG_CONFIG_HOME`; the §6 row is the contract and a `chmod 500` reproduction is the manual check |
-| INV-15 | `tests/tools/test_release_scripts.py::test_scripts_carry_a_size_ceiling` |
+| INV-15 | `tests/tools/test_release_scripts.py::test_scripts_carry_a_size_ceiling` — planned, plan step 13 |
 | INV-16 | manual recipe in §5 — a Wine build-and-launch; the `build-exe` CI job on `windows-latest` is the authority for real-Windows behaviour |
-| §4.11 log file is written | **nothing** — no automated launch of any bundle exists to assert against; INV-13's recipe is where a human would notice its absence |
+| §4.11 log file is written | the tee itself: `tests/cli/test_frozen_stderr_tee.py`. That the built bundle writes it: **nothing** automated — INV-13's recipe is where a human notices its absence |
+| INV-17 | `tests/cli/test_self_test.py` |
+| INV-18 | `tests/api/test_routes_help.py::test_help_dir_follows_bundle_root` |
+| INV-19 | `tests/cli/test_bundle_default_command.py` |
+| INV-20 | `tests/tools/test_release_scripts.py::test_appimage_builds_in_bookworm` — planned, plan step 10 |
 
-**Five** `nothing` rows, down from six: the Windows row became INV-16
-once the Wine route was verified, leaving macOS as the only target this
-machine cannot reach at all. The remaining five: macOS is the honest
+The `nothing` rows: macOS is the honest
 cost of cross-platform packaging from a single-OS developer machine, and
 the other four are distinct — INV-13 needs a built artefact and a free
 port,
 so it is a manual recipe rather than an absent one; the one-file uvicorn
 defect is upstream, with no test surface on any host we control;
-§4.11's log file has no automated launch to assert against, which is the
-same gap as INV-13 one level down; and §4.1's unwritable-directory exit
+the built bundle's log file has no automated launch to assert against,
+which is the same gap as INV-13 one level down; and §4.1's unwritable-directory exit
 has no fixture that can create one portably.
 
-## 12. Cross-doc impact
+## 11. Cross-doc impact
 
 - `pyproject.toml` — the `platformdirs` runtime dependency and the
   `bundle` optional-dependency group. **The wheel build target is
@@ -949,11 +1125,18 @@ has no fixture that can create one portably.
 - `uv.lock` — regenerated for the `platformdirs` promotion (it is there
   transitively at 4.10.0; the pin is `>=4.11.0`).
 - `docs/plans/mame-curator-1095-desktop-bundles.md` — the build order,
-  written with this spec (`/write-spec --plan`) and cited by §10.
+  written with this spec (`/write-spec --plan`) and cited by §4.16.
 - `src/mame_curator/api/routes/config.py` — `_validate_paths`'
   setup-mode relaxation and the `restart_required` condition (§4.2).
 - `src/mame_curator/api/routes/stubs.py` — `setup_required` on
   `SetupCheck`.
+- `src/mame_curator/api/routes/help.py` — `_help_dir()` on
+  `bundle_root()` (§4.3).
+- `src/mame_curator/main.py` — the stderr tee (§4.11) and the bare-launch
+  default (§4.14).
+- `src/mame_curator/_selftest.py` and `cli/__init__.py` — the `self-test`
+  subcommand (§4.13); `cli/spec.md` gains it in its subcommand inventory.
+- `scripts/build-smoke.sh` — the clean-room proof (§4.15).
 - `frontend/src/api/schemas.ts` + `frontend/src/api/types.ts` — the
   mirrored field, without which `check_api_types_sync.py` fails.
 - `README.md` — download-and-run instructions for all three platforms,
@@ -962,7 +1145,8 @@ has no fixture that can create one portably.
 - `.github/workflows/release.yml` — three new jobs.
 - `docs/standards/coding-standards.md` §8 version-break registry — only
   if a dependency has to be pinned back.
-- `CLAUDE.md` § Common commands — the three new local scripts.
+- `CLAUDE.md` § Common commands — the three new local scripts and
+  `scripts/build-smoke.sh`.
 - `.gitignore` — `.wine-build/` (the Wine prefix `local-exe.sh`
   provisions) and `dist/`.
 - `tests/docs/test_ds05_test_count_stable.py` — the declaration-count
@@ -972,7 +1156,7 @@ has no fixture that can create one portably.
 - `src/mame_curator/cli/spec.md` — the `--config` default change and the
   new resolution order belong in its `serve` section.
 
-## 13. Cold-eyes loop log
+## 12. Cold-eyes loop log
 
 | Loop | Date | Lanes | CRIT | HIGH | MED | LOW | Outcome |
 |------|------|-------|------|------|-----|-----|---------|
