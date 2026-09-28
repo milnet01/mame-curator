@@ -2362,7 +2362,7 @@ P14 (per-game review state).
   User decision (2026-09-28): add all three new themes, Galaga, Donkey
   Kong and CPS-2, alongside the polish pass on the existing four.
 
-- 📋 [mame-curator-1010] **P12 — In-app self-update + INI diff-preview UI.**
+- ✅ [mame-curator-1010] **P12 — In-app self-update + INI diff-preview UI.**
   App self-update via `updates/app.py` (version compare; snapshot
   config / overrides / sessions before update; git-pull on dev
   mode or release-download on frozen install; one-click rollback).
@@ -2395,6 +2395,15 @@ P14 (per-game review state).
   by nothing; api/persist.py snapshot_files/restore_snapshot are
   reusable; activity types IniRefreshedDetails and AppUpdatedDetails
   exist with no emitter.
+  Resolved (2026-09-28): shipped per docs/specs/mame-curator-1010-self-update.md
+  (accepted after two review-contract loops). Settings → Updates checks
+  GitHub, shows the release notes, updates a git clone in place with a
+  snapshot and rollback, downloads a verified bundle beside itself, and
+  previews an INI refresh before applying it. check-code clean on the
+  change set; review-code (3 lanes) returned 26 findings plus 2 tool
+  findings: 25 fixed, 5 dismissed (reasons in commits 52a64e1, 9d741b8;
+  tool noise as audit-allowlist-016/017), 3 queued as mame-curator-1131
+  and mame-curator-1132. Commits 954c8b2..35dd167.
 
 - ✅ [mame-curator-1079] **MobyGames cover-URL parse + JSON-body caching (P10 chunk 6 deferred half).**
   P10 chunk 6 shipped the key-handling half of `MobyGamesSource`
