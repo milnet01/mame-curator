@@ -614,6 +614,11 @@ So the wiring is part of the contract:
 `needs` is also what enforces §3 decision 3's ordering: a bundle job that
 fails stops the Release rather than publishing a partial set.
 
+`release.yml` also runs by hand (`workflow_dispatch`): every build job,
+the three bundles included, with `publish` skipped because its `if:`
+requires a tag. That is how the macOS job, which nothing local can run,
+gets its first execution before a release depends on it.
+
 ### 4.11 Where a GUI-launched failure goes
 
 §2 defect 3 establishes that a double-clicked bundle has no terminal;
@@ -723,14 +728,18 @@ spec is indistinguishable from a measurement. The repository is public,
 so all three runners are free of minute quota; on a private repo the
 macOS job would bill at 10× the Linux rate.
 
-Artefact sizes and cold-start times are not yet measured. The first
-`local-appimage.sh` run in `docs/plans/mame-curator-1095-desktop-bundles.md`
-produces the first real figures, and no claim is made until it does —
-but **declining to guess is not declining to budget**: that step also
-writes the measured figures into this section as a ceiling, with a
-build-failing check in `local-appimage.sh` and `local-exe.sh` at 1.5×
-the recorded size (see INV-15). A one-file `.exe` whose extraction cost is its main
-user-visible risk otherwise has no regression guard at all.
+**Measured sizes and their ceilings** (2026-09-28, version 1.3.0), each
+enforced by the build script at 1.5× (INV-15):
+
+| Artefact | Measured | Ceiling (`SIZE_CEILING_BYTES`) |
+|---|---|---|
+| `MAME_Curator-1.3.0-x86_64.AppImage` (`local-appimage.sh`) | 28797432 bytes | 43196148 |
+| `MAME_Curator-1.3.0-x86_64.exe` (`local-exe.sh`, Wine build) | 22722699 bytes | 34084049 |
+| `.dmg` | not measured: no local macOS build exists | none until the first CI run records one |
+
+A one-file `.exe` whose extraction cost is its main user-visible risk
+would otherwise have no regression guard at all. Cold-start time is not
+measured here.
 
 ## 5. Invariants
 

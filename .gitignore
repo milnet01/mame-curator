@@ -6,7 +6,8 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-/dist/                       # top-level Python build artifact only — frontend/dist/ is committed
+# top-level Python build artifact only — frontend/dist/ is committed
+/dist/
 downloads/
 eggs/
 .eggs/
@@ -73,3 +74,5 @@ Thumbs.db
 
 # Audit artifacts (ants /audit writes SARIF + findings here)
 .audit_cache/
+# local-exe.sh Wine prefix (mame-curator-1095)
+.wine-build/

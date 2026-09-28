@@ -284,7 +284,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # 832 → 840.
 # Bumped 2026-09-28 (mame-curator-1095 step 9 — datas allowlist): +2 pytest in
 # tests/tools/test_release_scripts.py. 840 → 842.
-EXPECTED_PYTEST_DECLARATIONS = 842
+# Bumped 2026-09-28 (mame-curator-1095 steps 13-14 — stage parity, bookworm
+# image, size ceilings): +3 pytest in tests/tools/test_release_scripts.py.
+# 842 → 845.
+EXPECTED_PYTEST_DECLARATIONS = 845
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

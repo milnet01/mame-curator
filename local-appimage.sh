@@ -23,6 +23,8 @@ BUILD_IMAGE="docker.io/library/python:3.13-slim-bookworm"
 # pinned by sha256 and a changed upstream build stops the build (spec §4.5).
 APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
 APPIMAGETOOL_SHA256="a6d71e2b6cd66f8e8d16c37ad164658985e0cf5fcaa950c90a482890cb9d13e0"
+# 1.5x the first measured AppImage, 28797432 bytes (2026-09-28); spec §4.16, INV-15.
+SIZE_CEILING_BYTES=43196148
 
 SRC="${MC_SRC:-/src}"      # repository root inside the container
 OUT="${MC_OUT:-/out}"      # writable output directory (the host's dist/)
@@ -100,7 +102,13 @@ APPRUN
         # --appimage-extract-and-run: no FUSE inside the container.
         ARCH=x86_64 "$OUT/.cache/appimagetool-x86_64.AppImage" --appimage-extract-and-run \
             "$WORK/MAME_Curator.AppDir" "$out"
-        echo "local-appimage: built $out"
+        local size
+        size="$(stat -c %s "$out")"
+        if [ "$size" -gt "$SIZE_CEILING_BYTES" ]; then
+            echo "local-appimage: $out is $size bytes, over the $SIZE_CEILING_BYTES ceiling (spec §4.16)" >&2
+            exit 1
+        fi
+        echo "local-appimage: built $out ($size bytes)"
         ;;
     *)
         echo "local-appimage: unknown stage '$1'" >&2

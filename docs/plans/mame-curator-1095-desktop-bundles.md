@@ -96,13 +96,13 @@ land before its implementation, per the project's TDD default.
     imports it directly, and without it uvicorn falls back to `h11` and
     still serves pages.
 
-11. `local-exe.sh` — provisions `.wine-build/`, installs Windows CPython
+11. **[done]** `local-exe.sh` — provisions `.wine-build/`, installs Windows CPython
     under Wine, runs PyInstaller through the shared spec. → **verify:**
     the script completes and `dist/MAME_Curator-<version>-x86_64.exe` is a PE
     binary (`file` reports `PE32+ executable`); then the INV-16 recipe
     prints `PASS` (satisfies INV-16).
 
-11b. `local-macos.sh`. → **verify:** `shellcheck` clean. **Not executed** —
+11b. **[done]** `local-macos.sh`. → **verify:** `shellcheck` clean. **Not executed** —
     building a macOS bundle on Linux is impossible, not merely
     unavailable (spec §4.7); its first real run is step 14's CI.
 
@@ -111,12 +111,12 @@ land before its implementation, per the project's TDD default.
     prints `PASS`, and the log file from step 7 exists at
     `user_log_path()`.
 
-13. Record the measured artefact size in spec §4.16 and add the 1.5×
+13. **[done]** Record the measured artefact size in spec §4.16 and add the 1.5×
     ceiling check to `local-appimage.sh` and `local-exe.sh`. → **verify:**
     `uv run pytest tests/tools/test_release_scripts.py -k size_ceiling`
     green (satisfies INV-15).
 
-14. `release.yml` — three build jobs uploading `bundle-linux` /
+14. **[done]** `release.yml` — three build jobs uploading `bundle-linux` /
     `bundle-windows` / `bundle-macos`, and `publish` gaining the matching
     `needs` and one `download-artifact` per bundle into `dist/`. →
     **verify:** `actionlint` clean, and

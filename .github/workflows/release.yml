@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*.*.*"
+  # A manual run rehearses every build job, the desktop bundles included,
+  # and publishes nothing: the publish job runs for a tag only.
+  workflow_dispatch:
 
 # Release runs are sequential per ref; never cancel a release in flight.
 concurrency:
@@ -155,10 +158,104 @@ jobs:
           name: dist
           path: dist/
 
+  # Stage 2b — the desktop bundles (mame-curator-1095). Each job runs the same
+  # "stage: <name>" steps as its local script's "# stage:" lines, by calling
+  # that script with --stage; tests/tools/test_release_scripts.py checks the
+  # two lists agree (INV-12). No caches, for the reason the build job gives.
+  build-appimage:
+    name: Build Linux AppImage
+    needs: [verify-ci, frontend-lint-types-test, gitleaks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The build image's older glibc bounds the AppImage's floor (INV-20);
+    # local-appimage.sh names the same image.
+    container: python:3.13-slim-bookworm
+    env:
+      MC_SRC: ${{ github.workspace }}
+      MC_OUT: ${{ github.workspace }}/dist
+      MC_WORK: /tmp/mc-build
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: "stage: deps"
+        run: bash local-appimage.sh --stage deps
+      - name: "stage: freeze"
+        run: bash local-appimage.sh --stage freeze
+      - name: "stage: appdir"
+        run: bash local-appimage.sh --stage appdir
+      - name: "stage: tool"
+        run: bash local-appimage.sh --stage tool
+      - name: "stage: pack"
+        run: bash local-appimage.sh --stage pack
+      - name: Upload the AppImage
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bundle-linux
+          path: dist/*.AppImage
+
+  build-exe:
+    name: Build Windows .exe
+    needs: [verify-ci, frontend-lint-types-test, gitleaks]
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        # windows-latest defaults to pwsh, which cannot run the stages.
+        shell: bash
+    env:
+      MC_PY: python
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: "stage: deps"
+        run: bash local-exe.sh --stage deps
+      - name: "stage: freeze"
+        run: bash local-exe.sh --stage freeze
+      - name: "stage: pack"
+        run: bash local-exe.sh --stage pack
+      - name: Upload the .exe
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bundle-windows
+          path: dist/*.exe
+
+  build-macos:
+    name: Build macOS .dmg
+    needs: [verify-ci, frontend-lint-types-test, gitleaks]
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      MC_PY: python
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: "stage: deps"
+        run: bash local-macos.sh --stage deps
+      - name: "stage: freeze"
+        run: bash local-macos.sh --stage freeze
+      - name: "stage: pack"
+        run: bash local-macos.sh --stage pack
+      - name: Upload the .dmg
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bundle-macos
+          path: dist/*.dmg
+
   # Stage 3 — publish the GitHub Release. Only runs if build succeeded.
   publish:
     name: Publish GitHub Release
-    needs: build
+    # Every bundle job must pass: a partial set is never published (spec §4.10).
+    needs: [build, build-appimage, build-exe, build-macos]
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -173,6 +270,24 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist
+          path: dist/
+
+      - name: Download the Linux AppImage
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bundle-linux
+          path: dist/
+
+      - name: Download the Windows .exe
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bundle-windows
+          path: dist/
+
+      - name: Download the macOS .dmg
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bundle-macos
           path: dist/
 
       - name: Extract release notes from CHANGELOG
