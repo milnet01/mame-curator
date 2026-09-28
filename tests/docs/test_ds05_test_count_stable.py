@@ -264,7 +264,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # in tests/api/test_mame_curator_1118_listxml_once.py. 791 → 794.
 # Bumped 2026-09-28 (review-code lane 03 — launchers' `uv run` installed
 # dev tools): +1 pytest in tests/docs/test_dev_dependency_group.py. 794 → 795.
-EXPECTED_PYTEST_DECLARATIONS = 795
+# Bumped 2026-09-28 (review-code lane 01 — filter read listxml before the DAT):
+# +1 pytest in tests/filter/test_cli_filter.py. 795 → 796.
+EXPECTED_PYTEST_DECLARATIONS = 796
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

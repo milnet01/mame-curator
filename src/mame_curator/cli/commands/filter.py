@@ -32,10 +32,12 @@ def _cmd_filter(args: argparse.Namespace) -> int:
     console = Console()
     err_console = Console(stderr=True, soft_wrap=True)
     try:
+        # The DAT first, as in `copy`: a bad DAT fails before the slow listxml.
+        dat = parse_dat(args.dat)
         # mame-curator-1118: one pass over the listxml, not three.
         listxml = parse_listxml(args.listxml)
         # mame-curator-1099: Pleasuredome DATs carry no <driver>; -listxml does.
-        machines = apply_driver_status(parse_dat(args.dat), listxml.driver_status)
+        machines = apply_driver_status(dat, listxml.driver_status)
         mature = frozenset(parse_mature(args.mature)) if args.mature else frozenset()
         ctx = FilterContext(
             category=parse_catver(args.catver),

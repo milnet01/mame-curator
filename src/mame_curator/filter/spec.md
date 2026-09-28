@@ -13,7 +13,7 @@ Re-running the filter on the same input produces byte-identical output (verified
 
 ## Source of parent/clone relationships
 
-The Pleasuredome ROM-set DAT strips `cloneof` / `romof` attributes (verified empirically — see `parser/spec.md` "Edge cases handled"). Phase 2 sources parent/clone relationships from the **official MAME `-listxml`**, parsed via `parse_listxml_cloneof(path) -> dict[str, str]` in `parser/listxml.py` (extends the existing module). The returned map is `{clone_short_name: parent_short_name}`. Phase 2 joins by short name; machines absent from the cloneof map are treated as their own parent (`parent_of(x) = cloneof_map.get(x, x)`).
+The Pleasuredome ROM-set DAT strips `cloneof` / `romof` attributes (verified empirically — see `parser/spec.md` "Edge cases handled"). Phase 2 sources parent/clone relationships from the **official MAME `-listxml`**, read from `parse_listxml(path).cloneof` in `parser/listxml.py` (one pass for every listxml fact, mame-curator-1118; `parse_listxml_cloneof` returns the same map). The returned map is `{clone_short_name: parent_short_name}`. Phase 2 joins by short name; machines absent from the cloneof map are treated as their own parent (`parent_of(x) = cloneof_map.get(x, x)`).
 
 ## Phase A — drop
 

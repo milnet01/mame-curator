@@ -36,7 +36,7 @@ class BIOSChainEntry(BaseModel):
 
 **Membership in the chain is not a BIOS signal.** A game needs a BIOS exactly when `resolve_bios_dependencies([short], bios_chain)` returns a non-empty set. `api/routes/games.py` binds to this: `Badge.BIOS_MISSING` is set exactly when that predicate holds for the game's own short name, and `only_bios_missing=True` keeps exactly the games carrying that badge. Both previously tested membership, which the every-machine rule makes true for every game.
 
-Same `lxml.iterparse` + fast-iter + `# nosec B410` pattern as `parse_listxml_disks` and `parse_listxml_cloneof`.
+Since mame-curator-1118 the chain is a field of `parse_listxml`'s single pass (`parse_listxml(...).bios_chain`), which owns the `lxml.iterparse` + fast-iter + `# nosec B410` pattern; this helper calls it.
 
 ## BIOS chain resolution
 
@@ -418,8 +418,8 @@ class CopyPlan(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     winners: tuple[str, ...]                          # from FilterResult.winners (post-session-slice)
     machines: dict[str, Machine]                      # for description -> .lpl label
-    bios_chain: dict[str, BIOSChainEntry]             # from parse_listxml_bios_chain
-    chd_required: frozenset[str]                      # from parse_listxml_disks
+    bios_chain: dict[str, BIOSChainEntry]             # from parse_listxml(...).bios_chain
+    chd_required: frozenset[str]                      # from parse_listxml(...).disks
     source_dir: Path
     dest_dir: Path
     playlist_path: Path | None = None                 # the API passes paths.retroarch_playlist

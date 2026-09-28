@@ -72,6 +72,23 @@ def test_filter_missing_dat_returns_1(
     assert "error:" not in captured.out
 
 
+def test_filter_reads_the_dat_before_the_listxml(
+    fixtures_dir: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """review-code 2026-09-28: `filter` read the DAT first until
+    mame-curator-1118 reordered it. `copy` still does, and a bad DAT should
+    fail before the slow listxml pass, so the DAT error is the one reported."""
+    argv = _filter_args(
+        fixtures_dir,
+        tmp_path / "report.json",
+        **{"--dat": tmp_path / "missing.xml", "--listxml": tmp_path / "missing-listxml.xml"},
+    )
+    assert run(build_parser().parse_args(argv)) == 1
+    err = capsys.readouterr().err
+    assert "DAT path does not exist" in err
+    assert "listxml path does not exist" not in err
+
+
 # DS01 — Cluster C tests below
 
 

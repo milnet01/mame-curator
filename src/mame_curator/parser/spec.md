@@ -108,7 +108,9 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 
 - Streams the listxml **once** and returns a frozen `ListxmlFacts` with four fields: `cloneof`, `bios_chain`, `disks: frozenset[str]` and `driver_status`. Each holds exactly what the matching single-fact function below returns (mame-curator-1118).
 - A caller needing more than one fact calls this. Each single-fact function is a full pass over the ~300 MB file, and three of them in a row made startup read it three or four times. `api/state.py` (`build_world`) and the `filter` and `copy` subcommands call it once.
-- Streaming + hardening contract as described under `parse_listxml_cloneof`. Missing file, malformed XML and a mid-read `OSError` all raise `ListxmlError`.
+- The only `lxml.iterparse` pass in `listxml.py`: it clears each element and detaches previous siblings to keep memory bounded across the 43k-machine listxml, and splats `HARDENED_ITERPARSE_KWARGS` (XXE / Billion Laughs / `file://` URI defence — see `parse_dat` above). Missing file, malformed XML and a mid-read `OSError` all raise `ListxmlError`.
+- It reads every machine's `<driver>` whichever fact the caller wants, so an unknown driver status is logged once per value on every call, `copy` included.
+- The single-fact functions below each call it and return one field, so each is a full pass. No application code calls them since mame-curator-1118.
 
 ### `parse_listxml_disks(path: Path) -> set[str]`
 
@@ -118,18 +120,18 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 
 - Returns `{clone_short_name: parent_short_name}` for every machine with a non-empty `cloneof` attribute. Parents and standalone machines are absent from the map.
 - Used by `filter/` to reconstruct parent/clone relationships that the Pleasuredome DAT strips.
-- Same `lxml.iterparse` streaming pattern as `parse_listxml_disks` (clear element + detach previous siblings to keep memory bounded across the 43k-machine listxml). Every iterparse call site in `listxml.py` splats the same `HARDENED_ITERPARSE_KWARGS` (XXE / Billion Laughs / `file://` URI defence — see `parse_dat` above).
+- Streaming + hardening contract as `parse_listxml`, which it calls.
 
 ### `parse_listxml_bios_chain(path: Path) -> dict[str, BIOSChainEntry]`
 
-- Returns `{machine_short_name: BIOSChainEntry}` with one entry for **every** `<machine>` that carries a `name`, joining the listxml's `romof` chain with the per-machine `<biosset>` children and `isbios` flag. A name absent from the result is absent from the listxml. Consumed by `copy/bios.py` (BIOS-dependency resolution), `copy/types.py` (`bios_chain` field of `CopyPlan`), `api/state.py` (WorldState assembly), `api/routes/games.py` (the `BIOS_MISSING` badge and filter, through `resolve_bios_dependencies` — membership alone is not a BIOS signal), and `cli/__init__.py` (the `copy` subcommand path).
+- Returns `{machine_short_name: BIOSChainEntry}` with one entry for **every** `<machine>` that carries a `name`, joining the listxml's `romof` chain with the per-machine `<biosset>` children and `isbios` flag. A name absent from the result is absent from the listxml. The chain is consumed by `copy/bios.py` (BIOS-dependency resolution), `copy/types.py` (`bios_chain` field of `CopyPlan`), `api/state.py` (WorldState assembly), `api/routes/games.py` (the `BIOS_MISSING` badge and filter, through `resolve_bios_dependencies` — membership alone is not a BIOS signal), and `cli/commands/copy.py` (the `copy` subcommand). `api/state.py` and `copy` read it from `parse_listxml(...).bios_chain`.
 - The accompanying `BIOSChainEntry` Pydantic model carries `romof: str | None` + `biossets: tuple[str, ...]` + `is_bios: bool` — the per-machine view of the chain.
-- Streaming + hardening contract identical to the other `parse_listxml_*` functions above.
+- Streaming + hardening contract as `parse_listxml`, which it calls.
 
 ### `parse_listxml_driver_status(path: Path) -> dict[str, DriverStatus]`
 
 - Returns `{machine_short_name: DriverStatus}` from each `<machine>`'s `<driver status="...">`. Pleasuredome DATs carry no `<driver>` element, so this is where `driver_status` comes from on real data (mame-curator-1099). A machine with no `<driver>`, or a status outside `DriverStatus`, is absent; unknown statuses follow `DriverStatus`'s open-membership rule (logged once each).
-- Streaming + hardening contract identical to the other `parse_listxml_*` functions above.
+- Streaming + hardening contract as `parse_listxml`, which it calls.
 
 ### `apply_driver_status(machines: dict[str, Machine], statuses: dict[str, DriverStatus]) -> dict[str, Machine]`
 
