@@ -1293,6 +1293,19 @@ wave lands.
   Source: in-session-2026-09-28 (mame-curator-1108).
   Lanes: frontend, ci.
 
+- 📋 [mame-curator-1121] **Check CI after ubuntu-latest moves to Ubuntu 26 on 2026-10-19.**
+  Every ubuntu-latest job in ci.yml carries a GitHub notice: "The
+  ubuntu-latest label will migrate to Ubuntu 26 beginning October 19,
+  2026" (actions/runner-images#14748). After that date, confirm the first
+  CI run is green on both Python versions, or pin ubuntu-24.04 and log the
+  pin in the Version-break registry (coding-standards §8). The same run
+  also had a Windows setup-uv "Unable to reserve cache" warning, a benign
+  cache-write race between jobs; nothing to fix.
+  **Layman:** GitHub is upgrading the Linux computers that test this app; after that date, check the tests still pass.
+  Kind: chore.
+  Source: in-session-2026-09-28 (CI annotations on run for b5d9ea9).
+  Lanes: ci.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
