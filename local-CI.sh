@@ -36,6 +36,8 @@
 #
 # Usage:
 #   ./local-CI.sh            # run all checks against the already-installed env
+#   ./local-CI.sh --docs     # documentation-only push: the Markdown-reading
+#                            # tests and the secret scan (mame-curator-1128)
 #   ./local-CI.sh --fresh    # provision first (uv sync + npm ci),
 #                            # exactly as CI's cold-start "Install dependencies"
 #                            # steps do, then run the checks
@@ -56,9 +58,11 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_ROOT" || exit 1
 
 FRESH=0
+DOCS=0
 for arg in "$@"; do
     case "$arg" in
         --fresh) FRESH=1 ;;
+        --docs) DOCS=1 ;;
         -h|--help) sed -n '2,40p' "${BASH_SOURCE[0]}"; exit 0 ;;
         *) echo "unknown argument: $arg (see --help)" >&2; exit 2 ;;
     esac
@@ -114,35 +118,46 @@ if [[ "$FRESH" -eq 1 ]]; then
     run_in frontend "Provision frontend (npm ci)" npm ci
 fi
 
-# --- Job 1: lint-types-test (backend) ----------------------------------------
-# Order matches ci.yml exactly: ruff check → ruff format --check → mypy →
-# bandit → pytest → api-type-sync.
-run "Ruff check"                uv run ruff check
-run "Ruff format check"         uv run ruff format --check
-run "mypy"                      uv run mypy
-run "Bandit"                    uv run bandit -c pyproject.toml -r src
-run "pytest"                    uv run pytest
-run "API type sync (Python ↔ TS)" python3 tools/check_api_types_sync.py
-
-# --- Job 2: frontend-lint-types-test -----------------------------------------
-# ci.yml sets `working-directory: frontend`; we mirror via run_in. Order:
-# ESLint → Prettier → build (tsc -b && vite build) → committed-dist check →
-# bundle size → Vitest.
-if [[ ! -d frontend/node_modules ]]; then
-    echo
-    echo "${RED}✗ frontend/node_modules is missing — run './local-CI.sh --fresh' (or 'cd frontend && npm ci') first${RESET}"
-    FAILURES+=("frontend deps missing")
+if [[ "$DOCS" -eq 1 ]]; then
+    # --docs (mame-curator-1128): a documentation-only push, which the
+    # machine-wide hook classes by .ants/gate.conf's docsGlob. Only the tests
+    # that read Markdown run: tests/docs, the two that parse a module
+    # spec.md, and the Help-route tests that serve docs/help. The secret
+    # scan below still runs. GitHub CI runs everything regardless.
+    run "Docs checks (pytest)" uv run pytest -q --no-cov tests/docs \
+        tests/cli/test_version.py tests/parser/test_exports.py \
+        tests/api/test_routes_help.py tests/api/test_fp09_fixes.py
 else
-    run_in frontend "ESLint"                   npm run lint
-    run_in frontend "Prettier"                 npm run format
-    run_in frontend "Build (type-check + bundle)" npm run build
-    # dist/ is committed and served as-is (and packaged into the desktop
-    # bundles), so the build just run must reproduce it byte for byte.
-    # shellcheck disable=SC2016  # the inner bash expands $(...), not this one
-    run_in frontend "Committed dist matches the build" \
-        bash -c 'test -z "$(git status --porcelain -- dist)" || { git status --short -- dist; exit 1; }'
-    run_in frontend "Bundle size (size-limit)"  npm run size
-    run_in frontend "Vitest"                   npm test
+    # --- Job 1: lint-types-test (backend) ----------------------------------------
+    # Order matches ci.yml exactly: ruff check → ruff format --check → mypy →
+    # bandit → pytest → api-type-sync.
+    run "Ruff check"                uv run ruff check
+    run "Ruff format check"         uv run ruff format --check
+    run "mypy"                      uv run mypy
+    run "Bandit"                    uv run bandit -c pyproject.toml -r src
+    run "pytest"                    uv run pytest
+    run "API type sync (Python ↔ TS)" python3 tools/check_api_types_sync.py
+
+    # --- Job 2: frontend-lint-types-test -----------------------------------------
+    # ci.yml sets `working-directory: frontend`; we mirror via run_in. Order:
+    # ESLint → Prettier → build (tsc -b && vite build) → committed-dist check →
+    # bundle size → Vitest.
+    if [[ ! -d frontend/node_modules ]]; then
+        echo
+        echo "${RED}✗ frontend/node_modules is missing — run './local-CI.sh --fresh' (or 'cd frontend && npm ci') first${RESET}"
+        FAILURES+=("frontend deps missing")
+    else
+        run_in frontend "ESLint"                   npm run lint
+        run_in frontend "Prettier"                 npm run format
+        run_in frontend "Build (type-check + bundle)" npm run build
+        # dist/ is committed and served as-is (and packaged into the desktop
+        # bundles), so the build just run must reproduce it byte for byte.
+        # shellcheck disable=SC2016  # the inner bash expands $(...), not this one
+        run_in frontend "Committed dist matches the build" \
+            bash -c 'test -z "$(git status --porcelain -- dist)" || { git status --short -- dist; exit 1; }'
+        run_in frontend "Bundle size (size-limit)"  npm run size
+        run_in frontend "Vitest"                   npm test
+    fi
 fi
 
 # --- Job 3: gitleaks (secret scan) -------------------------------------------
