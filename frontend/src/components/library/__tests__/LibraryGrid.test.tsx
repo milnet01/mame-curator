@@ -127,9 +127,9 @@ describe("LibraryGrid", () => {
     // type and produces "expected an HTMLElement" on miss.
     expect(spacer).toBeInTheDocument();
     expect(spacer!.style.height).toMatch(/^\d+px$/);
-    // For a 3,000-card masonry grid at 5 columns × 280 px row pitch
-    // (LAYOUT_DEFAULTS.masonry.rowHeightPx in `LibraryGrid.tsx:36`),
-    // the spacer height should be ≈ 168,000 px (well above the 600 px
+    // For a 3,000-card masonry grid at 5 columns × 340 px row pitch
+    // (LAYOUT_DEFAULTS.masonry.rowHeightPx in `LibraryGrid.tsx`),
+    // the spacer height should be ≈ 204,000 px (well above the 600 px
     // visible viewport stubbed in beforeAll). Anything under
     // 10,000 px (two orders of magnitude below the expected value)
     // means the virtualizer is rendering the whole list inline (no

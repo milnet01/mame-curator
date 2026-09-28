@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Fixed — Library cards no longer lose their borders
+
+The selected Featured tile's highlight was clipped at the top, and the
+tiles sat at uneven heights. In the game grid, box art spilled past each
+card and the next row covered its bottom border and title. Cards now fit
+their rows, with a gap between rows, and the art keeps its size. List
+view shows a thumbnail beside the title instead of squeezing the picture
+into a sliver.
+
 ### 2026-09-28 Security — Other websites can no longer change the app's settings (mame-curator-1083)
 
 The local server now refuses browser requests that come from another

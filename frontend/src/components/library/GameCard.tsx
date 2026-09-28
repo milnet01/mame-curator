@@ -29,6 +29,9 @@ interface GameCardProps {
   /** P14 — per-card review state, rendered as a frontend-only badge in
    *  the same top-right slot as the existing backend-emitted badges. */
   reviewState?: ReviewStateValue;
+  /** List layout: flyer beside the text rather than above it, so a
+   *  short fixed-height row does not squeeze the flyer to a sliver. */
+  row?: boolean;
 }
 
 const BADGE_LABELS: Record<Badge, string> = {
@@ -80,6 +83,7 @@ export function GameCard({
   onOpen,
   onAdd,
   reviewState,
+  row = false,
 }: GameCardProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const flyerSrc = `/media/${encodeURIComponent(card.short_name)}/boxart`;
@@ -119,11 +123,14 @@ export function GameCard({
       onClick={onOpen}
       onKeyDown={handleKeyDown}
       aria-labelledby={titleId}
-      className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+      className="h-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
     >
       <Card
         className={cn(
-          "flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg",
+          // gap-0 py-0: the base Card's text-card spacing would take ~70px
+          // of the fixed row height away from the flyer.
+          "flex h-full cursor-pointer gap-0 overflow-hidden py-0 transition-shadow hover:shadow-lg",
+          row ? "flex-row" : "flex-col",
           focused && "ring-2 ring-ring",
         )}
       >
@@ -133,7 +140,12 @@ export function GameCard({
             via overflow-hidden); flex-1 makes the image fill the row
             after CardContent claims its natural size. object-contain
             preserves both portrait boxart and landscape marquee art. */}
-        <div className="relative min-h-0 flex-1 bg-muted">
+        <div
+          className={cn(
+            "relative bg-muted",
+            row ? "w-32 shrink-0" : "min-h-0 flex-1",
+          )}
+        >
           <button
             type="button"
             onClick={(e) => {
@@ -206,7 +218,12 @@ export function GameCard({
             </ul>
           )}
         </div>
-        <CardContent className="flex flex-shrink-0 flex-col gap-0.5 px-3 py-2">
+        <CardContent
+          className={cn(
+            "flex flex-shrink-0 flex-col gap-0.5 px-3 py-2",
+            row && "min-w-0 flex-1 justify-center",
+          )}
+        >
           <h3
             id={titleId}
             className="line-clamp-2 text-sm font-semibold leading-tight"

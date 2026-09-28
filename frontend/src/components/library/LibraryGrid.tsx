@@ -54,10 +54,10 @@ const LAYOUT_DEFAULTS: Record<
   LayoutName,
   { columns: number; rowHeightPx: number }
 > = {
-  masonry: { columns: 5, rowHeightPx: 280 },
+  masonry: { columns: 5, rowHeightPx: 340 },
   covers: { columns: 3, rowHeightPx: 360 },
   list: { columns: 1, rowHeightPx: 96 },
-  grouped: { columns: 5, rowHeightPx: 280 },
+  grouped: { columns: 5, rowHeightPx: 340 },
 };
 
 function resolveColumns(
@@ -241,7 +241,11 @@ export function LibraryGrid({
               role="row"
               aria-rowindex={virtualRow.index + 1}
               data-index={virtualRow.index}
-              className={cn("absolute left-0 top-0 grid w-full gap-3 px-3")}
+              // pt-1 / pb-2 sit inside the fixed row height: the gap between
+              // rows, and room for a focused card's ring above it.
+              className={cn(
+                "absolute left-0 top-0 grid w-full gap-3 px-3 pt-1 pb-2",
+              )}
               style={{
                 transform: `translateY(${virtualRow.start}px)`,
                 height: `${rowHeightPx}px`,
@@ -258,6 +262,10 @@ export function LibraryGrid({
                     aria-colindex={colIdx + 1}
                     tabIndex={isActive ? 0 : -1}
                     data-active={isActive || undefined}
+                    // h-full passes the row height down to the card, so a
+                    // tall flyer shrinks to fit instead of spilling into
+                    // the next row and hiding the card's bottom edge.
+                    className="h-full min-h-0"
                   >
                     <GameCard
                       card={card}
@@ -265,6 +273,7 @@ export function LibraryGrid({
                       onOpen={() => onOpen(card)}
                       onAdd={onAdd}
                       reviewState={reviewState?.entries[card.short_name]}
+                      row={layout === "list"}
                     />
                   </div>
                 );

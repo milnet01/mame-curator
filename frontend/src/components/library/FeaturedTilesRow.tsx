@@ -40,7 +40,10 @@ export function FeaturedTilesRow({
       <h2 className="mb-2 text-sm font-semibold">
         {strings.library.featured.heading}
       </h2>
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      {/* A sideways scroller clips vertically too, so the padding keeps
+          the active ring and hover shadow inside it; -mx-1 keeps the
+          tiles aligned with the heading. */}
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pt-1 pb-3">
         {strings.library.featured.tiles.map((tile) => {
           const count = counts[tile.id];
           const isActive = activeTileId === tile.id;
@@ -60,7 +63,7 @@ export function FeaturedTilesRow({
             >
               <Card
                 className={cn(
-                  "flex w-40 flex-col gap-1 p-3 transition-shadow hover:shadow-lg",
+                  "flex h-full w-40 flex-col gap-1 p-3 transition-shadow hover:shadow-lg",
                   isActive && "ring-2 ring-ring",
                 )}
               >
