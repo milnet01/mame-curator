@@ -50,7 +50,7 @@ land before its implementation, per the project's TDD default.
    `python3 tools/check_api_types_sync.py` exits 0 and
    `cd frontend && npm run build` type-checks.
 
-7. `main()` tees stderr to `user_log_path()` when
+7. **[done]** `main()` tees stderr to `user_log_path()` when
    `getattr(sys, "frozen", False)`. → **verify:** a source-tree run's
    stderr is unchanged (existing CLI tests stay green); the frozen branch
    is exercised in step 12.

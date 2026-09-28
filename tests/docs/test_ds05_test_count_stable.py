@@ -274,7 +274,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # spots): +3 pytest in tests/docs/test_version_lockstep.py. 811 → 814.
 # Bumped 2026-09-28 (mame-curator-1095 step 6 — setup_required on SetupCheck):
 # +2 pytest in tests/api/test_setup_mode.py. 814 → 816.
-EXPECTED_PYTEST_DECLARATIONS = 816
+# Bumped 2026-09-28 (mame-curator-1095 step 7 — frozen stderr tee): +5 pytest
+# in tests/cli/test_frozen_stderr_tee.py. 816 → 821.
+EXPECTED_PYTEST_DECLARATIONS = 821
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
