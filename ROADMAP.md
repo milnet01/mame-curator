@@ -9,9 +9,11 @@
 > MAME Curator project. Shipped work lives in
 > [`CHANGELOG.md`](CHANGELOG.md); this file shows only what's next.
 >
-> **Next up** (user's order, set 2026-09-27): 1107, 1108, 1106, 1114,
-> then 1118. 1095 (desktop bundles) is paused; 1079 is blocked until a
-> real MobyGames API key is available.
+> **Next up** (set 2026-09-28): finish 1125 (framer-motion 13, then
+> typescript 7, then react-router 8). 1121 waits until after
+> 2026-10-19. 1095 (desktop bundles) is paused; 1079 is blocked until a
+> real MobyGames API key is available; 1039 (UI polish + themes) needs
+> the user's scope first.
 >
 > **For non-technical readers (vibe coders welcome).** Each item has a
 > `Layman:` line — one plain-English sentence describing what the
@@ -1399,6 +1401,13 @@ wave lands.
   registry (coding-standards §8). Take them one at a time, since router
   and TypeScript majors can need code changes. Run the full gate and the
   Windows box after each.
+  Progress (2026-09-28): done, and every frontend check passes after
+  each: jest-dom 7 and jsdom 30 (9746f88), and vitest plus
+  @vitest/coverage-v8 5 (the next commit). Still to do, one at a time:
+  framer-motion 13, typescript 7, react-router 8. Run after each: `cd
+  frontend && npm run lint && npm run format && npm run build && npm run
+  size && npm test`, then commit with rebuilt dist if dist changes.
+  @types/node stays on 24 while package.json engines pins Node 24.
   **Layman:** Several of the web app's building blocks have big new versions; this upgrades them one at a time, checking nothing breaks.
   Kind: chore.
   Source: in-session-2026-09-28 (mame-curator-1124).
