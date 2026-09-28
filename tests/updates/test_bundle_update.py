@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import sys
 from pathlib import Path
 
 import httpx
@@ -38,14 +39,18 @@ def _client(status: int = 200) -> httpx.AsyncClient:
 
 
 def _run(release: ReleaseInfo, folder: Path, status: int = 200) -> Path:
-    return asyncio.run(download_bundle(release, name=NAME, folder=folder, client=_client(status)))
+    dest: Path = asyncio.run(
+        download_bundle(release, name=NAME, folder=folder, client=_client(status))
+    )
+    return dest
 
 
 def test_verified_download_lands_executable(tmp_path: Path) -> None:
     dest = _run(_release(hashlib.sha256(BODY).hexdigest()), tmp_path)
     assert dest == tmp_path / NAME
     assert dest.read_bytes() == BODY
-    assert dest.stat().st_mode & 0o111
+    if sys.platform != "win32":  # Windows has no execute bit; an AppImage runs on Linux
+        assert dest.stat().st_mode & 0o111
     assert sorted(p.name for p in tmp_path.iterdir()) == [NAME]
 
 
