@@ -431,6 +431,20 @@ redacts it (`_redact`). A 401/403 flips the injected `SourceDisabledFlag`
 (one WARNING; persists until restart); 429 → `MediaRateLimited`; 404 →
 no candidate.
 
+**MobyGames cover lookup** (mame-curator-1079). `prepare` searches
+`/v1/games?title=<description>`, takes the first result whose `platforms`
+include one named `Arcade`, fetches
+`/v1/games/{game_id}/platforms/{platform_id}/covers`, and keeps the first
+cover whose `scan_of` contains "front cover", else the first `image` at all
+(`http://` upgraded to `https://`). No Arcade version is no candidate. Both
+bodies go through the same status handling above and are cached in
+`<cache_dir>/mobygames/<sha256(key-free name)>.json` — the one sub-folder in
+the cache, because a keyed URL cannot name a file — written only after the
+body parses and holds the expected list, so a malformed body raises
+`MediaFetchError` and is never cached. Built from the published API shape as
+Skyscraper's parser uses it; unverified against the live service, since no
+key is available to this project.
+
 ## Cache layout
 
 - **Directory:** injected as `cache_dir: Path`; `media/` reads no config. The

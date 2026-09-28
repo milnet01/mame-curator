@@ -291,7 +291,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/docs/test_local_ci_mirrors_ci_yml.py. 845 → 846.
 # Bumped 2026-09-28 (snapshot restore deleted uncovered files): +4 pytest in
 # tests/api/test_snapshot_restore_keeps_other_files.py. 846 → 850.
-EXPECTED_PYTEST_DECLARATIONS = 850
+# Bumped 2026-09-28 (mame-curator-1079 — MobyGames covers): +5 pytest in
+# tests/media/test_sources_mobygames_covers.py, -1 retired deferred test in
+# tests/media/test_sources_mobygames.py. 850 → 854.
+EXPECTED_PYTEST_DECLARATIONS = 854
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

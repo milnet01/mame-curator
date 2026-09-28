@@ -13,15 +13,18 @@ env var, then a mode-0600 ``<secrets_dir>/mobygames.key`` dotfile),
 self-disable with a user-readable reason when no key resolves, and flip the
 injected process-wide ``SourceDisabledFlag`` on a 401/403.
 
-**DEFERRED** (gated on a real-key fixture the spec defers to "the chunk-6
-implementer" — no key on this machine): the success-path cover-URL parse +
-JSON-body caching. Until then a 200 leaves ``_url_cache`` empty and
-``url_for`` returns ``None`` — the source is wired and key-aware but yields
-no covers. See the ROADMAP follow-up.
+**Cover lookup (mame-curator-1079).** A title search, then the covers of
+the result's Arcade platform, the front cover preferred. Built from the
+published API shape as Skyscraper's working parser uses it, because no key
+is available to capture a real response: unverified against the live
+service. Each JSON body is cached on disk under a key-free name, written
+only after it parses, so a repeat lookup makes no request.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import os
 import stat
@@ -120,11 +123,10 @@ class MobyGamesSource:
     leak the keyed URL into logs. So ``prepare`` makes its own ``client.get``
     to inspect the status code and redact the key.
 
-    **DEFERRED (cover parse + body caching).** Extracting the cover URL from
-    a 200 response, and caching that JSON body, are gated on a real-key
-    fixture (``tests/fixtures/mobygames_pacman.json``) the spec defers to
-    "the chunk-6 implementer" — no key on this machine. Until then a 200
-    leaves ``_url_cache`` empty (``url_for`` returns ``None``).
+    **Cover lookup.** ``prepare`` searches by title, takes the first result
+    with an Arcade platform, fetches that platform's covers and keeps the
+    front cover (else the first image). Both JSON bodies are cached under
+    ``<cache_dir>/mobygames/`` by a hash of a key-free name.
     """
 
     name: ClassVar[str] = "mobyGames"
@@ -221,26 +223,28 @@ class MobyGamesSource:
         """Replace the API key in ``url`` with ``***`` for safe logging."""
         return url.replace(self._api_key, "***") if self._api_key else url
 
-    async def prepare(
-        self,
-        machine: Machine,
-        *,
-        client: httpx.AsyncClient,
-    ) -> None:
-        """Validate the key against the lookup endpoint; handle auth outcomes.
+    def _cache_file(self, name: str) -> Path:
+        digest = hashlib.sha256(name.encode("utf-8")).hexdigest()
+        return self._cache_dir / "mobygames" / f"{digest}.json"
 
-        Raises ``MediaRateLimited`` on an empty bucket or a 429. A 401/403
-        flips the process-wide disabled flag (one WARNING) and returns. A
-        404 returns (no candidate). A 200 currently does nothing further —
-        the cover parse is deferred (see class docstring). Network / other
-        non-200 errors raise ``MediaFetchError`` with the key redacted.
+    async def _get_json(
+        self, url: str, cache_name: str, machine: Machine, *, client: httpx.AsyncClient
+    ) -> object | None:
+        """The parsed body for ``url``, from disk when cached.
+
+        ``None`` means no candidate: a 404, or a 401/403 that disabled the
+        source. Raises ``MediaRateLimited`` on an empty bucket or a 429, and
+        ``MediaFetchError`` (key redacted) on a network error, another
+        status, or a body that is not JSON. Only a parsed body is cached.
         """
-        if self.disabled_reason is not None:
-            return  # registry already filters these out; defensive no-op
+        cache_file = self._cache_file(cache_name)
+        try:
+            cached: object = json.loads(cache_file.read_text(encoding="utf-8"))
+            return cached
+        except (OSError, ValueError):
+            pass
         if not self._limiter.acquire():
             raise MediaRateLimited(f"mobyGames rate-limit exceeded for {machine.name!r}")
-
-        url = self._lookup_url(machine)
         try:
             resp = await client.get(url)
         except httpx.HTTPError as exc:
@@ -259,24 +263,115 @@ class MobyGamesSource:
                     _MOBYGAMES_BAD_KEY_REASON,
                 )
             self.disabled_reason = self._disabled_flag.reason
-            return
+            return None
         if status == 429:
             raise MediaRateLimited(f"mobyGames rate-limited (HTTP 429) for {machine.name!r}")
         if status == 404:
-            return
+            return None
         if status != 200:
             raise MediaFetchError(f"mobyGames upstream {status} for {self._redact(url)}")
-        # 200 — key is valid. Cover-URL extraction + JSON-body caching are
-        # DEFERRED until a real-key fixture pins the response field path
-        # (see class docstring + ROADMAP follow-up). url_for stays None.
-        return
+        try:
+            body: object = json.loads(resp.text)
+        except ValueError as exc:
+            raise MediaFetchError(
+                f"mobyGames sent a non-JSON body for {self._redact(url)}"
+            ) from exc
+        return body
+
+    def _store(self, cache_name: str, body: object) -> None:
+        cache_file = self._cache_file(cache_name)
+        try:
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
+            cache_file.write_text(json.dumps(body), encoding="utf-8")
+        except OSError:
+            logger.warning("media/sources: could not cache a MobyGames response at %s", cache_file)
+
+    async def prepare(
+        self,
+        machine: Machine,
+        *,
+        client: httpx.AsyncClient,
+    ) -> None:
+        """Look up the arcade front cover for ``machine`` and cache its URL.
+
+        Raises ``MediaRateLimited`` on an empty bucket or a 429. A 401/403
+        flips the process-wide disabled flag (one WARNING) and returns. A
+        404, or no Arcade version, returns with no candidate. A malformed
+        body raises ``MediaFetchError`` and is not cached. Network / other
+        non-200 errors raise ``MediaFetchError`` with the key redacted.
+        """
+        if self.disabled_reason is not None:
+            return  # registry already filters these out; defensive no-op
+
+        search_name = f"search:{machine.description}"
+        search = await self._get_json(
+            self._lookup_url(machine), search_name, machine, client=client
+        )
+        if search is None:
+            return
+        games = search.get("games") if isinstance(search, dict) else None
+        if not isinstance(games, list):
+            raise MediaFetchError(f"mobyGames search body has no games list for {machine.name!r}")
+        self._store(search_name, search)
+
+        arcade = _arcade_platform(games)
+        if arcade is None:
+            return
+        game_id, platform_id = arcade
+        covers_name = f"covers:{game_id}:{platform_id}"
+        covers_url = (
+            f"{_MOBYGAMES_API_BASE}/{game_id}/platforms/{platform_id}/covers"
+            f"?api_key={self._api_key}"
+        )
+        covers = await self._get_json(covers_url, covers_name, machine, client=client)
+        if covers is None:
+            return
+        groups = covers.get("cover_groups") if isinstance(covers, dict) else None
+        if not isinstance(groups, list):
+            raise MediaFetchError(f"mobyGames covers body has no cover_groups for {machine.name!r}")
+        self._store(covers_name, covers)
+
+        image = _front_cover(groups)
+        if image is not None:
+            self._url_cache[machine.name] = image
 
     def url_for(self, machine: Machine, kind: Kind) -> str | None:
         """Return the cached cover URL or ``None``.
 
-        Returns ``None`` for ``kind != "boxart"`` (boxart-only source) and —
-        until the deferred cover parse lands — for ``boxart`` too.
+        Returns ``None`` for ``kind != "boxart"`` (boxart-only source), and
+        for a machine ``prepare`` found no cover for.
         """
         if kind != "boxart":
             return None
         return self._url_cache.get(machine.name)
+
+
+def _arcade_platform(games: list[object]) -> tuple[int, int] | None:
+    """(game_id, platform_id) of the first search result with an Arcade platform."""
+    for game in games:
+        if not isinstance(game, dict):
+            continue
+        for platform in game.get("platforms") or ():
+            if (
+                isinstance(platform, dict)
+                and str(platform.get("platform_name", "")).lower() == "arcade"
+                and isinstance(game.get("game_id"), int)
+                and isinstance(platform.get("platform_id"), int)
+            ):
+                return game["game_id"], platform["platform_id"]
+    return None
+
+
+def _front_cover(groups: list[object]) -> str | None:
+    """The first front cover's image URL, else the first image at all."""
+    images: list[tuple[bool, str]] = []
+    for group in groups:
+        covers = group.get("covers") if isinstance(group, dict) else None
+        for cover in covers or ():
+            if isinstance(cover, dict) and isinstance(cover.get("image"), str):
+                is_front = "front cover" in str(cover.get("scan_of", "")).lower()
+                images.append((is_front, cover["image"].replace("http://", "https://", 1)))
+    for is_front, url in images:
+        if is_front:
+            return url
+    return images[0][1] if images else None

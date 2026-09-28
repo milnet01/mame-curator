@@ -509,7 +509,8 @@ export const strings = {
     },
     mediaKeyModal: {
       title: "Configure MobyGames API key",
-      body: "Paste your MobyGames API key. It is saved to data/secrets/mobygames.key (owner-only, mode 0600) and never written to config.yaml.",
+      // mame-curator-1079: the key is the user's, under their MobyGames plan.
+      body: "Paste your MobyGames API key. It is saved to data/secrets/mobygames.key (owner-only, mode 0600) and never written to config.yaml. The key is your own: MobyGames' terms for your plan apply to how it is used (the Hobbyist plan is for non-commercial use).",
       inputLabel: "API key",
       save: "Save",
       cancel: "Cancel",

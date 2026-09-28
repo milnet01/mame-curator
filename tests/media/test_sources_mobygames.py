@@ -14,13 +14,8 @@ half of the source:
 - The lookup request carries the key in its query string, so any error /
   log message redacts it.
 
-DEFERRED to a follow-up gated on a real MobyGames API key (no key on this
-machine to capture ``tests/fixtures/mobygames_pacman.json``): the
-success-path cover-URL parse + JSON-body caching. Until then ``url_for``
-returns ``None`` for every machine even when a key resolves and the lookup
-returns 200 — MobyGames participates in the chain (when keyed) but yields no
-covers. See ``test_mobygames_source_200_does_not_populate_cover_yet`` (the
-delete-point for the follow-up) and the ROADMAP follow-up bullet.
+The cover lookup and its JSON-body cache are
+``test_sources_mobygames_covers.py`` (mame-curator-1079).
 """
 
 from __future__ import annotations
@@ -368,33 +363,6 @@ def test_mobygames_source_constructed_disabled_when_flag_already_set(
         secrets_dir=tmp_path / "none",
     )
     assert src.disabled_reason == "already disabled from a prior 401"
-
-
-@pytest.mark.asyncio
-async def test_mobygames_source_200_does_not_populate_cover_yet(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """DEFERRED contract (delete when the cover-parse follow-up lands): a 200
-    response does NOT yet populate a cover URL — the field path is unverified
-    until a real-key fixture is captured. ``url_for`` stays ``None``; a 200
-    proves the key works so the source is NOT disabled."""
-    monkeypatch.setenv(_MOBY_ENV, "k")
-    from mame_curator.media import MobyGamesSource, SourceDisabledFlag
-
-    src = MobyGamesSource(
-        limiter=_make_unbounded_limiter(),
-        cache_dir=tmp_path,
-        disabled_flag=SourceDisabledFlag(),
-        secrets_dir=tmp_path / "none",
-    )
-    async with httpx.AsyncClient() as client:
-        with respx.mock(assert_all_called=True) as mock:
-            mock.get(host=_API_HOST, path=_API_PATH).mock(
-                return_value=httpx.Response(200, json={"games": [{"title": "Pac-Man"}]})
-            )
-            await src.prepare(_machine(), client=client)
-    assert src.url_for(_machine(), "boxart") is None
-    assert src.disabled_reason is None
 
 
 def test_mobygames_source_satisfies_media_source_protocol(

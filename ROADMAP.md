@@ -2396,7 +2396,7 @@ P14 (per-game review state).
   reusable; activity types IniRefreshedDetails and AppUpdatedDetails
   exist with no emitter.
 
-- 📋 [mame-curator-1079] **MobyGames cover-URL parse + JSON-body caching (P10 chunk 6 deferred half).**
+- ✅ [mame-curator-1079] **MobyGames cover-URL parse + JSON-body caching (P10 chunk 6 deferred half).**
   P10 chunk 6 shipped the key-handling half of `MobyGamesSource`
   (env/0600-dotfile resolution, missing-key + 401/403 disable,
   key-redacted errors, rate-limit). The success-path cover-URL
@@ -2428,6 +2428,15 @@ P14 (per-game review state).
   MobyGames' terms. MobyGames' API/terms pages refused automated reads
   (403); its subscribe page lists a free application for researchers and
   not-for-profits.
+  Resolved (2026-09-28): title search, the first result's Arcade
+  platform, its covers (front cover preferred), both bodies cached in
+  <cache_dir>/mobygames/ under key-free hashed names and written only
+  after they parse. Shape taken from the published API as Skyscraper's
+  src/mobygames.cpp parses it; unverified against the live service (no
+  key). The key dialog states the key is the user's under their plan's
+  terms. Tests: tests/media/test_sources_mobygames_covers.py
+  (mutation-checked: disabling the cache read fails the served-from-disk
+  test).
   **Layman:** MobyGames knows your key but can't pull a cover image yet — that last step needs a real key to confirm the data format. Finish it once a key is available.
   Kind: implement.
   Source: in-session-2026-07-01 (P10 chunk 6 — user elected "key-handling now, fetch later").

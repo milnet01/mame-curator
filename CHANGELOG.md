@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Added — MobyGames supplies arcade box art when you add your own key (mame-curator-1079)
+
+With a MobyGames API key in Settings → Media, MobyGames now finds a
+game's arcade version and supplies its front cover. Each answer is kept
+on disk, so the same game never costs a second lookup against your
+plan's hourly limit. Your key stays yours and falls under your MobyGames
+plan's terms. Built from MobyGames' published API format without a key
+to test against, so it has not yet been tried against the live service.
+
 ### 2026-09-28 Fixed — Undoing a settings change no longer deletes your picks, sessions and notes (mame-curator-1130)
 
 Restoring a snapshot from Settings → Snapshots could delete your
