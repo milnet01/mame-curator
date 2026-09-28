@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- MAME Curator app icon: a placeholder wordmark tile (mame-curator-1095 spec §4.9). -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a1418"/>
+      <stop offset="1" stop-color="#140608"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#bg)"/>
+  <rect x="40" y="40" width="432" height="432" rx="76" fill="none" stroke="#e0453a" stroke-width="12"/>
+  <text x="256" y="318" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif"
+        font-weight="bold" font-size="200" fill="#f5e6c8" letter-spacing="-6">MC</text>
+  <rect x="136" y="370" width="240" height="18" rx="9" fill="#e0453a"/>
+</svg>

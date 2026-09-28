@@ -55,7 +55,7 @@ land before its implementation, per the project's TDD default.
    stderr is unchanged (existing CLI tests stay green); the frozen branch
    is exercised in step 12.
 
-8. `packaging/icon.svg` + render script producing `.png` / `.ico` /
+8. **[done]** `packaging/icon.svg` + render script producing `.png` / `.ico` /
    `.icns`. → **verify:** all three files exist and `file` reports the
    expected format for each.
 
