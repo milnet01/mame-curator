@@ -2585,7 +2585,7 @@ P14 (per-game review state).
 
 Carried over from 1.3.0, which shipped 2026-09-28 without them.
 
-- 📋 [mame-curator-1095] **Ship self-contained desktop bundles for Linux, Windows and macOS.**
+- ✅ [mame-curator-1095] **Ship self-contained desktop bundles for Linux, Windows and macOS.**
   Three artefacts built by `release.yml` and attached to each `v*.*.*`
   release: a Linux **AppImage**, a Windows **single-file .exe**
   (PyInstaller one-file), and an **unsigned macOS `.app` inside a `.dmg`**.
@@ -2818,6 +2818,16 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   had rested on the old pre-commit hook; now an explicit check in
   local-CI.sh and ci.yml (e00d4e3). Next: plan steps 8, 8b-8d, 9, 10,
   10b onward.
+  Resolved (2026-09-28): every plan step done. Linux AppImage built in
+  python:3.13-slim-bookworm (29 MB, glibc floor 2.35), Windows exe under
+  Wine (23 MB) and on windows-latest, macOS dmg on macos-latest (27 MB),
+  each with a 1.5x size ceiling. INV-13 and INV-16 recipes PASS
+  verbatim; the clean-room smoke passes and its negative control
+  (httptools excluded) fails as designed; the CI-built exe ran on real
+  Windows 10. The release.yml rehearsal (run 36439976022,
+  workflow_dispatch) built all three and skipped publish. The bundles
+  ship with the next tagged release. Key commits: 3166663, 14b82db,
+  93887bd, eb90b24, ec22b32, ecdf612.
 
 - 📋 [mame-curator-1121] **Check CI after ubuntu-latest moves to Ubuntu 26 on 2026-10-19.**
   Every ubuntu-latest job in ci.yml carries a GitHub notice: "The
