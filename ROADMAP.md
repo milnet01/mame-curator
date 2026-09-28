@@ -2385,6 +2385,16 @@ P14 (per-game review state).
   Dependencies: P07 ✅ (downloads + INI refresh CLI).
   User decision (2026-09-28): build it this round, after 1095 lands,
   since the frozen-install update path depends on the bundles.
+  User decision (2026-09-28): a bundle (AppImage / .exe / .dmg) updates
+  by downloading the new release file into the same folder and telling
+  the user to close this one and open the new one; the old file stays as
+  the fallback. A git clone updates in place with a snapshot first and
+  rollback on failure (design.md §6.7). Survey (2026-09-28): nothing
+  exists yet; /api/updates/check is a stub the frontend never calls;
+  UpdatesConfig.channel/check_on_startup/ini_check_on_startup are read
+  by nothing; api/persist.py snapshot_files/restore_snapshot are
+  reusable; activity types IniRefreshedDetails and AppUpdatedDetails
+  exist with no emitter.
 
 - 📋 [mame-curator-1079] **MobyGames cover-URL parse + JSON-body caching (P10 chunk 6 deferred half).**
   P10 chunk 6 shipped the key-handling half of `MobyGamesSource`
@@ -2858,13 +2868,17 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: in-session-2026-09-28 (local-gate.md § 2.1 alignment).
   Lanes: ci.
 
-- 📋 [mame-curator-1129] **Make ci.yml and local-CI.sh share one list of steps, or pin their legs equal with a test.**
+- ✅ [mame-curator-1129] **Make ci.yml and local-CI.sh share one list of steps, or pin their legs equal with a test.**
   local-CI.sh mirrors ci.yml by hand ("keep in lockstep"), and nothing
   compares their legs; tests/docs only spot-checks single steps.
   local-gate.md § 3 prefers inversion: ci.yml sets up each runner and
   calls one repository-owned script. The OS/Python matrix makes that a
   real change (Windows runs the script under bash). Fallback: a
   tests/docs check that the commands in both lists match.
+  Resolved (2026-09-28): the fallback route.
+  tests/docs/test_local_ci_mirrors_ci_yml.py requires local-CI.sh's
+  check commands to equal ci.yml's run steps in order (setup steps and
+  --docs exempt); mutation-checked three ways.
   **Layman:** The checks run on your machine and the checks GitHub runs should be the same list, so one can't quietly drift from the other.
   Kind: chore.
   Source: in-session-2026-09-28 (ci-gate WRAPPER advisory).
