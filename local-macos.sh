@@ -17,6 +17,9 @@ set -euo pipefail
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORK="${MC_WORK:-$repo/dist/.mac-build}"
 read -r -a PY <<<"${MC_PY:-python3}"
+# 1.5x the first measured .dmg, 26961058 bytes (2026-09-28, CI's macos-latest
+# rehearsal run); spec §4.16, INV-15.
+SIZE_CEILING_BYTES=40441587
 
 version() {
     sed -n 's/^version = "\(.*\)"$/\1/p' "$repo/pyproject.toml" | head -1
@@ -44,7 +47,13 @@ run_stage() {
         out="$repo/dist/MAME_Curator-$(version)-$(uname -m).dmg"
         hdiutil create -volname "MAME Curator" -srcfolder "$WORK/dist/MAME Curator.app" \
             -ov -format UDZO "$out"
-        echo "local-macos: built $out"
+        local size
+        size="$(wc -c <"$out" | tr -d ' ')"
+        if [ "$size" -gt "$SIZE_CEILING_BYTES" ]; then
+            echo "local-macos: $out is $size bytes, over the $SIZE_CEILING_BYTES ceiling (spec §4.16)" >&2
+            exit 1
+        fi
+        echo "local-macos: built $out ($size bytes)"
         ;;
     *)
         echo "local-macos: unknown stage '$1'" >&2

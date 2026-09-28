@@ -104,10 +104,9 @@ def test_appimage_builds_in_bookworm() -> None:
     assert container_image == image.removeprefix("docker.io/library/")
 
 
-@pytest.mark.parametrize("script", ["local-appimage.sh", "local-exe.sh"])
+@pytest.mark.parametrize("script", sorted(SCRIPT_JOBS))
 def test_scripts_carry_a_size_ceiling(script: str) -> None:
-    """INV-15 — a numeric byte ceiling and a failing exit when it is passed.
-    local-macos.sh carries none until a CI run has measured a .dmg."""
+    """INV-15 — a numeric byte ceiling and a failing exit when it is passed."""
     text = (REPO / script).read_text(encoding="utf-8")
     ceiling = [line for line in text.splitlines() if line.startswith("SIZE_CEILING_BYTES=")]
     assert ceiling and ceiling[0].split("=", 1)[1].isdigit(), "no numeric SIZE_CEILING_BYTES"

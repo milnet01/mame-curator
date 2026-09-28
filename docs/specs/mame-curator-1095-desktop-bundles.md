@@ -735,7 +735,7 @@ enforced by the build script at 1.5× (INV-15):
 |---|---|---|
 | `MAME_Curator-1.3.0-x86_64.AppImage` (`local-appimage.sh`) | 28797432 bytes | 43196148 |
 | `MAME_Curator-1.3.0-x86_64.exe` (`local-exe.sh`, Wine build) | 22722699 bytes | 34084049 |
-| `.dmg` | not measured: no local macOS build exists | none until the first CI run records one |
+| `MAME_Curator-1.3.0-arm64.dmg` (CI's `build-macos`, rehearsal run) | 26961058 bytes | 40441587 |
 
 A one-file `.exe` whose extraction cost is its main user-visible risk
 would otherwise have no regression guard at all. Cold-start time is not
@@ -906,10 +906,9 @@ measured here.
   stronger check and needs all three artefacts; it is INV-13's manual
   recipe's neighbour, and is not claimed here.
 
-- **INV-15** — `local-appimage.sh` and `local-exe.sh` each fail when
-  their artefact exceeds the size ceiling recorded in §4.16.
-  `local-macos.sh` carries none until a CI run has measured a `.dmg`,
-  since no local run can.
+- **INV-15** — Each local build script fails when its artefact exceeds
+  the size ceiling recorded in §4.16. The `.dmg`'s ceiling comes from
+  CI's rehearsal run, since no local run can build one.
   *Test:* `tests/tools/test_release_scripts.py::test_scripts_carry_a_size_ceiling`
   — asserts each script contains a numeric ceiling and a non-zero exit
   on breach. It cannot assert the *artefact* is under it (that needs a
