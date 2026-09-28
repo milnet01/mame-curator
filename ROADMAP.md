@@ -1365,7 +1365,7 @@ wave lands.
   Source: check-code-2026-09-28.
   Lanes: tooling, docs.
 
-- 📋 [mame-curator-1124] **Clear the 11 npm audit advisories in the frontend dependencies.**
+- ✅ [mame-curator-1124] **Clear the 11 npm audit advisories in the frontend dependencies.**
   `npm audit` in frontend/ on 2026-09-28 reported 11 advisories (5 moderate,
   6 high), the same count before and after mame-curator-1120's size-limit
   install, so they predate it. Direct packages: react-router (high),
@@ -1374,9 +1374,34 @@ wave lands.
   baseline-browser-mapping, @vitest/mocker. npm reports a fix available
   for every one. Also noted by the same install: msw 2.14.6 has install
   scripts not covered by `allowScripts`.
+  Resolved (2026-09-28): `npm audit fix` cleared 8 advisories and `npm
+  update` cleared the vitest ones, so `npm audit` reports 0. Every
+  frontend package is now at the newest version inside its declared
+  range (lockfile only). Prettier 3.9 re-flowed two union types, a
+  layout-only change, and the API type sync still passes. lint, format,
+  build, size and vitest pass (367 tests). The entry chunk grew from
+  about 161 kB to 179 kB gzipped, for a total of 249.47 kB against the
+  350 kB budget. The msw install-scripts notice is left as is. Major
+  upgrades are mame-curator-1125.
   **Layman:** Some of the web app's building blocks have known security fixes waiting; this updates them.
   Kind: security.
   Source: in-session-2026-09-28 (mame-curator-1120).
+  Lanes: frontend.
+
+- 📋 [mame-curator-1125] **Move the frontend to its dependencies' new major versions.**
+  `npm outdated` on 2026-09-28, after mame-curator-1124 brought everything
+  to the newest in-range version, still lists these as behind by a major:
+  react-router 7.18 → 8, typescript 6 → 7, vitest and
+  @vitest/coverage-v8 4 → 5, jsdom 29 → 30, framer-motion 12 → 13,
+  @testing-library/jest-dom 6 → 7, and @types/node 24 → 26 (engines pins
+  Node 24, so @types/node stays on 24 unless engines moves). Standing
+  rule: latest by default, and any pin-back is logged in the Version-break
+  registry (coding-standards §8). Take them one at a time, since router
+  and TypeScript majors can need code changes. Run the full gate and the
+  Windows box after each.
+  **Layman:** Several of the web app's building blocks have big new versions; this upgrades them one at a time, checking nothing breaks.
+  Kind: chore.
+  Source: in-session-2026-09-28 (mame-curator-1124).
   Lanes: frontend.
 
 ### 🧪 Test Audit 2026-05-20

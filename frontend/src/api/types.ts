@@ -74,9 +74,7 @@ export interface Session {
 export type ConflictStrategy = "APPEND" | "OVERWRITE" | "CANCEL";
 
 export type AppendDecisionKind =
-  | "KEEP_EXISTING"
-  | "REPLACE"
-  | "REPLACE_AND_RECYCLE";
+  "KEEP_EXISTING" | "REPLACE" | "REPLACE_AND_RECYCLE";
 
 export interface AppendDecision {
   kind: AppendDecisionKind;
@@ -84,10 +82,7 @@ export interface AppendDecision {
 }
 
 export type CopyReportStatus =
-  | "OK"
-  | "CANCELLED"
-  | "CANCELLED_PLAYLIST_CONFLICT"
-  | "PARTIAL_FAILURE";
+  "OK" | "CANCELLED" | "CANCELLED_PLAYLIST_CONFLICT" | "PARTIAL_FAILURE";
 
 // === Config (api/schemas.py) ===============================================
 export interface PathsConfig {
@@ -161,12 +156,7 @@ export interface SourceSecret {
 }
 
 export type ThemeName =
-  | "dark"
-  | "light"
-  | "double_dragon"
-  | "pacman"
-  | "sf2"
-  | "neogeo";
+  "dark" | "light" | "double_dragon" | "pacman" | "sf2" | "neogeo";
 
 export type LayoutName = "masonry" | "list" | "covers" | "grouped";
 
@@ -222,11 +212,7 @@ export interface AppConfigResponse {
 
 // === Games + metadata ======================================================
 export type Badge =
-  | "contested"
-  | "overridden"
-  | "chd_missing"
-  | "bios_missing"
-  | "has_notes";
+  "contested" | "overridden" | "chd_missing" | "bios_missing" | "has_notes";
 
 export interface GameCard {
   short_name: string;
@@ -336,11 +322,7 @@ export type ReviewStateValue = "reviewed" | "skipped" | "needs-decision";
 
 /** Query-param values for ?review_state=; adds two sentinels. */
 export type ReviewStateFilter =
-  | "all"
-  | "pending"
-  | "reviewed"
-  | "skipped"
-  | "needs-decision";
+  "all" | "pending" | "reviewed" | "skipped" | "needs-decision";
 
 export interface StateView {
   entries: Record<string, ReviewStateValue>;
@@ -396,11 +378,7 @@ export interface JobAccepted {
 }
 
 export type JobState =
-  | "running"
-  | "paused"
-  | "terminating"
-  | "finished"
-  | "aborted";
+  "running" | "paused" | "terminating" | "finished" | "aborted";
 
 export interface JobStatus {
   job_id: string;

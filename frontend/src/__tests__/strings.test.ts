@@ -32,9 +32,7 @@ import { describe, expect, it } from "vitest";
 import { strings } from "../strings";
 
 type CatalogueNode =
-  | string
-  | { [k: string]: CatalogueNode }
-  | Array<CatalogueNode>;
+  string | { [k: string]: CatalogueNode } | Array<CatalogueNode>;
 
 function flattenKeys(node: CatalogueNode, prefix: string, out: string[]): void {
   if (typeof node === "string") {

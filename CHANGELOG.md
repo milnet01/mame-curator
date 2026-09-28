@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Security — Frontend dependencies updated; npm audit reports no advisories (mame-curator-1124)
+
+Every web-app dependency is now at its newest release inside its
+current major version, which clears the 11 known advisories npm
+reported (including one in react-router). No app behaviour changes.
+
 ### 2026-09-28 Added — The build fails if the web app's JavaScript grows past its 350 kB budget (mame-curator-1120)
 
 `npm run size` (size-limit) measures every JavaScript file the frontend
