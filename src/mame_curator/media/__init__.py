@@ -86,6 +86,7 @@ from mame_curator.media.cache_text import (
     DEFAULT_TEXT_MAX_BYTES,
     fetch_text_with_cache,
 )
+from mame_curator.media.local_folders import EsdeSource, RetroArchThumbnailsSource
 from mame_curator.media.mobygames import (
     MobyGamesSource,
     SourceDisabledFlag,
@@ -121,6 +122,7 @@ def _build_user_agent() -> str:
 __all__ = [
     "DEFAULT_TEXT_MAX_BYTES",
     "ArcadeDBSource",
+    "EsdeSource",
     "Kind",
     "LibretroSource",
     "MediaError",
@@ -131,6 +133,7 @@ __all__ = [
     "MediaUrls",
     "MobyGamesSource",
     "ProgettoSnapsSource",
+    "RetroArchThumbnailsSource",
     "SourceDisabledFlag",
     "TokenBucket",
     "WikipediaExtract",

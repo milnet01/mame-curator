@@ -2788,6 +2788,19 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   `updateAvailable` banner in strings_internal.ts tells users to
   `git pull` and restart. Bundle users have no clone, so the wording must
   branch on install type (or point at the Releases page) when bundles ship.
+  Progress (2026-09-28): plan steps 6 (setup_required on SetupCheck,
+  a9460ed) and 7 (frozen stderr tee, 466e20c) shipped. The pending
+  fold-in is written and gated (1b0a6ae): bare frozen launch runs serve
+  (§4.14, INV-19), self-test subcommand (§4.13, INV-17), clean-room
+  container proof (§4.15), Help dir on bundle_root (INV-18), Linux build
+  in python:3.13-slim-bookworm (INV-20), committed frontend/dist
+  packaged with no Node step, RetroDB lessons, catcher-cell notes; the
+  Updates banner wording moved to 1010. review-contract ran 2 loops x 2
+  lanes: 16 verified, 16 fixed, 5 dismissed; calm cap; spec accepted
+  (846f02c). The packet build also found the committed-dist guarantee
+  had rested on the old pre-commit hook; now an explicit check in
+  local-CI.sh and ci.yml (e00d4e3). Next: plan steps 8, 8b-8d, 9, 10,
+  10b onward.
 
 - 📋 [mame-curator-1121] **Check CI after ubuntu-latest moves to Ubuntu 26 on 2026-10-19.**
   Every ubuntu-latest job in ci.yml carries a GitHub notice: "The

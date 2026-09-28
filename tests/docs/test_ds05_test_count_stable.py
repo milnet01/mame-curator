@@ -276,7 +276,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # +2 pytest in tests/api/test_setup_mode.py. 814 → 816.
 # Bumped 2026-09-28 (mame-curator-1095 step 7 — frozen stderr tee): +5 pytest
 # in tests/cli/test_frozen_stderr_tee.py. 816 → 821.
-EXPECTED_PYTEST_DECLARATIONS = 821
+# Bumped 2026-09-28 (mame-curator-1126 — ES-DE / RetroArch local art): +11
+# pytest in tests/media/test_sources_local_folders.py. 821 → 832.
+EXPECTED_PYTEST_DECLARATIONS = 832
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -356,7 +358,9 @@ EXPECTED_PYTEST_DECLARATIONS = 821
 # +3 vitest in AlternativesDrawer.test.tsx. 347 → 350.
 # Bumped 2026-09-28 (mame-curator-1038 — settings saved indicator): +1 vitest
 # in hooks/__tests__/useConfig.test.tsx. 350 → 351.
-EXPECTED_VITEST_DECLARATIONS = 351
+# Bumped 2026-09-28 (mame-curator-1126): +3 vitest in
+# frontend/src/components/settings/__tests__/MediaTab.localFolders.test.tsx. 351 → 354.
+EXPECTED_VITEST_DECLARATIONS = 354
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

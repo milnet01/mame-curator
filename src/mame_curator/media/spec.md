@@ -59,6 +59,7 @@ Source files under `src/mame_curator/media/`:
 | `rate_limit.py` | `TokenBucket`, `MediaRateLimited`. |
 | `sources.py` | `Kind`, `MediaSource` (Protocol), `LibretroSource`, `ProgettoSnapsSource`, `ArcadeDBSource`, `WikipediaImageSource`, `MediaSourceRegistry`. |
 | `mobygames.py` | `MobyGamesSource`, `SourceDisabledFlag`, `mobygames_key_path`. Split out so `sources.py` stays under the 500-line hard cap. |
+| `local_folders.py` | `EsdeSource`, `RetroArchThumbnailsSource` (mame-curator-1126): artwork another tool already scraped, read from a folder the user chose. Own file for the same size cap. |
 | `wikipedia.py` | `WikipediaExtract` (frozen), `resolve_wikipedia_extract`. |
 | `resolve.py` | `resolve_image` (orchestrator), `build_registry`, `build_all_sources`. The composition root — constructs concrete sources with injected deps. |
 | `__init__.py` | Re-exports the public surface; defines `_build_user_agent`. |
@@ -288,8 +289,9 @@ short-circuit (see below); else `fetch_with_cache` (swallow `MediaFetchError`
 **`file://` short-circuit** (local snap pack). `fetch_with_cache`'s scheme
 guard rejects `file://` by design, so the orchestrator serves the path
 directly via `Path(url2pathname(urlparse(url).path))` (`url2pathname` handles
-the Windows `/C:/…` form). Hardened (FP33 H1): **only `ProgettoSnapsSource`
-is trusted** to emit `file://`. A *network* source returning `file://` (e.g. a
+the Windows `/C:/…` form). Hardened (FP33 H1): **only the local sources
+(`_LOCAL_SOURCES`: `progettoSnaps`, `esde`, `retroarchThumbnails`) are
+trusted** to emit `file://`. A *network* source returning `file://` (e.g. a
 MITM injecting `file:///etc/passwd` on ArcadeDB's plaintext hop) is logged and
 dropped — never served.
 
@@ -317,11 +319,13 @@ Building only the configured subset means dropping `mobyGames` from
 factory in `media/` (deps passed explicitly) honours the anti-jump rule.
 `snap_dir` defaults to `_DEFAULT_SNAP_DIR` for direct callers, but the API
 route passes `world.config.media.snaps_dir / "snap"` so the progettoSnaps
-read-path tracks the configured pack folder (mame-curator-1081).
+read-path tracks the configured pack folder (mame-curator-1081). It passes
+`media.esde_media_dir` and `media.retroarch_thumbnails_dir` the same way
+(mame-curator-1126); both default to `None`, which leaves those sources off.
 
 ### `build_all_sources(*, cache_dir, arcadedb_limiter, wikipedia_limiter, mobygames_limiter, mobygames_disabled, snap_dir=_DEFAULT_SNAP_DIR) -> dict[str, MediaSource]`
 
-Constructs **all five** known sources regardless of config — the readiness
+Constructs **every** known source regardless of config — the readiness
 endpoint must report every source's real state, including ones the user
 removed from `media.sources`. Shares the `_source_factories` table with
 `build_registry`.
@@ -344,12 +348,25 @@ Wikipedia's API:Etiquette.
 
 | `name` | `license_compatible` | `kinds` | Network? | Can disable? |
 |---|---|---|---|---|
+| `esde` | `True` | `{boxart, title, snap}` | no (local folder) | folder unset or not a directory |
+| `retroarchThumbnails` | `True` | `{boxart, title, snap}` | no (local folder) | folder unset or not a directory |
 | `libretro` | `True` | `{boxart, title, snap}` | yes (raw GitHub) | never |
 | `progettoSnaps` | `True` | `{snap}` | no (local pack) | pack absent/empty |
 | `arcadeDB` | `True` | `{boxart, title, snap}` | yes | never |
 | `wikipediaImage` | `False` | `{boxart}` | yes | never |
 | `mobyGames` | `False` | `{boxart}` | yes | no/bad key |
 
+- **esde** / **retroarchThumbnails** — the user's own scraped art, first in
+  the default order because a disk read is instant. `esde` reads an ES-DE
+  `downloaded_media/<system>` folder: `covers/`, `titlescreens/`,
+  `screenshots/`, each image named after the short name. `retroarchThumbnails`
+  reads a RetroArch `thumbnails/<playlist>` folder: `Named_Boxarts/`,
+  `Named_Titles/`, `Named_Snaps/`, named by `escape_libretro(description)`
+  with the short name as a fallback. Both take `.png`, then `.jpg`, then
+  `.jpeg`, and return the first file on disk as a `file://` URL. **A
+  candidate that resolves outside the configured folder is refused**, so a
+  name containing `..` cannot read an arbitrary file. Any tool laying its
+  folder out either way works.
 - **libretro** — baseline. `prepare` is a no-op; `url_for` delegates to
   `urls_for` and always returns a URL. No auth, no rate limit.
 - **progettoSnaps** — serves `<snap_dir>/<name>.png` as a `file://` URL when
@@ -489,8 +506,9 @@ Also deferred (out of `media/`'s current scope):
 
 ## Architecture notes
 
-- **Protocol over inheritance.** `MediaSource` is a `Protocol`; the five
-  implementations share no base class, no `super()`, no MRO. The orchestrator
+- **Protocol over inheritance.** `MediaSource` is a `Protocol`; the
+  implementations share no base class, no `super()`, no MRO — except the two
+  in `local_folders.py`, which share a private `_LocalFolderSource`. The orchestrator
   depends only on the protocol surface.
 - **Two-phase per-source dispatch:** async `prepare` then sync `url_for`. The
   orchestrator awaits `prepare` once per `(source, machine)` before reading

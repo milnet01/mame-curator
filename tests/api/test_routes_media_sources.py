@@ -21,9 +21,17 @@ import pytest
 
 from mame_curator.media import mobygames_key_path
 
-_ALL_FIVE = ["libretro", "progettoSnaps", "arcadeDB", "wikipediaImage", "mobyGames"]
+_ALL_KNOWN = [
+    "esde",
+    "retroarchThumbnails",
+    "libretro",
+    "progettoSnaps",
+    "arcadeDB",
+    "wikipediaImage",
+    "mobyGames",
+]
 _WINDOWS = sys.platform == "win32"
-_all_configured = pytest.mark.parametrize("configured_media_sources", [_ALL_FIVE], indirect=True)
+_all_configured = pytest.mark.parametrize("configured_media_sources", [_ALL_KNOWN], indirect=True)
 
 
 @pytest.fixture(autouse=True)
@@ -45,11 +53,11 @@ def _rows_by_name(response: Any) -> dict[str, Any]:
 
 @_all_configured
 def test_media_sources_endpoint_returns_all_known_sources(client: Any) -> None:
-    """All five sources are returned, in configured (media.sources) order."""
+    """Every known source is returned, in configured (media.sources) order."""
     response = client.get("/api/media/sources")
     assert response.status_code == 200
     names = [r["name"] for r in response.json()["sources"]]
-    assert names == _ALL_FIVE  # configured order
+    assert names == _ALL_KNOWN  # configured order
 
 
 @_all_configured
@@ -121,7 +129,7 @@ def test_media_sources_reads_configured_snaps_dir(client: Any, tmp_path: Path) -
 def test_media_sources_endpoint_marks_in_chain_false_for_unconfigured(client: Any) -> None:
     """Default config = ("libretro",): libretro in_chain, the rest listed but not."""
     rows = _rows_by_name(client.get("/api/media/sources"))
-    assert set(rows) == set(_ALL_FIVE)  # all five still listed
+    assert set(rows) == set(_ALL_KNOWN)  # every known source still listed
     assert rows["libretro"]["in_chain"] is True
     for name in ("progettoSnaps", "arcadeDB", "wikipediaImage", "mobyGames"):
         assert rows[name]["in_chain"] is False, name

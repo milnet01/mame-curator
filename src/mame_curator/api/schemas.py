@@ -87,6 +87,11 @@ class MediaConfig(BaseModel):
     # the reader pointed at the old (fixed) path. Default mirrors the CLI's
     # historical `--dest` default (./data/snaps).
     snaps_dir: Path = Path("./data/snaps")
+    # mame-curator-1126 — folders another tool already filled with artwork:
+    # an ES-DE `downloaded_media/<system>` folder and a RetroArch
+    # `thumbnails/<playlist>` folder. Unset leaves each source off.
+    esde_media_dir: Path | None = None
+    retroarch_thumbnails_dir: Path | None = None
     # P10 chunk 4 — ArcadeDB scraper rate-limit knob. Default 30 req/min;
     # the public service has no documented hard cap but is a hobby site,
     # so we cap ourselves at a courteous rate. Configurable so ops can
@@ -101,6 +106,9 @@ class MediaConfig(BaseModel):
     # one-time WARNING and is skipped. Users reorder to change priority.
     # "libretro" is always appended as the baseline even if omitted here.
     sources: tuple[str, ...] = (
+        # Local folders first: instant, and the user's own curated art.
+        "esde",
+        "retroarchThumbnails",
         "libretro",
         "progettoSnaps",
         "arcadeDB",

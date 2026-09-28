@@ -482,6 +482,15 @@ export const strings = {
     mediaSnapsHelp:
       "Where the progettoSnaps snapshot pack lives. `refresh-snaps` downloads here and the viewer reads it from the same place (images under <folder>/snap).",
     mediaSnapsBrowseLabel: "Browse for snapshot pack folder",
+    // mame-curator-1126 — artwork another tool already scraped.
+    mediaEsdeLabel: "ES-DE media folder",
+    mediaEsdeHelp:
+      "Optional. ES-DE's downloaded_media folder for your MAME system, e.g. …/ES-DE/downloaded_media/mame. Its covers, title screens and screenshots are used first.",
+    mediaEsdeBrowseLabel: "Browse for ES-DE media folder",
+    mediaRetroarchLabel: "RetroArch thumbnails folder",
+    mediaRetroarchHelp:
+      "Optional. RetroArch's thumbnails folder for your MAME playlist, e.g. …/retroarch/thumbnails/MAME.",
+    mediaRetroarchBrowseLabel: "Browse for RetroArch thumbnails folder",
     // P10 chunk 10 — Media source readiness list + key/pack modals.
     mediaSources: {
       sectionLabel: "Art sources (priority order)",

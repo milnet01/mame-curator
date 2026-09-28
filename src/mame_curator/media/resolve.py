@@ -23,6 +23,7 @@ from urllib.request import url2pathname
 import httpx
 
 from mame_curator.media.cache import MediaFetchError, fetch_with_cache
+from mame_curator.media.local_folders import EsdeSource, RetroArchThumbnailsSource
 from mame_curator.media.mobygames import MobyGamesSource, SourceDisabledFlag
 from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
 from mame_curator.media.sources import (
@@ -47,6 +48,12 @@ logger = logging.getLogger(__name__)
 # pack keeps the reader and ``refresh-snaps`` bound to one config field
 # (mame-curator-1081; supersedes the P10 chunk-7 "deferred follow-up" note).
 _DEFAULT_SNAP_DIR = Path("./data/snaps/snap")
+# The sources allowed to answer with a file:// URL: they read folders the user
+# chose. Any other source's file:// URL is dropped (FP33 H1 — a network source
+# must never turn into an arbitrary local-file read).
+_LOCAL_SOURCES = frozenset(
+    {ProgettoSnapsSource.name, EsdeSource.name, RetroArchThumbnailsSource.name}
+)
 _DEFAULT_SECRETS_DIR = Path("data/secrets")
 
 
@@ -88,9 +95,9 @@ async def resolve_image(
             # local-file read that bypasses fetch_with_cache's
             # _ALLOWED_URL_SCHEMES guard (which runs only in the else branch).
             # Drop it. (FP33 H1)
-            if source.name != ProgettoSnapsSource.name:
+            if source.name not in _LOCAL_SOURCES:
                 logger.warning(
-                    "media: %s returned a file:// URL but is not the local pack; dropping",
+                    "media: %s returned a file:// URL but is not a local source; dropping",
                     source.name,
                 )
                 continue
@@ -127,15 +134,21 @@ def _source_factories(
     mobygames_disabled: SourceDisabledFlag,
     snap_dir: Path,
     secrets_dir: Path,
+    esde_media_dir: Path | None,
+    retroarch_thumbnails_dir: Path | None,
 ) -> dict[str, Callable[[], MediaSource]]:
     """The name → source-constructor table (insertion order = default order).
 
     Shared by ``build_registry`` (constructs only the configured subset) and
     ``build_all_sources`` (constructs every known source for the readiness
-    endpoint) so the five-source roster + their dep-injection live in one
+    endpoint) so the source roster + their dep-injection live in one
     place.
     """
     return {
+        "esde": lambda: EsdeSource(media_dir=esde_media_dir),
+        "retroarchThumbnails": lambda: RetroArchThumbnailsSource(
+            thumbnails_dir=retroarch_thumbnails_dir
+        ),
         "libretro": LibretroSource,
         "progettoSnaps": lambda: ProgettoSnapsSource(snap_dir=snap_dir),
         "arcadeDB": lambda: ArcadeDBSource(limiter=arcadedb_limiter, cache_dir=cache_dir),
@@ -161,6 +174,8 @@ def build_registry(
     mobygames_disabled: SourceDisabledFlag,
     snap_dir: Path = _DEFAULT_SNAP_DIR,
     secrets_dir: Path = _DEFAULT_SECRETS_DIR,
+    esde_media_dir: Path | None = None,
+    retroarch_thumbnails_dir: Path | None = None,
 ) -> MediaSourceRegistry:
     """Construct the configured sources (+ libretro baseline) and wrap them.
 
@@ -179,6 +194,8 @@ def build_registry(
         mobygames_disabled=mobygames_disabled,
         snap_dir=snap_dir,
         secrets_dir=secrets_dir,
+        esde_media_dir=esde_media_dir,
+        retroarch_thumbnails_dir=retroarch_thumbnails_dir,
     )
     wanted = set(configured) | {"libretro"}
     available = {name: make() for name, make in factories.items() if name in wanted}
@@ -194,8 +211,10 @@ def build_all_sources(
     mobygames_disabled: SourceDisabledFlag,
     snap_dir: Path = _DEFAULT_SNAP_DIR,
     secrets_dir: Path = _DEFAULT_SECRETS_DIR,
+    esde_media_dir: Path | None = None,
+    retroarch_thumbnails_dir: Path | None = None,
 ) -> dict[str, MediaSource]:
-    """Construct ALL five known sources, regardless of config.
+    """Construct every known source, regardless of config.
 
     The readiness endpoint (``GET /api/media/sources``) reports every known
     source's real state — including ones the user removed from
@@ -212,5 +231,7 @@ def build_all_sources(
         mobygames_disabled=mobygames_disabled,
         snap_dir=snap_dir,
         secrets_dir=secrets_dir,
+        esde_media_dir=esde_media_dir,
+        retroarch_thumbnails_dir=retroarch_thumbnails_dir,
     )
     return {name: make() for name, make in factories.items()}

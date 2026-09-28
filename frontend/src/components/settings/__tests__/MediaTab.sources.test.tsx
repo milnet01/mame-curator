@@ -29,6 +29,8 @@ function media(
     fetch_videos: false,
     cache_dir: "/x",
     snaps_dir: "/x/snaps",
+    esde_media_dir: null,
+    retroarch_thumbnails_dir: null,
     arcadedb_rate_limit_per_min: 30,
     mobygames_rate_limit_per_min: 5,
     sources: ["libretro", "arcadeDB"],

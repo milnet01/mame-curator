@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Added — Use the artwork ES-DE or RetroArch already downloaded (mame-curator-1126)
+
+Settings → Media gains two optional folders: ES-DE's downloaded_media
+folder for MAME, and RetroArch's thumbnails folder for your MAME
+playlist. Box art, title screens and screenshots found there are shown
+first, straight from disk, before anything is downloaded. Any tool that
+lays its folder out the same way works. A config that lists its art
+sources keeps its list; switch the two new sources on in Settings.
+
 ## [1.3.0] - 2026-09-28
 
 **Theme:** a cart and review workflow, more cover-art sources, Help pages, and a safer local server.

@@ -115,6 +115,9 @@ async def media_proxy(
         snap_dir=world.config.media.snaps_dir / "snap",
         # mame-curator-1105: read the key from the config's data dir.
         secrets_dir=world.data_dir / "secrets",
+        # mame-curator-1126: art ES-DE / RetroArch already scraped.
+        esde_media_dir=world.config.media.esde_media_dir,
+        retroarch_thumbnails_dir=world.config.media.retroarch_thumbnails_dir,
     )
     # `kind` is one of boxart/title/snap here (video short-circuited above,
     # invalid kinds rejected above) — narrow the untyped route param to Kind.
@@ -178,6 +181,9 @@ def media_sources(request: Request, world: WorldState = Depends(get_world)) -> S
         snap_dir=world.config.media.snaps_dir / "snap",
         # mame-curator-1105: read the key from the config's data dir.
         secrets_dir=world.data_dir / "secrets",
+        # mame-curator-1126: art ES-DE / RetroArch already scraped.
+        esde_media_dir=world.config.media.esde_media_dir,
+        retroarch_thumbnails_dir=world.config.media.retroarch_thumbnails_dir,
     )
     configured = world.config.media.sources
     ordered = [n for n in configured if n in sources]

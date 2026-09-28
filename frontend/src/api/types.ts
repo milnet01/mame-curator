@@ -115,6 +115,9 @@ export interface MediaConfig {
   cache_dir: string;
   // mame-curator-1081 — progettoSnaps pack root; the source reads snaps_dir/snap
   snaps_dir: string;
+  // mame-curator-1126 — folders another tool already filled with artwork
+  esde_media_dir: string | null;
+  retroarch_thumbnails_dir: string | null;
   arcadedb_rate_limit_per_min: number;
   mobygames_rate_limit_per_min: number;
   // P10 chunk 7 — fallback source order (see api/schemas.py MediaConfig.sources)
