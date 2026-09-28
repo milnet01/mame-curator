@@ -2419,6 +2419,15 @@ P14 (per-game review state).
   a paid key, so build the cover parse from MobyGames' published API
   documentation, say plainly that it is unverified against the live
   service, and leave it switched off unless a key is present.
+  Licensing (2026-09-28, user asked whether accepting donations clashes
+  with MobyGames' non-commercial Hobbyist/Bundle terms): keep
+  bring-your-own-key. The key's terms bind its holder; the app never
+  ships a key, never fetches on anyone's behalf, never gates MobyGames
+  behind donations, and never redistributes its images. When this ships,
+  the key field says the key is the user's own and falls under
+  MobyGames' terms. MobyGames' API/terms pages refused automated reads
+  (403); its subscribe page lists a free application for researchers and
+  not-for-profits.
   **Layman:** MobyGames knows your key but can't pull a cover image yet — that last step needs a real key to confirm the data format. Finish it once a key is available.
   Kind: implement.
   Source: in-session-2026-07-01 (P10 chunk 6 — user elected "key-handling now, fetch later").
