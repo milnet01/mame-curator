@@ -631,6 +631,7 @@ export const SetupCheckSchema = z
     reference_files: SetupReferenceFilesSchema,
     cloneof_map_size: z.number().int().nonnegative(),
     retroarch_configured: z.boolean(),
+    setup_required: z.boolean(),
   })
   .strict();
 

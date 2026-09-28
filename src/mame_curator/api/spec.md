@@ -73,7 +73,9 @@ readable at startup.
   lifespan: `machines` is empty, `setup_required` is `True`, and the rest of
   world construction runs unchanged so every field is populated. Any other
   exception still propagates — the catch names classes for that reason
-  (mame-curator-1095 § 4.2, INV-7 / INV-8).
+  (mame-curator-1095 § 4.2, INV-7 / INV-8). `GET /api/setup/check` reports
+  the flag as `SetupCheck.setup_required`, the page's signal that an empty
+  library is setup rather than a filter result.
 - **`replace_world(*, base, ...)`** — builds a *new* world from `base` with
   selected fields swapped. It is the only mutation path. Recompute triggers:
   - `filter_result` is re-run **only** when `config`, `overrides`, or

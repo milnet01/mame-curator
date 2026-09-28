@@ -272,7 +272,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/api/test_mame_curator_1083_origin_guard.py. 798 → 811.
 # Bumped 2026-09-28 (1.3.0 pre-flight — recipe missed three version
 # spots): +3 pytest in tests/docs/test_version_lockstep.py. 811 → 814.
-EXPECTED_PYTEST_DECLARATIONS = 814
+# Bumped 2026-09-28 (mame-curator-1095 step 6 — setup_required on SetupCheck):
+# +2 pytest in tests/api/test_setup_mode.py. 814 → 816.
+EXPECTED_PYTEST_DECLARATIONS = 816
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

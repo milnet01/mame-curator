@@ -508,6 +508,8 @@ export interface SetupCheck {
   reference_files: SetupReferenceFiles;
   cloneof_map_size: number;
   retroarch_configured: boolean;
+  /** mame-curator-1095: the DAT could not be read at startup. */
+  setup_required: boolean;
 }
 
 export interface AppUpdateInfo {

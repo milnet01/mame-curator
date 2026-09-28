@@ -128,3 +128,14 @@ def test_dat_change_requests_restart(setup_mode_client: Any, mini_dat: Path) -> 
 
     assert response.status_code == 200, response.text
     assert response.json()["restart_required"] is True
+
+
+def test_setup_check_reports_setup_mode(setup_mode_client: Any) -> None:
+    """INV-8's SPA half: /api/setup/check carries ``setup_required``, the
+    one signal the page has that the empty library is setup, not a filter."""
+    body = setup_mode_client.get("/api/setup/check").json()
+    assert body["setup_required"] is True
+
+
+def test_setup_check_reports_normal_mode(client: Any) -> None:
+    assert client.get("/api/setup/check").json()["setup_required"] is False

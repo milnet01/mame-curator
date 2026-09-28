@@ -84,6 +84,7 @@ def setup_check(world: WorldState = Depends(get_world)) -> SetupCheck:
         ),
         cloneof_map_size=cloneof_map_size,
         retroarch_configured=retroarch_configured,
+        setup_required=world.setup_required,
     )
 
 

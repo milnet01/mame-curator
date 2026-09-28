@@ -44,7 +44,7 @@ land before its implementation, per the project's TDD default.
    **verify:** `uv run pytest tests/api/test_setup_mode.py` fully green
    (satisfies INV-9, INV-10).
 
-6. `setup_required` on `SetupCheck` in `api/schemas_setup.py`, populated
+6. **[done]** `setup_required` on `SetupCheck` in `api/schemas_setup.py`, populated
    in `routes/stubs.py::setup_check`; mirrored in
    `frontend/src/api/schemas.ts` and `types.ts`. → **verify:**
    `python3 tools/check_api_types_sync.py` exits 0 and
