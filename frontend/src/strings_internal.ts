@@ -731,6 +731,9 @@ export const strings = {
       // FP21-J / FP22-D: typed launch_game errors lifted out of bare HTTPException.
       retroarch_not_configured:
         "RetroArch is not configured. Set paths.retroarch and paths.retroarch_core under Settings → Paths, then restart.",
+      // mame-curator-1083: the cross-site guard refused a browser request.
+      cross_site_blocked:
+        "Blocked a request that came from another website. Open MAME Curator from its own address (http://127.0.0.1:8080 by default) and try again.",
       rom_file_not_found:
         "The ROM file is missing on disk. Run a curated Copy first so the .zip is in your destination folder.",
       validation_error:

@@ -297,7 +297,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     # uvicorn.run, not here. This catch is defence-in-depth in case a
     # future refactor moves validation up into the factory body.
     try:
-        app = create_app(config_path)
+        app = create_app(config_path, bind_host=host)
     except (ConfigError, ParserError, FilterError) as exc:
         err_console.print(f"[red]error:[/red] failed to create app: {escape(str(exc))}")
         return 1

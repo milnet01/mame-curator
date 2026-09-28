@@ -29,7 +29,9 @@ not the launch wiring (see `cli/spec.md`). The long-form design is
 
 ## App factory + lifespan
 
-`create_app(config_path: Path) -> FastAPI` builds a configured instance.
+`create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI`
+builds a configured instance; `bind_host` feeds the cross-site guard
+(§ Cross-site guard).
 The async **lifespan** populates `app.state` once at startup:
 
 | `app.state.*` | Type | Built from |
@@ -158,6 +160,7 @@ class vars). `install_handlers` registers three handlers:
 | `MediaSourceUnknownError` | `media_source_unknown` | 422 |
 | `RetroArchNotConfiguredError` | `retroarch_not_configured` | 422 |
 | `RomFileNotFoundError` | `rom_file_not_found` | 404 |
+| `CrossSiteBlockedError` (rendered by `OriginGuard`) | `cross_site_blocked` | 403 |
 | (`ApiException` base / fallback) | `internal` | 500 |
 | (request-validation handler) | `validation_error` | 422 |
 
@@ -334,6 +337,33 @@ All FS browsing crosses `api/fs.py`:
   exposed through a shipped route; their `MediaRateLimited` is a
   `media`-internal exception (not an `ApiException`) and does not reach the
   error envelope today.
+
+## Cross-site guard
+
+mame-curator-1083. The API authenticates nothing and binds loopback, so
+the risk it guards against is a hostile page in the user's own browser.
+`OriginGuard` (`api/origin_guard.py`) is a pure ASGI middleware
+installed by `create_app`, ahead of routing. It judges **browser
+requests only** — those carrying `Origin` or `Sec-Fetch-Site`; the CLI,
+curl and test clients send neither and pass. A refusal is a `403`
+`cross_site_blocked` envelope.
+
+A hostname is **local** when it is `localhost`, a loopback IP, or the
+address `serve` binds (`create_app(..., bind_host=)`).
+
+1. **Host (every method).** The `Host` header must name a local host or
+   be an IP literal. This stops DNS rebinding, which needs a name: an IP
+   cannot be re-pointed.
+2. **Origin (POST / PUT / PATCH / DELETE).** When `Origin` is present,
+   its hostname must be local or equal the `Host` hostname. `null`
+   is refused. Any loopback port passes, so the Vite dev server
+   (`localhost:5173`, proxying with `changeOrigin`) works.
+3. **Fetch metadata (unsafe methods without `Origin`).** `Sec-Fetch-Site`
+   must be `same-origin` or `none`.
+
+Cross-site reads pass: without CORS headers the page cannot read the
+response, and a GET changes nothing. Remote access beyond this stays out
+of scope (§ Out of scope).
 
 ## SPA fallback
 

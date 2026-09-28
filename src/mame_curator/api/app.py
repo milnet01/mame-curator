@@ -21,6 +21,7 @@ from starlette.types import Scope
 from mame_curator._resources import frontend_dist
 from mame_curator.api.errors import install_handlers
 from mame_curator.api.jobs import JobManager
+from mame_curator.api.origin_guard import OriginGuard
 from mame_curator.api.routes import router as api_router
 from mame_curator.api.state import build_world
 from mame_curator.media import SourceDisabledFlag, TokenBucket, _build_user_agent
@@ -91,8 +92,12 @@ class _SPAStaticFiles(StaticFiles):
         return response
 
 
-def create_app(config_path: Path) -> FastAPI:
-    """Build a configured FastAPI application instance."""
+def create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI:
+    """Build a configured FastAPI application instance.
+
+    ``bind_host`` is the address ``serve`` listens on; the cross-site guard
+    trusts it alongside loopback (mame-curator-1083).
+    """
     config_path = Path(config_path)
 
     @asynccontextmanager
@@ -185,6 +190,7 @@ def create_app(config_path: Path) -> FastAPI:
 
     app = FastAPI(title="MAME Curator", version="0.0.1", lifespan=lifespan)
     install_handlers(app)
+    app.add_middleware(OriginGuard, bind_host=bind_host)
     app.include_router(api_router)
     # Mount the SPA bundle on / when `frontend/dist/` is present (production
     # path). The mount is registered AFTER the API router so /api/* and

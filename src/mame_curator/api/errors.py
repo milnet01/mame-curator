@@ -220,7 +220,19 @@ class RomFileNotFoundError(ApiException):
     status_code = 404
 
 
-def _render(exc: ApiException) -> JSONResponse:
+class CrossSiteBlockedError(ApiException):
+    """403 — a browser request from another site, or via a rebound hostname.
+
+    mame-curator-1083. Raised by nothing: ``OriginGuard`` runs outside
+    the exception middleware and renders it itself via ``render_error``.
+    """
+
+    code = "cross_site_blocked"
+    status_code = 403
+
+
+def render_error(exc: ApiException) -> JSONResponse:
+    """Render ``exc`` as an ``ApiErrorBody`` response."""
     body = ApiErrorBody(detail=exc.detail, code=exc.code, fields=exc.fields)
     return JSONResponse(status_code=exc.status_code, content=body.model_dump(mode="json"))
 
@@ -231,7 +243,7 @@ def install_handlers(app: FastAPI) -> None:
     async def _api_exception_handler(_: Request, exc: Exception) -> JSONResponse:
         if not isinstance(exc, ApiException):  # pragma: no cover - guard
             raise exc
-        return _render(exc)
+        return render_error(exc)
 
     async def _fallback_exception_handler(_: Request, exc: Exception) -> JSONResponse:
         logger.exception("unhandled API error", exc_info=exc)

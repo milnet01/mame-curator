@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Security — Other websites can no longer change the app's settings (mame-curator-1083)
+
+The local server now refuses browser requests that come from another
+site, and requests addressed to a web name that is not this machine
+(which blocks "DNS rebinding", where an attacker's domain is pointed at
+127.0.0.1). Your own browser tab, the dev server, the command line and
+scripts work as before. A blocked request shows "Blocked a request that
+came from another website".
+
 ### 2026-09-28 Changed — Frontend on its dependencies' new major versions (mame-curator-1125)
 
 jest-dom 7, jsdom 30, vitest and @vitest/coverage-v8 5, framer-motion 13
