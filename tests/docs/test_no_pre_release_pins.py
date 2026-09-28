@@ -37,6 +37,9 @@ def _python_pins() -> list[tuple[str, str]]:
     for extra, specs in data["project"].get("optional-dependencies", {}).items():
         for spec in specs:
             pins.append((f"pyproject.toml [optional-dependencies.{extra}]:{spec}", spec))
+    for group, specs in data.get("dependency-groups", {}).items():
+        for spec in specs:
+            pins.append((f"pyproject.toml [dependency-groups.{group}]:{spec}", spec))
     return pins
 
 

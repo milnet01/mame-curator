@@ -88,7 +88,7 @@ If you want to hack on the SPA itself (HMR, Vite dev server):
 ```bash
 git clone https://github.com/milnet01/mame-curator.git
 cd mame-curator
-uv sync --extra dev
+uv sync
 uv run pre-commit install
 ( cd frontend && npm install )
 ./scripts/dev.sh                  # backend :8080 + Vite :5173 (HMR)

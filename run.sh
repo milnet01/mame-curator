@@ -67,8 +67,9 @@ fi
 
 echo "Syncing Python deps via uv..."
 # --inexact: install what the app needs, but never uninstall anything
-# else. A plain sync strips a developer's `--extra dev` tools.
-uv sync --inexact --quiet
+# else, so a developer's own tools survive a launch.
+# --no-dev: end users do not need the test and lint tools.
+uv sync --inexact --no-dev --quiet
 
 # ---- 4. config.yaml — interactive setup if missing -------------------
 

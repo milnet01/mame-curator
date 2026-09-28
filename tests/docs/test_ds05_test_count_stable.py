@@ -257,7 +257,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-09-27 (mame-curator-1099 — driver status from listxml): +4
 # pytest declarations in tests/{parser,api,filter}/test_mame_curator_1099_*.py.
 # 786 → 790.
-EXPECTED_PYTEST_DECLARATIONS = 790
+# Bumped 2026-09-28 (mame-curator-1106 — dev dependency group): +1 pytest
+# declaration in tests/docs/test_dev_dependency_group.py. 790 → 791.
+EXPECTED_PYTEST_DECLARATIONS = 791
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

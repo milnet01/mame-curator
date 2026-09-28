@@ -37,11 +37,11 @@ dependencies = [
     "platformdirs>=4.11",       # cli/ — per-user config/data/log locations
 ]
 
-# Per coding standards §8 "Phase-staged dependency declaration": runtime deps
-# for not-yet-implemented phases live here until the importing code ships.
-# Promote a dep into [project.dependencies] in the same commit as its first
-# `import`.
-[project.optional-dependencies]
+# mame-curator-1106: dev tools are a dependency group, not an extra. uv
+# installs the `dev` group by default, so a plain `uv sync` keeps them;
+# as an extra, that exact sync uninstalled them. The launchers pass
+# --no-dev so end users never download them.
+[dependency-groups]
 dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",

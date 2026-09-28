@@ -8,7 +8,7 @@ issues are welcome — this file is the short guide for getting a change in.
 ```bash
 git clone https://github.com/milnet01/mame-curator.git
 cd mame-curator
-uv sync --extra dev
+uv sync
 uv run pre-commit install
 ( cd frontend && npm install )
 ```

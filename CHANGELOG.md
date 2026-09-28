@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Changed — Developer tools move to a `dev` dependency group (mame-curator-1106)
+
+Contributors now set up with a plain `uv sync`; the old
+`uv sync --extra dev` fails because the extra no longer exists. A plain
+sync used to uninstall mypy, ruff and pytest; it now keeps them. The
+`run.sh` / `run.bat` launchers pass `--no-dev`, so end users do not
+download the test and lint tools.
+
 ### 2026-09-28 Changed — Frontend build no longer warns about the entry chunk's size (mame-curator-1108)
 
 Vite's raw-size warning now fires at 700 kB instead of 500 kB. The

@@ -995,7 +995,7 @@ wave lands.
   lesson is the one this bullet already carried: the user's one-line
   observation (a port number) outperformed two rounds of reading.
 
-- 📋 [mame-curator-1106] **Move dev tools from the `dev` extra to a `[dependency-groups]` dev group.**
+- ✅ [mame-curator-1106] **Move dev tools from the `dev` extra to a `[dependency-groups]` dev group.**
   A plain `uv sync` is an exact sync that excludes extras, so it strips
   mypy, ruff, pytest and pytest-cov. The next `uv run` then fails in ways
   that read as broken code. uv installs the `dev` dependency group by
@@ -1005,6 +1005,12 @@ wave lands.
   end users do not download dev tools.
   Decided by the user 2026-09-26: keep the launcher fix and also move the
   dev deps.
+  Resolved (2026-09-28): [project.optional-dependencies].dev became
+  [dependency-groups].dev; ci.yml, release.yml, local-CI.sh, README,
+  CONTRIBUTING and CLAUDE.md use a plain `uv sync`; the launchers add
+  --no-dev. Verified: plain sync keeps mypy, `--extra dev` now errors, and
+  the launcher sync removes nothing. test_dev_dependency_group.py locks it,
+  and the pre-release pin test now scans dependency groups too.
   **Layman:** A common setup command quietly deletes the developer tools; this makes that command keep them.
   Kind: chore.
   Source: user-request-2026-09-26.

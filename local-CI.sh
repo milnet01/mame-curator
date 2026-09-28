@@ -40,14 +40,13 @@
 #
 # Usage:
 #   ./local-CI.sh            # run all checks against the already-installed env
-#   ./local-CI.sh --fresh    # provision first (uv sync --extra dev + npm ci),
+#   ./local-CI.sh --fresh    # provision first (uv sync + npm ci),
 #                            # exactly as CI's cold-start "Install dependencies"
 #                            # steps do, then run the checks
 #
-# Note: a plain `uv sync` (no `--extra dev`, no `--inexact`) uninstalls mypy,
-# ruff, pytest-cov et al, after which the checks below fail as if the code were
-# broken. `uv run` does not do this. Recover with `uv sync --extra dev`, or
-# just use `--fresh`.
+# Note: the dev tools are the `dev` dependency group, which a plain `uv sync`
+# installs (mame-curator-1106). `uv sync --no-dev` removes them, after which
+# the checks below fail as if the code were broken; recover with `uv sync`.
 #
 # Exit code: 0 iff every check passed; 1 otherwise. Unlike CI (which fail-fasts
 # each job on the first failing step), this script runs ALL checks and prints a
@@ -115,7 +114,7 @@ echo "Node:    $(node --version 2>/dev/null || echo '(node not found)')"
 
 # --- Optional provisioning (CI's "Install dependencies" steps) ---------------
 if [[ "$FRESH" -eq 1 ]]; then
-    run "Provision backend (uv sync --extra dev)" uv sync --extra dev
+    run "Provision backend (uv sync)" uv sync
     run_in frontend "Provision frontend (npm ci)" npm ci
 fi
 

@@ -32,7 +32,7 @@ repos:
     rev: v2.1.0
     hooks:
       - id: mypy
-        # Floors mirror pyproject.toml [project.optional-dependencies].dev +
+        # Floors mirror pyproject.toml [dependency-groups].dev +
         # [project.dependencies]. DS03 R1: previously drifted (pydantic>=2.10
         # vs project >=2.13; httpx>=0.27 vs project >=0.28).
         additional_dependencies:

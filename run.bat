@@ -50,10 +50,11 @@ REM ---- 3. uv sync -------------------------------------------------------
 
 echo Syncing Python deps via uv...
 REM --inexact: install what the app needs, but never uninstall anything
-REM else. A plain sync strips a developer's `--extra dev` tools.
+REM else, so a developer's own tools survive a launch.
+REM --no-dev: end users do not need the test and lint tools.
 REM `call` on every uv line: without it, a uv installed as a .cmd or .bat
 REM wrapper would end this script instead of returning to it.
-call uv sync --inexact --quiet
+call uv sync --inexact --no-dev --quiet
 
 REM ---- 4. config.yaml - interactive setup if missing --------------------
 

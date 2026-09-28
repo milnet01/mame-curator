@@ -26,7 +26,7 @@ For shipped status and what's next, see [`ROADMAP.md`](ROADMAP.md) and [`CHANGEL
 
 ```bash
 # Setup
-uv sync --extra dev && uv run pre-commit install
+uv sync && uv run pre-commit install
 
 # Full CI mirror — runs every check .github/workflows/ci.yml runs, in the
 # same order (backend gates + api-type-sync + frontend + gitleaks). Keep it
@@ -46,17 +46,14 @@ uv run mame-curator filter --help
 uv run mame-curator copy --help
 ```
 
-**Trap — a plain `uv sync` strips the dev tools.** It is an exact sync, so
-it uninstalls everything outside the runtime set: `mypy`, `ruff`, `pytest`,
-`pytest-cov`. The next `uv run mypy` then finds a copy outside the project
-that cannot see `fastapi`, and `uv run pytest` dies on the `--cov` args in
-`pyproject.toml`'s addopts. It reads as broken code, not as an environment
-change. `uv run` itself does not strip, and `run.sh` / `run.bat` sync with
-`--inexact` so launching the app is safe. Recover with:
-
-```bash
-uv sync --extra dev
-```
+**The dev tools are the `dev` dependency group** (mame-curator-1106), which
+a plain `uv sync` installs. The old `uv sync --extra dev` now fails: there is
+no such extra. **Trap — `uv sync --no-dev` strips them.** The next
+`uv run mypy` then finds a copy outside the project that cannot see
+`fastapi`, and `uv run pytest` dies on the `--cov` args in `pyproject.toml`'s
+addopts. It reads as broken code, not as an environment change. `run.sh` /
+`run.bat` sync with `--inexact --no-dev`, so launching the app installs no
+dev tools and removes none. Recover with a plain `uv sync`.
 
 ## Architecture
 
