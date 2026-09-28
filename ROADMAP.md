@@ -2516,6 +2516,16 @@ P14 (per-game review state).
   Design waits on that answer. Likely a `MediaSource` like the ES-DE one
   (mame-curator-1126).
   User's install (2026-09-28): /mnt/Games/Scripts/Linux/RetroDB/.
+  Survey (2026-09-28, read-only, no reply yet from the RetroDB session):
+  RetroDB's database (database/roms.db, SQLite) holds 0 games in every
+  arcade system (mame, arcade, fbneo, cps1-3, neogeo); only neogeocd has
+  content. Games are keyed by games.id; there is no MAME short-name
+  column (only the basename of rom_path could stand in). Art lives under
+  static/images/{boxart,boxart_3d,screenshots,fanart,videos} named
+  <id>_<source>..., mostly .webp; no marquees. Its arcade-relevant art
+  is imported from ES-DE, which 1126 now reads directly. JSON routes
+  need a login session. A source built today would return nothing; value
+  depends on RetroDB gaining arcade games and a short-name key.
   **Layman:** Your RetroDB game database can supply artwork too, so the app can pull pictures from it.
   Kind: feature.
   Source: user-request-2026-09-28.
@@ -2822,7 +2832,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: in-session-2026-09-28 (CI annotations on run for b5d9ea9).
   Lanes: ci.
 
-- 📋 [mame-curator-1128] **Give local-CI.sh a --docs mode so documentation-only pushes run the doc checks, not the whole mirror.**
+- ✅ [mame-curator-1128] **Give local-CI.sh a --docs mode so documentation-only pushes run the doc checks, not the whole mirror.**
   Since 2026-09-28 every push runs the full local-CI.sh through the
   machine-wide hook (.ants/gate.conf), because the old docs-only
   `--no-verify` skip also skipped the secret scan. local-gate.md § 6 lets
@@ -2830,6 +2840,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   flag to local-CI.sh (tests/docs, prettier on the markdown the frontend
   reads, gitleaks), then set ants.gate.docsGlob and ants.gate.docsMode in
   .ants/gate.conf. § 6.2: every pushed path must match the glob.
+  Resolved (2026-09-28, 39aa760): local-CI.sh --docs runs the
+  Markdown-reading tests plus gitleaks in 4.9 s; .ants/gate.conf sets
+  docsGlob (*.md, docs/*, .roadmap-counter) and docsMode --docs.
   **Layman:** Pushing a change that only touches documents would take seconds instead of minutes, and still be checked.
   Kind: chore.
   Source: in-session-2026-09-28 (local-gate.md § 2.1 alignment).
