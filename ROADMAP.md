@@ -9,11 +9,12 @@
 > MAME Curator project. Shipped work lives in
 > [`CHANGELOG.md`](CHANGELOG.md); this file shows only what's next.
 >
-> **Next up** (set 2026-09-28): finish 1125 (framer-motion 13, then
-> typescript 7, then react-router 8). 1121 waits until after
-> 2026-10-19. 1095 (desktop bundles) is paused; 1079 is blocked until a
-> real MobyGames API key is available; 1039 (UI polish + themes) needs
-> the user's scope first.
+> **Next up** (set 2026-09-28): every open item this round, in this order:
+> 1083 (cross-site protection), 1095 (desktop bundles, resuming at
+> plan step 6), 1010 (self-update, after 1095), 1039 (polish plus
+> Galaga, Donkey Kong and CPS-2 themes), 1080 (react-i18next, ES/FR/DE
+> machine-seeded), 1079 (MobyGames from its published docs, no key),
+> 1007 (contribute artwork). 1121 waits until after 2026-10-19.
 >
 > **For non-technical readers (vibe coders welcome).** Each item has a
 > `Layman:` line — one plain-English sentence describing what the
@@ -574,7 +575,7 @@ wave lands.
   Source: doc-layout-audit-2026-08-03.
   Lanes: docs.
 
-- 💭 [mame-curator-1093] **`docs/discovery.md` deliberately not written — do not re-raise.**
+- 🚫 [mame-curator-1093] **`docs/discovery.md` deliberately not written — do not re-raise.**
   The app-workflow Phase A output `docs/discovery.md` (problem, users,
   success criteria, stack, out-of-scope, distribution) has never existed in
   this project. The 2026-08-03 doc-layout audit flagged it as a gap; the
@@ -584,6 +585,9 @@ wave lands.
   equivalent content, written when it was true, is spread across
   README.md, docs/plans/phase-plan.md and docs/design.md. A future audit
   will flag this again — this bullet is the answer, not a to-do.
+  Closed (2026-09-28): dropped rather than left considered, since this
+  records a decision not to do the work. The reasoning above stands; do
+  not re-raise.
   **Layman:** A "what problem are we solving" document that the workflow normally asks for up front; we decided not to invent one after the fact.
   Kind: doc.
   Source: user-decision-2026-08-03 (doc-layout audit).
@@ -2589,6 +2593,8 @@ P14 (per-game review state).
   too please. Maybe base the themes on some popular arcade / MAME
   games").
   Dependencies: none.
+  User decision (2026-09-28): add all three new themes, Galaga, Donkey
+  Kong and CPS-2, alongside the polish pass on the existing four.
 
 ### 📚 Documentation
 
@@ -2649,7 +2655,7 @@ through.
   Dependencies: P05 ✅, FP10 ✅.
   Closed 2026-07-02 (tag P10-complete). All 11 chunks shipped + CI-green, then 3 closing-review rounds hardened the media source chain: FP32 (mame-curator-1085), FP33 (1086), FP34 (1087) — 4 HIGH + 5 MEDIUM + LOW/INFO fixed TDD across media/api/frontend/docs, severity trailing to one-liners by round 3. Audit clean throughout (allowlist-015 mypy env FP, now in .ants_review_falsepos.jsonl). Final gates: 855 backend @88% / 342 frontend vitest, all lint/type/security clean; CI green all 8 jobs. Deferred (own items): media/spec.md co-located contract → mame-curator-1058 (now unblocked, next up); MobyGames cover-URL fetch → 1079; Settings enable/disable → 1084; media.snaps_dir binding → 1081; Starlette httpx deprecation → 1082.
 
-- 💭 [mame-curator-1010] **P12 — In-app self-update + INI diff-preview UI.**
+- 📋 [mame-curator-1010] **P12 — In-app self-update + INI diff-preview UI.**
   App self-update via `updates/app.py` (version compare; snapshot
   config / overrides / sessions before update; git-pull on dev
   mode or release-download on frozen install; one-click rollback).
@@ -2670,6 +2676,8 @@ through.
   acceptance: "I do still want self update but that can be added
   later").
   Dependencies: P07 ✅ (downloads + INI refresh CLI).
+  User decision (2026-09-28): build it this round, after 1095 lands,
+  since the frozen-install update path depends on the bundles.
 
 - 📋 [mame-curator-1079] **MobyGames cover-URL parse + JSON-body caching (P10 chunk 6 deferred half).**
   P10 chunk 6 shipped the key-handling half of `MobyGamesSource`
@@ -2689,11 +2697,16 @@ through.
   last in the default fallback order, so zero user-visible regression.
   Dependencies: P10 chunk 7 (registry/orchestrator) does NOT block this;
   this can land as a post-P10 fix-pass.
+  User decision (2026-09-28): "Add support for MobyGames but
+  unfortunately, I won't be paying for it any time soon." The API needs
+  a paid key, so build the cover parse from MobyGames' published API
+  documentation, say plainly that it is unverified against the live
+  service, and leave it switched off unless a key is present.
   **Layman:** MobyGames knows your key but can't pull a cover image yet — that last step needs a real key to confirm the data format. Finish it once a key is available.
   Kind: implement.
   Source: in-session-2026-07-01 (P10 chunk 6 — user elected "key-handling now, fetch later").
 
-- 💭 [mame-curator-1080] **UI localization — translate the interface into additional languages.**
+- 📋 [mame-curator-1080] **UI localization — translate the interface into additional languages.**
   Frontend-only localization (i18n) of every visible label / message.
   Decision (2026-07-01, user): go route (a) — adopt a real i18n library
   (not the hand-rolled per-locale catalogue). All the strong React i18n
@@ -2749,6 +2762,9 @@ through.
   fork before sizing. Dependencies: none hard.
   **Layman:** Today every menu, button, and message is English only. Add the ability to display the interface in other languages (Spanish, French, German, …) with a language picker in Settings, next to the existing theme and layout pickers.
   Kind: feature.
+  User decision (2026-09-28): react-i18next, with Spanish, French and
+  German seeded by machine translation and marked as open to
+  improvement. Scheduled this round.
   Source: user-request-2026-07-01 ("Please roadmap adding support for additional languages" → clarified: translate the UI).
 
 - ✅ [mame-curator-1081] **Bind progettoSnaps source read-path to refresh-snaps --dest via a media.snaps_dir config field.**
@@ -2765,8 +2781,9 @@ through.
   Source: in-session-2026-07-01 (surfaced during P10 chunk 7 gate).
   Resolved (2026-07-03): migrated (not filtered) — added httpx2>=2.5 to dev deps. Starlette 1.2 TestClient imports `httpx2 as httpx`, so its presence silences the per-run StarletteDeprecationWarning from fastapi/testclient.py. httpx2 (2.5.0) is a real PyPI package; it coexists with the runtime media-proxy httpx>=0.28 (unaffected). Full backend gate green: 856 passed, coverage 88.12%, warning count 0.
 
-- 💭 [mame-curator-1083] **App-wide CSRF / cross-site protection for mutation routes (security-hardening pass).**
+- 📋 [mame-curator-1083] **App-wide CSRF / cross-site protection for mutation routes (security-hardening pass).**
   P10 chunk 9's PUT /api/media/sources/{name}/secret ships loopback-trust (user decision) — matching every existing mutation route (config import/restore/export, fs allowed-root grants, sessions, overrides), none of which authenticate; the app binds 127.0.0.1 by default. The realistic residual risk is a malicious page in the user's browser issuing a cross-site POST to localhost (CSRF). If addressed, it must be app-wide (a per-route token on just the secret endpoint leaves the higher-value config/fs write routes exposed) — e.g. an Origin/Referer check or a startup-printed token required on all state-changing routes. Considered, not scheduled: low priority for a single-user localhost tool. Lane: api / security.
+  User decision (2026-09-28): build it this round.
   **Layman:** The app trusts that only your own computer can reach it. If you ever expose it more widely, add a guard so a random website can't quietly change your settings.
   Kind: security.
   Source: in-session-2026-07-01 (P10 chunk-9 secret-route auth decision).
@@ -2778,9 +2795,40 @@ through.
   Source: in-session-2026-07-01 (P10 chunk 10 — deferred from the Media tab UI).
   Resolved (2026-07-04): shipped frontend-only. The readiness endpoint (GET /api/media/sources) already returned every known source with an `in_chain` flag (configured-first then unconfigured-alphabetised), so no backend change was needed — simpler than the bullet anticipated. MediaSourceRow gained a per-row toggle (checked=in_chain; onToggle add/removes from media.sources via PATCH /api/config). libretro's toggle is locked-on since MediaSourceRegistry.chain_for always re-appends it (removing it would be a no-op lie). Unconfigured known sources (in_chain=false) render in an "Available sources (off)" list below the DragReorderList, each with the same toggle (off→on appends to the chain). Chose a toggle switch over the mockup's checkbox (user pick, 2026-07-04) — the toggle subsumes a separate Enable button (shortest-correct). TDD: +9 vitest first (MediaSourceRow toggle reflects in_chain / onToggle fires / libretro locked; MediaTab renders unconfigured below + add/remove/lock). Full frontend gate green (tsc, eslint, 353 vitest). Files: MediaSourceRow.tsx, MediaTab.tsx, strings_internal.ts + 2 test files.
 
+- 📋 [mame-curator-1126] **Read artwork already scraped by ES-DE as a local media source.**
+  ES-DE (EmulationStation Desktop Edition) keeps scraped media as plain
+  files under `<ES-DE home>/downloaded_media/<system>/<type>/`. On this
+  machine the MAME folder is
+  `/mnt/Emulators/Multi-System/ES-DE/ES-DE_x64.AppImage.home/ES-DE/downloaded_media/mame`,
+  with covers, marquees, screenshots, titlescreens, videos, 3dboxes,
+  fanart, manuals, miximages and physicalmedia. Files are named after the
+  ROM file stem, which is usually the MAME short name (`10yard85.png`) but
+  sometimes a descriptive title (`1941 - Counter Attack.png`), so matching
+  needs the short name first and the description as a fallback. New
+  `MediaSource` beside LibretroSource / ProgettoSnapsSource, read-only,
+  with the ES-DE media folder set in Settings and the source off until
+  it is set. User note: "in case someone has other ways of scraping
+  items", so the source should take any folder laid out the ES-DE way,
+  not only ES-DE's own.
+  **Layman:** If you already use ES-DE, the app can show the box art, marquees, screenshots and videos ES-DE has downloaded, with no second download.
+  Kind: feature.
+  Source: user-request-2026-09-28.
+  Lanes: media, api, frontend.
+
+- 📋 [mame-curator-1127] **Use RetroDB as an artwork and metadata source.**
+  RetroDB (`/mnt/Games/Scripts/Linux/RetroDB`) is the user's sibling
+  project. How it stores or serves media, and whether it has an API this
+  app can call, is not yet known; asked the RetroDB session 2026-09-28.
+  Design waits on that answer. Likely a `MediaSource` like the ES-DE one
+  (mame-curator-1126).
+  **Layman:** Your RetroDB game database can supply artwork too, so the app can pull pictures from it.
+  Kind: feature.
+  Source: user-request-2026-09-28.
+  Lanes: media.
+
 ### 🔌 Plugins / extensions
 
-- 💭 [mame-curator-1007] **P11 — Contribute missing thumbnails back to libretro-thumbnails.**
+- 📋 [mame-curator-1007] **P11 — Contribute missing thumbnails back to libretro-thumbnails.**
   When the user has a CC-compatible image for a game the upstream
   repo doesn't have, generate a staged-files-plus-PR flow so the
   artwork can be contributed back. Default manual-PR path (`git
@@ -2800,6 +2848,7 @@ through.
   this github project?").
   Dependencies: P05 ✅; P10 (more useful alongside expanded local
   sources).
+  User decision (2026-09-28): build it this round.
 
 ---
 
