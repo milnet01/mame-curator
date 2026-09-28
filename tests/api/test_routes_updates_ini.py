@@ -148,3 +148,91 @@ def test_an_unset_path_lands_in_data_ini_and_the_config_gains_it(
     assert landed.read_bytes() == upstream["mature.ini"]
     assert world.config.paths.mature == landed
     assert str(landed) in world.config_path.read_text(encoding="utf-8")
+
+
+class _Held:
+    """Stands in for an INI lock another request is holding."""
+
+    def locked(self) -> bool:
+        return True
+
+
+def test_preview_and_apply_refuse_while_another_runs(
+    client: Any, winner: str, upstream: dict[str, bytes]
+) -> None:
+    """review-code 2026-09-28 L2-1 — preview rewrites the staging folder
+    apply reads, so neither may run while the other does."""
+    client.post("/api/updates/ini/preview")
+    client.app.state.ini_lock = _Held()
+    for path in ("/api/updates/ini/preview", "/api/updates/ini/apply"):
+        response = client.post(path)
+        assert response.status_code == 409, path
+        assert response.json()["code"] == "update_in_progress"
+
+
+def test_a_failed_preview_spends_the_old_one(
+    client: Any, winner: str, upstream: dict[str, bytes], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """L2-4 — a failed preview deletes its files, so apply must not use its
+    predecessor's record of them."""
+    import mame_curator.api.routes.updates_ini as ini_routes
+    from mame_curator.parser import INIError
+
+    assert client.post("/api/updates/ini/preview").status_code == 200
+
+    def unreadable(**_kw: Any) -> None:
+        raise INIError("bad file")
+
+    monkeypatch.setattr(ini_routes, "ini_context_fields", unreadable)
+    assert client.post("/api/updates/ini/preview").json()["code"] == "ini_parse_failed"
+    assert client.post("/api/updates/ini/apply").json()["code"] == "ini_preview_missing"
+
+
+def test_a_failed_write_puts_back_what_it_replaced(
+    client: Any,
+    winner: str,
+    upstream: dict[str, bytes],
+    catver_ini: Path,
+    mature_ini: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """L2-2 — the INIs are all replaced or none are."""
+    import mame_curator.api.routes.updates_ini as ini_routes
+
+    upstream["catver.ini"] += b"\n"
+    catver_before, mature_before = catver_ini.read_bytes(), mature_ini.read_bytes()
+    assert client.post("/api/updates/ini/preview").json()["changed_files"] == [
+        "catver.ini",
+        "mature.ini",
+    ]
+    from mame_curator._atomic import atomic_write_bytes as real
+
+    calls: list[Path] = []
+
+    def second_write_fails(path: Path, data: bytes) -> None:
+        calls.append(path)
+        if len(calls) == 2:
+            raise OSError(28, "No space left on device")
+        real(path, data)
+
+    monkeypatch.setattr(ini_routes, "atomic_write_bytes", second_write_fails)
+    with pytest.raises(OSError):
+        client.post("/api/updates/ini/apply")
+    monkeypatch.setattr(ini_routes, "atomic_write_bytes", real)
+    assert catver_ini.read_bytes() == catver_before
+    assert mature_ini.read_bytes() == mature_before
+
+
+def test_config_yaml_is_snapshotted_before_apply_rewrites_it(
+    client: Any, winner: str, upstream: dict[str, bytes]
+) -> None:
+    """L2-3 — api/spec.md: a snapshot precedes every config mutation."""
+    assert client.patch("/api/config", json={"paths": {"mature": None}}).status_code == 200
+    world = client.app.state.world
+    before = world.config_path.read_bytes()
+    snaps = world.data_dir / "snapshots"
+    had = set(snaps.iterdir()) if snaps.exists() else set()
+    client.post("/api/updates/ini/preview")
+    assert client.post("/api/updates/ini/apply").status_code == 200
+    new = set(snaps.iterdir()) - had
+    assert any((s / "config.yaml").read_bytes() == before for s in new)

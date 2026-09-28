@@ -69,6 +69,7 @@ def init_update_state(app: FastAPI) -> None:
     )
     app.state.ini_sources = INI_DEFAULT_SOURCES
     app.state.ini_staged = None
+    app.state.ini_lock = asyncio.Lock()
     app.state.started_commit = (
         head_commit(app.state.update_repo) if install_kind() == "git" else None
     )

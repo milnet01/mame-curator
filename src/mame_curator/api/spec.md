@@ -105,13 +105,15 @@ lock-guarded routes are:
 `POST /api/config/import`, `POST`/`DELETE /api/fs/allowed-roots`,
 `POST`/`DELETE /api/overrides`, `POST`/`DELETE /api/sessions`,
 `POST /api/sessions/{name}/activate`, `POST /api/sessions/_deactivate`,
-`PUT /api/games/{name}/notes`, and `POST /api/state` /
-`DELETE /api/state/{short_name}`.
+`PUT /api/games/{name}/notes`, `POST /api/state` /
+`DELETE /api/state/{short_name}`, and `POST /api/updates/ini/apply`
+(mame-curator-1010), which also holds `app.state.ini_lock` so it never runs
+beside an INI preview.
 
 (The `app.py` comment enumerates the guarded routes in three waves —
 FP20-C's five, FP25-A's seven, and P14's two (`POST`/`DELETE /api/state`) —
-for fourteen total (5 + 7 + 2). New world-mutating routes MUST acquire the
-lock.)
+for fourteen total (5 + 7 + 2). It predates the INI apply route. New
+world-mutating routes MUST acquire the lock.)
 
 ## Error envelope
 
@@ -317,9 +319,10 @@ All FS browsing crosses `api/fs.py`:
   `SnapshotNotFoundError` 404). Old snapshots are pruned.
 - The restore route's targets are `config.yaml`, `overrides.yaml`,
   `sessions.yaml`, `data/notes.json` and `data/state.yaml`, keyed by bare
-  name. It reloads each into the world, review state included, so an update
-  snapshot restores whole and the next review write cannot save stale
-  state over the restored file (mame-curator-1010 §4.3 step 2).
+  name. It first snapshots the current state of all five, so a restore can
+  be undone. It then reloads each into the world, review state included,
+  so an update snapshot restores whole and the next review write cannot
+  save stale state over the restored file (mame-curator-1010 §4.3 step 2).
 - `export` returns a `ConfigExportBundle`; `import` validates + applies a
   bundle (invalid → `ConfigError` 422).
 
@@ -406,10 +409,15 @@ activity log.
   without a recorded `previous_commit` that is a full commit id, and
   rewrites the record so a second rollback is refused.
 - `POST /api/updates/ini/preview` stages the INIs in `data/ini-staging/`
-  and changes neither the live files nor the world (INV-11). A staged INI
+  and changes neither the live files nor the world (INV-11). It spends any
+  earlier preview first. Preview and apply share `app.state.ini_lock`: while
+  either runs, both answer `409 update_in_progress`. A staged INI
   that does not parse answers `502 ini_parse_failed`.
 - `POST /api/updates/ini/apply` answers `409 ini_preview_missing` without a
   staged preview (INV-12); otherwise it applies exactly what was previewed.
+  It replaces every changed INI or, on a failed write, puts back all of
+  them, and snapshots `config.yaml` into `data/snapshots/` before writing a
+  new INI path into it.
 - `UpdateError` renders as the error envelope with its own `code` and
   `status`. `detail` stays one line: a failing command's first output line
   follows it after a colon, and the whole output goes to the log.

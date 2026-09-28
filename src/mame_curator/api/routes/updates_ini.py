@@ -14,6 +14,7 @@ import shutil
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import yaml
 from fastapi import APIRouter, Request
@@ -63,8 +64,23 @@ def _sha(path: Path | None) -> str:
 async def ini_preview(request: Request) -> IniPreview:
     """Stage fresh INI files and report the winners they would add and remove."""
     state = request.app.state
+    async with _ini_turn(state):
+        return await _preview(state)
+
+
+def _ini_turn(state: Any) -> asyncio.Lock:
+    """Preview rewrites the staging folder apply reads: one of them at a time."""
+    lock: asyncio.Lock = state.ini_lock
+    if lock.locked():
+        raise UpdateError("update_in_progress", 409, "an INI refresh is already running")
+    return lock
+
+
+async def _preview(state: Any) -> IniPreview:
     world: WorldState = state.world
     staging = world.data_dir / "ini-staging"
+    # Whatever happens next, the previous preview's files are gone.
+    state.ini_staged = None
     shutil.rmtree(staging, ignore_errors=True)
     report = await refresh_inis(
         dest_dir=staging, client=state.updates_client, sources=state.ini_sources
@@ -75,12 +91,14 @@ async def ini_preview(request: Request) -> IniPreview:
     changed = tuple(sorted(n for n in report.updated if _differs(staging / n, live.get(n))))
     effective = {n: (staging / n if n in changed else live.get(n)) for n in INI_CONFIG_FIELDS}
     try:
-        fields = ini_context_fields(
-            **{INI_CONFIG_FIELDS[name]: path for name, path in effective.items()}
+        fields = await asyncio.to_thread(
+            lambda: ini_context_fields(
+                **{INI_CONFIG_FIELDS[name]: path for name, path in effective.items()}
+            )
         )
     except ParserError as e:
         shutil.rmtree(staging, ignore_errors=True)
-        raise UpdateError("ini_parse_failed", 502, f"a downloaded INI did not parse: {e}") from e
+        raise UpdateError("ini_parse_failed", 502, f"an INI file did not parse: {e}") from e
     new_ctx = world.ctx.model_copy(update=fields)
     result = await asyncio.to_thread(
         run_filter, world.machines, new_ctx, world.config.filters, world.overrides, world.sessions
@@ -96,6 +114,24 @@ async def ini_preview(request: Request) -> IniPreview:
     return preview
 
 
+def _replace_all(targets: dict[str, Path], staging: Path) -> None:
+    """Write every staged file over its target, or put back all of them."""
+    originals = {name: t.read_bytes() if t.exists() else None for name, t in targets.items()}
+    written: list[str] = []
+    try:
+        for name, target in targets.items():
+            atomic_write_bytes(target, (staging / name).read_bytes())
+            written.append(name)
+    except OSError:
+        for name in written:
+            old = originals[name]
+            if old is None:
+                targets[name].unlink(missing_ok=True)
+            else:
+                atomic_write_bytes(targets[name], old)
+        raise
+
+
 def _patch_config_paths(config_path: Path, new_paths: dict[str, Path]) -> None:
     """Point each unset ``paths.<field>`` at its new file, as the CLI does."""
     data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
@@ -109,10 +145,10 @@ def _patch_config_paths(config_path: Path, new_paths: dict[str, Path]) -> None:
 async def ini_apply(request: Request) -> IniPreview:
     """Move the previewed files into place and swap the world to match."""
     state = request.app.state
-    staged: _Staged | None = state.ini_staged
-    if staged is None:
-        raise UpdateError("ini_preview_missing", 409, "preview the INI refresh first")
-    async with state.world_lock:
+    async with _ini_turn(state), state.world_lock:
+        staged: _Staged | None = state.ini_staged
+        if staged is None:
+            raise UpdateError("ini_preview_missing", 409, "preview the INI refresh first")
         world: WorldState = state.world
         staging = world.data_dir / "ini-staging"
         live = _live_paths(world)
@@ -122,14 +158,17 @@ async def ini_apply(request: Request) -> IniPreview:
             {n: p for n, p in targets.items() if live[n] is not None},
         )
         old_sha = {n: _sha(live[n]) for n in staged.changed}
-        for name, target in targets.items():
-            atomic_write_bytes(target, (staging / name).read_bytes())
+        _replace_all(targets, staging)
         unset = {INI_CONFIG_FIELDS[n]: targets[n] for n in staged.changed if live[n] is None}
         new_config = None
         if unset:
+            # api/spec.md: a snapshot precedes every config mutation.
+            snapshot_files(world.data_dir / "snapshots", {"config.yaml": world.config_path})
             _patch_config_paths(world.config_path, unset)
             new_config = load_app_config(world.config_path)
-        new_world = replace_world(base=world, config=new_config, ctx=staged.ctx, rerun_filter=True)
+        new_world = await asyncio.to_thread(
+            replace_world, base=world, config=new_config, ctx=staged.ctx, rerun_filter=True
+        )
         set_world(request, new_world)
         for name in staged.changed:
             append_activity(

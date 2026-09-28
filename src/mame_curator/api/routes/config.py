@@ -229,6 +229,8 @@ async def restore_config_snapshot(
             "notes.json": world.data_dir / "notes.json",
             "state.yaml": world.data_dir / "state.yaml",
         }
+        # The restore is itself undoable: keep what it is about to replace.
+        snapshot_files(snapshots_dir, targets)
         restore_snapshot(snapshots_dir, snap_id, targets)
 
         new_config = load_app_config(world.config_path)

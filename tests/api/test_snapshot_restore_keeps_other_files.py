@@ -91,3 +91,22 @@ def test_restoring_a_snapshot_with_review_state_reloads_it(client: Any) -> None:
     assert response.status_code == 200
     assert client.get("/api/state").json()["entries"] == {game: "reviewed"}
     assert game in state_yaml.read_text(encoding="utf-8")
+
+
+def test_restoring_first_snapshots_what_it_replaces(client: Any) -> None:
+    """review-code 2026-09-28 L2-5 — review marks made since the snapshot
+    must survive a restore somewhere, so the restore can be undone."""
+    world = client.app.state.world
+    game = next(iter(world.machines))
+    state_yaml = world.data_dir / "state.yaml"
+    snaps = world.data_dir / "snapshots"
+    old_id = snapshot_files(snaps, {"state.yaml": state_yaml})
+    assert (
+        client.post("/api/state", json={"short_name": game, "state": "reviewed"}).status_code == 200
+    )
+    marked = state_yaml.read_bytes()
+
+    assert client.post(f"/api/config/snapshots/{old_id}/restore").status_code == 200
+
+    kept = [s for s in snaps.iterdir() if s.name != old_id and (s / "state.yaml").exists()]
+    assert any((s / "state.yaml").read_bytes() == marked for s in kept)

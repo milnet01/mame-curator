@@ -2932,6 +2932,23 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-code-2026-09-28 mame-curator-1010 lane 1 (open question, settled by the orchestrator).
   Lanes: updates, api.
 
+- 📋 [mame-curator-1132] **Settings snapshot restore validates the config only after overwriting it, and never checks the snapshot id.**
+  Two pre-existing gaps in POST /api/config/snapshots/{id}/restore
+  (api/routes/config.py), found beside the mame-curator-1010 fixes.
+  1. The files are overwritten first and load_app_config runs after; a
+     snapshot whose config.yaml no longer validates raises, the world is not
+     swapped, and the next PATCH writes the stale world's config back over
+     the restored file. Validate the snapshot's config before restoring.
+  2. snap_id is never matched against the snapshot id format; `..` resolves
+     to data/ (traced harmless: notes.json and state.yaml copy onto
+     themselves). Match it against the id format anyway.
+  Not fixed in the 1010 pass: both predate it, and the first needs a
+  choice about how a snapshot from an older schema is handled.
+  **Layman:** Restoring an old settings backup could, in rare cases, fail half-way and leave the app confused.
+  Kind: review-fix.
+  Source: review-code-2026-09-28 mame-curator-1010 lane 2 (L2-8, L2-9).
+  Lanes: api.
+
 ## Considered / under research (no target date)
 
 **Theme:** post-v1 features captured during user feedback. Each is
