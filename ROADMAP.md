@@ -2815,6 +2815,18 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: in-session-2026-09-28 (local-gate.md § 2.1 alignment).
   Lanes: ci.
 
+- 📋 [mame-curator-1129] **Make ci.yml and local-CI.sh share one list of steps, or pin their legs equal with a test.**
+  local-CI.sh mirrors ci.yml by hand ("keep in lockstep"), and nothing
+  compares their legs; tests/docs only spot-checks single steps.
+  local-gate.md § 3 prefers inversion: ci.yml sets up each runner and
+  calls one repository-owned script. The OS/Python matrix makes that a
+  real change (Windows runs the script under bash). Fallback: a
+  tests/docs check that the commands in both lists match.
+  **Layman:** The checks run on your machine and the checks GitHub runs should be the same list, so one can't quietly drift from the other.
+  Kind: chore.
+  Source: in-session-2026-09-28 (ci-gate WRAPPER advisory).
+  Lanes: ci.
+
 ## Considered / under research (no target date)
 
 **Theme:** post-v1 features captured during user feedback. Each is

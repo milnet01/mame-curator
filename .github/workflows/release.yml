@@ -25,6 +25,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12", "3.13"]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -63,6 +64,7 @@ jobs:
   frontend-lint-types-test:
     name: Frontend lint, type-check, test at tag
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Mirrors ci.yml's frontend lane (see docs/specs/DS03-dependency-freshness.md
     # § Cluster G). Release pipeline re-runs every CI gate at the
     # tagged commit before the build/publish stages fire.
@@ -107,6 +109,7 @@ jobs:
   gitleaks:
     name: Secret scan at tag
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -128,6 +131,7 @@ jobs:
     name: Build sdist + wheel
     needs: [verify-ci, frontend-lint-types-test, gitleaks]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -156,6 +160,7 @@ jobs:
     name: Publish GitHub Release
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write   # required to create the GitHub Release
     steps:
