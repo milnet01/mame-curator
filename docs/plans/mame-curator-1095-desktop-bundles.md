@@ -81,13 +81,13 @@ land before its implementation, per the project's TDD default.
    `uv run pytest tests/tools/test_release_scripts.py -k datas` green
    (satisfies INV-14).
 
-10. `local-appimage.sh` — PyInstaller one-dir inside
+10. **[done]** `local-appimage.sh` — PyInstaller one-dir inside
     `python:3.13-slim-bookworm` (podman, docker fallback), AppDir assembly
     adapted from OneUp's `build-appimage.sh`, sha256-pinned `appimagetool`
     run with `--appimage-extract-and-run`. → **verify:** the script runs to
     completion and `dist/MAME_Curator-<version>-x86_64.AppImage` exists.
 
-10b. `scripts/build-smoke.sh` (spec §4.15). → **verify:**
+10b. **[done]** `scripts/build-smoke.sh` (spec §4.15). → **verify:**
     `MAME_CURATOR_BUILD_SMOKE=1 scripts/build-smoke.sh` exits 0 against
     step 10's AppImage, and exits non-zero with the sentinel's FAIL line
     against an AppImage built with `httptools` in the spec's `excludes`,
@@ -106,7 +106,7 @@ land before its implementation, per the project's TDD default.
     building a macOS bundle on Linux is impossible, not merely
     unavailable (spec §4.7); its first real run is step 14's CI.
 
-12. Run the spec's INV-13 recipe against the built AppImage — the
+12. **[done]** Run the spec's INV-13 recipe against the built AppImage — the
     clean-room self-test, then the launch and page fetch. → **verify:** it
     prints `PASS`, and the log file from step 7 exists at
     `user_log_path()`.
