@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-28
+
+**Theme:** a cart and review workflow, more cover-art sources, Help pages, and a safer local server.
+
 ### 2026-09-28 Fixed — Library cards no longer lose their borders
 
 The selected Featured tile's highlight was clipped at the top, and the
