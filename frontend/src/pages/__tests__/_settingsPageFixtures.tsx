@@ -13,7 +13,7 @@ import type { RenderOptions } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 
-import type { AppConfigResponse } from "@/api/types";
+import type { AppConfigResponse, AppUpdateInfo } from "@/api/types";
 
 // DS02 D1 — SettingsPage now calls `useSearchParams()` and therefore
 // must render inside a Router. Wrap `@testing-library/react`'s render
@@ -103,3 +103,23 @@ export const config: AppConfigResponse = {
   fs: { granted_roots: [] },
   restart_required: false,
 };
+
+/** An update-check answer; the three banner fields vary per test. */
+export function updateInfo(
+  fields: Pick<
+    AppUpdateInfo,
+    "current_version" | "latest_version" | "update_available"
+  > &
+    Partial<AppUpdateInfo>,
+): AppUpdateInfo {
+  return {
+    install_kind: "git",
+    can_apply: false,
+    notes_html: null,
+    release_url: null,
+    check_error: null,
+    restart_pending: false,
+    rollback_available: false,
+    ...fields,
+  };
+}

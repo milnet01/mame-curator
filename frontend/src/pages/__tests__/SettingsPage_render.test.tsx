@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import { SettingsPage } from "../SettingsPage";
 
-import { config, render } from "./_settingsPageFixtures";
+import { config, render, updateInfo } from "./_settingsPageFixtures";
 
 /**
  * DS05 Cluster A1 — upper-file tab-rendering tests for SettingsPage.
@@ -108,11 +108,11 @@ describe("SettingsPage — render", () => {
         config={config}
         onPatch={() => {}}
         onSnapshotRestore={() => {}}
-        updateInfo={{
+        updateInfo={updateInfo({
           current_version: "0.0.1",
           latest_version: "0.0.2",
           update_available: true,
-        }}
+        })}
       />,
     );
     await user.click(screen.getByRole("tab", { name: /^Updates$/ }));
@@ -126,11 +126,11 @@ describe("SettingsPage — render", () => {
         config={config}
         onPatch={() => {}}
         onSnapshotRestore={() => {}}
-        updateInfo={{
+        updateInfo={updateInfo({
           current_version: "0.0.1",
           latest_version: "0.0.2",
           update_available: true,
-        }}
+        })}
       />,
     );
     await user.click(screen.getByRole("tab", { name: /^Updates$/ }));
@@ -146,11 +146,11 @@ describe("SettingsPage — render", () => {
         config={config}
         onPatch={() => {}}
         onSnapshotRestore={() => {}}
-        updateInfo={{
+        updateInfo={updateInfo({
           current_version: "0.0.1",
           latest_version: null,
           update_available: false,
-        }}
+        })}
       />,
     );
     await user.click(screen.getByRole("tab", { name: /^Updates$/ }));

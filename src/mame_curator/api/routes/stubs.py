@@ -1,4 +1,4 @@
-"""R35 (setup-check) + R36 (updates-check)."""
+"""R35 (setup-check). R36 (updates-check) moved to ``routes/updates.py``."""
 
 from __future__ import annotations
 
@@ -7,16 +7,13 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends
 
-from mame_curator import __version__
 from mame_curator.api.routes._deps import get_world
 from mame_curator.api.schemas import (
-    AppUpdateInfo,
     SetupCheck,
     SetupPaths,
     SetupPathStatus,
     SetupReferenceFiles,
     SetupReferenceStatus,
-    UpdatesCheck,
 )
 from mame_curator.api.state import WorldState
 from mame_curator.parser import ParserError, parse_dat
@@ -85,16 +82,4 @@ def setup_check(world: WorldState = Depends(get_world)) -> SetupCheck:
         cloneof_map_size=cloneof_map_size,
         retroarch_configured=retroarch_configured,
         setup_required=world.setup_required,
-    )
-
-
-@router.get("/api/updates/check", response_model=UpdatesCheck)
-def updates_check() -> UpdatesCheck:
-    return UpdatesCheck(
-        app=AppUpdateInfo(
-            current_version=__version__,
-            latest_version=None,
-            update_available=False,
-        ),
-        ini=(),
     )

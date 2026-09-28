@@ -21,20 +21,6 @@ def test_route_r35_shape_setup_check(client: Any) -> None:
         assert path_key in body["paths"]
 
 
-def test_route_r36_shape_updates_check(client: Any) -> None:
-    response = client.get("/api/updates/check")
-    assert response.status_code == 200
-    body = response.json()
-    assert "app" in body
-    assert "ini" in body
-    assert body["ini"] == [], "P04 stub: ini list always empty"
-
-    app = body["app"]
-    assert "current_version" in app
-    assert app["latest_version"] is None, "P04 stub: latest_version always null"
-    assert app["update_available"] is False
-
-
 def test_setup_check_cloneof_map_size_and_listxml_status(client: Any) -> None:
     """P15 § 4.3.1: /api/setup/check exposes cloneof_map_size and the
     raw listxml status under reference_files.

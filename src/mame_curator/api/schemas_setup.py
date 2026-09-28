@@ -8,7 +8,7 @@ keep working.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -77,10 +77,44 @@ class SetupCheck(BaseModel):
 
 
 class AppUpdateInfo(BaseModel):
+    """mame-curator-1010 §4.2 — the version check's answer."""
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     current_version: str
     latest_version: str | None
     update_available: bool
+    install_kind: Literal["git", "bundle", "package"] = "package"
+    can_apply: bool = False
+    notes_html: str | None = None
+    release_url: str | None = None
+    check_error: str | None = None
+    restart_pending: bool = False
+    rollback_available: bool = False
+
+
+class UpdateApplyResult(BaseModel):
+    """mame-curator-1010 §4.3 — what apply and rollback did."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    install_kind: Literal["git", "bundle"]
+    from_version: str
+    to_version: str
+    rolled_back: bool = False
+    sync_failed: bool = False
+    restart_required: bool = False
+    snapshot_id: str | None = None
+    downloaded_path: str | None = None
+    output: str | None = None
+
+
+class IniPreview(BaseModel):
+    """mame-curator-1010 §4.6 — what a staged INI refresh would change."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    changed_files: tuple[str, ...]
+    failed: tuple[tuple[str, str], ...]
+    winners_added: tuple[str, ...]
+    winners_removed: tuple[str, ...]
 
 
 class UpdatesCheck(BaseModel):

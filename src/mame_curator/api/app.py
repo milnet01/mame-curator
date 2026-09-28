@@ -23,6 +23,7 @@ from mame_curator.api.errors import install_handlers
 from mame_curator.api.jobs import JobManager
 from mame_curator.api.origin_guard import OriginGuard
 from mame_curator.api.routes import router as api_router
+from mame_curator.api.routes.updates import init_update_state, install_update_error_handler
 from mame_curator.api.state import build_world
 from mame_curator.media import SourceDisabledFlag, TokenBucket, _build_user_agent
 
@@ -164,10 +165,13 @@ def create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI:
             capacity=mobygames_per_min,
         )
         app.state.mobygames_disabled = SourceDisabledFlag()
+        # mame-curator-1010: update lock, check cache, and the git / HTTP seams.
+        init_update_state(app)
         try:
             yield
         finally:
             await app.state.media_client.aclose()
+            await app.state.updates_client.aclose()
             jm: JobManager = app.state.job
             current = jm.current
             if current is not None:
@@ -190,6 +194,7 @@ def create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI:
 
     app = FastAPI(title="MAME Curator", version="0.0.1", lifespan=lifespan)
     install_handlers(app)
+    install_update_error_handler(app)
     app.add_middleware(OriginGuard, bind_host=bind_host)
     app.include_router(api_router)
     # Mount the SPA bundle on / when `frontend/dist/` is present (production

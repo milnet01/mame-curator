@@ -42,7 +42,13 @@ from mame_curator.api.state import (
     load_app_config,
     replace_world,
 )
-from mame_curator.filter import Overrides, Sessions, load_overrides, load_sessions
+from mame_curator.filter import (
+    Overrides,
+    Sessions,
+    load_overrides,
+    load_review_state,
+    load_sessions,
+)
 
 router = APIRouter()
 
@@ -221,6 +227,7 @@ async def restore_config_snapshot(
             "overrides.yaml": world.config_path.parent / "overrides.yaml",
             "sessions.yaml": world.config_path.parent / "sessions.yaml",
             "notes.json": world.data_dir / "notes.json",
+            "state.yaml": world.data_dir / "state.yaml",
         }
         restore_snapshot(snapshots_dir, snap_id, targets)
 
@@ -228,12 +235,14 @@ async def restore_config_snapshot(
         new_overrides = load_overrides(targets["overrides.yaml"])
         new_sessions = load_sessions(targets["sessions.yaml"])
         new_notes = _read_json_dict(targets["notes.json"])
+        new_review_state = load_review_state(targets["state.yaml"])
         new_world = replace_world(
             base=world,
             config=new_config,
             overrides=new_overrides,
             sessions=new_sessions,
             notes=new_notes,
+            review_state=new_review_state,
             rerun_filter=True,
         )
         set_world(request, new_world)

@@ -14,6 +14,7 @@ from fastapi import APIRouter
 
 from mame_curator._resources import bundle_root
 from mame_curator.api.errors import HelpTopicNotFoundError
+from mame_curator.api.markdown import render_markdown
 from mame_curator.api.schemas import HelpContent, HelpIndex, HelpTopic
 
 router = APIRouter()
@@ -73,27 +74,5 @@ def help_topic(topic: str) -> HelpContent:
         raise HelpTopicNotFoundError(f"help topic not found: {topic!r}")
     text = candidate.read_text(encoding="utf-8")
     title = _read_title(candidate)
-    html = _render_markdown(text)
+    html = render_markdown(text)
     return HelpContent(slug=topic, title=title, html=html)
-
-
-def _render_markdown(text: str) -> str:
-    try:
-        from markdown_it import MarkdownIt
-    except ImportError:
-        return _fallback_render(text)
-    md = MarkdownIt("commonmark", {"html": False})
-    rendered: str = md.render(text)
-    return rendered
-
-
-def _fallback_render(text: str) -> str:
-    """Minimal HTML rendering when markdown-it is unavailable."""
-    parts: list[str] = []
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("# "):
-            parts.append(f"<h1>{stripped[2:].strip()}</h1>")
-        elif stripped:
-            parts.append(f"<p>{stripped}</p>")
-    return "\n".join(parts)

@@ -642,6 +642,27 @@ export const AppUpdateInfoSchema = z
     current_version: z.string(),
     latest_version: z.string().nullable(),
     update_available: z.boolean(),
+    install_kind: z.enum(["git", "bundle", "package"]),
+    can_apply: z.boolean(),
+    notes_html: z.string().nullable(),
+    release_url: z.string().nullable(),
+    check_error: z.string().nullable(),
+    restart_pending: z.boolean(),
+    rollback_available: z.boolean(),
+  })
+  .strict();
+
+export const UpdateApplyResultSchema = z
+  .object({
+    install_kind: z.enum(["git", "bundle"]),
+    from_version: z.string(),
+    to_version: z.string(),
+    rolled_back: z.boolean(),
+    sync_failed: z.boolean(),
+    restart_required: z.boolean(),
+    snapshot_id: z.string().nullable(),
+    downloaded_path: z.string().nullable(),
+    output: z.string().nullable(),
   })
   .strict();
 

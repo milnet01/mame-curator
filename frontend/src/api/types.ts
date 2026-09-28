@@ -515,10 +515,31 @@ export interface SetupCheck {
   setup_required: boolean;
 }
 
+/** mame-curator-1010 §4.2 — the version check's answer. */
 export interface AppUpdateInfo {
   current_version: string;
   latest_version: string | null;
   update_available: boolean;
+  install_kind: "git" | "bundle" | "package";
+  can_apply: boolean;
+  notes_html: string | null;
+  release_url: string | null;
+  check_error: string | null;
+  restart_pending: boolean;
+  rollback_available: boolean;
+}
+
+/** mame-curator-1010 §4.3 — what apply and rollback did. */
+export interface UpdateApplyResult {
+  install_kind: "git" | "bundle";
+  from_version: string;
+  to_version: string;
+  rolled_back: boolean;
+  sync_failed: boolean;
+  restart_required: boolean;
+  snapshot_id: string | null;
+  downloaded_path: string | null;
+  output: string | null;
 }
 
 export interface UpdatesCheck {

@@ -10,6 +10,7 @@ overrides, sessions and notes.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from mame_curator.api.persist import restore_snapshot, snapshot_files
 
@@ -70,3 +71,23 @@ def test_the_covers_record_is_not_listed_as_a_file(tmp_path: Path) -> None:
 
     (entry,) = list_snapshots(tmp_path / "snapshots")
     assert entry["files"] == ("config.yaml",)
+
+
+def test_restoring_a_snapshot_with_review_state_reloads_it(client: Any) -> None:
+    """mame-curator-1010 §4.3 step 2 — an update snapshot carries state.yaml;
+    restoring it must restore the file AND the world's review state, or the
+    next review write saves the stale world back over the restored file."""
+    world = client.app.state.world
+    game = next(iter(world.machines))
+    assert (
+        client.post("/api/state", json={"short_name": game, "state": "reviewed"}).status_code == 200
+    )
+    state_yaml = world.data_dir / "state.yaml"
+    snap_id = snapshot_files(world.data_dir / "snapshots", {"state.yaml": state_yaml})
+    assert client.delete(f"/api/state/{game}").status_code == 200
+
+    response = client.post(f"/api/config/snapshots/{snap_id}/restore")
+
+    assert response.status_code == 200
+    assert client.get("/api/state").json()["entries"] == {game: "reviewed"}
+    assert game in state_yaml.read_text(encoding="utf-8")
