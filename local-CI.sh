@@ -25,7 +25,8 @@
 # Everything else — the tool versions (uv-managed deps, gitleaks 8.30.1, the
 # Node version from frontend/package.json engines.node), the command flags, the
 # step order — matches CI exactly. Keep this file and ci.yml in lockstep: when
-# one changes, change the other.
+# one changes, change the other. tests/docs/test_local_ci_mirrors_ci_yml.py
+# fails when their check commands differ (mame-curator-1129).
 #
 # This script runs BEFORE EVERY PUSH, documentation-only pushes included
 # (local-gate.md § 2.1). .git/hooks/pre-push hands off to the machine-wide
