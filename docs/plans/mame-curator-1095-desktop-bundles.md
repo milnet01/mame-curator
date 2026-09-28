@@ -123,7 +123,7 @@ land before its implementation, per the project's TDD default.
     `uv run pytest tests/tools/test_release_scripts.py` fully green
     (satisfies INV-12, INV-20).
 
-15. Docs: README download-and-run per platform including the macOS
+15. **[done]** Docs: README download-and-run per platform including the macOS
     right-click step and the log paths; CHANGELOG entry; `CLAUDE.md`
     § Common commands, including `scripts/build-smoke.sh`; the DS05
     declaration-count pin. → **verify:**

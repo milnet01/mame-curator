@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Added — Download one file and run it: desktop bundles for Linux, Windows and macOS (mame-curator-1095)
+
+Each release now attaches a Linux AppImage, a Windows .exe and a macOS
+.dmg. Each carries its own Python and everything it needs, so there is
+nothing to install and no terminal: run it and the app opens in your
+browser, with a starter configuration you finish in Settings. If a
+bundle closes straight away, the reason is in its log file (the README
+says where). The AppImage runs on Linux desktops from Ubuntu 22.04 /
+Debian 12 on. A launch with no game list yet starts in setup mode
+instead of failing, and `mame-curator self-test` checks a bundle has
+everything it needs.
+
 ### 2026-09-28 Added — Use the artwork ES-DE or RetroArch already downloaded (mame-curator-1126)
 
 Settings → Media gains two optional folders: ES-DE's downloaded_media

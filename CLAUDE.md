@@ -43,6 +43,14 @@ uv run ruff check && uv run ruff format --check && uv run mypy \
 # Single test
 uv run pytest tests/parser/test_dat.py::test_parse_dat_minimal -xvs
 
+# Desktop bundles (mame-curator-1095), written to dist/
+./local-appimage.sh                              # Linux AppImage, in a bookworm container (podman)
+MAME_CURATOR_BUILD_SMOKE=1 scripts/build-smoke.sh   # clean-room self-test of the AppImage
+./local-exe.sh                                   # Windows .exe under Wine (.wine-build/)
+# local-macos.sh runs on a Mac only; CI's build-macos job is its real run.
+# A manual run of release.yml (gh workflow run release.yml) rehearses all
+# three builds and publishes nothing.
+
 # CLI smoke
 uv run mame-curator parse <DAT.xml-or-.zip>
 uv run mame-curator filter --help

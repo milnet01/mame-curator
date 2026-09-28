@@ -14,7 +14,27 @@ RetroArch playlist (`mame.lpl`) on the way out.
 
 ![MAME Curator library page](docs/screenshots/library.png)
 
-## Quickstart
+## Download and run (no install)
+
+Releases after 1.3.0 attach a single file per platform to the
+[Releases page](https://github.com/milnet01/mame-curator/releases). Each
+carries its own Python and everything else it needs: nothing else to
+install, no terminal. Run it and MAME Curator opens in your browser;
+point it at your ROMs and DAT under **Settings → Paths**.
+
+| Platform | File | How to start it |
+|---|---|---|
+| Linux | `MAME_Curator-<version>-x86_64.AppImage` | Make it executable (`chmod +x`, or Properties → Permissions), then double-click it. |
+| Windows | `MAME_Curator-<version>-x86_64.exe` | Double-click it. It keeps a console window open: that is the server, and closing it stops the app. Windows may show a SmartScreen warning because the file is not code-signed. |
+| macOS (Apple Silicon) | `MAME_Curator-<version>-arm64.dmg` | Open the `.dmg` and drag **MAME Curator** to Applications. The app is not signed, so the first time right-click (or Control-click) it, choose **Open**, then **Open** again. If macOS still refuses, run `xattr -dr com.apple.quarantine "/Applications/MAME Curator.app"`. |
+
+**If it closes straight away**, the reason is in its log file:
+
+- Linux: `~/.local/state/mame-curator/log/mame-curator.log`
+- Windows: `%LOCALAPPDATA%\mame-curator\Logs\mame-curator.log`
+- macOS: `~/Library/Logs/mame-curator/mame-curator.log`
+
+## Quickstart (from source)
 
 ```bash
 git clone https://github.com/milnet01/mame-curator.git
