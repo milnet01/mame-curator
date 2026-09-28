@@ -29,7 +29,9 @@ interface AlternativesDrawerProps {
    *  The subtitle then reads as loading, not as an empty family. */
   loading?: boolean;
   /** mame-curator-1107: true when the family list failed to load. The
-   *  subtitle then says so and a Retry button replaces the empty list. */
+   *  subtitle then says so and a Retry button replaces the empty list.
+   *  Ignored when rows are present: a loaded family always holds the
+   *  winner, so a failed background refetch keeps showing that data. */
   error?: boolean;
   /** Re-runs the failed family request. The button hides when absent. */
   onRetry?: () => void;
@@ -156,6 +158,7 @@ export function AlternativesDrawer({
   // "This is the only version" and skip the row list entirely. With
   // multiple, show the count line and the rows.
   const onlyOne = alternatives.length === 1;
+  const loadFailed = error && alternatives.length === 0;
 
   // P14 — highlight + R/S/? on drawer rows. Independent of grid focus.
   const [highlightedRowIndex, setHighlightedRowIndex] = useState(0);
@@ -168,7 +171,7 @@ export function AlternativesDrawer({
             handler: (e) => {
               e.preventDefault();
               setHighlightedRowIndex((prev) =>
-                Math.min(alternatives.length - 1, prev + 1),
+                Math.max(0, Math.min(alternatives.length - 1, prev + 1)),
               );
             },
           },
@@ -207,8 +210,10 @@ export function AlternativesDrawer({
       >
         <SheetHeader>
           <SheetTitle>{strings.alternatives.drawerTitle}</SheetTitle>
-          <SheetDescription>
-            {error
+          {/* role="alert" while failed: screen readers announce an alert's
+              own text, so the message itself must be the alert. */}
+          <SheetDescription role={loadFailed ? "alert" : undefined}>
+            {loadFailed
               ? strings.alternatives.loadFailed
               : loading
                 ? strings.alternatives.loadingVersions
@@ -218,8 +223,8 @@ export function AlternativesDrawer({
           </SheetDescription>
         </SheetHeader>
 
-        {error && onRetry && (
-          <div role="alert">
+        {loadFailed && onRetry && (
+          <div>
             <Button
               variant="outline"
               size="sm"

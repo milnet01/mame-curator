@@ -7,6 +7,7 @@ import type { ReactElement } from "react";
 
 import { AlternativesDrawer } from "../AlternativesDrawer";
 import type { GameCard } from "@/api/types";
+import { strings } from "@/strings";
 
 // FP22-B introduced a <Link> in the disabled-Launch hint, so any render
 // that exercises the Launch path needs a router context. P10 chunk 11 added
@@ -227,5 +228,77 @@ describe("AlternativesDrawer", () => {
     expect(
       screen.getByRole("button", { name: /Launch in RetroArch/i }),
     ).toBeDisabled();
+  });
+
+  // review-code 2026-09-28 (lane 02) — the 1107 error state.
+  describe("load-failure state", () => {
+    const wrap = (ui: ReactElement) => (
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <MemoryRouter>{ui}</MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    it("keeps showing loaded rows when only a background refetch failed", () => {
+      renderWithRouter(
+        <AlternativesDrawer
+          open
+          onOpenChange={() => {}}
+          winner={winner}
+          alternatives={[winner, ...clones]}
+          error
+          onRetry={() => {}}
+          onOverride={() => {}}
+        />,
+      );
+      expect(
+        screen.getByText(strings.alternatives.familySummary(3)),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(strings.alternatives.loadFailed),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("announces what failed, not just the Retry label", () => {
+      renderWithRouter(
+        <AlternativesDrawer
+          open
+          onOpenChange={() => {}}
+          winner={winner}
+          alternatives={[]}
+          error
+          onOverride={() => {}}
+        />,
+      );
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        strings.alternatives.loadFailed,
+      );
+    });
+
+    it("highlights the first row after a retry loads the family", async () => {
+      const user = userEvent.setup();
+      const props = {
+        open: true,
+        onOpenChange: () => {},
+        winner,
+        onOverride: () => {},
+      };
+      const { rerender } = render(
+        wrap(<AlternativesDrawer {...props} alternatives={[]} error />),
+      );
+      await user.keyboard("{ArrowDown}");
+      rerender(
+        wrap(
+          <AlternativesDrawer {...props} alternatives={[winner, ...clones]} />,
+        ),
+      );
+      expect(
+        screen.getByText("Pac-Man").closest("[data-highlighted]"),
+      ).not.toBeNull();
+    });
   });
 });

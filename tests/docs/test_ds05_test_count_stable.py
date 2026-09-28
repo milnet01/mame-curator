@@ -340,7 +340,9 @@ EXPECTED_PYTEST_DECLARATIONS = 795
 # 345 → 346.
 # Bumped 2026-09-28 (review-code lane 02 — banner claimed "latest version"
 # when nothing was checked): +1 vitest in SettingsPage_render.test.tsx. 346 → 347.
-EXPECTED_VITEST_DECLARATIONS = 347
+# Bumped 2026-09-28 (review-code lane 02 — alternatives drawer error state):
+# +3 vitest in AlternativesDrawer.test.tsx. 347 → 350.
+EXPECTED_VITEST_DECLARATIONS = 350
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
