@@ -2282,6 +2282,9 @@ under a docs-review skill.
   public (hasSponsorsListing true, isPublic true). The optional README
   badge and in-app Donate link were not added; they await the user's
   choice.
+  User decision (2026-09-28): add a Sponsor badge to the README and a
+  'Support this project' link on the app's About tab. No feature is
+  gated on donating.
 
 ---
 
@@ -2546,7 +2549,7 @@ P14 (per-game review state).
   Source: user-request-2026-09-28.
   Lanes: media, api, frontend.
 
-- 📋 [mame-curator-1127] **Use RetroDB as an artwork and metadata source.**
+- 💭 [mame-curator-1127] **Use RetroDB as an artwork and metadata source.**
   RetroDB (`/mnt/Games/Scripts/Linux/RetroDB`) is the user's sibling
   project. How it stores or serves media, and whether it has an API this
   app can call, is not yet known; asked the RetroDB session 2026-09-28.
@@ -2563,6 +2566,10 @@ P14 (per-game review state).
   is imported from ES-DE, which 1126 now reads directly. JSON routes
   need a login session. A source built today would return nothing; value
   depends on RetroDB gaining arcade games and a short-name key.
+  User decision (2026-09-28): parked as considered. Revisit if RetroDB
+  gains arcade games and a MAME short-name key; until then a source
+  would return nothing, and ES-DE (mame-curator-1126) already covers the
+  art RetroDB imports.
   **Layman:** Your RetroDB game database can supply artwork too, so the app can pull pictures from it.
   Kind: feature.
   Source: user-request-2026-09-28.
@@ -2936,6 +2943,8 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Needs a decision: restore config.yaml from the update's snapshot on
   rollback, or have the loader drop unknown keys with a warning, or have
   rollback refuse while config.yaml carries keys the target lacks.
+  User decision (2026-09-28): the loader drops keys it does not
+  recognise, with a warning, rather than refusing the file.
   **Layman:** Undoing an update could stop the app from starting if a newer setting was saved in the meantime.
   Kind: review-fix.
   Source: review-code-2026-09-28 mame-curator-1010 lane 1 (open question, settled by the orchestrator).
@@ -2957,6 +2966,16 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code-2026-09-28 mame-curator-1010 lane 2 (L2-8, L2-9).
   Lanes: api.
+
+- 📋 [mame-curator-1133] **Show a Sponsor badge in the README and a support link on the About tab.**
+  Follows mame-curator-1073, whose FUNDING.yml is live. User decision
+  (2026-09-28): a Sponsor badge at the top of README.md and a small
+  "Support this project" link on Settings → About, both pointing at
+  https://github.com/sponsors/milnet01. No feature is gated on donating.
+  **Layman:** People who like the app can find the donation page from the README and from inside the app.
+  Kind: feature.
+  Source: user-request-2026-09-28.
+  Lanes: docs, frontend.
 
 ## Considered / under research (no target date)
 
