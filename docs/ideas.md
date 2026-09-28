@@ -6,11 +6,9 @@
 > against the current architecture; **only added to the
 > roadmap on user say-so**.
 
-The
-[app-workflow skill](~/.claude/skills/app-workflow/SKILL.md)
-"New ideas" section governs the flow: capture here →
-recommend a placement → user decides → either insert into
-ROADMAP.md as a new item, or leave here until later.
+The flow: capture here → recommend a placement → user
+decides → either insert into ROADMAP.md as a new item, or
+leave here until later.
 
 Long-running post-v1 ideas (software-list routing,
 EmulationStation export, LaunchBox interop, DAT-version-upgrade

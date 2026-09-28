@@ -9,6 +9,10 @@
 > MAME Curator project. Shipped work lives in
 > [`CHANGELOG.md`](CHANGELOG.md); this file shows only what's next.
 >
+> **Next up** (user's order, set 2026-09-27): 1107, 1108, 1106, 1114,
+> then 1118. 1095 (desktop bundles) is paused; 1079 is blocked until a
+> real MobyGames API key is available.
+>
 > **For non-technical readers (vibe coders welcome).** Each item has a
 > `Layman:` line — one plain-English sentence describing what the
 > change does for you, the user. You don't need to read past it.
@@ -1230,6 +1234,19 @@ wave lands.
   Kind: perf.
   Source: in-session-2026-09-27 (mame-curator-1099).
   Lanes: parser, api.
+
+- 📋 [mame-curator-1119] **Write `docs/standards/versioning-overrides.md` naming this project's breaking surfaces.**
+  align-project (2026-09-28) reported the file missing. The global
+  versioning.md asks each project to name what counts as breaking and
+  supplies no list, so "is this a major bump?" has no written answer
+  here. Likely surfaces to decide on: the config.yaml format, the HTTP
+  API, CLI flags and subcommands, and the playlist / copy output layout.
+  Deferred by the user during the CFG-0645 workflow move, to keep that
+  change focused.
+  **Layman:** Write down which kinds of change would break things for existing users, so version numbers say so honestly.
+  Kind: doc.
+  Source: align-project-2026-09-28 (CFG-0645).
+  Lanes: docs.
 
 ### 🧪 Test Audit 2026-05-20
 

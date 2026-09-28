@@ -127,31 +127,26 @@ If your work is part of a tracked roadmap item (`P##`, `FP##`, `DS##`,
 `mame-curator-NNNN`), **cite the ID in the commit body**, not the subject.
 Full details in [`docs/standards/commits.md`](docs/standards/commits.md).
 
-## The 9-step phase loop
+## When a roadmap item is done
 
-Larger pieces of work (anything that ships under its own phase ID
-`P##` / `FP##` / `DS##`) flow through the **App-Build 9-step loop**:
+Larger pieces of work (anything tracked as a roadmap item) are done when:
 
-1. **Verify spec** — does `docs/specs/<ID>.md` exist and is it
-   implementable as-written?
-2. **Verify dependencies** — every roadmap item this depends on is ✅.
-3. **Write tests first.** Per the TDD section above.
-4. **Implement** until tests pass. Shortest correct implementation.
-5. **`/audit`** — static-analysis sweep (ruff, mypy, bandit, semgrep,
-   gitleaks). Findings against `docs/audit-allowlist.md` are pre-cleared.
-6. **`/indie-review`** — independent multi-agent code review. Runs in
-   parallel with step 5.
-7. **Fold findings** from steps 5 and 6 into a single fix-pass
-   (`FP##` / `DS##`) that goes through this same loop.
-8. **Update** `CHANGELOG.md` (under `[Unreleased]`) + `ROADMAP.md` (flip
-   the status emoji) + write `docs/journal/<ID>.md`.
-9. **Commit, tag** the close (annotated tag `<ID>-complete`), and ask
-   about pushing.
+1. **A spec exists where one is needed** — most items don't need one; a
+   contract other code binds to, or a change spanning several subsystems,
+   does (`docs/specs/<ID>-<topic>.md`).
+2. **A test fails first, for the right reason.** Per the TDD section above.
+3. **It passes**, with the shortest correct implementation.
+4. **It is mechanically clean** — ruff, mypy, bandit, semgrep, gitleaks.
+   Findings listed in `docs/audit-allowlist.md` are pre-cleared.
+5. **It has been reviewed** for what no tool can decide, and **every
+   finding has a decision** — fixed, or filed on the roadmap with a reason.
+6. **The record is true** — `CHANGELOG.md` (under `[Unreleased]`) and
+   `ROADMAP.md` (flip the status emoji).
 
-The full rules live in `~/.claude/skills/app-workflow/SKILL.md` (a
-Claude Code skill that auto-loads when `.claude/workflow.md` is present).
-Drive-by contributions don't need to follow this loop — single bug fixes
-ship via a normal PR.
+These are the six conditions of the maintainer's global workflow
+(`~/.claude/workflow.md` § 6). The phase-loop this section used to
+describe was retired 2026-09-28. Drive-by contributions don't need to
+follow this — single bug fixes ship via a normal PR.
 
 ## What goes where (the four authoritative docs)
 

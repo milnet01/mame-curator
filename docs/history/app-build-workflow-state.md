@@ -1,5 +1,12 @@
 # MAME Curator — Workflow state
 
+> **Retired 2026-09-28 (CFG-0645).** This was `.claude/workflow.md`, the
+> state file of the App-Build phase workflow (`/app-workflow`,
+> `/close-phase`). The project now follows `~/.claude/workflow.md`. Kept
+> unchanged below as history: the phase table and the session journal up to
+> 2026-09-27. Its § 2 rules no longer apply, and its status header is not
+> current — `ROADMAP.md` is.
+
 ## §1. Status header
 
 | Field | Value |

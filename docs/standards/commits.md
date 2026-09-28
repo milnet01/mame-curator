@@ -2,8 +2,8 @@
 <!-- OWNED-HERE commits.md — slot pointer into this project's own coding-standards.md, read instead of the global commits.md; decided 2026-09-27 (mame-curator-1113) -->
 # Commit Standards — MAME Curator
 
-This file is a **redirect pointer** for the
-[`app-workflow` skill](~/.claude/skills/app-workflow/SKILL.md).
+This file is a **redirect pointer**, read in place of the global
+standard of the same name (see the OWNED-HERE marker above).
 The canonical rules live in the consolidated
 [`coding-standards.md`](coding-standards.md), § 12.
 

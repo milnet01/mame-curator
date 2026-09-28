@@ -6,16 +6,15 @@
 > warranted.
 > **Scope:** project-specific.
 
-This file is the **closed-loop memory** for `/audit` and
-`/indie-review` false positives. Without it, the same false
-positive gets surfaced and dismissed every audit run, burning
-tokens and tempting "skip without thinking" reflexes.
+This file is the **closed-loop memory** for `check-code` and
+`review-code` false positives (formerly `/audit` and
+`/indie-review`). Without it, the same false positive gets
+surfaced and dismissed every audit run, burning tokens and
+tempting "skip without thinking" reflexes.
 
-The
-[app-workflow skill](~/.claude/skills/app-workflow/SKILL.md)
-reads this file **before** triaging audit findings, so
-already-confirmed false positives are discarded without
-re-evaluating.
+`CLAUDE.md` requires reading this file **before** running
+either review, so already-confirmed false positives are
+discarded without re-evaluating.
 
 
 ## How entries are added

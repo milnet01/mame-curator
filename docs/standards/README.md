@@ -11,10 +11,9 @@ precedence rule (§15).
 The slot files in this folder
 (`coding.md`, `testing.md`, `commits.md`, `documentation.md`)
 are **redirect pointers** to the relevant
-sections of the consolidated document — they exist so the
-[`app-workflow` skill](~/.claude/skills/app-workflow/SKILL.md)
-auto-loaders find each governance domain at its expected path,
-without fragmenting the rules.
+sections of the consolidated document — they exist so tools and
+sessions looking for each global standard by name find it at its
+expected path, without fragmenting the rules.
 
 ## Why one consolidated file
 
@@ -26,7 +25,7 @@ conflicts (e.g. a security rule beats a performance rule). It
 only works if the rules live in one ordered file. Splitting
 them across four files would break the precedence ordering.
 
-The slot files preserve App-Build's automation-friendly layout
+The slot files keep the global standards' file names findable
 without breaking that ordering.
 
 ## Slot-file index

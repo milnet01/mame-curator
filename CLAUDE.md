@@ -2,16 +2,16 @@
 
 Layered on `~/.claude/CLAUDE.md`. Both apply; project rules below extend, never contradict.
 
-This project follows the [**Ants App-Build** workflow](~/.claude/skills/app-workflow/SKILL.md); the skill auto-loads when `.claude/workflow.md` is present.
+This project follows the global workflow, [`~/.claude/workflow.md`](~/.claude/workflow.md): its five states, its gates, and § 6's six conditions for an item being done. The App-Build phase workflow it replaced was retired 2026-09-28; its state file is kept as history at [`docs/history/app-build-workflow-state.md`](docs/history/app-build-workflow-state.md).
 
 ## Session start — read & summarise
 
-1. **This file** + **`.claude/workflow.md` § 1 status header** — one parallel read.
-2. **Summarise back to the user**: "We're on `<ID>` step `<N>`, last did `<X>`, next is `<Y>`." Wait for confirm or redirect. **Never skip this step**.
+1. **This file** + **`roadmap_query status:active`** (what is open; the roadmap intro says what is next) — one parallel read.
+2. **Summarise back to the user**: "We're on `<ID>` (or between items), last did `<X>`, next is `<Y>`." Wait for confirm or redirect. **Never skip this step**.
 3. When the active item's `Kind` is known, read the matching `docs/standards/<which>.md` (one read).
 4. Before invoking `check-code` or `review-code`, additionally read `docs/audit-allowlist.md`.
 
-For shipped status and what's next, see [`ROADMAP.md`](ROADMAP.md) and [`CHANGELOG.md`](CHANGELOG.md). Per-phase journals live in [`docs/journal/`](docs/journal/). Rule pedigree moved out of this file is in [`docs/history/claude-md.md`](docs/history/claude-md.md).
+For shipped status and what's next, see [`ROADMAP.md`](ROADMAP.md) and [`CHANGELOG.md`](CHANGELOG.md). Per-phase journals up to 2026-09-27 live in [`docs/journal/`](docs/journal/). Rule pedigree moved out of this file is in [`docs/history/claude-md.md`](docs/history/claude-md.md).
 
 ## Authoritative docs (supersede anything inferred from code)
 
@@ -102,21 +102,21 @@ CLI entry: `mame_curator.main:main`; subcommands dispatch in `cli/__init__.py` v
 - **No backwards-compat shims pre-v1.0.0.** Config formats and APIs are explicitly unstable.
 - **No `# nosec` without an inline threat-model comment, no `# type: ignore` without a reason.**
 - **Conventional Commits** (`feat:`, `fix:`, `chore:`, etc.) per `coding-standards.md` § 12. App-Build's `<ID>: <description>` mandate is **deliberately not adopted**; cite phase IDs in body or scope. See `docs/standards/commits.md`.
-- **Phase-closing commits** name the phase and tag with `<ID>-complete` (annotated). E.g. `feat(parser): close FP04 — typed-error OSError catches`.
-- **Direct push to `main`**. Repo is **PUBLIC** (cached in `.claude/workflow.md`), so push freely per global rule 6.
+- **No `<ID>-complete` tags and no new `docs/journal/` entries.** Both were App-Build habits, dropped 2026-09-28; the existing tags and journals stay as history. Releases still get their `vX.Y.Z` tag.
+- **Direct push to `main`**. Repo is **PUBLIC** (checked 2026-04-30 via `gh repo view`), so push freely per global rule 6.
 
 ## Karpathy clarity — where it lands here
 
-The 9-step App-Build loop is itself the verify-step plan global 12 mandates. Beyond that:
+The six conditions in global `workflow.md` § 6 are the verify-step plan global 12 mandates. Beyond that:
 
-- **Surface ambiguity** → cold-eyes spec review on every `P##` Step 1, before user sign-off — independent reviewer dispatched to catch author bias up front.
-- **Push back on complexity** → Step 1 again: name the simpler alternative *before* writing tests, defer to user on the call.
-- **Reproduce before fixing** → Step 3 on every `FP##` / `DS##`: failing test lands first, proves the diagnosis, locks in regression coverage.
-- **Stay in your lane** → Steps 4 & 7: every changed line traces to the active item; no drive-by reformat or preferred-idiom rewrite of working code; pre-existing dead code is surfaced in the reply, not deleted.
+- **Surface ambiguity** → where an item needs a spec, `review-contract` reads it cold before user sign-off — an independent reviewer catches author bias up front.
+- **Push back on complexity** → before writing tests: name the simpler alternative, defer to user on the call.
+- **Reproduce before fixing** → on every fix: the failing test lands first, proves the diagnosis, locks in regression coverage.
+- **Stay in your lane** → while implementing and while fixing findings: every changed line traces to the active item; no drive-by reformat or preferred-idiom rewrite of working code; pre-existing dead code is surfaced in the reply, not deleted.
 
-## Closing a phase
+## Finishing an item
 
-Run **`/close-phase`** after steps 1–4 of the 9-step loop. The skill orchestrates `check-code` + `review-code` in parallel, triages, and either closes cleanly (tag + push prompt) or spawns the next `FP##`.
+Global `workflow.md` § 6 decides when an item is done. Here that means: `check-code` + `review-code` (read `docs/audit-allowlist.md` first), every finding given a disposition by `close-findings`, then the record made true — `CHANGELOG.md`, the roadmap status flip, and `review-ledger` / `/debt-sweep` where the item warrants it.
 
 ## Things this project deliberately does not do
 
