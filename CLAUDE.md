@@ -48,12 +48,11 @@ uv run mame-curator copy --help
 
 **The dev tools are the `dev` dependency group** (mame-curator-1106), which
 a plain `uv sync` installs. The old `uv sync --extra dev` now fails: there is
-no such extra. **Trap — `uv sync --no-dev` strips them.** The next
-`uv run mypy` then finds a copy outside the project that cannot see
-`fastapi`, and `uv run pytest` dies on the `--cov` args in `pyproject.toml`'s
-addopts. It reads as broken code, not as an environment change. `run.sh` /
-`run.bat` sync with `--inexact --no-dev`, so launching the app installs no
-dev tools and removes none. Recover with a plain `uv sync`.
+no such extra. **`uv sync --no-dev` strips them, and the next `uv run`
+puts them back**: `uv run` syncs the default groups before it runs. So
+`run.sh` / `run.bat` pass `--no-dev` to every `uv sync` and `uv run`, and
+`--inexact` to the sync; launching the app installs no dev tools and removes
+none. `tests/docs/test_dev_dependency_group.py` pins the launchers.
 
 ## Architecture
 

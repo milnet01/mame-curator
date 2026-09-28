@@ -123,7 +123,7 @@ def test_port_absent_serves_without_a_port_flag(run_bat: RunBat) -> None:
     assert result.returncode == 0, result.output
     # mame-curator-1106: --no-dev keeps the dev dependency group off end-user installs.
     assert "sync --inexact --no-dev --quiet" in result.uv_log, result.output
-    assert result.serve_argv == "run mame-curator serve"
+    assert result.serve_argv == "run --no-dev mame-curator serve"
     assert result.serve_port_env == "PORT=[]"
     assert "http://127.0.0.1:/" not in result.output
     assert "Starting MAME Curator" in result.output
@@ -137,7 +137,7 @@ def test_port_set_is_left_to_serve(run_bat: RunBat, raw: str) -> None:
     """
     result = run_bat(raw)
     assert result.returncode == 0, result.output
-    assert result.serve_argv == "run mame-curator serve"
+    assert result.serve_argv == "run --no-dev mame-curator serve"
     assert result.serve_port_env == f"PORT=[{raw}]"
     assert f"http://127.0.0.1:{raw}/" in result.output
 
@@ -148,4 +148,4 @@ def test_port_with_cmd_metacharacters_does_not_break_the_parse(run_bat: RunBat, 
     result = run_bat(raw)
     assert "was unexpected at this time" not in result.output
     assert result.returncode == 0, result.output
-    assert result.serve_argv == "run mame-curator serve"
+    assert result.serve_argv == "run --no-dev mame-curator serve"

@@ -78,7 +78,7 @@ if [ ! -f config.yaml ]; then
     echo "First run — let's get a starter config.yaml in place."
     echo "(You will be asked for paths to your MAME DAT, ROMs, etc.)"
     echo
-    uv run mame-curator setup
+    uv run --no-dev mame-curator setup
     if [ ! -f config.yaml ]; then
         echo "error: setup did not produce config.yaml." >&2
         exit 1
@@ -129,6 +129,6 @@ echo
 # — and greeted a cold start with "Unable to connect".
 
 if [ -n "${PORT}" ]; then
-    exec uv run mame-curator serve --port "${PORT}"
+    exec uv run --no-dev mame-curator serve --port "${PORT}"
 fi
-exec uv run mame-curator serve
+exec uv run --no-dev mame-curator serve

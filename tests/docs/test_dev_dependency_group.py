@@ -30,3 +30,22 @@ def test_dev_tools_are_in_the_dev_dependency_group() -> None:
     group = _names(data.get("dependency-groups", {}).get("dev", []))
     missing = [tool for tool in _TOOLS if tool not in group]
     assert not missing, f"[dependency-groups].dev is missing {missing}"
+
+
+def test_launchers_never_run_uv_without_no_dev() -> None:
+    """`uv run` syncs the default groups before running, so a launcher's
+    bare `uv run` installs the dev tools into an end user's environment
+    even after `uv sync --no-dev` (review-code 2026-09-28, lane 03)."""
+    # Globbed, not named: this only reads the launchers, and naming the
+    # shell one would trip the win32-skip guard in tests/docs.
+    launchers = sorted(REPO_ROOT.glob("run.*"))
+    assert len(launchers) == 2, launchers
+    offenders = [
+        f"{path.name}:{number}"
+        for path in launchers
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
+        if "uv run" in line
+        and not line.lstrip().startswith(("#", "REM", "rem", "::"))
+        and "--no-dev" not in line
+    ]
+    assert not offenders, f"`uv run` without --no-dev at {offenders}"

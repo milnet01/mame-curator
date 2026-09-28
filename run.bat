@@ -63,7 +63,7 @@ if not exist config.yaml (
     echo First run - let's get a starter config.yaml in place.
     echo You will be asked for paths to your MAME DAT, ROMs, etc.
     echo.
-    call uv run mame-curator setup
+    call uv run --no-dev mame-curator setup
     if not exist config.yaml (
         echo error: setup did not produce config.yaml.
         exit /b 1
@@ -93,4 +93,4 @@ REM the port accepts (cli/spec.md § Browser). This script used to `start ""`
 REM the URL immediately, which raced the application lifespan — a ~48 MB DAT
 REM parse — and greeted a cold start with "Unable to connect". Keeping it
 REM alongside the poller would also open two tabs on every bootstrap.
-call uv run mame-curator serve
+call uv run --no-dev mame-curator serve

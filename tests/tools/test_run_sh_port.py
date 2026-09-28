@@ -153,7 +153,7 @@ def test_port_absent_execs_without_a_port_flag(run_sh: RunSh, port: str | None) 
     """
     result = run_sh(port)
     assert result.returncode == 0
-    assert result.serve_argv == "run mame-curator serve"
+    assert result.serve_argv == "run --no-dev mame-curator serve"
 
 
 def test_port_absent_announces_no_url(run_sh: RunSh) -> None:
@@ -171,7 +171,7 @@ def test_port_valid_execs_that_port(run_sh: RunSh) -> None:
     """Case 2 — a valid `$PORT` reaches the exec as an explicit flag."""
     result = run_sh("5999")
     assert result.returncode == 0
-    assert result.serve_argv == "run mame-curator serve --port 5999"
+    assert result.serve_argv == "run --no-dev mame-curator serve --port 5999"
     assert "http://127.0.0.1:5999/" in result.stdout, (
         "the announced URL must name the port actually bound"
     )
@@ -182,7 +182,7 @@ def test_port_range_boundaries_are_accepted(run_sh: RunSh, raw: str) -> None:
     """Case 2 — the range is inclusive at both ends."""
     result = run_sh(raw)
     assert result.returncode == 0
-    assert result.serve_argv == f"run mame-curator serve --port {raw}"
+    assert result.serve_argv == f"run --no-dev mame-curator serve --port {raw}"
 
 
 # ---- Case 4: the gap this contract closes ----------------------------

@@ -40,7 +40,8 @@ dependencies = [
 # mame-curator-1106: dev tools are a dependency group, not an extra. uv
 # installs the `dev` group by default, so a plain `uv sync` keeps them;
 # as an extra, that exact sync uninstalled them. The launchers pass
-# --no-dev so end users never download them.
+# --no-dev to every `uv sync` and `uv run` (uv run syncs the default
+# groups too), so end users never download them.
 [dependency-groups]
 dev = [
     "pytest>=8.3",

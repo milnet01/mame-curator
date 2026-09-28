@@ -45,8 +45,8 @@
 #                            # steps do, then run the checks
 #
 # Note: the dev tools are the `dev` dependency group, which a plain `uv sync`
-# installs (mame-curator-1106). `uv sync --no-dev` removes them, after which
-# the checks below fail as if the code were broken; recover with `uv sync`.
+# installs (mame-curator-1106). `uv sync --no-dev` removes them, and every
+# `uv run` below puts them back: uv run syncs the default groups first.
 #
 # Exit code: 0 iff every check passed; 1 otherwise. Unlike CI (which fail-fasts
 # each job on the first failing step), this script runs ALL checks and prints a
