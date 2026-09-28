@@ -1,6 +1,6 @@
 # mame-curator-1095 — Ship self-contained desktop bundles for Linux, Windows and macOS
 
-**Status:** spec draft (2026-08-04); amended 2026-09-28 (fold-in, see
+**Status:** accepted (2026-09-28); amended 2026-09-28 (fold-in, see
 §12).
 **Kind:** package.
 **Source:** ROADMAP mame-curator-1095 (user request, 2026-08-04).
@@ -418,7 +418,8 @@ construction rather than at import.
 **The Help pages follow the same root.** `api/routes/help.py::_help_dir()`
 builds `Path(__file__).resolve().parents[3].parent / "docs" / "help"`,
 the repository root in a source tree, which does not exist inside a
-bundle. It becomes `bundle_root() / "docs" / "help"`, the same directory
+bundle. It becomes `(bundle_root() / "docs" / "help").resolve()` —
+resolved, as the FP20-E comment in `_help_dir()` requires — the same directory
 in a source tree and the bundled copy when frozen. The
 `MAME_CURATOR_HELP_DIR` override keeps precedence (INV-18).
 
@@ -670,6 +671,9 @@ order, that each stack a bundle can silently lose is present:
 3. `frontend_dist() / "index.html"` exists;
 4. `_help_dir()` is a directory holding at least one `.md` page.
 
+The `<stack>` token in a failure line is `lxml`, the failing module
+(`httptools`, `websockets` or `uvloop`), `frontend_dist` or `help_dir`.
+
 Each check imports its stack **lazily**, inside the check, so the
 module imports cleanly when a stack is missing and a unit test can
 replace one check. It prints exactly one line: `MAME_CURATOR_SELFTEST_OK`
@@ -724,8 +728,8 @@ Artefact sizes and cold-start times are not yet measured. The first
 produces the first real figures, and no claim is made until it does —
 but **declining to guess is not declining to budget**: that step also
 writes the measured figures into this section as a ceiling, with a
-build-failing check in each local script at 1.5× the recorded size (see
-INV-15). A one-file `.exe` whose extraction cost is its main
+build-failing check in `local-appimage.sh` and `local-exe.sh` at 1.5×
+the recorded size (see INV-15). A one-file `.exe` whose extraction cost is its main
 user-visible risk otherwise has no regression guard at all.
 
 ## 5. Invariants
@@ -822,9 +826,9 @@ user-visible risk otherwise has no regression guard at all.
 
 - **INV-12** — Every build stage in each local script appears in its CI
   job and vice versa. A stage is a line `# stage: <name>` in the script
-  and a step `name: <name>` in the job. Host setup is not a stage and is
-  exempt on both sides: checkout, runtime setup actions, the Wine prefix
-  and its Windows CPython, and the container launch.
+  and a job step whose `name:` is `stage: <name>`. Every other step is
+  exempt on both sides — checkout, runtime setup, the Wine prefix and its
+  Windows CPython, the container launch, the artifact upload.
   *Test:* `tests/tools/test_release_scripts.py::test_local_scripts_mirror_release_yml`
   — compares the two name sets per platform.
   *Breaks when:* a stage is added to `release.yml` only — the drift that
@@ -841,17 +845,24 @@ user-visible risk otherwise has no regression guard at all.
   # Clean room first: no Python, no network, the self-test sentinel (§4.15).
   MAME_CURATOR_BUILD_SMOKE=1 scripts/build-smoke.sh || { echo FAIL; exit 1; }
   APP="$(ls "$PWD"/dist/MAME_Curator-*-x86_64.AppImage)"
-  # An empty working directory and a fresh HOME: the repo root holds a
-  # config.yaml, which §4.1's layer 2 would pick up, so the per-user
-  # starter-config path would never run. --no-open-browser stops the
-  # poller spawning a tab. Backgrounded: the bundle never returns.
-  cd "$(mktemp -d)" && HOME="$(mktemp -d)" "$APP" --no-open-browser &
+  # Nothing may answer on 8080 yet, or the fetch below would test it.
+  ! curl -sf http://127.0.0.1:8080/ >/dev/null || { echo "FAIL: 8080 in use"; exit 1; }
+  # An empty working directory, a fresh HOME and no XDG_* or PORT: the
+  # repo root holds a config.yaml (§4.1 layer 2), and platformdirs
+  # prefers XDG_CONFIG_HOME to HOME, so either would bypass the starter
+  # config. exec makes $! the bundle itself; --no-open-browser stops the
+  # poller opening a tab.
+  T="$(mktemp -d)"
+  (cd "$T" && exec env -u PORT -u XDG_CONFIG_HOME -u XDG_DATA_HOME \
+      -u XDG_STATE_HOME -u XDG_CACHE_HOME HOME="$T" "$APP" --no-open-browser) &
+  PID=$!
   for _ in $(seq 60); do
       curl -sf http://127.0.0.1:8080/ >/dev/null && break
       sleep 1
   done
-  curl -sf http://127.0.0.1:8080/ | grep -q 'id="root"' && echo PASS || echo FAIL
-  kill %1
+  curl -sf http://127.0.0.1:8080/ | grep -q 'id="root"' && kill -0 "$PID" \
+      && test -f "$T/.config/mame-curator/config.yaml" && echo PASS || echo FAIL
+  kill "$PID"
   ```
 
   **The loop is bounded on purpose.** An unbounded `until` hangs forever
@@ -859,10 +870,13 @@ user-visible risk otherwise has no regression guard at all.
   `hiddenimport` makes the bundle exit at once, so the port never opens
   and a waiting recipe never reports.
 
-  A fresh `HOME` rather than `env -i`: the run must exercise §4.1's
-  per-user path, and `platformdirs` resolves it from `HOME`/`XDG_*`,
-  which `env -i` strips — the recipe would then test a code path the
-  bundle never takes.
+  A fresh `HOME` with the `XDG_*` overrides removed, rather than `env -i`:
+  the run must exercise §4.1's per-user path, which `platformdirs`
+  resolves from `XDG_CONFIG_HOME` when it is set and from `HOME`
+  otherwise (measured 2026-09-28: with `XDG_CONFIG_HOME` set, a fresh
+  `HOME` alone still resolved to the developer's real
+  `~/.config/mame-curator`). The recipe checks the starter config landed
+  under the fresh `HOME` before it prints PASS.
   *Breaks when:* a dynamically imported dependency is missing from
   `hiddenimports`, or the AppDir is assembled without `frontend/dist` —
   both produce a bundle that launches and passes a "did the process
@@ -883,8 +897,10 @@ user-visible risk otherwise has no regression guard at all.
   stronger check and needs all three artefacts; it is INV-13's manual
   recipe's neighbour, and is not claimed here.
 
-- **INV-15** — Each local build script fails when its artefact exceeds
-  the size ceiling recorded in §4.16.
+- **INV-15** — `local-appimage.sh` and `local-exe.sh` each fail when
+  their artefact exceeds the size ceiling recorded in §4.16.
+  `local-macos.sh` carries none until a CI run has measured a `.dmg`,
+  since no local run can.
   *Test:* `tests/tools/test_release_scripts.py::test_scripts_carry_a_size_ceiling`
   — asserts each script contains a numeric ceiling and a non-zero exit
   on breach. It cannot assert the *artefact* is under it (that needs a
@@ -905,14 +921,19 @@ user-visible risk otherwise has no regression guard at all.
   # tr: Windows Python may end the line with \r\n.
   wine "$EXE" self-test | tr -d '\r' | grep -qx 'MAME_CURATOR_SELFTEST_OK' \
       || { echo FAIL; exit 1; }
+  ! curl -sf http://127.0.0.1:8080/ >/dev/null || { echo "FAIL: 8080 in use"; exit 1; }
   # An empty working directory, as in INV-13: no ./config.yaml to find.
-  cd "$(mktemp -d)" && wine "$EXE" --no-open-browser &
+  (cd "$(mktemp -d)" && exec env -u PORT wine "$EXE" --no-open-browser) &
+  PID=$!
   for _ in $(seq 60); do
       curl -sf http://127.0.0.1:8080/ >/dev/null && break
       sleep 1
   done
-  curl -sf http://127.0.0.1:8080/ | grep -q 'id="root"' && echo PASS || echo FAIL
-  kill %1
+  curl -sf http://127.0.0.1:8080/ | grep -q 'id="root"' && kill -0 "$PID" \
+      && echo PASS || echo FAIL
+  # A one-file .exe's bootloader runs the app as a child process, so end
+  # every process in the prefix, not only $PID.
+  kill "$PID"; wineserver -k
   ```
 
   *Breaks when:* the same two causes as INV-13 — a missing
@@ -1110,7 +1131,7 @@ added, in the same commit.
 | INV-9 | `tests/api/test_setup_mode.py::test_patch_persists_while_only_dat_missing` |
 | INV-10 | `tests/api/test_setup_mode.py::test_dat_change_requests_restart` |
 | INV-11 | `tests/test_resources.py::test_frontend_dist_follows_meipass` |
-| INV-12 | `tests/tools/test_release_scripts.py::test_local_scripts_mirror_release_yml` — planned, created by plan step 9; Linux leg only |
+| INV-12 | `tests/tools/test_release_scripts.py::test_local_scripts_mirror_release_yml` — planned; green from plan step 14, which adds the bundle jobs it compares against; Linux leg only |
 | INV-13 | **nothing** automated — needs a built AppImage and a bound port; the manual recipe in §5 is run before each release, and CI's own build job proves only that the file is produced, not that it runs |
 | INV-14 | `tests/tools/test_release_scripts.py::test_spec_datas_are_allowlisted` — planned, plan step 9 |
 | §4.2 SPA field | `tools/check_api_types_sync.py` via the `API type sync` step in `ci.yml` and `release.yml` |
@@ -1123,7 +1144,7 @@ added, in the same commit.
 | INV-17 | `tests/cli/test_self_test.py` |
 | INV-18 | `tests/api/test_routes_help.py::test_help_dir_follows_bundle_root` |
 | INV-19 | `tests/cli/test_bundle_default_command.py` |
-| INV-20 | `tests/tools/test_release_scripts.py::test_appimage_builds_in_bookworm` — planned, plan step 10 |
+| INV-20 | `tests/tools/test_release_scripts.py::test_appimage_builds_in_bookworm` — planned; green from plan step 14, which adds the `build-appimage` job it reads |
 
 The `nothing` rows: macOS is the honest
 cost of cross-platform packaging from a single-OS developer machine, and
@@ -1184,3 +1205,4 @@ has no fixture that can create one portably.
 | 2 | 2026-08-04 | 3 × general-purpose | 3 | 4 | 9 | 11 | **27 verified / 1 dismissed (no TOC — the skeleton mandates none). All 27 fixed. Stopped here, not at the cap: origin split was 7 draft defects vs 16 fix collateral** — a decisive margin on the first split, which `/cold-eyes` Phase 5 answers by sweeping harder rather than dispatching a loop 3 that would generate the next batch. Dimension tally: dim 5×7, dim 2×6, dim 10×6, dim 7×4, dim 4×2, dim 15×1, dim 13×1, dim 6×1, dim 1×1, dim 11×1. Draft defects (the ones a third loop would have been for): the `publish` job takes `needs: build` and one `download-artifact` named `dist`, so three new *build* jobs would have satisfied §12 while their outputs were discarded — §4.10 now specifies the wiring; `resolve_config_path -> Path` discarded which layer won, so a conforming implementation could satisfy the signature and break INV-4 by manufacturing a config for a mistyped `--config` (now returns `tuple[Path, ConfigSource]`, the same provenance-loss trap `cli/spec.md` fixed for `_resolve_port`); `scripts/dev.sh` passes `--config` and so resolves through layer 1, not layer 2 as claimed. Collateral from loop 1's own fixes: `SetupCheck` attributed to `routes/stubs.py` when it is declared in `schemas_setup.py` (all three lanes); the `restart_required` condition tested path *inequality*, which fails on the likeliest recovery of all — the user dropping their DAT at exactly the path the starter config already names; `_validate_paths` was given a `setup_required` rule without the parameter it would need to see it. **Caught by the 4b sweep rather than a lane:** INV-15, added this loop to close a "promise with no gate" finding, itself shipped with no §11 row — the same defect one level down. Doc grew 758 → 890 lines. |
 | impl | 2026-08-04 | **none — no reviewer dispatched** | — | — | — | — | **Implementation fold-back, not a review loop.** The user asked how others cross-build Windows and macOS from Linux; the answer falsified a clause this document had carried through both gate loops. §4.8 claimed `local-exe.sh` "cannot execute on this Linux box" and could get `shellcheck` only. PyInstaller's own FAQ says the opposite for Windows — cross-compilation is unsupported *and* "please use Wine for this, as PyInstaller runs fine in Wine" — and Wine 11.14 is already installed here (`wine cmd /c echo` returns, prefix reports AMD64). For macOS the same FAQ closes it outright: "Packaging macOS binaries while running under Linux is currently not possible at all", and `osxcross` does not help because PyInstaller must *run* a macOS CPython, not merely compile Darwin objects. Changed: §4.6 gained the Wine build route, §4.7 and §8 record why macOS is closed rather than deferred, §4.8's table now says two of three scripts run locally, and the `Windows .exe actually works` row stopped being **nothing** — it became INV-16, dropping the un-caught count from six to five. **This row exists because no cold reader produced it**; the amendment has had the deterministic checks but not an independent read. |
 | 3 | 2026-09-28 | 2 × review-lane (neutral-lane), every lane held all four questions | — | — | — | — | **Fold-in amendment gate (span: commit 1b0a6ae). Q1 3 · Q2 2 · Q3 1 · Q4 3 — verified 9 / fixed 9 / dismissed 2.** Both lanes independently: INV-12's "every step" cannot hold where the local script runs Wine or a container launch and CI does not (now named `# stage:` lines, host setup exempt); INV-13/INV-16 ran from the repo root, whose `config.yaml` beats the per-user layer, so the starter-config path never ran (now an empty working directory); a failing self-test did not stop either recipe from printing PASS (now exits). One lane each: `sse-starlette` is a plain top-level import, not invisible to static analysis (sentence deleted, self-test check dropped); §4.9 rendered icons at build time while plan step 8 commits them (now committed renditions); §4.14's bare-launch default swallowed the root `--version` / `-v` (now inserts `serve` after leading root flags, never for `-h`/`--help`/`--version`). NEEDS MEASUREMENT run: PyInstaller 6.22.3 refuses `--onefile`/`--console` beside a `.spec` ("makespec options not valid when a .spec file is given") — the spec now picks the layout on `sys.platform`; the same run showed 6.21.0 was no longer current. Found by the orchestrator while executing a fix: `uvicorn/protocols/http/auto.py` imports `httptools` directly, so the replacement negative control needs `excludes`, and §4.4's "the half a `.auto`-only list misses" was false (deleted). Wine CRLF left **unrunnable** here (no Windows Python in a prefix yet); the recipe strips `\r` either way. Dismissed: Windows CPython version unnamed (the two platforms' builds never interoperate on it); §4.12's artifact-name remark (true, changes nothing built). Packet build (1b) found the committed-dist claim resting on an accident of the old pre-commit hook; fixed in code (e00d4e3), not in this document. |
+| 4 | 2026-09-28 | 2 × review-lane (neutral-lane), every lane held all four questions | — | — | — | — | **Final loop of this run (cap 2 for a spec). Q1 0 · Q2 1 · Q3 2 · Q4 4 — verified 7 / fixed 7 / dismissed 3.** Both lanes: the INV-13/INV-16 recipes checked neither that 8080 was free nor that the bundle was still alive (a running dev server would have answered PASS) and `kill %1` hit the subshell (now a port-free check, `exec` so `$!` is the app, `kill -0` before PASS, `wineserver -k`). Lane 1 (lane 2 as an open question): `platformdirs` prefers `XDG_CONFIG_HOME` to `HOME`, measured on this machine to resolve a fresh-`HOME` run to the real `~/.config/mame-curator` (recipe now unsets `XDG_*` and `PORT` and asserts the starter config landed); INV-12's stage marker left named setup and upload steps undecidable (now `name: stage: <name>`); INV-15 demanded a macOS ceiling no run could measure (now appimage and exe only). Lane 2: the self-test's `<stack>` token was unstated while plan 10b expects `httptools` (tokens now listed); INV-12/INV-20 tests were placed at plan steps 9/10 but read `release.yml` jobs added at step 14 (moved; plan 13/14 verifies follow); §4.3 dropped FP20-E's `.resolve()` on the Help path. Dismissed: §6's `_MEIPASS` row (false, builds nothing); INV-16's reused Wine prefix (INV-16 claims start-and-serve, not first run); `config.example.yaml` at runtime (only named in `STARTER_HEADER`). Recipes `bash -n` clean. **Calm cap**: 2 of 7 final-loop findings (INV-12 marker, the recipes) landed on text this run's loop 3 wrote. **Span share**: 8 of the run's 16 verified findings fell inside the armed fold-in (1b0a6ae); the rest were pre-existing. No deferred tail. |

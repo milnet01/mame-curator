@@ -85,9 +85,7 @@ land before its implementation, per the project's TDD default.
     `python:3.13-slim-bookworm` (podman, docker fallback), AppDir assembly
     adapted from OneUp's `build-appimage.sh`, sha256-pinned `appimagetool`
     run with `--appimage-extract-and-run`. → **verify:** the script runs to
-    completion, `dist/MAME_Curator-<version>-x86_64.AppImage` exists, and
-    `tests/tools/test_release_scripts.py::test_appimage_builds_in_bookworm`
-    is green (satisfies INV-20).
+    completion and `dist/MAME_Curator-<version>-x86_64.AppImage` exists.
 
 10b. `scripts/build-smoke.sh` (spec §4.15). → **verify:**
     `MAME_CURATOR_BUILD_SMOKE=1 scripts/build-smoke.sh` exits 0 against
@@ -114,15 +112,16 @@ land before its implementation, per the project's TDD default.
     `user_log_path()`.
 
 13. Record the measured artefact size in spec §4.16 and add the 1.5×
-    ceiling check to each local script. → **verify:**
-    `uv run pytest tests/tools/test_release_scripts.py` fully green
-    (satisfies INV-12, INV-15).
+    ceiling check to `local-appimage.sh` and `local-exe.sh`. → **verify:**
+    `uv run pytest tests/tools/test_release_scripts.py -k size_ceiling`
+    green (satisfies INV-15).
 
 14. `release.yml` — three build jobs uploading `bundle-linux` /
     `bundle-windows` / `bundle-macos`, and `publish` gaining the matching
     `needs` and one `download-artifact` per bundle into `dist/`. →
     **verify:** `actionlint` clean, and
-    `uv run pytest tests/tools/test_release_scripts.py` green.
+    `uv run pytest tests/tools/test_release_scripts.py` fully green
+    (satisfies INV-12, INV-20).
 
 15. Docs: README download-and-run per platform including the macOS
     right-click step and the log paths; CHANGELOG entry; `CLAUDE.md`
