@@ -17,7 +17,7 @@ Each `v*.*.*` tag produces three downloadable artefacts — a Linux
 `.AppImage`, a Windows `.exe`, and an unsigned macOS `.app` inside a
 `.dmg` — that run on a machine with no Python, no `uv` and no network.
 Each is built by a job in `.github/workflows/release.yml` with a local
-mirror script that runs the same steps, so a packaging break is found on
+mirror script that runs the same build stages, so a packaging break is found on
 a developer machine rather than in a tagged release. A first run with no
 configuration starts successfully and is configured from the existing
 Settings page.
@@ -431,8 +431,13 @@ a failure that appears only in frozen builds.
 ### 4.4 One PyInstaller spec, three platforms
 
 `packaging/mame-curator.spec` is shared; each platform's script invokes it
-with a different `--distpath` and post-processing step. PyInstaller
-6.21.0 (current release) is added as a **`bundle`** optional-dependency
+with a different `--distpath` and post-processing step. **The spec file,
+not the command line, chooses the layout**: PyInstaller refuses
+`--onefile` and `--console` beside a `.spec` file (measured with 6.22.3:
+"makespec options not valid when a .spec file is given"), so the spec
+branches on `sys.platform` — a one-file console `EXE` on Windows, an
+`EXE` plus `COLLECT` one-dir build elsewhere. PyInstaller
+(`>=6.22.3`, the current release on 2026-09-28) is added as a **`bundle`** optional-dependency
 group, not a runtime dependency — `bundle` rather than `packaging`,
 which would collide with both the `packaging/` directory this spec adds
 and the widely-installed PyPI distribution of that name.
@@ -444,11 +449,9 @@ them:
   `.auto` selectors (`uvicorn.logging`, `uvicorn.loops.auto`,
   `uvicorn.protocols.http.auto`, `uvicorn.protocols.websockets.auto`,
   `uvicorn.lifespan.on`) **and the implementations they select at
-  runtime**, which is the half a `.auto`-only list misses: the project
-  depends on `uvicorn[standard]`, so `uvloop`, `httptools` and
-  `websockets` are what those selectors resolve to. `sse-starlette` is
-  imported by the copy-progress route and is likewise invisible to
-  static analysis. This list is a starting point, not an inventory —
+  runtime**: the project depends on `uvicorn[standard]`, so `uvloop`,
+  `httptools` and `websockets` are what those selectors resolve to. This list is a
+  starting point, not an inventory —
   INV-13 is the authority, because only launching the artefact and
   fetching a page proves the set is complete.
 - `datas` entries for `frontend/dist` (defect 2), `docs/help` (§4.3),
@@ -469,7 +472,7 @@ A build host needs no Node.
 (no match). The `hiddenimports` list therefore covers third-party
 machinery only.
 
-Windows uses `--onefile`; Linux and macOS use one-dir, because the
+Windows is one-file; Linux and macOS are one-dir, because the
 AppImage and the `.app` are themselves the single-file wrapper. This also
 confines a known upstream defect to Windows: PyInstaller `--onefile`
 breaks uvicorn's Ctrl-C handling — signal delivery during lifespan
@@ -484,7 +487,7 @@ one-dir, assemble an `AppDir` (`AppRun`, `mame-curator.desktop`,
 `mame-curator.png`), then run `appimagetool`.
 
 **The build runs inside `python:3.13-slim-bookworm`, in both places.**
-The job declares it as its `container:`; the script runs the same steps
+The job declares it as its `container:`; the script runs the same stages
 in it through `podman`, or `docker` where `podman` is absent. Two
 reasons, both from finbreak's `scripts/_build-smoke-in-container.sh`:
 the image ships a shared `libpython`, which PyInstaller needs, and its
@@ -512,8 +515,9 @@ decision, not a build detail.
 ### 4.6 Windows — single `.exe`
 
 The `build-exe` CI job runs on `windows-latest`; `local-exe.sh` runs the
-same steps **on this Linux machine under Wine**. Both run PyInstaller
-with `--onefile --console` over the committed `frontend/dist` (§4.4).
+same build stages **on this Linux machine under Wine**. Both run
+PyInstaller against the shared spec, which selects one-file with a
+console on Windows (§4.4), over the committed `frontend/dist`.
 
 **Wine is the supported route, not a hack.** PyInstaller's FAQ states
 that cross-compilation is unsupported and directs Windows-from-Linux
@@ -533,9 +537,8 @@ than on Windows, and Wine's own behaviour differs from Windows at the
 edges. CI on `windows-latest` remains the authority; `local-exe.sh` is
 the pre-flight that stops most red CI runs happening at all. The job declares
 **`shell: bash`**: `windows-latest` defaults to `pwsh`, which cannot run
-the script at all, and Git Bash ships on the GitHub runner image. Naming
-the shell is what makes "the CI job runs the same steps" true rather
-than aspirational. The console window is kept
+the job's bash stages, and Git Bash ships on the GitHub runner image.
+Which stages both sides share is INV-12's. The console window is kept
 deliberately: it is where uvicorn prints the URL, and `--windowed` gives
 a server process nowhere to write stdout.
 
@@ -581,8 +584,10 @@ exactly like one that has.
 
 No application icon exists (`find . -iname '*.ico' -o -iname '*.icns'`
 returns nothing; the only PNGs are `docs/screenshots/` and the media
-cache). `packaging/icon.svg` is added as the single source, rendered to
-`.png` (AppImage), `.ico` (Windows) and `.icns` (macOS) at build time.
+cache). `packaging/icon.svg` is added as the single source. A render
+script turns it into `.png` (AppImage), `.ico` (Windows) and `.icns`
+(macOS) once, and the three renditions are committed beside it; no
+bundle build runs a renderer.
 It is a placeholder by intent — a wordmark tile, not a commissioned
 design.
 
@@ -639,7 +644,7 @@ the bundle for a path that should be rare.
 ### 4.12 Artefact naming
 
 One convention. It is **not** what INV-12 checks — that invariant
-compares *step sets*, not filenames — but the local scripts and the CI
+compares *stage names*, not filenames — but the local scripts and the CI
 jobs must agree on it or the `download-artifact` steps in §4.10 match
 nothing:
 
@@ -662,9 +667,8 @@ order, that each stack a bundle can silently lose is present:
 2. the implementations uvicorn's `.auto` selectors choose —
    `httptools`, `websockets`, and `uvloop` except on Windows, where
    `uvicorn[standard]` does not install it;
-3. `sse_starlette` (copy progress);
-4. `frontend_dist() / "index.html"` exists;
-5. `_help_dir()` is a directory holding at least one `.md` page.
+3. `frontend_dist() / "index.html"` exists;
+4. `_help_dir()` is a directory holding at least one `.md` page.
 
 Each check imports its stack **lazily**, inside the check, so the
 module imports cleanly when a stack is missing and a unit test can
@@ -679,11 +683,14 @@ recipes run both, self-test first.
 
 ### 4.14 A bare launch runs `serve`
 
-When `getattr(sys, "frozen", False)` is true and the first argument is
-absent or starts with `-`, `main()` inserts `serve` before parsing. So a
-double-click runs `serve`, `MAME_Curator.AppImage --no-open-browser`
-runs `serve --no-open-browser`, and `MAME_Curator.AppImage self-test`
-runs the self-test. A source-tree or `pip install` run keeps
+When `getattr(sys, "frozen", False)` is true and no argument names a
+subcommand, `main()` inserts `serve` after any leading root-parser flags
+(`-v` / `--verbose`) — unless the arguments include `-h`, `--help` or
+`--version`, which the root parser answers itself. So a double-click
+runs `serve`, `MAME_Curator.AppImage --no-open-browser` runs
+`serve --no-open-browser`, `MAME_Curator.AppImage -v` runs `-v serve`,
+`MAME_Curator.AppImage --version` prints the version, and
+`MAME_Curator.AppImage self-test` runs the self-test. A source-tree or `pip install` run keeps
 `required=True` and its usage error (INV-19). `serve` already opens the
 browser once the port answers, which is the behaviour a bundle wants.
 
@@ -700,7 +707,7 @@ for a bundle build. INV-13's recipe runs it. Precedent: finbreak's
 ### 4.16 Resource cost
 
 **One** new runtime dependency: `platformdirs>=4.11.0`, already in the
-lockfile transitively at 4.10.0. `pyinstaller>=6.21.0` is in the build-time-only `bundle`
+lockfile transitively at 4.10.0. `pyinstaller>=6.22.3` is in the build-time-only `bundle`
 optional-dependency group, absent from the wheel's
 runtime requirements — `>=`, matching every other pin in
 `pyproject.toml` and the project's latest-versions posture, not the
@@ -813,10 +820,14 @@ user-visible risk otherwise has no regression guard at all.
   existing `is_dir()` guard in `create_app` skips the mount, exactly as
   it does now.
 
-- **INV-12** — Every step in each local script appears in its CI job and
-  vice versa.
-  *Test:* `tests/tools/test_release_scripts.py::test_local_scripts_mirror_release_yml`.
-  *Breaks when:* a step is added to `release.yml` only — the drift that
+- **INV-12** — Every build stage in each local script appears in its CI
+  job and vice versa. A stage is a line `# stage: <name>` in the script
+  and a step `name: <name>` in the job. Host setup is not a stage and is
+  exempt on both sides: checkout, runtime setup actions, the Wine prefix
+  and its Windows CPython, and the container launch.
+  *Test:* `tests/tools/test_release_scripts.py::test_local_scripts_mirror_release_yml`
+  — compares the two name sets per platform.
+  *Breaks when:* a stage is added to `release.yml` only — the drift that
   makes a local mirror worse than no mirror, because it reports success
   for a pipeline it no longer represents.
 
@@ -828,11 +839,13 @@ user-visible risk otherwise has no regression guard at all.
   ```bash
   ./local-appimage.sh
   # Clean room first: no Python, no network, the self-test sentinel (§4.15).
-  MAME_CURATOR_BUILD_SMOKE=1 scripts/build-smoke.sh
-  # Background: the bundle runs a server and never returns. A fresh HOME
-  # forces the per-user config path; --no-open-browser stops the poller
-  # spawning a tab on every run of the recipe.
-  HOME="$(mktemp -d)" ./dist/MAME_Curator-*-x86_64.AppImage --no-open-browser &
+  MAME_CURATOR_BUILD_SMOKE=1 scripts/build-smoke.sh || { echo FAIL; exit 1; }
+  APP="$(ls "$PWD"/dist/MAME_Curator-*-x86_64.AppImage)"
+  # An empty working directory and a fresh HOME: the repo root holds a
+  # config.yaml, which §4.1's layer 2 would pick up, so the per-user
+  # starter-config path would never run. --no-open-browser stops the
+  # poller spawning a tab. Backgrounded: the bundle never returns.
+  cd "$(mktemp -d)" && HOME="$(mktemp -d)" "$APP" --no-open-browser &
   for _ in $(seq 60); do
       curl -sf http://127.0.0.1:8080/ >/dev/null && break
       sleep 1
@@ -887,9 +900,13 @@ user-visible risk otherwise has no regression guard at all.
 
   ```bash
   ./local-exe.sh
-  WINEPREFIX="$PWD/.wine-build" wine dist/MAME_Curator-*-x86_64.exe self-test \
-      | grep -qx 'MAME_CURATOR_SELFTEST_OK' || echo FAIL
-  WINEPREFIX="$PWD/.wine-build" wine dist/MAME_Curator-*-x86_64.exe --no-open-browser &
+  export WINEPREFIX="$PWD/.wine-build"
+  EXE="$(ls "$PWD"/dist/MAME_Curator-*-x86_64.exe)"
+  # tr: Windows Python may end the line with \r\n.
+  wine "$EXE" self-test | tr -d '\r' | grep -qx 'MAME_CURATOR_SELFTEST_OK' \
+      || { echo FAIL; exit 1; }
+  # An empty working directory, as in INV-13: no ./config.yaml to find.
+  cd "$(mktemp -d)" && wine "$EXE" --no-open-browser &
   for _ in $(seq 60); do
       curl -sf http://127.0.0.1:8080/ >/dev/null && break
       sleep 1
@@ -922,12 +939,15 @@ user-visible risk otherwise has no regression guard at all.
   *Breaks when:* the `parents[3]` source-tree path stays — every Help
   page then 404s in a bundle while the source tree stays green.
 
-- **INV-19** — When frozen, `main()` runs `serve` for an empty argument
-  list or one whose first item starts with `-`; unfrozen, it keeps the
-  usage error.
+- **INV-19** — When frozen and no argument names a subcommand, `main()`
+  runs `serve`, keeping the root parser's flags: `--version` and `-h`
+  still answer from the root parser, and a leading `-v` still sets
+  verbose logging. Unfrozen, the usage error stays.
   *Test:* `tests/cli/test_bundle_default_command.py`.
   *Breaks when:* the default is applied unfrozen, silently turning a
-  mistyped command into a server start for every source-tree user.
+  mistyped command into a server start for every source-tree user; or
+  a root flag lands after `serve`, which `sub_serve` rejects with a
+  usage error.
 
 - **INV-20** — The Linux bundle is built inside
   `python:3.13-slim-bookworm` in both `release.yml`'s `build-appimage`
@@ -981,7 +1001,7 @@ module constant with no `sys.frozen` branch to exercise.
 
 `tests/tools/test_release_scripts.py` follows the existing
 `tests/tools/test_run_sh_port.py` pattern — parse the shell and the YAML,
-compare step sets — and must be marked `skipif(sys.platform == "win32")`
+compare stage names — and must be marked `skipif(sys.platform == "win32")`
 per the guard in `tests/docs/test_posix_only_tests_skip_on_win32.py`.
 **That marking means INV-12 is never checked on the platform `local-exe.sh`
 targets**; it is a Linux-leg check of a Windows-facing script, which is
@@ -1163,3 +1183,4 @@ has no fixture that can create one portably.
 | 1 | 2026-08-04 | 3 × general-purpose | 3 | 5 | 12 | 16 | 36 verified / 0 unverified. **35 fixed, 1 dismissed** (no TOC — the governing `spec-skeleton.md` mandates none). Dimension tally: dim 2×8, dim 5×8, dim 4×5, dim 10×4, dim 7×3, dim 13×2, dim 6×2, dim 15×2, dim 9×1, dim 1×1, dim 11×1. All three CRITICALs were the same defect class — the first-run recovery journey asserted against code that does not support it: `restart_required` fires only on `server:` changes (`api/routes/config.py`), `_validate_paths` **rejects** every PATCH while the starter `source_dat` is absent (so the user can never save the fix), and the `--config` default change was written as one edit when three registrations carry it. §4.2 gained the two `api/` changes that make the journey real; §3 decision 6 is now scoped to `sub_serve`. Also fixed: §4.2/§8 contradicted each other on whether the frontend changes (it does — `SetupCheck` is mirrored in TS and gated by `check_api_types_sync.py`); INV-13's recipe could not pass as written (`env -i` strips the `HOME` `platformdirs` needs, and the AppImage never returns to the `&&`); `platformdirs` needs `appauthor=False` or Windows double-nests. **Collateral caught by 4c, not by a lane:** the four letter-suffixed ids this loop added (`INV-1b`…`INV-6c`) parsed as 10 invariants instead of 14 — silently absorbed into the preceding body — so all 14 were renumbered sequentially. Doc grew 493 → 758 lines. |
 | 2 | 2026-08-04 | 3 × general-purpose | 3 | 4 | 9 | 11 | **27 verified / 1 dismissed (no TOC — the skeleton mandates none). All 27 fixed. Stopped here, not at the cap: origin split was 7 draft defects vs 16 fix collateral** — a decisive margin on the first split, which `/cold-eyes` Phase 5 answers by sweeping harder rather than dispatching a loop 3 that would generate the next batch. Dimension tally: dim 5×7, dim 2×6, dim 10×6, dim 7×4, dim 4×2, dim 15×1, dim 13×1, dim 6×1, dim 1×1, dim 11×1. Draft defects (the ones a third loop would have been for): the `publish` job takes `needs: build` and one `download-artifact` named `dist`, so three new *build* jobs would have satisfied §12 while their outputs were discarded — §4.10 now specifies the wiring; `resolve_config_path -> Path` discarded which layer won, so a conforming implementation could satisfy the signature and break INV-4 by manufacturing a config for a mistyped `--config` (now returns `tuple[Path, ConfigSource]`, the same provenance-loss trap `cli/spec.md` fixed for `_resolve_port`); `scripts/dev.sh` passes `--config` and so resolves through layer 1, not layer 2 as claimed. Collateral from loop 1's own fixes: `SetupCheck` attributed to `routes/stubs.py` when it is declared in `schemas_setup.py` (all three lanes); the `restart_required` condition tested path *inequality*, which fails on the likeliest recovery of all — the user dropping their DAT at exactly the path the starter config already names; `_validate_paths` was given a `setup_required` rule without the parameter it would need to see it. **Caught by the 4b sweep rather than a lane:** INV-15, added this loop to close a "promise with no gate" finding, itself shipped with no §11 row — the same defect one level down. Doc grew 758 → 890 lines. |
 | impl | 2026-08-04 | **none — no reviewer dispatched** | — | — | — | — | **Implementation fold-back, not a review loop.** The user asked how others cross-build Windows and macOS from Linux; the answer falsified a clause this document had carried through both gate loops. §4.8 claimed `local-exe.sh` "cannot execute on this Linux box" and could get `shellcheck` only. PyInstaller's own FAQ says the opposite for Windows — cross-compilation is unsupported *and* "please use Wine for this, as PyInstaller runs fine in Wine" — and Wine 11.14 is already installed here (`wine cmd /c echo` returns, prefix reports AMD64). For macOS the same FAQ closes it outright: "Packaging macOS binaries while running under Linux is currently not possible at all", and `osxcross` does not help because PyInstaller must *run* a macOS CPython, not merely compile Darwin objects. Changed: §4.6 gained the Wine build route, §4.7 and §8 record why macOS is closed rather than deferred, §4.8's table now says two of three scripts run locally, and the `Windows .exe actually works` row stopped being **nothing** — it became INV-16, dropping the un-caught count from six to five. **This row exists because no cold reader produced it**; the amendment has had the deterministic checks but not an independent read. |
+| 3 | 2026-09-28 | 2 × review-lane (neutral-lane), every lane held all four questions | — | — | — | — | **Fold-in amendment gate (span: commit 1b0a6ae). Q1 3 · Q2 2 · Q3 1 · Q4 3 — verified 9 / fixed 9 / dismissed 2.** Both lanes independently: INV-12's "every step" cannot hold where the local script runs Wine or a container launch and CI does not (now named `# stage:` lines, host setup exempt); INV-13/INV-16 ran from the repo root, whose `config.yaml` beats the per-user layer, so the starter-config path never ran (now an empty working directory); a failing self-test did not stop either recipe from printing PASS (now exits). One lane each: `sse-starlette` is a plain top-level import, not invisible to static analysis (sentence deleted, self-test check dropped); §4.9 rendered icons at build time while plan step 8 commits them (now committed renditions); §4.14's bare-launch default swallowed the root `--version` / `-v` (now inserts `serve` after leading root flags, never for `-h`/`--help`/`--version`). NEEDS MEASUREMENT run: PyInstaller 6.22.3 refuses `--onefile`/`--console` beside a `.spec` ("makespec options not valid when a .spec file is given") — the spec now picks the layout on `sys.platform`; the same run showed 6.21.0 was no longer current. Found by the orchestrator while executing a fix: `uvicorn/protocols/http/auto.py` imports `httptools` directly, so the replacement negative control needs `excludes`, and §4.4's "the half a `.auto`-only list misses" was false (deleted). Wine CRLF left **unrunnable** here (no Windows Python in a prefix yet); the recipe strips `\r` either way. Dismissed: Windows CPython version unnamed (the two platforms' builds never interoperate on it); §4.12's artifact-name remark (true, changes nothing built). Packet build (1b) found the committed-dist claim resting on an accident of the old pre-commit hook; fixed in code (e00d4e3), not in this document. |

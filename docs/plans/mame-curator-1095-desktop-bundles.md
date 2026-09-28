@@ -75,7 +75,7 @@ land before its implementation, per the project's TDD default.
    INV-19).
 
 9. `packaging/mame-curator.spec` — hidden imports for uvicorn's `.auto`
-   selectors and their `[standard]` implementations plus `sse-starlette`;
+   selectors and their `[standard]` implementations;
    `datas` for `frontend/dist` → `frontend/dist`, `docs/help` →
    `docs/help`, `config.example.yaml`, `packaging/`. → **verify:**
    `uv run pytest tests/tools/test_release_scripts.py -k datas` green
@@ -92,8 +92,11 @@ land before its implementation, per the project's TDD default.
 10b. `scripts/build-smoke.sh` (spec §4.15). → **verify:**
     `MAME_CURATOR_BUILD_SMOKE=1 scripts/build-smoke.sh` exits 0 against
     step 10's AppImage, and exits non-zero with the sentinel's FAIL line
-    against an AppImage built with `sse-starlette` removed from
-    `hiddenimports`.
+    against an AppImage built with `httptools` in the spec's `excludes`,
+    printing `MAME_CURATOR_SELFTEST_FAIL: httptools`. Removing it from
+    `hiddenimports` is not enough: `uvicorn/protocols/http/auto.py`
+    imports it directly, and without it uvicorn falls back to `h11` and
+    still serves pages.
 
 11. `local-exe.sh` — provisions `.wine-build/`, installs Windows CPython
     under Wine, runs PyInstaller through the shared spec. → **verify:**
