@@ -96,7 +96,7 @@ CLI entry: `mame_curator.main:main`; subcommands dispatch in `cli/__init__.py` v
 - **TDD is the default** for non-trivial logic. The long-form roadmap's per-phase "Tests to write first" list is binding.
 - **File-size caps:** Python files soft 300 / hard 500 lines; functions soft 50 / hard 80.
 - **Coverage gates per module:** `parser/` ≥90%, `filter/` ≥95%, `copy/` ≥85%, `api/` ≥80%, frontend ≥70%, overall backend ≥85%.
-- **What counts as breaking is [`docs/standards/versioning-overrides.md`](docs/standards/versioning-overrides.md).** Past v1.0.0, a `config.yaml` key rename or removal either migrates the old form or ships as a MAJOR. The HTTP API is internal and is not a breaking surface.
+- **What counts as breaking is [`docs/standards/versioning-overrides.md`](docs/standards/versioning-overrides.md).** Past v1.0.0, a `config.yaml` key rename or removal either migrates the old form or ships as a MAJOR. The HTTP API is internal and is not a breaking surface; the Backup export file it hands users is.
 - **No `# nosec` without an inline threat-model comment, no `# type: ignore` without a reason.**
 - **Conventional Commits** (`feat:`, `fix:`, `chore:`, etc.) per `coding-standards.md` § 12. App-Build's `<ID>: <description>` mandate is **deliberately not adopted**; cite phase IDs in body or scope. See `docs/standards/commits.md`.
 - **No `<ID>-complete` tags and no new `docs/journal/` entries.** Both were App-Build habits, dropped 2026-09-28; the existing tags and journals stay as history. Releases still get their `vX.Y.Z` tag.

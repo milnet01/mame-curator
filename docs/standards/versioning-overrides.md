@@ -15,13 +15,16 @@ bump, unless the release migrates the old form for them.
 
 1. **`config.yaml`.** `AppConfig` in `src/mame_curator/api/schemas.py` sets
    `extra="forbid"`, so renaming or removing a key makes an existing file fail
-   to load. Changing what a key means, or a default the user never wrote down,
-   counts too. **Rule: a key rename or removal either keeps reading the old
-   form (a migration) or ships as a MAJOR.** Adding an optional key is not
-   breaking.
-2. **Saved user data** next to the config and in the data directory:
-   `overrides.yaml`, `sessions.yaml`, `state.yaml` (review marks) and
-   `notes.json`. A release must still read the files an earlier release wrote.
+   to load. Changing what a key means counts too. **Rule: a key rename or
+   removal either keeps reading the old form (a migration) or ships as a
+   MAJOR.** Adding an optional key is not breaking.
+2. **Files the app saves and reads back later.** A release must still read
+   what an earlier release wrote. The candidates are every path found by
+   `grep -rnE 'data_dir / "|config_path\.parent / "' src/mame_curator`, less
+   scratch the app clears itself (the `recycle` folder, the
+   `import.in_progress` marker). The Settings → Backup export file counts
+   too: `/api/config/import` reads a `ConfigExportBundle` a user may have
+   kept.
 3. **The command line.** The subcommands, flags and exit codes in
    `src/mame_curator/cli/spec.md`. This includes the `filter` report JSON,
    because `copy --filter-report` reads a report a user may have kept.
@@ -37,9 +40,10 @@ bump, unless the release migrates the old form for them.
 ## Not breaking surfaces
 
 - **The HTTP API (`/api/...`).** The web page and the server ship together in
-  every release, and nothing documents the API for outside use. Changing it
-  cannot break an installed copy. Changes still follow `api/spec.md`, and
-  `check-api-types-sync` keeps the two halves in step.
+  every release, and nothing documents the API for outside use. The one file
+  it hands the user to keep, the Backup export, is item 2's. Changes still
+  follow `api/spec.md`, and `check-api-types-sync` keeps the two halves in
+  step.
 - **The Python modules under `src/mame_curator/`.** The project is not
   published as a library, so nothing outside this repository imports them.
 

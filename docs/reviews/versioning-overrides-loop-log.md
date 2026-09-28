@@ -1,0 +1,10 @@
+# Cold-eyes loop log — `docs/standards/versioning-overrides.md`
+
+Review history for the project's breaking-surfaces standard, kept outside it
+because the standard has never carried a loop log and nothing requires one.
+
+## Cold-eyes loop log
+
+| Loop | Date | Lanes | Q1 | Q2 | Q3 | Q4 | Outcome |
+|------|------|-------|----|----|----|----|---------|
+| 1 | 2026-09-28 | 2 | 2 | 0 | 1 | — | New standard, mame-curator-1119 (gated span: 934c3ef, the whole document). Genre standard, pinned; Q4 not asked. Two lanes, each holding every question; both disclosed the git snapshot naming the arming commit. 1b: every citation windowed, none defective; 1d done by hand (no links; paths, version and tags checked). 3 verified / 3 fixed / 1 dismissed. [Q3] lane A: "a default the user never wrote down" made cosmetic default changes MAJOR against the stops-working test; clause deleted. [Q1] lane B: the Backup export file (`ConfigExportBundle`, read by `/api/config/import`) is a kept file the blanket API exemption covered; named in item 2 and the API bullet, and in CLAUDE.md's pointer line. [Q1] orchestrator, from lane B's open question: the saved-data list omitted snapshots, copy history, activity.jsonl and the stored media key; replaced by a grep that finds the class. Dismissed: lane A's stale-browser-tab question (changes no bump). Lane A's NEEDS MEASUREMENT (check-api-types-sync compares fields) measured true. Loop 2 dispatched. |
