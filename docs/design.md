@@ -349,26 +349,25 @@ All wizard state is **resumable across sessions and reboots**. State persists to
 
 ### 6.7 `updates/` — self-update and INI refresh
 
-Two independent update channels, both manual-trigger and both checked at startup with a non-blocking notification if newer versions are available.
+Two independent update channels, both manual-trigger. The app update is also checked at startup, with a non-blocking notification when a newer version exists.
 
 #### App self-update
 
 - On startup the backend queries the GitHub Releases API for the latest tag of the `mame-curator` repo. If the latest tag is newer than the running version, surfaces a "Update available: vX.Y.Z" toast in the UI with "What's new" and "Update now" buttons.
-- "Update now" runs `git pull` (when the install is a clone) or downloads the release tarball (when the install is a download). The update process: pre-flight `git status` is clean, fetch + verify, run `uv sync` for new deps, restart the backend. If anything fails, the previous version remains running.
+- "Update now" depends on the install (mame-curator-1010). A git clone fast-forwards to the release tag (`origin/main` on the dev channel): pre-flight `git status` is clean, snapshot, fetch, `git merge --ff-only`, `uv sync` for new deps; the user restarts the app to finish. If the sync fails the code is reset to the previous commit, and the running version never changes. A desktop bundle downloads the new release file next to itself (`~/Downloads` on macOS), keeps it only once its checksum matches the release's digest, and the user opens it; the old file stays as the fallback. Any other install links to the release page.
 - Settings page has an "Auto-check on startup" switch (default on) and a "Check now" button.
 - The user can opt into a release channel: `stable` (tagged releases) or `dev` (latest `main` branch) — defaults to `stable`.
 
 #### INI refresh
 
-- On startup, fetches the version manifest from progettoSnaps' GitHub mirror (`AntoPISA/MAME_SupportFiles`) and compares against locally cached versions.
-- If a newer INI is available, surfaces a separate notification: "Newer reference data: catver.ini 0.290 (you have 0.284). Refresh? Refreshes affect filter results — your overrides and sessions are preserved."
-- Refresh re-downloads the ini files (with checksum + retry, same logic as the wizard), then re-runs the filter and shows a diff of decisions: "X games newly included, Y newly dropped, Z winners changed."
+- Refresh is an explicit action in Settings → Updates (mame-curator-1010). **Preview** downloads the INI files from progettoSnaps' GitHub mirror (`AntoPISA/MAME_SupportFiles`) into a staging folder, re-runs the filter against them, and lists the games that would join and leave the library. **Apply** moves exactly the previewed files into place. Your overrides and sessions are preserved.
+- A startup INI check is deferred: the preview downloads five files, so it stays an explicit action.
 
 #### Safety rails
 
-- All app updates create a snapshot of `config.yaml`, `overrides.yaml`, `sessions.yaml`, `data/notes.json` first.
-- INI refreshes never touch user files; they only update `data/*.ini` plus the in-memory model.
-- "Roll back to previous version" is one click in Settings (uses `git reset --hard <prev-tag>` for clones, swap-in for downloads).
+- All app updates create a snapshot of `config.yaml`, `overrides.yaml`, `sessions.yaml`, `data/notes.json` and `data/state.yaml` first.
+- An INI refresh applies only after a preview and a confirmation. It snapshots the live INI files into `data/ini-snapshots/`, then may overwrite the INIs at their configured `paths.<ini>`, and writes a `data/ini/<name>` path into `config.yaml` for an INI whose path was unset.
+- "Roll back to previous version" is one click in Settings for a clone (`git reset --hard <previous commit>`); a download's old file stays beside the new one.
 
 See [ADR-0004 (`0004-ini-refresh-trust-model`)](decisions/0004-ini-refresh-trust-model.md) for the runtime refresh trust model — why mirrors + sha256 (promised in § 6.6 for the wizard bootstrap) are deferred for the refresh path until the wizard ships.
 
@@ -624,7 +623,7 @@ focused-card / drawer-coordination model.
 | Per-game version conflict on append | Modal asks per-game: keep existing or replace; replace asks about deleting old `.zip` |
 | User confirms delete-from-drive | File is moved to `data/recycle/` (not unlinked); 30-day retention; visible in Activity |
 | Self-update fails mid-pull | Previous version remains running; user sees error toast with details; no half-state |
-| INI refresh diff shows large drop | Modal shows the diff (X new, Y dropped, Z changed) and requires explicit confirm before applying |
+| INI refresh diff shows large drop | The preview lists the games that would join and leave; nothing applies until the user presses Apply |
 | User pastes non-existent path in wizard | Validation error inline in field; "Browse..." button auto-opens the file browser |
 | File-browser endpoint asked for restricted path | Returns 403 with friendly message; sandboxes to user's home + configured roots |
 
@@ -735,7 +734,7 @@ Actual console *games* (Super Mario Bros NES, Sonic Genesis, etc.) live in entir
 - **Media `.png` filename mismatches.** libretro-thumbnails uses the description verbatim, but characters `&*/:\`<>?\|"` are escaped to `_`. We must mirror their escaping exactly — covered by media-subsystem unit tests.
 - **Source DAT format variance.** If the user's DAT is from a different aggregator (e.g. EmuMovies, redump), short names should still match MAME's, but we validate at startup that the DAT has the expected XML structure and surface a clear error if not.
 - **Pleasuredome DATs strip `cloneof` / `romof` attributes** (verified empirically against both merged and non-merged 0.284). Parent/clone relationships therefore come from the official MAME `-listxml` and are joined onto Pleasuredome machines by short name in Phase 2's filter. This is recorded in `parser/spec.md` and is the reason the Phase 1 smoke run shows `clones: 0` against the Pleasuredome DAT alone — that's correct behavior, not a parser bug.
-- **Self-update on Windows.** `git pull` works for clones but a downloaded zip release needs a different mechanism (download-new, swap, restart). Phase 7's update logic handles both, but the swap-on-Windows path is the trickiest because the running process holds open handles — we restart via a small bootstrap helper.
+- **Self-update on Windows.** A running `.exe` cannot be overwritten, so a bundle never swaps itself: it downloads the new release file beside the running one and the user opens it (mame-curator-1010 § 3 decision 1). A clone fast-forwards in place and the user restarts it.
 - **Genre/publisher/developer filters depend on `catver.ini` and DAT `<manufacturer>` quality.** Both have inconsistencies (e.g. `"Capcom (Sega license)"` vs `"Capcom"`). Filtering uses prefix matching by default; users may need to add multiple patterns to catch variants. The filter customization UI shows a live count so users can iterate.
 - **Recycle directory growth.** The 30-day retention is configurable but defaults could surprise users with low disk space. Settings shows the current recycle-bin size and offers immediate purge.
 - **uv availability.** `uv` is the modern standard but new enough that some users may not have it. The bootstrap script offers to install it via the official one-liner, but a small fraction of users may need to install manually. Manual instructions are surfaced clearly.

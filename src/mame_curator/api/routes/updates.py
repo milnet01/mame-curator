@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import subprocess  # nosec B404 — only the default `run` seam (subprocess.run) handed to updates/app.py, which calls git and uv with no shell (INV-13).
 import time
 from datetime import UTC, datetime
@@ -46,6 +47,8 @@ from mame_curator.updates.app import (
 )
 from mame_curator.updates.ini import INI_DEFAULT_SOURCES
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 CHECK_TTL_SECONDS = 3600.0
@@ -74,7 +77,13 @@ def install_update_error_handler(app: FastAPI) -> None:
     async def _handler(_: Request, exc: Exception) -> JSONResponse:
         if not isinstance(exc, UpdateError):  # pragma: no cover - guard
             raise exc
-        detail = f"{exc.detail}\n\n{exc.output}" if exc.output else exc.detail
+        # `detail` is one line (api/spec.md § Error envelope): the output's
+        # first line rides along, and the whole of it goes to the log.
+        detail = exc.detail
+        if exc.output:
+            logger.warning("update failed (%s): %s", exc.code, exc.output)
+            first = exc.output.strip().splitlines()[0] if exc.output.strip() else ""
+            detail = f"{exc.detail}: {first}" if first else exc.detail
         body = ApiErrorBody(detail=detail, code=exc.code)
         return JSONResponse(status_code=exc.status, content=body.model_dump(mode="json"))
 

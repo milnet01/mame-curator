@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Added — Update the app and its INI files from Settings (mame-curator-1010)
+
+Settings → Updates now checks GitHub for a newer release, shows its notes
+under "What's new", and updates the app for you. A copy cloned with git
+snapshots your files, moves to the new release and refreshes its
+libraries; restart it to finish. If the update fails it goes back to the
+version you had, and "Roll back" undoes a finished one. A downloaded
+AppImage, .exe or .dmg saves the new release file next to itself (on a
+Mac, in Downloads) once its checksum matches, and you open that. With
+"Check for app updates on startup" on, a toast says when an update
+exists. The reference INI files now refresh with a preview: it lists the
+games they would add to or remove from your library, and nothing changes
+until you press Apply. Restoring a settings snapshot now also restores
+your review marks. A new Help page, "Updating", covers all of it.
+
 ### 2026-09-28 Added — MobyGames supplies arcade box art when you add your own key (mame-curator-1079)
 
 With a MobyGames API key in Settings → Media, MobyGames now finds a

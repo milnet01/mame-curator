@@ -11,6 +11,10 @@ caller-supplied `httpx.AsyncClient`, this module:
    (`refresh_inis`).
 2. Discovers + downloads + extracts the progettoSnaps **snap** image pack
    (PNGs) into `<dest>/snap/` (`refresh_snaps` + `discover_snap_pack_url`).
+3. Checks for and applies an app update (`updates/app.py`,
+   mame-curator-1010): what kind of install this is, the latest GitHub
+   release, a git clone's fast-forward with rollback, and a bundle's
+   verified download. See § App self-update.
 
 Both operations report outcomes through a **frozen dataclass report**
 rather than raising on per-source failure — the CLI surfaces both the
@@ -24,7 +28,9 @@ primitive (sha256-verified, atomic, retrying — see "Out of scope"); this
 module owns only the *what to fetch / where to put it / how to report it*
 layer.
 
-Layering: `updates/ ← parser/ + downloads.py` (no other internal deps).
+Layering: `updates/ ← parser/ + downloads.py + _resources.py` (no other
+internal deps). `updates/app.py` never imports `api/`: the route hands it
+the snapshot step as a callable and records the result itself.
 The caller owns the `AsyncClient` lifecycle (project convention — one
 client reused across many downloads).
 
@@ -37,11 +43,18 @@ Re-exported from `mame_curator.updates.__init__`:
 | `refresh_inis` | async function | `updates/ini.py` |
 | `INIRefreshReport` | frozen dataclass | `updates/ini.py` |
 | `INI_DEFAULT_SOURCES` | `dict[str, str]` | `updates/ini.py` |
+| `INI_CONFIG_FIELDS` | `dict[str, str]` — INI file → `paths.<field>` | `updates/ini.py` |
 | `refresh_snaps` | async function | `updates/snaps.py` |
 | `discover_snap_pack_url` | async function | `updates/snaps.py` |
 | `SnapsRefreshReport` | frozen dataclass | `updates/snaps.py` |
 | `SNAPS_INDEX_URL` (`= snaps.INDEX_URL`) | `str` | `updates/snaps.py` |
 | `SNAP_PACK_MAX_BYTES` | `int` | `updates/snaps.py` |
+
+`updates/app.py` is imported directly (`from mame_curator.updates.app
+import …`), not re-exported: `install_kind`, `latest_release`, `is_newer`,
+`dev_status`, `head_commit`, `apply_git_update`, `rollback_git_update`,
+`bundle_target`, `download_bundle`, the `ReleaseInfo` / `ReleaseAsset` /
+`GitUpdateResult` dataclasses, `UpdateCheckError`, and `UpdateError`.
 
 ## Public functions
 
@@ -178,6 +191,35 @@ explicitly.
   directory-escape — so a **zip-slip** path like `../evil.png` is skipped
   and a malicious archive cannot place files outside `snap/`.
 
+## App self-update
+
+`docs/specs/mame-curator-1010-self-update.md` is the contract; this is the
+module's share of it.
+
+- `install_kind()` is `bundle` when frozen, `git` when `bundle_root()` holds
+  `.git`, else `package` (INV-1).
+- `latest_release(client)` reads GitHub's `releases/latest`; any network
+  error, non-200 or unparseable body raises `UpdateCheckError`. An asset's
+  `sha256` comes from its `digest` field, and is `None` without one.
+- `is_newer(candidate, current)` compares X.Y.Z numerically; a pre-release
+  candidate is never newer (INV-2).
+- `apply_git_update(repo, *, target, before_move, run)` runs, in `repo`:
+  the pre-flight (`git` and `uv` on `PATH`, no modified tracked files),
+  `before_move()`, `git fetch`, an ancestry check, `git merge --ff-only`,
+  then `uv sync --no-dev --inexact`. A failed sync resets to the previous
+  commit and syncs again; the result says `rolled_back` and, if the second
+  sync failed too, `sync_failed` (INV-5 to INV-8).
+- Every `git` and `uv` call goes through `run` as an argument list with no
+  shell (INV-13).
+- `UpdateError` carries the API's `code` and HTTP `status`:
+  `update_tool_missing`, `update_dirty_tree`, `update_fetch_failed`,
+  `update_not_fast_forward`, `update_merge_refused`, `update_no_asset`,
+  `update_unverifiable`, `update_download_failed`, `update_digest_mismatch`.
+  The routes raise the rest.
+- `download_bundle` writes `<name>.partial`, hashes it, and renames it into
+  place only when the hash equals the asset's digest; every failure leaves
+  no file (INV-9).
+
 ## Out of scope
 
 - The HTTP download primitive itself — sha256 verification, exponential-
@@ -188,5 +230,6 @@ explicitly.
   surface, exit codes, console output) — handled by `cli/`.
 - Acquiring the official MAME `-listxml` and the DAT — the wizard / setup
   flow's responsibility, not this module's.
-- App self-update and the diff-preview UI — P12, post-v1 (see `ROADMAP.md`
-  item `mame-curator-1010` and ADR-0004 § "Post-v1 hardening path").
+- The update routes, `data/update-state.json`, the activity entries and the
+  INI diff preview — `api/routes/updates.py` and `updates_ini.py`
+  (see `api/spec.md`).

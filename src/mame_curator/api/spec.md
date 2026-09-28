@@ -78,8 +78,9 @@ readable at startup.
   library is setup rather than a filter result.
 - **`replace_world(*, base, ...)`** — builds a *new* world from `base` with
   selected fields swapped. It is the only mutation path. Recompute triggers:
-  - `filter_result` is re-run **only** when `config`, `overrides`, or
-    `sessions` changed (or `rerun_filter=True`).
+  - `filter_result` is re-run **only** when `config`, `overrides`,
+    `sessions` or `ctx` changed (or `rerun_filter=True`). `ctx` is the
+    `FilterContext` an INI refresh swaps in (mame-curator-1010 §4.6).
   - `allowed_roots` is re-composed **only** when `config` changed
     (`compose_allowlist` is a pure function of `config.paths` +
     `config.fs.granted_roots`; see the load-bearing comment in
@@ -163,6 +164,7 @@ class vars). `install_handlers` registers three handlers:
 | `RetroArchNotConfiguredError` | `retroarch_not_configured` | 422 |
 | `RomFileNotFoundError` | `rom_file_not_found` | 404 |
 | `CrossSiteBlockedError` (rendered by `OriginGuard`) | `cross_site_blocked` | 403 |
+| `UpdateError` (`updates/app.py`; see § App self-update) | its own `code` | its own `status` |
 | (`ApiException` base / fallback) | `internal` | 500 |
 | (request-validation handler) | `validation_error` | 422 |
 
@@ -221,6 +223,10 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | GET | `/api/help/{topic}` | `HelpContent` | |
 | GET | `/api/setup/check` | `SetupCheck` | |
 | GET | `/api/updates/check` | `UpdatesCheck` | |
+| POST | `/api/updates/apply` | `UpdateApplyResult` | |
+| POST | `/api/updates/rollback` | `UpdateApplyResult` | |
+| POST | `/api/updates/ini/preview` | `IniPreview` | |
+| POST | `/api/updates/ini/apply` | `IniPreview` | ✓ |
 | GET | `/media/{name}/{kind}` | image bytes (`FileResponse`) | |
 | GET | `/media/{name}/wiki` | `WikipediaExtract \| null` | |
 | GET | `/api/media/sources` | `SourceReadiness` | |
@@ -309,6 +315,11 @@ All FS browsing crosses `api/fs.py`:
 - `snapshot_files` captures the pre-write state before each config mutation;
   `restore_snapshot` reverts to a captured snapshot id (unknown id →
   `SnapshotNotFoundError` 404). Old snapshots are pruned.
+- The restore route's targets are `config.yaml`, `overrides.yaml`,
+  `sessions.yaml`, `data/notes.json` and `data/state.yaml`, keyed by bare
+  name. It reloads each into the world, review state included, so an update
+  snapshot restores whole and the next review write cannot save stale
+  state over the restored file (mame-curator-1010 §4.3 step 2).
 - `export` returns a `ConfigExportBundle`; `import` validates + applies a
   bundle (invalid → `ConfigError` 422).
 
@@ -366,6 +377,41 @@ address `serve` binds (`create_app(..., bind_host=)`).
 Cross-site reads pass: without CORS headers the page cannot read the
 response, and a GET changes nothing. Remote access beyond this stays out
 of scope (§ Out of scope).
+
+## App self-update
+
+`docs/specs/mame-curator-1010-self-update.md` is the contract.
+`routes/updates.py` and `routes/updates_ini.py` own what `updates/app.py`
+may not touch: `app.state`, the snapshot, `data/update-state.json` and the
+activity log.
+
+- `init_update_state(app)` runs in the lifespan: `update_lock`, the check
+  cache, `updates_client`, and two seams tests replace — `update_repo`
+  (default `bundle_root()`) and `update_run` (default `subprocess.run`).
+  It records `started_commit` for a git install.
+- `GET /api/updates/check` caches its answer per channel on `app.state` for
+  an hour; `?refresh=true` bypasses it (INV-3). A failed check answers 200
+  with `check_error` set (INV-4). `restart_pending` is true while the
+  record's `to_commit` differs from `started_commit`; `rollback_available`
+  while it holds a `previous_commit`.
+- `POST /api/updates/apply` answers `409 update_not_supported` on a package
+  install (INV-10) and `409 update_in_progress` while another update runs.
+  After a git update the route writes `update-state.json` and an
+  `app_updated` activity entry; after a bundle download it records the
+  download only.
+- `POST /api/updates/rollback` answers `409 update_nothing_to_roll_back`
+  without a recorded `previous_commit`, and rewrites the record so a second
+  rollback is refused.
+- `POST /api/updates/ini/preview` stages the INIs in `data/ini-staging/`
+  and changes neither the live files nor the world (INV-11). A staged INI
+  that does not parse answers `502 ini_parse_failed`.
+- `POST /api/updates/ini/apply` answers `409 ini_preview_missing` without a
+  staged preview (INV-12); otherwise it applies exactly what was previewed.
+- `UpdateError` renders as the error envelope with its own `code` and
+  `status`. `detail` stays one line: a failing command's first output line
+  follows it after a colon, and the whole output goes to the log.
+- `api/markdown.py::render_markdown` renders both the Help pages and the
+  release notes, with raw HTML disabled.
 
 ## SPA fallback
 

@@ -184,3 +184,19 @@ def test_git_apply_error_carries_its_code(
     response = client.post("/api/updates/apply")
     assert response.status_code == 409
     assert response.json()["code"] == "update_dirty_tree"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="drives git; POSIX-only")
+def test_error_detail_is_one_line(
+    client: Any, gh: FakeGitHub, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """api/spec.md § Error envelope — git's multi-line refusal keeps detail one line."""
+    _kind(monkeypatch, "git")
+    repo = make_clone(tmp_path / "git")
+    (repo / "b.txt").write_text("in the way")
+    gh.tag = "v1.1.0"
+    client.app.state.update_repo, client.app.state.update_run = repo, Recorder()
+    body = client.post("/api/updates/apply").json()
+    assert body["code"] == "update_merge_refused"
+    assert "\n" not in body["detail"]
+    assert body["detail"].startswith("git refused the merge: error:")

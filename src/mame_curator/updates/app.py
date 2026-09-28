@@ -151,7 +151,8 @@ def _sync(run: Run, repo: Path) -> subprocess.CompletedProcess[str]:
 
 
 def _out(proc: subprocess.CompletedProcess[str]) -> str:
-    return ((proc.stdout or "") + (proc.stderr or "")).strip()[-_OUTPUT_CAP:]
+    # stderr first: it carries the reason, and the API shows the first line.
+    return ((proc.stderr or "") + (proc.stdout or "")).strip()[:_OUTPUT_CAP]
 
 
 def head_commit(repo: Path, run: Run = subprocess.run) -> str | None:
