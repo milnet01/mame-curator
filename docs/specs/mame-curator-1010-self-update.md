@@ -1,6 +1,6 @@
 # mame-curator-1010 — Update the app and its INI files from inside it
 
-**Status:** spec draft (2026-09-28).
+**Status:** accepted (2026-09-28).
 **Kind:** implement.
 **Source:** ROADMAP mame-curator-1010 (P12; deferred from P07 on
 2026-05-04 with the user's "I do still want self update but that can be
@@ -130,8 +130,11 @@ class AppUpdateInfo(BaseModel):          # api/schemas_setup.py
 ```
 
 `restart_pending` and `rollback_available` come from
-`data/update-state.json` (§4.3 step 7, §4.4): restart is pending while the
-recorded `to_version` differs from the running `__version__`.
+`data/update-state.json` (§4.3 step 7). At startup a git install records
+`git rev-parse HEAD` as `app.state.started_commit`; restart is pending
+while the recorded `to_commit` differs from it, on either channel. A bundle
+is never restart-pending: its update is a new file the user opens (§4.4).
+`rollback_available` is true while the record holds a `previous_commit`.
 
 `UpdatesCheck.ini` stays `()`: an INI check needs a download (§4.6), so it
 is an explicit action, not part of the version check.
@@ -152,14 +155,23 @@ request gets `409 update_in_progress`):
    update_dirty_tree`. Either way nothing has changed.
 2. **Snapshot** `config.yaml`, `overrides.yaml`, `sessions.yaml`,
    `data/notes.json` and `data/state.yaml` into `data/snapshots/` through
-   `before_move`. Its id goes in the response and in
+   `before_move`, keyed by the bare names `state.yaml` and `notes.json` as
+   `snapshot_files` keys the others. Its id goes in the response and in
    `data/update-state.json`. The Settings restore route's targets gain
-   `data/state.yaml`, so this snapshot restores whole.
+   `data/state.yaml`, and the route reloads it with `load_review_state` and
+   passes it to `replace_world(review_state=)`, so this snapshot restores
+   whole. Without the reload the next review-state write would save the
+   stale world over the restored file.
 3. **Record** `git rev-parse HEAD` as `previous_commit`.
 4. **Fetch and fast-forward.** Stable: `git fetch --tags origin` then
    `git merge --ff-only <tag>`. Dev: `git fetch origin main` then
-   `git merge --ff-only origin/main`. A merge that is not a fast-forward
-   fails with `409 update_not_fast_forward` and `HEAD` unchanged.
+   `git merge --ff-only origin/main`. A failed fetch answers `502
+   update_fetch_failed` with git's output. A merge that is not a
+   fast-forward answers `409 update_not_fast_forward`; one git refuses for
+   another reason, such as an untracked file it would overwrite, answers
+   `409 update_merge_refused` with git's output. `HEAD` is unchanged in all
+   three (measured 2026-09-28: `git merge --ff-only` over a colliding
+   untracked file exits 1 and leaves `HEAD` where it was).
 5. **Dependencies.** `uv sync --no-dev --inexact`, the launchers' own form
    (`run.sh`), so dev tools are neither installed nor removed.
 6. **Roll back on failure.** If step 4's merge or step 5 fails after the
@@ -168,15 +180,19 @@ request gets `409 update_in_progress`):
    If that second sync fails too, it also says `sync_failed: true`: the code
    is back, and `run.sh`'s own `uv sync` on the next start repairs the
    environment.
-7. **Record success** in `data/update-state.json`
-   (`previous_commit`, `snapshot_id`, `from_version`, `to_version`),
-   append an `AppUpdatedDetails` activity entry (`copy/types.py`), and
-   return `restart_required: true`. The running server keeps the old code
-   until the user restarts it.
+7. **Return** the result with `previous_commit` and `to_commit`
+   (`git rev-parse HEAD` after the merge) and `restart_required: true`. The
+   route, not `apply_git_update`, then writes `data/update-state.json`
+   (`previous_commit`, `to_commit`, `snapshot_id`, `from_version`,
+   `to_version`) and appends an `AppUpdatedDetails` activity entry
+   (`copy/types.py`), so `updates/` imports neither `copy/` nor a data
+   directory. On the dev channel `to_version` is the short commit id, as
+   `latest_version` is (§4.2). The running server keeps the old code until
+   the user restarts it.
 
 Every `git` and `uv` call is an argument list run with `subprocess.run`
-and no shell, with the repository root (`bundle_root()`) as its working
-directory.
+and no shell, with `repo` as its working directory; the route passes
+`bundle_root()`.
 
 Apply and rollback both answer:
 
@@ -195,8 +211,12 @@ class UpdateApplyResult(BaseModel):      # api/schemas_setup.py
 
 `POST /api/updates/rollback` (git only) resets to the `previous_commit` in
 `data/update-state.json`, re-runs step 5, and returns
-`restart_required: true`; without a recorded update it answers `409
-update_nothing_to_roll_back`. It does not restore the snapshot: user files
+`restart_required: true`; without a recorded `previous_commit` it answers
+`409 update_nothing_to_roll_back`. The route then rewrites the record:
+`to_commit` becomes the old `previous_commit`, `to_version` the old
+`from_version`, and `previous_commit` is removed. So a second rollback is
+refused, and restart stays pending until the process runs the restored
+commit. It does not restore the snapshot: user files
 may have changed since, and Settings → Snapshots already restores one.
 
 ### 4.4 Applying on a bundle, and refusing on a package
@@ -276,6 +296,9 @@ a link to the release), a **Roll back** button when an update is
 recorded, and an **INI files** panel (**Preview** → the added and removed
 games → **Apply**). A new `useUpdatesCheck` hook calls the check when the
 tab opens, and once at app start when `updates.check_on_startup` is true.
+When that startup check finds an update, a toast says "Update available:
+vX.Y.Z" with a button that opens Settings → Updates, as design § 6.7
+promises; a failed or empty check shows nothing.
 The `updateAvailable` string stops mentioning `git pull`.
 
 ## 5. Invariants
@@ -368,7 +391,9 @@ The `updateAvailable` string stops mentioning `git pull`.
 | The API reports a digest | a release without `digest` | `409 update_unverifiable`; the page links the release instead of downloading it |
 | `git` and `uv` are on `PATH` | a clone run without them | `409 update_tool_missing` from the pre-flight, naming the tool, before anything changes |
 | The user restarts after a git update | they keep the old process running | the old code keeps serving; the banner says a restart is pending |
-| `uv sync` needs the network | offline after the fetch | the sync fails, the rollback resets the code, and the old dependencies still match it |
+| `git fetch` reaches origin | offline or refused | `502 update_fetch_failed`; `HEAD` unchanged |
+| The fast-forward merge succeeds | an untracked file in the way | `409 update_merge_refused` with git's output; `HEAD` unchanged |
+| `uv sync` needs the network | offline after the fetch | the sync fails, the rollback resets the code and re-syncs its lock; if that re-sync fails too, `sync_failed: true` and `run.sh`'s next `uv sync` repairs it (§4.3 step 6) |
 
 ## 7. Tests
 
@@ -439,7 +464,8 @@ pins move in the same commits as the tests.
   layering rule gains `_resources.py`.
 - `src/mame_curator/api/spec.md` — the five routes, `replace_world`'s
   `ctx` argument, the new error codes, `api/markdown.py`, and the
-  snapshot restore route's targets gaining `data/state.yaml`.
+  snapshot restore route's targets gaining `data/state.yaml` and its
+  reload of review state.
 - `frontend/src/api/schemas.ts` + `types.ts` — `AppUpdateInfo`'s new
   fields, `UpdateApplyResult` and `IniPreview`, as
   `check_api_types_sync.py` requires.
@@ -447,7 +473,10 @@ pins move in the same commits as the tests.
   entries for each new error code.
 - `docs/help/` — a Help page section on updating.
 - `CHANGELOG.md` — a user-facing entry.
-- `docs/design.md` § 6.7 — the bundle path this spec adds.
+- `docs/design.md` § 6.7 — the bundle path this spec adds, and the INI
+  safety rail "INI refreshes never touch user files" amended: a previewed
+  apply may overwrite INIs at their configured `paths.<ini>` and write the
+  `config.yaml` path for an unset one, after the snapshot (§4.6).
 
 ## 12. Cold-eyes loop log
 
