@@ -3,14 +3,18 @@ import { render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 
 import { server, http, HttpResponse } from "@/test/handlers";
-import { makeClientWrapper } from "@/test/renderWithClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createAppQueryClient } from "@/lib/queryClient";
 import { UpdateStartupToast } from "../UpdateStartupToast";
 
-vi.mock("sonner", () => ({ toast: { message: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { message: vi.fn(), error: vi.fn() } }));
 
 import { toast } from "sonner";
 
-afterEach(() => vi.mocked(toast.message).mockClear());
+afterEach(() => {
+  vi.mocked(toast.message).mockClear();
+  vi.mocked(toast.error).mockClear();
+});
 
 function answer(update_available: boolean) {
   return {
@@ -30,14 +34,15 @@ function answer(update_available: boolean) {
   };
 }
 
+// The app's own client: its queryCache toasts every failed read (FP20-G).
 function renderToast(enabled: boolean) {
-  const Wrapper = makeClientWrapper();
+  const qc = createAppQueryClient();
   render(
-    <Wrapper>
+    <QueryClientProvider client={qc}>
       <MemoryRouter>
         <UpdateStartupToast enabled={enabled} />
       </MemoryRouter>
-    </Wrapper>,
+    </QueryClientProvider>,
   );
 }
 
@@ -82,6 +87,25 @@ describe("UpdateStartupToast (mame-curator-1010 §4.7)", () => {
     renderToast(false);
     await new Promise((r) => setTimeout(r, 50));
     expect(seen).not.toHaveBeenCalled();
+    expect(vi.mocked(toast.message)).not.toHaveBeenCalled();
+  });
+
+  it("shows nothing when the startup check fails (L3-3)", async () => {
+    const seen = vi.fn();
+    server.use(
+      http.get("/api/updates/check", () => {
+        seen();
+        return HttpResponse.json(
+          { code: "internal", detail: "boom", fields: [] },
+          { status: 500 },
+        );
+      }),
+    );
+    renderToast(true);
+    await waitFor(() => expect(seen).toHaveBeenCalled());
+    // The app client retries a failed read once, about a second later.
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
     expect(vi.mocked(toast.message)).not.toHaveBeenCalled();
   });
 });

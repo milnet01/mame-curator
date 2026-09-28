@@ -456,6 +456,9 @@ export const strings = {
     updates: {
       checkNow: "Check now",
       checking: "Checking…",
+      checkFailed: "The update check did not finish. Try again.",
+      previewing: "Previewing…",
+      rollingBack: "Rolling back…",
       whatsNew: "What's new",
       whatsNewTitle: (version: string) => `What's new in ${version}`,
       applyGit: "Update",

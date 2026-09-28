@@ -54,19 +54,21 @@ export function IniRefreshPanel({
           disabled={previewing || applying}
         >
           {previewing
-            ? strings.settings.updates.applying
+            ? strings.settings.updates.previewing
             : strings.settings.updates.iniPreview}
         </Button>
       </div>
+      {/* Mounted before any result, so the result is announced. */}
+      <div role="status" className="text-sm">
+        {applied
+          ? strings.settings.updates.iniApplied
+          : preview &&
+            (changed.length === 0
+              ? strings.settings.updates.iniUpToDate
+              : strings.settings.updates.iniChanged(changed.join(", ")))}
+      </div>
       {preview && !applied && (
         <div className="flex flex-col gap-2">
-          {changed.length === 0 ? (
-            <p className="text-sm">{strings.settings.updates.iniUpToDate}</p>
-          ) : (
-            <p className="text-sm">
-              {strings.settings.updates.iniChanged(changed.join(", "))}
-            </p>
-          )}
           <GameList
             title={strings.settings.updates.iniAdded(
               preview.winners_added.length,
@@ -102,11 +104,6 @@ export function IniRefreshPanel({
             </div>
           )}
         </div>
-      )}
-      {applied && (
-        <p role="status" className="text-sm">
-          {strings.settings.updates.iniApplied}
-        </p>
       )}
     </section>
   );

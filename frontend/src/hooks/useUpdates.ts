@@ -24,6 +24,27 @@ export function useUpdatesCheck(enabled = true) {
   );
 }
 
+/**
+ * The one check at app start (§4.7). Its own key, so "Check now" never
+ * re-triggers the startup toast; fetched once per session; and silent on
+ * failure, because "a failed or empty check shows nothing".
+ */
+export function useUpdatesStartupCheck(enabled: boolean) {
+  return useApiQuery<UpdatesCheck>(
+    ["updates", "startup"],
+    "/api/updates/check",
+    UpdatesCheckSchema,
+    {
+      enabled,
+      staleTime: Infinity,
+      gcTime: Infinity,
+      retry: false,
+      refetchOnWindowFocus: false,
+      meta: { silent: true },
+    },
+  );
+}
+
 /** "Check now": bypasses the server's hour-long cache. */
 export function useUpdatesRefresh() {
   const qc = useQueryClient();

@@ -16,7 +16,8 @@ const notesSanitizer = DOMPurify(window);
 
 const NOTES_SANITIZE_CONFIG: Config = {
   ALLOWED_URI_REGEXP: /^(?:https?|mailto):/i,
-  FORBID_TAGS: ["style", "form"],
+  // No images: opening the notes must not fetch from hosts they name.
+  FORBID_TAGS: ["style", "form", "img"],
   FORBID_ATTR: ["style"],
 };
 

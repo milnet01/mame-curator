@@ -28,11 +28,14 @@ const UPDATE_CHANNEL_VALUES: readonly UpdateChannel[] = ["stable", "dev"];
 export interface UpdateActions {
   onCheckNow: () => void;
   checking: boolean;
+  /** The check request itself failed, so there is no banner to show. */
+  checkFailed?: boolean;
   onApply: () => void;
   applying: boolean;
   applyResult?: UpdateApplyResult;
   onRollback: () => void;
   rollingBack: boolean;
+  rollbackResult?: UpdateApplyResult;
   onIniPreview: () => void;
   iniPreviewing: boolean;
   iniPreview?: IniPreview;
@@ -49,6 +52,35 @@ interface UpdatesTabProps {
   actions?: UpdateActions;
 }
 
+function CheckNowButton({ actions }: { actions: UpdateActions }) {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={actions.onCheckNow}
+      disabled={actions.checking}
+    >
+      {actions.checking
+        ? strings.settings.updates.checking
+        : strings.settings.updates.checkNow}
+    </Button>
+  );
+}
+
+/** A check with no answer yet, or none at all: keep the way to retry. */
+function NoCheckYet({ actions }: { actions: UpdateActions }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <p role="status" className="text-sm">
+        {actions.checkFailed
+          ? strings.settings.updates.checkFailed
+          : strings.settings.updates.checking}
+      </p>
+      <CheckNowButton actions={actions} />
+    </div>
+  );
+}
+
 function UpdateActionsRow({
   info,
   actions,
@@ -59,19 +91,15 @@ function UpdateActionsRow({
   const [notesOpen, setNotesOpen] = useState(false);
   const busy = actions.applying || actions.rollingBack;
   const result = actions.applyResult;
+  const rollback = actions.rollbackResult;
+  const restart =
+    info.restart_pending ||
+    (result?.install_kind === "git" && result.restart_required) ||
+    Boolean(rollback?.restart_required);
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={actions.onCheckNow}
-          disabled={actions.checking}
-        >
-          {actions.checking
-            ? strings.settings.updates.checking
-            : strings.settings.updates.checkNow}
-        </Button>
+        <CheckNowButton actions={actions} />
         {info.notes_html && info.latest_version && (
           <Button
             variant="outline"
@@ -81,7 +109,7 @@ function UpdateActionsRow({
             {strings.settings.updates.whatsNew}
           </Button>
         )}
-        {info.can_apply && !info.restart_pending && (
+        {info.can_apply && !restart && (
           <Button size="sm" onClick={actions.onApply} disabled={busy}>
             {actions.applying
               ? strings.settings.updates.applying
@@ -110,27 +138,26 @@ function UpdateActionsRow({
             disabled={busy}
           >
             {actions.rollingBack
-              ? strings.settings.updates.applying
+              ? strings.settings.updates.rollingBack
               : strings.settings.updates.rollback}
           </Button>
         )}
       </div>
-      {info.restart_pending && (
-        <p role="status" className="text-sm">
-          {strings.settings.updates.restartPending}
-        </p>
-      )}
       {result?.rolled_back && (
         <p role="alert" className="text-sm text-destructive">
           {strings.settings.updates.rolledBack}{" "}
           {result.sync_failed ? strings.settings.updates.syncFailed : ""}
         </p>
       )}
-      {result?.downloaded_path && (
-        <p role="status" className="text-sm">
-          {strings.settings.updates.downloaded(result.downloaded_path)}
-        </p>
-      )}
+      {/* Mounted before any message, so a message appearing is a change a
+          screen reader announces (WAI-ARIA live regions). */}
+      <div role="status" className="flex flex-col gap-1 text-sm">
+        {restart && <p>{strings.settings.updates.restartPending}</p>}
+        {rollback?.sync_failed && <p>{strings.settings.updates.syncFailed}</p>}
+        {result?.downloaded_path && (
+          <p>{strings.settings.updates.downloaded(result.downloaded_path)}</p>
+        )}
+      </div>
       {info.notes_html && info.latest_version && (
         <ReleaseNotesDialog
           open={notesOpen}
@@ -175,6 +202,7 @@ export function UpdatesTab({
       {updateInfo && actions && (
         <UpdateActionsRow info={updateInfo} actions={actions} />
       )}
+      {!updateInfo && actions && <NoCheckYet actions={actions} />}
       <div className="flex items-center justify-between">
         <Label htmlFor="updates-channel">
           {strings.settings.updatesLabels.channel}

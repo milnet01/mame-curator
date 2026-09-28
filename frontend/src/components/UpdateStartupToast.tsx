@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
-import { useUpdatesCheck } from "@/hooks/useUpdates";
+import { useUpdatesStartupCheck } from "@/hooks/useUpdates";
 import { strings } from "@/strings";
 
 /**
@@ -13,7 +13,7 @@ import { strings } from "@/strings";
  */
 export function UpdateStartupToast({ enabled }: { enabled: boolean }) {
   const navigate = useNavigate();
-  const check = useUpdatesCheck(enabled);
+  const check = useUpdatesStartupCheck(enabled);
   const shown = useRef(false);
   const app = check.data?.app;
   useEffect(() => {

@@ -176,4 +176,83 @@ describe("UpdatesTab (mame-curator-1010)", () => {
     expect(screen.getByText(/already up to date/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
   });
+
+  it("keeps Check now when the check itself failed (review-code L3-1)", async () => {
+    const a = actions({ checkFailed: true });
+    render(<UpdatesTab updates={updates} onChange={() => {}} actions={a} />);
+    expect(screen.getByText(/did not finish/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Check now" }));
+    expect(a.onCheckNow).toHaveBeenCalledOnce();
+  });
+
+  it("shows a rollback's result (L3-2)", () => {
+    renderTab(
+      info({ update_available: false, can_apply: false }),
+      actions({
+        rollbackResult: {
+          install_kind: "git",
+          from_version: "1.4.0",
+          to_version: "1.3.0",
+          rolled_back: false,
+          sync_failed: true,
+          restart_required: true,
+          snapshot_id: null,
+          downloaded_path: null,
+          output: null,
+        },
+      }),
+    );
+    expect(screen.getByText(/restart mame curator/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/next start with run\.sh repairs/i),
+    ).toBeInTheDocument();
+  });
+
+  it("asks for a restart from the apply result alone (L3-6)", () => {
+    renderTab(
+      info({ restart_pending: false }),
+      actions({
+        applyResult: {
+          install_kind: "git",
+          from_version: "1.3.0",
+          to_version: "1.4.0",
+          rolled_back: false,
+          sync_failed: false,
+          restart_required: true,
+          snapshot_id: "s",
+          downloaded_path: null,
+          output: null,
+        },
+      }),
+    );
+    expect(screen.getByText(/restart mame curator/i)).toBeInTheDocument();
+  });
+
+  it("keeps its live regions mounted before any message (L3-4)", () => {
+    renderTab(info(), actions());
+    // Present and empty now, so a later message is a change screen readers announce.
+    expect(screen.getAllByRole("status").length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("labels a preview and a rollback by what they do (L3-5)", () => {
+    renderTab(
+      info({ rollback_available: true }),
+      actions({ iniPreviewing: true, rollingBack: true }),
+    );
+    expect(
+      screen.getByRole("button", { name: /previewing/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /rolling back/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("strips images from the release notes (L3-8)", async () => {
+    renderTab(
+      info({ notes_html: '<p>New</p><img src="https://tracker.test/p.png">' }),
+      actions(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "What's new" }));
+    expect(screen.getByRole("dialog").innerHTML).not.toContain("tracker.test");
+  });
 });

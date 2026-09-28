@@ -417,11 +417,21 @@ function SettingsRoute() {
       updateActions={{
         onCheckNow: () => updatesRefresh.mutate(),
         checking: updatesRefresh.isPending || updatesCheck.isFetching,
-        onApply: () => updateApply.mutate(),
+        checkFailed: updatesCheck.isError && !updatesRefresh.isSuccess,
+        // Each action clears the other's result, so no message outlives
+        // the action it describes.
+        onApply: () => {
+          updateRollback.reset();
+          updateApply.mutate();
+        },
         applying: updateApply.isPending,
         applyResult: updateApply.data,
-        onRollback: () => updateRollback.mutate(),
+        onRollback: () => {
+          updateApply.reset();
+          updateRollback.mutate();
+        },
         rollingBack: updateRollback.isPending,
+        rollbackResult: updateRollback.data,
         onIniPreview: () => {
           iniApply.reset();
           iniPreview.mutate();

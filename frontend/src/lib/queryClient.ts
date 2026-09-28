@@ -17,6 +17,13 @@ export function createAppQueryClient(): QueryClient {
     defaultOptions: {
       queries: { retry: 1 },
     },
-    queryCache: new QueryCache({ onError: toastApiError }),
+    // A query marked `meta: { silent: true }` owns its own failure display
+    // (mame-curator-1010: the startup update check shows nothing on failure).
+    queryCache: new QueryCache({
+      onError: (error, query) => {
+        if (query.meta?.silent) return;
+        toastApiError(error);
+      },
+    }),
   });
 }

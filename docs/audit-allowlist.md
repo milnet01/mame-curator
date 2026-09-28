@@ -275,6 +275,28 @@ Do not delete revoked entries — the history is the value.
 - **Confirmed by phase:** P10 `/close-phase` (folded remaining actionable findings into FP32; these 29 `mypy` warnings were the only audit output and are all this artifact).
 
 
+## allowlist-016 — semgrep `react-dangerouslysetinnerhtml` on the DOMPurify-sanitized release notes
+
+- **Status:** active
+- **Tool / rule:** semgrep `react-dangerouslysetinnerhtml` (`p/security-audit`, `p/typescript`; check-code 2026-09-28).
+- **Location:** `frontend/src/components/settings/ReleaseNotesDialog.tsx` — the `dangerouslySetInnerHTML` on the notes `<div>` (grep it; lines move).
+- **Why this is a false positive:** the same shape as allowlist-004. The value is `notesSanitizer.sanitize(notesHtml, NOTES_SANITIZE_CONFIG)`, a DOMPurify instance scoped to this component, with `ALLOWED_URI_REGEXP = /^(?:https?|mailto):/i` and `FORBID_TAGS = ['style', 'form', 'img']`. The input is already rendered server-side by `api/markdown.py` with raw HTML disabled, so the sanitizer is the second line. `UpdatesTab.test.tsx` asserts an injected `onerror` handler and a remote image are both stripped.
+- **Suppression applied:** none — the runtime DOMPurify call IS the suppression.
+- **Logged:** 2026-09-28
+- **Confirmed by phase:** mame-curator-1010 close-findings.
+
+
+## allowlist-017 — vulture "unused variable 'cls'" on Pydantic `@classmethod` validators
+
+- **Status:** active
+- **Tool / rule:** vulture `unused variable` (100% confidence; check-code 2026-09-28).
+- **Location:** `src/mame_curator/api/schemas.py` — `_strip_secret` and `_merge_picker_into_filters` (grep `def .*(cls,`).
+- **Why this is a false positive:** both are `@field_validator` / `@model_validator` hooks stacked on `@classmethod`, and Pydantic requires `cls` as the first parameter whether the body reads it or not. Renaming it to `_cls` would work but breaks the convention every other validator in the codebase follows. vulture is not in this project's CI or local gate.
+- **Suppression applied:** none — vulture reads no inline marker; this entry is the suppression.
+- **Logged:** 2026-09-28
+- **Confirmed by phase:** mame-curator-1010 close-findings.
+
+
 ## What does NOT belong here
 
 - **Findings that are real but blocked by a missing feature.**
