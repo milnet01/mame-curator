@@ -259,7 +259,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # 786 → 790.
 # Bumped 2026-09-28 (mame-curator-1106 — dev dependency group): +1 pytest
 # declaration in tests/docs/test_dev_dependency_group.py. 790 → 791.
-EXPECTED_PYTEST_DECLARATIONS = 791
+# Bumped 2026-09-28 (mame-curator-1118 — one listxml pass): +2 pytest
+# declarations in tests/parser/test_mame_curator_1118_single_pass.py and +1
+# in tests/api/test_mame_curator_1118_listxml_once.py. 791 → 794.
+EXPECTED_PYTEST_DECLARATIONS = 794
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

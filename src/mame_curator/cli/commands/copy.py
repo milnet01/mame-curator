@@ -16,7 +16,7 @@ from mame_curator.copy import (
     run_copy,
 )
 from mame_curator.parser import ParserError, parse_dat
-from mame_curator.parser.listxml import parse_listxml_bios_chain, parse_listxml_disks
+from mame_curator.parser.listxml import parse_listxml
 
 
 def _cmd_copy(args: argparse.Namespace) -> int:
@@ -39,8 +39,10 @@ def _cmd_copy(args: argparse.Namespace) -> int:
 
     try:
         machines = parse_dat(args.dat)
-        bios_chain = parse_listxml_bios_chain(args.listxml)
-        chd_required = frozenset(parse_listxml_disks(args.listxml))
+        # mame-curator-1118: one pass over the listxml, not two.
+        listxml = parse_listxml(args.listxml)
+        bios_chain = listxml.bios_chain
+        chd_required = listxml.disks
     except ParserError as exc:
         err_console.print(f"[red]error:[/red] failed to load inputs: {exc}")
         return 1

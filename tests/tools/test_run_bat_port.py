@@ -121,7 +121,8 @@ def test_port_absent_serves_without_a_port_flag(run_bat: RunBat) -> None:
     """No `PORT`: the script runs end to end and `server.port` stays reachable."""
     result = run_bat(None)
     assert result.returncode == 0, result.output
-    assert "sync --inexact --quiet" in result.uv_log, result.output
+    # mame-curator-1106: --no-dev keeps the dev dependency group off end-user installs.
+    assert "sync --inexact --no-dev --quiet" in result.uv_log, result.output
     assert result.serve_argv == "run mame-curator serve"
     assert result.serve_port_env == "PORT=[]"
     assert "http://127.0.0.1:/" not in result.output

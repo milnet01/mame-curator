@@ -39,12 +39,36 @@ class BIOSChainEntry(BaseModel):
     is_bios: bool = False
 
 
-def parse_listxml_disks(path: Path) -> set[str]:
-    """Return the set of machine shortnames that have at least one <disk> child."""
+class ListxmlFacts(BaseModel):
+    """Every fact the app takes from `-listxml`, read in one pass (mame-curator-1118).
+
+    `cloneof` maps clone → parent. `bios_chain` has an entry for every named
+    machine. `disks` names machines with a `<disk>` child. `driver_status`
+    holds each `<driver status>` that is a known `DriverStatus`.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    cloneof: dict[str, str]
+    bios_chain: dict[str, BIOSChainEntry]
+    disks: frozenset[str]
+    driver_status: dict[str, DriverStatus]
+
+
+def parse_listxml(path: Path) -> ListxmlFacts:
+    """Stream MAME `-listxml` once and collect all four facts.
+
+    The real file is ~300 MB and one iterparse over it takes 5.5-8.7 s, so a
+    caller needing more than one fact calls this rather than several of the
+    single-fact wrappers below, each of which is a full pass.
+    """
     if not path.exists():
         raise ListxmlError("listxml path does not exist", path=path)
 
-    chd_required: set[str] = set()
+    cloneof: dict[str, str] = {}
+    chain: dict[str, BIOSChainEntry] = {}
+    disks: set[str] = set()
+    statuses: dict[str, DriverStatus] = {}
+    seen_unknown: set[str] = set()
     try:
         for _event, elem in etree.iterparse(
             str(path),
@@ -52,10 +76,26 @@ def parse_listxml_disks(path: Path) -> set[str]:
             tag="machine",
             **HARDENED_ITERPARSE_KWARGS,
         ):
-            if elem.find("disk") is not None:
-                name = elem.get("name")
-                if name:
-                    chd_required.add(name)
+            name = elem.get("name")
+            if name:
+                parent = elem.get("cloneof")
+                if parent:
+                    cloneof[name] = parent
+                if elem.find("disk") is not None:
+                    disks.add(name)
+                status = _driver_status_from_element(elem.find("driver"), seen_unknown)
+                if status is not None:
+                    statuses[name] = status
+                biossets = tuple(
+                    bs.get("name", "") for bs in elem.findall("biosset") if bs.get("name")
+                )
+                # mame-curator-1109: every machine gets an entry, so a name
+                # absent from the chain is absent from the listxml.
+                chain[name] = BIOSChainEntry(
+                    romof=elem.get("romof") or None,
+                    biossets=biossets,
+                    is_bios=elem.get("isbios") == "yes",
+                )
             # See dat.py:_stream_machines — clear() alone leaves empty siblings on the
             # parent's child list; the lxml fast-iter idiom detaches them.
             elem.clear()
@@ -68,7 +108,14 @@ def parse_listxml_disks(path: Path) -> set[str]:
         # (file disappeared race, EIO, perms revoked) would otherwise propagate
         # raw past the CLI's ParserError catch. Typed at the parser/CLI seam.
         raise ListxmlError(f"failed to read listxml: {exc}", path=path) from exc
-    return chd_required
+    return ListxmlFacts(
+        cloneof=cloneof, bios_chain=chain, disks=frozenset(disks), driver_status=statuses
+    )
+
+
+def parse_listxml_disks(path: Path) -> set[str]:
+    """Return the set of machine shortnames that have at least one <disk> child."""
+    return set(parse_listxml(path).disks)
 
 
 def parse_listxml_cloneof(path: Path) -> dict[str, str]:
@@ -79,32 +126,7 @@ def parse_listxml_cloneof(path: Path) -> dict[str, str]:
     machines with a non-empty `cloneof` attribute are included; parents and
     standalone machines are absent from the returned map.
     """
-    if not path.exists():
-        raise ListxmlError("listxml path does not exist", path=path)
-
-    cloneof: dict[str, str] = {}
-    try:
-        for _event, elem in etree.iterparse(
-            str(path),
-            events=("end",),
-            tag="machine",
-            **HARDENED_ITERPARSE_KWARGS,
-        ):
-            name = elem.get("name")
-            parent = elem.get("cloneof")
-            if name and parent:
-                cloneof[name] = parent
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
-    except etree.XMLSyntaxError as exc:
-        raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
-    except OSError as exc:
-        # FP04 A4-A6: iterparse opens the file lazily — OSError mid-iteration
-        # (file disappeared race, EIO, perms revoked) would otherwise propagate
-        # raw past the CLI's ParserError catch. Typed at the parser/CLI seam.
-        raise ListxmlError(f"failed to read listxml: {exc}", path=path) from exc
-    return cloneof
+    return parse_listxml(path).cloneof
 
 
 def parse_listxml_driver_status(path: Path) -> dict[str, DriverStatus]:
@@ -114,30 +136,7 @@ def parse_listxml_driver_status(path: Path) -> dict[str, DriverStatus]:
     Machines with no `<driver>`, or a status outside `DriverStatus`, are absent;
     unknown statuses log once each, as in the DAT parser.
     """
-    if not path.exists():
-        raise ListxmlError("listxml path does not exist", path=path)
-
-    statuses: dict[str, DriverStatus] = {}
-    seen_unknown: set[str] = set()
-    try:
-        for _event, elem in etree.iterparse(
-            str(path),
-            events=("end",),
-            tag="machine",
-            **HARDENED_ITERPARSE_KWARGS,
-        ):
-            name = elem.get("name")
-            status = _driver_status_from_element(elem.find("driver"), seen_unknown)
-            if name and status is not None:
-                statuses[name] = status
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
-    except etree.XMLSyntaxError as exc:
-        raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
-    except OSError as exc:
-        raise ListxmlError(f"failed to read listxml: {exc}", path=path) from exc
-    return statuses
+    return parse_listxml(path).driver_status
 
 
 def apply_driver_status(
@@ -160,38 +159,4 @@ def parse_listxml_bios_chain(path: Path) -> dict[str, BIOSChainEntry]:
     these to compute the transitive BIOS dependency closure for a
     winner set.
     """
-    if not path.exists():
-        raise ListxmlError("listxml path does not exist", path=path)
-
-    chain: dict[str, BIOSChainEntry] = {}
-    try:
-        for _event, elem in etree.iterparse(
-            str(path),
-            events=("end",),
-            tag="machine",
-            **HARDENED_ITERPARSE_KWARGS,
-        ):
-            name = elem.get("name")
-            if not name:
-                elem.clear()
-                while elem.getprevious() is not None:
-                    del elem.getparent()[0]
-                continue
-            romof = elem.get("romof") or None
-            biossets = tuple(bs.get("name", "") for bs in elem.findall("biosset") if bs.get("name"))
-            # mame-curator-1109: every machine gets an entry, so a name absent
-            # from the chain is absent from the listxml.
-            chain[name] = BIOSChainEntry(
-                romof=romof, biossets=biossets, is_bios=elem.get("isbios") == "yes"
-            )
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
-    except etree.XMLSyntaxError as exc:
-        raise ListxmlError(f"XML parse failed: {exc}", path=path) from exc
-    except OSError as exc:
-        # FP04 A4-A6: iterparse opens the file lazily — OSError mid-iteration
-        # (file disappeared race, EIO, perms revoked) would otherwise propagate
-        # raw past the CLI's ParserError catch. Typed at the parser/CLI seam.
-        raise ListxmlError(f"failed to read listxml: {exc}", path=path) from exc
-    return chain
+    return parse_listxml(path).bios_chain

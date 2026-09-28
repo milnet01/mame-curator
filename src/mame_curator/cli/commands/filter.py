@@ -25,29 +25,24 @@ from mame_curator.parser import (
     parse_languages,
     parse_mature,
 )
-from mame_curator.parser.listxml import (
-    apply_driver_status,
-    parse_listxml_cloneof,
-    parse_listxml_disks,
-    parse_listxml_driver_status,
-)
+from mame_curator.parser.listxml import apply_driver_status, parse_listxml
 
 
 def _cmd_filter(args: argparse.Namespace) -> int:
     console = Console()
     err_console = Console(stderr=True, soft_wrap=True)
     try:
+        # mame-curator-1118: one pass over the listxml, not three.
+        listxml = parse_listxml(args.listxml)
         # mame-curator-1099: Pleasuredome DATs carry no <driver>; -listxml does.
-        machines = apply_driver_status(
-            parse_dat(args.dat), parse_listxml_driver_status(args.listxml)
-        )
+        machines = apply_driver_status(parse_dat(args.dat), listxml.driver_status)
         mature = frozenset(parse_mature(args.mature)) if args.mature else frozenset()
         ctx = FilterContext(
             category=parse_catver(args.catver),
             languages={k: tuple(v) for k, v in parse_languages(args.languages).items()},
             bestgames_tier=parse_bestgames(args.bestgames),
-            cloneof_map=parse_listxml_cloneof(args.listxml),
-            chd_required=frozenset(parse_listxml_disks(args.listxml)),
+            cloneof_map=listxml.cloneof,
+            chd_required=listxml.disks,
             mature=mature,
         )
         # Unset --overrides / --sessions → empty in-memory model. The pre-DS01

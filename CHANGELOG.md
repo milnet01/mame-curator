@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Changed — Library loads faster: the MAME -listxml file is read once, not four times (mame-curator-1118)
+
+Startup read the ~300 MB -listxml four times, once per fact it needed.
+A new `parse_listxml` collects parent/clone links, BIOS chains, CHD
+requirements and driver status in one pass: 5.7 s instead of about 22 s
+on listxml-0.287.xml. The `filter` and `copy` commands use it too.
+
 ### 2026-09-28 Fixed — Settings → Updates says how to update instead of naming an internal phase (mame-curator-1114)
 
 The update-available banner said the apply flow "ships in Phase 7". It

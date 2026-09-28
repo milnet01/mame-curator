@@ -1248,13 +1248,20 @@ wave lands.
   Source: in-session-2026-09-27 (CFG-0492 sweep).
   Lanes: docs.
 
-- 📋 [mame-curator-1118] **Read -listxml once instead of four times at startup.**
+- ✅ [mame-curator-1118] **Read -listxml once instead of four times at startup.**
   build_world calls parse_listxml_cloneof, _bios_chain, _disks and
   _driver_status, each a full iterparse over the ~300 MB listxml
   (5.5-8.7 s per pass measured 2026-09-27 on listxml-0.287.xml). One
   pass collecting all four would cut library load time by most of that.
   Deferred from mame-curator-1099 by the owner, who chose the simpler
   fourth pass first.
+  Resolved (2026-09-28): parse_listxml returns ListxmlFacts (cloneof,
+  bios_chain, disks, driver_status) from one iterparse; the four
+  parse_listxml_* functions are wrappers over it. build_world and the
+  filter / copy subcommands call it once. Measured on listxml-0.287.xml:
+  5.7 s for all four facts versus ~5.6 s per single-fact pass before.
+  Tests: tests/parser/test_mame_curator_1118_single_pass.py,
+  tests/api/test_mame_curator_1118_listxml_once.py (counts opens).
   **Layman:** The app reads the same big MAME file four times when it starts; reading it once would make startup much faster.
   Kind: perf.
   Source: in-session-2026-09-27 (mame-curator-1099).

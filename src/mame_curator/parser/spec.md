@@ -104,6 +104,12 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 
 - Returns `{shortname: series_name}`.
 
+### `parse_listxml(path: Path) -> ListxmlFacts`
+
+- Streams the listxml **once** and returns a frozen `ListxmlFacts` with four fields: `cloneof`, `bios_chain`, `disks: frozenset[str]` and `driver_status`. Each holds exactly what the matching single-fact function below returns (mame-curator-1118).
+- A caller needing more than one fact calls this. Each single-fact function is a full pass over the ~300 MB file, and three of them in a row made startup read it three or four times. `api/state.py` (`build_world`) and the `filter` and `copy` subcommands call it once.
+- Streaming + hardening contract as described under `parse_listxml_cloneof`. Missing file, malformed XML and a mid-read `OSError` all raise `ListxmlError`.
+
 ### `parse_listxml_disks(path: Path) -> set[str]`
 
 - Returns the set of machine shortnames that have at least one `<disk>` child.
