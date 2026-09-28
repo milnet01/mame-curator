@@ -126,7 +126,8 @@ run "API type sync (Python ↔ TS)" python3 tools/check_api_types_sync.py
 
 # --- Job 2: frontend-lint-types-test -----------------------------------------
 # ci.yml sets `working-directory: frontend`; we mirror via run_in. Order:
-# ESLint → Prettier → build (tsc -b && vite build) → bundle size → Vitest.
+# ESLint → Prettier → build (tsc -b && vite build) → committed-dist check →
+# bundle size → Vitest.
 if [[ ! -d frontend/node_modules ]]; then
     echo
     echo "${RED}✗ frontend/node_modules is missing — run './local-CI.sh --fresh' (or 'cd frontend && npm ci') first${RESET}"
@@ -135,6 +136,11 @@ else
     run_in frontend "ESLint"                   npm run lint
     run_in frontend "Prettier"                 npm run format
     run_in frontend "Build (type-check + bundle)" npm run build
+    # dist/ is committed and served as-is (and packaged into the desktop
+    # bundles), so the build just run must reproduce it byte for byte.
+    # shellcheck disable=SC2016  # the inner bash expands $(...), not this one
+    run_in frontend "Committed dist matches the build" \
+        bash -c 'test -z "$(git status --porcelain -- dist)" || { git status --short -- dist; exit 1; }'
     run_in frontend "Bundle size (size-limit)"  npm run size
     run_in frontend "Vitest"                   npm test
 fi
