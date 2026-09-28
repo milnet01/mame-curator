@@ -1306,6 +1306,32 @@ wave lands.
   Source: in-session-2026-09-28 (CI annotations on run for b5d9ea9).
   Lanes: ci.
 
+- 📋 [mame-curator-1122] **Triage zizmor's findings on ci.yml and release.yml.**
+  `zizmor --format plain .github/workflows/ci.yml .github/workflows/release.yml`
+  on 2026-09-28: unpinned-uses (High) is 17 of the 35, so it is the class
+  to answer first, by SHA-pinning the actions or recording why tags are
+  kept. The rest: artipacked 8 (Low), excessive-permissions 4 Medium + 1
+  High, cache-poisoning 3 (High, in release.yml: a cache restored in a
+  release build), unsound-ternary 1, superfluous-actions 1 (Informational,
+  softprops/action-gh-release). All predate this session; it changed only
+  the `uv sync` lines. No project CI step runs zizmor today.
+  **Layman:** A security checker for the automated build scripts found 35 things to look at, mostly third-party build steps referenced by a movable tag instead of a fixed version.
+  Kind: security.
+  Source: check-code-2026-09-28.
+  Lanes: ci.
+
+- 📋 [mame-curator-1123] **Fix the small shellcheck and typos hits check-code reported.**
+  shellcheck SC2164 at local-CI.sh:60, a `cd` with no `|| exit`
+  (line dates from 2026-07-03). typos: `ded` (CHANGELOG.md), `togglable`
+  (ROADMAP.md and tests/docs/test_ds05_test_count_stable.py),
+  `unparseable` (src/mame_curator/parser/spec.md). The many `mis-` hits
+  are hyphenated prefixes, a recorded false positive. Changelog and
+  roadmap text must change via changelog_log / roadmap_log.
+  **Layman:** Tidy one unsafe line in the local test script and a few misspellings.
+  Kind: chore.
+  Source: check-code-2026-09-28.
+  Lanes: tooling, docs.
+
 ### 🧪 Test Audit 2026-05-20
 
 Framework: pytest (backend) + vitest (frontend) · Files scanned: 167
