@@ -18,7 +18,8 @@ reference lists would change in your library before you accept them.
 A user learns about a new release inside the app, reads its notes there,
 and takes it with one click: a git clone updates in place with its data
 snapshotted first and the code rolled back if anything fails; a desktop
-bundle downloads the new release file next to itself. Refreshing the INI
+bundle downloads the new release file to where its user will find it
+(§4.4). Refreshing the INI
 reference files shows which games would join or leave the library before
 anything changes, and applies only on confirmation.
 
@@ -45,8 +46,8 @@ anything changes, and applies only on confirmation.
 ## 3. Scope decisions (agreed with the user)
 
 1. **A desktop bundle updates by downloading the new release file into the
-   same folder**, then telling the user to close this one and open the new
-   one. The old file stays as the fallback. User, 2026-09-28, chosen over
+   same folder** (on macOS `~/Downloads`, §4.4), then telling the user to
+   close this one and open the new one. The old file stays as the fallback. User, 2026-09-28, chosen over
    replacing the running file (uneven across platforms: Windows and macOS
    cannot overwrite a running app) and over only linking to the Releases
    page.
@@ -124,23 +125,36 @@ class AppUpdateInfo(BaseModel):          # api/schemas_setup.py
     notes_html: str | None               # release notes, rendered (§4.5)
     release_url: str | None
     check_error: str | None              # why the check failed; never a 5xx
+    restart_pending: bool                # an update was applied; this process predates it
+    rollback_available: bool             # git, and data/update-state.json records one
 ```
+
+`restart_pending` and `rollback_available` come from
+`data/update-state.json` (§4.3 step 7, §4.4): restart is pending while the
+recorded `to_version` differs from the running `__version__`.
 
 `UpdatesCheck.ini` stays `()`: an INI check needs a download (§4.6), so it
 is an explicit action, not part of the version check.
 
 ### 4.3 Applying on a git clone
 
-`POST /api/updates/apply` on a git install runs these steps in a worker
-thread, holding `app.state.update_lock` (a second request gets `409
-update_in_progress`):
+`updates/app.py::apply_git_update(repo, *, target, before_move, run)` owns
+the steps; `before_move: Callable[[], str]` takes the snapshot and returns
+its id, so `updates/` never imports `api/`. The route passes a closure over
+`api/persist.py::snapshot_files`, and `run` (default `subprocess.run`) is
+the seam the tests replace. `POST /api/updates/apply` on a git install
+calls it in a worker thread, holding `app.state.update_lock` (a second
+request gets `409 update_in_progress`):
 
-1. **Pre-flight.** `git status --porcelain --untracked-files=no` must print
-   nothing, else `409 update_dirty_tree` and nothing has changed.
+1. **Pre-flight.** `git` and `uv` must resolve on `PATH` (`shutil.which`),
+   else `409 update_tool_missing` naming the tool; then `git status
+   --porcelain --untracked-files=no` must print nothing, else `409
+   update_dirty_tree`. Either way nothing has changed.
 2. **Snapshot** `config.yaml`, `overrides.yaml`, `sessions.yaml`,
-   `data/notes.json` and `data/state.yaml` with
-   `api/persist.py::snapshot_files` into `data/snapshots/`. Its id goes in
-   the response and in `data/update-state.json`.
+   `data/notes.json` and `data/state.yaml` into `data/snapshots/` through
+   `before_move`. Its id goes in the response and in
+   `data/update-state.json`. The Settings restore route's targets gain
+   `data/state.yaml`, so this snapshot restores whole.
 3. **Record** `git rev-parse HEAD` as `previous_commit`.
 4. **Fetch and fast-forward.** Stable: `git fetch --tags origin` then
    `git merge --ff-only <tag>`. Dev: `git fetch origin main` then
@@ -151,6 +165,9 @@ update_in_progress`):
 6. **Roll back on failure.** If step 4's merge or step 5 fails after the
    tree moved: `git reset --hard <previous_commit>`, then step 5 again, and
    the response says `rolled_back: true` with the failing command's output.
+   If that second sync fails too, it also says `sync_failed: true`: the code
+   is back, and `run.sh`'s own `uv sync` on the next start repairs the
+   environment.
 7. **Record success** in `data/update-state.json`
    (`previous_commit`, `snapshot_id`, `from_version`, `to_version`),
    append an `AppUpdatedDetails` activity entry (`copy/types.py`), and
@@ -161,6 +178,21 @@ Every `git` and `uv` call is an argument list run with `subprocess.run`
 and no shell, with the repository root (`bundle_root()`) as its working
 directory.
 
+Apply and rollback both answer:
+
+```python
+class UpdateApplyResult(BaseModel):      # api/schemas_setup.py
+    install_kind: Literal["git", "bundle"]
+    from_version: str
+    to_version: str
+    rolled_back: bool = False
+    sync_failed: bool = False
+    restart_required: bool = False
+    snapshot_id: str | None = None
+    downloaded_path: str | None = None   # bundle only
+    output: str | None = None            # the failing command's output
+```
+
 `POST /api/updates/rollback` (git only) resets to the `previous_commit` in
 `data/update-state.json`, re-runs step 5, and returns
 `restart_required: true`; without a recorded update it answers `409
@@ -170,8 +202,9 @@ may have changed since, and Settings → Snapshots already restores one.
 ### 4.4 Applying on a bundle, and refusing on a package
 
 On a bundle, `POST /api/updates/apply` downloads the release asset for this
-platform with `downloads.py::download(url=, dest=, client=, sha256=)`,
-which writes atomically and verifies the digest:
+platform with `downloads.py::download(url=, dest=, client=)` to a
+`.partial` name beside its destination, hashes it, and renames it into
+place only when the hash equals the asset's `digest`:
 
 | Platform | Asset | Written to |
 |---|---|---|
@@ -180,9 +213,13 @@ which writes atomically and verifies the digest:
 | macOS | `MAME_Curator-<v>-<machine>.dmg` | `~/Downloads` (the running app sits in `/Applications`, which may need an administrator) |
 
 The running file is never written to. A release with no matching asset
-answers `409 update_no_asset`; a digest mismatch answers `502
-update_digest_mismatch` and leaves no file behind. The response names the
-downloaded path; the page tells the user to close this window and open it.
+answers `409 update_no_asset`, and one whose asset carries no `digest`
+answers `409 update_unverifiable`; the page then links the release. A
+download that fails in transit answers `502 update_download_failed`; a
+hash that differs deletes the `.partial` file and answers `502
+update_digest_mismatch`. Neither leaves a file behind. On success the
+download is recorded in `data/update-state.json` and `downloaded_path`
+names it; the page tells the user to close this window and open it.
 
 On a package install, apply answers `409 update_not_supported`; the page
 links `release_url` instead.
@@ -212,20 +249,22 @@ world.overrides, world.sessions)`. It answers:
 ```python
 class IniPreview(BaseModel):
     changed_files: tuple[str, ...]     # INI names whose bytes differ from the live file
-    failed: tuple[tuple[str, str], ...]  # (name, reason) from INIRefreshReport
+    failed: tuple[tuple[str, str], ...]  # (name, manual-download URL) from INIRefreshReport
     winners_added: tuple[str, ...]     # sorted short names
     winners_removed: tuple[str, ...]   # sorted short names
 ```
 
 The live INI files and the world are untouched. `POST
 /api/updates/ini/apply` requires a staged preview (else `409
-ini_preview_missing`), snapshots the live INI files with `snapshot_files`,
-moves the staged files onto the configured `paths.<ini>` (a path left unset
-gets `data/ini/<name>`, and the config gains it, as the CLI does), swaps the
-world under `world_lock` with `replace_world(base=world, ctx=new_ctx,
-rerun_filter=True)` — `replace_world` gains the `ctx` argument, and a new
-`ctx` triggers the filter re-run — and appends an `IniRefreshedDetails`
-activity entry per changed file.
+ini_preview_missing`), snapshots the live INI files with `snapshot_files`
+into `data/ini-snapshots/` — not `data/snapshots/`, which Settings →
+Snapshots restores with other targets — moves the staged files onto the
+configured `paths.<ini>` (a path left unset gets `data/ini/<name>`, and the
+config gains it, as the CLI does, written to disk first), swaps the world
+under `world_lock` with `replace_world(base=world, config=new_config,
+ctx=new_ctx, rerun_filter=True)` — `replace_world` gains the `ctx`
+argument, and a new `ctx` triggers the filter re-run — and appends an
+`IniRefreshedDetails` activity entry per changed file.
 
 ### 4.7 The page
 
@@ -290,12 +329,13 @@ The `updateAvailable` string stops mentioning `git pull`.
   *Breaks when:* the tree is left on the new code with the old
   dependencies.
 
-- **INV-9** — A bundle apply writes the platform's asset beside the running
-  file after its digest verifies, and a mismatch leaves no file.
+- **INV-9** — A bundle apply writes the platform's asset to its §4.4
+  destination only after its digest verifies; a mismatch, a missing digest
+  or a failed download leaves no file.
   *Test:* `tests/updates/test_bundle_update.py` (`MockTransport` serving an
   asset with a right and a wrong digest).
-  *Breaks when:* the running file is overwritten, or an unverified download
-  is left where the user will open it.
+  *Breaks when:* the running file is overwritten, or an unverified or
+  partial download is left where the user will open it.
 
 - **INV-10** — A package install reports `can_apply: false`, and apply
   answers `409 update_not_supported`.
@@ -325,8 +365,8 @@ The `updateAvailable` string stops mentioning `git pull`.
 |---|---|---|
 | GitHub is reachable | offline, blocked, or rate-limited | `check_error` says so; the page offers the Releases link (INV-4) |
 | The release carries this platform's asset | a release built without one bundle | `409 update_no_asset`; the page offers the Releases link |
-| The API reports a digest | an older release without `digest` | the download proceeds unverified and the response says so; the Releases page is the check |
-| `git` and `uv` are on `PATH` | a clone run without them | the pre-flight fails with the missing tool named, before anything changes |
+| The API reports a digest | a release without `digest` | `409 update_unverifiable`; the page links the release instead of downloading it |
+| `git` and `uv` are on `PATH` | a clone run without them | `409 update_tool_missing` from the pre-flight, naming the tool, before anything changes |
 | The user restarts after a git update | they keep the old process running | the old code keeps serving; the banner says a restart is pending |
 | `uv sync` needs the network | offline after the fetch | the sync fails, the rollback resets the code, and the old dependencies still match it |
 
@@ -398,9 +438,11 @@ pins move in the same commits as the tests.
 - `src/mame_curator/updates/spec.md` — `app.py`'s public surface; the
   layering rule gains `_resources.py`.
 - `src/mame_curator/api/spec.md` — the five routes, `replace_world`'s
-  `ctx` argument, the new error codes, `api/markdown.py`.
+  `ctx` argument, the new error codes, `api/markdown.py`, and the
+  snapshot restore route's targets gaining `data/state.yaml`.
 - `frontend/src/api/schemas.ts` + `types.ts` — `AppUpdateInfo`'s new
-  fields and `IniPreview`, as `check_api_types_sync.py` requires.
+  fields, `UpdateApplyResult` and `IniPreview`, as
+  `check_api_types_sync.py` requires.
 - `frontend/src/strings_internal.ts` — the new strings and `byCode`
   entries for each new error code.
 - `docs/help/` — a Help page section on updating.
