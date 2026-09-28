@@ -1267,7 +1267,7 @@ wave lands.
   Source: in-session-2026-09-27 (mame-curator-1099).
   Lanes: parser, api.
 
-- 📋 [mame-curator-1119] **Write `docs/standards/versioning-overrides.md` naming this project's breaking surfaces.**
+- ✅ [mame-curator-1119] **Write `docs/standards/versioning-overrides.md` naming this project's breaking surfaces.**
   align-project (2026-09-28) reported the file missing. The global
   versioning.md asks each project to name what counts as breaking and
   supplies no list, so "is this a major bump?" has no written answer
@@ -1275,6 +1275,12 @@ wave lands.
   API, CLI flags and subcommands, and the playlist / copy output layout.
   Deferred by the user during the CFG-0645 workflow move, to keep that
   change focused.
+  Resolved (2026-09-28): docs/standards/versioning-overrides.md written;
+  owner rulings: HTTP API internal; config key rename/removal migrates or
+  is MAJOR; browser cart is a surface, other browser settings are not.
+  review-contract (genre standard) ran 3 loops, 10 verified findings
+  fixed, capped calm; log in docs/reviews/versioning-overrides-loop-log.md.
+  CLAUDE.md's stale "no shims pre-v1.0.0" line now points at the file.
   **Layman:** Write down which kinds of change would break things for existing users, so version numbers say so honestly.
   Kind: doc.
   Source: align-project-2026-09-28 (CFG-0645).

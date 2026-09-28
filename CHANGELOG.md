@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Added — What counts as a breaking change is now written down (mame-curator-1119)
+
+docs/standards/versioning-overrides.md names what users rely on:
+config.yaml and where it is found, the files the app saves and reads
+back (including Backup exports and the cart), the command line, what a
+copy produces, how the app starts, and page addresses and shortcuts.
+Breaking any of these means a major version unless the release migrates
+the old form. The web API between the page and the server is internal.
+
 ### 2026-09-28 Changed — Library loads faster: the MAME -listxml file is read once, not four times (mame-curator-1118)
 
 Startup read the ~300 MB -listxml four times, once per fact it needed.
