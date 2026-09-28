@@ -2802,6 +2802,19 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: in-session-2026-09-28 (CI annotations on run for b5d9ea9).
   Lanes: ci.
 
+- 📋 [mame-curator-1128] **Give local-CI.sh a --docs mode so documentation-only pushes run the doc checks, not the whole mirror.**
+  Since 2026-09-28 every push runs the full local-CI.sh through the
+  machine-wide hook (.ants/gate.conf), because the old docs-only
+  `--no-verify` skip also skipped the secret scan. local-gate.md § 6 lets
+  a docs-only push run the documentation checks instead: add a `--docs`
+  flag to local-CI.sh (tests/docs, prettier on the markdown the frontend
+  reads, gitleaks), then set ants.gate.docsGlob and ants.gate.docsMode in
+  .ants/gate.conf. § 6.2: every pushed path must match the glob.
+  **Layman:** Pushing a change that only touches documents would take seconds instead of minutes, and still be checked.
+  Kind: chore.
+  Source: in-session-2026-09-28 (local-gate.md § 2.1 alignment).
+  Lanes: ci.
+
 ## Considered / under research (no target date)
 
 **Theme:** post-v1 features captured during user feedback. Each is
