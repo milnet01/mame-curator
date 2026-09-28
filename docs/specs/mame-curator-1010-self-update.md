@@ -105,7 +105,8 @@ def is_newer(candidate: str, current: str) -> bool:
 GitHub's `releases/latest` excludes pre-releases and drafts, so the stable
 channel never sees a candidate. The API allows 60 unauthenticated requests
 an hour per address, so a check result is **cached on `app.state` for one
-hour**; `?refresh=true` bypasses the cache.
+hour**, and a failed one for five minutes; `?refresh=true` bypasses the
+cache.
 
 **The dev channel applies to git installs only**: it compares `HEAD`
 with `origin/main` after `git fetch origin main`, and offers an update when
@@ -147,7 +148,10 @@ its id, so `updates/` never imports `api/`. The route passes a closure over
 `api/persist.py::snapshot_files`, and `run` (default `subprocess.run`) is
 the seam the tests replace. `POST /api/updates/apply` on a git install
 calls it in a worker thread, holding `app.state.update_lock` (a second
-request gets `409 update_in_progress`):
+request gets `409 update_in_progress`). On the stable channel, and on a
+bundle, apply first answers `409 update_not_available` when the latest
+release is not newer. Every `git` and `uv` call carries a timeout and
+`GIT_TERMINAL_PROMPT=0`:
 
 1. **Pre-flight.** `git` and `uv` must resolve on `PATH` (`shutil.which`),
    else `409 update_tool_missing` naming the tool; then `git status
@@ -284,7 +288,10 @@ config gains it, as the CLI does, written to disk first), swaps the world
 under `world_lock` with `replace_world(base=world, config=new_config,
 ctx=new_ctx, rerun_filter=True)` — `replace_world` gains the `ctx`
 argument, and a new `ctx` triggers the filter re-run — and appends an
-`IniRefreshedDetails` activity entry per changed file.
+`IniRefreshedDetails` activity entry per changed file. Preview and apply
+share `app.state.ini_lock`, and either answers `409 update_in_progress`
+while the other runs; apply replaces every changed file or puts all of
+them back, and snapshots `config.yaml` before writing a path into it.
 
 ### 4.7 The page
 

@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Changed — Restoring a settings snapshot can be undone
+
+Settings → Snapshots now saves what a restore is about to replace
+before restoring, so a restore that went the wrong way is one more
+restore away from being undone. Review marks made since the snapshot
+are no longer lost.
+
 ### 2026-09-28 Added — Update the app and its INI files from Settings (mame-curator-1010)
 
 Settings → Updates now checks GitHub for a newer release, shows its notes
