@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* dist/ is committed, so Tailwind's source scan found the previous build
+   and each build's CSS (and every chunk hash) depended on the last one. */
+@source not "../dist";
 
 /* shadcn/Tailwind v4 token bridge.
  * Six themes per design §8.5; each is a CSS variable swap, no per-theme assets.
