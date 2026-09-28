@@ -144,3 +144,45 @@ def test_no_shell(clone: Path) -> None:
         assert isinstance(args, list)
         assert not kwargs.get("shell")
         assert kwargs["cwd"] == clone
+
+
+def test_calls_carry_a_timeout_and_no_prompt(clone: Path) -> None:
+    """review-code 2026-09-28 L1-1 — a stalled git or uv cannot hold the lock forever."""
+    rec = Recorder()
+    apply_git_update(clone, target="v1.1.0", before_move=lambda: "s", run=rec)
+    for _args, kwargs in rec.calls:
+        assert kwargs.get("timeout"), kwargs
+        assert kwargs["env"]["GIT_TERMINAL_PROMPT"] == "0"
+
+
+def test_a_fetch_that_times_out_is_a_fetch_failure(clone: Path) -> None:
+    head = git(clone, "rev-parse", "HEAD")
+    with pytest.raises(UpdateError) as err:
+        apply_git_update(
+            clone, target="v1.1.0", before_move=lambda: "s", run=Recorder(timeout_git=("fetch",))
+        )
+    assert err.value.code == "update_fetch_failed"
+    assert "timed out" in (err.value.output or "")
+    assert git(clone, "rev-parse", "HEAD") == head
+
+
+def test_a_failed_reset_is_not_reported_as_rolled_back(clone: Path) -> None:
+    """L1-5 — the sync failed and the reset failed: the tree is on the new code."""
+    result = apply_git_update(
+        clone,
+        target="v1.1.0",
+        before_move=lambda: "s",
+        run=Recorder(uv_codes=[1, 0], fail_git=("reset",)),
+    )
+    assert not result.rolled_back
+    assert result.sync_failed
+    assert result.to_commit == git(clone, "rev-parse", "v1.1.0")
+
+
+def test_a_target_is_never_read_as_an_option(clone: Path) -> None:
+    """L1-7 — a tag name reaches git after --end-of-options."""
+    rec = Recorder()
+    apply_git_update(clone, target="v1.1.0", before_move=lambda: "s", run=rec)
+    for args, _ in rec.calls:
+        if args[1] in ("merge", "merge-base"):
+            assert args[-2] == "--end-of-options", args

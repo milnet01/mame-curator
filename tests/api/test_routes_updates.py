@@ -142,6 +142,7 @@ def test_git_apply_records_then_rolls_back(
     _kind(monkeypatch, "git")
     repo = make_clone(tmp_path / "git")
     gh.tag = "v1.1.0"
+    monkeypatch.setattr(routes, "__version__", "1.0.0")  # the clone predates v1.1.0
     state = client.app.state
     state.update_repo, state.update_run = repo, Recorder()
     state.started_commit = git(repo, "rev-parse", "HEAD")
@@ -150,7 +151,7 @@ def test_git_apply_records_then_rolls_back(
     response = client.post("/api/updates/apply")
     assert response.status_code == 200, response.text
     body = response.json()
-    assert (body["from_version"], body["to_version"]) == (__version__, "1.1.0")
+    assert (body["from_version"], body["to_version"]) == ("1.0.0", "1.1.0")
     assert body["restart_required"] and body["snapshot_id"]
     assert (world.data_dir / "snapshots" / body["snapshot_id"]).is_dir()
     record = json.loads((world.data_dir / "update-state.json").read_text())
@@ -180,6 +181,7 @@ def test_git_apply_error_carries_its_code(
     repo = make_clone(tmp_path / "git")
     (repo / "a.txt").write_text("edited")
     gh.tag = "v1.1.0"
+    monkeypatch.setattr(routes, "__version__", "1.0.0")  # the clone predates v1.1.0
     client.app.state.update_repo, client.app.state.update_run = repo, Recorder()
     response = client.post("/api/updates/apply")
     assert response.status_code == 409
@@ -195,8 +197,81 @@ def test_error_detail_is_one_line(
     repo = make_clone(tmp_path / "git")
     (repo / "b.txt").write_text("in the way")
     gh.tag = "v1.1.0"
+    monkeypatch.setattr(routes, "__version__", "1.0.0")  # the clone predates v1.1.0
     client.app.state.update_repo, client.app.state.update_run = repo, Recorder()
     body = client.post("/api/updates/apply").json()
     assert body["code"] == "update_merge_refused"
     assert "\n" not in body["detail"]
     assert body["detail"].startswith("git refused the merge: error:")
+
+
+def test_apply_refuses_when_nothing_is_newer(
+    client: Any, gh: FakeGitHub, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """review-code 2026-09-28 L1-2 — on the latest version a bundle's
+    destination is the running file itself, so apply must not download."""
+    _kind(monkeypatch, "bundle")
+    gh.tag = f"v{__version__}"
+    folder = tmp_path / "apps"
+    folder.mkdir()
+    monkeypatch.setattr(
+        routes, "bundle_target", lambda v: (f"MAME_Curator-{v}-x86_64.AppImage", folder)
+    )
+    response = client.post("/api/updates/apply")
+    assert response.status_code == 409
+    assert response.json()["code"] == "update_not_available"
+    assert list(folder.iterdir()) == []
+
+
+def test_rollback_ignores_a_record_that_is_not_a_commit(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """L1-7 — update-state.json is read back into git's argv."""
+    _kind(monkeypatch, "git")
+    world = client.app.state.world
+    world.data_dir.mkdir(parents=True, exist_ok=True)
+    (world.data_dir / "update-state.json").write_text(
+        json.dumps({"previous_commit": "--upload-pack=touch x"}), encoding="utf-8"
+    )
+    response = client.post("/api/updates/rollback")
+    assert response.status_code == 409
+    assert response.json()["code"] == "update_nothing_to_roll_back"
+    assert client.get("/api/updates/check").json()["app"]["rollback_available"] is False
+
+
+def test_a_failed_check_is_retried_after_five_minutes(
+    client: Any, gh: FakeGitHub, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """L1-8 — a failure is cached briefly, a success for the hour."""
+    _kind(monkeypatch, "git")
+    now = [1000.0]
+    monkeypatch.setattr("mame_curator.api.routes.updates.time.monotonic", lambda: now[0])
+    gh.status = 403
+    client.get("/api/updates/check")
+    now[0] += 301
+    gh.status = 200
+    client.get("/api/updates/check")
+    assert gh.api_requests == 2
+    now[0] += 301
+    client.get("/api/updates/check")
+    assert gh.api_requests == 2
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="drives git; POSIX-only")
+def test_a_failed_record_write_does_not_hide_the_update(
+    client: Any, gh: FakeGitHub, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """L1-11 — the tree already moved; the answer must say so."""
+    _kind(monkeypatch, "git")
+    repo = make_clone(tmp_path / "git")
+    gh.tag = "v1.1.0"
+    monkeypatch.setattr(routes, "__version__", "1.0.0")  # the clone predates v1.1.0
+    client.app.state.update_repo, client.app.state.update_run = repo, Recorder()
+
+    def disk_full(*_a: Any, **_k: Any) -> None:
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(routes, "_write_record", disk_full)
+    response = client.post("/api/updates/apply")
+    assert response.status_code == 200, response.text
+    assert response.json()["to_version"] == "1.1.0"

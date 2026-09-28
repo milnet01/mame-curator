@@ -44,15 +44,31 @@ def make_clone(tmp_path: Path) -> Path:
 
 
 class Recorder:
-    """The `run` seam: real git, a faked `uv` whose exit codes are scripted."""
+    """The `run` seam: real git, a faked `uv` whose exit codes are scripted.
 
-    def __init__(self, uv_codes: list[int] | None = None) -> None:
+    ``fail_git`` names git subcommands to answer with exit 1 instead of
+    running; ``timeout_git`` names ones to raise ``TimeoutExpired`` on.
+    """
+
+    def __init__(
+        self,
+        uv_codes: list[int] | None = None,
+        *,
+        fail_git: tuple[str, ...] = (),
+        timeout_git: tuple[str, ...] = (),
+    ) -> None:
         self.calls: list[tuple[Any, dict[str, Any]]] = []
         self.uv_codes = list(uv_codes or [])
+        self.fail_git = fail_git
+        self.timeout_git = timeout_git
 
     def __call__(self, args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
         self.calls.append((args, kwargs))
         if args[0] == "uv":
             code = self.uv_codes.pop(0) if self.uv_codes else 0
             return subprocess.CompletedProcess(args, code, "", "uv: offline" if code else "")
+        if args[1] in self.timeout_git:
+            raise subprocess.TimeoutExpired(args, kwargs.get("timeout") or 0)
+        if args[1] in self.fail_git:
+            return subprocess.CompletedProcess(args, 1, "", f"git {args[1]}: failed")
         return subprocess.run(args, **kwargs)  # noqa: S603 — argv from the code under test

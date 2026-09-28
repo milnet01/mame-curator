@@ -792,6 +792,8 @@ export const strings = {
       update_merge_refused:
         "git refused the update, usually because a file in the folder is in the way. The details name it.",
       update_nothing_to_roll_back: "There is no update to roll back.",
+      update_not_available:
+        "You already have the latest version, so there is nothing to update.",
       update_no_asset:
         "This release has no download for your system. Open the release page instead.",
       update_unverifiable:

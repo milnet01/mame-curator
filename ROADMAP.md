@@ -2918,6 +2918,20 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-contract-2026-09-28 (mame-curator-1010 spec, loop 1 open question).
   Lanes: api.
 
+- 📋 [mame-curator-1131] **A rollback to older code can leave a config.yaml the older code refuses to load.**
+  AppConfig forbids unknown keys (extra="forbid"). An update that adds a
+  config key, followed by a Settings save that writes it, followed by
+  "Roll back", leaves config.yaml carrying a key the rolled-back code
+  rejects, so the next start fails before the Settings page can load.
+  Rollback deliberately does not restore the snapshot (spec 1010 §3, §8).
+  Needs a decision: restore config.yaml from the update's snapshot on
+  rollback, or have the loader drop unknown keys with a warning, or have
+  rollback refuse while config.yaml carries keys the target lacks.
+  **Layman:** Undoing an update could stop the app from starting if a newer setting was saved in the meantime.
+  Kind: review-fix.
+  Source: review-code-2026-09-28 mame-curator-1010 lane 1 (open question, settled by the orchestrator).
+  Lanes: updates, api.
+
 ## Considered / under research (no target date)
 
 **Theme:** post-v1 features captured during user feedback. Each is

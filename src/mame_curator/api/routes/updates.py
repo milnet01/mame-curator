@@ -41,6 +41,7 @@ from mame_curator.updates.app import (
     download_bundle,
     head_commit,
     install_kind,
+    is_commit_id,
     is_newer,
     latest_release,
     rollback_git_update,
@@ -52,6 +53,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 CHECK_TTL_SECONDS = 3600.0
+# A failed check (offline, rate-limited) is retried sooner than a good answer.
+CHECK_FAILURE_TTL_SECONDS = 300.0
 STATE_FILE = "update-state.json"
 
 
@@ -163,7 +166,8 @@ async def updates_check(request: Request, refresh: bool = False) -> UpdatesCheck
     key = "dev" if dev else "stable"
     now = time.monotonic()
     hit = state.update_cache.get(key)
-    if refresh or hit is None or now - hit[0] >= CHECK_TTL_SECONDS:
+    ttl = CHECK_FAILURE_TTL_SECONDS if hit and hit[1].check_error else CHECK_TTL_SECONDS
+    if refresh or hit is None or now - hit[0] >= ttl:
         base = await (_check_dev(request) if dev else _check_stable(request))
         state.update_cache[key] = (now, base)
     else:
@@ -178,7 +182,7 @@ async def updates_check(request: Request, refresh: bool = False) -> UpdatesCheck
                 "restart_pending": bool(
                     to_commit and state.started_commit and to_commit != state.started_commit
                 ),
-                "rollback_available": bool(record.get("previous_commit")),
+                "rollback_available": is_commit_id(record.get("previous_commit")),
             }
         )
     )
@@ -205,12 +209,35 @@ async def _release(request: Request) -> ReleaseInfo:
         raise UpdateError("update_fetch_failed", 502, str(e)) from e
 
 
+async def _newer_release(request: Request) -> ReleaseInfo:
+    """The latest release, refused where it is not newer than this one."""
+    release = await _release(request)
+    if not is_newer(release.version, __version__):
+        raise UpdateError(
+            "update_not_available", 409, f"{release.version} is not newer than {__version__}"
+        )
+    return release
+
+
+def _keep_record(world: WorldState, record: dict[str, Any], log: tuple[str, str] | None) -> None:
+    """Write the record and the activity entry; a failure is logged, not raised.
+
+    The tree or the download already changed, so the answer must still say so.
+    """
+    try:
+        _write_record(world, record)
+        if log is not None:
+            _log(world, log[0], log[1], f"updated to {log[1]}")
+    except OSError:
+        logger.exception("update applied but its record could not be written")
+
+
 async def _apply_git(request: Request, world: WorldState) -> UpdateApplyResult:
     state = request.app.state
     if world.config.updates.channel == "dev":
         target, to_version = DEV_TARGET, None
     else:
-        release = await _release(request)
+        release = await _newer_release(request)
         target, to_version = release.tag, release.version
     targets = _snapshot_targets(world)
     result = await asyncio.to_thread(
@@ -226,7 +253,7 @@ async def _apply_git(request: Request, world: WorldState) -> UpdateApplyResult:
         to_version = from_version
     else:
         to_version = result.to_commit[:7] if dev else to_version
-        _write_record(
+        _keep_record(
             world,
             {
                 "previous_commit": result.previous_commit,
@@ -235,8 +262,8 @@ async def _apply_git(request: Request, world: WorldState) -> UpdateApplyResult:
                 "from_version": from_version,
                 "to_version": to_version,
             },
+            (from_version, str(to_version)),
         )
-        _log(world, from_version, str(to_version), f"updated to {to_version}")
     return UpdateApplyResult(
         install_kind="git",
         from_version=from_version,
@@ -250,14 +277,15 @@ async def _apply_git(request: Request, world: WorldState) -> UpdateApplyResult:
 
 
 async def _apply_bundle(request: Request, world: WorldState) -> UpdateApplyResult:
-    release = await _release(request)
+    release = await _newer_release(request)
     name, folder = bundle_target(release.version)
     dest = await download_bundle(
         release, name=name, folder=folder, client=request.app.state.updates_client
     )
-    _write_record(
+    _keep_record(
         world,
         {"downloaded_path": str(dest), "from_version": __version__, "to_version": release.version},
+        None,
     )
     return UpdateApplyResult(
         install_kind="bundle",
@@ -296,7 +324,7 @@ async def updates_rollback(request: Request) -> UpdateApplyResult:
         world: WorldState = state.world
         record = _read_record(world)
         previous = record.get("previous_commit")
-        if not previous:
+        if not is_commit_id(previous):
             raise UpdateError("update_nothing_to_roll_back", 409, "no update is recorded")
         sync_failed = await asyncio.to_thread(
             rollback_git_update, state.update_repo, previous_commit=previous, run=state.update_run

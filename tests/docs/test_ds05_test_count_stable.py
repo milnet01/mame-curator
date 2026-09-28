@@ -301,7 +301,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/api/test_routes_updates_ini.py. 881 → 885.
 # Bumped 2026-09-28 (mame-curator-1010 — one-line error detail): +1 pytest in
 # tests/api/test_routes_updates.py. 885 → 886.
-EXPECTED_PYTEST_DECLARATIONS = 886
+# Bumped 2026-09-28 (mame-curator-1010 review fixes, group A): +4 in
+# tests/updates/test_git_update.py, +4 in tests/api/test_routes_updates.py. 886 → 894.
+EXPECTED_PYTEST_DECLARATIONS = 894
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

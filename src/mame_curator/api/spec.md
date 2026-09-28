@@ -390,18 +390,21 @@ activity log.
   (default `bundle_root()`) and `update_run` (default `subprocess.run`).
   It records `started_commit` for a git install.
 - `GET /api/updates/check` caches its answer per channel on `app.state` for
-  an hour; `?refresh=true` bypasses it (INV-3). A failed check answers 200
+  an hour, and a failed answer for five minutes; `?refresh=true` bypasses it
+  (INV-3). A failed check answers 200
   with `check_error` set (INV-4). `restart_pending` is true while the
   record's `to_commit` differs from `started_commit`; `rollback_available`
   while it holds a `previous_commit`.
 - `POST /api/updates/apply` answers `409 update_not_supported` on a package
-  install (INV-10) and `409 update_in_progress` while another update runs.
+  install (INV-10), `409 update_in_progress` while another update runs, and
+  `409 update_not_available` where the latest release is not newer — on a
+  bundle that release's file would be the running one.
   After a git update the route writes `update-state.json` and an
   `app_updated` activity entry; after a bundle download it records the
   download only.
 - `POST /api/updates/rollback` answers `409 update_nothing_to_roll_back`
-  without a recorded `previous_commit`, and rewrites the record so a second
-  rollback is refused.
+  without a recorded `previous_commit` that is a full commit id, and
+  rewrites the record so a second rollback is refused.
 - `POST /api/updates/ini/preview` stages the INIs in `data/ini-staging/`
   and changes neither the live files nor the world (INV-11). A staged INI
   that does not parse answers `502 ini_parse_failed`.

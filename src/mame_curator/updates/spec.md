@@ -206,11 +206,15 @@ module's share of it.
 - `apply_git_update(repo, *, target, before_move, run)` runs, in `repo`:
   the pre-flight (`git` and `uv` on `PATH`, no modified tracked files),
   `before_move()`, `git fetch`, an ancestry check, `git merge --ff-only`,
-  then `uv sync --no-dev --inexact`. A failed sync resets to the previous
-  commit and syncs again; the result says `rolled_back` and, if the second
-  sync failed too, `sync_failed` (INV-5 to INV-8).
+  then `uv sync --no-dev --inexact`. A failed sync, or a merge that fails
+  after moving `HEAD`, resets to the previous commit and syncs again; the
+  result says `rolled_back` and, if the second sync failed too,
+  `sync_failed` (INV-5 to INV-8). Where the reset itself fails the result
+  says `sync_failed` without `rolled_back`: the tree is on the new commit.
 - Every `git` and `uv` call goes through `run` as an argument list with no
-  shell (INV-13).
+  shell (INV-13), with a timeout (`GIT_TIMEOUT_SECONDS`, `UV_TIMEOUT_SECONDS`)
+  and `GIT_TERMINAL_PROMPT=0`; a timeout comes back as a failed command. A
+  tag reaches git after `--end-of-options`.
 - `UpdateError` carries the API's `code` and HTTP `status`:
   `update_tool_missing`, `update_dirty_tree`, `update_fetch_failed`,
   `update_not_fast_forward`, `update_merge_refused`, `update_no_asset`,

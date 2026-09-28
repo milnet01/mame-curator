@@ -68,6 +68,10 @@ def test_latest_release_parses_the_api_answer() -> None:
         lambda r: httpx.Response(403, content=b"rate limited"),
         lambda r: httpx.Response(200, content=b"not json"),
         lambda r: httpx.Response(200, content=b"{}"),
+        lambda r: httpx.Response(200, content=b"[]"),
+        lambda r: httpx.Response(
+            200, content=b'{"tag_name": "v1", "html_url": "x", "assets": [1]}'
+        ),
     ],
 )
 def test_latest_release_failures_are_typed(respond: object) -> None:
