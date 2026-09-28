@@ -109,6 +109,11 @@ jobs:
       - name: Build (type-check + bundle)
         run: npm run build
 
+      # P06 bundle budget (mame-curator-1120): every emitted JS chunk, gzipped,
+      # stays within 350 kB. Reads frontend/package.json's "size-limit" array.
+      - name: Bundle size (size-limit)
+        run: npm run size
+
       - name: Vitest
         run: npm test
 

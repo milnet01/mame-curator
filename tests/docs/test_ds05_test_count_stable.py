@@ -266,7 +266,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # dev tools): +1 pytest in tests/docs/test_dev_dependency_group.py. 794 → 795.
 # Bumped 2026-09-28 (review-code lane 01 — filter read listxml before the DAT):
 # +1 pytest in tests/filter/test_cli_filter.py. 795 → 796.
-EXPECTED_PYTEST_DECLARATIONS = 796
+# Bumped 2026-09-28 (mame-curator-1120 — size-limit gate): +2 pytest in
+# tests/docs/test_mame_curator_1120_size_limit.py. 796 → 798.
+EXPECTED_PYTEST_DECLARATIONS = 798
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

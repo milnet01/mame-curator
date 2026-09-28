@@ -11,7 +11,8 @@ export default defineConfig({
   },
   build: {
     // mame-curator-1108: the budget that matters is P06's initial-JS
-    // limit of 350 kB gzipped (docs/specs/P06-frontend-mvp.md). This
+    // limit of 350 kB gzipped (docs/specs/P06-frontend-mvp.md), which
+    // `npm run size` enforces (mame-curator-1120). This
     // warning counts raw minified bytes and fired at 500 kB while the
     // entry chunk was ~163 kB gzipped. Every route, Library included, is
     // already lazy (App.tsx), so the entry chunk is the shared shell.

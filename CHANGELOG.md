@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Added — The build fails if the web app's JavaScript grows past its 350 kB budget (mame-curator-1120)
+
+`npm run size` (size-limit) measures every JavaScript file the frontend
+build emits, gzipped, against the 350 kB budget the P06 spec set. CI,
+the release build and `./local-CI.sh` run it after the build. Today's
+total is about 229 kB.
+
 ### 2026-09-28 Fixed — Fixes from the 2026-09-28 code review of the last release batch
 
 - `run.sh` / `run.bat` no longer install the developer tools when they

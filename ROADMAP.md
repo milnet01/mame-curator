@@ -1286,7 +1286,7 @@ wave lands.
   Source: align-project-2026-09-28 (CFG-0645).
   Lanes: docs.
 
-- 📋 [mame-curator-1120] **Add the size-limit CI gate P06 specifies for the initial JS bundle.**
+- ✅ [mame-curator-1120] **Add the size-limit CI gate P06 specifies for the initial JS bundle.**
   docs/specs/P06-frontend-mvp.md § Architecture notes requires an initial
   JS budget of 350 kB gzipped "enforced by a CI gate using size-limit",
   read from a package.json "size-limit" array. No such array, dependency
@@ -1294,6 +1294,15 @@ wave lands.
   Vite's raw-size warning limit on the strength of that budget (entry
   chunk ~163 kB gzipped on 2026-09-28). Either add the gate to ci.yml and
   local-CI.sh, or amend the spec to drop it.
+  Resolved (2026-09-28): size-limit 14.1.0 + @size-limit/file are dev
+  dependencies. frontend/package.json declares the budget (every
+  dist/assets/*.js chunk, gzipped, at most 350 kB), and `npm run size`
+  checks it. ci.yml, release.yml and local-CI.sh run it right after the
+  build. Measuring every chunk bounds the first load however Vite splits
+  the code. On 2026-09-28 it measured 228.97 kB, and a 100 kB limit
+  fails the step (exit 1).
+  tests/docs/test_mame_curator_1120_size_limit.py pins the config and
+  the wiring.
   **Layman:** Nothing currently stops the app's startup download from growing past its agreed size; this adds a check that fails the build if it does.
   Kind: perf.
   Source: in-session-2026-09-28 (mame-curator-1108).
@@ -1355,6 +1364,20 @@ wave lands.
   Kind: chore.
   Source: check-code-2026-09-28.
   Lanes: tooling, docs.
+
+- 📋 [mame-curator-1124] **Clear the 11 npm audit advisories in the frontend dependencies.**
+  `npm audit` in frontend/ on 2026-09-28 reported 11 advisories (5 moderate,
+  6 high), the same count before and after mame-curator-1120's size-limit
+  install, so they predate it. Direct packages: react-router (high),
+  dompurify, vitest and @vitest/coverage-v8 (moderate). Transitive:
+  undici, postcss, nanoid, brace-expansion, browserslist,
+  baseline-browser-mapping, @vitest/mocker. npm reports a fix available
+  for every one. Also noted by the same install: msw 2.14.6 has install
+  scripts not covered by `allowScripts`.
+  **Layman:** Some of the web app's building blocks have known security fixes waiting; this updates them.
+  Kind: security.
+  Source: in-session-2026-09-28 (mame-curator-1120).
+  Lanes: frontend.
 
 ### 🧪 Test Audit 2026-05-20
 

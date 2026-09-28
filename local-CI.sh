@@ -130,7 +130,7 @@ run "API type sync (Python ↔ TS)" python3 tools/check_api_types_sync.py
 
 # --- Job 2: frontend-lint-types-test -----------------------------------------
 # ci.yml sets `working-directory: frontend`; we mirror via run_in. Order:
-# ESLint → Prettier → build (tsc -b && vite build) → Vitest.
+# ESLint → Prettier → build (tsc -b && vite build) → bundle size → Vitest.
 if [[ ! -d frontend/node_modules ]]; then
     echo
     echo "${RED}✗ frontend/node_modules is missing — run './local-CI.sh --fresh' (or 'cd frontend && npm ci') first${RESET}"
@@ -139,6 +139,7 @@ else
     run_in frontend "ESLint"                   npm run lint
     run_in frontend "Prettier"                 npm run format
     run_in frontend "Build (type-check + bundle)" npm run build
+    run_in frontend "Bundle size (size-limit)"  npm run size
     run_in frontend "Vitest"                   npm test
 fi
 
