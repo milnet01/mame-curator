@@ -4,10 +4,13 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { server, http, HttpResponse } from "@/test/handlers";
 import { makeClientWrapper } from "@/test/renderWithClient";
 import { useConfigPatch, useSnapshotRestore } from "../useConfig";
+import { strings } from "@/strings";
+import { config } from "@/pages/__tests__/_settingsPageFixtures";
 
 vi.mock("sonner", () => ({
   toast: {
     error: vi.fn(),
+    success: vi.fn(),
   },
 }));
 
@@ -17,6 +20,7 @@ import { toast } from "sonner";
 // only the mock-clear is load-bearing here.
 afterEach(() => {
   vi.mocked(toast.error).mockClear();
+  vi.mocked(toast.success).mockClear();
 });
 
 const renderWithClient = makeClientWrapper;
@@ -39,6 +43,22 @@ describe("useConfigPatch onError → toast (FP13 § A1)", () => {
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       expect.stringContaining("not a valid directory"),
     );
+  });
+});
+
+describe("useConfigPatch onSuccess → saved indicator (mame-curator-1038)", () => {
+  it("says the settings were saved, reusing one toast so rapid edits do not stack", async () => {
+    server.use(http.patch("/api/config", () => HttpResponse.json(config)));
+    const { result } = renderHook(() => useConfigPatch(), {
+      wrapper: renderWithClient(),
+    });
+    result.current.mutate({} as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith(
+      strings.settings.saved,
+      expect.objectContaining({ id: "config-saved" }),
+    );
+    expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
   });
 });
 

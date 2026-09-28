@@ -368,6 +368,8 @@ export const strings = {
 
   settings: {
     pageTitle: "Settings",
+    // mame-curator-1038: every change auto-saves; this confirms it did.
+    saved: "Settings saved",
     sections: {
       paths: "Paths",
       filters: "Filters",

@@ -8,7 +8,9 @@ import {
   type ConfigExportBundle,
   type SnapshotsListing,
 } from "@/api/types";
+import { toast } from "sonner";
 import { toastApiError } from "@/lib/apiErrorToast";
+import { strings } from "@/strings";
 import { useApiQuery } from "./useApi";
 
 const KEY = ["config"] as const;
@@ -35,6 +37,12 @@ export function useConfigPatch() {
       // Each PATCH writes a fresh snapshot server-side (R15 contract);
       // invalidate so the Snapshots tab reflects the new entry on next read.
       qc.invalidateQueries({ queryKey: SNAPSHOTS_KEY });
+      // mame-curator-1038: settings save as you edit, so say it happened.
+      // One fixed id, so a burst of edits updates a single toast.
+      toast.success(strings.settings.saved, {
+        id: "config-saved",
+        duration: 1500,
+      });
     },
     onError: toastApiError,
   });

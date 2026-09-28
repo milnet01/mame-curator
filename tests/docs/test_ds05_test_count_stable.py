@@ -346,7 +346,9 @@ EXPECTED_PYTEST_DECLARATIONS = 798
 # when nothing was checked): +1 vitest in SettingsPage_render.test.tsx. 346 → 347.
 # Bumped 2026-09-28 (review-code lane 02 — alternatives drawer error state):
 # +3 vitest in AlternativesDrawer.test.tsx. 347 → 350.
-EXPECTED_VITEST_DECLARATIONS = 350
+# Bumped 2026-09-28 (mame-curator-1038 — settings saved indicator): +1 vitest
+# in hooks/__tests__/useConfig.test.tsx. 350 → 351.
+EXPECTED_VITEST_DECLARATIONS = 351
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

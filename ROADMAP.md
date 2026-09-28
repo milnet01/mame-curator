@@ -2520,7 +2520,7 @@ P14 (per-game review state).
   Kind: implement.
   Lanes: api, frontend, persist, tests.
 
-- 📋 [mame-curator-1038] **FP30 — Auto-save indicator on Settings page.**
+- ✅ [mame-curator-1038] **FP30 — Auto-save indicator on Settings page.**
   Settings page already auto-saves on every change via
   `useConfigPatch` (`frontend/src/hooks/useConfig.ts:21`), but
   `onSuccess` emits no UI feedback — only `onError` toasts. Users
@@ -2539,6 +2539,12 @@ P14 (per-game review state).
   This is awesome but there is no indication that this is
   happening").
   Dependencies: none.
+  Resolved (2026-09-28): useConfigPatch's onSuccess now shows a
+  "Settings saved" toast for 1.5 s. It uses one fixed id
+  (`config-saved`), so a burst of edits updates a single toast rather
+  than stacking. This follows the app's existing sonner success toasts.
+  Errors still toast through toastApiError. Regression test in
+  hooks/__tests__/useConfig.test.tsx, red before the change.
 
 - 📋 [mame-curator-1039] **P16 — UI polish + theme expansion.**
   Visual-polish pass across the app for end-user perception of

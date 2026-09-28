@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Added — Settings shows "Settings saved" after each change (mame-curator-1038)
+
+The Settings page has always saved as you edit, but it gave no sign of
+it. Each successful save now shows a brief "Settings saved" message;
+quick edits in a row update the same message instead of piling up.
+
 ### 2026-09-28 Security — Frontend dependencies updated; npm audit reports no advisories (mame-curator-1124)
 
 Every web-app dependency is now at its newest release inside its
