@@ -138,6 +138,26 @@ describe("SettingsPage — render", () => {
     expect(banner).toHaveTextContent(/git pull/);
   });
 
+  it("does not claim the latest version when nothing was checked (review-code 2026-09-28)", async () => {
+    const user = userEvent.setup();
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+        updateInfo={{
+          current_version: "0.0.1",
+          latest_version: null,
+          update_available: false,
+        }}
+      />,
+    );
+    await user.click(screen.getByRole("tab", { name: /^Updates$/ }));
+    const banner = screen.getByRole("status");
+    expect(banner).toHaveTextContent(/0\.0\.1/);
+    expect(banner).not.toHaveTextContent(/latest version/i);
+  });
+
   it("uses Switch (not Checkbox) on the Filters tab", async () => {
     const user = userEvent.setup();
     render(

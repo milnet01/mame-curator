@@ -524,6 +524,10 @@ export const strings = {
         `Update available: ${current} → ${latest}. To update, close MAME Curator, run \`git pull\` in its folder, then start it again with run.sh (run.bat on Windows).`,
       updateCurrent: (version: string) =>
         `You're on the latest version (${version}).`,
+      // The server has not looked up the latest release (latest_version
+      // is null), so the banner must not claim this is the latest.
+      updateUnknown: (version: string) =>
+        `You're on version ${version}. MAME Curator can't check for newer versions yet; see the project's GitHub page for releases.`,
       restartRequired:
         "Server settings changed — restart `mame-curator serve` for the new bind address to take effect.",
       /** FP16 § C — per-INI status line under the setup banner. */

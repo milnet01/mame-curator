@@ -37,9 +37,13 @@ export function UpdatesTab({ updates, onChange, updateInfo }: UpdatesTabProps) {
                 updateInfo.current_version,
                 updateInfo.latest_version,
               )
-            : strings.settings.banners.updateCurrent(
-                updateInfo.current_version,
-              )}
+            : updateInfo.latest_version
+              ? strings.settings.banners.updateCurrent(
+                  updateInfo.current_version,
+                )
+              : strings.settings.banners.updateUnknown(
+                  updateInfo.current_version,
+                )}
         </p>
       )}
       <div className="flex items-center justify-between">
