@@ -99,7 +99,8 @@ The full local CI gate (must be green on `main`):
 ```bash
 uv run pytest && uv run ruff check && uv run ruff format --check \
     && uv run mypy && uv run bandit -c pyproject.toml -r src
-( cd frontend && npx vitest run && npx tsc --noEmit && npm run build )
+( cd frontend && npx vitest run && npm run build )   # build runs tsc -b
+# ./local-CI.sh runs every check CI runs, in CI's order.
 ```
 
 ## Screenshots

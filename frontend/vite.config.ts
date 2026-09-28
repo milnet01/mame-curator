@@ -13,8 +13,8 @@ export default defineConfig({
     // mame-curator-1108: the budget that matters is P06's initial-JS
     // limit of 350 kB gzipped (docs/specs/P06-frontend-mvp.md). This
     // warning counts raw minified bytes and fired at 500 kB while the
-    // entry chunk was ~163 kB gzipped. Routes other than Library are
-    // already lazy, so splitting the entry would not shrink the first load.
+    // entry chunk was ~163 kB gzipped. Every route, Library included, is
+    // already lazy (App.tsx), so the entry chunk is the shared shell.
     chunkSizeWarningLimit: 700,
   },
   server: {

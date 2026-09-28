@@ -147,7 +147,7 @@ Routes consumed (P04 numbering — see `docs/specs/P04-http-api.md` § Routes ta
 | Setup status (read-only banner) | R35 |
 | Updates status (read-only banner) | R36 |
 
-R35 and R36 surface as **read-only banners** in P06 (e.g. "Config looks ready" / "Update available — wiring in Phase 7"). The banner reads the route; clicking through to a real wizard or update flow is Phase 7+. Banner strings live in `strings.ts` so the Phase-7 wording change is a single-file update, not a component edit.
+R35 and R36 surface as **read-only banners** in P06 (e.g. "Config looks ready" / "Update available"). The banner reads the route; an in-app update flow is mame-curator-1010 (post-v1), so the Updates banner gives manual steps instead (mame-curator-1114). Banner strings live in `strings.ts` so the Phase-7 wording change is a single-file update, not a component edit.
 
 ### Error envelope handling
 
@@ -318,7 +318,7 @@ Re-ordered from the long-form roadmap's 28-step list to surface the type-sync CI
 
 ## Out of scope (deferred)
 
-- **App self-update flow** (Phase 7). The Settings → Updates section in P06 reads R36 and shows a banner only; no "Apply update" button.
+- **App self-update flow** (mame-curator-1010, post-v1). The Settings → Updates section in P06 reads R36 and shows a banner only; no "Apply update" button.
 - **INI refresh flow** (Phase 7). The Updates banner mentions INI status but no diff-preview / apply UI.
 - **Help content** (Phase 7). The Help page renders the topic list from R37 and the per-topic HTML from R38; the underlying Markdown library + topic catalogue are not P06's deliverable.
 - **Setup wizard** (Phase 8). R35 banner only.
@@ -333,7 +333,7 @@ Re-ordered from the long-form roadmap's 28-step list to surface the type-sync CI
 - **Frontend imports nothing from Python** at runtime. Type parity is enforced by the CI script, not by import. This keeps the build a pure `npm run build`.
 - **No client-side filesystem access.** Every disk operation goes through R29–R34. The Settings → Paths section uses `<FsBrowser>` (built on R29 with R30/R31 for starting nodes) for path pickers; the browser never sees `window.showDirectoryPicker` or similar.
 - **No third-party CDN.** All assets bundle into `frontend/dist/`. Themes are CSS variables — no Google Fonts call, no remote stylesheet.
-- **Bundle weight budget.** Initial JS budget ≤ 350 kB gzipped, enforced by a CI gate using `size-limit` (`size-limit` reads thresholds from `package.json` `"size-limit"` array; failing build fails CI). Per-route lazy imports for `SessionsPage`, `ActivityPage`, `StatsPage`, `SettingsPage`, `HelpPage` (`React.lazy` + Suspense with shell skeleton). The Library bundle stays in the entry chunk because it's the landing page.
+- **Bundle weight budget.** Initial JS budget ≤ 350 kB gzipped, enforced by a CI gate using `size-limit` (`size-limit` reads thresholds from `package.json` `"size-limit"` array; failing build fails CI). Per-route lazy imports for `SessionsPage`, `ActivityPage`, `StatsPage`, `SettingsPage`, `HelpPage` (`React.lazy` + Suspense with shell skeleton). `LibraryPage` is lazy too (`App.tsx`), so the entry chunk holds the app shell and shared code, and the landing route loads as its own chunk.
 - **Accessibility.** shadcn primitives ship with Radix accessibility baked in; every interactive element gets a recognizable accessible name from `strings.ts`. Lighthouse ≥ 90 is the gate; we do not aim for AA-perfect WCAG until P09 polish.
 
 ## Anti-jump compliance
