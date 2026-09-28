@@ -64,3 +64,32 @@ def test_frontend_package_json_version_matches_pyproject() -> None:
         f"Update frontend/package.json to {py!r} and add a bump-recipe entry "
         f"so the next /bump rolls both."
     )
+
+
+# cut-release 2026-09-28: the 1.3.0 pre-flight found three more places
+# carrying the project's own version that the bump recipe did not list —
+# `__version__` (what Settings → Updates reports as the running version)
+# and the two lockfiles' own-package entries. Each is pinned here so the
+# recipe's post_check sees any of them drift.
+
+
+def test_package_dunder_version_matches_pyproject() -> None:
+    """``mame_curator.__version__`` is the version the app reports about itself."""
+    text = (REPO_ROOT / "src" / "mame_curator" / "__init__.py").read_text(encoding="utf-8")
+    match = re.search(r'^__version__ = "([^"]+)"$', text, re.MULTILINE)
+    assert match, "src/mame_curator/__init__.py carries no __version__ line"
+    assert match.group(1) == _pyproject_version()
+
+
+def test_uv_lock_own_package_version_matches_pyproject() -> None:
+    data = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
+    own = [p for p in data["package"] if p["name"] == "mame-curator"]
+    assert len(own) == 1, f"uv.lock holds {len(own)} mame-curator entries"
+    assert own[0]["version"] == _pyproject_version()
+
+
+def test_package_lock_own_versions_match_package_json() -> None:
+    data = json.loads((REPO_ROOT / "frontend" / "package-lock.json").read_text(encoding="utf-8"))
+    expected = _package_json_version()
+    assert data["version"] == expected
+    assert data["packages"][""]["version"] == expected
