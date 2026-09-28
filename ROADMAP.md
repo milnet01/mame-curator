@@ -1326,13 +1326,19 @@ wave lands.
   Source: check-code-2026-09-28.
   Lanes: ci.
 
-- 📋 [mame-curator-1123] **Fix the small shellcheck and typos hits check-code reported.**
+- ✅ [mame-curator-1123] **Fix the small shellcheck and typos hits check-code reported.**
   shellcheck SC2164 at local-CI.sh:60, a `cd` with no `|| exit`
   (line dates from 2026-07-03). typos: `ded` (CHANGELOG.md), `togglable`
   (ROADMAP.md and tests/docs/test_ds05_test_count_stable.py),
   `unparseable` (src/mame_curator/parser/spec.md). The many `mis-` hits
   are hyphenated prefixes, a recorded false positive. Changelog and
   roadmap text must change via changelog_log / roadmap_log.
+  Resolved (2026-09-28): local-CI.sh's cd now ends `|| exit 1`
+  (shellcheck clean). Every typos hit was a false positive, so a new
+  _typos.toml records them: commit ids, accepted variants (togglable,
+  unparseable), MAME/PyInstaller terms (fullset, datas), acronym
+  plurals, and it excludes frontend/dist/ and third-party JSON fixtures.
+  `typos .` now exits 0 on the whole tree.
   **Layman:** Tidy one unsafe line in the local test script and a few misspellings.
   Kind: chore.
   Source: check-code-2026-09-28.

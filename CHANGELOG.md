@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Fixed — local-CI.sh stops if it cannot reach the repo root; typos runs clean (mame-curator-1123)
+
+local-CI.sh now exits when its `cd` to the repo root fails, instead of
+running the checks from the wrong directory. A new `_typos.toml`
+records the project's real words (MAME's `fullset`, PyInstaller's
+`datas`, commit ids, acronym plurals) and skips the built frontend,
+so the spelling checker reports nothing on the whole tree.
+
 ### 2026-09-28 Added — What counts as a breaking change is now written down (mame-curator-1119)
 
 docs/standards/versioning-overrides.md names what users rely on:

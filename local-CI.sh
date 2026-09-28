@@ -57,7 +57,7 @@ set -uo pipefail
 
 # Always operate from the repo root (the directory this script lives in).
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$REPO_ROOT"
+cd "$REPO_ROOT" || exit 1
 
 FRESH=0
 for arg in "$@"; do

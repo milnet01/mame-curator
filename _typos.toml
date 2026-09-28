@@ -1,0 +1,33 @@
+# Words `typos` flags that are correct here (mame-curator-1123).
+
+[files]
+# Minified Vite build output, rebuilt from frontend/src.
+extend-exclude = [
+    "frontend/dist/",
+    # Third-party API payloads, kept byte-for-byte.
+    "tests/fixtures/*.json",
+]
+
+[default]
+extend-ignore-re = [
+    # Git commit ids quoted in CHANGELOG/ROADMAP (e.g. `aa2ded0` reads as "ded").
+    "\\b[0-9a-f]{7,40}\\b",
+    # mame-curator-1123's own roadmap entry quotes the hit.
+    "`ded`",
+    # Plurals of acronyms, which typos splits: PNGs -> "PN", WARNINGs -> "WARNIN".
+    "\\b[A-Z]{2,}s\\b",
+    # Code that is not prose: a regex group and a bytes escape.
+    "\\(\\?:ba\\)",
+    "caf\\\\xe9",
+    "pre-empted",
+]
+
+[default.extend-words]
+# Accepted spelling variants; `togglable` is also a real test name.
+togglable = "togglable"
+unparseable = "unparseable"
+# MAME romset term, and PyInstaller's spec-file keyword.
+fullset = "fullset"
+datas = "datas"
+# The prefix in hyphenated words such as "mis-sorted".
+mis = "mis"
