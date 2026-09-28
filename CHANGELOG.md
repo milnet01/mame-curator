@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Fixed — Settings → Updates says how to update instead of naming an internal phase (mame-curator-1114)
+
+The update-available banner said the apply flow "ships in Phase 7". It
+now tells the user to close MAME Curator, run `git pull` in its folder
+and start it again with run.sh or run.bat.
+
 ### 2026-09-28 Changed — Developer tools move to a `dev` dependency group (mame-curator-1106)
 
 Contributors now set up with a plain `uv sync`; the old

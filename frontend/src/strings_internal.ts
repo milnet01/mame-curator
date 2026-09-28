@@ -515,12 +515,13 @@ export const strings = {
     backupBlurb:
       "Configuration snapshots can be restored from disk. Restore confirmation surfaces a destructive-action dialog.",
     banners: {
-      // R35 & R36 read-only banners; Phase-7 will add wizard / apply paths.
+      // R35 & R36 read-only banners. In-app self-update is mame-curator-1010
+      // (considered, post-v1), so the update banner says how to update by hand.
       setupReady: "Configuration looks ready.",
       setupIncomplete:
         "Some paths or reference files are missing — open the Paths section to fix.",
       updateAvailable: (current: string, latest: string) =>
-        `Update available: ${current} → ${latest}. Apply flow ships in Phase 7.`,
+        `Update available: ${current} → ${latest}. To update, close MAME Curator, run \`git pull\` in its folder, then start it again with run.sh (run.bat on Windows).`,
       updateCurrent: (version: string) =>
         `You're on the latest version (${version}).`,
       restartRequired:

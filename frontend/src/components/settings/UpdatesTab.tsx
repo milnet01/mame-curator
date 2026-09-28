@@ -26,7 +26,7 @@ export function UpdatesTab({ updates, onChange, updateInfo }: UpdatesTabProps) {
   return (
     <>
       {/* FP11 § B3: R36 read-only banner — design §8 + spec § 147-150 demand
-          it. Phase 7 will swap this for the apply-update flow. */}
+          it. An in-app apply flow is mame-curator-1010 (post-v1). */}
       {updateInfo && (
         <p
           role="status"

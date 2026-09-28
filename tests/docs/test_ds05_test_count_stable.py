@@ -330,7 +330,10 @@ EXPECTED_PYTEST_DECLARATIONS = 791
 # Bumped 2026-09-28 (mame-curator-1107 — alternatives drawer error state): +1
 # vitest declaration in frontend/src/pages/__tests__/
 # LibraryPage_loading_state.test.tsx (failed request shows Retry). 344 → 345.
-EXPECTED_VITEST_DECLARATIONS = 345
+# Bumped 2026-09-28 (mame-curator-1114 — update banner wording): +1 vitest
+# declaration in frontend/src/pages/__tests__/SettingsPage_render.test.tsx.
+# 345 → 346.
+EXPECTED_VITEST_DECLARATIONS = 346
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

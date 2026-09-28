@@ -118,6 +118,26 @@ describe("SettingsPage — render", () => {
     expect(screen.getByText(/0\.0\.1.*0\.0\.2/)).toBeInTheDocument();
   });
 
+  it("tells the user how to update, not an internal phase name (mame-curator-1114)", async () => {
+    const user = userEvent.setup();
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+        updateInfo={{
+          current_version: "0.0.1",
+          latest_version: "0.0.2",
+          update_available: true,
+        }}
+      />,
+    );
+    await user.click(screen.getByRole("tab", { name: /^Updates$/ }));
+    const banner = screen.getByText(/0\.0\.1.*0\.0\.2/);
+    expect(banner).not.toHaveTextContent(/phase/i);
+    expect(banner).toHaveTextContent(/git pull/);
+  });
+
   it("uses Switch (not Checkbox) on the Filters tab", async () => {
     const user = userEvent.setup();
     render(

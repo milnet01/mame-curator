@@ -883,6 +883,10 @@ wave lands.
   test_invalid_port_checked_before_config passes an explicit --config,
   so it pins the error ordering but never exercises starter-config
   creation; the cell reads as full coverage.
+  Note (2026-09-28, from 1114): Settings → Updates'
+  `updateAvailable` banner in strings_internal.ts tells users to
+  `git pull` and restart. Bundle users have no clone, so the wording must
+  branch on install type (or point at the Releases page) when bundles ship.
 
 - ✅ [mame-curator-1096] **Stop the test suite opening real browser tabs.**
   Reported by the user 2026-08-04: "every now and then you open a new
@@ -1169,7 +1173,7 @@ wave lands.
   Source: peer-claude-2a-2026-09-26 (align-report).
   Lanes: docs.
 
-- 📋 [mame-curator-1114] **Settings → Updates still tells users the apply flow "ships in Phase 7".**
+- ✅ [mame-curator-1114] **Settings → Updates still tells users the apply flow "ships in Phase 7".**
   `frontend/src/strings_internal.ts` has the update-available message
   "Update available: X → Y. Apply flow ships in Phase 7.", and
   `components/settings/UpdatesTab.tsx` carries a comment saying Phase 7
@@ -1178,6 +1182,12 @@ wave lands.
   name; if not, tell the user how to update (re-run the launcher after a
   `git pull`, or download the new release once 1095 ships). Found
   2026-09-26 while fixing the same stale wording on the Help page (1063).
+  Resolved (2026-09-28): in-app self-update is mame-curator-1010
+  (considered, post-v1), so the banner now gives the manual steps: close
+  the app, `git pull`, start again with run.sh / run.bat. Stale Phase 7
+  comments in strings_internal.ts and UpdatesTab.tsx now cite 1010.
+  When 1095's bundles ship, this wording must change for bundle users.
+  Regression test in SettingsPage_render.test.tsx.
   **Layman:** The Updates tab promises a feature by an old internal phase name that means nothing to users.
   Kind: ux.
   Source: in-session-2026-09-26 (mame-curator-1063).
