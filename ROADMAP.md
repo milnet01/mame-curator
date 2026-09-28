@@ -1390,7 +1390,7 @@ wave lands.
   Source: in-session-2026-09-28 (mame-curator-1120).
   Lanes: frontend.
 
-- 📋 [mame-curator-1125] **Move the frontend to its dependencies' new major versions.**
+- ✅ [mame-curator-1125] **Move the frontend to its dependencies' new major versions.**
   `npm outdated` on 2026-09-28, after mame-curator-1124 brought everything
   to the newest in-range version, still lists these as behind by a major:
   react-router 7.18 → 8, typescript 6 → 7, vitest and
@@ -1408,6 +1408,10 @@ wave lands.
   frontend && npm run lint && npm run format && npm run build && npm run
   size && npm test`, then commit with rebuilt dist if dist changes.
   @types/node stays on 24 while package.json engines pins Node 24.
+  Resolved (2026-09-28): framer-motion 13 (269bc1e) and react-router 8
+  (a30bf27) went in with no code changes. TypeScript 7 is held on 6
+  (497bb8a): typescript-eslint 8.70.1 accepts only typescript <6.1.0.
+  The Version-break registry row carries the re-test trigger.
   **Layman:** Several of the web app's building blocks have big new versions; this upgrades them one at a time, checking nothing breaks.
   Kind: chore.
   Source: in-session-2026-09-28 (mame-curator-1124).

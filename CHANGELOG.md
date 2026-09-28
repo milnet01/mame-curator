@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Changed — Frontend on its dependencies' new major versions (mame-curator-1125)
+
+jest-dom 7, jsdom 30, vitest and @vitest/coverage-v8 5, framer-motion 13
+and react-router 8, none needing code changes. TypeScript stays on 6:
+typescript-eslint does not support 7 yet, which the Version-break
+registry records with its re-test trigger. @types/node stays on 24
+while engines pins Node 24.
+
 ### 2026-09-28 Added — Settings shows "Settings saved" after each change (mame-curator-1038)
 
 The Settings page has always saved as you edit, but it gave no sign of
