@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Fixed — Fixes from the 2026-09-28 code review of the last release batch
+
+- `run.sh` / `run.bat` no longer install the developer tools when they
+  start the app (`uv run` now gets `--no-dev` too).
+- Settings → Updates no longer says "You're on the latest version" when
+  it has not checked; it says checking is not available yet.
+- The Alternatives drawer keeps a loaded list usable when a background
+  refresh fails, tells screen-reader users what failed, and highlights
+  the first row after a successful retry.
+- `mame-curator filter` reads the DAT before the slow listxml again, so
+  a bad DAT fails fast with its own error.
+
+### 2026-09-28 Security — Build workflows pin every action to a commit and run with read-only rights (mame-curator-1122)
+
+GitHub Actions now name each third-party step by an exact commit, so a
+moved tag cannot change what runs; Dependabot proposes updates weekly.
+Workflows get read-only access unless a job must publish, checkouts no
+longer keep the access token on disk, release builds restore no caches,
+and the release is published with GitHub's own `gh` tool. The release
+build also runs the Prettier check CI already ran.
+
 ### 2026-09-28 Fixed — local-CI.sh stops if it cannot reach the repo root; typos runs clean (mame-curator-1123)
 
 local-CI.sh now exits when its `cd` to the repo root fails, instead of

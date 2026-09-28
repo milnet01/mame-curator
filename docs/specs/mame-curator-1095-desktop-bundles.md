@@ -522,10 +522,11 @@ design.
 **Three build jobs are not enough on their own, and this is the step that
 makes §1 true.** `release.yml`'s `publish` job declares `needs: build`
 and downloads a *single* artifact named `dist` before handing
-`files: dist/*` to `softprops/action-gh-release`. Three new build jobs
+`dist/*` to `gh release create` (mame-curator-1122 replaced
+`softprops/action-gh-release`). Three new build jobs
 satisfy "three new jobs in `release.yml`" while their outputs are
-discarded when the run ends, and `fail_on_unmatched_files: true` does not
-notice, because `dist/*` still matches the sdist and the wheel.
+discarded when the run ends, and nothing notices, because `dist/*` still
+matches the sdist and the wheel.
 
 So the wiring is part of the contract:
 
@@ -533,7 +534,7 @@ So the wiring is part of the contract:
   `bundle-windows`, `bundle-macos`;
 - `publish` gains `needs: [build, build-appimage, build-exe, build-macos]`;
 - `publish` gains one `download-artifact` step per bundle, all into
-  `dist/`, so the existing `files: dist/*` picks them up unchanged.
+  `dist/`, so the existing `gh release create ... dist/*` picks them up unchanged.
 
 `needs` is also what enforces §3 decision 3's ordering: a bundle job that
 fails stops the Release rather than publishing a partial set.

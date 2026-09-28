@@ -1312,7 +1312,7 @@ wave lands.
   Source: in-session-2026-09-28 (CI annotations on run for b5d9ea9).
   Lanes: ci.
 
-- 📋 [mame-curator-1122] **Triage zizmor's findings on ci.yml and release.yml.**
+- ✅ [mame-curator-1122] **Triage zizmor's findings on ci.yml and release.yml.**
   `zizmor --format plain .github/workflows/ci.yml .github/workflows/release.yml`
   on 2026-09-28: unpinned-uses (High) is 17 of the 35, so it is the class
   to answer first, by SHA-pinning the actions or recording why tags are
@@ -1321,6 +1321,18 @@ wave lands.
   release build), unsound-ternary 1, superfluous-actions 1 (Informational,
   softprops/action-gh-release). All predate this session; it changed only
   the `uv sync` lines. No project CI step runs zizmor today.
+  Resolved (2026-09-28): the user chose SHA pins plus Dependabot. Every
+  action is pinned to its latest release's commit with a `# vX.Y.Z`
+  comment (checkout v7.0.1, setup-uv v10.2.0, setup-node v7.0.0,
+  upload-artifact v7.0.1, download-artifact v8.0.1);
+  .github/dependabot.yml proposes weekly grouped bumps. Both workflows
+  default to `contents: read`, and only release's publish job gets
+  `contents: write`. Every checkout sets persist-credentials: false.
+  release.yml restores no uv or npm cache. The publish step uses the
+  runner's `gh release create`, not softprops/action-gh-release, which
+  also removes the unsound ternary. `zizmor` reports no findings and
+  `actionlint` passes. release.yml also gains the Prettier step ci.yml
+  has (review-code 2026-09-28, lane 03). No CI step runs zizmor yet.
   **Layman:** A security checker for the automated build scripts found 35 things to look at, mostly third-party build steps referenced by a movable tag instead of a fixed version.
   Kind: security.
   Source: check-code-2026-09-28.

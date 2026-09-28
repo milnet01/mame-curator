@@ -10,8 +10,9 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+# Read-only by default (mame-curator-1122); a job that must write says so.
 permissions:
-  contents: write   # required to create the GitHub Release
+  contents: read
 
 jobs:
   # Stage 1 — re-run the full CI gate at the tagged commit.
@@ -25,12 +26,15 @@ jobs:
         python-version: ["3.12", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8.2.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          enable-cache: true
+          # No cache in a release build: a poisoned cache would ship.
+          enable-cache: false
 
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
@@ -66,20 +70,25 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: frontend/package.json
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          # No cache in a release build: a poisoned cache would ship.
+          package-manager-cache: false
 
       - name: Install dependencies
         run: npm ci
 
       - name: ESLint
         run: npm run lint
+
+      - name: Prettier
+        run: npm run format
 
       # Full build, not `tsc --noEmit` — the root tsconfig is a solution
       # file that checks zero files; only `tsc -b` (inside `npm run build`)
@@ -94,8 +103,9 @@ jobs:
     name: Secret scan at tag
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       # Direct binary invocation rather than gitleaks/gitleaks-action@v2 — see
       # ci.yml for rationale (diff-range action breaks on first-push history).
@@ -114,12 +124,15 @@ jobs:
     needs: [verify-ci, frontend-lint-types-test, gitleaks]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8.2.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          enable-cache: true
+          # No cache in a release build: a poisoned cache would ship.
+          enable-cache: false
 
       - name: Set up Python 3.12
         run: uv python install 3.12
@@ -128,7 +141,7 @@ jobs:
         run: uv build
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist
           path: dist/
@@ -138,13 +151,16 @@ jobs:
     name: Publish GitHub Release
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # required to create the GitHub Release
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist
           path: dist/
@@ -163,17 +179,16 @@ jobs:
             echo "no-changelog-section=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # `gh` ships on the runner, so no third-party action is needed.
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          body_path: ${{ steps.notes.outputs.no-changelog-section == 'true' && '' || 'release-notes.md' }}
-          generate_release_notes: ${{ steps.notes.outputs.no-changelog-section == 'true' }}
-          draft: false
-          prerelease: false
-          fail_on_unmatched_files: true
-          files: |
-            dist/*
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NO_SECTION: ${{ steps.notes.outputs.no-changelog-section }}
+        run: |
+          if [ "$NO_SECTION" = "true" ]; then
+            notes=(--generate-notes)
+          else
+            notes=(--notes-file release-notes.md)
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "$GITHUB_REF_NAME" --verify-tag "${notes[@]}"

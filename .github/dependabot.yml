@@ -1,0 +1,12 @@
+# mame-curator-1122: workflow actions are pinned to commit SHAs, so a new
+# release never arrives by itself. Dependabot proposes the bump (SHA plus
+# its `# vX.Y.Z` comment) as one grouped pull request a week.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
