@@ -2474,7 +2474,7 @@ P14 (per-game review state).
   improvement. Scheduled this round.
   Source: user-request-2026-07-01 ("Please roadmap adding support for additional languages" → clarified: translate the UI).
 
-- 📋 [mame-curator-1126] **Read artwork already scraped by ES-DE as a local media source.**
+- ✅ [mame-curator-1126] **Read artwork already scraped by ES-DE as a local media source.**
   ES-DE (EmulationStation Desktop Edition) keeps scraped media as plain
   files under `<ES-DE home>/downloaded_media/<system>/<type>/`. On this
   machine the MAME folder is
@@ -2497,6 +2497,13 @@ P14 (per-game review state).
   (thumbnails/<playlist>/Named_Boxarts, Named_Snaps, Named_Titles), so
   the same local-folder source should read a RetroArch thumbnails folder
   as well as an ES-DE one.
+  Resolved (2026-09-28, 0b71f5d): EsdeSource and
+  RetroArchThumbnailsSource in media/local_folders.py, file:// like
+  progettoSnaps, off until media.esde_media_dir /
+  media.retroarch_thumbnails_dir is set, first in the default order,
+  confined to their folder; resolve_image's file:// allowlist names all
+  three local sources. Settings -> Media folder fields via FolderField.
+  Verified live on the user's ES-DE and RetroArch folders.
   **Layman:** If you already use ES-DE, the app can show the box art, marquees, screenshots and videos ES-DE has downloaded, with no second download.
   Kind: feature.
   Source: user-request-2026-09-28.
