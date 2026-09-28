@@ -37,6 +37,15 @@ import { useHelpIndex, useHelpTopic } from "@/hooks/useHelp";
 import { useCart } from "@/hooks/useCart";
 import { useKeyboard } from "@/hooks/useKeyboard";
 import { useSetupCheck } from "@/hooks/useSetupCheck";
+import { UpdateStartupToast } from "@/components/UpdateStartupToast";
+import {
+  useIniApply,
+  useIniPreview,
+  useUpdateApply,
+  useUpdateRollback,
+  useUpdatesCheck,
+  useUpdatesRefresh,
+} from "@/hooks/useUpdates";
 import { strings } from "@/strings";
 import { ApiError } from "@/api/client";
 import type { ConfigExportBundle, ThemeName } from "@/api/types";
@@ -310,6 +319,15 @@ function SettingsRoute() {
   // status (the user has no other way to tell whether refresh-inis
   // ever ran successfully).
   const setupCheck = useSetupCheck();
+  // mame-curator-1010: the Updates tab's check and actions. The check runs
+  // when the Updates tab opens, not on every Settings visit.
+  const [settingsParams] = useSearchParams();
+  const updatesCheck = useUpdatesCheck(settingsParams.get("tab") === "updates");
+  const updatesRefresh = useUpdatesRefresh();
+  const updateApply = useUpdateApply();
+  const updateRollback = useUpdateRollback();
+  const iniPreview = useIniPreview();
+  const iniApply = useIniApply();
   const [backupError, setBackupError] = useState<string | null>(null);
 
   const handleExport = async () => {
@@ -395,6 +413,25 @@ function SettingsRoute() {
       onBackupImport={handleImport}
       backupError={backupError}
       setupInfo={setupCheck.data}
+      updateInfo={updatesCheck.data?.app}
+      updateActions={{
+        onCheckNow: () => updatesRefresh.mutate(),
+        checking: updatesRefresh.isPending || updatesCheck.isFetching,
+        onApply: () => updateApply.mutate(),
+        applying: updateApply.isPending,
+        applyResult: updateApply.data,
+        onRollback: () => updateRollback.mutate(),
+        rollingBack: updateRollback.isPending,
+        onIniPreview: () => {
+          iniApply.reset();
+          iniPreview.mutate();
+        },
+        iniPreviewing: iniPreview.isPending,
+        iniPreview: iniPreview.data,
+        onIniApply: () => iniApply.mutate(),
+        iniApplying: iniApply.isPending,
+        iniApplied: iniApply.isSuccess,
+      }}
     />
   );
 }
@@ -525,6 +562,9 @@ function ShellWithPalette() {
       </ErrorBoundary>
 
       <Toaster theme={sonnerThemeFor(theme)} />
+      <UpdateStartupToast
+        enabled={config.data?.updates.check_on_startup ?? false}
+      />
     </ThemeProvider>
   );
 }

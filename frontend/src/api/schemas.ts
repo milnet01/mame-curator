@@ -652,6 +652,15 @@ export const AppUpdateInfoSchema = z
   })
   .strict();
 
+export const IniPreviewSchema = z
+  .object({
+    changed_files: z.array(z.string()),
+    failed: z.array(z.tuple([z.string(), z.string()])),
+    winners_added: z.array(z.string()),
+    winners_removed: z.array(z.string()),
+  })
+  .strict();
+
 export const UpdateApplyResultSchema = z
   .object({
     install_kind: z.enum(["git", "bundle"]),

@@ -529,6 +529,15 @@ export interface AppUpdateInfo {
   rollback_available: boolean;
 }
 
+/** mame-curator-1010 §4.6 — what a staged INI refresh would change. */
+export interface IniPreview {
+  changed_files: string[];
+  /** [INI name, manual-download URL] for each file that failed. */
+  failed: [string, string][];
+  winners_added: string[];
+  winners_removed: string[];
+}
+
 /** mame-curator-1010 §4.3 — what apply and rollback did. */
 export interface UpdateApplyResult {
   install_kind: "git" | "bundle";

@@ -18,7 +18,10 @@ import { PathRow } from "@/components/settings/PathRow";
 import { PickerTab } from "@/components/settings/PickerTab";
 import { PrefSwitch } from "@/components/settings/PrefSwitch";
 import { SnapshotsTab } from "@/components/settings/SnapshotsTab";
-import { UpdatesTab } from "@/components/settings/UpdatesTab";
+import {
+  UpdatesTab,
+  type UpdateActions,
+} from "@/components/settings/UpdatesTab";
 import { strings } from "@/strings";
 import type {
   AppConfigResponse,
@@ -71,6 +74,9 @@ interface SettingsPageProps {
   onSnapshotRestore: (id: string) => void;
   /** R36 update-check payload — when present, drives the Updates banner. */
   updateInfo?: AppUpdateInfo;
+  /** mame-curator-1010 — the Updates tab's actions; absent, it shows the
+      banner and settings only. */
+  updateActions?: UpdateActions;
   /** R35 setup-check payload — when present, drives the Setup banner. */
   setupInfo?: SetupCheck;
   /** FP12 § I — R16 snapshot listing. Defaults to empty for callers that
@@ -95,6 +101,7 @@ export function SettingsPage({
   onPatch,
   onSnapshotRestore,
   updateInfo,
+  updateActions,
   setupInfo,
   snapshots = [],
   snapshotsLoading = false,
@@ -427,6 +434,7 @@ export function SettingsPage({
             updates={config.updates}
             onChange={updateUpdates}
             updateInfo={updateInfo}
+            actions={updateActions}
           />
         </TabsContent>
 

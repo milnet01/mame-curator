@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -8,25 +9,149 @@ import {
 } from "@/components/ui/select";
 import { PrefSwitch } from "@/components/settings/PrefSwitch";
 import { strings } from "@/strings";
-import type { AppConfigResponse, AppUpdateInfo } from "@/api/types";
+import { Button } from "@/components/ui/button";
+import { IniRefreshPanel } from "@/components/settings/IniRefreshPanel";
+import { ReleaseNotesDialog } from "@/components/settings/ReleaseNotesDialog";
+import type {
+  AppConfigResponse,
+  AppUpdateInfo,
+  IniPreview,
+  UpdateApplyResult,
+} from "@/api/types";
 
 type UpdatesCfg = AppConfigResponse["updates"];
 type UpdateChannel = UpdatesCfg["channel"];
 
 const UPDATE_CHANNEL_VALUES: readonly UpdateChannel[] = ["stable", "dev"];
 
+/** mame-curator-1010 §4.7 — the tab's actions, owned by SettingsRoute. */
+export interface UpdateActions {
+  onCheckNow: () => void;
+  checking: boolean;
+  onApply: () => void;
+  applying: boolean;
+  applyResult?: UpdateApplyResult;
+  onRollback: () => void;
+  rollingBack: boolean;
+  onIniPreview: () => void;
+  iniPreviewing: boolean;
+  iniPreview?: IniPreview;
+  onIniApply: () => void;
+  iniApplying: boolean;
+  iniApplied: boolean;
+}
+
 interface UpdatesTabProps {
   updates: UpdatesCfg;
   onChange: <K extends keyof UpdatesCfg>(key: K, value: UpdatesCfg[K]) => void;
   /** R36 update-check payload — when present, drives the Updates banner. */
   updateInfo?: AppUpdateInfo;
+  actions?: UpdateActions;
 }
 
-export function UpdatesTab({ updates, onChange, updateInfo }: UpdatesTabProps) {
+function UpdateActionsRow({
+  info,
+  actions,
+}: {
+  info: AppUpdateInfo;
+  actions: UpdateActions;
+}) {
+  const [notesOpen, setNotesOpen] = useState(false);
+  const busy = actions.applying || actions.rollingBack;
+  const result = actions.applyResult;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={actions.onCheckNow}
+          disabled={actions.checking}
+        >
+          {actions.checking
+            ? strings.settings.updates.checking
+            : strings.settings.updates.checkNow}
+        </Button>
+        {info.notes_html && info.latest_version && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setNotesOpen(true)}
+          >
+            {strings.settings.updates.whatsNew}
+          </Button>
+        )}
+        {info.can_apply && !info.restart_pending && (
+          <Button size="sm" onClick={actions.onApply} disabled={busy}>
+            {actions.applying
+              ? strings.settings.updates.applying
+              : info.install_kind === "bundle"
+                ? strings.settings.updates.applyBundle
+                : strings.settings.updates.applyGit}
+          </Button>
+        )}
+        {info.install_kind === "package" &&
+          info.update_available &&
+          info.release_url && (
+            <a
+              href={info.release_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="self-center text-sm underline"
+            >
+              {strings.settings.updates.packageLink}
+            </a>
+          )}
+        {info.rollback_available && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={actions.onRollback}
+            disabled={busy}
+          >
+            {actions.rollingBack
+              ? strings.settings.updates.applying
+              : strings.settings.updates.rollback}
+          </Button>
+        )}
+      </div>
+      {info.restart_pending && (
+        <p role="status" className="text-sm">
+          {strings.settings.updates.restartPending}
+        </p>
+      )}
+      {result?.rolled_back && (
+        <p role="alert" className="text-sm text-destructive">
+          {strings.settings.updates.rolledBack}{" "}
+          {result.sync_failed ? strings.settings.updates.syncFailed : ""}
+        </p>
+      )}
+      {result?.downloaded_path && (
+        <p role="status" className="text-sm">
+          {strings.settings.updates.downloaded(result.downloaded_path)}
+        </p>
+      )}
+      {info.notes_html && info.latest_version && (
+        <ReleaseNotesDialog
+          open={notesOpen}
+          onOpenChange={setNotesOpen}
+          version={info.latest_version}
+          notesHtml={info.notes_html}
+        />
+      )}
+    </div>
+  );
+}
+
+export function UpdatesTab({
+  updates,
+  onChange,
+  updateInfo,
+  actions,
+}: UpdatesTabProps) {
   return (
     <>
-      {/* FP11 § B3: R36 read-only banner — design §8 + spec § 147-150 demand
-          it. An in-app apply flow is mame-curator-1010 (post-v1). */}
+      {/* FP11 § B3: the R36 banner; mame-curator-1010 adds the actions. */}
       {updateInfo && (
         <p
           role="status"
@@ -43,8 +168,12 @@ export function UpdatesTab({ updates, onChange, updateInfo }: UpdatesTabProps) {
                 )
               : strings.settings.banners.updateUnknown(
                   updateInfo.current_version,
+                  updateInfo.check_error,
                 )}
         </p>
+      )}
+      {updateInfo && actions && (
+        <UpdateActionsRow info={updateInfo} actions={actions} />
       )}
       <div className="flex items-center justify-between">
         <Label htmlFor="updates-channel">
@@ -82,6 +211,16 @@ export function UpdatesTab({ updates, onChange, updateInfo }: UpdatesTabProps) {
         checked={updates.ini_check_on_startup}
         onChange={(v) => onChange("ini_check_on_startup", v)}
       />
+      {actions && (
+        <IniRefreshPanel
+          onPreview={actions.onIniPreview}
+          previewing={actions.iniPreviewing}
+          preview={actions.iniPreview}
+          onApply={actions.onIniApply}
+          applying={actions.iniApplying}
+          applied={actions.iniApplied}
+        />
+      )}
     </>
   );
 }

@@ -452,6 +452,40 @@ export const strings = {
       channel: "Update channel",
     },
     /** FP12 § E — `updates.channel` dropdown options. */
+    /** mame-curator-1010 — the Updates tab's actions and results. */
+    updates: {
+      checkNow: "Check now",
+      checking: "Checking…",
+      whatsNew: "What's new",
+      whatsNewTitle: (version: string) => `What's new in ${version}`,
+      applyGit: "Update",
+      applyBundle: "Download update",
+      applying: "Working…",
+      packageLink: "Open the release page",
+      rollback: "Roll back",
+      restartPending:
+        "Restart MAME Curator to finish the update: close it, then start it again with run.sh (run.bat on Windows).",
+      rolledBack:
+        "The update failed, so MAME Curator went back to the version you had.",
+      syncFailed:
+        "Its libraries could not be put back yet; the next start with run.sh repairs them.",
+      downloaded: (path: string) =>
+        `Downloaded to ${path}. Close this window, then open the new file.`,
+      iniTitle: "Reference INI files",
+      iniBlurb:
+        "Download the latest INI lists and see which games they would add to or remove from your library. Nothing changes until you apply.",
+      iniPreview: "Preview",
+      iniApply: "Apply",
+      iniUpToDate: "The INI files are already up to date.",
+      iniChanged: (files: string) => `Changed: ${files}.`,
+      iniAdded: (n: number) => `Games that would join the library (${n})`,
+      iniRemoved: (n: number) => `Games that would leave the library (${n})`,
+      iniFailed: (name: string) =>
+        `${name} could not be downloaded. Get it by hand:`,
+      iniApplied: "INI files updated. The library now uses them.",
+      startupToast: (version: string) => `Update available: ${version}`,
+      startupToastAction: "View",
+    },
     updateChannelOptions: {
       stable: "Stable",
       dev: "Dev",
@@ -527,19 +561,19 @@ export const strings = {
     backupBlurb:
       "Configuration snapshots can be restored from disk. Restore confirmation surfaces a destructive-action dialog.",
     banners: {
-      // R35 & R36 read-only banners. In-app self-update is mame-curator-1010
-      // (considered, post-v1), so the update banner says how to update by hand.
+      // R35 & R36 banners. The update actions sit beside the banner in the
+      // Updates tab (mame-curator-1010), so the banner names versions only.
       setupReady: "Configuration looks ready.",
       setupIncomplete:
         "Some paths or reference files are missing — open the Paths section to fix.",
       updateAvailable: (current: string, latest: string) =>
-        `Update available: ${current} → ${latest}. To update, close MAME Curator, run \`git pull\` in its folder, then start it again with run.sh (run.bat on Windows).`,
+        `Update available: ${current} → ${latest}.`,
       updateCurrent: (version: string) =>
         `You're on the latest version (${version}).`,
-      // The server has not looked up the latest release (latest_version
-      // is null), so the banner must not claim this is the latest.
-      updateUnknown: (version: string) =>
-        `You're on version ${version}. MAME Curator can't check for newer versions yet; see the project's GitHub page for releases.`,
+      // The check found no latest version (latest_version is null), so the
+      // banner must not claim this is the latest.
+      updateUnknown: (version: string, error: string | null) =>
+        `You're on version ${version}. The update check did not finish${error ? `: ${error}` : ""}.`,
       restartRequired:
         "Server settings changed — restart `mame-curator serve` for the new bind address to take effect.",
       /** FP16 § C — per-INI status line under the setup banner. */
@@ -700,7 +734,8 @@ export const strings = {
     /** Map of `ApiError.code` → friendly message. Unmapped codes fall back to `detail`.
      *
      * Keys MUST exist as `code = "..."` ClassVar values in
-     * `mame_curator.api.errors` (FP11 § B1: prior versions carried
+     * `mame_curator.api.errors`, or as an `UpdateError` code the update
+     * routes raise (mame-curator-1010) (FP11 § B1: prior versions carried
      * dead codes that no backend handler issued — `parent_not_found`,
      * `winner_must_be_in_family`, `path_outside_allowed_roots` were
      * spec-aspirational). NOTE (FP33 L3): the `tools/check_error_codes_sync.py`
@@ -742,6 +777,33 @@ export const strings = {
       retroarch_not_configured:
         "RetroArch is not configured. Set paths.retroarch and paths.retroarch_core under Settings → Paths, then restart.",
       // mame-curator-1083: the cross-site guard refused a browser request.
+      // mame-curator-1010: codes carried by `updates/app.py::UpdateError`,
+      // raised by `api/routes/updates.py` and `updates_ini.py`.
+      update_in_progress:
+        "An update is already running. Wait for it to finish.",
+      update_tool_missing:
+        "Updating needs git and uv on this computer's PATH, and one of them is missing.",
+      update_dirty_tree:
+        "Files in the MAME Curator folder were changed by hand, so it will not update over them. Commit or undo those changes first.",
+      update_fetch_failed:
+        "Could not reach GitHub to get the update. Check the internet connection and try again.",
+      update_not_fast_forward:
+        "This copy has its own changes that the release does not contain, so it cannot update automatically.",
+      update_merge_refused:
+        "git refused the update, usually because a file in the folder is in the way. The details name it.",
+      update_nothing_to_roll_back: "There is no update to roll back.",
+      update_no_asset:
+        "This release has no download for your system. Open the release page instead.",
+      update_unverifiable:
+        "This release gives no checksum for its download, so it cannot be verified. Open the release page instead.",
+      update_download_failed: "The download failed. Try again later.",
+      update_digest_mismatch:
+        "The download was damaged or changed (its checksum did not match), so it was deleted.",
+      update_not_supported:
+        "This install cannot update itself. Open the release page instead.",
+      ini_preview_missing: "Preview the INI refresh before applying it.",
+      ini_parse_failed:
+        "A downloaded INI file could not be read, so nothing was changed.",
       cross_site_blocked:
         "Blocked a request that came from another website. Open MAME Curator from its own address (http://127.0.0.1:8080 by default) and try again.",
       rom_file_not_found:

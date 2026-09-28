@@ -119,7 +119,7 @@ describe("SettingsPage — render", () => {
     expect(screen.getByText(/0\.0\.1.*0\.0\.2/)).toBeInTheDocument();
   });
 
-  it("tells the user how to update, not an internal phase name (mame-curator-1114)", async () => {
+  it("names versions, not a phase or a git pull (mame-curator-1114, 1010)", async () => {
     const user = userEvent.setup();
     render(
       <SettingsPage
@@ -136,7 +136,9 @@ describe("SettingsPage — render", () => {
     await user.click(screen.getByRole("tab", { name: /^Updates$/ }));
     const banner = screen.getByText(/0\.0\.1.*0\.0\.2/);
     expect(banner).not.toHaveTextContent(/phase/i);
-    expect(banner).toHaveTextContent(/git pull/);
+    // mame-curator-1010: updating is a button now, and a bundle user has no
+    // git to pull with.
+    expect(banner).not.toHaveTextContent(/git pull/);
   });
 
   it("does not claim the latest version when nothing was checked (review-code 2026-09-28)", async () => {

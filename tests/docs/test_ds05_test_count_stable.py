@@ -381,7 +381,10 @@ EXPECTED_PYTEST_DECLARATIONS = 885
 # in hooks/__tests__/useConfig.test.tsx. 350 → 351.
 # Bumped 2026-09-28 (mame-curator-1126): +3 vitest in
 # frontend/src/components/settings/__tests__/MediaTab.localFolders.test.tsx. 351 → 354.
-EXPECTED_VITEST_DECLARATIONS = 354
+# Bumped 2026-09-28 (mame-curator-1010): +8 vitest in
+# components/settings/__tests__/UpdatesTab.test.tsx, +3 in
+# components/__tests__/UpdateStartupToast.test.tsx. 354 → 365.
+EXPECTED_VITEST_DECLARATIONS = 365
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
