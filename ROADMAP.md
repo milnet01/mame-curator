@@ -673,227 +673,6 @@ wave lands.
   Source: cold-eyes-2026-08-04 (cli/spec.md rule-14 gate, loop 3 deferred tail).
   Lanes: cli.
 
-- 📋 [mame-curator-1095] **Ship self-contained desktop bundles for Linux, Windows and macOS.**
-  Three artefacts built by `release.yml` and attached to each `v*.*.*`
-  release: a Linux **AppImage**, a Windows **single-file .exe**
-  (PyInstaller one-file), and an **unsigned macOS `.app` inside a `.dmg`**.
-  Each CI job has a local mirror script — `local-appimage.sh`,
-  `local-exe.sh`, `local-macos.sh` — that runs byte-identical steps, the
-  same relationship `local-CI.sh` has to `ci.yml`.
-
-  Carries a first-run change without which the bundles do not work at all:
-  `serve` exits 1 when `config.yaml` is absent and points at an
-  *interactive terminal* wizard, so a double-clicked bundle would flash and
-  die with nothing on screen. `serve` gains a per-user config location
-  (XDG / %APPDATA% / Application Support) and writes a starter config there
-  when none exists, leaving path configuration to the existing Settings
-  page.
-
-  User decisions (2026-08-04): default config written on first run rather
-  than an error dialog; macOS unsigned with documented Gatekeeper steps (no
-  Apple Developer account); pipeline wired and built locally but NO release
-  tagged this round; Windows is one file rather than an installer.
-
-  Constraint: `local-exe.sh` and `local-macos.sh` cannot execute on the
-  development machine (Linux only), so their first real run is CI's — they
-  get shellcheck plus a dry-run locally and nothing more.
-  Kind: package.
-  **Layman:** Download one file and run it — no Python, no terminal, no install steps.
-  Kind: package.
-  Lanes: ci, cli, packaging.
-  Source: user-request-2026-08-04.
-  Progress (2026-08-04): spec written and gated —
-  `docs/specs/mame-curator-1095-desktop-bundles.md`, 900 lines, 15
-  invariants. `/cold-eyes` ran 2 loops x 3 lanes: 63 findings verified, 62
-  fixed, 1 dismissed, 0 deferred. **Stopped at loop 2 on the collateral
-  trigger** (7 draft defects vs 16 fix collateral — a decisive margin),
-  not at the cap.
-
-  Three CRITICALs were the same class both loops: the design asserted
-  behaviour the codebase does not have. (a) `restart_required` fires only
-  on `server:` changes, so correcting a DAT path prompted nothing;
-  (b) `_validate_paths` rejects EVERY `PATCH /api/config` while the
-  starter `source_dat` is absent, so the user could never save the fix
-  that ends setup mode; (c) `release.yml`'s `publish` job takes
-  `needs: build` and one `download-artifact`, so three new build jobs
-  would have run and had their artefacts discarded.
-
-  Scope reality the spec surfaced: this is ~40% packaging and ~60%
-  "make a first run work" — a per-user config location, a degraded
-  setup mode in `build_world`, two `api/routes/config.py` changes, a
-  `SetupCheck` field mirrored into the TS types, and `main()` learning to
-  tee stderr to a log. NOT yet implemented; no code written.
-
-  Recommended split before implementation (user's call): keep 1095 for
-  the packaging half (PyInstaller spec, 3 platform builds, 3 local mirror
-  scripts, release wiring, icon, naming) and file the first-run half as
-  its own item — it owns 10 of the 15 invariants and produced every
-  CRITICAL across both loops.
-  Progress (2026-08-04, later): **plan steps 1-2 shipped** in 9842a86 —
-  `src/mame_curator/config_location.py` (three-layer resolution,
-  `ConfigSource`, starter config + data dirs, `user_log_path`), wired into
-  `_cmd_serve` at stage 2, `serve`'s `--config` default now `None`,
-  `platformdirs>=4.11` promoted to a declared dependency,
-  `_SETUP_HEADER` consolidated into `STARTER_HEADER`. +10 tests (957
-  total, 88.95%), full local-CI green, pushed. Satisfies INV-1 to INV-6.
-
-  Also folded in the cross-build research the user asked for (2dc9b66):
-  **Windows IS buildable on this Linux box under Wine** — PyInstaller's
-  FAQ directs Windows-from-Linux builds at Wine explicitly, and Wine
-  11.14 is already installed (prefix reports AMD64). macOS is impossible,
-  not merely unavailable ("Packaging macOS binaries while running under
-  Linux is currently not possible at all"); osxcross does not help
-  because PyInstaller must RUN a macOS CPython, not just compile Darwin
-  objects. So two of the three local scripts run here, not one, and the
-  Windows `nothing` row became INV-16. macOS is closed with a citation so
-  it is not reopened each release.
-
-  Next: plan steps 3-7 (`_resources.py` + `frontend_dist()`, the
-  `build_world` setup-mode degrade, `_validate_paths` / `restart_required`
-  in `api/routes/config.py`, `setup_required` on `SetupCheck` + its TS
-  mirror, the frozen stderr tee in `main()`), then steps 8-15 (packaging).
-  Progress (2026-08-04): plan step 3 done. New
-  `src/mame_curator/_resources.py` — `bundle_root()` returns
-  `sys._MEIPASS` when `sys.frozen` is set, else the repo root
-  (`parents[2]`); `frontend_dist()` builds on it. `api/app.py`'s
-  module-level `_FRONTEND_DIST` is gone; `create_app` calls
-  `frontend_dist()` at construction, so a frozen bundle finds the SPA
-  under the extraction root (INV-11). TDD — `tests/test_resources.py`
-  (+2, red on `ModuleNotFoundError` first). `tests/api/test_static_mount.py`
-  now monkeypatches the *function* rather than a module constant, which
-  is itself the guard against the path being captured at import again.
-  `docs/specs/P06-frontend-mvp.md`'s app.py excerpt corrected reciprocally (it still
-  showed the `parents[3]` constant). DS05 test-count pin 752 → 754.
-  Full backend gate green: ruff, ruff format, mypy (213 files), bandit,
-  960 tests, 88.97% coverage (f6b8e62; all 8 CI jobs green).
-  Next: step 4 — `build_world` degrades to
-  `setup_required` on an unreadable DAT.
-  Progress (2026-08-04): step 4 shipped (41637cc). `build_world` catches
-  `(ParserError, OSError)` around `parse_dat` and returns an empty
-  library with `WorldState.setup_required = True` rather than aborting
-  the API lifespan (INV-7, INV-8); the rest of world construction runs
-  unchanged so the degraded world is usable, not half-built. TDD —
-  `tests/api/test_setup_mode.py` (+3, red first). **Not in the spec,
-  found by implementing it:** `replace_world` names every WorldState
-  field explicitly, so the new field's default would have cleared setup
-  mode on the first `PATCH /api/config` while the library stayed empty —
-  it now passes through with `machines`, covered by a third test and
-  folded back into §4.2. `api/spec.md` updated (the degrade + the
-  pass-through are that module's contract). DS05 test-count pin 754 →
-  757. Backend gate green: ruff, ruff format, mypy (214 files), bandit,
-  963 tests, 88.99% coverage.
-  Next: step 5 — `_validate_paths(..., setup_required=)` skips the
-  `source_dat` check and `restart_required` fires while in setup mode.
-  Progress (2026-08-04): step 5 shipped (5bda03a) — the first-run
-  recovery journey now completes end to end. `_validate_paths` takes a
-  keyword-only `setup_required` and skips the `source_dat` existence
-  check while it is true (INV-9); `restart_required` becomes
-  `server_changed or world.setup_required` (INV-10), deliberately not a
-  path inequality. TDD — `tests/api/test_setup_mode.py` (+2, red first).
-  `api/spec.md` § config routes gains both rules. DS05 pin 757 → 759.
-  Gate green: ruff, ruff format, mypy (214 files), bandit, 965 tests,
-  88.99% coverage.
-  Next: step 6 — `setup_required` on `SetupCheck` in
-  `api/schemas_setup.py` + `routes/stubs.py`, mirrored in
-  `frontend/src/api/{schemas,types}.ts` in the same commit or
-  `check_api_types_sync.py` reds CI.
-  Fold-in pending (2026-08-04, user-approved, NOT YET WRITTEN): amend the
-  spec + plan with two mechanisms verified by reading three sibling
-  projects on this machine. Researched and approved; `/write-spec` was
-  invoked and paused before drafting, so no spec bytes changed. Must be
-  drafted, `/doc-lint`ed and `/cold-eyes`-gated BEFORE steps 8-15, since
-  it changes what they build.
-
-  (1) A `--self-test` entry point. Precedent: finbreak
-  `src/finbreak/_selftest.py` — each `_check_*` imports its native stack
-  LAZILY (so the module imports cleanly when a dep is missing, and a unit
-  test can monkeypatch one check away), `run_self_test` runs them in
-  order and prints exactly ONE sentinel line: `FINBREAK_SELFTEST_OK`, or
-  `FINBREAK_SELFTEST_FAIL: <stack>` naming the FIRST failing stack, with
-  a non-zero exit. Our equivalent stacks: lxml (DAT parser), uvicorn's
-  `.auto`-selected loop/protocol implementations (uvloop, httptools,
-  websockets), sse-starlette, and `frontend_dist()` resolving to a real
-  directory under the extraction root. Strictly better than INV-13's and
-  INV-16's current recipes, which need a bound port plus curl and a
-  60-iteration poll; a self-test needs neither and behaves identically
-  for the Windows `.exe` under Wine. Open question for the draft: restate
-  INV-13/INV-16 in terms of the sentinel, or keep the page-fetch as an
-  additional end-to-end leg (it does prove the SPA is actually served,
-  which a self-test alone does not).
-
-  (2) A clean-room container proof. Precedent: finbreak
-  `scripts/build-smoke.sh` + `scripts/_build-smoke-in-container.sh`.
-  Builds inside `python:3.12-slim-bookworm` — chosen for two stated
-  reasons: it ships a SHARED libpython (PyInstaller needs one;
-  manylinux's is static) and an older-than-host glibc (~2.36) which
-  bounds the artefact's glibc floor BELOW the test target — then launches
-  the artefact inside a Python-free `debian:13-slim` with a scrubbed,
-  offline environment and asserts the sentinel. Exits 0 only if every
-  artefact passes. Opt-in: gated on an env switch (`FINBREAK_BUILD_SMOKE=1`)
-  plus a podman/docker runtime on PATH, so the everyday gate never pays
-  for a multi-minute build; podman preferred, docker fallback.
-  **Why this matters here specifically:** our build host is openSUSE
-  Tumbleweed, so an AppImage built natively inherits a very new glibc and
-  would fail on exactly the older user machines an AppImage exists to
-  serve. Plan step 10 + INV-13 currently build and test natively and
-  cannot see that failure class at all.
-
-  Also for the plan (step 10): OneUp
-  `/mnt/Games/Scripts/Linux/OneUp/packaging/appimage/build-appimage.sh` is
-  a WORKING AppImage recipe to adapt rather than invent — PyInstaller
-  `--onefile --windowed`, AppDir with icon + `.desktop` + metainfo +
-  `AppRun`, `appimagetool` fetched from the rolling `continuous` tag and
-  run with `--appimage-extract-and-run` (so no host FUSE needed). It does
-  NOT checksum the downloaded tool; our §4.5 already requires a sha256
-  pin, so adapt-and-harden rather than copy.
-
-  Third project surveyed, for the record: RetroDB
-  (`retrodb.spec`, `build_dist.py --standalone`, `release-standalone.sh`).
-  It ships per-OS ZIPs of a PyInstaller one-dir bundle, NOT an AppImage or
-  a `.dmg`, and refuses to cross-build (native runner per OS, 3-OS matrix
-  behind a manual `workflow_dispatch` because bundles are ~600 MB). Its
-  reusable idea is `release-standalone.sh`: tag → dispatch the workflow →
-  watch → set release notes from the changelog → leave the release a
-  DRAFT for a human to publish. No project of the three ships a `.dmg`, so
-  macOS remains without local precedent.
-  Input (2026-09-26, from the RetroDB session; RetroDB ships PyInstaller onedir
-  bundles): (a) modules imported by string are invisible to PyInstaller;
-  RetroDB tests its registry against the .spec hidden-imports list. (b) keep
-  two named roots: sys._MEIPASS for read-only bundled assets, the executable's
-  dir for writable data; joining user data onto the bundle root broke only in
-  frozen builds. (c) bundled launchers must exec the frozen binary, not
-  `python app.py`. (d) no cross-compile; per-OS CI matrix on manual dispatch.
-  (e) the frozen binary opens the browser itself, since only the server knows
-  the resolved port. Not yet checked against our plan in
-  docs/plans/mame-curator-1095-desktop-bundles.md.
-  User requirement (2026-09-26, verbatim): "when you create the various
-  releases for the OSes, I want everything bundled together with the
-  release. I don't want the user to have to download anything extra to get
-  the app to work." So each OS release carries its own Python runtime, every
-  dependency and the built frontend; no uv, Python or network fetch at first
-  run. A Windows test machine is reachable as `ssh wintest` (see DOOM_Ants
-  ROADMAP); it has Git but no Python, so it can prove a bundle runs on a
-  clean box.
-  Progress (2026-09-26): docs/help/ now ships real pages (1063). The
-  bundles must include it, and `api/routes/help.py::_help_dir()` finds it
-  as `Path(__file__).parents[3].parent / "docs" / "help"` (the repo
-  root), which will not exist inside a PyInstaller bundle. The spec
-  fold-in must name where help lives in a bundle (sys._MEIPASS or the
-  MAME_CURATOR_HELP_DIR override). tests/api/test_routes_help.py::
-  test_shipped_help_pages_are_listed_and_render is the check to run
-  against a built bundle.
-  Note (2026-09-27, CFG-0504 field pass): spec § 11 has two catcher-cell
-  issues to settle on resume. (1) INV-12/14/15 cite
-  tests/tools/test_release_scripts.py, which does not exist yet (the
-  plan creates it); the cells do not say planned. (2) INV-3's catcher
-  test_invalid_port_checked_before_config passes an explicit --config,
-  so it pins the error ordering but never exercises starter-config
-  creation; the cell reads as full coverage.
-  Note (2026-09-28, from 1114): Settings → Updates'
-  `updateAvailable` banner in strings_internal.ts tells users to
-  `git pull` and restart. Bundle users have no clone, so the wording must
-  branch on install type (or point at the Releases page) when bundles ship.
-
 - ✅ [mame-curator-1096] **Stop the test suite opening real browser tabs.**
   Reported by the user 2026-08-04: "every now and then you open a new
   tab in my browser but the page never loads". Reproduced by inspection
@@ -1313,19 +1092,6 @@ wave lands.
   Kind: perf.
   Source: in-session-2026-09-28 (mame-curator-1108).
   Lanes: frontend, ci.
-
-- 📋 [mame-curator-1121] **Check CI after ubuntu-latest moves to Ubuntu 26 on 2026-10-19.**
-  Every ubuntu-latest job in ci.yml carries a GitHub notice: "The
-  ubuntu-latest label will migrate to Ubuntu 26 beginning October 19,
-  2026" (actions/runner-images#14748). After that date, confirm the first
-  CI run is green on both Python versions, or pin ubuntu-24.04 and log the
-  pin in the Version-break registry (coding-standards §8). The same run
-  also had a Windows setup-uv "Unable to reserve cache" warning, a benign
-  cache-write race between jobs; nothing to fix.
-  **Layman:** GitHub is upgrading the Linux computers that test this app; after that date, check the tests still pass.
-  Kind: chore.
-  Source: in-session-2026-09-28 (CI annotations on run for b5d9ea9).
-  Lanes: ci.
 
 - ✅ [mame-curator-1122] **Triage zizmor's findings on ci.yml and release.yml.**
   `zizmor --format plain .github/workflows/ci.yml .github/workflows/release.yml`
@@ -2596,65 +2362,6 @@ P14 (per-game review state).
   User decision (2026-09-28): add all three new themes, Galaga, Donkey
   Kong and CPS-2, alongside the polish pass on the existing four.
 
-### 📚 Documentation
-
-- ✅ [mame-curator-1029] **README hero shot + 4 screenshots (closed 2026-05-16).**
-  Shipped: library hero image at the top of the README; new
-  `## Screenshots` section with a 2×2 grid (alternatives drawer,
-  filters tab, sessions panel, plus a pointer to the regen recipe).
-  Captures generated by a new dedicated Playwright spec at
-  `frontend/screenshots/capture.spec.ts` pointing at the real
-  `config.yaml`. The settings-paths capture was deliberately
-  omitted (it shows personal `/mnt/...` mount paths).
-  Kind: doc.
-  Source: planned (deferred from P09 slim, 2026-05-04).
-  Lanes: docs.
-
-- ✅ [mame-curator-1030] **CONTRIBUTING.md (closed 2026-05-16).**
-  Shipped: top-level `CONTRIBUTING.md` covering local-dev quickstart,
-  bug-report template, the local CI gate (backend five + frontend
-  three), TDD-first policy with per-module coverage floors, the
-  per-feature `spec.md` requirement, Conventional Commits, a
-  summary of the App-Build 9-step phase loop, and a "what this
-  project deliberately does not do" section. README's short
-  Contributing stub now points at `CONTRIBUTING.md`.
-  Kind: doc.
-  Source: planned (deferred from P09 slim, 2026-05-04).
-  Lanes: docs.
-
----
-
-## Considered / under research (no target date)
-
-**Theme:** post-v1 features captured during user feedback. Each is
-desirable but not urgent — they graduate to a release-target
-section above once they reach the top of the queue. The status
-emoji is 💭 because scope or feasibility is still being thought
-through.
-
-### 🎨 Features
-
-- ✅ [mame-curator-1005] **P10 — Media coverage expansion.**
-  Add fallback art sources beyond libretro-thumbnails:
-  progettoSnaps (~60–70% gap-closer, no auth, ~1 day),
-  ArcadeDB JSON API (highest-quality images, rate-limited, ~2
-  days), Wikipedia / MediaWiki (one or two sentences of flavor
-  text on the alternatives drawer, ~1 day), and Mobygames
-  (port-cover fallback, requires an API key, ~2 days). New
-  `media.sources` array in `AppConfig` so users can opt out of
-  slow or rate-limited sources. EmuMovies stays out of scope (paid
-  account required).
-  Layman: Many games show blank tiles because the upstream art
-  source doesn't have them. Pull artwork from additional sites
-  (progettoSnaps, ArcadeDB, Wikipedia, MobyGames) so more games
-  show a face.
-  Kind: implement.
-  Lanes: media, frontend, tests.
-  Source: user-2026-05-04 ("Are there additional sites that game
-  metadata can be scraped from?").
-  Dependencies: P05 ✅, FP10 ✅.
-  Closed 2026-07-02 (tag P10-complete). All 11 chunks shipped + CI-green, then 3 closing-review rounds hardened the media source chain: FP32 (mame-curator-1085), FP33 (1086), FP34 (1087) — 4 HIGH + 5 MEDIUM + LOW/INFO fixed TDD across media/api/frontend/docs, severity trailing to one-liners by round 3. Audit clean throughout (allowlist-015 mypy env FP, now in .ants_review_falsepos.jsonl). Final gates: 855 backend @88% / 342 frontend vitest, all lint/type/security clean; CI green all 8 jobs. Deferred (own items): media/spec.md co-located contract → mame-curator-1058 (now unblocked, next up); MobyGames cover-URL fetch → 1079; Settings enable/disable → 1084; media.snaps_dir binding → 1081; Starlette httpx deprecation → 1082.
-
 - 📋 [mame-curator-1010] **P12 — In-app self-update + INI diff-preview UI.**
   App self-update via `updates/app.py` (version compare; snapshot
   config / overrides / sessions before update; git-pull on dev
@@ -2767,41 +2474,6 @@ through.
   improvement. Scheduled this round.
   Source: user-request-2026-07-01 ("Please roadmap adding support for additional languages" → clarified: translate the UI).
 
-- ✅ [mame-curator-1081] **Bind progettoSnaps source read-path to refresh-snaps --dest via a media.snaps_dir config field.**
-  P10 chunk 7 wires ProgettoSnapsSource into the fallback chain reading a FIXED `./data/snaps/snap` default (mirrors `refresh-snaps --dest`'s default). No config field couples the source's read path to the CLI's `--dest`, so a user who runs `mame-curator refresh-snaps --dest /elsewhere` downloads a pack the source never sees. Fix: add `media.snaps_dir: Path = Path("./data/snaps")` to MediaConfig; have both `build_registry` (source read path = snaps_dir/"snap") and the `refresh-snaps` CLI default read it, so they can't diverge. Frontend type-sync + a Settings surface come with it. Sized as its own small pass. Lane: media.
-  **Layman:** If you download the snap image pack to a custom folder, the app won't find it — it only looks in the default folder. Add a setting so the two always match.
-  Kind: implement.
-  Source: in-session-2026-07-01 (P10 chunk 7 — cold-eyes surfaced gap).
-  Resolved (2026-07-03): added `media.snaps_dir: Path = ./data/snaps` to MediaConfig. The progettoSnaps read-path is now bound to it — `api/routes/media.py` passes `config.media.snaps_dir / "snap"` into both `build_registry` and `build_all_sources` (was the fixed `_DEFAULT_SNAP_DIR`). `refresh-snaps` gained `--config` (default config.yaml); when `--dest` is omitted it reads `media.snaps_dir`, so downloader and reader can't diverge (explicit `--dest` still wins; absent config falls back to the MediaConfig default; a broken config errors loudly). Frontend: type-sync mirror (types.ts + strict zod schema), a Settings → Media "Snapshot pack folder" field (input + folder-picker, mirrors cache_dir), config.example.yaml doc, media/spec.md contract updated (deferred note removed). TDD: failing API binding test + 4 CLI dest-resolution tests first. Full gate green — backend 861 passed / cov 88.5% / mypy / ruff / bandit; frontend tsc + eslint(0) + 344 vitest; api-types-sync; gitleaks clean. DS05 count pins bumped (+5 pytest, +2 vitest).
-
-- ✅ [mame-curator-1082] **Silence StarletteDeprecationWarning (httpx-with-testclient) surfaced on every pytest run.**
-  Every `uv run pytest` prints one `StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated; install httpx2 instead` (from `fastapi/testclient.py:1`). Pre-existing, dependency-driven — not introduced by chunk 7, but surfaced by its gate run. Per keep-deps-latest: evaluate migrating the FastAPI/Starlette test client to `httpx2`, or pin/filter the warning with a documented reason if the migration isn't yet clean. Lane: api / deps-hygiene.
-  **Layman:** A harmless 'this will change in a future version' notice prints on every test run. Tidy it up so real warnings don't get lost in the noise.
-  Kind: chore.
-  Source: in-session-2026-07-01 (surfaced during P10 chunk 7 gate).
-  Resolved (2026-07-03): migrated (not filtered) — added httpx2>=2.5 to dev deps. Starlette 1.2 TestClient imports `httpx2 as httpx`, so its presence silences the per-run StarletteDeprecationWarning from fastapi/testclient.py. httpx2 (2.5.0) is a real PyPI package; it coexists with the runtime media-proxy httpx>=0.28 (unaffected). Full backend gate green: 856 passed, coverage 88.12%, warning count 0.
-
-- ✅ [mame-curator-1083] **App-wide CSRF / cross-site protection for mutation routes (security-hardening pass).**
-  P10 chunk 9's PUT /api/media/sources/{name}/secret ships loopback-trust (user decision) — matching every existing mutation route (config import/restore/export, fs allowed-root grants, sessions, overrides), none of which authenticate; the app binds 127.0.0.1 by default. The realistic residual risk is a malicious page in the user's browser issuing a cross-site POST to localhost (CSRF). If addressed, it must be app-wide (a per-route token on just the secret endpoint leaves the higher-value config/fs write routes exposed) — e.g. an Origin/Referer check or a startup-printed token required on all state-changing routes. Considered, not scheduled: low priority for a single-user localhost tool. Lane: api / security.
-  User decision (2026-09-28): build it this round.
-  Resolved (2026-09-28): api/origin_guard.py, a pure ASGI middleware
-  installed by create_app ahead of routing. Browser requests only (Origin
-  or Sec-Fetch-Site): Host must be local or an IP literal on every
-  method; unsafe methods need a local or same-host Origin, else
-  Sec-Fetch-Site same-origin/none. 403 cross_site_blocked. Contract in
-  api/spec.md § Cross-site guard; 13 tests, each guard part proven by
-  breaking it.
-  **Layman:** The app trusts that only your own computer can reach it. If you ever expose it more widely, add a guard so a random website can't quietly change your settings.
-  Kind: security.
-  Source: in-session-2026-07-01 (P10 chunk-9 secret-route auth decision).
-
-- ✅ [mame-curator-1084] **Settings → Media: enable/disable art sources (add/remove from the fallback chain).**
-  P10 chunk 10 shipped the Settings → Media source list as reorder + live readiness + Configure-key / Download-pack modals over the *configured* sources (media.sources). The mockup's per-row enable/disable checkbox (add/remove a source from media.sources, with unconfigured sources rendered below the reorderable list with an Enable affordance) was deferred: it's untested, the common case is the default all-five tuple, and it introduces a fiddly unconfigured-below-the-list state. To close: add the checkbox to MediaSourceRow toggling media.sources membership (PATCH /api/config), render unconfigured known sources below the DragReorderList with an Enable button, and add vitest coverage. Note libretro is always re-appended by the backend registry, so its checkbox is a no-op ("always on"). Lane: frontend.
-  **Layman:** Add a checkbox next to each art source so you can turn one off entirely (not just reorder it) — e.g. skip MobyGames if you'll never set a key.
-  Kind: feature.
-  Source: in-session-2026-07-01 (P10 chunk 10 — deferred from the Media tab UI).
-  Resolved (2026-07-04): shipped frontend-only. The readiness endpoint (GET /api/media/sources) already returned every known source with an `in_chain` flag (configured-first then unconfigured-alphabetised), so no backend change was needed — simpler than the bullet anticipated. MediaSourceRow gained a per-row toggle (checked=in_chain; onToggle add/removes from media.sources via PATCH /api/config). libretro's toggle is locked-on since MediaSourceRegistry.chain_for always re-appends it (removing it would be a no-op lie). Unconfigured known sources (in_chain=false) render in an "Available sources (off)" list below the DragReorderList, each with the same toggle (off→on appends to the chain). Chose a toggle switch over the mockup's checkbox (user pick, 2026-07-04) — the toggle subsumes a separate Enable button (shortest-correct). TDD: +9 vitest first (MediaSourceRow toggle reflects in_chain / onToggle fires / libretro locked; MediaTab renders unconfigured below + add/remove/lock). Full frontend gate green (tsc, eslint, 353 vitest). Files: MediaSourceRow.tsx, MediaTab.tsx, strings_internal.ts + 2 test files.
-
 - 📋 [mame-curator-1126] **Read artwork already scraped by ES-DE as a local media source.**
   ES-DE (EmulationStation Desktop Edition) keeps scraped media as plain
   files under `<ES-DE home>/downloaded_media/<system>/<type>/`. On this
@@ -2842,8 +2514,6 @@ through.
   Source: user-request-2026-09-28.
   Lanes: media.
 
-### 🔌 Plugins / extensions
-
 - 📋 [mame-curator-1007] **P11 — Contribute missing thumbnails back to libretro-thumbnails.**
   When the user has a CC-compatible image for a game the upstream
   repo doesn't have, generate a staged-files-plus-PR flow so the
@@ -2865,6 +2535,340 @@ through.
   Dependencies: P05 ✅; P10 (more useful alongside expanded local
   sources).
   User decision (2026-09-28): build it this round.
+
+### 📚 Documentation
+
+- ✅ [mame-curator-1029] **README hero shot + 4 screenshots (closed 2026-05-16).**
+  Shipped: library hero image at the top of the README; new
+  `## Screenshots` section with a 2×2 grid (alternatives drawer,
+  filters tab, sessions panel, plus a pointer to the regen recipe).
+  Captures generated by a new dedicated Playwright spec at
+  `frontend/screenshots/capture.spec.ts` pointing at the real
+  `config.yaml`. The settings-paths capture was deliberately
+  omitted (it shows personal `/mnt/...` mount paths).
+  Kind: doc.
+  Source: planned (deferred from P09 slim, 2026-05-04).
+  Lanes: docs.
+
+- ✅ [mame-curator-1030] **CONTRIBUTING.md (closed 2026-05-16).**
+  Shipped: top-level `CONTRIBUTING.md` covering local-dev quickstart,
+  bug-report template, the local CI gate (backend five + frontend
+  three), TDD-first policy with per-module coverage floors, the
+  per-feature `spec.md` requirement, Conventional Commits, a
+  summary of the App-Build 9-step phase loop, and a "what this
+  project deliberately does not do" section. README's short
+  Contributing stub now points at `CONTRIBUTING.md`.
+  Kind: doc.
+  Source: planned (deferred from P09 slim, 2026-05-04).
+  Lanes: docs.
+
+---
+
+### 🧹 Cleanup / debt (1.4.0)
+
+Carried over from 1.3.0, which shipped 2026-09-28 without them.
+
+- 📋 [mame-curator-1095] **Ship self-contained desktop bundles for Linux, Windows and macOS.**
+  Three artefacts built by `release.yml` and attached to each `v*.*.*`
+  release: a Linux **AppImage**, a Windows **single-file .exe**
+  (PyInstaller one-file), and an **unsigned macOS `.app` inside a `.dmg`**.
+  Each CI job has a local mirror script — `local-appimage.sh`,
+  `local-exe.sh`, `local-macos.sh` — that runs byte-identical steps, the
+  same relationship `local-CI.sh` has to `ci.yml`.
+
+  Carries a first-run change without which the bundles do not work at all:
+  `serve` exits 1 when `config.yaml` is absent and points at an
+  *interactive terminal* wizard, so a double-clicked bundle would flash and
+  die with nothing on screen. `serve` gains a per-user config location
+  (XDG / %APPDATA% / Application Support) and writes a starter config there
+  when none exists, leaving path configuration to the existing Settings
+  page.
+
+  User decisions (2026-08-04): default config written on first run rather
+  than an error dialog; macOS unsigned with documented Gatekeeper steps (no
+  Apple Developer account); pipeline wired and built locally but NO release
+  tagged this round; Windows is one file rather than an installer.
+
+  Constraint: `local-exe.sh` and `local-macos.sh` cannot execute on the
+  development machine (Linux only), so their first real run is CI's — they
+  get shellcheck plus a dry-run locally and nothing more.
+  Kind: package.
+  **Layman:** Download one file and run it — no Python, no terminal, no install steps.
+  Kind: package.
+  Lanes: ci, cli, packaging.
+  Source: user-request-2026-08-04.
+  Progress (2026-08-04): spec written and gated —
+  `docs/specs/mame-curator-1095-desktop-bundles.md`, 900 lines, 15
+  invariants. `/cold-eyes` ran 2 loops x 3 lanes: 63 findings verified, 62
+  fixed, 1 dismissed, 0 deferred. **Stopped at loop 2 on the collateral
+  trigger** (7 draft defects vs 16 fix collateral — a decisive margin),
+  not at the cap.
+
+  Three CRITICALs were the same class both loops: the design asserted
+  behaviour the codebase does not have. (a) `restart_required` fires only
+  on `server:` changes, so correcting a DAT path prompted nothing;
+  (b) `_validate_paths` rejects EVERY `PATCH /api/config` while the
+  starter `source_dat` is absent, so the user could never save the fix
+  that ends setup mode; (c) `release.yml`'s `publish` job takes
+  `needs: build` and one `download-artifact`, so three new build jobs
+  would have run and had their artefacts discarded.
+
+  Scope reality the spec surfaced: this is ~40% packaging and ~60%
+  "make a first run work" — a per-user config location, a degraded
+  setup mode in `build_world`, two `api/routes/config.py` changes, a
+  `SetupCheck` field mirrored into the TS types, and `main()` learning to
+  tee stderr to a log. NOT yet implemented; no code written.
+
+  Recommended split before implementation (user's call): keep 1095 for
+  the packaging half (PyInstaller spec, 3 platform builds, 3 local mirror
+  scripts, release wiring, icon, naming) and file the first-run half as
+  its own item — it owns 10 of the 15 invariants and produced every
+  CRITICAL across both loops.
+  Progress (2026-08-04, later): **plan steps 1-2 shipped** in 9842a86 —
+  `src/mame_curator/config_location.py` (three-layer resolution,
+  `ConfigSource`, starter config + data dirs, `user_log_path`), wired into
+  `_cmd_serve` at stage 2, `serve`'s `--config` default now `None`,
+  `platformdirs>=4.11` promoted to a declared dependency,
+  `_SETUP_HEADER` consolidated into `STARTER_HEADER`. +10 tests (957
+  total, 88.95%), full local-CI green, pushed. Satisfies INV-1 to INV-6.
+
+  Also folded in the cross-build research the user asked for (2dc9b66):
+  **Windows IS buildable on this Linux box under Wine** — PyInstaller's
+  FAQ directs Windows-from-Linux builds at Wine explicitly, and Wine
+  11.14 is already installed (prefix reports AMD64). macOS is impossible,
+  not merely unavailable ("Packaging macOS binaries while running under
+  Linux is currently not possible at all"); osxcross does not help
+  because PyInstaller must RUN a macOS CPython, not just compile Darwin
+  objects. So two of the three local scripts run here, not one, and the
+  Windows `nothing` row became INV-16. macOS is closed with a citation so
+  it is not reopened each release.
+
+  Next: plan steps 3-7 (`_resources.py` + `frontend_dist()`, the
+  `build_world` setup-mode degrade, `_validate_paths` / `restart_required`
+  in `api/routes/config.py`, `setup_required` on `SetupCheck` + its TS
+  mirror, the frozen stderr tee in `main()`), then steps 8-15 (packaging).
+  Progress (2026-08-04): plan step 3 done. New
+  `src/mame_curator/_resources.py` — `bundle_root()` returns
+  `sys._MEIPASS` when `sys.frozen` is set, else the repo root
+  (`parents[2]`); `frontend_dist()` builds on it. `api/app.py`'s
+  module-level `_FRONTEND_DIST` is gone; `create_app` calls
+  `frontend_dist()` at construction, so a frozen bundle finds the SPA
+  under the extraction root (INV-11). TDD — `tests/test_resources.py`
+  (+2, red on `ModuleNotFoundError` first). `tests/api/test_static_mount.py`
+  now monkeypatches the *function* rather than a module constant, which
+  is itself the guard against the path being captured at import again.
+  `docs/specs/P06-frontend-mvp.md`'s app.py excerpt corrected reciprocally (it still
+  showed the `parents[3]` constant). DS05 test-count pin 752 → 754.
+  Full backend gate green: ruff, ruff format, mypy (213 files), bandit,
+  960 tests, 88.97% coverage (f6b8e62; all 8 CI jobs green).
+  Next: step 4 — `build_world` degrades to
+  `setup_required` on an unreadable DAT.
+  Progress (2026-08-04): step 4 shipped (41637cc). `build_world` catches
+  `(ParserError, OSError)` around `parse_dat` and returns an empty
+  library with `WorldState.setup_required = True` rather than aborting
+  the API lifespan (INV-7, INV-8); the rest of world construction runs
+  unchanged so the degraded world is usable, not half-built. TDD —
+  `tests/api/test_setup_mode.py` (+3, red first). **Not in the spec,
+  found by implementing it:** `replace_world` names every WorldState
+  field explicitly, so the new field's default would have cleared setup
+  mode on the first `PATCH /api/config` while the library stayed empty —
+  it now passes through with `machines`, covered by a third test and
+  folded back into §4.2. `api/spec.md` updated (the degrade + the
+  pass-through are that module's contract). DS05 test-count pin 754 →
+  757. Backend gate green: ruff, ruff format, mypy (214 files), bandit,
+  963 tests, 88.99% coverage.
+  Next: step 5 — `_validate_paths(..., setup_required=)` skips the
+  `source_dat` check and `restart_required` fires while in setup mode.
+  Progress (2026-08-04): step 5 shipped (5bda03a) — the first-run
+  recovery journey now completes end to end. `_validate_paths` takes a
+  keyword-only `setup_required` and skips the `source_dat` existence
+  check while it is true (INV-9); `restart_required` becomes
+  `server_changed or world.setup_required` (INV-10), deliberately not a
+  path inequality. TDD — `tests/api/test_setup_mode.py` (+2, red first).
+  `api/spec.md` § config routes gains both rules. DS05 pin 757 → 759.
+  Gate green: ruff, ruff format, mypy (214 files), bandit, 965 tests,
+  88.99% coverage.
+  Next: step 6 — `setup_required` on `SetupCheck` in
+  `api/schemas_setup.py` + `routes/stubs.py`, mirrored in
+  `frontend/src/api/{schemas,types}.ts` in the same commit or
+  `check_api_types_sync.py` reds CI.
+  Fold-in pending (2026-08-04, user-approved, NOT YET WRITTEN): amend the
+  spec + plan with two mechanisms verified by reading three sibling
+  projects on this machine. Researched and approved; `/write-spec` was
+  invoked and paused before drafting, so no spec bytes changed. Must be
+  drafted, `/doc-lint`ed and `/cold-eyes`-gated BEFORE steps 8-15, since
+  it changes what they build.
+
+  (1) A `--self-test` entry point. Precedent: finbreak
+  `src/finbreak/_selftest.py` — each `_check_*` imports its native stack
+  LAZILY (so the module imports cleanly when a dep is missing, and a unit
+  test can monkeypatch one check away), `run_self_test` runs them in
+  order and prints exactly ONE sentinel line: `FINBREAK_SELFTEST_OK`, or
+  `FINBREAK_SELFTEST_FAIL: <stack>` naming the FIRST failing stack, with
+  a non-zero exit. Our equivalent stacks: lxml (DAT parser), uvicorn's
+  `.auto`-selected loop/protocol implementations (uvloop, httptools,
+  websockets), sse-starlette, and `frontend_dist()` resolving to a real
+  directory under the extraction root. Strictly better than INV-13's and
+  INV-16's current recipes, which need a bound port plus curl and a
+  60-iteration poll; a self-test needs neither and behaves identically
+  for the Windows `.exe` under Wine. Open question for the draft: restate
+  INV-13/INV-16 in terms of the sentinel, or keep the page-fetch as an
+  additional end-to-end leg (it does prove the SPA is actually served,
+  which a self-test alone does not).
+
+  (2) A clean-room container proof. Precedent: finbreak
+  `scripts/build-smoke.sh` + `scripts/_build-smoke-in-container.sh`.
+  Builds inside `python:3.12-slim-bookworm` — chosen for two stated
+  reasons: it ships a SHARED libpython (PyInstaller needs one;
+  manylinux's is static) and an older-than-host glibc (~2.36) which
+  bounds the artefact's glibc floor BELOW the test target — then launches
+  the artefact inside a Python-free `debian:13-slim` with a scrubbed,
+  offline environment and asserts the sentinel. Exits 0 only if every
+  artefact passes. Opt-in: gated on an env switch (`FINBREAK_BUILD_SMOKE=1`)
+  plus a podman/docker runtime on PATH, so the everyday gate never pays
+  for a multi-minute build; podman preferred, docker fallback.
+  **Why this matters here specifically:** our build host is openSUSE
+  Tumbleweed, so an AppImage built natively inherits a very new glibc and
+  would fail on exactly the older user machines an AppImage exists to
+  serve. Plan step 10 + INV-13 currently build and test natively and
+  cannot see that failure class at all.
+
+  Also for the plan (step 10): OneUp
+  `/mnt/Games/Scripts/Linux/OneUp/packaging/appimage/build-appimage.sh` is
+  a WORKING AppImage recipe to adapt rather than invent — PyInstaller
+  `--onefile --windowed`, AppDir with icon + `.desktop` + metainfo +
+  `AppRun`, `appimagetool` fetched from the rolling `continuous` tag and
+  run with `--appimage-extract-and-run` (so no host FUSE needed). It does
+  NOT checksum the downloaded tool; our §4.5 already requires a sha256
+  pin, so adapt-and-harden rather than copy.
+
+  Third project surveyed, for the record: RetroDB
+  (`retrodb.spec`, `build_dist.py --standalone`, `release-standalone.sh`).
+  It ships per-OS ZIPs of a PyInstaller one-dir bundle, NOT an AppImage or
+  a `.dmg`, and refuses to cross-build (native runner per OS, 3-OS matrix
+  behind a manual `workflow_dispatch` because bundles are ~600 MB). Its
+  reusable idea is `release-standalone.sh`: tag → dispatch the workflow →
+  watch → set release notes from the changelog → leave the release a
+  DRAFT for a human to publish. No project of the three ships a `.dmg`, so
+  macOS remains without local precedent.
+  Input (2026-09-26, from the RetroDB session; RetroDB ships PyInstaller onedir
+  bundles): (a) modules imported by string are invisible to PyInstaller;
+  RetroDB tests its registry against the .spec hidden-imports list. (b) keep
+  two named roots: sys._MEIPASS for read-only bundled assets, the executable's
+  dir for writable data; joining user data onto the bundle root broke only in
+  frozen builds. (c) bundled launchers must exec the frozen binary, not
+  `python app.py`. (d) no cross-compile; per-OS CI matrix on manual dispatch.
+  (e) the frozen binary opens the browser itself, since only the server knows
+  the resolved port. Not yet checked against our plan in
+  docs/plans/mame-curator-1095-desktop-bundles.md.
+  User requirement (2026-09-26, verbatim): "when you create the various
+  releases for the OSes, I want everything bundled together with the
+  release. I don't want the user to have to download anything extra to get
+  the app to work." So each OS release carries its own Python runtime, every
+  dependency and the built frontend; no uv, Python or network fetch at first
+  run. A Windows test machine is reachable as `ssh wintest` (see DOOM_Ants
+  ROADMAP); it has Git but no Python, so it can prove a bundle runs on a
+  clean box.
+  Progress (2026-09-26): docs/help/ now ships real pages (1063). The
+  bundles must include it, and `api/routes/help.py::_help_dir()` finds it
+  as `Path(__file__).parents[3].parent / "docs" / "help"` (the repo
+  root), which will not exist inside a PyInstaller bundle. The spec
+  fold-in must name where help lives in a bundle (sys._MEIPASS or the
+  MAME_CURATOR_HELP_DIR override). tests/api/test_routes_help.py::
+  test_shipped_help_pages_are_listed_and_render is the check to run
+  against a built bundle.
+  Note (2026-09-27, CFG-0504 field pass): spec § 11 has two catcher-cell
+  issues to settle on resume. (1) INV-12/14/15 cite
+  tests/tools/test_release_scripts.py, which does not exist yet (the
+  plan creates it); the cells do not say planned. (2) INV-3's catcher
+  test_invalid_port_checked_before_config passes an explicit --config,
+  so it pins the error ordering but never exercises starter-config
+  creation; the cell reads as full coverage.
+  Note (2026-09-28, from 1114): Settings → Updates'
+  `updateAvailable` banner in strings_internal.ts tells users to
+  `git pull` and restart. Bundle users have no clone, so the wording must
+  branch on install type (or point at the Releases page) when bundles ship.
+
+- 📋 [mame-curator-1121] **Check CI after ubuntu-latest moves to Ubuntu 26 on 2026-10-19.**
+  Every ubuntu-latest job in ci.yml carries a GitHub notice: "The
+  ubuntu-latest label will migrate to Ubuntu 26 beginning October 19,
+  2026" (actions/runner-images#14748). After that date, confirm the first
+  CI run is green on both Python versions, or pin ubuntu-24.04 and log the
+  pin in the Version-break registry (coding-standards §8). The same run
+  also had a Windows setup-uv "Unable to reserve cache" warning, a benign
+  cache-write race between jobs; nothing to fix.
+  **Layman:** GitHub is upgrading the Linux computers that test this app; after that date, check the tests still pass.
+  Kind: chore.
+  Source: in-session-2026-09-28 (CI annotations on run for b5d9ea9).
+  Lanes: ci.
+
+## Considered / under research (no target date)
+
+**Theme:** post-v1 features captured during user feedback. Each is
+desirable but not urgent — they graduate to a release-target
+section above once they reach the top of the queue. The status
+emoji is 💭 because scope or feasibility is still being thought
+through.
+
+### 🎨 Features
+
+- ✅ [mame-curator-1005] **P10 — Media coverage expansion.**
+  Add fallback art sources beyond libretro-thumbnails:
+  progettoSnaps (~60–70% gap-closer, no auth, ~1 day),
+  ArcadeDB JSON API (highest-quality images, rate-limited, ~2
+  days), Wikipedia / MediaWiki (one or two sentences of flavor
+  text on the alternatives drawer, ~1 day), and Mobygames
+  (port-cover fallback, requires an API key, ~2 days). New
+  `media.sources` array in `AppConfig` so users can opt out of
+  slow or rate-limited sources. EmuMovies stays out of scope (paid
+  account required).
+  Layman: Many games show blank tiles because the upstream art
+  source doesn't have them. Pull artwork from additional sites
+  (progettoSnaps, ArcadeDB, Wikipedia, MobyGames) so more games
+  show a face.
+  Kind: implement.
+  Lanes: media, frontend, tests.
+  Source: user-2026-05-04 ("Are there additional sites that game
+  metadata can be scraped from?").
+  Dependencies: P05 ✅, FP10 ✅.
+  Closed 2026-07-02 (tag P10-complete). All 11 chunks shipped + CI-green, then 3 closing-review rounds hardened the media source chain: FP32 (mame-curator-1085), FP33 (1086), FP34 (1087) — 4 HIGH + 5 MEDIUM + LOW/INFO fixed TDD across media/api/frontend/docs, severity trailing to one-liners by round 3. Audit clean throughout (allowlist-015 mypy env FP, now in .ants_review_falsepos.jsonl). Final gates: 855 backend @88% / 342 frontend vitest, all lint/type/security clean; CI green all 8 jobs. Deferred (own items): media/spec.md co-located contract → mame-curator-1058 (now unblocked, next up); MobyGames cover-URL fetch → 1079; Settings enable/disable → 1084; media.snaps_dir binding → 1081; Starlette httpx deprecation → 1082.
+
+- ✅ [mame-curator-1081] **Bind progettoSnaps source read-path to refresh-snaps --dest via a media.snaps_dir config field.**
+  P10 chunk 7 wires ProgettoSnapsSource into the fallback chain reading a FIXED `./data/snaps/snap` default (mirrors `refresh-snaps --dest`'s default). No config field couples the source's read path to the CLI's `--dest`, so a user who runs `mame-curator refresh-snaps --dest /elsewhere` downloads a pack the source never sees. Fix: add `media.snaps_dir: Path = Path("./data/snaps")` to MediaConfig; have both `build_registry` (source read path = snaps_dir/"snap") and the `refresh-snaps` CLI default read it, so they can't diverge. Frontend type-sync + a Settings surface come with it. Sized as its own small pass. Lane: media.
+  **Layman:** If you download the snap image pack to a custom folder, the app won't find it — it only looks in the default folder. Add a setting so the two always match.
+  Kind: implement.
+  Source: in-session-2026-07-01 (P10 chunk 7 — cold-eyes surfaced gap).
+  Resolved (2026-07-03): added `media.snaps_dir: Path = ./data/snaps` to MediaConfig. The progettoSnaps read-path is now bound to it — `api/routes/media.py` passes `config.media.snaps_dir / "snap"` into both `build_registry` and `build_all_sources` (was the fixed `_DEFAULT_SNAP_DIR`). `refresh-snaps` gained `--config` (default config.yaml); when `--dest` is omitted it reads `media.snaps_dir`, so downloader and reader can't diverge (explicit `--dest` still wins; absent config falls back to the MediaConfig default; a broken config errors loudly). Frontend: type-sync mirror (types.ts + strict zod schema), a Settings → Media "Snapshot pack folder" field (input + folder-picker, mirrors cache_dir), config.example.yaml doc, media/spec.md contract updated (deferred note removed). TDD: failing API binding test + 4 CLI dest-resolution tests first. Full gate green — backend 861 passed / cov 88.5% / mypy / ruff / bandit; frontend tsc + eslint(0) + 344 vitest; api-types-sync; gitleaks clean. DS05 count pins bumped (+5 pytest, +2 vitest).
+
+- ✅ [mame-curator-1082] **Silence StarletteDeprecationWarning (httpx-with-testclient) surfaced on every pytest run.**
+  Every `uv run pytest` prints one `StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated; install httpx2 instead` (from `fastapi/testclient.py:1`). Pre-existing, dependency-driven — not introduced by chunk 7, but surfaced by its gate run. Per keep-deps-latest: evaluate migrating the FastAPI/Starlette test client to `httpx2`, or pin/filter the warning with a documented reason if the migration isn't yet clean. Lane: api / deps-hygiene.
+  **Layman:** A harmless 'this will change in a future version' notice prints on every test run. Tidy it up so real warnings don't get lost in the noise.
+  Kind: chore.
+  Source: in-session-2026-07-01 (surfaced during P10 chunk 7 gate).
+  Resolved (2026-07-03): migrated (not filtered) — added httpx2>=2.5 to dev deps. Starlette 1.2 TestClient imports `httpx2 as httpx`, so its presence silences the per-run StarletteDeprecationWarning from fastapi/testclient.py. httpx2 (2.5.0) is a real PyPI package; it coexists with the runtime media-proxy httpx>=0.28 (unaffected). Full backend gate green: 856 passed, coverage 88.12%, warning count 0.
+
+- ✅ [mame-curator-1083] **App-wide CSRF / cross-site protection for mutation routes (security-hardening pass).**
+  P10 chunk 9's PUT /api/media/sources/{name}/secret ships loopback-trust (user decision) — matching every existing mutation route (config import/restore/export, fs allowed-root grants, sessions, overrides), none of which authenticate; the app binds 127.0.0.1 by default. The realistic residual risk is a malicious page in the user's browser issuing a cross-site POST to localhost (CSRF). If addressed, it must be app-wide (a per-route token on just the secret endpoint leaves the higher-value config/fs write routes exposed) — e.g. an Origin/Referer check or a startup-printed token required on all state-changing routes. Considered, not scheduled: low priority for a single-user localhost tool. Lane: api / security.
+  User decision (2026-09-28): build it this round.
+  Resolved (2026-09-28): api/origin_guard.py, a pure ASGI middleware
+  installed by create_app ahead of routing. Browser requests only (Origin
+  or Sec-Fetch-Site): Host must be local or an IP literal on every
+  method; unsafe methods need a local or same-host Origin, else
+  Sec-Fetch-Site same-origin/none. 403 cross_site_blocked. Contract in
+  api/spec.md § Cross-site guard; 13 tests, each guard part proven by
+  breaking it.
+  **Layman:** The app trusts that only your own computer can reach it. If you ever expose it more widely, add a guard so a random website can't quietly change your settings.
+  Kind: security.
+  Source: in-session-2026-07-01 (P10 chunk-9 secret-route auth decision).
+
+- ✅ [mame-curator-1084] **Settings → Media: enable/disable art sources (add/remove from the fallback chain).**
+  P10 chunk 10 shipped the Settings → Media source list as reorder + live readiness + Configure-key / Download-pack modals over the *configured* sources (media.sources). The mockup's per-row enable/disable checkbox (add/remove a source from media.sources, with unconfigured sources rendered below the reorderable list with an Enable affordance) was deferred: it's untested, the common case is the default all-five tuple, and it introduces a fiddly unconfigured-below-the-list state. To close: add the checkbox to MediaSourceRow toggling media.sources membership (PATCH /api/config), render unconfigured known sources below the DragReorderList with an Enable button, and add vitest coverage. Note libretro is always re-appended by the backend registry, so its checkbox is a no-op ("always on"). Lane: frontend.
+  **Layman:** Add a checkbox next to each art source so you can turn one off entirely (not just reorder it) — e.g. skip MobyGames if you'll never set a key.
+  Kind: feature.
+  Source: in-session-2026-07-01 (P10 chunk 10 — deferred from the Media tab UI).
+  Resolved (2026-07-04): shipped frontend-only. The readiness endpoint (GET /api/media/sources) already returned every known source with an `in_chain` flag (configured-first then unconfigured-alphabetised), so no backend change was needed — simpler than the bullet anticipated. MediaSourceRow gained a per-row toggle (checked=in_chain; onToggle add/removes from media.sources via PATCH /api/config). libretro's toggle is locked-on since MediaSourceRegistry.chain_for always re-appends it (removing it would be a no-op lie). Unconfigured known sources (in_chain=false) render in an "Available sources (off)" list below the DragReorderList, each with the same toggle (off→on appends to the chain). Chose a toggle switch over the mockup's checkbox (user pick, 2026-07-04) — the toggle subsumes a separate Enable button (shortest-correct). TDD: +9 vitest first (MediaSourceRow toggle reflects in_chain / onToggle fires / libretro locked; MediaTab renders unconfigured below + add/remove/lock). Full frontend gate green (tsc, eslint, 353 vitest). Files: MediaSourceRow.tsx, MediaTab.tsx, strings_internal.ts + 2 test files.
+
+### 🔌 Plugins / extensions
 
 ---
 
