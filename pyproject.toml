@@ -42,6 +42,12 @@ dependencies = [
 # as an extra, that exact sync uninstalled them. The launchers pass
 # --no-dev to every `uv sync` and `uv run` (uv run syncs the default
 # groups too), so end users never download them.
+[project.optional-dependencies]
+# mame-curator-1095: build-time only, for the desktop bundles. `bundle`, not
+# `packaging`, which would shadow the packaging/ directory and the PyPI
+# distribution of that name.
+bundle = ["pyinstaller>=6.22.3"]
+
 [dependency-groups]
 dev = [
     "pytest>=8.3",

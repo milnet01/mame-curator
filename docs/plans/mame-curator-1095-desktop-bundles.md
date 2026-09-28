@@ -74,7 +74,7 @@ land before its implementation, per the project's TDD default.
    green, seen red first; `uv run mame-curator` still exits 2 (satisfies
    INV-19).
 
-9. `packaging/mame-curator.spec` — hidden imports for uvicorn's `.auto`
+9. **[done]** `packaging/mame-curator.spec` — hidden imports for uvicorn's `.auto`
    selectors and their `[standard]` implementations;
    `datas` for `frontend/dist` → `frontend/dist`, `docs/help` →
    `docs/help`, `config.example.yaml`, `packaging/`. → **verify:**
