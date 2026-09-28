@@ -34,6 +34,7 @@
     }
   ],
   "post_check": "uv run pytest tests/docs/test_version_lockstep.py -q --no-cov",
+  "tag": "v{NEW}",
   "todos": [
     "Move [Unreleased] into a dated `## [{NEW}] - {TODAY}` section with changelog_log op:\"release\", then add its **Theme:** line (authoring)."
   ]
