@@ -59,17 +59,17 @@ land before its implementation, per the project's TDD default.
    `.icns`. → **verify:** all three files exist and `file` reports the
    expected format for each.
 
-8b. `_help_dir()` on `bundle_root()` (spec §4.3). → **verify:**
+8b. **[done]** `_help_dir()` on `bundle_root()` (spec §4.3). → **verify:**
    `uv run pytest tests/api/test_routes_help.py` green, the new
    `test_help_dir_follows_bundle_root` seen red first (satisfies INV-18).
 
-8c. `src/mame_curator/_selftest.py` and the `self-test` subcommand (spec
+8c. **[done]** `src/mame_curator/_selftest.py` and the `self-test` subcommand (spec
    §4.13); `cli/spec.md` subcommand inventory. → **verify:**
    `uv run mame-curator self-test` prints `MAME_CURATOR_SELFTEST_OK`, and
    `uv run pytest tests/cli/test_self_test.py` is green, seen red first
    (satisfies INV-17).
 
-8d. `main()` runs `serve` for a bare frozen launch (spec §4.14). →
+8d. **[done]** `main()` runs `serve` for a bare frozen launch (spec §4.14). →
    **verify:** `uv run pytest tests/cli/test_bundle_default_command.py`
    green, seen red first; `uv run mame-curator` still exits 2 (satisfies
    INV-19).

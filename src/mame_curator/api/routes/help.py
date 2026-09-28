@@ -12,6 +12,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
+from mame_curator._resources import bundle_root
 from mame_curator.api.errors import HelpTopicNotFoundError
 from mame_curator.api.schemas import HelpContent, HelpIndex, HelpTopic
 
@@ -30,7 +31,9 @@ def _help_dir() -> Path:
     override = os.environ.get("MAME_CURATOR_HELP_DIR")
     if override:
         return Path(override).resolve()
-    return (Path(__file__).resolve().parents[3].parent / "docs" / "help").resolve()
+    # mame-curator-1095 §4.3: the repository root in a source tree, the
+    # extraction root in a bundle (which ships docs/help as data).
+    return (bundle_root() / "docs" / "help").resolve()
 
 
 def _read_title(md_path: Path) -> str:

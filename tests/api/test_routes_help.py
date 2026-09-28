@@ -125,3 +125,24 @@ def test_shipped_help_pages_are_listed_and_render(
         rendered = client.get(f"/api/help/{topic['slug']}")
         assert rendered.status_code == 200, topic["slug"]
         assert "<h1>" in rendered.json()["html"], topic["slug"]
+
+
+# ---- mame-curator-1095 INV-18: Help pages resolve inside a bundle ------------
+
+
+def test_help_dir_follows_bundle_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Frozen, ``_help_dir()`` is ``<_MEIPASS>/docs/help`` (resolved); the
+    ``MAME_CURATOR_HELP_DIR`` override still wins when set."""
+    import sys
+
+    from mame_curator.api.routes.help import _help_dir
+
+    monkeypatch.delenv("MAME_CURATOR_HELP_DIR", raising=False)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+    assert _help_dir() == (tmp_path / "docs" / "help").resolve()
+
+    override = tmp_path / "elsewhere"
+    override.mkdir()
+    monkeypatch.setenv("MAME_CURATOR_HELP_DIR", str(override))
+    assert _help_dir() == override.resolve()

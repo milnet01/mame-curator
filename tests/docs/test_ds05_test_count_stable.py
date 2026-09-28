@@ -278,7 +278,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # in tests/cli/test_frozen_stderr_tee.py. 816 → 821.
 # Bumped 2026-09-28 (mame-curator-1126 — ES-DE / RetroArch local art): +11
 # pytest in tests/media/test_sources_local_folders.py. 821 → 832.
-EXPECTED_PYTEST_DECLARATIONS = 832
+# Bumped 2026-09-28 (mame-curator-1095 steps 8b-8d — help dir, self-test,
+# bundle default): +1 tests/api/test_routes_help.py, +4
+# tests/cli/test_self_test.py, +3 tests/cli/test_bundle_default_command.py.
+# 832 → 840.
+EXPECTED_PYTEST_DECLARATIONS = 840
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

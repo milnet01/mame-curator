@@ -30,6 +30,7 @@ from mame_curator.cli.commands.filter import _cmd_filter as _cmd_filter
 from mame_curator.cli.commands.parse import _cmd_parse as _cmd_parse
 from mame_curator.cli.commands.refresh_inis import _cmd_refresh_inis as _cmd_refresh_inis
 from mame_curator.cli.commands.refresh_snaps import _cmd_refresh_snaps as _cmd_refresh_snaps
+from mame_curator.cli.commands.self_test import _cmd_self_test as _cmd_self_test
 from mame_curator.cli.commands.serve import _cmd_serve as _cmd_serve
 from mame_curator.cli.commands.setup import _cmd_setup as _cmd_setup
 
@@ -217,7 +218,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub_serve.set_defaults(func=_cmd_serve)
 
+    self_test = sub.add_parser(
+        "self-test",
+        help="Check a bundle carries every stack it needs; prints one OK or FAIL line.",
+    )
+    self_test.set_defaults(func=_cmd_self_test)
+
     return parser
+
+
+def subcommand_names(parser: argparse.ArgumentParser) -> frozenset[str]:
+    """The subcommand names ``build_parser()`` registered.
+
+    argparse exposes them only through its subparsers action, which is
+    reached via ``parser._actions``; the frozen-bundle default in
+    ``main.py`` needs the set to tell a subcommand from a flag.
+    """
+    return frozenset(
+        name
+        for action in parser._actions
+        if isinstance(action, argparse._SubParsersAction)
+        for name in action.choices
+    )
 
 
 def run(args: argparse.Namespace) -> int:

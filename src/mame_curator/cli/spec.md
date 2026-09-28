@@ -34,6 +34,7 @@ The set of subcommands grows phase-by-phase. Each subcommand's behavioral contra
 | — | `setup` | shipped | (no host module — wizard wraps `AppConfig` schema directly) |
 | 7 | `refresh-inis ...` | shipped | `updates/spec.md` |
 | 10 | `refresh-snaps ...` | shipped | `updates/spec.md` |
+| — | `self-test` | shipped | `docs/specs/mame-curator-1095-desktop-bundles.md` § 4.13 (the checks live in `_selftest.py`) |
 
 The `setup` subcommand is a small CLI-only bootstrap shipped ahead of the
 P08 browser-based first-run wizard. Scope is deliberately minimal:
@@ -75,6 +76,12 @@ The CLI MUST refuse to run with no subcommand (argparse `required=True` on the s
 | `--version` | Prints `mame-curator <version>` and exits 0 (uses `mame_curator.__version__`; wired in FP27). |
 
 Subcommand-specific flags live on their respective subparsers, not here.
+
+**A frozen bundle launched without a subcommand runs `serve`**
+(mame-curator-1095 § 4.14): `main()` inserts `serve` after any leading
+`-v` / `--verbose`, unless an argument is `-h`, `--help` or `--version`.
+A source-tree or `pip install` run keeps the required-subcommand usage
+error (exit 2).
 
 ## Exit codes
 
