@@ -244,6 +244,16 @@ export function LibraryPage({
             winner={openedWinner}
             alternatives={alternatives.data?.items ?? []}
             loading={alternatives.isPending}
+            // mame-curator-1107: same sticky-error rule as the games grid
+            // (FP26-V) so the Retry button stays up through its refetch.
+            error={
+              alternatives.isError ||
+              (alternatives.isFetching &&
+                (alternatives.errorUpdatedAt ?? 0) >
+                  (alternatives.dataUpdatedAt ?? 0))
+            }
+            onRetry={() => alternatives.refetch()}
+            retrying={alternatives.isFetching}
             onOverride={(req) => {
               override.mutate(req, {
                 onSuccess: () => {

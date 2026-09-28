@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Fixed — Alternatives panel reports a failed load instead of an empty family (mame-curator-1107)
+
+When the request for a game's other versions failed, the side panel said
+"0 versions in this family". It now says the versions could not be
+loaded and offers a Try again button, which stays up while the retry
+runs.
+
 ### 2026-09-27 Fixed — Emulation quality is known again (mame-curator-1099)
 
 Pleasuredome DATs carry no emulation-quality ("driver status") data,

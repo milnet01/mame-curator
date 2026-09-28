@@ -28,6 +28,13 @@ interface AlternativesDrawerProps {
   /** mame-curator-1100: true while the family list has not loaded yet.
    *  The subtitle then reads as loading, not as an empty family. */
   loading?: boolean;
+  /** mame-curator-1107: true when the family list failed to load. The
+   *  subtitle then says so and a Retry button replaces the empty list. */
+  error?: boolean;
+  /** Re-runs the failed family request. The button hides when absent. */
+  onRetry?: () => void;
+  /** True while that retry is in flight; disables the button. */
+  retrying?: boolean;
   onOverride: (request: OverridePostRequest) => void;
   /** FP19: optional Launch handler. Hides the button when not provided
    *  (e.g. unit tests that don't mock the launch endpoint). */
@@ -127,6 +134,9 @@ export function AlternativesDrawer({
   winner,
   alternatives,
   loading = false,
+  error = false,
+  onRetry,
+  retrying = false,
   onOverride,
   onLaunch,
   launching = false,
@@ -198,13 +208,28 @@ export function AlternativesDrawer({
         <SheetHeader>
           <SheetTitle>{strings.alternatives.drawerTitle}</SheetTitle>
           <SheetDescription>
-            {loading
-              ? strings.alternatives.loadingVersions
-              : onlyOne
-                ? strings.alternatives.onlyVersionText
-                : strings.alternatives.familySummary(alternatives.length)}
+            {error
+              ? strings.alternatives.loadFailed
+              : loading
+                ? strings.alternatives.loadingVersions
+                : onlyOne
+                  ? strings.alternatives.onlyVersionText
+                  : strings.alternatives.familySummary(alternatives.length)}
           </SheetDescription>
         </SheetHeader>
+
+        {error && onRetry && (
+          <div role="alert">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRetry}
+              disabled={retrying}
+            >
+              {retrying ? strings.common.retrying : strings.common.retry}
+            </Button>
+          </div>
+        )}
 
         {/* P10 chunk 11 — Wikipedia "About" flavor text for the winner.
             Renders nothing while loading / on error / when there's no page. */}

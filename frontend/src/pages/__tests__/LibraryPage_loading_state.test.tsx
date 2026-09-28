@@ -229,4 +229,52 @@ describe("LibraryPage — pending-query empty states", () => {
       'drawer showed "0 versions in this family" while the alternatives query is still pending',
     ).not.toBeInTheDocument();
   });
+
+  it("mame-curator-1107: shows an error with Retry, not an empty family, when the alternatives request fails", async () => {
+    const winner = makeGameCard({
+      short_name: "mshvsf",
+      description: "Marvel Super Heroes vs. Street Fighter",
+    });
+    const clone = makeGameCard({
+      short_name: "mshvsfu",
+      description: "Marvel Super Heroes vs. Street Fighter (USA)",
+    });
+    let fail = true;
+    server.use(
+      ...libraryPageBaseHandlers(),
+      http.get("/api/games", () => HttpResponse.json(makeGamesPage([winner]))),
+      http.get("/api/games/:name/alternatives", () =>
+        fail
+          ? HttpResponse.json({ detail: "boom" }, { status: 500 })
+          : HttpResponse.json({ items: [winner, clone] }),
+      ),
+    );
+    const user = userEvent.setup();
+
+    renderPage();
+    await user.click(await screen.findByText(winner.description));
+
+    // A failed request leaves `alternatives.data` undefined, the same
+    // `[]` placeholder the pending case had — but the query is no longer
+    // pending, so the drawer claimed an empty family. It must say the
+    // load failed instead, and offer a way to try again.
+    expect(
+      await screen.findByText(strings.alternatives.loadFailed),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(strings.alternatives.familySummary(0)),
+      'drawer showed "0 versions in this family" after the alternatives request failed',
+    ).not.toBeInTheDocument();
+
+    fail = false;
+    await user.click(
+      screen.getByRole("button", { name: strings.common.retry }),
+    );
+    expect(
+      await screen.findByText(strings.alternatives.familySummary(2)),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(strings.alternatives.loadFailed),
+    ).not.toBeInTheDocument();
+  });
 });

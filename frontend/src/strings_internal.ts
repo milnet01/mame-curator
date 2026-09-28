@@ -277,6 +277,8 @@ export const strings = {
     onlyVersionText: "This is the only version in the library.",
     /** mame-curator-1100 — subtitle while the family list is still loading. */
     loadingVersions: "Loading versions…",
+    /** mame-curator-1107 — subtitle when the family list failed to load. */
+    loadFailed: "Couldn't load the other versions of this game.",
     /** Subtitle when the family contains multiple versions. */
     familySummary: (n: number) =>
       `${n.toLocaleString()} version${n === 1 ? "" : "s"} in this family`,

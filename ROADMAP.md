@@ -1010,7 +1010,7 @@ wave lands.
   Source: user-request-2026-09-26.
   Lanes: packaging, ci.
 
-- 📋 [mame-curator-1107] **Alternatives drawer shows '0 versions in this family' when the alternatives request fails.**
+- ✅ [mame-curator-1107] **Alternatives drawer shows '0 versions in this family' when the alternatives request fails.**
   useAlternatives sets no throwOnError, and LibraryPage passes
   `alternatives.data?.items ?? []` with no isError check. On a failed
   request the query is no longer pending, data stays undefined, and the
@@ -1019,6 +1019,10 @@ wave lands.
   fixing mame-curator-1100, which covers the pending case only. The
   games grid already has an error path (LibraryErrorPanel); the drawer
   needs its own.
+  Resolved (2026-09-28): LibraryPage passes error / onRetry / retrying to
+  AlternativesDrawer, using the games grid's sticky-error rule (FP26-V).
+  The subtitle reads "Couldn't load the other versions of this game." with
+  a Try again button. Regression test in LibraryPage_loading_state.test.tsx.
   **Layman:** If the app cannot load a game's other versions, the panel wrongly says there are none instead of saying something went wrong.
   Kind: fix.
   Source: in-session-2026-09-26.
