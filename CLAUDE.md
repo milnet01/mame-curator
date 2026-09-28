@@ -25,8 +25,11 @@ For shipped status and what's next, see [`ROADMAP.md`](ROADMAP.md) and [`CHANGEL
 ## Common commands
 
 ```bash
-# Setup
-uv sync && uv run pre-commit install
+# Setup. The local hooksPath keeps pre-commit working under the global
+# ~/.claude/githooks; the copied pre-push hands every push to the machine-wide
+# gate (secret scan, then local-CI.sh per .ants/gate.conf).
+uv sync && git config core.hooksPath .git/hooks && uv run pre-commit install \
+    && cp ~/.claude/skeleton/files/.githooks/pre-push .git/hooks/pre-push
 
 # Full CI mirror — runs every check .github/workflows/ci.yml runs, in the
 # same order (backend gates + api-type-sync + frontend + gitleaks). Keep it

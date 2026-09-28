@@ -27,16 +27,12 @@
 # step order — matches CI exactly. Keep this file and ci.yml in lockstep: when
 # one changes, change the other.
 #
-# This script runs BEFORE EVERY PUSH — that is the standing rule, and it is
-# wired as a pre-commit `pre-push` hook (`local-ci` in .pre-commit-config.yaml).
-# Enable it once per clone with:
-#     uv run pre-commit install --hook-type pre-push
+# This script runs BEFORE EVERY PUSH, documentation-only pushes included
+# (local-gate.md § 2.1). .git/hooks/pre-push hands off to the machine-wide
+# hook, which secret-scans the pushed commits and then runs this script in
+# place, refusing while uncommitted edits exist (.ants/gate.conf). Install
+# the hand-off once per clone — see CLAUDE.md § Common commands.
 # Running it by hand first is still the faster loop; the hook is the backstop.
-#
-# Exemption (user rule, 2026-08-03): a DOC-ONLY push may skip this run —
-# `git push --no-verify` — when the diff touches no executable surface
-# (*.md, docs/, ROADMAP, CHANGELOG). Anything that can change behaviour,
-# including this script, the workflows, and the shell bootstraps, runs it.
 #
 # Usage:
 #   ./local-CI.sh            # run all checks against the already-installed env
