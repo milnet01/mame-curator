@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09-28 Changed — Frontend build no longer warns about the entry chunk's size (mame-curator-1108)
+
+Vite's raw-size warning now fires at 700 kB instead of 500 kB. The
+entry chunk is well inside the 350 kB gzipped budget the frontend spec
+sets, so the warning was noise.
+
 ### 2026-09-28 Fixed — Alternatives panel reports a failed load instead of an empty family (mame-curator-1107)
 
 When the request for a game's other versions failed, the side panel said

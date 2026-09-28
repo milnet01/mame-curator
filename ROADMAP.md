@@ -1028,13 +1028,18 @@ wave lands.
   Source: in-session-2026-09-26.
   Lanes: frontend.
 
-- 📋 [mame-curator-1108] **Vite build warns that a JS chunk exceeds the chunk-size warning limit.**
+- ✅ [mame-curator-1108] **Vite build warns that a JS chunk exceeds the chunk-size warning limit.**
   `npm run build` prints the rolldown chunk-size warning and suggests
   `build.rolldownOptions.output.codeSplitting` or raising
   `build.chunkSizeWarningLimit`. Seen 2026-09-26 while building for
   mame-curator-1100/1102. Decide between splitting (e.g. lazy routes or a
   vendor chunk) and raising the limit to match the size-limit budget the
   P06 spec sets. Unverified whether it predates this session.
+  Resolved (2026-09-28): raised build.chunkSizeWarningLimit to 700 kB in
+  vite.config.ts with the reasoning inline. The entry chunk is ~163 kB
+  gzipped against P06's 350 kB gzipped budget, and non-Library routes are
+  already lazy, so splitting would not shrink the first load. The budget's
+  own CI gate was never built; filed separately.
   **Layman:** The app's main code file is large enough that the build tool warns it may load slowly.
   Kind: perf.
   Source: in-session-2026-09-26.
@@ -1251,6 +1256,19 @@ wave lands.
   Kind: doc.
   Source: align-project-2026-09-28 (CFG-0645).
   Lanes: docs.
+
+- 📋 [mame-curator-1120] **Add the size-limit CI gate P06 specifies for the initial JS bundle.**
+  docs/specs/P06-frontend-mvp.md § Architecture notes requires an initial
+  JS budget of 350 kB gzipped "enforced by a CI gate using size-limit",
+  read from a package.json "size-limit" array. No such array, dependency
+  or CI step exists. Found while closing mame-curator-1108, which raised
+  Vite's raw-size warning limit on the strength of that budget (entry
+  chunk ~163 kB gzipped on 2026-09-28). Either add the gate to ci.yml and
+  local-CI.sh, or amend the spec to drop it.
+  **Layman:** Nothing currently stops the app's startup download from growing past its agreed size; this adds a check that fails the build if it does.
+  Kind: perf.
+  Source: in-session-2026-09-28 (mame-curator-1108).
+  Lanes: frontend, ci.
 
 ### 🧪 Test Audit 2026-05-20
 
