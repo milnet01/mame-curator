@@ -14,6 +14,7 @@ from mame_curator.api.routes import (
     media,
     stubs,
     updates,
+    updates_ini,
 )
 from mame_curator.api.routes import (
     help as help_,
@@ -28,6 +29,7 @@ router.include_router(activity.router)
 router.include_router(fs.router)
 router.include_router(stubs.router)
 router.include_router(updates.router)
+router.include_router(updates_ini.router)
 router.include_router(help_.router)
 router.include_router(media.router)
 

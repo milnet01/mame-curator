@@ -12,6 +12,7 @@ P12 (post-v1) adds the diff-preview UI and app self-update. See
 """
 
 from mame_curator.updates.ini import (
+    INI_CONFIG_FIELDS,
     INI_DEFAULT_SOURCES,
     INIRefreshReport,
     refresh_inis,
@@ -27,6 +28,7 @@ from mame_curator.updates.snaps import (
 )
 
 __all__ = [
+    "INI_CONFIG_FIELDS",
     "INI_DEFAULT_SOURCES",
     "SNAPS_INDEX_URL",
     "SNAP_PACK_MAX_BYTES",

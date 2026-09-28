@@ -44,6 +44,7 @@ from mame_curator.updates.app import (
     latest_release,
     rollback_git_update,
 )
+from mame_curator.updates.ini import INI_DEFAULT_SOURCES
 
 router = APIRouter()
 
@@ -60,6 +61,8 @@ def init_update_state(app: FastAPI) -> None:
     app.state.updates_client = httpx.AsyncClient(
         timeout=30.0, follow_redirects=True, headers={"User-Agent": _build_user_agent()}
     )
+    app.state.ini_sources = INI_DEFAULT_SOURCES
+    app.state.ini_staged = None
     app.state.started_commit = (
         head_commit(app.state.update_repo) if install_kind() == "git" else None
     )

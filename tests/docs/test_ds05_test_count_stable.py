@@ -297,7 +297,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-09-28 (mame-curator-1010 — self-update): +5 test_app_update,
 # +12 test_git_update, +3 test_bundle_update, +7 test_routes_updates, +1 restore
 # reloads review state; -1 retired P04 R36 stub test. 854 → 881.
-EXPECTED_PYTEST_DECLARATIONS = 881
+# Bumped 2026-09-28 (mame-curator-1010 — INI refresh preview): +4 pytest in
+# tests/api/test_routes_updates_ini.py. 881 → 885.
+EXPECTED_PYTEST_DECLARATIONS = 885
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

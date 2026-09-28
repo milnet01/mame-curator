@@ -42,6 +42,16 @@ INI_DEFAULT_SOURCES: dict[str, str] = {
     "mature.ini": f"{_BASE}/catver.ini/mature.ini",
 }
 
+# The ``paths.<field>`` each INI file configures. Shared by the CLI's
+# refresh-inis config patch and the API's INI refresh (mame-curator-1010).
+INI_CONFIG_FIELDS: dict[str, str] = {
+    "catver.ini": "catver",
+    "languages.ini": "languages",
+    "bestgames.ini": "bestgames",
+    "series.ini": "series",
+    "mature.ini": "mature",
+}
+
 
 @dataclass(frozen=True)
 class INIRefreshReport:

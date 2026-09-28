@@ -103,6 +103,31 @@ def load_app_config(config_path: Path) -> AppConfig:
         ) from exc
 
 
+def ini_context_fields(
+    *,
+    catver: Path | None,
+    languages: Path | None,
+    bestgames: Path | None,
+    mature: Path | None,
+    series: Path | None,
+) -> dict[str, Any]:
+    """Parse the reference INIs into ``FilterContext`` fields.
+
+    Each is optional; a missing one gives the empty default. Shared by
+    ``build_world`` and the INI refresh preview (mame-curator-1010 §4.6).
+    """
+    if series:
+        # parse_series result not needed by FilterContext but call to validate file.
+        parse_series(series)
+    languages_raw = parse_languages(languages) if languages else {}
+    return {
+        "category": parse_catver(catver) if catver else {},
+        "languages": {k: tuple(v) for k, v in languages_raw.items()},
+        "mature": frozenset(parse_mature(mature)) if mature else frozenset(),
+        "bestgames_tier": parse_bestgames(bestgames) if bestgames else {},
+    }
+
+
 def build_world(config_path: Path) -> WorldState:
     """Parse all inputs and assemble a WorldState. Called from lifespan startup."""
     config = load_app_config(config_path)
@@ -123,15 +148,13 @@ def build_world(config_path: Path) -> WorldState:
         machines = {}
         setup_required = True
 
-    # Reference data (each optional in config; missing → empty default).
-    category = parse_catver(paths.catver) if paths.catver else {}
-    languages_raw = parse_languages(paths.languages) if paths.languages else {}
-    languages = {k: tuple(v) for k, v in languages_raw.items()}
-    bestgames = parse_bestgames(paths.bestgames) if paths.bestgames else {}
-    mature = frozenset(parse_mature(paths.mature)) if paths.mature else frozenset()
-    if paths.series:
-        # parse_series result not needed by FilterContext but call to validate file.
-        parse_series(paths.series)
+    ini_fields = ini_context_fields(
+        catver=paths.catver,
+        languages=paths.languages,
+        bestgames=paths.bestgames,
+        mature=paths.mature,
+        series=paths.series,
+    )
 
     if paths.listxml:
         # mame-curator-1118: one pass over the ~300 MB file, not four.
@@ -146,14 +169,7 @@ def build_world(config_path: Path) -> WorldState:
         bios_chain = {}
         chd_required = frozenset()
 
-    ctx = FilterContext(
-        category=category,
-        languages=languages,
-        mature=mature,
-        chd_required=chd_required,
-        cloneof_map=cloneof_map,
-        bestgames_tier=bestgames,
-    )
+    ctx = FilterContext(chd_required=chd_required, cloneof_map=cloneof_map, **ini_fields)
 
     overrides = load_overrides(config_path.parent / "overrides.yaml")
     sessions = load_sessions(config_path.parent / "sessions.yaml")
@@ -218,6 +234,7 @@ def replace_world(
     sessions: Sessions | None = None,
     notes: Mapping[str, str] | None = None,
     review_state: ReviewState | None = None,
+    ctx: FilterContext | None = None,
     rerun_filter: bool = False,
 ) -> WorldState:
     """Build a new WorldState from ``base`` with the given mutations applied.
@@ -236,10 +253,17 @@ def replace_world(
     new_sessions = sessions if sessions is not None else base.sessions
     new_notes = dict(notes) if notes is not None else dict(base.notes)
     new_review_state = review_state if review_state is not None else base.review_state
+    new_ctx = ctx if ctx is not None else base.ctx
 
-    if rerun_filter or config is not None or overrides is not None or sessions is not None:
+    if (
+        rerun_filter
+        or config is not None
+        or overrides is not None
+        or sessions is not None
+        or ctx is not None
+    ):
         filter_result = run_filter(
-            base.machines, base.ctx, new_config.filters, new_overrides, new_sessions
+            base.machines, new_ctx, new_config.filters, new_overrides, new_sessions
         )
     else:
         filter_result = base.filter_result
@@ -262,7 +286,7 @@ def replace_world(
         cloneof_map=base.cloneof_map,
         bios_chain=base.bios_chain,
         chd_required=base.chd_required,
-        ctx=base.ctx,
+        ctx=new_ctx,
         overrides=new_overrides,
         sessions=new_sessions,
         review_state=new_review_state,

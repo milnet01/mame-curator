@@ -9,14 +9,7 @@ import yaml
 from rich.console import Console
 
 from mame_curator._atomic import atomic_write_text
-
-_INI_FILE_TO_CONFIG_FIELD: dict[str, str] = {
-    "catver.ini": "catver",
-    "languages.ini": "languages",
-    "bestgames.ini": "bestgames",
-    "series.ini": "series",
-    "mature.ini": "mature",
-}
+from mame_curator.updates.ini import INI_CONFIG_FIELDS
 
 
 def _patch_config_with_ini_paths(
@@ -48,7 +41,7 @@ def _patch_config_with_ini_paths(
 
     updated_fields: list[str] = []
     for filename in downloaded:
-        field = _INI_FILE_TO_CONFIG_FIELD.get(filename)
+        field = INI_CONFIG_FIELDS.get(filename)
         if field is None:
             continue
         if paths.get(field):
