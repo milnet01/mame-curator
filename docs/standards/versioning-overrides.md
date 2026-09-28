@@ -17,17 +17,20 @@ bump, unless the release migrates the old form for them.
    `extra="forbid"`, so renaming or removing a key makes an existing file fail
    to load. Changing what a key means counts too. **Rule: a key rename or
    removal either keeps reading the old form (a migration) or ships as a
-   MAJOR.** Adding an optional key is not breaking.
+   MAJOR.** Adding an optional key is not breaking. Where the file is found
+   counts too: `resolve_config_path` in `src/mame_curator/config_location.py`
+   (`--config`, then `./config.yaml`, then the per-user folder). Saved files
+   sit beside it, so moving it strands them as well.
 2. **Files the app saves and reads back later.** A release must still read
    what an earlier release wrote. The candidates are every path found by
    `grep -rnE 'data_dir / "|config_path\.parent / "' src/mame_curator`, less
-   scratch the app clears itself (the `recycle` folder, the
-   `import.in_progress` marker). The Settings → Backup export file counts
-   too: `/api/config/import` reads a `ConfigExportBundle` a user may have
-   kept.
-3. **The command line.** The subcommands, flags and exit codes in
-   `src/mame_curator/cli/spec.md`. This includes the `filter` report JSON,
-   because `copy --filter-report` reads a report a user may have kept.
+   the `import.in_progress` marker, which the app clears itself. The
+   Settings → Backup export file counts too: `/api/config/import` reads a
+   `ConfigExportBundle` a user may have kept.
+3. **The command line.** Every subcommand, its flags and its exit codes.
+   `src/mame_curator/cli/spec.md` § Subcommand inventory names the spec that
+   owns each one. This includes the `filter` report JSON, because
+   `copy --filter-report` reads a report a user may have kept.
 4. **What a copy produces.** The destination folder layout and the RetroArch
    playlist (`mame.lpl` from the CLI, `paths.retroarch_playlist` from the
    app). RetroArch and the user's own setup read these.
