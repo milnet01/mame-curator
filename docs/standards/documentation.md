@@ -22,6 +22,7 @@ The canonical rules live in the consolidated
 |-----|---------|
 | `README.md` | Project front page; install + quickstart |
 | `CLAUDE.md` | Claude Code session instructions; resumption flow |
+| `docs/dev-commands.md` | Setup, gate, test, bundle and CLI-smoke commands |
 | `CHANGELOG.md` | Keep-a-Changelog format; `[Unreleased]` always at top |
 | `ROADMAP.md` | Queue summary; points to long-form phase plan |
 | `docs/plans/phase-plan.md` | Long-form authoritative phase plan (Phase 0–9) |

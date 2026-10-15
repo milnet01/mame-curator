@@ -32,7 +32,7 @@
 # (local-gate.md § 2.1). .git/hooks/pre-push hands off to the machine-wide
 # hook, which secret-scans the pushed commits and then runs this script in
 # place, refusing while uncommitted edits exist (.ants/gate.conf). Install
-# the hand-off once per clone — see CLAUDE.md § Common commands.
+# the hand-off once per clone — see docs/dev-commands.md.
 # Running it by hand first is still the faster loop; the hook is the backstop.
 #
 # Usage:

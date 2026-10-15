@@ -7,7 +7,7 @@ This project follows the global workflow, [`~/.claude/workflow.md`](~/.claude/wo
 ## Session start — read & summarise
 
 1. **This file** + **`roadmap_query status:active`** (what is open; the roadmap intro says what is next) — one parallel read.
-2. **Summarise back to the user**: "We're on `<ID>` (or between items), last did `<X>`, next is `<Y>`." Wait for confirm or redirect. **Never skip this step**.
+2. **Summarise back to the user**: "We're on `<ID>` (or between items), last did `<X>`, next is `<Y>`." Wait for confirm or redirect. **Never skip this step**, with one exception: when the session opens with a request from another session, answer that request first and skip steps 1–2 until the user brings project work.
 3. When the active item's `Kind` is known, read the matching `docs/standards/<which>.md` (one read).
 4. Before invoking `check-code` or `review-code`, additionally read `docs/audit-allowlist.md`.
 
@@ -24,46 +24,7 @@ For shipped status and what's next, see [`ROADMAP.md`](ROADMAP.md) and [`CHANGEL
 
 ## Common commands
 
-```bash
-# Setup. The local hooksPath keeps pre-commit working under the global
-# ~/.claude/githooks; the copied pre-push hands every push to the machine-wide
-# gate (secret scan, then local-CI.sh per .ants/gate.conf).
-uv sync && git config core.hooksPath .git/hooks && uv run pre-commit install \
-    && cp ~/.claude/skeleton/files/.githooks/pre-push .git/hooks/pre-push
-
-# Full CI mirror — runs every check .github/workflows/ci.yml runs, in the
-# same order (backend gates + api-type-sync + frontend + gitleaks). Keep it
-# in lockstep with ci.yml. `--fresh` provisions first (uv sync + npm ci).
-./local-CI.sh
-
-# Backend-only gate (must pass on `main`; a subset of the above)
-uv run ruff check && uv run ruff format --check && uv run mypy \
-    && uv run bandit -c pyproject.toml -r src && uv run pytest
-
-# Single test
-uv run pytest tests/parser/test_dat.py::test_parse_dat_minimal -xvs
-
-# Desktop bundles (mame-curator-1095), written to dist/
-./local-appimage.sh                              # Linux AppImage, in a bookworm container (podman)
-MAME_CURATOR_BUILD_SMOKE=1 scripts/build-smoke.sh   # clean-room self-test of the AppImage
-./local-exe.sh                                   # Windows .exe under Wine (.wine-build/)
-# local-macos.sh runs on a Mac only; CI's build-macos job is its real run.
-# A manual run of release.yml (gh workflow run release.yml) rehearses all
-# three builds and publishes nothing.
-
-# CLI smoke
-uv run mame-curator parse <DAT.xml-or-.zip>
-uv run mame-curator filter --help
-uv run mame-curator copy --help
-```
-
-**The dev tools are the `dev` dependency group** (mame-curator-1106), which
-a plain `uv sync` installs. The old `uv sync --extra dev` now fails: there is
-no such extra. **`uv sync --no-dev` strips them, and the next `uv run`
-puts them back**: `uv run` syncs the default groups before it runs. So
-`run.sh` / `run.bat` pass `--no-dev` to every `uv sync` and `uv run`, and
-`--inexact` to the sync; launching the app installs no dev tools and removes
-none. `tests/docs/test_dev_dependency_group.py` pins the launchers.
+[`docs/dev-commands.md`](docs/dev-commands.md) holds setup, the gates, single tests, the desktop bundles and the CLI smoke, and why `uv sync --no-dev` is safe. Read it before running any of them. `./local-CI.sh` is the full CI mirror.
 
 ## Architecture
 
