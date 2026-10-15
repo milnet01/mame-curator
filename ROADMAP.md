@@ -1,5 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
+<!-- ants-roadmap-id-high-water: mame-curator=1134 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -1185,6 +1186,17 @@ wave lands.
   **Layman:** Several of the web app's building blocks have big new versions; this upgrades them one at a time, checking nothing breaks.
   Kind: chore.
   Source: in-session-2026-09-28 (mame-curator-1124).
+  Lanes: frontend.
+
+- 📋 [mame-curator-1134] **Vitest failed once in the pre-push gate, then passed twice.**
+  On 2026-10-15 the pre-push gate on commit 65257b3 (docs and a
+  comment only) failed at Vitest. A standalone `npx vitest run`
+  then passed all tests, and the retried push passed the whole gate.
+  The failing test is unknown: only the gate's last lines were kept.
+  Next time it fires, keep the full gate log and name the test.
+  **Layman:** The frontend tests failed once for no clear reason during a push, then passed on their own and on the retry; find the unreliable test.
+  Kind: investigate.
+  Source: in-session-2026-10-15.
   Lanes: frontend.
 
 ### 🧪 Test Audit 2026-05-20
