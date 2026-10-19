@@ -2957,6 +2957,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   rollback refuse while config.yaml carries keys the target lacks.
   User decision (2026-09-28): the loader drops keys it does not
   recognise, with a warning, rather than refusing the file.
+  2026-10-19 review-contract on the api/spec.md load_app_config bullet:
+  converged in 2 loops (docs/reviews/api-spec-loop-log.md, commits
+  cf932df, 6dab263). Open, with the user: `mame-curator serve` reads
+  `server:` itself through ServerConfig (extra="forbid"), so an unknown
+  key under `server:` still stops serve with ConfigError; the "rollback
+  still starts" claim fails for that block.
   **Layman:** Undoing an update could stop the app from starting if a newer setting was saved in the meantime.
   Kind: review-fix.
   Source: review-code-2026-09-28 mame-curator-1010 lane 1 (open question, settled by the orchestrator).
