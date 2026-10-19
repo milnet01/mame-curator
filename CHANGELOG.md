@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-19 Fixed — The app starts even when config.yaml holds settings it does not recognise (mame-curator-1131, mame-curator-1135)
+
+Rolling back an update could leave config.yaml with a setting the older
+version did not know, and the app then refused to start. It now skips
+unknown settings and logs a warning naming them. A config.yaml copied
+from config.example.yaml also failed to start, because its picker:
+section was refused; picker: settings now load as filter settings.
+
 ### 2026-09-28 Changed — Restoring a settings snapshot can be undone
 
 Settings → Snapshots now saves what a restore is about to replace

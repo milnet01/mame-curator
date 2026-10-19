@@ -9,14 +9,14 @@ import json
 import logging
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args
 
 import yaml
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from mame_curator.api.errors import ConfigError
 from mame_curator.api.fs import compose_allowlist
-from mame_curator.api.schemas import AppConfig, FsAllowedRoot
+from mame_curator.api.schemas import AppConfig, FsAllowedRoot, merge_picker_into_filters
 from mame_curator.filter import (
     FilterContext,
     FilterResult,
@@ -91,6 +91,16 @@ def load_app_config(config_path: Path) -> AppConfig:
         raise ConfigError(f"failed to parse {str(config_path)!r}: {exc!r}") from exc
     if not isinstance(raw, dict):
         raise ConfigError(f"{str(config_path)!r} must be a YAML mapping")
+    raw = merge_picker_into_filters(raw)
+    # mame-curator-1131: a rollback to older code can leave keys a newer
+    # version wrote. Drop them rather than refuse to start.
+    dropped = _drop_unknown_keys(AppConfig, raw, prefix="")
+    if dropped:
+        logger.warning(
+            "%r: ignoring keys this version does not recognise: %s",
+            str(config_path),
+            ", ".join(dropped),
+        )
     try:
         return AppConfig.model_validate(raw)
     except ValidationError as exc:
@@ -101,6 +111,29 @@ def load_app_config(config_path: Path) -> AppConfig:
             f"config validation failed: {exc!r}",
             fields=field_errors_from_pydantic(exc.errors()),
         ) from exc
+
+
+def _drop_unknown_keys(model: type[BaseModel], data: dict[str, Any], *, prefix: str) -> list[str]:
+    """Remove keys ``model`` has no field for, recursing into nested models.
+
+    Mutates ``data``; returns the dotted names of the keys removed. A value
+    that is not a mapping is left for validation to judge.
+    """
+    dropped: list[str] = []
+    for key in list(data):
+        field = model.model_fields.get(key) if isinstance(key, str) else None
+        if field is None:
+            dropped.append(f"{prefix}{key}")
+            del data[key]
+            continue
+        value = data[key]
+        candidates = (field.annotation, *get_args(field.annotation))
+        nested = next(
+            (t for t in candidates if isinstance(t, type) and issubclass(t, BaseModel)), None
+        )
+        if nested is not None and isinstance(value, dict):
+            dropped += _drop_unknown_keys(nested, value, prefix=f"{prefix}{key}.")
+    return dropped
 
 
 def ini_context_fields(

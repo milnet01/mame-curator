@@ -207,17 +207,24 @@ class AppConfigPatch(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _merge_picker_into_filters(cls, data: Any) -> Any:
-        """YAML alias: ``picker:`` keys merge into ``filters:`` (single FilterConfig)."""
         if not isinstance(data, dict):
             return data
-        picker = data.pop("picker", None) if isinstance(data.get("picker"), dict) else None
-        if picker is not None:
-            filters = data.get("filters") or {}
-            if not isinstance(filters, dict):
-                filters = {}
-            merged = {**filters, **picker}
-            data["filters"] = merged
-        return data
+        return merge_picker_into_filters(data)
+
+
+def merge_picker_into_filters(data: dict[str, Any]) -> dict[str, Any]:
+    """YAML alias: ``picker:`` keys merge into ``filters:`` (single FilterConfig).
+
+    Shared by ``AppConfigPatch`` and the startup loader (mame-curator-1135).
+    """
+    picker = data.pop("picker", None) if isinstance(data.get("picker"), dict) else None
+    if picker is not None:
+        filters = data.get("filters") or {}
+        if not isinstance(filters, dict):
+            filters = {}
+        merged = {**filters, **picker}
+        data["filters"] = merged
+    return data
 
 
 # ---------------------------------------------------------------------------

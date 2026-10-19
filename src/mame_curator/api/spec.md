@@ -76,6 +76,14 @@ readable at startup.
   (mame-curator-1095 § 4.2, INV-7 / INV-8). `GET /api/setup/check` reports
   the flag as `SetupCheck.setup_required`, the page's signal that an empty
   library is setup rather than a filter result.
+- **`load_app_config(config_path)`** — reads `config.yaml` for
+  `build_world`. It folds a top-level `picker:` section into `filters:`, as
+  `AppConfigPatch` does (mame-curator-1135). It then **drops keys
+  `AppConfig` has no field for**, at any depth, and logs one WARNING naming
+  them, so a rollback to older code still starts (mame-curator-1131). The
+  next Settings save writes the file without them. A bad
+  value for a known key still raises `ConfigError`. `PATCH /api/config` and
+  import still refuse unknown keys.
 - **`replace_world(*, base, ...)`** — builds a *new* world from `base` with
   selected fields swapped. It is the only mutation path. Recompute triggers:
   - `filter_result` is re-run **only** when `config`, `overrides`,

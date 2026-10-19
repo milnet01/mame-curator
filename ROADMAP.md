@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1134 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1135 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2988,6 +2988,22 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: feature.
   Source: user-request-2026-09-28.
   Lanes: docs, frontend.
+
+- 📋 [mame-curator-1135] **A config.yaml copied from config.example.yaml fails to load, because the loader refuses its picker: section.**
+  config.example.yaml says "Copy this file to config.yaml" and carries a
+  top-level picker: section. FilterConfig covers both filters: and picker:
+  (filter/spec.md), and AppConfigPatch folds picker: into filters:, but
+  load_app_config validates the raw mapping against AppConfig, which has
+  no picker field and is extra="forbid". So the startup load raises
+  ConfigError extra_forbidden on picker. Found while working
+  mame-curator-1131: once the loader drops unknown keys, picker: would be
+  discarded with a warning instead, losing the user's region priority.
+  Fix: fold picker: into filters: in the loader, before unknown keys are
+  dropped, sharing AppConfigPatch's merge.
+  **Layman:** Anyone who set the app up by copying the example settings file got an app that would not start.
+  Kind: fix.
+  Source: in-session-2026-10-19 (found working mame-curator-1131).
+  Lanes: api.
 
 ## Considered / under research (no target date)
 
