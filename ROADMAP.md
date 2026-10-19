@@ -2904,6 +2904,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   2026-10-19: Dependabot PR #1's CI ran today on ubuntu-latest, all 8
   jobs green. Not confirmed which image (24 or 26) that run used; check
   the next main run's 'Set up job' log for the image version.
+  2026-10-19 later: CI on e8a76cf was green on all 8 jobs, and its
+  ubuntu-latest "Set up job" log reads "Image: ubuntu-24.04", so the
+  move to 26 had not reached this repo yet. Re-check the image line on a
+  later run.
   **Layman:** GitHub is upgrading the Linux computers that test this app; after that date, check the tests still pass.
   Kind: chore.
   Source: in-session-2026-09-28 (CI annotations on run for b5d9ea9).
