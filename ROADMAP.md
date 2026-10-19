@@ -2582,6 +2582,14 @@ P14 (per-game review state).
   gains arcade games and a MAME short-name key; until then a source
   would return nothing, and ES-DE (mame-curator-1126) already covers the
   art RetroDB imports.
+  2026-10-02 RetroDB session answers: RetroDB holds no arcade games
+  today (its MAME/Arcade/FBNeo/CPS/Naomi/Atomiswave/Neo Geo systems are
+  empty; only Neo Geo CD has 40 discs). Media kinds: boxart, boxart_3d,
+  screenshots, fanart, video, manual; no marquee/cabinet/bezel/flyer.
+  Keyed by an internal games.id, no MAME short name. SQLite
+  database/roms.db, no outside-reader contract. Art is scraped
+  (ScreenScraper, RAWG, ES-DE, IGDB, TheGamesDB) with no licence
+  granted. Supports keeping 1127 parked.
   **Layman:** Your RetroDB game database can supply artwork too, so the app can pull pictures from it.
   Kind: feature.
   Source: user-request-2026-09-28.
@@ -2893,6 +2901,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   pin in the Version-break registry (coding-standards §8). The same run
   also had a Windows setup-uv "Unable to reserve cache" warning, a benign
   cache-write race between jobs; nothing to fix.
+  2026-10-19: Dependabot PR #1's CI ran today on ubuntu-latest, all 8
+  jobs green. Not confirmed which image (24 or 26) that run used; check
+  the next main run's 'Set up job' log for the image version.
   **Layman:** GitHub is upgrading the Linux computers that test this app; after that date, check the tests still pass.
   Kind: chore.
   Source: in-session-2026-09-28 (CI annotations on run for b5d9ea9).
@@ -2963,6 +2974,17 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   `server:` itself through ServerConfig (extra="forbid"), so an unknown
   key under `server:` still stops serve with ConfigError; the "rollback
   still starts" claim fails for that block.
+  2026-10-19: load_app_config side done in 7aede0a (drops unknown keys
+  at any depth, one WARNING;
+  tests/api/test_mame_curator_1131_unknown_config_keys.py). Still to do:
+  cli/commands/serve.py::_load_server_config validates server: with
+  ServerConfig (extra="forbid"), so it needs the same drop-with-warning,
+  a test, and a cli/spec.md amendment (its exit-1 path for a server:
+  block that fails validation). Recommended as the 2026-09-28 ruling
+  carried to the reader it missed; the alternative is narrowing the
+  api/spec.md claim. Also docs/standards/versioning-overrides.md §
+  Breaking surfaces item 1 names two config readers; serve's is a third.
+  Then check-code + review-code before flipping.
   **Layman:** Undoing an update could stop the app from starting if a newer setting was saved in the meantime.
   Kind: review-fix.
   Source: review-code-2026-09-28 mame-curator-1010 lane 1 (open question, settled by the orchestrator).
@@ -2990,6 +3012,14 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   (2026-09-28): a Sponsor badge at the top of README.md and a small
   "Support this project" link on Settings → About, both pointing at
   https://github.com/sponsors/milnet01. No feature is gated on donating.
+  2026-10-19: done in cc80b42 — AboutTab component
+  (frontend/src/components/settings/AboutTab.tsx) with the Sponsors
+  link, README Sponsor badge. Same commit adds the house-style
+  disclaimer the ants-projects-hub-website session asked for 2026-10-16
+  (About tab + README Disclaimer section), wording unchanged. Awaiting
+  check-code + review-code; after the release, message
+  ants-projects-hub-website with the version and that the wording is
+  unchanged.
   **Layman:** People who like the app can find the donation page from the README and from inside the app.
   Kind: feature.
   Source: user-request-2026-09-28.
@@ -3006,6 +3036,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   discarded with a warning instead, losing the user's region priority.
   Fix: fold picker: into filters: in the loader, before unknown keys are
   dropped, sharing AppConfigPatch's merge.
+  2026-10-19: fixed in 7aede0a (merge_picker_into_filters in
+  api/schemas.py, shared by AppConfigPatch and load_app_config).
+  Awaiting check-code + review-code with 1131/1133 before flipping.
   **Layman:** Anyone who set the app up by copying the example settings file got an app that would not start.
   Kind: fix.
   Source: in-session-2026-10-19 (found working mame-curator-1131).
