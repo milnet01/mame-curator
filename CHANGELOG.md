@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-19 Added — A support link and a disclaimer on Settings → About (mame-curator-1133)
+
+Settings → About now links to GitHub Sponsors, and the README carries a
+Sponsor badge. Donating is optional; no feature depends on it. Both also
+state that MAME Curator ships no ROM files and is not made by or
+affiliated with the MAME team.
+
 ### 2026-10-19 Fixed — The app starts even when config.yaml holds settings it does not recognise (mame-curator-1131, mame-curator-1135)
 
 Rolling back an update could leave config.yaml with a setting the older

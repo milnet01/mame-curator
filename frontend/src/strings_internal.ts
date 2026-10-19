@@ -381,6 +381,11 @@ export const strings = {
       backup: "Backup & restore",
       about: "About",
     },
+    about: {
+      disclaimer:
+        "MAME Curator does not include, distribute or host any ROM files, and we do not condone piracy. Only use ROMs you have the right to use; the law differs from country to country, so check yours. Game names and art belong to their owners. MAME Curator is not made by, affiliated with or endorsed by the MAME team or any game maker.",
+      support: "Support this project",
+    },
     filterLabels: {
       drop_bios_devices_mechanical: "Drop BIOS / device / mechanical",
       drop_japanese_only_text: "Drop Japanese-only text games",

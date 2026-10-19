@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { AboutTab } from "@/components/settings/AboutTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { FiltersTab } from "@/components/settings/FiltersTab";
 import { MediaTab } from "@/components/settings/MediaTab";
@@ -463,10 +464,8 @@ export function SettingsPage({
           />
         </TabsContent>
 
-        <TabsContent value="about" className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">
-            {strings.app.name} · {strings.app.tagline}
-          </p>
+        <TabsContent value="about">
+          <AboutTab />
         </TabsContent>
       </Tabs>
     </section>

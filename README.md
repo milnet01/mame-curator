@@ -3,6 +3,7 @@
 > Curate the best playable arcade games from a MAME ROM set, with a modern web UI.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2?logo=GitHub)](https://github.com/sponsors/milnet01)
 
 MAME Curator turns a ~43,000-machine MAME DAT (about 26,000 of those
 are arcade games after BIOS / device / non-arcade entries are dropped)
@@ -158,6 +159,14 @@ main.py    ← wires everything together
   listxml / BIOS-chain terminology.
 - [`docs/decisions/`](docs/decisions/) — ADRs for non-obvious choices.
 - [`docs/journal/`](docs/journal/) — per-phase shipping journals.
+
+## Disclaimer
+
+MAME Curator does not include, distribute or host any ROM files, and we
+do not condone piracy. Only use ROMs you have the right to use; the law
+differs from country to country, so check yours. Game names and art
+belong to their owners. MAME Curator is not made by, affiliated with or
+endorsed by the MAME team or any game maker.
 
 ## License
 
