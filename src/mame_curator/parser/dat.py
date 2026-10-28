@@ -121,7 +121,12 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
                 path=path,
             )
         with tempfile.TemporaryDirectory() as tmp:
-            extracted = zf.extract(member, path=tmp)
+            try:
+                extracted = zf.extract(member, path=tmp)
+            except zipfile.BadZipFile as exc:
+                # Central directory parsed fine but the member body is
+                # corrupt (bad CRC, truncated stream).
+                raise DATError(f"DAT zip member is corrupt: {exc}", path=path) from exc
             yield Path(extracted)
     finally:
         zf.close()

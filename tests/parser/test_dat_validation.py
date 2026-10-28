@@ -81,6 +81,22 @@ def test_corrupt_zip_raises_DATError_not_BadZipFile(tmp_path: Path) -> None:
         parse_dat(bad)
 
 
+def test_zip_member_with_bad_crc_raises_DATError(tmp_path: Path, mini_dat: Path) -> None:
+    """A zip whose central directory is valid but whose member data is
+    corrupt only fails at extraction time; that failure must still surface
+    as `DATError`, not a bare `zipfile.BadZipFile`."""
+    zpath = tmp_path / "badcrc.zip"
+    with zipfile.ZipFile(zpath, "w", compression=zipfile.ZIP_STORED) as zf:
+        zf.writestr("dat.xml", mini_dat.read_bytes())
+    raw = bytearray(zpath.read_bytes())
+    # Flip a byte inside the stored member body (just past the 30-byte
+    # local header + 7-byte filename) so the CRC check fails on read.
+    raw[40] ^= 0xFF
+    zpath.write_bytes(bytes(raw))
+    with pytest.raises(DATError, match="zip"):
+        parse_dat(zpath)
+
+
 def test_zip_slip_traversal_member_raises(tmp_path: Path, mini_dat: Path) -> None:
     """Per parser/spec.md G5: a .zip with a `..`-path member must raise DATError.
 
