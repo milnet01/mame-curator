@@ -3,7 +3,7 @@
 Each tiebreaker is a `cmp(a, b, ctx, cfg, parent) -> int` returning -1, 0, or +1
 per spec line 55. Comparators are evaluated in spec order; the first non-zero
 result decides the comparison. Composed via `functools.cmp_to_key` and used to
-sort the candidate list; the first element after sort is the winner.
+select the minimum of the candidate list, which is the winner.
 
 `explain_pick` walks the comparators against the winner's pairings to record
 which one actually made the decisive call.
@@ -163,7 +163,9 @@ def pick_winner(
 ) -> Machine:
     """Pick the highest-ranked candidate per the spec's tiebreaker chain."""
     chain = _compose_cmp(ctx, cfg, parent)
-    return sorted(candidates, key=functools.cmp_to_key(chain))[0]
+    # `min` is O(n) and returns the same element a stable sort would put
+    # first, so the full O(n log n) sort is unnecessary.
+    return min(candidates, key=functools.cmp_to_key(chain))
 
 
 def explain_pick(
