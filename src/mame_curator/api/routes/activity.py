@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections import deque
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
@@ -26,6 +26,8 @@ def get_activity(
     world: WorldState = Depends(get_world),
 ) -> ActivityPage:
     log_path = world.data_dir / "activity.jsonl"
+    since = _as_utc(since)
+    until = _as_utc(until)
     if not log_path.exists():
         return ActivityPage(items=(), page=page, page_size=page_size, total=0)
 
@@ -46,6 +48,8 @@ def get_activity(
             try:
                 obj = json.loads(line)
             except json.JSONDecodeError:
+                continue
+            if not isinstance(obj, dict):
                 continue
             if event_type and obj.get("event_type") != event_type:
                 continue
@@ -74,10 +78,17 @@ def get_activity(
     )
 
 
+def _as_utc(dt: datetime | None) -> datetime | None:
+    """Read a timezone-less query bound as UTC so it compares with log stamps."""
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
+
+
 def _parse_ts(raw: Any) -> datetime | None:
     if not isinstance(raw, str):
         return None
     try:
-        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        return _as_utc(datetime.fromisoformat(raw.replace("Z", "+00:00")))
     except ValueError:
         return None
