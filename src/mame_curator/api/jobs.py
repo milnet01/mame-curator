@@ -28,6 +28,7 @@ from mame_curator.api.errors import (
     PlaylistConflictCancelledError,
 )
 from mame_curator.api.schemas import JobEvent, JobStatus
+from mame_curator.api.schemas_copy import JobState
 from mame_curator.copy import (
     ConflictStrategy,
     CopyController,
@@ -72,7 +73,7 @@ class Job:
     bytes_total: int
     files_done: int = 0
     bytes_done: int = 0
-    state: str = "running"
+    state: JobState = "running"
     # FP09 Cluster R H1: split lifecycle vs progress storage. Lifecycle is
     # unbounded but small; progress is bounded with drop-oldest. See
     # `_replay_history()` for the merge.
@@ -307,10 +308,10 @@ class JobManager:
             raise JobNotFoundError("no active copy job")
         return self._current
 
-    def _status(self, job: Job, *, override_state: str | None = None) -> JobStatus:
+    def _status(self, job: Job, *, override_state: JobState | None = None) -> JobStatus:
         return JobStatus(
             job_id=job.id,
-            state=override_state or job.state,  # type: ignore[arg-type]
+            state=override_state or job.state,
             started_at=job.started_at,
             files_done=job.files_done,
             files_total=job.files_total,
