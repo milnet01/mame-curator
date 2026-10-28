@@ -43,12 +43,25 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _badges(short: str, world: WorldState) -> tuple[Badge, ...]:
+def _contested_parents(world: WorldState) -> frozenset[str]:
+    return frozenset(g.parent for g in world.filter_result.contested_groups)
+
+
+def _badges(
+    short: str, world: WorldState, contested_parents: frozenset[str] | None = None
+) -> tuple[Badge, ...]:
+    """Badges for ``short``.
+
+    Pass ``contested_parents`` when badging many games in one request so the
+    contested-group scan happens once instead of once per game.
+    """
+    if contested_parents is None:
+        contested_parents = _contested_parents(world)
     out: list[Badge] = []
-    fr = world.filter_result
-    if any(g.parent == _parent_of(short, world) for g in fr.contested_groups):
+    parent = _parent_of(short, world)
+    if parent in contested_parents:
         out.append(Badge.CONTESTED)
-    if _parent_of(short, world) in world.overrides.entries:
+    if parent in world.overrides.entries:
         out.append(Badge.OVERRIDDEN)
     if short in world.chd_required:
         out.append(Badge.CHD_MISSING)
@@ -73,7 +86,9 @@ def _parent_of(short: str, world: WorldState) -> str:
     return world.cloneof_map.get(short, short)
 
 
-def _card(machine: Machine, world: WorldState) -> GameCard:
+def _card(
+    machine: Machine, world: WorldState, contested_parents: frozenset[str] | None = None
+) -> GameCard:
     return GameCard(
         short_name=machine.name,
         description=machine.description,
@@ -81,7 +96,7 @@ def _card(machine: Machine, world: WorldState) -> GameCard:
         manufacturer=machine.manufacturer_raw,
         publisher=machine.publisher,
         developer=machine.developer,
-        badges=_badges(machine.name, world),
+        badges=_badges(machine.name, world, contested_parents),
     )
 
 
@@ -111,8 +126,9 @@ def list_games(
     is eligible), so folding it into run_filter would force a full re-filter
     per keypress (`world.filter_result` is cached at world-build cost).
     """
-    winners = list(world.filter_result.winners)
-    contested_parents = {g.parent for g in world.filter_result.contested_groups}
+    winners = world.filter_result.winners
+    contested_parents = _contested_parents(world)
+    q_lower = q.lower() if q else None
 
     # FP17: ``letter='#'`` selects the digits bucket (game names starting
     # with 0-9) since MAME has plenty of those (1942, 1943, 005, ...).
@@ -132,7 +148,11 @@ def list_games(
         m = world.machines.get(short)
         if m is None:
             return False
-        if q and q.lower() not in m.description.lower() and q.lower() not in short.lower():
+        if (
+            q_lower is not None
+            and q_lower not in m.description.lower()
+            and q_lower not in short.lower()
+        ):
             return False
         if genre is not None and world.ctx.category.get(short, "") != genre:
             return False
@@ -176,7 +196,9 @@ def list_games(
     total_bytes = sum(world.bytes_by_machine.get(s, 0) for s in filtered)
     start = (page - 1) * page_size
     end = start + page_size
-    page_items = tuple(_card(world.machines[s], world) for s in filtered[start:end])
+    page_items = tuple(
+        _card(world.machines[s], world, contested_parents) for s in filtered[start:end]
+    )
     return GamesPage(
         items=page_items,
         page=page,
@@ -342,7 +364,8 @@ def get_alternatives(name: str, world: WorldState = Depends(get_world)) -> Alter
         raise GameNotFoundError(f"game not found: {name!r}")
     parent = _parent_of(name, world)
     siblings = [m for m in world.machines.values() if _parent_of(m.name, world) == parent]
-    return Alternatives(items=tuple(_card(m, world) for m in siblings))
+    contested_parents = _contested_parents(world)
+    return Alternatives(items=tuple(_card(m, world, contested_parents) for m in siblings))
 
 
 @router.get("/api/games/{name}/explanation", response_model=Explanation)
@@ -415,7 +438,7 @@ def get_stats(world: WorldState = Depends(get_world)) -> Stats:
         by_driver_status[m.driver_status.value if m.driver_status else "unknown"] += 1
         # DS02 G2: use the precomputed cache.
         total_bytes += world.bytes_by_machine.get(short, 0)
-    top_publishers = dict(sorted(by_publisher.items(), key=lambda x: -x[1])[:10])
+    top_publishers = dict(by_publisher.most_common(10))
     return Stats(
         by_genre=dict(by_genre),
         by_decade=dict(by_decade),
