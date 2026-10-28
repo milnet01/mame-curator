@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from mame_curator.copy import read_lpl, write_lpl
+from mame_curator.copy.errors import PlaylistError
 from mame_curator.copy.types import PlaylistEntry
 
 
@@ -167,3 +170,18 @@ def test_lpl_utf8_round_trip_strict(tmp_path: Path) -> None:
     assert payload["items"][0]["label"] == label, (
         f"label round-trip mismatch: wrote {label!r}, read {payload['items'][0]['label']!r}"
     )
+
+
+def test_read_lpl_rejects_malformed_shapes_with_playlist_error(tmp_path: Path) -> None:
+    """A top-level non-object, or bytes that are not UTF-8, raise PlaylistError
+    (which run_copy turns into a warning) instead of AttributeError /
+    UnicodeDecodeError; non-object items are dropped."""
+    lpl = tmp_path / "mame.lpl"
+    lpl.write_text("[]", encoding="utf-8")
+    with pytest.raises(PlaylistError):
+        read_lpl(lpl)
+    lpl.write_bytes(b"\xff\xfe{")
+    with pytest.raises(PlaylistError):
+        read_lpl(lpl)
+    lpl.write_text(json.dumps({"items": [1, {"path": "/a/b.zip"}]}), encoding="utf-8")
+    assert read_lpl(lpl) == [{"path": "/a/b.zip"}]
