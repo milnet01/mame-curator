@@ -33,10 +33,13 @@ class JobAccepted(BaseModel):
     job_id: str
 
 
+JobState = Literal["running", "paused", "terminating", "finished", "aborted"]
+
+
 class JobStatus(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     job_id: str
-    state: Literal["running", "paused", "terminating", "finished", "aborted"]
+    state: JobState
     started_at: datetime
     files_done: int
     files_total: int
