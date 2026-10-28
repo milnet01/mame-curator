@@ -50,6 +50,9 @@ class Region(StrEnum):
     UNKNOWN = "Unknown"
 
 
+# Cached for the same reason as `revision_key_of` below: `_cmp_region`
+# calls this twice per comparison in the picker.
+@lru_cache(maxsize=8192)
 def region_of(description: str) -> Region:
     """Return the first recognized region tag in the description, or UNKNOWN."""
     match = REGION_RE.search(description)
