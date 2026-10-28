@@ -63,9 +63,13 @@ def read_lpl(playlist_path: Path) -> list[dict[str, str]]:
     try:
         raw = playlist_path.read_text(encoding="utf-8")
         parsed = json.loads(raw)
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError) as exc:
+        # ValueError covers JSONDecodeError and UnicodeDecodeError.
         raise PlaylistError(f"failed to parse playlist: {exc}", path=playlist_path) from exc
+    if not isinstance(parsed, dict):
+        raise PlaylistError("playlist is not a JSON object", path=playlist_path)
     items = parsed.get("items", [])
     if not isinstance(items, list):
         raise PlaylistError("playlist 'items' is not a list", path=playlist_path)
-    return items
+    # Callers read entries with `.get`; drop anything that is not an object.
+    return [it for it in items if isinstance(it, dict)]
