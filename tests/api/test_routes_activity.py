@@ -203,3 +203,18 @@ def test_activity_route_page2_slice_correct(client: Any, planted_50k_activity_lo
     assert indexes[-1] == 49_960, (
         f"FP27 B5 — page-2 oldest item index expected 49960, got {indexes[-1]}."
     )
+
+
+def test_activity_naive_since_and_non_object_lines_do_not_500(client: Any, tmp_path: Path) -> None:
+    """A timezone-less ``since``/``until`` is read as UTC (comparing it with
+    the log's aware timestamps used to raise TypeError), and a JSON line
+    that is not an object is skipped like a malformed one."""
+    activity_file = tmp_path / "data" / "activity.jsonl"
+    activity_file.parent.mkdir(parents=True, exist_ok=True)
+    good = {"timestamp": "2026-05-01T00:00:10Z", "event_type": "x", "summary": "s", "details": {}}
+    activity_file.write_text("[1, 2]\n42\n" + json.dumps(good) + "\n")
+
+    resp = client.get("/api/activity?since=2026-05-01T00:00:00&until=2026-05-02T00:00:00")
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 1
+    assert client.get("/api/activity?event_type=x").json()["total"] == 1
