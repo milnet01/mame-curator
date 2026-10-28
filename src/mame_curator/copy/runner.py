@@ -333,6 +333,7 @@ def run_copy(
 
         if plan.dry_run:
             # Pretend success without writing.
+            size = src.stat().st_size
             succeeded.append(
                 CopyOutcome(
                     short_name=short,
@@ -340,12 +341,12 @@ def run_copy(
                     status=CopyOutcomeStatus.SUCCEEDED,
                     src=src,
                     dst=dst,
-                    bytes=src.stat().st_size,
+                    bytes=size,
                 )
             )
-            bytes_copied += src.stat().st_size
+            bytes_copied += size
             if on_progress is not None:
-                on_progress(short, src.stat().st_size, src.stat().st_size)
+                on_progress(short, size, size)
             continue
 
         per_file_progress: Callable[[int, int], None] | None = (
@@ -391,7 +392,11 @@ def run_copy(
         and plan.delete_existing_zips
         and not plan.dry_run
     ):
+        # Idempotently skipped files are this run's files too (already
+        # present and current); recycling them would leave the new
+        # playlist pointing at missing zips.
         wrote = {o.dst.name for o in succeeded}
+        wrote |= {o.dst.name for o in skipped if o.status is CopyOutcomeStatus.SKIPPED_IDEMPOTENT}
         for existing in plan.dest_dir.glob("*.zip"):
             if existing.name in wrote:
                 continue

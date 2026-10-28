@@ -270,6 +270,27 @@ def test_overwrite_with_delete_existing_zips_recycles_old_zips(
     assert not (dest_dir / "old2.zip").exists()
 
 
+def test_overwrite_delete_existing_keeps_idempotently_skipped_zips(
+    source_dir: Path, dest_dir: Path, bios_chain: dict[str, BIOSChainEntry]
+) -> None:
+    """A rerun whose winners are already at dest (SKIPPED_IDEMPOTENT) must not
+    recycle them: they are this run's files and the playlist points at them."""
+    plan = CopyPlan(
+        winners=("kof94",),
+        machines={"kof94": _machine("kof94")},
+        bios_chain=bios_chain,
+        source_dir=source_dir,
+        dest_dir=dest_dir,
+        conflict_strategy=ConflictStrategy.OVERWRITE,
+        delete_existing_zips=True,
+    )
+    run_copy(plan)
+    report = run_copy(plan)
+    assert report.status is CopyReportStatus.OK
+    assert (dest_dir / "kof94.zip").exists()
+    assert "kof94.zip" not in {r.original_path.name for r in report.recycled}
+
+
 # --- Tier 3: errors __str__ round-trip ------------------------------------
 # DS04 T2.11: deleted `test_copy_error_str_renders_path_suffix` +
 # `test_copy_error_str_without_path` — both subsumed by
