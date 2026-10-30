@@ -425,7 +425,9 @@ EXPECTED_PYTEST_DECLARATIONS = 932
 # Library by keyboard and the group's small fixes. 477 → 496.
 # Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 3): +25 for an
 # honest and audible guide. 496 → 521.
-EXPECTED_VITEST_DECLARATIONS = 521
+# Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 4): +6 in
+# src/__tests__/App_route_failures.test.tsx. 521 → 527.
+EXPECTED_VITEST_DECLARATIONS = 527
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

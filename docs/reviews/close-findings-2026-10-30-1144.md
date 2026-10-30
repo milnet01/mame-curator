@@ -128,10 +128,28 @@ Group 3 run-level, 2026-10-30:
 
 | Finding | Sev | Verified | Disposition | Was → now |
 |---|---|---|---|---|
-| `App.tsx:384`: failed config load shows Loading forever | MEDIUM | | | |
-| `App.tsx:308`: failed help topic shows an empty pane | MEDIUM | | | |
-| `App.tsx:176`: session failures invisible | MEDIUM | | | |
-| LOW, lane 3: `App.tsx:89` | LOW | | | |
+| `App.tsx:384`: failed config load shows Loading forever | MEDIUM | yes, read; red run: no alert | fixed | `!config.data` meant loading → an error branch, as the sibling routes have, through a new `RouteLoadError`: `role="alert"`, a next step, and Try again. `loadFailed` keeps it on screen through a retry, as `LibraryPage` does, because a retry clears `isError` and would take focus with it. Red seen in `App_route_failures.test.tsx`; each part mutated; focus on a failed retry held in `route-failures.spec.ts`. |
+| `App.tsx:308`: failed help topic shows an empty pane | MEDIUM | yes, red run | fixed | `topic.error` dropped → `HelpPage` gains `topicError`, and the pane shows `RouteLoadError` with Try again. Red seen. |
+| `App.tsx:176`: session failures invisible | MEDIUM | yes, read; red run; `useSessions.ts` has no `onError` | fixed | Activate, Deactivate and Delete said nothing → a `role="alert"` line on the page, with what failed, why, and "Please try again.", cleared by the next attempt. Not `onError: toastApiError` as proposed: a toast has gone once a delete's dialog has closed. `queryClient.ts` unchanged: `useConfig`, `useUpdates`, `useAlternatives` and `useFs` toast at the hook, and the guide and copy controls show failures on the page, so a shared handler would show those twice. The Sessions and Help load failures gain `role="alert"` and Try again through `RouteLoadError`. Red seen. |
+| LOW, lane 3: `App.tsx:89` | LOW | yes, read: `:89`, `:95`, `:101`, `:107`, `:113`, `:119`, `:196`, `AppShell.tsx:178` | fixed | Literals → `strings.cmdK.goTo`, `strings.sessions.actions.delete`, `strings.cmdK.shortcutMac` and `shortcutOther`. No red run: nothing observable changes. |
+
+Group 4 run-level, 2026-10-30:
+
+- `cited_by`: searched as literal text in `docs`, `README.md` and `frontend/src`: `Go to Library`, `loadError`, `topicHtml`, `topicLoading`. Hits are in `swept`.
+- `swept`, asking of each fix whether it contradicts, breaks or makes stale:
+  - Spec 1144 §4.8's "Open Settings" route: agrees, and now has an answer when Settings fails.
+  - `docs/standards/coding-standards.md` §13 "No silent spinners": now true on these three routes.
+  - `src/__tests__/loading_announce.test.ts` reads `App.tsx` as text: green, the loading branches kept their markup.
+  - `queryClient.ts`'s comment on mutations: agrees, because the code there did not change.
+  - `docs/help`: says nothing on these failures, so agrees.
+  - `.claude/code-pairs.json`: absent.
+- `collateral`: none.
+- `surfaced`: none.
+- `out_of_scope`:
+  - The Activity and Stats load failures keep the old markup, with no `role="alert"` and no Try again.
+  - `LibraryErrorPanel`, the other Retry panel, uses plain `disabled`, which should drop focus on a failed retry: read, not run.
+  - `App.tsx` was already past the 350-line cap, and this adds to it.
+- `falsified`: none.
 
 ## Closed without a fix pass
 

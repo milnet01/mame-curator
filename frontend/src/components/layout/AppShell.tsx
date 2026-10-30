@@ -174,8 +174,8 @@ export function AppShell({
                   platform. */}
               {typeof navigator !== "undefined" &&
               /Mac|iPhone|iPad/i.test(navigator.platform)
-                ? "⌘K"
-                : "Ctrl+K"}
+                ? strings.cmdK.shortcutMac
+                : strings.cmdK.shortcutOther}
             </kbd>
           </Button>
         </div>

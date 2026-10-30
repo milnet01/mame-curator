@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-30 Fixed — Settings, Help and Sessions say when something fails
+
+This covers failures that used to show nothing or never end (mame-curator-1144).
+
+- **Settings no longer loads forever**
+  If your settings cannot load, the page says so and offers Try again. Sessions and Help now offer Try again too.
+
+- **A help page that cannot load says so**
+  It used to leave an empty pane.
+
+- **A failed session action says what went wrong**
+  Activate, Deactivate and Delete used to fail with no message. The message stays on the page until you try again.
+
 ### 2026-10-30 Fixed — The guide tells you what happened
 
 This covers the guide's steps, the Library's empty message and the help pages (mame-curator-1144).

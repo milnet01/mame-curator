@@ -15,6 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
+import { RouteLoadError } from "@/components/layout/RouteLoadError";
 import { CmdKPalette, type CmdKItem } from "@/components/CmdKPalette";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import {
@@ -37,7 +38,9 @@ import { useHelpIndex, useHelpTopic } from "@/hooks/useHelp";
 import { useCart } from "@/hooks/useCart";
 import { useKeyboard } from "@/hooks/useKeyboard";
 import { useSetupCheck } from "@/hooks/useSetupCheck";
+import { apiErrorMessage } from "@/lib/apiErrorToast";
 import { isGuideSeen } from "@/lib/guideState";
+import { loadFailed } from "@/lib/queryFailure";
 import { UpdateStartupToast } from "@/components/UpdateStartupToast";
 import {
   useIniApply,
@@ -86,37 +89,37 @@ const PALETTE_ITEMS: CmdKItem[] = [
   {
     id: "go-library",
     section: "actions",
-    label: "Go to Library",
+    label: strings.cmdK.goTo.library,
     value: "nav:/",
   },
   {
     id: "go-sessions",
     section: "actions",
-    label: "Go to Sessions",
+    label: strings.cmdK.goTo.sessions,
     value: "nav:/sessions",
   },
   {
     id: "go-activity",
     section: "actions",
-    label: "Go to Activity",
+    label: strings.cmdK.goTo.activity,
     value: "nav:/activity",
   },
   {
     id: "go-stats",
     section: "actions",
-    label: "Go to Stats",
+    label: strings.cmdK.goTo.stats,
     value: "nav:/stats",
   },
   {
     id: "go-settings",
     section: "actions",
-    label: "Go to Settings",
+    label: strings.cmdK.goTo.settings,
     value: "nav:/settings",
   },
   {
     id: "go-help",
     section: "actions",
-    label: "Go to Help",
+    label: strings.cmdK.goTo.help,
     value: "nav:/help",
   },
 ];
@@ -146,7 +149,29 @@ function SessionsRoute() {
   const deactivate = useSessionDeactivate();
   const del = useSessionDelete();
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
+  // Stays on the page, because a failed delete has already closed its dialog.
+  // Each attempt clears the last one's words.
+  const reportingAs = (words: string) => {
+    setActionError(null);
+    return {
+      onError: (err: unknown) =>
+        setActionError(
+          `${words} ${apiErrorMessage(err)} ${strings.common.tryAgain}`,
+        ),
+    };
+  };
+
+  if (loadFailed(sessions)) {
+    return (
+      <RouteLoadError
+        message={strings.sessions.loadError}
+        onRetry={() => void sessions.refetch()}
+        retrying={sessions.isFetching}
+      />
+    );
+  }
   if (sessions.isLoading) {
     return (
       <div
@@ -158,23 +183,34 @@ function SessionsRoute() {
       </div>
     );
   }
-  if (sessions.error) {
-    return (
-      <div className="p-4 text-sm text-destructive">
-        {strings.sessions.loadError}
-      </div>
-    );
-  }
 
   const data = sessions.data ?? { active: null, sessions: {} };
 
   return (
     <>
+      {actionError && (
+        <p
+          role="alert"
+          className="break-words px-4 pt-4 text-sm text-destructive"
+        >
+          {actionError}
+        </p>
+      )}
       <SessionsPage
         sessions={data.sessions}
         active={data.active}
-        onActivate={(name) => activate.mutate(name)}
-        onDeactivate={() => deactivate.mutate()}
+        onActivate={(name) =>
+          activate.mutate(
+            name,
+            reportingAs(strings.sessions.activateFailed(name)),
+          )
+        }
+        onDeactivate={() =>
+          deactivate.mutate(
+            undefined,
+            reportingAs(strings.sessions.deactivateFailed),
+          )
+        }
         onDelete={(name) => setPendingDelete(name)}
         onCreate={() => {
           toast.message(strings.sessions.newSessionHint);
@@ -193,10 +229,15 @@ function SessionsRoute() {
         actionLabel={
           pendingDelete
             ? strings.destructive.deleteSession(pendingDelete)
-            : "Delete"
+            : strings.sessions.actions.delete
         }
         onConfirm={() => {
-          if (pendingDelete) del.mutate(pendingDelete);
+          if (pendingDelete) {
+            del.mutate(
+              pendingDelete,
+              reportingAs(strings.sessions.deleteFailed(pendingDelete)),
+            );
+          }
         }}
       />
     </>
@@ -281,6 +322,15 @@ function HelpRoute() {
   const selectedSlug = searchParams.get("topic");
   const topic = useHelpTopic(selectedSlug);
 
+  if (loadFailed(index)) {
+    return (
+      <RouteLoadError
+        message={strings.help.loadError}
+        onRetry={() => void index.refetch()}
+        retrying={index.isFetching}
+      />
+    );
+  }
   if (index.isLoading) {
     return (
       <div
@@ -292,13 +342,6 @@ function HelpRoute() {
       </div>
     );
   }
-  if (index.error) {
-    return (
-      <div className="p-4 text-sm text-destructive">
-        {strings.help.loadError}
-      </div>
-    );
-  }
 
   const topics = index.data?.topics ?? [];
   return (
@@ -307,6 +350,9 @@ function HelpRoute() {
       selectedSlug={selectedSlug}
       topicHtml={topic.data?.html ?? ""}
       topicLoading={topic.isLoading}
+      topicError={loadFailed(topic)}
+      onRetryTopic={() => void topic.refetch()}
+      topicRetrying={topic.isFetching}
       onSelect={(slug) => {
         if (slug === null) setSearchParams({}, { replace: true });
         else setSearchParams({ topic: slug }, { replace: true });
@@ -381,6 +427,15 @@ function SettingsRoute() {
     }
   };
 
+  if (!config.data && loadFailed(config)) {
+    return (
+      <RouteLoadError
+        message={strings.settings.loadError}
+        onRetry={() => void config.refetch()}
+        retrying={config.isFetching}
+      />
+    );
+  }
   if (!config.data) {
     return (
       <div

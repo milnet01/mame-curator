@@ -63,6 +63,9 @@ export const strings = {
     // FP25-H: in-flight label for the Retry button while LibraryErrorPanel's
     // refetch is running — gates double-clicks and gives a visible signal.
     retrying: "Retrying…",
+    /** The way forward from a page that could not load. */
+    loadFailedHint: "Check that the app is still running, then try again.",
+    tryAgain: "Please try again.",
   },
 
   // DS02 B1 — route-level Suspense / data-fetch loading labels. Until
@@ -345,6 +348,9 @@ export const strings = {
     newSessionHint:
       'To create a session, configure filters in the library and click "Save as session".',
     loadError: "Could not load sessions.",
+    activateFailed: (name: string) => `"${name}" could not be activated.`,
+    deactivateFailed: "The session could not be deactivated.",
+    deleteFailed: (name: string) => `"${name}" could not be deleted.`,
   },
 
   activity: {
@@ -610,6 +616,7 @@ export const strings = {
     /** FP12 § I — Snapshots tab copy. */
     snapshotsTitle: "Saved snapshots",
     snapshotsLoading: "Loading snapshots…",
+    loadError: "Could not load your settings.",
     snapshotsLoadError: "Could not load snapshots.",
     /** FP20-J — generic fallback when ``restore.error`` is non-ApiError. */
     snapshotRestoreError: "Could not restore that snapshot.",
@@ -729,10 +736,21 @@ export const strings = {
     emptyHint: "No help pages were found in the docs/help folder.",
     loadingTopic: "Loading topic…",
     loadError: "Could not load help topics.",
+    topicLoadError: "Could not load this help page.",
   },
 
   cmdK: {
     placeholder: "Type a command, game, or setting…",
+    goTo: {
+      library: "Go to Library",
+      sessions: "Go to Sessions",
+      activity: "Go to Activity",
+      stats: "Go to Stats",
+      settings: "Go to Settings",
+      help: "Go to Help",
+    },
+    shortcutMac: "⌘K",
+    shortcutOther: "Ctrl+K",
     sections: {
       // FP27 A5: dropped 'games' + 'settings'. Zero production
       // producers ever populated those sections; only test fixtures

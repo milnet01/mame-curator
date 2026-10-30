@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import DOMPurify, { type Config } from "dompurify";
 
+import { RouteLoadError } from "@/components/layout/RouteLoadError";
 import { strings } from "@/strings";
 import { cn } from "@/lib/utils";
 import type { HelpTopic } from "@/api/types";
@@ -110,6 +111,10 @@ interface HelpPageProps {
   onSelect: (slug: string) => void;
   /** True while the topic body is being fetched. */
   topicLoading?: boolean;
+  /** The topic body could not be fetched. */
+  topicError?: boolean;
+  onRetryTopic?: () => void;
+  topicRetrying?: boolean;
 }
 
 export function HelpPage({
@@ -118,6 +123,9 @@ export function HelpPage({
   topicHtml,
   onSelect,
   topicLoading = false,
+  topicError = false,
+  onRetryTopic = () => {},
+  topicRetrying = false,
 }: HelpPageProps) {
   // P07 § D: closes FP11 § H4 security debt. DOMPurify strips <script>,
   // javascript: URLs, and on-* event handlers before the HTML reaches
@@ -177,7 +185,13 @@ export function HelpPage({
         aria-label={strings.a11y.helpContentLandmark}
         className="prose prose-sm max-w-none dark:prose-invert"
       >
-        {topicLoading ? (
+        {topicError ? (
+          <RouteLoadError
+            message={strings.help.topicLoadError}
+            onRetry={onRetryTopic}
+            retrying={topicRetrying}
+          />
+        ) : topicLoading ? (
           <p className="text-sm text-muted-foreground">
             {strings.help.loadingTopic}
           </p>
