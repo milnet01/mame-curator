@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1153 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1156 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3232,6 +3232,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 
 - 📋 [mame-curator-1149] **Choosing a version can report success and change nothing when the current pick is a clone.**
   AlternativesDrawer sends parent = winner.short_name. filter/runner.py ignores an override whose key is not a group parent and only adds a warning. The Library still toasts success and shows no warnings. Read from the code, not yet reproduced. mame-curator-1146 depends on this.
+  review-code 2026-10-30 reached the same defect: AlternativesDrawer.tsx
+  sends winner.short_name as the override's parent, and filter/runner.py
+  ignores a key that is not a group. Lane 3 settled that no API change
+  is needed: `parent` is already on the card (api/schemas_games.py,
+  api/types.ts). LibraryPage.tsx also shows success without reading the
+  response's warnings. Closed here, not separately. Text:
+  docs/reviews/review-code-2026-10-30-1144/lane-03-shell-text-size.md.
   **Layman:** Picking a different version of a game may say it worked while the old version stays.
   Kind: fix.
   Source: code-read-2026-10-30.
@@ -3280,6 +3287,29 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: review-contract-2026-10-30.
   Lanes: backend.
+
+- 📋 [mame-curator-1154] **The guide says games are already copied when they are on the drive but not in the playlist.**
+  Finding: CheckStep.tsx canStart hides Start when newGames is 0; runner.py skips write_lpl on a cancel, and _build_playlist_entries includes SKIPPED_IDEMPOTENT.
+  User decision 2026-10-30: offer Start for these games, and say they are on the drive but not in the playlist.
+  Changes INV-8 and §4.4 of docs/specs/mame-curator-1144-guided-library.md, so the amendment takes review-contract before the build. The dry run must report games absent from the playlist.
+  **Layman:** After a stopped copy kept its files, the guide hides Start for those games, so it can never add them to the playlist.
+  Kind: review-fix.
+  Source: review-code-2026-10-30-1144.
+  Lanes: frontend, api, tests.
+
+- 📋 [mame-curator-1155] **Grouped layout renders the same as masonry.**
+  Finding: LibraryGrid.tsx groupKey is never read; docs/design.md promises sections by genre. Needs a decision: build it, or remove the option and correct the document. Not fixed now because it needs that decision.
+  **Layman:** The Grouped layout choice does nothing different from the normal grid.
+  Kind: review-fix.
+  Source: review-code-2026-10-30-1144.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1156] **Walkthrough stays on in simple view with its switch hidden, and other small simple-view questions.**
+  From lane 2's open questions in docs/reviews/review-code-2026-10-30-1144/lane-02-library-page.md: walkthrough active in simple view with its toggle hidden; More/Fewer options dropping focus to the page body; typing a search showing Some filters are on (spec §4.7 requires it); handleSaveSession saving config genres against the help's your current focus. Lane 3: changing text size keeps the pixel scroll offset, so the user loses their place. No contract addresses these; not fixed now because each needs a decision.
+  **Layman:** A few small behaviours in simple view have no agreed answer yet.
+  Kind: review-fix.
+  Source: review-code-2026-10-30-1144.
+  Lanes: frontend.
 
 ## Considered / under research (no target date)
 
