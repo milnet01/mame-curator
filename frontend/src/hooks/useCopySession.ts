@@ -143,7 +143,11 @@ export function useCopySession() {
               };
             case "job_finished":
               closeStream();
-              return { ...prev, state: "finished" };
+              return {
+                ...prev,
+                state: "finished",
+                finishedStatus: msg.payload.status as string | undefined,
+              };
             case "job_aborted":
               closeStream();
               return { ...prev, state: "aborted" };

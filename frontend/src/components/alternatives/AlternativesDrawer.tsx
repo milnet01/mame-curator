@@ -93,7 +93,7 @@ function AlternativeRow({
             compact while still surfacing the visual cue. */}
         <div className="h-20 w-16 flex-shrink-0 overflow-hidden rounded bg-muted">
           {imgFailed ? (
-            <div className="flex h-full items-center justify-center px-1 text-center text-[10px] text-muted-foreground">
+            <div className="flex h-full items-center justify-center px-1 text-center text-[0.625rem] text-muted-foreground">
               {strings.library.placeholderFlyer}
             </div>
           ) : (

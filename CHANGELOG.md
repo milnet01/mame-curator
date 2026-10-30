@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-30 Added — A guide, larger text and a simpler Library
+
+The app now opens once on a guide: one question per screen, in large text, from choosing games to a finished copy. A Text size box sits on every page, and text starts larger than before. The Library starts simple, with search, games and the copy bar, and More options opens the full page. (mame-curator-1144)
+
 ### 2026-10-30 Fixed — An APPEND copy no longer wipes a playlist it cannot read
 
 If your game list is in an old format or damaged, the copy now stops before touching anything and says why. The list stays exactly as it was. (mame-curator-1152)

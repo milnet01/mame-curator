@@ -37,6 +37,7 @@ import { useHelpIndex, useHelpTopic } from "@/hooks/useHelp";
 import { useCart } from "@/hooks/useCart";
 import { useKeyboard } from "@/hooks/useKeyboard";
 import { useSetupCheck } from "@/hooks/useSetupCheck";
+import { isGuideSeen } from "@/lib/guideState";
 import { UpdateStartupToast } from "@/components/UpdateStartupToast";
 import {
   useIniApply,
@@ -69,9 +70,19 @@ const HelpPage = lazy(() =>
   import("@/pages/HelpPage").then((m) => ({ default: m.HelpPage })),
 );
 
+const GuidePage = lazy(() =>
+  import("@/pages/GuidePage").then((m) => ({ default: m.GuidePage })),
+);
+
 const queryClient = createAppQueryClient();
 
 const PALETTE_ITEMS: CmdKItem[] = [
+  {
+    id: "go-start-here",
+    section: "actions",
+    label: strings.guide.nav.goStartHere,
+    value: "nav:/start",
+  },
   {
     id: "go-library",
     section: "actions",
@@ -446,7 +457,7 @@ function SettingsRoute() {
   );
 }
 
-function ShellWithPalette() {
+export function ShellWithPalette() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   // FP24-C: cart-expanded state lives at the shell level so the AppShell's
   // Cart button can open the panel from any route, not just /.
@@ -455,6 +466,12 @@ function ShellWithPalette() {
   const cart = useCart();
   const navigate = useNavigate();
   const location = useLocation();
+  // mame-curator-1144: the guide opens by itself only on this load's first
+  // visit to /, so every later move to /, including leaving the guide, stays.
+  const [guideDue, setGuideDue] = useState(
+    () => location.pathname === "/" && !isGuideSeen(),
+  );
+  if (guideDue && location.pathname !== "/") setGuideDue(false);
 
   useKeyboard([
     {
@@ -540,13 +557,18 @@ function ShellWithPalette() {
               <Route
                 path="/"
                 element={
-                  <LibraryPage
-                    cart={cart}
-                    cartExpanded={cartExpanded}
-                    onCartExpandedChange={setCartExpanded}
-                  />
+                  guideDue ? (
+                    <Navigate to="/start" replace />
+                  ) : (
+                    <LibraryPage
+                      cart={cart}
+                      cartExpanded={cartExpanded}
+                      onCartExpandedChange={setCartExpanded}
+                    />
+                  )
                 }
               />
+              <Route path="/start" element={<GuidePage />} />
               <Route path="/sessions" element={<SessionsRoute />} />
               <Route path="/activity" element={<ActivityRoute />} />
               <Route path="/stats" element={<StatsRoute />} />

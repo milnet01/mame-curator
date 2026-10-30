@@ -102,9 +102,10 @@ def test_append_still_keeps_entries_of_a_readable_playlist(
     report = run_copy(_plan(source_dir, dest_dir, bios_chain), data_dir=tmp_path / "data")
 
     assert report.status is CopyReportStatus.OK
-    paths = [item["path"] for item in json.loads(playlist.read_text(encoding="utf-8"))["items"]]
-    assert "/roms/pacman.zip" in paths
-    assert any(path.endswith("kof94.zip") for path in paths)
+    # By file name: Windows writes this path back with backslashes.
+    items = json.loads(playlist.read_text(encoding="utf-8"))["items"]
+    names = {Path(item["path"]).name for item in items}
+    assert {"pacman.zip", "kof94.zip"} <= names
 
 
 def test_overwrite_still_replaces_an_unreadable_playlist(

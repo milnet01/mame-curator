@@ -27,6 +27,9 @@ test.beforeEach(async ({ context }) => {
   await context.clearCookies();
   await context.addInitScript(() => {
     localStorage.clear();
+    // mame-curator-1144: this suite tests the full Library, not the guide.
+    localStorage.setItem("mame-curator:guide-seen:v1", "true");
+    localStorage.setItem("mame-curator:library-view:v1", "full");
   });
 });
 

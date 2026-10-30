@@ -96,6 +96,8 @@ const DYNAMIC_ACCESS_PARENTS = new Set<string>([
   "settings.updateChannelOptions",
   // P14 — FiltersSidebar.tsx: `strings.library.reviewState[opt.labelKey]`
   "library.reviewState",
+  // AppShell.tsx: `strings.guide.textSize.options[size]`
+  "guide.textSize.options",
 ]);
 
 function isDynamicAllowlisted(leafPath: string): boolean {

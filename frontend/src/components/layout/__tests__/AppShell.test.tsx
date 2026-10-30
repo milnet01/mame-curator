@@ -3,6 +3,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { AppShell } from "@/components/layout/AppShell";
+import { DEFAULT_TEXT_SIZE, TEXT_SIZE_KEY } from "@/lib/textSize";
+import { strings } from "@/strings";
 
 function renderShell(
   props: Partial<React.ComponentProps<typeof AppShell>> = {},
@@ -55,6 +57,23 @@ describe("AppShell", () => {
     expect(library.getAttribute("aria-current")).toBe("page");
     const cart = screen.getByRole("button", { name: /cart/i });
     expect(cart.getAttribute("aria-current")).not.toBe("page");
+  });
+
+  // mame-curator-1144: the size is the user's to change on every page.
+  it("offers a labelled text size control that applies and remembers the size", async () => {
+    const user = userEvent.setup();
+    renderShell();
+    const control = screen.getByRole("combobox", {
+      name: strings.guide.textSize.label,
+    });
+    expect(control).toHaveValue(DEFAULT_TEXT_SIZE);
+
+    await user.selectOptions(control, "largest");
+
+    expect(localStorage.getItem(TEXT_SIZE_KEY)).toBe("largest");
+    expect(document.documentElement.style.fontSize).toBe("200%");
+    localStorage.clear();
+    document.documentElement.style.fontSize = "";
   });
 
   // DS02 C2 — the <main> landmark must carry an aria-label so screen

@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
 import type { LibraryFacets, ReviewStateFilter } from "@/api/types";
 
-const DEBOUNCE_MS = 200;
+export const DEBOUNCE_MS = 200;
 
 /** Year-range slider extents. Earliest MAME machine is 1971; max
  *  pulled from the user's stats / DAT (FP11 § D6) — until that wiring

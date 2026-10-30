@@ -1,10 +1,17 @@
-import { useCallback, useMemo, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { toast } from "sonner";
 import { GameCard } from "./GameCard";
 import { strings } from "@/strings";
 import { cn } from "@/lib/utils";
 import { useGameGridFocus } from "@/hooks/useGameGridFocus";
+import { rootFontScale, subscribeTextSize } from "@/lib/textSize";
 import type {
   CardsPerRowHint,
   GameCard as GameCardType,
@@ -85,7 +92,10 @@ export function LibraryGrid({
 }: LibraryGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const columns = resolveColumns(layout, cardsPerRowHint);
-  const { rowHeightPx } = LAYOUT_DEFAULTS[layout];
+  // mame-curator-1144: rows are fixed in pixels and their text is in rem, so
+  // they grow together or larger text is cut off by its row.
+  const fontScale = useSyncExternalStore(subscribeTextSize, rootFontScale);
+  const rowHeightPx = LAYOUT_DEFAULTS[layout].rowHeightPx * fontScale;
   const rowCount = Math.ceil(cards.length / columns);
 
   const virtualizer = useVirtualizer({
@@ -94,6 +104,10 @@ export function LibraryGrid({
     estimateSize: () => rowHeightPx,
     overscan: 4,
   });
+
+  useEffect(() => {
+    virtualizer.measure();
+  }, [virtualizer, rowHeightPx]);
 
   const rows = useMemo(() => {
     const out: GameCardType[][] = [];
@@ -224,7 +238,7 @@ export function LibraryGrid({
       aria-label={strings.library.gridLabel}
       tabIndex={-1}
       onKeyDown={onKeyDown}
-      className="h-full overflow-auto focus:outline-none"
+      className="h-full min-h-[60vh] shrink-0 overflow-auto focus:outline-none"
     >
       <div
         style={{

@@ -20,6 +20,19 @@ export default defineConfig({
   reporter: [["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:4173",
+    // mame-curator-1144: these suites test today's full Library, not the guide.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: "http://127.0.0.1:4173",
+          localStorage: [
+            { name: "mame-curator:guide-seen:v1", value: "true" },
+            { name: "mame-curator:library-view:v1", value: "full" },
+          ],
+        },
+      ],
+    },
     // DS04 T3.11: `on-first-retry` only captures a trace on the first
     // retry attempt of a failed test, halving the storage cost compared
     // to `retain-on-failure` (which captures on every retry — up to

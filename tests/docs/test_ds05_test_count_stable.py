@@ -412,7 +412,9 @@ EXPECTED_PYTEST_DECLARATIONS = 923
 # components/settings/__tests__/AboutTab.test.tsx. 372 → 374.
 # Bumped 2026-10-30 (review-code 2026-10-30 #4): +2 vitest in
 # components/settings/__tests__/AboutTab.test.tsx. 374 → 376.
-EXPECTED_VITEST_DECLARATIONS = 376
+# Bumped 2026-10-30 (mame-curator-1144): +48, for the guide, the text size
+# and the simple Library. 376 → 424.
+EXPECTED_VITEST_DECLARATIONS = 424
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

@@ -2617,7 +2617,7 @@ P14 (per-game review state).
   sources).
   User decision (2026-09-28): build it this round.
 
-- 📋 [mame-curator-1144] **Guide a new or partially sighted user through the Library instead of showing everything at once.**
+- 🚧 [mame-curator-1144] **Guide a new or partially sighted user through the Library instead of showing everything at once.**
   User, 2026-10-30, on the Library page: "I am lost. I don't know where
   to begin. That is why I asked for wizards to help me through it."
   No earlier request is on this roadmap. The Walkthrough mode checkbox
@@ -2644,6 +2644,10 @@ P14 (per-game review state).
   changed version on a repeat copy keeps both for now; fix
   mame-curator-1152 first. Deferred job_finished status finding folded
   into the spec. Build order: 1152, then this.
+  Built 2026-10-30. Still owed before done: the user's judgement of the
+  large text on the running app, then check-code and review-code.
+  review-code waits for that verdict, because the verdict may change the
+  layout.
   **Layman:** The Library page shows too much at once and gives no starting point. Add step-by-step guidance so a partially sighted user knows what to do first.
   Kind: accessibility.
   Source: user-2026-10-30.

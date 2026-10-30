@@ -17,8 +17,22 @@ run asks four questions:
 After that the app opens in your browser. Running the same script
 again later is safe; it skips the questions once `config.yaml` exists.
 
+## The guide
+
+The first time the app opens, it shows a guide. It asks one question per
+screen, in large text, and takes you from choosing games to a finished
+copy. Choose **Look around on my own** to leave it at any time, and
+**Start here** in the top menu to come back to it. A copy from the guide
+adds to your existing game list. It never changes your cart.
+
+## Text size
+
+The **Text size** box at the top of every page makes text larger or
+smaller. The app remembers your choice in this browser.
+
 ## Finding your way around
 
+- **Start here** — the guide.
 - **Library** — every game that passed your filters, one card each.
 - **Settings** — your folders, your filters and the app's options.
 - **Help** — these pages.

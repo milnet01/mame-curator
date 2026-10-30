@@ -25,7 +25,7 @@ export interface GamesQuery {
   reviewState?: ReviewStateFilter;
 }
 
-function toQueryString(q: GamesQuery): string {
+export function toQueryString(q: GamesQuery): string {
   // FP16 § A: backend (api/routes/games.py:60) accepts `q`, `year_min`,
   // `year_max` — the frontend was silently sending `search`, `year_from`,
   // `year_to`, so search + year-range filtering both no-op'd in production.

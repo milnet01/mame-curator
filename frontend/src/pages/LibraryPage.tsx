@@ -1,13 +1,13 @@
-import { Link } from "react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AlternativesDrawer } from "@/components/alternatives/AlternativesDrawer";
 import { LibraryErrorPanel } from "@/components/library/LibraryErrorPanel";
+import { LibraryFullHeader } from "@/components/library/LibraryFullHeader";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
-import { LayoutSwitcher } from "@/components/library/LayoutSwitcher";
 import { ListxmlBanner } from "@/components/library/ListxmlBanner";
-import { ThemeSwitcher } from "@/components/library/ThemeSwitcher";
 import { FiltersSidebar } from "@/components/library/FiltersSidebar";
 import { CartBar } from "@/components/library/CartBar";
+import { SimpleLibraryBar } from "@/components/library/SimpleLibraryBar";
 import { CartPanel } from "@/components/library/CartPanel";
 import { CopyModal } from "@/components/library/CopyModal";
 import { DryRunModal } from "@/components/library/DryRunModal";
@@ -17,8 +17,13 @@ import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
 import { type UseCartResult } from "@/hooks/useCart";
 import { toastApiError } from "@/lib/apiErrorToast";
+import {
+  readLibraryView,
+  writeLibraryView,
+  type LibraryView,
+} from "@/lib/libraryView";
 import { strings } from "@/strings";
-import { WALKTHROUGH_KEY } from "./libraryPageHelpers";
+import { DEFAULT_FILTERS } from "./libraryPageHelpers";
 import { useLibraryController } from "./useLibraryController";
 
 interface LibraryPageProps {
@@ -72,86 +77,84 @@ export function LibraryPage({
     handleLayout,
     handleTheme,
     handleTileSelect,
+    clearFilters,
     handleBulkAdd,
     handleDryRun,
     handleCopy,
     handleSaveSession,
   } = useLibraryController(cart);
 
+  // mame-curator-1144: the simple view shows search, games and the copy bar.
+  const [view, setView] = useState<LibraryView>(readLibraryView);
+  const changeView = (next: LibraryView) => {
+    setView(next);
+    writeLibraryView(next);
+  };
+  const simple = view === "simple";
+
   return (
-    <div className="grid h-full grid-cols-[16rem_1fr] grid-rows-[auto_1fr_auto]">
-      <aside
-        aria-label={strings.a11y.filtersLandmark}
-        className="row-span-2 overflow-y-auto"
-      >
-        <FiltersSidebar
-          value={filters}
-          onChange={setFilters}
-          onSaveSession={handleSaveSession}
-          facets={facets.data}
-        />
-      </aside>
-
-      <header className="flex items-center justify-end gap-2 border-b px-4 py-2">
-        <Link
-          to="/sessions"
-          className="rounded border bg-muted/50 px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
-          title={
-            activeSession
-              ? strings.library.activeSessionTitle(activeSession)
-              : strings.library.noActiveSessionTitle
+    <div
+      className={
+        simple
+          ? "grid h-full grid-cols-1 grid-rows-[auto_1fr_auto]"
+          : "grid h-full grid-cols-[16rem_1fr] grid-rows-[auto_1fr_auto]"
+      }
+    >
+      {simple ? (
+        <SimpleLibraryBar
+          search={filters.search}
+          onSearch={(search) => setFilters((prev) => ({ ...prev, search }))}
+          filtersOn={
+            JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS)
           }
-        >
-          {activeSession
-            ? strings.library.activeSessionPill(activeSession)
-            : strings.library.noActiveSessionPill}
-        </Link>
-        {/* P14 — progress chip + walkthrough toggle. */}
-        {(() => {
-          const totalSlice = cards.length;
-          const entries = reviewState.data?.entries ?? {};
-          const handled = cards.reduce(
-            (n, c) => n + (c.short_name in entries ? 1 : 0),
-            0,
-          );
-          const pct =
-            totalSlice === 0 ? "0" : ((handled / totalSlice) * 100).toFixed(1);
-          return (
-            <span
-              data-testid="library-progress-chip"
-              className="rounded border bg-muted/50 px-2 py-1 text-xs text-muted-foreground"
-            >
-              {strings.library.progressChip(handled, totalSlice, pct)}
-            </span>
-          );
-        })()}
-        <label className="flex items-center gap-1 rounded border bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            data-testid="library-walkthrough-toggle"
-            checked={walkthrough}
-            onChange={(e) => {
-              setWalkthrough(e.target.checked);
-              try {
-                localStorage.setItem(WALKTHROUGH_KEY, String(e.target.checked));
-              } catch {
-                /* localStorage unavailable; in-memory state still updates. */
-              }
-            }}
-          />
-          {strings.library.walkthroughToggle}
-        </label>
-        <LayoutSwitcher value={layout} onChange={handleLayout} />
-        <ThemeSwitcher value={theme} onChange={handleTheme} />
-      </header>
-
-      <div className="flex flex-col overflow-hidden">
-        <OnboardingBanner cartHasItems={cart.items.length > 0} />
-        <FeaturedTilesRow
-          counts={tileCounts}
-          activeTileId={activeTileId}
-          onTileSelect={handleTileSelect}
+          onClearFilters={clearFilters}
+          shown={cards.length}
+          total={total}
+          onMoreOptions={() => changeView("full")}
         />
+      ) : (
+        <aside
+          aria-label={strings.a11y.filtersLandmark}
+          className="row-span-2 overflow-y-auto"
+        >
+          <FiltersSidebar
+            value={filters}
+            onChange={setFilters}
+            onSaveSession={handleSaveSession}
+            facets={facets.data}
+          />
+        </aside>
+      )}
+
+      {!simple && (
+        <LibraryFullHeader
+          activeSession={activeSession}
+          cards={cards}
+          reviewEntries={reviewState.data?.entries ?? {}}
+          walkthrough={walkthrough}
+          onWalkthroughChange={setWalkthrough}
+          layout={layout}
+          onLayoutChange={handleLayout}
+          theme={theme}
+          onThemeChange={handleTheme}
+          onFewerOptions={() => changeView("simple")}
+        />
+      )}
+
+      {/* mame-curator-1144: this area scrolls, and the grid keeps a minimum
+          height, so at large text sizes the bars above cannot crush it to
+          nothing. */}
+      <div className="flex flex-col overflow-x-hidden overflow-y-auto">
+        {!simple && (
+          <>
+            <OnboardingBanner cartHasItems={cart.items.length > 0} />
+            <FeaturedTilesRow
+              counts={tileCounts}
+              activeTileId={activeTileId}
+              onTileSelect={handleTileSelect}
+            />
+          </>
+        )}
         <ListxmlBanner
           exists={setupCheck.data?.reference_files.listxml.exists}
           cloneofMapSize={setupCheck.data?.cloneof_map_size}
@@ -197,7 +200,7 @@ export function LibraryPage({
             ) : (
               <LibraryGrid
                 cards={cards}
-                layout={layout}
+                layout={simple ? "covers" : layout}
                 cardsPerRowHint={config.data?.ui.cards_per_row_hint}
                 isInCart={(s) => cart.has(s)}
                 onAdd={(s) => cart.add(s)}
@@ -328,7 +331,7 @@ export function LibraryPage({
         </ErrorBoundary>
       )}
 
-      <div className="col-span-2">
+      <div className={simple ? undefined : "col-span-2"}>
         <CartPanel
           open={cartExpanded}
           items={cart.items}

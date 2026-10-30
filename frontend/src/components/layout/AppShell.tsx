@@ -1,9 +1,10 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
 import {
   Activity,
   BarChart,
   BookOpen,
+  Compass,
   Layers,
   MoreHorizontal,
   Search,
@@ -18,6 +19,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import {
+  TEXT_SIZES,
+  readTextSize,
+  setTextSize,
+  type TextSize,
+} from "@/lib/textSize";
 import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
 
@@ -36,6 +43,7 @@ interface NavItem {
 }
 
 const PRIMARY: NavItem[] = [
+  { to: "/start", label: strings.guide.nav.startHere, icon: Compass },
   { to: "/", label: strings.nav.library, icon: Layers, end: true },
   { to: "/settings", label: strings.nav.settings, icon: Settings },
   { to: "/help", label: strings.nav.help, icon: BookOpen },
@@ -57,6 +65,7 @@ export function AppShell({
   onCmdK,
   onOpenCart,
 }: AppShellProps) {
+  const [textSize, setTextSizeState] = useState<TextSize>(readTextSize);
   return (
     <div className="grid h-screen grid-rows-[auto_1fr] bg-background text-foreground">
       {/* DS02 C1 — WCAG skip-link. Visually hidden by default; revealed
@@ -68,9 +77,9 @@ export function AppShell({
       >
         {strings.a11y.skipToMain}
       </a>
-      <header className="flex items-center gap-4 border-b px-4 py-2">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-2">
         <h1 className="text-lg font-semibold">{strings.app.name}</h1>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex flex-wrap items-center gap-1 text-sm">
           {PRIMARY.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -128,7 +137,25 @@ export function AppShell({
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
-        <div className="ml-auto">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 text-sm">
+            {strings.guide.textSize.label}
+            <select
+              value={textSize}
+              onChange={(e) => {
+                const next = e.target.value as TextSize;
+                setTextSizeState(next);
+                setTextSize(next);
+              }}
+              className="rounded border bg-background px-2 py-1"
+            >
+              {(Object.keys(TEXT_SIZES) as TextSize[]).map((size) => (
+                <option key={size} value={size}>
+                  {strings.guide.textSize.options[size]}
+                </option>
+              ))}
+            </select>
+          </label>
           <Button
             variant="outline"
             size="sm"
@@ -139,7 +166,7 @@ export function AppShell({
             <span className="text-xs text-muted-foreground">
               {strings.nav.commandPalette}
             </span>
-            <kbd className="ml-auto rounded border bg-muted px-1 py-0.5 text-[10px] font-mono">
+            <kbd className="ml-auto rounded border bg-muted px-1 py-0.5 text-[0.625rem] font-mono">
               {/* FP24-II: useKeyboard's `meta:true` matches Cmd on macOS,
                   Ctrl on Windows, Super on Linux. The kbd label adapts so
                   Linux/Windows users see "Ctrl+K" instead of the macOS

@@ -8,6 +8,7 @@
  * keep asserting against the rendered tree's shape.
  */
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useQueries } from "@tanstack/react-query";
 import { type FilterSidebarState } from "@/components/library/FiltersSidebar";
@@ -44,14 +45,30 @@ import type {
 import {
   DEFAULT_FILTERS,
   fetchTileCount,
+  filtersForGuideSelection,
+  filtersForTile,
+  readGuideSelection,
   readWalkthroughPref,
 } from "./libraryPageHelpers";
 
 export function useLibraryController(cart: UseCartResult) {
-  const [filters, setFilters] = useState<FilterSidebarState>(DEFAULT_FILTERS);
+  // mame-curator-1144: a selection from the guide's "Look through them first"
+  // applies once, as the first state of a freshly mounted page.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [guideSelection] = useState(() => readGuideSelection(location.state));
+  const [filters, setFilters] = useState<FilterSidebarState>(() =>
+    filtersForGuideSelection(guideSelection),
+  );
   const [openedShortName, setOpenedShortName] = useState<string | null>(null);
   const [dryRunReport, setDryRunReport] = useState<DryRunReport | null>(null);
-  const [activeTileId, setActiveTileId] = useState<string | null>(null);
+  const [activeTileId, setActiveTileId] = useState<string | null>(
+    guideSelection?.kind === "tile" ? guideSelection.id : null,
+  );
+  // Off the history entry, so a reload starts clean.
+  useEffect(() => {
+    if (guideSelection) navigate(".", { replace: true, state: null });
+  }, [guideSelection, navigate]);
   // P14 — walkthrough toggle (default on; persisted to localStorage).
   const [walkthrough, setWalkthrough] = useState<boolean>(() =>
     readWalkthroughPref(),
@@ -163,16 +180,12 @@ export function useLibraryController(cart: UseCartResult) {
       return;
     }
     setActiveTileId(tileId);
-    setFilters((prev) => ({
-      ...prev,
-      publisher: tile.query.publisher ?? null,
-      developer: tile.query.developer ?? null,
-      genre: tile.query.genre ?? null,
-      yearRange: [
-        tile.query.yearFrom ?? DEFAULT_FILTERS.yearRange[0],
-        tile.query.yearTo ?? DEFAULT_FILTERS.yearRange[1],
-      ],
-    }));
+    setFilters((prev) => filtersForTile(tile, prev));
+  };
+
+  const clearFilters = () => {
+    setActiveTileId(null);
+    setFilters(DEFAULT_FILTERS);
   };
 
   // FP24-M + S: handleBulkAdd promises "Add all N" where N is the
@@ -346,6 +359,7 @@ export function useLibraryController(cart: UseCartResult) {
     handleLayout,
     handleTheme,
     handleTileSelect,
+    clearFilters,
     handleBulkAdd,
     handleDryRun,
     handleCopy,

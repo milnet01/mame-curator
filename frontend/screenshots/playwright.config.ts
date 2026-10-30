@@ -30,6 +30,20 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:4173",
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
+    // mame-curator-1144: keep these shots of the full page, at a fixed size.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: "http://127.0.0.1:4173",
+          localStorage: [
+            { name: "mame-curator:guide-seen:v1", value: "true" },
+            { name: "mame-curator:library-view:v1", value: "full" },
+            { name: "mame-curator:text-size:v1", value: "normal" },
+          ],
+        },
+      ],
+    },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [

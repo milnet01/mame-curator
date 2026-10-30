@@ -53,6 +53,15 @@ export function _resetApiErrorToastDedupForTests(): void {
   lastSeen.clear();
 }
 
+/** The words `toastApiError` would show, for a failure shown on the page. */
+export function apiErrorMessage(err: unknown): string {
+  if (!(err instanceof ApiError)) return strings.errors.genericTitle;
+  if (err.code === "network") return strings.errors.networkBody;
+  const friendly =
+    strings.errors.byCode[err.code as keyof typeof strings.errors.byCode];
+  return friendly ?? err.detail;
+}
+
 export function toastApiError(err: unknown): void {
   if (err instanceof ApiError) {
     if (err.code === "network") {

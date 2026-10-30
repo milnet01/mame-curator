@@ -7,6 +7,7 @@
 import type { FilterSidebarState } from "@/components/library/FiltersSidebar";
 import { apiRequest } from "@/api/client";
 import { GamesPageSchema, type GamesPage } from "@/api/types";
+import type { GuideSelection } from "@/lib/fetchGameNames";
 import { strings } from "@/strings";
 
 export const DEFAULT_FILTERS: FilterSidebarState = {
@@ -22,6 +23,45 @@ export const DEFAULT_FILTERS: FilterSidebarState = {
   onlyBiosMissing: false,
   reviewState: "all",
 };
+
+/** The filters a featured tile owns; everything else in `prev` stays put. */
+export function filtersForTile(
+  tile: (typeof strings.library.featured.tiles)[number],
+  prev: FilterSidebarState,
+): FilterSidebarState {
+  return {
+    ...prev,
+    publisher: tile.query.publisher ?? null,
+    developer: tile.query.developer ?? null,
+    genre: tile.query.genre ?? null,
+    yearRange: [
+      tile.query.yearFrom ?? DEFAULT_FILTERS.yearRange[0],
+      tile.query.yearTo ?? DEFAULT_FILTERS.yearRange[1],
+    ],
+  };
+}
+
+/** mame-curator-1144: the selection "Look through them first" sent, if any. */
+export function readGuideSelection(state: unknown): GuideSelection | null {
+  const sent = (state as { guideSelection?: GuideSelection } | null)
+    ?.guideSelection;
+  return sent ?? null;
+}
+
+export function filtersForGuideSelection(
+  selection: GuideSelection | null,
+): FilterSidebarState {
+  if (selection?.kind === "genre") {
+    return { ...DEFAULT_FILTERS, genre: selection.genre };
+  }
+  if (selection?.kind === "tile") {
+    const tile = strings.library.featured.tiles.find(
+      (t) => t.id === selection.id,
+    );
+    if (tile) return filtersForTile(tile, DEFAULT_FILTERS);
+  }
+  return DEFAULT_FILTERS;
+}
 
 // P14 — walkthrough-mode toggle persists across reloads.
 export const WALKTHROUGH_KEY = "mame-curator:walkthrough-mode";

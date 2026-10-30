@@ -1,5 +1,13 @@
 # Choosing your games
 
+## The simple and full Library
+
+The Library starts simple: a search box, your games and the copy bar.
+**More options** opens the full page, with its filters, featured groups,
+layouts and themes. **Fewer options** goes back, and the app remembers
+which you chose. If filters from the full page are still on, the simple
+page says so and offers **Clear filters**.
+
 ## What gets dropped
 
 Before a game reaches the library, the filters remove what isn't a

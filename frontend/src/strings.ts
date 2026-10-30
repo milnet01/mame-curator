@@ -10,9 +10,9 @@
  * i18n work (a future `strings.<lang>.ts` swap touches only
  * `strings_internal.ts`).
  */
+import { guideStrings } from "./strings_guide";
+import { strings as catalogue } from "./strings_internal";
 
-export {
-  strings,
-  type FeaturedTile,
-  type FeaturedTileQuery,
-} from "./strings_internal";
+export const strings = { ...catalogue, guide: guideStrings };
+
+export { type FeaturedTile, type FeaturedTileQuery } from "./strings_internal";

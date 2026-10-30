@@ -23,6 +23,7 @@ import { MemoryRouter } from "react-router";
 
 import { http, HttpResponse } from "@/test/handlers";
 import type { UseCartResult } from "@/hooks/useCart";
+import { LIBRARY_VIEW_KEY } from "@/lib/libraryView";
 import { config as appConfig } from "./_settingsPageFixtures";
 
 /** A cart with nothing in it and every mutator a stable no-op. */
@@ -143,6 +144,11 @@ export function renderLibraryPageTree(
   options?: RenderOptions & { initialPath?: string },
 ) {
   const { initialPath = "/", ...rtlOptions } = options ?? {};
+  // mame-curator-1144: simple is the default view; these tests are of today's
+  // full page unless a test has chosen a view itself.
+  if (localStorage.getItem(LIBRARY_VIEW_KEY) === null) {
+    localStorage.setItem(LIBRARY_VIEW_KEY, "full");
+  }
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return rtlRender(
     <QueryClientProvider client={qc}>

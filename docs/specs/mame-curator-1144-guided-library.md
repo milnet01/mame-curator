@@ -101,7 +101,7 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 
 N and X come from `GET /api/games` `total` and `total_bytes`. A guide query sends only the selection's own filters: a tile's year bounds where the tile's `query` names them, and no year filter otherwise. The Library's default year range never applies, so undated games are included (mame-curator-1150 is the Library's version of this).
 
-**Look through them first** navigates to `/` with the selection in router state. `useLibraryController` applies it once: a tile through `handleTileSelect`, a genre by setting `filters.genre`, and everything by leaving `DEFAULT_FILTERS`. Add all needs an active tile, so only the tile path offers it. The Library still applies its default year range (mame-curator-1150) and shows one page of 200, so it can list fewer than the guide's N. The guide ends there.
+**Look through them first** navigates to `/` with the selection in router state. `useLibraryController` applies it once, as the first state of the freshly mounted page: a tile through `filtersForTile`, which `handleTileSelect` also uses, a genre by setting `filters.genre`, and everything by leaving `DEFAULT_FILTERS`. It then clears the route state, so a reload starts clean. Add all needs an active tile, so only the tile path offers it. The Library still applies its default year range (mame-curator-1150) and shows one page of 200, so it can list fewer than the guide's N. The guide ends there.
 
 **Choose another folder** saves through `useConfigPatch` with `{ paths: { ...config.paths, dest_roms } }`, as `updatePaths` in `SettingsPage` does, then invalidates `["setup", "check"]` and the config query. A save failure stays on the step and shows the API's message.
 
@@ -150,6 +150,7 @@ export function applyTextSize(): void; // sets document.documentElement.style.fo
 - The size lives in `localStorage`, not `UiConfig`, because `config` loads after first paint.
 - `AppShell` gains a labelled "Text size" control, reachable on every page. An unknown stored value falls back to the default.
 - `LibraryGrid` multiplies `rowHeightPx` by the root size over 16, and the virtualizer re-measures when the size changes.
+- The grid keeps a minimum height of `60vh`, and the area holding it scrolls. Without this, at the largest size the bars above it crush it to nothing.
 - The `text-[10px]` uses in `AppShell` and the drawer placeholder become rem values. `h-[300px]` stays unless the review of this page shows it clips.
 
 ### 4.7 The simple Library
