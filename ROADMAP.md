@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1135 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1136 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3047,6 +3047,19 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: in-session-2026-10-19 (found working mame-curator-1131).
   Lanes: api.
+
+- 📋 [mame-curator-1136] **Record trailer footage and notes for the website's YouTube trailer.**
+  The ants-projects-hub-website session asked on 2026-10-10 for raw
+  footage of released features; it builds the trailer itself. Brief:
+  ~/.local/share/claude-handoff/ants-projects-hub-website-trailers-2026-10-10.md
+  (shared; do not delete). Deliver clips and notes.md to
+  /mnt/Games/Trailers/incoming/mame-curator/, then message
+  ants-projects-hub-website. Only features in a published release, and
+  demo data only. Record after the next release, so the About-tab
+  disclaimer (mame-curator-1133) can appear on screen.
+  **Layman:** A short video advert for the app on YouTube and the website.
+  Kind: marketing.
+  Source: ants-projects-hub-website message, 2026-10-10.
 
 ## Considered / under research (no target date)
 
