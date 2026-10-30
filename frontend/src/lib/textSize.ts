@@ -43,8 +43,18 @@ export function setTextSize(size: TextSize): void {
 }
 
 export function subscribeTextSize(onChange: () => void): () => void {
+  // "storage" fires only for a change made in another tab.
+  const onStorage = (e: StorageEvent) => {
+    if (e.key !== TEXT_SIZE_KEY) return;
+    applyTextSize();
+    onChange();
+  };
   window.addEventListener(CHANGE_EVENT, onChange);
-  return () => window.removeEventListener(CHANGE_EVENT, onChange);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, onChange);
+    window.removeEventListener("storage", onStorage);
+  };
 }
 
 /** The root font size over 16, which is what rem-based content scaled by. */

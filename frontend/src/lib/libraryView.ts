@@ -20,6 +20,6 @@ export function writeLibraryView(view: LibraryView): void {
   try {
     localStorage.setItem(LIBRARY_VIEW_KEY, view);
   } catch {
-    /* localStorage unavailable; the choice lasts until the page closes. */
+    /* localStorage unavailable; the choice lasts until the Library is left. */
   }
 }

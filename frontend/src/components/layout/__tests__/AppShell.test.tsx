@@ -24,6 +24,12 @@ function renderShell(
 }
 
 describe("AppShell", () => {
+  it("shows the app name without taking the page's one top-level heading", () => {
+    renderShell();
+    expect(screen.getByText(strings.app.name)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+  });
+
   // FP24-C: the Cart entry in the navbar must NOT be a NavLink to "/" —
   // when it was, both Library and Cart highlighted simultaneously on
   // home and clicking re-navigated home with no panel toggle. The Cart

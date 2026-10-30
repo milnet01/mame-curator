@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router";
 import {
   Sheet,
@@ -84,7 +84,8 @@ function AlternativeRow({
       data-highlighted={highlighted || undefined}
       className={cn(
         isWinner && "border-primary",
-        highlighted && "ring-2 ring-ring",
+        // Inset: the panel scrolls, and would clip a ring drawn outside the row.
+        highlighted && "ring-[0.25rem] ring-inset ring-ring",
       )}
     >
       <CardContent className="flex items-center gap-3 p-3">
@@ -162,6 +163,18 @@ export function AlternativesDrawer({
 
   // P14 — highlight + R/S/? on drawer rows. Independent of grid focus.
   const [highlightedRowIndex, setHighlightedRowIndex] = useState(0);
+  const rowsRef = useRef<HTMLUListElement>(null);
+  // Radix returns focus only to a trigger, and this panel has none, so a
+  // keyboard user would be left at the top of the page when it closes.
+  const [opener] = useState(() => document.activeElement);
+  const moveHighlight = (delta: number) => {
+    const next = Math.max(
+      0,
+      Math.min(alternatives.length - 1, highlightedRowIndex + delta),
+    );
+    setHighlightedRowIndex(next);
+    rowsRef.current?.children[next]?.scrollIntoView({ block: "nearest" });
+  };
 
   useKeyboard(
     open && !onlyOne
@@ -170,16 +183,14 @@ export function AlternativesDrawer({
             combo: "ArrowDown",
             handler: (e) => {
               e.preventDefault();
-              setHighlightedRowIndex((prev) =>
-                Math.max(0, Math.min(alternatives.length - 1, prev + 1)),
-              );
+              moveHighlight(1);
             },
           },
           {
             combo: "ArrowUp",
             handler: (e) => {
               e.preventDefault();
-              setHighlightedRowIndex((prev) => Math.max(0, prev - 1));
+              moveHighlight(-1);
             },
           },
           ...(["r", "s", "?"] as const).map((key) => ({
@@ -206,7 +217,12 @@ export function AlternativesDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex w-full max-w-md flex-col gap-4"
+        // Scrolls as one: at large text the rows, About and Launch cannot fit.
+        className="flex w-full max-w-md flex-col gap-4 overflow-y-auto"
+        onCloseAutoFocus={(e) => {
+          e.preventDefault();
+          if (opener instanceof HTMLElement) opener.focus();
+        }}
       >
         <SheetHeader>
           <SheetTitle>{strings.alternatives.drawerTitle}</SheetTitle>
@@ -241,7 +257,7 @@ export function AlternativesDrawer({
         <AboutSection shortName={winner.short_name} />
 
         {!onlyOne && (
-          <ul className="flex flex-col gap-2">
+          <ul ref={rowsRef} className="flex flex-col gap-2">
             {alternatives.map((alt, idx) => (
               <li key={alt.short_name}>
                 <AlternativeRow

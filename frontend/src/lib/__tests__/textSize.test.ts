@@ -2,7 +2,7 @@
  * mame-curator-1144 INV-9 — the stored text size is applied before first
  * paint, every size scales rem text, and an unknown value gives the default.
  */
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import mainSource from "@/main.tsx?raw";
 import {
   DEFAULT_TEXT_SIZE,
@@ -12,6 +12,7 @@ import {
   readTextSize,
   rootFontScale,
   setTextSize,
+  subscribeTextSize,
 } from "../textSize";
 
 afterEach(() => {
@@ -20,6 +21,24 @@ afterEach(() => {
 });
 
 describe("textSize", () => {
+  it("follows a size chosen in another tab, and ignores other keys", () => {
+    const onChange = vi.fn();
+    const unsubscribe = subscribeTextSize(onChange);
+    localStorage.setItem(TEXT_SIZE_KEY, "largest");
+
+    window.dispatchEvent(new StorageEvent("storage", { key: "other" }));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(document.documentElement.style.fontSize).toBe("");
+
+    window.dispatchEvent(new StorageEvent("storage", { key: TEXT_SIZE_KEY }));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.style.fontSize).toBe("200%");
+
+    unsubscribe();
+    window.dispatchEvent(new StorageEvent("storage", { key: TEXT_SIZE_KEY }));
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
   it("defaults to large, which is bigger than the browser's own size", () => {
     expect(DEFAULT_TEXT_SIZE).toBe("large");
     applyTextSize();

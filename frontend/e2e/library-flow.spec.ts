@@ -14,8 +14,8 @@ import { expect, test } from "@playwright/test";
 test("top-nav navigates between primary routes", async ({ page }) => {
   await page.goto("/");
 
-  // App heading + Library link visible in the new horizontal header.
-  await expect(page.locator("header h1")).toHaveText("MAME Curator");
+  // App name + Library link visible in the new horizontal header.
+  await expect(page.locator("header").getByText("MAME Curator")).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Library", exact: true }),
   ).toBeVisible();

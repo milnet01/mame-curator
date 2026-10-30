@@ -33,14 +33,20 @@ export function SimpleLibraryBar({
   const [draft, setDraft] = useState(search);
   // The box follows filters.search, so Clear filters empties it.
   const [lastSearch, setLastSearch] = useState(search);
+  // Except for a search this box sent itself: more may be typed by the time
+  // it comes back.
+  const [sent, setSent] = useState(search);
   if (search !== lastSearch) {
     setLastSearch(search);
-    setDraft(search);
+    if (search !== sent) setDraft(search);
   }
 
   useEffect(() => {
     if (draft === search) return;
-    const id = setTimeout(() => onSearch(draft), DEBOUNCE_MS);
+    const id = setTimeout(() => {
+      setSent(draft);
+      onSearch(draft);
+    }, DEBOUNCE_MS);
     return () => clearTimeout(id);
     // Same shape as FiltersSidebar's debounce: only a new draft re-arms it.
     // eslint-disable-next-line react-hooks/exhaustive-deps

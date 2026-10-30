@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { useKeyboard } from "../useKeyboard";
@@ -16,6 +16,24 @@ describe("useKeyboard", () => {
     render(<Probe bindings={[{ combo: "/", handler }]} />);
     await user.keyboard("/");
     expect(handler).toHaveBeenCalled();
+  });
+
+  it.each([
+    ["Ctrl", { ctrlKey: true }],
+    ["Cmd", { metaKey: true }],
+    ["Alt", { altKey: true }],
+  ])("leaves %s plus a plain binding's key to the browser", (_name, init) => {
+    const handler = vi.fn();
+    render(<Probe bindings={[{ combo: "r", handler }]} />);
+    fireEvent.keyDown(document.body, { key: "r", ...init });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("still fires a meta binding with Ctrl held", () => {
+    const handler = vi.fn();
+    render(<Probe bindings={[{ combo: "k", meta: true, handler }]} />);
+    fireEvent.keyDown(document.body, { key: "k", ctrlKey: true });
+    expect(handler).toHaveBeenCalledTimes(1);
   });
 
   it("fires a chord binding only after both keys arrive", async () => {

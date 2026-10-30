@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Virtualizer } from "@tanstack/react-virtual";
 
 import type { GameCard as GameCardType, StateView } from "@/api/types";
@@ -19,15 +19,20 @@ import type { GameCard as GameCardType, StateView } from "@/api/types";
  *  - `setActive(idx)` — exported clamped setter for jump-to-index cases
  *    like the walkthrough's "next pending" advance.
  *
- * Existing FP21-T behaviour preserved verbatim: `activeIndex` clamps when
+ * Existing FP21-T behaviour preserved: `activeIndex` clamps when
  * `cards.length` shrinks, `move(delta)` updates and scrolls the
  * virtualizer to the new row.
+ *
+ * mame-curator-1144: `move` and `setActive` also move real focus to the card,
+ * and `noteFocus(idx)` follows focus that arrived by Tab or a click, so the
+ * keys always act on the game that has focus.
  */
 export interface UseGameGridFocusResult {
   activeIndex: number;
   move: (delta: number) => void;
   setActive: (idx: number) => void;
   focusNextPending: (startIndex: number) => number | null;
+  noteFocus: (idx: number) => void;
 }
 
 export function useGameGridFocus(
@@ -38,6 +43,21 @@ export function useGameGridFocus(
 ): UseGameGridFocusResult {
   const [activeIndex, setActiveIndex] = useState(0);
   const cardsLen = cards.length;
+  const focusPending = useRef(false);
+
+  // No dependency list: a far-off card's row is drawn only after the scroll
+  // that follows the move, so this keeps trying until the card exists.
+  useEffect(() => {
+    if (!focusPending.current) return;
+    const card = virtualizer.scrollElement?.querySelector<HTMLElement>(
+      '[data-active] [role="button"]',
+    );
+    if (card) {
+      focusPending.current = false;
+      // The virtualizer has already scrolled, and aligns the row better.
+      card.focus({ preventScroll: true });
+    }
+  });
 
   // Clamp activeIndex when `cards` shrinks (filter change, pagination).
   // Effect-set is intentional here: the derive-in-render alternative
@@ -51,24 +71,12 @@ export function useGameGridFocus(
     }
   }, [activeIndex, cardsLen]);
 
-  const move = useCallback(
-    (delta: number) => {
-      setActiveIndex((prev) => {
-        const next = Math.max(0, Math.min(cardsLen - 1, prev + delta));
-        if (next !== prev) {
-          virtualizer.scrollToIndex(Math.floor(next / columns), {
-            align: "auto",
-          });
-        }
-        return next;
-      });
-    },
-    [cardsLen, columns, virtualizer],
-  );
-
   const setActive = useCallback(
     (idx: number) => {
       const clamped = Math.max(0, Math.min(cardsLen - 1, idx));
+      // Only a real move re-renders; a flag left up with no render to clear
+      // it would pull focus back into the grid at some later render.
+      if (clamped !== activeIndex) focusPending.current = true;
       setActiveIndex(clamped);
       if (cardsLen > 0) {
         virtualizer.scrollToIndex(Math.floor(clamped / columns), {
@@ -76,7 +84,12 @@ export function useGameGridFocus(
         });
       }
     },
-    [cardsLen, columns, virtualizer],
+    [activeIndex, cardsLen, columns, virtualizer],
+  );
+
+  const move = useCallback(
+    (delta: number) => setActive(activeIndex + delta),
+    [activeIndex, setActive],
   );
 
   const focusNextPending = useCallback(
@@ -91,5 +104,11 @@ export function useGameGridFocus(
     [cards, reviewState],
   );
 
-  return { activeIndex, move, setActive, focusNextPending };
+  return {
+    activeIndex,
+    move,
+    setActive,
+    focusNextPending,
+    noteFocus: setActiveIndex,
+  };
 }

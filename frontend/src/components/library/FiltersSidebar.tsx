@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,6 +91,11 @@ export function FiltersSidebar({
   const [searchDraft, setSearchDraft] = useState(value.search);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [sessionName, setSessionName] = useState("");
+  // The debounce must add the search to the filters as they are when it fires.
+  const latestValue = useRef(value);
+  useEffect(() => {
+    latestValue.current = value;
+  });
 
   // FP11 § D7: canonical debounce — single useEffect, single timer,
   // single cleanup. The prior implementation used a useRef + manual
@@ -99,7 +104,7 @@ export function FiltersSidebar({
   useEffect(() => {
     if (searchDraft === value.search) return;
     const id = setTimeout(() => {
-      onChange({ ...value, search: searchDraft });
+      onChange({ ...latestValue.current, search: searchDraft });
     }, DEBOUNCE_MS);
     return () => clearTimeout(id);
     // Watching only `searchDraft` is intentional — the parent `value`

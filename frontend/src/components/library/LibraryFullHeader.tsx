@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { LayoutSwitcher } from "@/components/library/LayoutSwitcher";
 import { ThemeSwitcher } from "@/components/library/ThemeSwitcher";
+import { Switch } from "@/components/ui/switch";
 import { WALKTHROUGH_KEY } from "@/pages/libraryPageHelpers";
 import { strings } from "@/strings";
 import type { GameCard, LayoutName, ThemeName } from "@/api/types";
@@ -72,14 +73,13 @@ export function LibraryFullHeader({
         );
       })()}
       <label className="flex items-center gap-1 rounded border bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
-        <input
-          type="checkbox"
+        <Switch
           data-testid="library-walkthrough-toggle"
           checked={walkthrough}
-          onChange={(e) => {
-            onWalkthroughChange(e.target.checked);
+          onCheckedChange={(checked) => {
+            onWalkthroughChange(checked);
             try {
-              localStorage.setItem(WALKTHROUGH_KEY, String(e.target.checked));
+              localStorage.setItem(WALKTHROUGH_KEY, String(checked));
             } catch {
               /* localStorage unavailable; in-memory state still updates. */
             }

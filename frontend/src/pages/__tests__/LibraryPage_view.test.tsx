@@ -93,6 +93,33 @@ describe("LibraryPage views", () => {
     );
   });
 
+  it.each(["simple", "full"] as const)(
+    "the %s Library names itself in one top-level heading",
+    async (view) => {
+      serveGames();
+      renderPage(view);
+      await screen.findByTestId("library-grid");
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+        strings.nav.library,
+      );
+    },
+  );
+
+  it("full view's walkthrough preference is a Switch, and it still works", async () => {
+    const user = userEvent.setup();
+    serveGames();
+    renderPage("full");
+    const toggle = await screen.findByTestId("library-walkthrough-toggle");
+    expect(toggle).toHaveAttribute("role", "switch");
+    expect(toggle).toHaveAccessibleName(strings.library.walkthroughToggle);
+    const before = toggle.getAttribute("aria-checked");
+    await user.click(toggle);
+    expect(toggle.getAttribute("aria-checked")).not.toBe(before);
+    expect(localStorage.getItem("mame-curator:walkthrough-mode")).toBe(
+      String(before !== "true"),
+    );
+  });
+
   it("INV-11: simple view shows covers whatever the configured layout is", async () => {
     serveGames();
     renderPage("simple");

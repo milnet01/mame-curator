@@ -419,7 +419,9 @@ EXPECTED_PYTEST_DECLARATIONS = 927
 # Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 1): +54 for copy
 # honesty, -1 for CopyModal's conflict banner, which could never show.
 # 424 → 477.
-EXPECTED_VITEST_DECLARATIONS = 477
+# Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 2): +19 for the
+# Library by keyboard and the group's small fixes. 477 → 496.
+EXPECTED_VITEST_DECLARATIONS = 496
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

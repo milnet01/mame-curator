@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AlternativesDrawer } from "@/components/alternatives/AlternativesDrawer";
 import { LibraryErrorPanel } from "@/components/library/LibraryErrorPanel";
@@ -22,6 +22,7 @@ import {
   writeLibraryView,
   type LibraryView,
 } from "@/lib/libraryView";
+import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
 import { DEFAULT_FILTERS } from "./libraryPageHelpers";
 import { useLibraryController } from "./useLibraryController";
@@ -92,14 +93,25 @@ export function LibraryPage({
   };
   const simple = view === "simple";
 
+  // Opening the cart can push the bar below the fold, because the games keep
+  // their height. This keeps the bar, and the button just pressed, in place.
+  const cartRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (cartExpanded) cartRef.current?.scrollIntoView({ block: "end" });
+  }, [cartExpanded]);
+
   return (
     <div
-      className={
-        simple
-          ? "grid h-full grid-cols-1 grid-rows-[auto_1fr_auto]"
-          : "grid h-full grid-cols-[16rem_1fr] grid-rows-[auto_1fr_auto]"
-      }
+      className={cn(
+        "grid h-full",
+        simple ? "grid-cols-1" : "grid-cols-[16rem_1fr]",
+        // An open cart must not squeeze the games to nothing; #main scrolls.
+        cartExpanded
+          ? "grid-rows-[auto_minmax(60vh,1fr)_auto]"
+          : "grid-rows-[auto_1fr_auto]",
+      )}
     >
+      <h1 className="sr-only">{strings.nav.library}</h1>
       {simple ? (
         <SimpleLibraryBar
           search={filters.search}
@@ -331,7 +343,7 @@ export function LibraryPage({
         </ErrorBoundary>
       )}
 
-      <div className={simple ? undefined : "col-span-2"}>
+      <div ref={cartRef} className={simple ? undefined : "col-span-2"}>
         <CartPanel
           open={cartExpanded}
           items={cart.items}

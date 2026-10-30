@@ -326,7 +326,10 @@ export function useLibraryController(cart: UseCartResult) {
   }, [cart.isStorageBroken]);
 
   const handleSaveSession = (name: string) => {
-    if (!config.data) return;
+    if (!config.data) {
+      toast.error(strings.library.sessionNotSaved);
+      return;
+    }
     const session: Session = {
       include_year_range: filters.yearRange,
       include_genres: config.data.filters.preferred_genres,

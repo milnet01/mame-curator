@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { FiltersSidebar } from "../FiltersSidebar";
@@ -49,6 +49,38 @@ describe("FiltersSidebar", () => {
     } finally {
       // try/finally so a mid-test assertion failure doesn't leak fake timers
       // into the next test in the file.
+      vi.useRealTimers();
+    }
+  });
+
+  it("a search landing after a filter change keeps that filter", () => {
+    vi.useFakeTimers();
+    try {
+      const onChange = vi.fn();
+      const { rerender } = render(
+        <FiltersSidebar
+          value={baseFiltersValue}
+          onChange={onChange}
+          onSaveSession={() => {}}
+        />,
+      );
+      fireEvent.change(screen.getByRole("searchbox"), {
+        target: { value: "pac" },
+      });
+      // A switch flipped inside the debounce: the parent's value moves on.
+      const flipped = { ...baseFiltersValue, onlyContested: true };
+      rerender(
+        <FiltersSidebar
+          value={flipped}
+          onChange={onChange}
+          onSaveSession={() => {}}
+        />,
+      );
+      act(() => {
+        vi.advanceTimersByTime(250);
+      });
+      expect(onChange).toHaveBeenLastCalledWith({ ...flipped, search: "pac" });
+    } finally {
       vi.useRealTimers();
     }
   });

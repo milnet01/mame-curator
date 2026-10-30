@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import type { ReactElement } from "react";
@@ -228,6 +228,59 @@ describe("AlternativesDrawer", () => {
     expect(
       screen.getByRole("button", { name: /Launch in RetroArch/i }),
     ).toBeDisabled();
+  });
+
+  // mame-curator-1144 review: the browser half, that the panel really scrolls,
+  // is in frontend/e2e/library-keyboard.spec.ts.
+  it("brings the highlighted row into view as the arrows move it", async () => {
+    const user = userEvent.setup();
+    const scrolled: Array<Element | null> = [];
+    const spy = vi
+      .spyOn(HTMLElement.prototype, "scrollIntoView")
+      .mockImplementation(function (this: HTMLElement) {
+        scrolled.push(this.closest("li"));
+      });
+    renderWithRouter(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={winner}
+        alternatives={[winner, ...clones]}
+        onOverride={() => {}}
+      />,
+    );
+    const rowOf = (text: string) => screen.getByText(text).closest("li");
+    scrolled.length = 0;
+    await user.keyboard("{ArrowDown}");
+    expect(scrolled).toContain(rowOf("Pac-Man (fast hack)"));
+    await user.keyboard("{ArrowUp}");
+    expect(scrolled).toContain(rowOf("Pac-Man"));
+    spy.mockRestore();
+  });
+
+  it("gives focus back to what opened it when it closes", async () => {
+    const opener = document.createElement("button");
+    document.body.append(opener);
+    opener.focus();
+    const props = {
+      onOpenChange: () => {},
+      winner,
+      alternatives: [winner, ...clones],
+      onOverride: () => {},
+    };
+    const qc = new QueryClient();
+    const tree = (open: boolean) => (
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <AlternativesDrawer {...props} open={open} />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(true));
+    await waitFor(() => expect(opener).not.toHaveFocus());
+    rerender(tree(false));
+    await waitFor(() => expect(opener).toHaveFocus());
+    opener.remove();
   });
 
   // review-code 2026-09-28 (lane 02) — the 1107 error state.

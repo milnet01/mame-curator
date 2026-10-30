@@ -17,6 +17,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-30 Fixed — The Library now works by keyboard alone
+
+This covers the game cards, the versions panel and the cart (mame-curator-1144).
+
+- **Arrow keys now move between games**
+  A thick coloured ring shows which game you are on. Tab goes from that game to its Add button, then on past the games.
+
+- **Enter opens the game you are on**
+  It used to open the first game, or the last one the arrows reached. Esc from the versions panel brings you back to that game.
+
+- **Enter or Space on Add adds the game**
+  It used to open the game instead.
+
+- **Ctrl+R, Ctrl+S and similar keys are left alone**
+  Ctrl+R reloads the page again, and no longer marks a game as reviewed. This holds in the versions panel too.
+
+- **The versions panel scrolls**
+  At large text sizes, lower versions and the Launch button used to sit off the screen. The highlighted row now stays in view, with a thicker ring.
+
+- **An open cart no longer hides the games**
+  At the largest text size the games area shrank to nothing. It now keeps its height, and the page scrolls to reach everything. With the cart closed, nothing moves.
+
+- **Smaller fixes**
+  Typing a search no longer undoes a filter you changed at the same moment, or loses letters you just typed. Saving a session before settings load now says it did not save. A second tab follows a text size chosen in the first. The walkthrough option is now an on/off switch.
+
 ### 2026-10-30 Fixed — The app now tells the truth about a copy
 
 This covers the guide and the Library's copy window (mame-curator-1144).

@@ -229,6 +229,27 @@ describe("GameCard", () => {
 });
 
 describe("GameCard +Add", () => {
+  it.each(["{Enter}", " "])(
+    "%s on Add adds the game and does not open it",
+    async (key) => {
+      const user = userEvent.setup();
+      const onOpen = vi.fn();
+      const onAdd = vi.fn();
+      render(
+        <GameCard
+          card={baseCard}
+          inCart={false}
+          onOpen={onOpen}
+          onAdd={onAdd}
+        />,
+      );
+      screen.getByRole("button", { name: /add .*pac-man/i }).focus();
+      await user.keyboard(key);
+      expect(onAdd).toHaveBeenCalledWith("pacman");
+      expect(onOpen).not.toHaveBeenCalled();
+    },
+  );
+
   it("renders an Add button when not in cart", () => {
     render(
       <GameCard

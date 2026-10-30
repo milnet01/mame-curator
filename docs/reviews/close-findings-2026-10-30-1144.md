@@ -54,15 +54,38 @@ Group 1 run-level, 2026-10-30:
 
 | Finding | Sev | Verified | Disposition | Was → now |
 |---|---|---|---|---|
-| `GameCard.tsx` `handleKeyDown`: Enter on Add opens the drawer | HIGH | | | |
-| `LibraryGrid.tsx:278`: active card invisible, arrows never move focus | HIGH | | | |
-| `LibraryGrid.tsx:163`: Enter opens the wrong game | HIGH | | | |
-| `LibraryGrid.tsx:170`: modifier keys not checked | HIGH → MEDIUM | | | |
-| `AlternativesDrawer.tsx:209`: drawer cannot scroll | HIGH | | | |
-| `LibraryPage.tsx:99`: open cart at 200% may hide the games (measure first) | MEDIUM | | | |
+| `GameCard.tsx` `handleKeyDown`: Enter on Add opens the drawer | HIGH | yes, read; red run showed `onAdd` never called, for Enter and Space | fixed | Wrapper took every key that bubbled → acts only when the key was pressed on the card itself, and the grid's Enter does the same, so the Add button's own click runs. Red seen in `GameCard.test.tsx`, `LibraryGrid_keyboard.test.tsx`, `library-keyboard.spec.ts`. |
+| `LibraryGrid.tsx:278`: active card invisible, arrows never move focus | HIGH | yes, read; red run showed focus stayed put | fixed | Nothing moved → arrows, Home, End and walkthrough move real focus; a `:focus-visible` ring, thick and in rem, on the card and on Add; one Tab stop per card; the active row stays drawn when scrolled away. The remedy `focused={isActive}` was not used: it paints a ring on the first card at page load, with no focus there. Red seen in vitest and Playwright; ring read from the computed style and seen in a screenshot. |
+| `LibraryGrid.tsx:163`: Enter opens the wrong game | HIGH | yes, red run: opened twice, and R marked the first card after a click on another | fixed | `activeIndex` never followed focus → the cell's `onFocus` sets it, so Enter, R, S and ? act on the game with focus. Red seen. |
+| `LibraryGrid.tsx:170`: modifier keys not checked | HIGH → MEDIUM | yes, red run: default prevented, state written | fixed | Any modifier ran the key → Ctrl, Cmd or Alt returns early. `useKeyboard` had the same defect for the drawer's R, S and ?, so its plain bindings now skip those too. Red seen. |
+| `AlternativesDrawer.tsx:209`: drawer cannot scroll | HIGH | yes, Playwright at 1280x800, 200%: highlighted row at viewport ratio 0 | fixed | No overflow → the whole panel scrolls; arrows bring the highlighted row into view. The whole panel, not the remedy's row list alone: at 200% the About text and Launch take the height the list would need. Highlight ring is inset, because the panel now clips an outer ring. Closing returns focus to what opened it: Radix returns it only to a trigger, and P14 says it returns. What it sends is unchanged. Red seen, except the inset ring: visual, checked by screenshot. |
+| `LibraryPage.tsx:99`: open cart at 200% may hide the games (measure first) | MEDIUM | yes, measured in Chromium, 1280x800, 200%, games area height: cart closed 273px simple, 283px full; cart open **0px** in both views, with 6 or 40 cart rows | fixed: a bug, and it touches the no-layout-changes ruling | Games unreachable → with the cart open only, the middle row is `minmax(60vh,1fr)`, measured against a floor of 480px, and `#main` scrolls; opening scrolls the cart bar into view, so the button pressed stays on screen. Cart closed: unchanged, and a test holds `#main` unscrolled. Red seen: 0px. |
 | `LibraryGrid.tsx:94`: columns do not follow text size | MEDIUM | settled | dismissed: user ruling 2026-10-30, no layout changes | |
-| LOW, lane 2: `FiltersSidebar.tsx:102`, `LibraryFullHeader.tsx:76`, `useLibraryController.ts:312`, `libraryView.ts:23`, `SimpleLibraryBar.tsx:38` | LOW | | | |
-| LOW, lane 3: `AppShell.tsx:81`, `textSize.ts:46`, `guideState.ts:11` | LOW | | | |
+| LOW, lane 2: `FiltersSidebar.tsx:102`, `LibraryFullHeader.tsx:76`, `useLibraryController.ts:312`, `libraryView.ts:23`, `SimpleLibraryBar.tsx:38` | LOW | yes, each read; `:38` reproduced at the props level, not by real typing | fixed, four and most of the fifth; part of `:38` dismissed | `:102` stale `value` → the debounce reads the latest. `:76` checkbox → `Switch`, as the standard and P14 ask. `:312` silent return → error toast. `:23` comment corrected, no red run: nothing observable changes. `:38` a returning search overwrote newer typing → a search this box sent itself no longer resets it. Dismissed part of `:38`: a view switch within the debounce drops the pending text. The box visibly empties, and retyping loses nothing else. Red seen for the rest. |
+| LOW, lane 3: `AppShell.tsx:81`, `textSize.ts:46`, `guideState.ts:11` | LOW | yes, each read; `:81` measured: 2 `h1`s on a guide step | fixed, all three | `:81` `h1` → `p`, same look. The remedy alone would leave the Library with no `h1`, so it gains a screen-reader `h1`. `:46` adds a `storage` listener that applies the size. `:11` the in-memory flag is checked first. Red seen for each. |
+
+Group 2 run-level, 2026-10-30:
+
+- `cited_by`: searched as literal text in `docs/help`, spec 1144, P14, `docs/design.md`, `README.md`, `src/mame_curator`, `tests/docs`: `roving`, `tabIndex`, `useGameGridFocus`, `focused`, `focus ring`, `walkthrough-toggle`, `ring-ring`, `header h1`, `isGuideSeen`, `subscribeTextSize`, `arrow keys`. Hits are in `swept`.
+- `swept`, asking of each fix whether it contradicts, breaks or makes stale:
+  - P14 §§ on focus and INV-6: agree, and are now true: arrows move a focus ring, walkthrough moves focus, Esc returns to the card. Its code sketches are frozen.
+  - Spec 1144 §4.3 "one `<h1>`": now true. INV-10: green. Its `walkthrough-toggle` test id is kept.
+  - `src/mame_curator/filter/review_state_spec.md` INV-6: agrees.
+  - `docs/design.md`: agrees.
+  - `docs/help/01-getting-started.md` Keyboard shortcuts: not false, but lists no grid keys. See `surfaced`.
+  - The comment above the games area in `LibraryPage.tsx`: agrees.
+  - `.claude/code-pairs.json`: absent.
+- `collateral`: `e2e/library-flow.spec.ts` read `header h1`, now `header` plus the app name's text.
+- `surfaced`:
+  - The command palette drops focus to the page on close: run. Radix returns focus only to a trigger, so other dialogs with none should match: read, not run.
+  - Removing the focused card from the list, by R under a review filter with walkthrough off, should drop focus too: reasoned, not run.
+  - The drawer's highlight and its focus are two cursors: arrows move one, Tab the other, and Enter acts on focus only.
+  - Help lists no grid keys.
+  - Copy reports that e2e leaves under `frontend/e2e/fixtures/data/` are ignored by git but not by Prettier, so `prettier --check` fails after an e2e run until they are removed.
+- `out_of_scope`:
+  - `GameCard`'s `focused` prop is dead. It was dead before this run, so it stays, per the project's rule.
+  - `LibraryPage.tsx` was already past the 350-line cap, and this adds to it.
+- `falsified`: none.
 
 ## Group 3: guide steps
 

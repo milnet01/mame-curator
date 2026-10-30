@@ -29,6 +29,9 @@ interface GameCardProps {
   /** P14 — per-card review state, rendered as a frontend-only badge in
    *  the same top-right slot as the existing backend-emitted badges. */
   reviewState?: ReviewStateValue;
+  /** False takes the card and its Add button out of the Tab order, for a
+   *  grid that gives one card at a time a Tab stop. */
+  tabStop?: boolean;
   /** List layout: flyer beside the text rather than above it, so a
    *  short fixed-height row does not squeeze the flyer to a sliver. */
   row?: boolean;
@@ -83,6 +86,7 @@ export function GameCard({
   onOpen,
   onAdd,
   reviewState,
+  tabStop = true,
   row = false,
 }: GameCardProps) {
   const [imgFailed, setImgFailed] = useState(false);
@@ -110,6 +114,8 @@ export function GameCard({
   // visible focus to attach to (FP11 § D4's `className="contents"`
   // ate the button's CSS box, leaving the ring nowhere to render).
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // A key pressed on the Add button is that button's own.
+    if (e.target !== e.currentTarget) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onOpen();
@@ -119,11 +125,12 @@ export function GameCard({
   return (
     <div
       role="button"
-      tabIndex={0}
+      tabIndex={tabStop ? 0 : -1}
       onClick={onOpen}
       onKeyDown={handleKeyDown}
       aria-labelledby={titleId}
-      className="h-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+      // The ring is in rem to grow with the text, and the row leaves it room.
+      className="h-full rounded-xl text-left focus-visible:outline-none focus-visible:ring-[0.25rem] focus-visible:ring-ring"
     >
       <Card
         className={cn(
@@ -148,6 +155,7 @@ export function GameCard({
         >
           <button
             type="button"
+            tabIndex={tabStop ? 0 : -1}
             onClick={(e) => {
               e.stopPropagation();
               onAdd(card.short_name);
@@ -157,7 +165,7 @@ export function GameCard({
                 ? strings.library.cart.removeFromCart(card.description)
                 : strings.library.cart.addToCart(card.description)
             }
-            className="absolute left-1 top-1 z-10 rounded bg-background/90 px-2 py-1 text-xs font-medium shadow-sm hover:bg-background"
+            className="absolute left-1 top-1 z-10 rounded bg-background/90 px-2 py-1 text-xs font-medium shadow-sm hover:bg-background focus-visible:outline-none focus-visible:ring-[0.25rem] focus-visible:ring-ring"
           >
             {inCart ? strings.library.cart.added : strings.library.cart.add}
           </button>

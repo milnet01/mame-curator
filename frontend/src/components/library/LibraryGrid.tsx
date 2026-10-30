@@ -5,7 +5,7 @@ import {
   useRef,
   useSyncExternalStore,
 } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { toast } from "sonner";
 import { GameCard } from "./GameCard";
 import { strings } from "@/strings";
@@ -97,12 +97,22 @@ export function LibraryGrid({
   const fontScale = useSyncExternalStore(subscribeTextSize, rootFontScale);
   const rowHeightPx = LAYOUT_DEFAULTS[layout].rowHeightPx * fontScale;
   const rowCount = Math.ceil(cards.length / columns);
+  const activeRow = useRef(0);
 
   const virtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => rowHeightPx,
     overscan: 4,
+    // The active card's row stays drawn when scrolled away: it holds the
+    // grid's one Tab stop, and removing it would drop focus out of the grid.
+    rangeExtractor: (range) => {
+      const drawn = defaultRangeExtractor(range);
+      const row = activeRow.current;
+      return drawn.includes(row) || row >= range.count
+        ? drawn
+        : [...drawn, row].sort((a, b) => a - b);
+    },
   });
 
   useEffect(() => {
@@ -121,16 +131,18 @@ export function LibraryGrid({
   // The component still owns the key→action wiring (below); the hook
   // owns `activeIndex` and the move() / setActive() / focusNextPending()
   // setters.
-  const { activeIndex, move, setActive, focusNextPending } = useGameGridFocus(
-    cards,
-    reviewState,
-    columns,
-    virtualizer,
-  );
+  const { activeIndex, move, setActive, focusNextPending, noteFocus } =
+    useGameGridFocus(cards, reviewState, columns, virtualizer);
   const cardsLen = cards.length;
+
+  useEffect(() => {
+    activeRow.current = Math.floor(activeIndex / columns);
+  }, [activeIndex, columns]);
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // Ctrl+R, Ctrl+S, Ctrl+K and the like belong to the browser or palette.
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       switch (e.key) {
         case "ArrowDown":
         case "j":
@@ -160,6 +172,8 @@ export function LibraryGrid({
           break;
         case "Enter":
         case "o": {
+          // A card and its Add button answer Enter themselves.
+          if (e.key === "Enter" && e.target !== e.currentTarget) break;
           const card = cards[activeIndex];
           if (card) {
             e.preventDefault();
@@ -274,8 +288,8 @@ export function LibraryGrid({
                     key={card.short_name}
                     role="gridcell"
                     aria-colindex={colIdx + 1}
-                    tabIndex={isActive ? 0 : -1}
                     data-active={isActive || undefined}
+                    onFocus={() => noteFocus(cardIndex)}
                     // h-full passes the row height down to the card, so a
                     // tall flyer shrinks to fit instead of spilling into
                     // the next row and hiding the card's bottom edge.
@@ -283,6 +297,7 @@ export function LibraryGrid({
                   >
                     <GameCard
                       card={card}
+                      tabStop={isActive}
                       inCart={isInCart(card.short_name)}
                       onOpen={() => onOpen(card)}
                       onAdd={onAdd}

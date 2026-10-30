@@ -76,6 +76,8 @@ export function useKeyboard(bindings: KeyBinding[]) {
         }
 
         if (editing) continue;
+        // Ctrl+R and the like belong to the browser, not to a plain "r".
+        if (e.ctrlKey || e.metaKey || e.altKey) continue;
 
         const parts = binding.combo.split(" ");
         if (parts.length === 1) {

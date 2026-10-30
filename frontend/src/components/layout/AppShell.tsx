@@ -78,7 +78,7 @@ export function AppShell({
         {strings.a11y.skipToMain}
       </a>
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-2">
-        <h1 className="text-lg font-semibold">{strings.app.name}</h1>
+        <p className="text-lg font-semibold">{strings.app.name}</p>
         <nav className="flex flex-wrap items-center gap-1 text-sm">
           {PRIMARY.map(({ to, label, icon: Icon, end }) => (
             <NavLink
