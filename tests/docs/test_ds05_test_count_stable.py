@@ -316,7 +316,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/copy/test_runner_recycle_guards.py; +2 in
 # tests/api/test_mame_curator_1131_unknown_config_keys.py; +1 in
 # tests/cli/test_serve_config_layer.py. 908 → 915.
-EXPECTED_PYTEST_DECLARATIONS = 915
+# Bumped 2026-10-30 (mame-curator-1142): +2 in
+# tests/cli/test_serve_browser.py. 915 → 917.
+EXPECTED_PYTEST_DECLARATIONS = 917
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

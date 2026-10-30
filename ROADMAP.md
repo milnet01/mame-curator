@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1141 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1144 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2617,6 +2617,17 @@ P14 (per-game review state).
   sources).
   User decision (2026-09-28): build it this round.
 
+- 📋 [mame-curator-1144] **Guide a new or partially sighted user through the Library instead of showing everything at once.**
+  User, 2026-10-30, on the Library page: "I am lost. I don't know where
+  to begin. That is why I asked for wizards to help me through it."
+  No earlier request is on this roadmap. The Walkthrough mode checkbox
+  is not a guide: it only moves to the next game after a review. Scope
+  waits on the user's answers.
+  **Layman:** The Library page shows too much at once and gives no starting point. Add step-by-step guidance so a partially sighted user knows what to do first.
+  Kind: accessibility.
+  Source: user-2026-10-30.
+  Lanes: frontend, tests.
+
 ### 📚 Documentation
 
 - ✅ [mame-curator-1029] **README hero shot + 4 screenshots (closed 2026-05-16).**
@@ -3144,6 +3155,26 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: ux.
   Source: in-session-2026-10-30 (trailer recording, mame-curator-1136).
   Lanes: frontend.
+
+- ✅ [mame-curator-1142] **serve opens a browser even when LocalWebServerManager started it.**
+  LWSM sets LWSM_MANAGED=1 on what it starts. serve now skips its
+  browser open when that value is exactly 1. RetroDB and Contact_List
+  already do this. Other start routes are unchanged.
+  **Layman:** Starting MAME Curator from LocalWebServerManager no longer opens a page in the default browser; you open it from LocalWebServerManager in the browser you prefer.
+  Kind: fix.
+  Source: user-2026-10-30.
+  Lanes: cli.
+
+- 📋 [mame-curator-1143] **Games with no art ask the art sources again on every view.**
+  Measured 2026-10-30 on the running server: a cached image answers in
+  about 2 ms; a game with no art (11beat) took 0.85 s and then 0.58 s,
+  so the miss is not remembered. cache.py documents no negative caching
+  as deliberate. Decide how long a miss is remembered, and how a user
+  retries, before changing it.
+  **Layman:** Pictures that were found are saved, but a game with no picture is looked up again each time it scrolls into view, which is slow and uses up the art sources' limits.
+  Kind: perf.
+  Source: user-2026-10-30.
+  Lanes: media.
 
 ## Considered / under research (no target date)
 

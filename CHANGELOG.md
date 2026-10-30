@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-30 Fixed — No extra browser page from LocalWebServerManager
+
+MAME Curator no longer opens a page in your default browser when
+LocalWebServerManager starts it. Open it from LocalWebServerManager, in the
+browser you prefer. Other ways of starting it still open a page as before.
+
 ## [1.4.1] - 2026-10-30
 
 **Theme:** Library polish.

@@ -94,6 +94,7 @@ def test_non_wildcard_hosts_are_used_as_given(host: str) -> None:
 def test_browser_opens_by_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """`ServerConfig.open_browser_on_start` defaults true."""
     monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.delenv("LWSM_MANAGED", raising=False)
     rc, started = _serve_capturing_thread(_serve_args(_config(tmp_path)))
 
     assert rc == 130
@@ -131,6 +132,35 @@ def test_browser_skipped_by_flag_against_config_true(
 
     assert not started
     assert "browser open skipped: disabled by flag" in caplog.text
+
+
+def test_browser_skipped_when_started_by_lwsm(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """LocalWebServerManager has its own Open button, so a second page is unwanted."""
+    monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.setenv("LWSM_MANAGED", "1")
+    caplog.set_level(logging.DEBUG, logger=LOGGER_NAME)
+
+    _, started = _serve_capturing_thread(
+        _serve_args(_config(tmp_path, "server: {open_browser_on_start: true}\n"))
+    )
+
+    assert not started
+    assert "browser open skipped: started by LocalWebServerManager" in caplog.text
+
+
+@pytest.mark.parametrize("value", ["", "0", "true"])
+def test_browser_opens_when_lwsm_marker_is_not_one(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, value: str
+) -> None:
+    """Only the exact value `1` means managed; anything else is the unchanged path."""
+    monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.setenv("LWSM_MANAGED", value)
+
+    _, started = _serve_capturing_thread(_serve_args(_config(tmp_path)))
+
+    assert len(started) == 1
 
 
 def test_browser_skipped_when_port_is_zero(
@@ -221,6 +251,7 @@ def test_raising_webbrowser_does_not_change_the_exit_code(
 ) -> None:
     """End to end, through a real daemon thread: the poll cannot fail the server."""
     monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.delenv("LWSM_MANAGED", raising=False)
     monkeypatch.setattr(serve_mod, "_BROWSER_POLL_TIMEOUT_S", 5.0)
     monkeypatch.setattr(serve_mod, "_BROWSER_POLL_INTERVAL_S", 0.01)
     monkeypatch.setattr(serve_mod, "_BROWSER_CONNECT_TIMEOUT_S", 0.05)

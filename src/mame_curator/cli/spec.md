@@ -150,7 +150,7 @@ differences are deliberate:
 |---|---|
 | **Port** | `--port` → `$PORT` → `server.port` → `8080`; first present wins. Rules 3 and 4 are one read — see § Port rule 4. |
 | **Host** | `--host` → `server.host` → `127.0.0.1`. **No environment layer** — see § Host. |
-| **Browser** | Not a chain at all: a config default with a one-way suppress flag. `--no-open-browser` can only turn the open *off*, never on. See § Browser. |
+| **Browser** | Not a chain at all: a config default with a one-way suppress flag and marker. `--no-open-browser` and `LWSM_MANAGED=1` can only turn the open *off*, never on. See § Browser. |
 
 The `config.yaml` layer is the `server:` block, typed by
 `api.schemas.ServerConfig` (`host`, `port`, `open_browser_on_start`).
@@ -283,7 +283,7 @@ A port that passes resolution but lies outside the OS socket range (`--port 9999
 
 ### Browser
 
-The browser opens on start iff `server.open_browser_on_start` is true AND `--no-open-browser` was not passed. **The flag is a one-way suppression, not a two-way override**: it can turn an open off, and there is deliberately no flag that forces one on against a config saying false. That asymmetry is what lets `scripts/dev.sh` suppress the open without editing anyone's config.
+The browser opens on start iff `server.open_browser_on_start` is true AND `--no-open-browser` was not passed AND `LWSM_MANAGED` is not exactly `1`. LocalWebServerManager sets that marker on what it starts and has its own Open button, so the user picks the browser there; RetroDB and Contact_List do the same. Any other value is the unchanged path. **The flag is a one-way suppression, not a two-way override**: it can turn an open off, and there is deliberately no flag that forces one on against a config saying false. That asymmetry is what lets `scripts/dev.sh` suppress the open without editing anyone's config.
 
 It is opened from a **daemon thread that polls the resolved address until it accepts a TCP connection**, then calls `webbrowser.open`. A fixed delay is not a conforming implementation: uvicorn runs the application lifespan — which parses a ~48 MB DAT, tens of seconds on a cold cache — *before* it creates the listening socket, so any constant is simultaneously too short on a cold start (the browser shows "unable to connect") and too long on a warm one. Polling makes the open coincide with the port actually accepting.
 
@@ -304,10 +304,11 @@ The poll is **best-effort and MUST NOT be able to fail the server**: it returns 
 | Poll exhausted `_BROWSER_POLL_TIMEOUT_S` | `browser open gave up: <url> not accepting after <n>s` |
 | Resolved port is `0` | `browser open skipped: port 0 (bound port not knowable before listen)` |
 | `--no-open-browser` passed | `browser open skipped: disabled by flag` |
+| `LWSM_MANAGED=1` | `browser open skipped: started by LocalWebServerManager` |
 | `open_browser_on_start` false | `browser open skipped: disabled by config` |
 | `webbrowser.open` raised | `browser open failed: <exc>` |
 
-**When more than one skip applies, one line is logged**, checked in this order: the flag, then the config, then port `0`.
+**When more than one skip applies, one line is logged**, checked in this order: the flag, then the marker, then the config, then port `0`.
 
 **The browser open is skipped entirely when the resolved port is `0`.** `--port 0` means "any free port", so the port uvicorn actually binds is not knowable to the resolver — the address the poller would be given is unconnectable by construction, and it would burn the full 300 s budget before giving up.
 
@@ -325,7 +326,7 @@ def _is_wildcard(host: str) -> bool:
         return False                   # use it as given
 ```
 
-**Test surface** (`tests/cli/test_serve_browser.py`): the open is skipped when `open_browser_on_start` is false; skipped when `--no-open-browser` is passed with config true; skipped when the resolved port is `0`; fires once the poll target starts accepting; gives up after `_BROWSER_POLL_TIMEOUT_S` (monkeypatched small); each of the five outcomes above emits its own distinct line; `_is_wildcard` returns true for `""`, `0.0.0.0`, `::`, `[::]`, `::0` and false for `127.0.0.1`, `192.168.1.5` and `localhost`; and a `webbrowser.open` that raises does not change the exit code.
+**Test surface** (`tests/cli/test_serve_browser.py`): the open is skipped when `open_browser_on_start` is false; skipped when `--no-open-browser` is passed with config true; skipped when `LWSM_MANAGED=1` with config true, and not skipped for any other value of it; skipped when the resolved port is `0`; fires once the poll target starts accepting; gives up after `_BROWSER_POLL_TIMEOUT_S` (monkeypatched small); each of the outcomes above emits its own distinct line; `_is_wildcard` returns true for `""`, `0.0.0.0`, `::`, `[::]`, `::0` and false for `127.0.0.1`, `192.168.1.5` and `localhost`; and a `webbrowser.open` that raises does not change the exit code.
 
 **Every test-built `serve` Namespace carries `no_open_browser`**, because `_cmd_serve` reads it unconditionally and a missing attribute raises `AttributeError`. `_serve_args` in `tests/cli/test_serve_port_env.py` defaults it to argparse's own `False`; `tests/cli/test_fp28_serve_signal.py` sets it explicitly. Production code MUST NOT paper the gap over with `getattr(args, …, False)`, which would hide a genuinely missing argparse registration.
 

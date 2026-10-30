@@ -175,16 +175,22 @@ def _open_browser_when_ready(host: str, port: int) -> None:
     logger.debug("browser open gave up: %s not accepting after %ss", url, _BROWSER_POLL_TIMEOUT_S)
 
 
-def _maybe_open_browser(host: str, port: int, *, enabled: bool, suppressed: bool) -> None:
+def _maybe_open_browser(
+    host: str, port: int, *, enabled: bool, suppressed: bool, managed: bool
+) -> None:
     """Start the browser poller, or log the reason it was skipped.
 
-    `suppressed` is `--no-open-browser` and `enabled` is
-    `server.open_browser_on_start`. The flag is a one-way suppression:
-    it can turn an open off, and there is deliberately no flag that
-    forces one on against a config saying false.
+    `suppressed` is `--no-open-browser`, `enabled` is
+    `server.open_browser_on_start`, and `managed` is `LWSM_MANAGED=1`:
+    LocalWebServerManager has its own Open button, and the user picks the
+    browser there. The flag is a one-way suppression: it can turn an open
+    off, and there is deliberately no flag that forces one on against a
+    config saying false.
     """
     if suppressed:
         logger.debug("browser open skipped: disabled by flag")
+    elif managed:
+        logger.debug("browser open skipped: started by LocalWebServerManager")
     elif not enabled:
         logger.debug("browser open skipped: disabled by config")
     elif port == 0:
@@ -316,7 +322,11 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         return 1
 
     _maybe_open_browser(
-        host, port, enabled=server.open_browser_on_start, suppressed=args.no_open_browser
+        host,
+        port,
+        enabled=server.open_browser_on_start,
+        suppressed=args.no_open_browser,
+        managed=os.environ.get("LWSM_MANAGED") == "1",
     )
 
     return _run_server(app, host, port, err_console)
