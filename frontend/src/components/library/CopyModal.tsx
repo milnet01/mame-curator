@@ -28,6 +28,8 @@ export interface CopyModalState {
   warnings: string[];
   /** job_finished's status, `OK` or `PARTIAL_FAILURE`, once it has arrived. */
   finishedStatus?: string;
+  /** job_finished's count of BIOS files the ROM folder did not have. */
+  biosMissing?: number;
   /** job_aborted's reason, once it has arrived. Only CANCELLED is the user's. */
   abortReason?: string;
   /** Set only while the status stream is down. */

@@ -274,6 +274,28 @@ describe("useCopySession", () => {
     expect(result.current.state?.warnings[0]).toContain("sf2");
   });
 
+  it("keeps the count of BIOS files job_finished says were missing", async () => {
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    });
+    act(() => {
+      result.current.start({
+        selected_names: ["sf2"],
+        conflict_strategy: "CANCEL",
+        append_decisions: {},
+      });
+    });
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(1));
+    act(() => {
+      MockEventSource.instances[0].emit({
+        event: "job_finished",
+        payload: { status: "OK", bios_missing: 2 },
+        ts: new Date().toISOString(),
+      });
+    });
+    await waitFor(() => expect(result.current.state?.biosMissing).toBe(2));
+  });
+
   it("job_finished closes the SSE source and flips state to finished", async () => {
     const { result } = renderHook(() => useCopySession(), {
       wrapper: renderWithClient(),

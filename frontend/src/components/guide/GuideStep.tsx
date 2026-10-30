@@ -45,7 +45,10 @@ export function GuideStep({
           {strings.guide.stepOf(stepNumber, stepCount)}
         </p>
       )}
+      {/* A new element per text: focusing the one already focused fires
+          nothing, so a screen reader would not hear the result. */}
       <h1
+        key={heading}
         ref={headingRef}
         tabIndex={-1}
         className="text-3xl font-semibold focus:outline-none"

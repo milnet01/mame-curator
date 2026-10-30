@@ -17,6 +17,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-30 Fixed — The guide tells you what happened
+
+This covers the guide's steps, the Library's empty message and the help pages (mame-curator-1144).
+
+- **Back now sticks while the guide reads your game list**
+  It used to jump you forward when the list arrived, and could copy the games you had backed out of.
+
+- **Screen readers now hear each result**
+  When a heading changes, such as from "Counting the games" to the count, focus moves to the new heading. The check's report and a newly chosen folder are read out too.
+
+- **The BIOS line only promises what will happen**
+  The check says how many BIOS files will be included, and how many are not in your ROM folder. The finished copy says so too, because those games may not run.
+
+- **A refused folder now says why**
+  The guide used to point at "field errors below", and there were none. It now names the path the app could not find. Settings' pop-up message says the same.
+
+- **The check's heading says how it came out**
+  "Ready to copy?" now shows only when you can start. A failed count no longer stays on "Counting the games".
+
+- **Start copying answers at once**
+  It shows that the copy is starting and ignores a second press. A failed start stays on screen, with your place kept.
+
+- **A game list that changes while being read is reported**
+  The guide now says so and asks you to try again, rather than copying a list with gaps.
+
+- **Plainer words**
+  The BIOS warning no longer says "listxml". The Library's empty message no longer names a sidebar that the simple page does not have.
+
+- **Help now lists the Library's keys**
+  Arrow keys, Home, End, Enter, R, S and ? are all there. It also says what Ctrl-K really does, and that / works on the Library page.
+
 ### 2026-10-30 Fixed — The Library now works by keyboard alone
 
 This covers the game cards, the versions panel and the cart (mame-curator-1144).

@@ -53,10 +53,21 @@ export function _resetApiErrorToastDedupForTests(): void {
   lastSeen.clear();
 }
 
+/** Why the server refused a setting: no page renders its field errors. */
+function refusedSettingWords(err: ApiError): string {
+  const plain: Record<string, string> = strings.errors.rejectedPath;
+  return err.fields
+    .map((f) => (f.type.startsWith("path_") && plain[f.loc]) || f.msg)
+    .join(" ");
+}
+
 /** The words `toastApiError` would show, for a failure shown on the page. */
 export function apiErrorMessage(err: unknown): string {
   if (!(err instanceof ApiError)) return strings.errors.genericTitle;
   if (err.code === "network") return strings.errors.networkBody;
+  if (err.code === "config_invalid" && err.fields.length > 0) {
+    return refusedSettingWords(err);
+  }
   const friendly =
     strings.errors.byCode[err.code as keyof typeof strings.errors.byCode];
   return friendly ?? err.detail;
@@ -72,9 +83,7 @@ export function toastApiError(err: unknown): void {
       return;
     }
     if (shouldSkipDuplicate(`${err.code}::${err.detail}`)) return;
-    const friendly =
-      strings.errors.byCode[err.code as keyof typeof strings.errors.byCode];
-    toast.error(friendly ?? err.detail);
+    toast.error(apiErrorMessage(err));
     return;
   }
   // Non-ApiError: dedup on the generic key — same title for every

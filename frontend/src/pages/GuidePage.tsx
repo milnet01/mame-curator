@@ -147,6 +147,7 @@ function GuideSteps() {
           onBack={() => setStep("where")}
           onCopyMore={startOver}
           onStart={(onError) => copySession.start(request, { onError })}
+          starting={copySession.isStarting}
         />
       );
   }

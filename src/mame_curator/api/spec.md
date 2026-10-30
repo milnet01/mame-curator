@@ -274,6 +274,9 @@ matches the static `_deactivate` path first.
   `JobEvent` payloads (`job_started`, progress, terminal). No active job →
   `JobNotFoundError` (404). Progress events carry `files_total` /
   `bytes_total` keys matching the typed `JobStatus` / frontend contract.
+- **A BIOS file missing from `source_roms` is skipped, not failed**, so the job
+  can still end `OK`. `POST /api/copy/dry-run` reports the count before a copy
+  as `counts.bios_missing_source`, and `job_finished` after one as `bios_missing`.
 - Worker→loop handoff uses `loop.call_soon_threadsafe` (FP28-A1) so all
   `app.state` mutation and event emission happen on the event-loop thread,
   never the worker thread.

@@ -91,13 +91,38 @@ Group 2 run-level, 2026-10-30:
 
 | Finding | Sev | Verified | Disposition | Was → now |
 |---|---|---|---|---|
-| `WhatThatFindsStep.tsx:41`: stale fetch after Back | HIGH | | | |
-| `CheckStep.tsx:30`: BIOS claim not always true | MEDIUM | | | |
-| `GuideStep.tsx:33`: heading changes not announced | MEDIUM | | | |
-| `WhereStep.tsx:43`: error points at field errors not shown | MEDIUM | | | |
-| `strings_internal.ts:112`: empty-state hint names a sidebar simple view lacks | MEDIUM | | | |
-| LOW, lane 1: `WhatThatFindsStep.tsx:54`, `CheckStep.tsx:66`, `:31`, `:91`, `fetchGameNames.ts:46`, `strings.ts:7` | LOW | | | |
-| LOW, lane 3: `docs/help/01-getting-started.md:43`, `:44` | LOW | | | |
+| `WhatThatFindsStep.tsx:41`: stale fetch after Back | HIGH | yes, red run: the guide jumped to Where after Back and a new choice | fixed | Fetch ran on after Back → leaving the step aborts it, `fetchGameNames` takes the signal and returns nothing once aborted. Red seen in `GuidePage_results.test.tsx`; each part mutated. |
+| `CheckStep.tsx:30`: BIOS claim not always true | MEDIUM | yes, read: `preflight` checks winners only, and `runner.py` skips a missing BIOS as `SKIPPED_MISSING_SOURCE`, so the job ends `OK` | fixed | Whole set promised → dry run adds `counts.bios_missing_source`, `job_finished` adds `bios_missing`. Check promises only the rest and states the missing; the outcome says so in a `role="alert"`. Spec §4.4, §4.5 and `api/spec.md` updated. Red seen in pytest and vitest. |
+| `GuideStep.tsx:33`: heading changes not announced | MEDIUM | yes, still open after d0172a7: red in Chromium, no focus event on "This finds" or "Ready to copy?" | fixed | One `h1` throughout → `key={heading}`, a new element and a real focus event per text. The Check report and the Where folder are now `role="status"` regions, because focus reads only the heading. Red seen in vitest and Playwright. A real screen reader was not run. |
+| `WhereStep.tsx:43`: error points at field errors not shown | MEDIUM | yes, red run; a search found no reader of `ApiError.fields` anywhere | fixed | "see field errors below" → `apiErrorMessage` gives one plain sentence per refused path, else the API's message, and `toastApiError` uses the same words, as its comment promised. The friendly string no longer says "below". Fix is in `apiErrorToast.ts`, not the cited line. Spec §4.4 updated. Red seen. |
+| `strings_internal.ts:112`: empty-state hint names a sidebar simple view lacks | MEDIUM | yes, read; `docs/help/02-choosing-games.md` said the same | fixed | Names a sidebar → "Try a different search, or clear your filters…"; help page matches. Red seen. |
+| LOW, lane 1: `WhatThatFindsStep.tsx:54`, `CheckStep.tsx:66`, `:31`, `:91`, `fetchGameNames.ts:46`, `strings.ts:7` | LOW | yes, each read; `:91` also measured | fixed, all six | `:54` a failed count → `loadFailed` heading. `:66` heading follows the report: ready, nothing new, cannot start or failed. `:31` playlist line only with Start; spec table amended. `:91` a new `busy` state on `GuideAction` shows it is starting and ignores a second press. Plain `disabled` dropped focus in Chromium on a failed start, so it was not used. Back and the exit hide meanwhile, so a failed start is not lost; INV-3 amended. `:46` duplicates dropped, and a moved total or an early empty page fails with plain words. `:7` comment corrected, no red run: nothing observable changes. Red seen for the rest. |
+| LOW, lane 3: `docs/help/01-getting-started.md:43`, `:44` | LOW | yes, each read against `CmdKPalette.tsx` and `App.tsx` | fixed, both | `:43` "search games, settings and actions" → "jump to a page or a help topic". `:44` adds "on the Library page". The grid keys are added, as the orchestrator asked. No red run: documents. |
+| Orchestrator: `strings.copy.biosWarning` says "listxml" | LOW | yes, read | fixed | "machine list (listxml)" → "MAME's records". Red seen. |
+
+Group 3 run-level, 2026-10-30:
+
+- `cited_by`: old words searched as literal text in `docs`, `README.md`, `src`, `frontend/src` and `tests`: `see field errors`, `sidebar`, `Ctrl-K`, `listxml)`, `bios_included`, `BIOS`. Hits are in `swept` or `out_of_scope`.
+- `swept`, asking of each fix whether it contradicts, breaks or makes stale:
+  - Spec 1144 §4.3, §4.4, §4.5, §6, INV-2, INV-3, INV-5, INV-7: fixed. INV-8 and INV-13: agree.
+  - `api/spec.md` Copy job lifecycle: fixed, gains the BIOS counts.
+  - `docs/specs/P04-http-api.md` event table: frozen, under its superseded note.
+  - `src/mame_curator/copy/spec.md` on a missing BIOS: agrees.
+  - `docs/help/01-getting-started.md`, `02-choosing-games.md`: fixed. `03-copying-games.md` "Any BIOS": fixed.
+  - The `useDryRun.ts` comment listing the counts: fixed.
+  - `.claude/code-pairs.json`: absent.
+- `collateral`:
+  - `fetchGameNames.test.ts` "stops on an empty page" expected the short list this run removes, so it now expects the failure.
+  - The new `CopyingStep` tests moved the timing of `keeps focus on the button…`, which then lost a race with the step's own focus. It now waits for that focus first.
+- `surfaced`: none.
+- `out_of_scope`:
+  - `DryRunModal.tsx` reads `counts.bios_included`, which the dry-run route does not send, so the Library should always say 0 BIOS included: read, not run.
+  - On a clean finish under `on_success` or `always`, `useLibraryController` closes `CopyModal`, so the Library never shows the BIOS alert or the warnings.
+  - The outcome reads "Your games are copied." when selected games were skipped as missing. Check says so first, but the outcome does not.
+  - "Copy these" uses plain `disabled`, so a failed name fetch should drop focus as Start did: read, not run.
+  - `useConfigPatch` toasts as well, so a refused folder shows the same words twice in the guide.
+  - `strings.nav.commandPalette`, `strings.cmdK.placeholder` and `docs/design.md`'s palette lines still promise a search of games and settings.
+- `falsified`: none.
 
 ## Group 4: silent failures elsewhere
 

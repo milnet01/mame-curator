@@ -83,7 +83,8 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 - It shows one `<h1>` heading, "Step N of M" as text, and one column of large actions no wider than `40rem`. M is 5 when "every game" skips a step and 6 otherwise. The first step shows "Step 1" alone, because M is not yet known.
 - Every action is a `GuideAction`, at least `3rem` tall with a `text-xl` label.
 - On every step change, focus moves to the heading (`tabIndex={-1}`) on the next animation frame, including on Back. Source: https://ezud.com/accessible-multi-step-wizard-forms/
-- Every step has a Back action, except the first and Copying, and an exit labelled "Look around on my own", which goes to `/`. The exit is hidden while a copy is paused, because nothing can come back to a paused copy: only Resume and Stop are offered (user ruling, 2026-10-30).
+- When a step's heading text changes, focus moves to a new heading element. Focusing an element that already has focus fires nothing, so a screen reader would not hear the result.
+- Every step has a Back action, except the first and Copying, and an exit labelled "Look around on my own", which goes to `/`. The exit is hidden while a copy is paused, because nothing can come back to a paused copy: only Resume and Stop are offered (user ruling, 2026-10-30). Back and the exit are also hidden while a start waits for its answer, so a failed start is never lost.
 - Colour is never the only signal. A failure is announced with `role="alert"` and worded text.
 
 ### 4.4 The steps
@@ -103,7 +104,7 @@ N and X come from `GET /api/games` `total` and `total_bytes`. A guide query send
 
 **Look through them first** navigates to `/` with the selection in router state. `useLibraryController` applies it once, as the first state of the freshly mounted page: a tile through `filtersForTile`, which `handleTileSelect` also uses, a genre by setting `filters.genre`, and everything by leaving `DEFAULT_FILTERS`. It then clears the route state, so a reload starts clean. Add all needs an active tile, so only the tile path offers it. The Library still applies its default year range (mame-curator-1150) and shows one page of 200, so it can list fewer than the guide's N. The guide ends there.
 
-**Choose another folder** saves through `useConfigPatch` with `{ paths: { ...config.paths, dest_roms } }`, as `updatePaths` in `SettingsPage` does, then invalidates `["setup", "check"]` and the config query. A save failure stays on the step and shows the API's message.
+**Choose another folder** saves through `useConfigPatch` with `{ paths: { ...config.paths, dest_roms } }`, as `updatePaths` in `SettingsPage` does, then invalidates `["setup", "check"]` and the config query. A save failure stays on the step and shows why the server refused it: a plain sentence for each path it rejected, or the API's message for anything else. The folder shown is a `role="status"` region, so a saved choice is heard.
 
 **Check** reads `DryRunReport`:
 
@@ -112,11 +113,14 @@ N and X come from `GET /api/games` `total` and `total_bytes`. A guide query send
 | `counts.new` | "N games will be copied." | |
 | `counts.already_copied` > 0 | "N are already there and will be left alone." | |
 | `counts.missing_source` > 0 | "N could not be found in your ROM folder and will be skipped." | |
-| `counts.bios` > 0 | "N BIOS files these games need will be included." | |
-| `summary.existing_playlist` | "These will be added to your existing game list." | |
+| `counts.bios` less `counts.bios_missing_source`, when > 0 | "N BIOS files these games need will be included." | |
+| `counts.bios_missing_source` > 0 | "N BIOS files these games need are not in your ROM folder, so some games may not run." | |
+| `summary.existing_playlist`, when Start is offered | "These will be added to your existing game list." | |
 | `summary.dest_writable` false | "This folder cannot be written to." | Start is hidden; offers Back |
 | `summary.free_space_gap_bytes` < 0 | "This needs X more free space.", where X is its absolute value | Start is hidden; offers Back |
 | `counts.new` is 0 | "All of these are already copied.", when `counts.missing_source` is also 0 | Start is hidden; offers "Copy more games" |
+
+The report sits in a `role="status"` region that is on the page before the report arrives, so a screen reader hears it. The heading says how the check came out: "Ready to copy?" only when Start is offered, "There is nothing new to copy." when `counts.new` is 0, "This copy can't start yet." otherwise, and `loadFailed` when the dry run fails. While the start waits for its answer, Start is disabled and the region says so.
 
 ### 4.5 The copy request
 
@@ -134,7 +138,9 @@ The dry run and the start both send `{ selected_names, conflict_strategy: "APPEN
 
 `startMutation` has no `onError`, so the guide calls `copySession.start(request, { onError })` and shows the failure on the Check step.
 
-`job_finished` carries a `status` of `OK` or `PARTIAL_FAILURE`, and `useCopySession` drops it today. The hook keeps it in its state, and the Copying step shows `PARTIAL_FAILURE` as "Some games could not be copied." in a `role="alert"` element, with a link to `/activity`. Only `OK` shows as complete.
+`job_finished` carries a `status` of `OK` or `PARTIAL_FAILURE`, and `useCopySession` drops it today. The hook keeps it in its state, and the Copying step shows `PARTIAL_FAILURE` as "Some games could not be copied." in a `role="alert"` element, with a link to `/activity`. Only `OK` shows as complete. `job_finished` also carries `bios_missing`, the BIOS files skipped because the ROM folder lacks them. When it is above 0, the outcome says "N BIOS files these games need were not in your ROM folder, so some games may not run." in the same kind of element.
+
+`fetchGameNames` takes an `AbortSignal`, and the "What that finds" step aborts it when it unmounts, so Back cancels the fetch and its result is never used.
 
 ### 4.6 Text size
 
@@ -178,11 +184,11 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Test:* `frontend/src/pages/__tests__/GuidePage_entry.test.tsx`.
   *Breaks when:* the redirect fires on `/settings`, or fires on a move to `/` after the first load.
 
-- **INV-2** — Every step change moves focus to that step's heading, on Next and on Back.
-  *Test:* `frontend/src/components/guide/__tests__/GuideStep.test.tsx`, which fails if focus stays on `document.body` or the old button.
-  *Breaks when:* a step renders without focusing its heading.
+- **INV-2** — Every step change moves focus to that step's heading, on Next and on Back, and a change of heading text within a step fires a new focus event on the new text.
+  *Test:* `frontend/src/components/guide/__tests__/GuideStep.test.tsx`, which fails if focus stays on `document.body` or the old button, and `frontend/e2e/guide-flow.spec.ts` in a real browser.
+  *Breaks when:* a step renders without focusing its heading, or the heading element survives a change of text.
 
-- **INV-3** — Every step has a working exit to `/`, except Copying while the copy is paused, and every step but the first and Copying has Back.
+- **INV-3** — Every step has a working exit to `/`, except Copying while the copy is paused, and every step but the first and Copying has Back. Check hides both while a start waits for its answer.
   *Test:* `frontend/src/pages/__tests__/GuidePage_steps.test.tsx`, walking each step.
   *Breaks when:* a step omits an action.
 
@@ -190,15 +196,15 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Test:* `GuidePage_steps.test.tsx`, comparing `mame-curator:cart:v1` before and after.
   *Breaks when:* the guide calls `useCart` methods or `cart_clear_on_copy` reaches its copy.
 
-- **INV-5** — The names sent to `/api/copy/start` are every game the selection found: all pages, with no year filter beyond a tile's own.
-  *Test:* `frontend/src/lib/__tests__/fetchGameNames.test.ts`, with a handler serving three pages and asserting the name count equals `total`. `GuidePage_steps.test.tsx` walks "every game" and the `best-of-1992` tile, and asserts the request URLs and the start body: no `year_min` or `year_max` for the first, and the tile's own for the second.
-  *Breaks when:* paging stops early or the Library's default year range leaks in.
+- **INV-5** — The names sent to `/api/copy/start` are every game the current selection found: all pages, with no year filter beyond a tile's own. A fetch the user backed out of cannot move the guide or change the names.
+  *Test:* `frontend/src/lib/__tests__/fetchGameNames.test.ts`, with a handler serving three pages and asserting the name count equals `total`. `GuidePage_steps.test.tsx` walks "every game" and the `best-of-1992` tile, and asserts the request URLs and the start body: no `year_min` or `year_max` for the first, and the tile's own for the second. `GuidePage_results.test.tsx` backs out of a held fetch and releases it.
+  *Breaks when:* paging stops early, the Library's default year range leaks in, or a stale fetch reaches `onNames`.
 
 - **INV-6** — The guide's dry run and start both send `APPEND`, and a copy starts when a playlist already exists. It never sends `OVERWRITE`.
   *Test:* `frontend/e2e/guide-flow.spec.ts` seeds `data/e2e`, because the fixture's ROM folders are empty stubs and no tile matches its DAT: a zip per fixture winner in `source-roms`, and `mame.lpl` holding one other game. It takes "The best version of every game", and asserts the copy completes and the playlist holds the old entry and the new ones. `GuidePage_steps.test.tsx` asserts every request carries `APPEND`.
   *Breaks when:* the strategy stays `CANCEL`, which only the 409 path rejects, so the fixture must have a game not yet copied.
 
-- **INV-7** — A failed name fetch, start, dry run or folder save shows its reason on the current step in a `role="alert"` element, and the user can go Back. A copy that finishes with `PARTIAL_FAILURE` never shows as complete.
+- **INV-7** — A failed name fetch, start, dry run or folder save shows its reason on the current step in a `role="alert"` element, and the user can go Back once the step has its answer. A copy that finishes with `PARTIAL_FAILURE` never shows as complete.
   *Test:* `GuidePage_steps.test.tsx`, with handlers returning 409 and 500 for each, and a stream ending in `job_finished` with `PARTIAL_FAILURE`.
   *Breaks when:* a failure leaves the step silently unchanged, or the hook drops the status.
 
@@ -233,7 +239,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 ## 6. Failure modes
 
 - **`/api/games` or a page of it fails mid-way:** no copy starts, the step shows the reason, and Back works (INV-7).
-- **The library changes between the count and the copy:** the names are fetched when the user presses "Copy these". The Check step's counts are the ones they act on.
+- **The library changes between the count and the copy:** the names are fetched when the user presses "Copy these". The Check step's counts are the ones they act on. If the library changes while the names are being read (the total moves, or the pages run out early), the step says so and no copy starts. Repeated names are dropped.
 - **The copy crashes:** `job_aborted` carries a reason other than `CANCELLED`. The Copying step says the copy did not finish, in a `role="alert"` element, with the reason and a link to `/activity`.
 - **The status stream drops:** the step says so in a `role="alert"` element while the browser reconnects. If the stream closes for good, it says the connection is lost and the copy may still be running, and offers no controls.
 - **A pause, resume or stop fails:** the step says so in a `role="alert"` element and keeps its controls.
@@ -253,7 +259,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 | INV-1, INV-14 | `frontend/src/pages/__tests__/GuidePage_entry.test.tsx` |
 | INV-2 | `frontend/src/components/guide/__tests__/GuideStep.test.tsx` |
 | INV-3, INV-4, INV-7, INV-8, INV-13 | `frontend/src/pages/__tests__/GuidePage_steps.test.tsx` |
-| INV-5 | `frontend/src/lib/__tests__/fetchGameNames.test.ts` and `GuidePage_steps.test.tsx` |
+| INV-5 | `frontend/src/lib/__tests__/fetchGameNames.test.ts`, `GuidePage_steps.test.tsx` and `frontend/src/pages/__tests__/GuidePage_results.test.tsx` |
 | INV-6 | `GuidePage_steps.test.tsx` and `frontend/e2e/guide-flow.spec.ts` |
 | INV-9 | `frontend/src/lib/__tests__/textSize.test.ts` |
 | INV-10 | `frontend/e2e/guide-flow.spec.ts` |
@@ -290,7 +296,7 @@ Each new test must be seen to fail before its code exists. `frontend/e2e` does n
 | INV-1, INV-14 | `GuidePage_entry.test.tsx` |
 | INV-2 | `GuideStep.test.tsx` |
 | INV-3, INV-4, INV-7, INV-8, INV-13 | `GuidePage_steps.test.tsx` |
-| INV-5 | `fetchGameNames.test.ts`, `GuidePage_steps.test.tsx` |
+| INV-5 | `fetchGameNames.test.ts`, `GuidePage_steps.test.tsx`, `GuidePage_results.test.tsx` |
 | INV-6 | Partial: `GuidePage_steps.test.tsx` catches a wrong strategy in CI; the real repeat copy is `guide-flow.spec.ts`, which no gate runs |
 | INV-9 | `textSize.test.ts` |
 | INV-10 | **nothing automatic** — `guide-flow.spec.ts` runs by hand, because no gate runs `frontend/e2e` |

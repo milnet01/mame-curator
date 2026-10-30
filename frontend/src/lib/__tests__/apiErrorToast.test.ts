@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/api/client";
+import { strings } from "@/strings";
 import {
   _resetApiErrorToastDedupForTests,
+  apiErrorMessage,
   toastApiError,
 } from "../apiErrorToast";
 
@@ -21,6 +23,57 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+const rejected = (fields: { loc: string; msg: string; type: string }[]) =>
+  new ApiError({ code: "config_invalid", detail: "raw", fields }, 422);
+
+describe("apiErrorMessage: a refused setting", () => {
+  it("names the path the server refused, in plain words", () => {
+    expect(
+      apiErrorMessage(
+        rejected([
+          {
+            loc: "paths.retroarch_playlist",
+            msg: "parent directory does not exist",
+            type: "path_not_found",
+          },
+          {
+            loc: "paths.dest_roms",
+            msg: "path does not exist",
+            type: "path_not_found",
+          },
+        ]),
+      ),
+    ).toBe(
+      `${strings.errors.rejectedPath["paths.retroarch_playlist"]} ${strings.errors.rejectedPath["paths.dest_roms"]}`,
+    );
+  });
+
+  it("shows the API's own message for any other refusal", () => {
+    expect(
+      apiErrorMessage(
+        rejected([
+          { loc: "paths.dest_roms", msg: "not a string", type: "string_type" },
+        ]),
+      ),
+    ).toBe("not a string");
+  });
+
+  it("promises nothing below itself when no field came with it", () => {
+    expect(apiErrorMessage(rejected([]))).toBe(
+      strings.errors.byCode.config_invalid,
+    );
+    expect(strings.errors.byCode.config_invalid).not.toMatch(/below/);
+  });
+
+  it("toasts the same words", () => {
+    const err = rejected([
+      { loc: "paths.dest_roms", msg: "gone", type: "path_not_found" },
+    ]);
+    toastApiError(err);
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(apiErrorMessage(err));
+  });
 });
 
 describe("toastApiError", () => {

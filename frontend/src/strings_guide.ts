@@ -43,6 +43,8 @@ export const guideStrings = {
     lookThrough: "Look through them first",
     gettingList: (done: number, total: number) =>
       `Getting the list: ${count(done)} of ${count(total)}.`,
+    listChanged:
+      "The list of games changed while it was being read. Please try again.",
   },
   where: {
     heading: "Copy them here?",
@@ -52,6 +54,8 @@ export const guideStrings = {
   check: {
     heading: "Ready to copy?",
     loadingHeading: "Checking your folders…",
+    nothingNewHeading: "There is nothing new to copy.",
+    cannotStartHeading: "This copy can't start yet.",
     newGames: (n: number) => `${games(n)} will be copied.`,
     alreadyCopied: (n: number) =>
       `${count(n)} ${n === 1 ? "is" : "are"} already there and will be left alone.`,
@@ -59,11 +63,14 @@ export const guideStrings = {
       `${count(n)} could not be found in your ROM folder and will be skipped.`,
     bios: (n: number) =>
       `${count(n)} BIOS file${n === 1 ? "" : "s"} these games need will be included.`,
+    biosMissing: (n: number) =>
+      `${count(n)} BIOS file${n === 1 ? " these games need is" : "s these games need are"} not in your ROM folder, so some games may not run.`,
     existingPlaylist: "These will be added to your existing game list.",
     notWritable: "This folder cannot be written to.",
     needsSpace: (size: string) => `This needs ${size} more free space.`,
     allCopied: "All of these are already copied.",
     start: "Start copying",
+    starting: "Starting the copy…",
   },
   copying: {
     heading: "Copying your games",

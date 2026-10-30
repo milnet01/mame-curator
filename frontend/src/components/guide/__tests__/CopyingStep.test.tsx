@@ -51,6 +51,32 @@ const button = (name: string) => screen.queryByRole("button", { name });
 const link = (name: string) => screen.queryByRole("link", { name });
 
 describe("CopyingStep outcome", () => {
+  it("says so when a BIOS file was missing, though the copy finished", () => {
+    renderStep({ state: "finished", finishedStatus: "OK", biosMissing: 2 });
+    heading(g.copying.finishedHeading);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      strings.copy.biosMissing(2),
+    );
+    expect(link(g.copying.seeWhich)).toBeNull();
+  });
+
+  it("says so on a partial finish too", () => {
+    renderStep({
+      state: "finished",
+      finishedStatus: "PARTIAL_FAILURE",
+      biosMissing: 1,
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      strings.copy.biosMissing(1),
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(g.copying.partial);
+  });
+
+  it("adds no alert to a clean finish", () => {
+    renderStep({ state: "finished", finishedStatus: "OK", biosMissing: 0 });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("the user's own Stop reads as stopped, with no alert", () => {
     renderStep({ state: "aborted", abortReason: "CANCELLED" });
     heading(g.copying.stoppedHeading);
@@ -159,6 +185,8 @@ describe("CopyingStep focus", () => {
   it("keeps focus on the button when Pause becomes Resume and back", async () => {
     const user = userEvent.setup();
     const { update } = renderStep();
+    // The step takes focus on its next frame, which must not beat this press.
+    await waitFor(() => expect(screen.getByRole("heading")).toHaveFocus());
     await user.click(button(strings.copy.pause)!);
     const pressed = document.activeElement;
     update({ state: "paused" });

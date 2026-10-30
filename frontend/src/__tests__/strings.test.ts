@@ -74,6 +74,8 @@ const DYNAMIC_ACCESS_PARENTS = new Set<string>([
   "cmdK.sections",
   // apiErrorToast.ts: `strings.errors.byCode[err.code]`
   "errors.byCode",
+  // apiErrorToast.ts: `strings.errors.rejectedPath[field.loc]`
+  "errors.rejectedPath",
   // LayoutSwitcher.tsx / ThemeSwitcher.tsx
   "layouts",
   "themes",

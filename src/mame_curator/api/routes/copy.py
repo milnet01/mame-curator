@@ -55,9 +55,12 @@ def dry_run(
     plan = _build_plan(body, world)
     pre = preflight(plan)
     bios_set, _warnings = resolve_bios_dependencies(plan.winners, dict(world.bios_chain))
+    # A missing BIOS is skipped, not failed, so nothing else would report it.
+    bios_missing = [b for b in bios_set if not (plan.source_dir / f"{b}.zip").exists()]
     counts = {
         "selected": len(plan.winners),
         "bios": len(bios_set),
+        "bios_missing_source": len(bios_missing),
         "missing_source": len(pre.missing_source),
         "already_copied": len(pre.already_copied),
         "new": len(plan.winners) - len(pre.already_copied) - len(pre.missing_source),

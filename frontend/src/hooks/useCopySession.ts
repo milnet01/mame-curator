@@ -171,6 +171,7 @@ export function useCopySession() {
                 ...prev,
                 state: "finished",
                 finishedStatus: msg.payload.status as string | undefined,
+                biosMissing: msg.payload.bios_missing as number | undefined,
               };
             case "job_aborted":
               closeStream();

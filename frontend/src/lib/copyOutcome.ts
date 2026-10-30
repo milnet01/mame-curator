@@ -19,9 +19,15 @@ export function copyOutcome(state: CopyModalState): CopyOutcome {
 
 /** The words of a role="alert" for this state; empty when nothing is wrong. */
 export function copyProblem(state: CopyModalState): string[] {
+  // A missing BIOS is skipped, not failed, so even a job that ends OK has it.
+  const biosMissing = state.biosMissing
+    ? [strings.copy.biosMissing(state.biosMissing)]
+    : [];
   switch (copyOutcome(state)) {
+    case "complete":
+      return biosMissing;
     case "partial":
-      return [strings.guide.copying.partial];
+      return [strings.guide.copying.partial, ...biosMissing];
     case "failed":
       return [
         strings.copy.failed,

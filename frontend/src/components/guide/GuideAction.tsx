@@ -8,6 +8,8 @@ interface GuideActionProps {
   onClick?: () => void;
   to?: string;
   disabled?: boolean;
+  /** Looks disabled and ignores presses, but keeps focus, which disabled drops. */
+  busy?: boolean;
   /** The step's main action, drawn filled. */
   primary?: boolean;
 }
@@ -18,12 +20,14 @@ export function GuideAction({
   onClick,
   to,
   disabled,
+  busy,
   primary,
 }: GuideActionProps) {
   const className = cn(
     "flex min-h-12 w-full items-center rounded-md border px-4 py-2 text-left text-xl",
     "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring",
     "disabled:cursor-not-allowed disabled:opacity-50",
+    "aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
     primary
       ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
       : "bg-background hover:bg-muted",
@@ -38,8 +42,9 @@ export function GuideAction({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={busy ? undefined : onClick}
       disabled={disabled}
+      aria-disabled={busy || undefined}
       className={className}
     >
       {children}

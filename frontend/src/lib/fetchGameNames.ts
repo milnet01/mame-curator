@@ -3,7 +3,7 @@
  * The guide does not use the cart, so it has no MAX_CART_SIZE and cannot
  * change a cart the user has half built.
  */
-import { apiRequest } from "@/api/client";
+import { ApiError, apiRequest, STATUS_UNSENT } from "@/api/client";
 import { GamesPageSchema, type GamesPage } from "@/api/types";
 import { toQueryString, type GamesQuery } from "@/hooks/useGames";
 import { strings } from "@/strings";
@@ -30,19 +30,38 @@ export function guideQueryFor(selection: GuideSelection): GuideQuery {
   return {};
 }
 
+/** A rebuild mid-paging shifts the pages, so the list cannot be trusted. */
+function listChanged(): ApiError {
+  return new ApiError(
+    {
+      code: "game_list_changed",
+      detail: strings.guide.finds.listChanged,
+      fields: [],
+    },
+    STATUS_UNSENT,
+  );
+}
+
 export async function fetchGameNames(
   query: GuideQuery,
   onProgress?: (done: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<string[]> {
-  const names: string[] = [];
+  const names = new Set<string>();
+  let total: number | undefined;
   for (let page = 1; ; page += 1) {
     const qs = toQueryString({ ...query, page, pageSize: PAGE_SIZE });
     const data = await apiRequest<GamesPage>(
       `/api/games?${qs}`,
       GamesPageSchema,
+      { signal },
     );
-    names.push(...data.items.map((c) => c.short_name));
-    onProgress?.(names.length, data.total);
-    if (data.items.length === 0 || names.length >= data.total) return names;
+    if (total !== undefined && data.total !== total) throw listChanged();
+    total = data.total;
+    for (const card of data.items) names.add(card.short_name);
+    onProgress?.(names.size, total);
+    signal?.throwIfAborted();
+    if (names.size >= total) return [...names];
+    if (data.items.length === 0) throw listChanged();
   }
 }

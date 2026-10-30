@@ -19,7 +19,7 @@ copy ends, because it holds the Pause and Cancel buttons.
 ## What gets copied
 
 - The ROM for each game in the cart.
-- Any BIOS a game needs to run.
+- Any BIOS a game needs to run, when your ROM folder has it.
 - A RetroArch playlist (`mame.lpl`), so the games show their full
   names in RetroArch without renaming any files.
 

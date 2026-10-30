@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { GuideAction } from "../GuideAction";
 import { GuideStep } from "../GuideStep";
@@ -31,18 +31,27 @@ export function WhatThatFindsStep({
   const count = useGames({ ...query, page: 1, pageSize: 1 });
   const [progress, setProgress] = useState<[number, number] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const nameFetch = useRef<AbortController | null>(null);
+
+  // INV-5: leaving this step ends its fetch, so a list the user backed out of
+  // cannot pull them forward or become the one that is copied.
+  useEffect(() => () => nameFetch.current?.abort(), []);
 
   // The names are fetched here, so they are the ones the user acts on.
   const copyThese = async () => {
     setError(null);
     setProgress([0, count.data?.total ?? 0]);
+    nameFetch.current = new AbortController();
     try {
       onNames(
-        await fetchGameNames(query, (done, total) =>
-          setProgress([done, total]),
+        await fetchGameNames(
+          query,
+          (done, total) => setProgress([done, total]),
+          nameFetch.current.signal,
         ),
       );
     } catch (err) {
+      // An abort lands here too, but only after unmount, where these do nothing.
       setError(apiErrorMessage(err));
       setProgress(null);
     }
@@ -51,7 +60,9 @@ export function WhatThatFindsStep({
   const total = count.data?.total;
   const heading =
     total === undefined
-      ? strings.guide.finds.loadingHeading
+      ? count.isError
+        ? strings.guide.loadFailed
+        : strings.guide.finds.loadingHeading
       : strings.guide.finds.heading(
           total,
           strings.guide.size(count.data?.total_bytes ?? 0),

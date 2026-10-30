@@ -61,7 +61,9 @@ export function WhereStep({
       )}
       {paths && (
         <>
-          <p className="break-words text-2xl font-medium">{paths.dest_roms}</p>
+          <p role="status" className="break-words text-2xl font-medium">
+            {paths.dest_roms}
+          </p>
           {error && (
             <p role="alert" className="text-xl text-destructive">
               {error}

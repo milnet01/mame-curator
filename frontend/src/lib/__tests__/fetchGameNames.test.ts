@@ -3,6 +3,7 @@
  * across all pages.
  */
 import { describe, expect, it, vi } from "vitest";
+import { strings } from "@/strings";
 import { http, HttpResponse, server } from "@/test/handlers";
 import { fetchGameNames, guideQueryFor } from "../fetchGameNames";
 
@@ -33,6 +34,33 @@ function pagedGames(total: number, seen: URL[] = []) {
   });
 }
 
+interface Page {
+  names: string[];
+  total: number;
+}
+
+function twoPages(first: Page, second: Page) {
+  return http.get("/api/games", ({ request }) => {
+    const page = Number(new URL(request.url).searchParams.get("page"));
+    const { names, total } = page === 1 ? first : second;
+    return HttpResponse.json({
+      items: names.map((short_name) => ({
+        short_name,
+        description: short_name,
+        year: 1990,
+        manufacturer: "Namco",
+        publisher: "Namco",
+        developer: "Namco",
+        badges: [],
+      })),
+      page,
+      page_size: 500,
+      total,
+      total_bytes: 0,
+    });
+  });
+}
+
 describe("fetchGameNames", () => {
   it("collects every page, so the names match total", async () => {
     const seen: URL[] = [];
@@ -52,7 +80,7 @@ describe("fetchGameNames", () => {
     expect(onProgress).toHaveBeenLastCalledWith(1200, 1200);
   });
 
-  it("stops on an empty page, so a shrinking library cannot loop forever", async () => {
+  it("fails on an empty page, so a shrinking library cannot give a short list", async () => {
     server.use(
       http.get("/api/games", () =>
         HttpResponse.json({
@@ -64,7 +92,56 @@ describe("fetchGameNames", () => {
         }),
       ),
     );
-    await expect(fetchGameNames({})).resolves.toEqual([]);
+    await expect(fetchGameNames({})).rejects.toThrow(
+      strings.guide.finds.listChanged,
+    );
+  });
+
+  it("drops a name that a shifting library serves twice", async () => {
+    server.use(
+      twoPages(
+        { names: ["a", "b"], total: 3 },
+        { names: ["b", "c"], total: 3 },
+      ),
+    );
+    await expect(fetchGameNames({})).resolves.toEqual(["a", "b", "c"]);
+  });
+
+  it("fails when the total moves between pages", async () => {
+    server.use(
+      twoPages({ names: ["a", "b"], total: 3 }, { names: ["c"], total: 4 }),
+    );
+    await expect(fetchGameNames({})).rejects.toThrow(
+      strings.guide.finds.listChanged,
+    );
+  });
+
+  it("gives up on a request still waiting when aborted", async () => {
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.get("/api/games", async () => {
+        await held;
+        return HttpResponse.json({});
+      }),
+    );
+    const controller = new AbortController();
+    const fetching = fetchGameNames({}, undefined, controller.signal);
+
+    controller.abort();
+
+    await expect(fetching).rejects.toBeDefined();
+    release();
+  });
+
+  it("returns nothing once aborted, even for the last page", async () => {
+    server.use(pagedGames(2));
+    const controller = new AbortController();
+    await expect(
+      fetchGameNames({}, () => controller.abort(), controller.signal),
+    ).rejects.toBeDefined();
   });
 
   it("rejects when a page fails, so no partial list reaches a copy", async () => {

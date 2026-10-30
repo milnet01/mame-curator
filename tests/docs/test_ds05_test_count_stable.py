@@ -323,7 +323,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/api/test_mame_curator_1152_unreadable_playlist.py. 917 → 923.
 # Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 1): +4 in
 # tests/api/test_mame_curator_1144_pause_events.py. 923 → 927.
-EXPECTED_PYTEST_DECLARATIONS = 927
+# Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 3): +5 in
+# tests/api/test_mame_curator_1144_bios_report.py. 927 → 932.
+EXPECTED_PYTEST_DECLARATIONS = 932
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -421,7 +423,9 @@ EXPECTED_PYTEST_DECLARATIONS = 927
 # 424 → 477.
 # Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 2): +19 for the
 # Library by keyboard and the group's small fixes. 477 → 496.
-EXPECTED_VITEST_DECLARATIONS = 496
+# Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 3): +25 for an
+# honest and audible guide. 496 → 521.
+EXPECTED_VITEST_DECLARATIONS = 521
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

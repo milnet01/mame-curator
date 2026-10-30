@@ -15,8 +15,8 @@ playable arcade game: BIOS sets, devices, mechanical machines, and
 games you've chosen to leave out, such as mature content or games
 whose text is Japanese-only. Change these under **Settings → Filters**.
 
-If the library says "No games match your filters", loosen the filters
-in the sidebar or clear them.
+If the library says "No games match your filters", try a different
+search or clear the filters. **More options** shows every filter.
 
 ## One version per game
 

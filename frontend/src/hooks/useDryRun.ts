@@ -12,7 +12,7 @@ import {
  * The backend (``api/routes/copy.py:49``) takes a ``CopyJobRequest``
  * (``selected_names`` + conflict strategy + per-name append decisions)
  * and returns a ``DryRunReport`` with counts (selected / bios /
- * missing_source / already_copied / new) and summary (dest_writable /
+ * bios_missing_source / missing_source / already_copied / new) and summary (dest_writable /
  * free_space_gap_bytes / existing_playlist).
  *
  * In FP23 the ``selected_names`` set is the current filter result (the

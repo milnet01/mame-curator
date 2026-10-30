@@ -34,6 +34,7 @@ from mame_curator.copy import (
     ConflictStrategy,
     CopyController,
     CopyControlState,
+    CopyOutcomeStatus,
     CopyPlan,
     CopyReport,
     CopyReportStatus,
@@ -382,6 +383,11 @@ class JobManager:
                     "job_id": job.id,
                     "status": report.status.value,
                     "report_path": str(report_dir / "report.json"),
+                    # Skipped, not failed, so an OK job can have some.
+                    "bios_missing": sum(
+                        o.role == "bios" and o.status is CopyOutcomeStatus.SKIPPED_MISSING_SOURCE
+                        for o in report.skipped
+                    ),
                 },
                 ts=datetime.now(UTC),
             )

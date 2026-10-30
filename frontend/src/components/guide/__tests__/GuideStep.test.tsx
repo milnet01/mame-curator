@@ -50,6 +50,25 @@ describe("GuideStep", () => {
     await waitFor(() => expect(heading("First question")).toHaveFocus());
   });
 
+  it("gives a changed heading a new focus event, so a screen reader hears it", async () => {
+    const ui = (heading: string) => (
+      <MemoryRouter>
+        <GuideStep heading={heading}>body</GuideStep>
+      </MemoryRouter>
+    );
+    const { rerender } = render(ui("Counting the games"));
+    await waitFor(() => expect(heading("Counting the games")).toHaveFocus());
+    const heard: (string | null)[] = [];
+    document.addEventListener("focusin", (e) =>
+      heard.push((e.target as HTMLElement).textContent),
+    );
+
+    rerender(ui("This finds 2 games"));
+
+    await waitFor(() => expect(heard).toEqual(["This finds 2 games"]));
+    expect(heading("This finds 2 games")).toHaveFocus();
+  });
+
   it("shows the step as text, with no total until the total is known", () => {
     render(<TwoSteps />);
     expect(screen.getByText("Step 1")).toBeInTheDocument();

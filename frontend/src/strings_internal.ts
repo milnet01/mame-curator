@@ -109,7 +109,7 @@ export const strings = {
     gridLabel: "Game library grid",
     emptyTitle: "No games match your filters",
     emptyHint:
-      "Adjust the filters in the sidebar or clear them to see your full library.",
+      "Try a different search, or clear your filters to see your full library.",
     /** FP20-I — inline error panel when the games query fails. */
     loadFailedTitle: "Could not load the game library",
     loadFailedHint:
@@ -703,8 +703,11 @@ export const strings = {
     /** mame-curator-1110 — one BIOS-resolution warning from the copy job. */
     biosWarning: (name: string, kind: string) =>
       kind === "missing_from_listxml"
-        ? `${name}: not in MAME's machine list (listxml), so its BIOS can't be worked out`
+        ? `${name}: not in MAME's records, so its BIOS can't be worked out`
         : `${name}: ${kind}`,
+    /** job_finished's bios_missing: skipped, so the job can still end OK. */
+    biosMissing: (n: number) =>
+      `${n.toLocaleString()} BIOS file${n === 1 ? " these games need was" : "s these games need were"} not in your ROM folder, so some games may not run.`,
     /** mame-curator-1103 — shown until the server reports the job's total. */
     preparing: "Preparing copy…",
     progressLine: (done: number, total: number, currentFile: string) =>
@@ -771,6 +774,16 @@ export const strings = {
      * (via the `errors.byCode` dynamic-access allowlist), NOT that they mirror
      * the backend `ApiException.code` set. Keep this map in sync with
      * `api/errors.py` by hand until that gate lands. */
+    /** A path the server refused, by `FieldError.loc`. */
+    rejectedPath: {
+      "paths.source_roms": "Your ROM folder could not be found.",
+      "paths.source_dat": "Your MAME DAT file could not be found.",
+      "paths.dest_roms": "The folder to copy to could not be found.",
+      "paths.retroarch_playlist":
+        "The folder for your RetroArch playlist could not be found.",
+      "paths.retroarch": "RetroArch could not be found, or cannot be run.",
+      "paths.retroarch_core": "The RetroArch core could not be found.",
+    },
     byCode: {
       game_not_found: "No game with that short name in the loaded DAT.",
       override_not_found: "No override registered for that parent.",
@@ -841,8 +854,7 @@ export const strings = {
         "The ROM file is missing on disk. Run a curated Copy first so the .zip is in your destination folder.",
       validation_error:
         "The form has invalid values. Check the highlighted fields.",
-      config_invalid:
-        "The configuration is not valid — see field errors below.",
+      config_invalid: "The configuration is not valid.",
       response_shape_invalid:
         "The server returned an unexpected shape. Refresh and try again.",
       response_not_json: "The server response was not JSON.",

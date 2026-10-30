@@ -98,6 +98,165 @@ test.describe("INV-6: a repeat copy", () => {
   });
 });
 
+/** Holds matching requests until the returned function is called. */
+async function holdRoute(page: Page, match: (url: URL) => boolean) {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(
+    (url) => match(url),
+    async (route) => {
+      await held;
+      await route.continue().catch(() => {});
+    },
+  );
+  return release;
+}
+
+const listFetch = (url: URL) =>
+  url.pathname === "/api/games" && url.searchParams.get("page_size") === "500";
+const countFetch = (url: URL) =>
+  url.pathname === "/api/games" && url.searchParams.get("page_size") === "1";
+
+/** The text of each element that gains focus from now on. */
+async function recordFocus(page: Page) {
+  await page.evaluate(() => {
+    const heard: string[] = [];
+    (window as unknown as { heard: string[] }).heard = heard;
+    document.addEventListener("focusin", (e) =>
+      heard.push((e.target as HTMLElement).textContent ?? ""),
+    );
+  });
+  return () =>
+    page.evaluate(() => (window as unknown as { heard: string[] }).heard);
+}
+
+test.describe("the guide is honest and audible", () => {
+  test.use({ storageState: localStorageState({ [SEEN]: "true" }) });
+
+  test("INV-2: a heading that changes gets a real focus event", async ({
+    page,
+  }) => {
+    const release = await holdRoute(page, countFetch);
+    await page.goto("/start");
+    await expect(
+      page.getByRole("heading", { name: "Which games would you like?" }),
+    ).toBeFocused();
+    await page
+      .getByRole("button", { name: "The best version of every game" })
+      .click();
+    const counting = page.getByRole("heading", {
+      name: "Counting the games…",
+    });
+    await expect(counting).toBeFocused();
+    const heard = await recordFocus(page);
+
+    release();
+
+    const found = page.getByRole("heading", { name: /^This finds/ });
+    await expect(found).toBeFocused();
+    expect(await heard()).toEqual([await found.textContent()]);
+  });
+
+  test("INV-5: Back during the name fetch sticks", async ({ page }) => {
+    const release = await holdRoute(page, listFetch);
+    await page.goto("/start");
+    await page
+      .getByRole("button", { name: "The best version of every game" })
+      .click();
+    await page.getByRole("button", { name: "Copy these" }).click();
+    await page.getByRole("button", { name: "Back" }).click();
+    const which = page.getByRole("heading", {
+      name: "Which games would you like?",
+    });
+    await expect(which).toBeFocused();
+
+    release();
+    await page.waitForTimeout(300);
+
+    await expect(which).toBeFocused();
+  });
+
+  test("the Check report is heard, and a failed start keeps its place", async ({
+    page,
+  }) => {
+    let finishDryRun = () => {};
+    const dryRunHeld = new Promise<void>((resolve) => {
+      finishDryRun = resolve;
+    });
+    await page.route("**/api/copy/dry-run", async (route) => {
+      await dryRunHeld;
+      await route.fulfill({
+        json: {
+          counts: {
+            selected: 2,
+            bios: 3,
+            bios_missing_source: 1,
+            missing_source: 0,
+            already_copied: 0,
+            new: 2,
+          },
+          summary: {
+            dest_writable: true,
+            free_space_gap_bytes: 1000,
+            existing_playlist: false,
+          },
+        },
+      });
+    });
+    let finishStart = () => {};
+    const startHeld = new Promise<void>((resolve) => {
+      finishStart = resolve;
+    });
+    await page.route("**/api/copy/start", async (route) => {
+      await startHeld;
+      await route.fulfill({
+        status: 500,
+        json: { code: "boom", detail: "it broke", fields: [] },
+      });
+    });
+
+    await page.goto("/start");
+    await page
+      .getByRole("button", { name: "The best version of every game" })
+      .click();
+    await page.getByRole("button", { name: "Copy these" }).click();
+    await page.getByRole("button", { name: "Yes, copy here" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Checking your folders…" }),
+    ).toBeFocused();
+    const report = page.getByRole("status");
+    await expect(report).toBeEmpty();
+    const heard = await recordFocus(page);
+
+    finishDryRun();
+
+    await expect(
+      page.getByRole("heading", { name: "Ready to copy?" }),
+    ).toBeFocused();
+    expect(await heard()).toEqual(["Ready to copy?"]);
+    await expect(report).toContainText("2 BIOS files these games need will");
+    await expect(report).toContainText(
+      "1 BIOS file these games need is not in your ROM folder",
+    );
+
+    const start = page.getByRole("button", { name: "Start copying" });
+    await start.focus();
+    await page.keyboard.press("Enter");
+    await expect(start).toBeDisabled();
+    await expect(report).toContainText("Starting the copy…");
+    await expect(page.getByRole("button", { name: "Back" })).toHaveCount(0);
+
+    finishStart();
+
+    await expect(page.getByRole("alert")).toContainText("it broke");
+    await expect(start).toBeEnabled();
+    await expect(start).toBeFocused();
+    await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
+  });
+});
+
 async function expectNoSidewaysScroll(page: Page, selector: string) {
   const [scrollWidth, clientWidth] = await page
     .locator(selector)

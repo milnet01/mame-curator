@@ -41,9 +41,16 @@ smaller. The app remembers your choice in this browser.
 
 ## Keyboard shortcuts
 
-- `Ctrl-K` (`⌘K` on a Mac) — search games, settings and actions.
-- `/` — jump to the library search box.
+- `Ctrl-K` (`⌘K` on a Mac) — jump to a page or a help topic.
+- `/` — on the Library page, jump to the search box.
 - `Esc` — close a drawer or dialog.
+
+On the Library page, press `Tab` until a game has a coloured ring. Then:
+
+- Arrow keys — move between games. `Home` and `End` jump to the first and last.
+- `Enter` — open the game, to see its versions.
+- `R`, `S` or `?` — mark the game reviewed, skipped or needs decision. The same
+  key again clears the mark.
 
 ## Your data stays here
 
