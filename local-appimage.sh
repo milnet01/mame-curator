@@ -22,7 +22,7 @@ BUILD_IMAGE="docker.io/library/python:3.13-slim-bookworm"
 # appimagetool publishes only a rolling "continuous" tag, so the binary is
 # pinned by sha256 and a changed upstream build stops the build (spec §4.5).
 APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
-APPIMAGETOOL_SHA256="a6d71e2b6cd66f8e8d16c37ad164658985e0cf5fcaa950c90a482890cb9d13e0"
+APPIMAGETOOL_SHA256="793fca0ce4bcc309dc65d3f66669f58e3755643e4dadbe03932e7b436128494f"
 # 1.5x the first measured AppImage, 28797432 bytes (2026-09-28); spec §4.16, INV-15.
 SIZE_CEILING_BYTES=43196148
 
