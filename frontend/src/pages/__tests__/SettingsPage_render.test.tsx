@@ -80,6 +80,7 @@ describe("SettingsPage — render", () => {
       cloneof_map_size: 0,
       retroarch_configured,
       setup_required: false,
+      app_version: "1.3.0",
     };
   }
 

@@ -513,6 +513,8 @@ export interface SetupCheck {
   retroarch_configured: boolean;
   /** mame-curator-1095: the DAT could not be read at startup. */
   setup_required: boolean;
+  /** The running backend's version, shown on Settings → About. */
+  app_version: string;
 }
 
 /** mame-curator-1010 §4.2 — the version check's answer. */

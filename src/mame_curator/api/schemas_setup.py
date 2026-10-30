@@ -12,6 +12,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from mame_curator import __version__
+
 # ---------------------------------------------------------------------------
 # Setup / updates stubs
 # ---------------------------------------------------------------------------
@@ -74,6 +76,8 @@ class SetupCheck(BaseModel):
     # mame-curator-1095 § 4.2: true while the DAT could not be read at
     # startup, so the empty library is setup rather than a filter result.
     setup_required: bool
+    # Settings → About shows it (design.md); the running backend's version.
+    app_version: str = __version__
 
 
 class AppUpdateInfo(BaseModel):

@@ -78,6 +78,7 @@ export const setupCheckFixture = {
   cloneof_map_size: 0,
   retroarch_configured: false,
   setup_required: false,
+  app_version: "1.3.0",
 };
 
 /**

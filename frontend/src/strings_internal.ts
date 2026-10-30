@@ -56,6 +56,8 @@ export const strings = {
 
   common: {
     cancel: "Cancel",
+    /** Shown after a link that opens a new tab, on screen and to screen readers. */
+    opensInNewTab: "(opens in a new tab)",
     save: "Save",
     retry: "Try again",
     // FP25-H: in-flight label for the Retry button while LibraryErrorPanel's
@@ -384,7 +386,9 @@ export const strings = {
     about: {
       disclaimer:
         "MAME Curator does not include, distribute or host any ROM files, and we do not condone piracy. Only use ROMs you have the right to use; the law differs from country to country, so check yours. Game names and art belong to their owners. MAME Curator is not made by, affiliated with or endorsed by the MAME team or any game maker.",
-      support: "Support this project",
+      support: "Support this project on GitHub Sponsors",
+      version: (v: string) => `Version ${v}`,
+      license: "Released under the MIT License.",
     },
     filterLabels: {
       drop_bios_devices_mechanical: "Drop BIOS / device / mechanical",

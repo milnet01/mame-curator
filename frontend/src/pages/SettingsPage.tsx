@@ -465,7 +465,7 @@ export function SettingsPage({
         </TabsContent>
 
         <TabsContent value="about">
-          <AboutTab />
+          <AboutTab version={setupInfo?.app_version} />
         </TabsContent>
       </Tabs>
     </section>

@@ -29,6 +29,7 @@ from typing import Any
 
 import pytest
 
+from mame_curator import __version__
 from mame_curator.api.state import WorldState, build_world, replace_world
 
 
@@ -138,4 +139,7 @@ def test_setup_check_reports_setup_mode(setup_mode_client: Any) -> None:
 
 
 def test_setup_check_reports_normal_mode(client: Any) -> None:
-    assert client.get("/api/setup/check").json()["setup_required"] is False
+    body = client.get("/api/setup/check").json()
+    assert body["setup_required"] is False
+    # Settings → About reads the version from here (review-code 2026-10-30 #4).
+    assert body["app_version"] == __version__
