@@ -216,14 +216,19 @@ def merge_picker_into_filters(data: dict[str, Any]) -> dict[str, Any]:
     """YAML alias: ``picker:`` keys merge into ``filters:`` (single FilterConfig).
 
     Shared by ``AppConfigPatch`` and the startup loader (mame-curator-1135).
+    Raises ``ValueError`` when ``picker:``, or ``filters:`` beside it, is
+    neither a mapping nor empty, so a bad value is refused, not dropped.
     """
-    picker = data.pop("picker", None) if isinstance(data.get("picker"), dict) else None
+    picker = data.pop("picker", None)
     if picker is not None:
-        filters = data.get("filters") or {}
-        if not isinstance(filters, dict):
+        if not isinstance(picker, dict):
+            raise ValueError("`picker:` must be a mapping")
+        filters = data.get("filters")
+        if filters is None:
             filters = {}
-        merged = {**filters, **picker}
-        data["filters"] = merged
+        elif not isinstance(filters, dict):
+            raise ValueError("`filters:` must be a mapping")
+        data["filters"] = {**filters, **picker}
     return data
 
 

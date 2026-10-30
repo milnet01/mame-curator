@@ -313,8 +313,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/api/test_routes_activity.py, tests/copy/test_playlist.py. 904 → 908.
 # Bumped 2026-10-30 (review-code 2026-10-30 fixes): +1 in
 # tests/parser/test_dat_validation.py; +3 in
-# tests/copy/test_runner_recycle_guards.py. 908 → 912.
-EXPECTED_PYTEST_DECLARATIONS = 912
+# tests/copy/test_runner_recycle_guards.py; +2 in
+# tests/api/test_mame_curator_1131_unknown_config_keys.py. 908 → 914.
+EXPECTED_PYTEST_DECLARATIONS = 914
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

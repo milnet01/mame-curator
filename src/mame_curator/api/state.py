@@ -91,15 +91,19 @@ def load_app_config(config_path: Path) -> AppConfig:
         raise ConfigError(f"failed to parse {str(config_path)!r}: {exc!r}") from exc
     if not isinstance(raw, dict):
         raise ConfigError(f"{str(config_path)!r} must be a YAML mapping")
-    raw = merge_picker_into_filters(raw)
+    try:
+        raw = merge_picker_into_filters(raw)
+    except ValueError as exc:
+        raise ConfigError(f"config validation failed: {exc}") from exc
     # mame-curator-1131: a rollback to older code can leave keys a newer
     # version wrote. Drop them rather than refuse to start.
     dropped = _drop_unknown_keys(AppConfig, raw, prefix="")
     if dropped:
+        # repr each name: a key holding a newline must not forge a log line.
         logger.warning(
             "%r: ignoring keys this version does not recognise: %s",
             str(config_path),
-            ", ".join(dropped),
+            ", ".join(map(repr, dropped)),
         )
     try:
         return AppConfig.model_validate(raw)
