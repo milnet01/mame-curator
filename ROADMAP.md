@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1139 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1141 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2908,6 +2908,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   ubuntu-latest "Set up job" log reads "Image: ubuntu-24.04", so the
   move to 26 had not reached this repo yet. Re-check the image line on a
   later run.
+  2026-10-30: CI on c8cfdc7 (v1.4.1) was green, and its ubuntu-latest
+  log still reads "Image: ubuntu-24.04", so the move to 26 has still not
+  reached this repo. Re-check the image line on a later run.
   **Layman:** GitHub is upgrading the Linux computers that test this app; after that date, check the tests still pass.
   Kind: chore.
   Source: in-session-2026-09-28 (CI annotations on run for b5d9ea9).
@@ -3062,7 +3065,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: in-session-2026-10-19 (found working mame-curator-1131).
   Lanes: api.
 
-- 📋 [mame-curator-1136] **Record trailer footage and notes for the website's YouTube trailer.**
+- ✅ [mame-curator-1136] **Record trailer footage and notes for the website's YouTube trailer.**
   The ants-projects-hub-website session asked on 2026-10-10 for raw
   footage of released features; it builds the trailer itself. Brief:
   ~/.local/share/claude-handoff/ants-projects-hub-website-trailers-2026-10-10.md
@@ -3071,6 +3074,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   ants-projects-hub-website. Only features in a published release, and
   demo data only. Record after the next release, so the About-tab
   disclaimer (mame-curator-1133) can appear on screen.
+  2026-10-30: six clips and notes.md delivered to
+  /mnt/Games/Trailers/incoming/mame-curator/, recorded from the
+  published v1.4.1 AppImage on demo placeholder files. Website session
+  told.
   **Layman:** A short video advert for the app on YouTube and the website.
   Kind: marketing.
   Source: ants-projects-hub-website message, 2026-10-10.
@@ -3115,6 +3122,28 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-contract-2026-10-30.
   Lanes: cli.
+
+- 📋 [mame-curator-1140] **The versions panel shows the wrong Wikipedia article for a game named like a year.**
+  Seen on v1.4.1: GET /media/1942/wiki returned the article titled "1942",
+  about the calendar year, and the panel displays it. sf2 resolved
+  correctly to "Street Fighter II". Start at resolve_wikipedia_extract in
+  media/wikipedia.py and _canonicalise_wikipedia_title in media/sources.py.
+  Other games with plain-word or number names may match the same way;
+  that is unchecked.
+  **Layman:** Opening the game 1942 shows a history note about the year 1942, not the game.
+  Kind: fix.
+  Source: in-session-2026-10-30 (trailer recording, mame-curator-1136).
+  Lanes: media.
+
+- 📋 [mame-curator-1141] **A long genre name gives the Library filter sidebar a sideways scrollbar.**
+  Seen on v1.4.1 at 1920x1080 with 1.5 page scale: clicking the Beat 'em Ups
+  Featured tile selects the genre "Platform / Fighter Scrolling", and the
+  select pushes the sidebar wider than its column. Component:
+  FiltersSidebar.tsx.
+  **Layman:** Picking a long genre name makes a small sideways scrollbar appear in the filter column.
+  Kind: ux.
+  Source: in-session-2026-10-30 (trailer recording, mame-curator-1136).
+  Lanes: frontend.
 
 ## Considered / under research (no target date)
 
