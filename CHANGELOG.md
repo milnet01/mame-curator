@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-30
+
+**Theme:** Library polish.
+
+### 2026-10-30 Fixed — 1.4.0 reaches you as 1.4.1
+
+The v1.4.0 tag was pushed but its release was never published: the
+Linux AppImage build stopped because a packaging tool, appimagetool,
+changed upstream. The build now uses the reviewed new version. This
+release carries every change listed under 1.4.0 in
+[CHANGELOG.md](https://github.com/milnet01/mame-curator/blob/main/CHANGELOG.md#140---2026-10-30).
+
 ## [1.4.0] - 2026-10-30
 
 **Theme:** Library polish.
