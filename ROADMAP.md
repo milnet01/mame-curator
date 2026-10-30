@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1136 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1139 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2961,7 +2961,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-contract-2026-09-28 (mame-curator-1010 spec, loop 1 open question).
   Lanes: api.
 
-- 📋 [mame-curator-1131] **A rollback to older code can leave a config.yaml the older code refuses to load.**
+- ✅ [mame-curator-1131] **A rollback to older code can leave a config.yaml the older code refuses to load.**
   AppConfig forbids unknown keys (extra="forbid"). An update that adds a
   config key, followed by a Settings save that writes it, followed by
   "Roll back", leaves config.yaml carrying a key the rolled-back code
@@ -2989,6 +2989,14 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   api/spec.md claim. Also docs/standards/versioning-overrides.md §
   Breaking surfaces item 1 names two config readers; serve's is a third.
   Then check-code + review-code before flipping.
+  2026-10-30: review-code found serve still refused unknown server: keys
+  (#1). cli/spec.md gained a server: edge case, gated by review-contract
+  (loop-log rows 4-5, capped at 2 loops, calm; 73a12bf, af2b719); serve
+  now drops them with a WARNING (ff68466). Bad picker:/filters: values now
+  refuse, and dropped key names are repr-quoted (2d45889).
+  Shipped 2026-10-30: load_app_config (7aede0a) and serve (ff68466) drop
+  unknown keys; check-code and review-code 2026-10-30 run, every finding
+  closed (docs/reviews/close-findings-2026-10-30.md).
   **Layman:** Undoing an update could stop the app from starting if a newer setting was saved in the meantime.
   Kind: review-fix.
   Source: review-code-2026-09-28 mame-curator-1010 lane 1 (open question, settled by the orchestrator).
@@ -3011,7 +3019,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-code-2026-09-28 mame-curator-1010 lane 2 (L2-8, L2-9).
   Lanes: api.
 
-- 📋 [mame-curator-1133] **Show a Sponsor badge in the README and a support link on the About tab.**
+- ✅ [mame-curator-1133] **Show a Sponsor badge in the README and a support link on the About tab.**
   Follows mame-curator-1073, whose FUNDING.yml is live. User decision
   (2026-09-28): a Sponsor badge at the top of README.md and a small
   "Support this project" link on Settings → About, both pointing at
@@ -3024,12 +3032,15 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   check-code + review-code; after the release, message
   ants-projects-hub-website with the version and that the wording is
   unchanged.
+  Shipped 2026-10-30: cc80b42, plus version, licence and new-tab cue on
+  About (8948775) from review-code 2026-10-30; findings closed
+  (docs/reviews/close-findings-2026-10-30.md).
   **Layman:** People who like the app can find the donation page from the README and from inside the app.
   Kind: feature.
   Source: user-request-2026-09-28.
   Lanes: docs, frontend.
 
-- 📋 [mame-curator-1135] **A config.yaml copied from config.example.yaml fails to load, because the loader refuses its picker: section.**
+- ✅ [mame-curator-1135] **A config.yaml copied from config.example.yaml fails to load, because the loader refuses its picker: section.**
   config.example.yaml says "Copy this file to config.yaml" and carries a
   top-level picker: section. FilterConfig covers both filters: and picker:
   (filter/spec.md), and AppConfigPatch folds picker: into filters:, but
@@ -3043,6 +3054,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   2026-10-19: fixed in 7aede0a (merge_picker_into_filters in
   api/schemas.py, shared by AppConfigPatch and load_app_config).
   Awaiting check-code + review-code with 1131/1133 before flipping.
+  Shipped 2026-10-30: 7aede0a folds picker: into filters:; 2d45889
+  refuses a non-mapping picker:/filters:. Findings closed
+  (docs/reviews/close-findings-2026-10-30.md).
   **Layman:** Anyone who set the app up by copying the example settings file got an app that would not start.
   Kind: fix.
   Source: in-session-2026-10-19 (found working mame-curator-1131).
@@ -3060,6 +3074,47 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   **Layman:** A short video advert for the app on YouTube and the website.
   Kind: marketing.
   Source: ants-projects-hub-website message, 2026-10-10.
+
+- 📋 [mame-curator-1137] **Check whether an overwrite copy to a FAT or exFAT drive can recycle a game it just copied.**
+  Raised by the review-code 2026-10-30 orchestrator
+  (docs/reviews/review-code-2026-10-30/), not filed by a lane. The
+  OVERWRITE delete pass in copy/runner.py keeps the zips this run wrote,
+  matched by exact name. If the drive keeps an old `Pacman.zip` name when
+  `pacman.zip` is copied over it, `glob("*.zip")` returns a name not in
+  the kept set, and the new file is recycled. Unconfirmed: no test can
+  reach such a drive and no read-only check settles it. Reproduce on a
+  real FAT or exFAT stick before fixing. The likely fix compares names
+  with case folded. Queued 2026-10-30 by the user's ruling.
+  **Layman:** On a USB stick that ignores upper and lower case in file names, an overwrite copy that removes old zips might send a freshly copied game to the recycle bin.
+  Kind: investigate.
+  Source: review-code-2026-10-30.
+  Lanes: copy.
+
+- 📋 [mame-curator-1138] **Say "opens in a new tab" on the three other links that open one.**
+  Found next door by review-code 2026-10-30 lane 03, not filed by it:
+  AboutSection.tsx, IniRefreshPanel.tsx and UpdatesTab.tsx each have a
+  `target="_blank"` link with no new-tab cue. 8948775 added the shared
+  `strings.common.opensInNewTab` string and used it on the Sponsor link;
+  reuse it on these three. WCAG 2.2 technique G201 (SC 3.2.5, level AAA).
+  **Layman:** Three more links open a new browser tab without warning you first; the About tab's Sponsor link now says so.
+  Kind: accessibility.
+  Source: review-code-2026-10-30.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1139] **serve exits 3, not 1, when the API fails to start.**
+  Found out of radius by the review-contract gate on cli/spec.md's
+  server: amendment, 2026-10-30 (loop-log row 5). When the API lifespan
+  raises at startup (for example load_app_config refusing a bad value in
+  another section), uvicorn.run raises SystemExit 3. `_run_server` catches
+  only OSError, OverflowError and KeyboardInterrupt, so serve exits 3,
+  which cli/spec.md § Exit codes reserves for copy's playlist-conflict
+  cancel. Measured by the gate's orchestrator with a lifespan that
+  raises. Fix: map a lifespan-startup SystemExit to 1, or document 3 for
+  serve. Pre-existing; not caused by the amendment.
+  **Layman:** If the server can't start because of a bad setting, the app exits with the code meant for a cancelled copy instead of the normal error code.
+  Kind: review-fix.
+  Source: review-contract-2026-10-30.
+  Lanes: cli.
 
 ## Considered / under research (no target date)
 

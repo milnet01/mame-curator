@@ -17,6 +17,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-30 Fixed — Rollbacks start, About shows the version, and safer copies
+
+- After a rollback, a setting the older version did not know in
+  config.yaml's `server:` section still stopped `serve` from starting.
+  It is now skipped with a warning, like the rest of the file
+  (mame-curator-1131).
+- A bad value in `picker:`, or in `filters:` beside it, was quietly
+  ignored. The app now refuses it and says why.
+- Settings → About now shows the app's version and its MIT licence. The
+  Sponsor link says it goes to GitHub Sponsors and opens a new tab.
+- A zipped DAT using an unsupported compression method, encryption or a
+  damaged bzip2 stream stopped the app with a Python error. It now
+  reports that the DAT could not be extracted.
+- In an overwrite copy that removes old zips, one old zip that could not
+  be moved to the recycle bin lost the playlist and the copy report. It
+  is now a warning, and the zip stays.
+- Cancelling an overwrite copy that removes old zips still removed them.
+  A cancel now removes nothing.
+- A dry run could move a replaced zip to the recycle bin. Dry runs now
+  move nothing.
+- A playlist entry whose path was not text stopped an append copy after
+  the files were copied. Such entries are now skipped.
+
 ### 2026-10-30 Fixed — Re-running a copy no longer deletes games already in place, and crash fixes
 
 - A copy set to overwrite and to remove old zips, run a second time,
