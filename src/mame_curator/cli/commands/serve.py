@@ -89,6 +89,7 @@ def _load_server_config(path: Path) -> ServerConfig:
 
     from mame_curator.api.errors import ConfigError
     from mame_curator.api.schemas import ServerConfig
+    from mame_curator.api.state import _drop_unknown_keys
 
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -102,10 +103,22 @@ def _load_server_config(path: Path) -> ServerConfig:
     if not isinstance(raw, dict):
         raise ConfigError(f"{str(path)!r} must be a YAML mapping")
 
+    # `or {}` so an explicit `server:` with no value reads as "absent",
+    # matching a file with no `server:` key at all.
+    block = raw.get("server") or {}
+    if isinstance(block, dict):
+        # mame-curator-1131: drop keys a newer version wrote, as
+        # load_app_config does, so a rollback still starts. A non-mapping
+        # block is left for validation to refuse.
+        dropped = _drop_unknown_keys(ServerConfig, block, prefix="server.")
+        if dropped:
+            logger.warning(
+                "%r: ignoring keys this version does not recognise: %s",
+                str(path),
+                ", ".join(map(repr, dropped)),
+            )
     try:
-        # `or {}` so an explicit `server:` with no value reads as "absent",
-        # matching a file with no `server:` key at all.
-        return ServerConfig.model_validate(raw.get("server") or {})
+        return ServerConfig.model_validate(block)
     except ValidationError as exc:
         raise ConfigError(f"{str(path)!r} has an invalid `server:` block: {exc!r}") from exc
 

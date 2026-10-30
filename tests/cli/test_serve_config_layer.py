@@ -206,7 +206,6 @@ def test_unparseable_config_exits_1(
     "body",
     [
         'server: {port: "not-a-number"}\n',  # int coercion fails
-        "server: {bogus_key: 1}\n",  # extra="forbid"
         "server: 3\n",  # not a mapping at all
     ],
 )
@@ -221,6 +220,20 @@ def test_invalid_server_block_exits_1(
     assert capsys.readouterr().err.strip(), "the failure must be reported, not silent"
 
 
+def test_unknown_server_key_is_dropped_with_a_warning(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """mame-curator-1131 / review-code 2026-10-30 #1: a key a newer version
+    wrote must not stop a rolled-back `serve` from starting."""
+    monkeypatch.delenv("PORT", raising=False)
+    with caplog.at_level("WARNING", logger="mame_curator.cli.commands.serve"):
+        rc, kwargs = _serve(_serve_args(_config(tmp_path, "server: {port: 9100, future_key: 1}\n")))
+
+    assert rc != 1
+    assert kwargs["port"] == 9100
+    assert "server.future_key" in caplog.text
+
+
 def test_malformed_config_fails_even_when_every_flag_is_supplied(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -233,7 +246,7 @@ def test_malformed_config_fails_even_when_every_flag_is_supplied(
     monkeypatch.delenv("PORT", raising=False)
     rc, kwargs = _serve(
         _serve_args(
-            _config(tmp_path, "server: {bogus_key: 1}\n"),
+            _config(tmp_path, 'server: {port: "not-a-number"}\n'),
             host="127.0.0.1",
             port=9000,
             no_open_browser=True,
