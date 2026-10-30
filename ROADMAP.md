@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1156 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1162 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3291,7 +3291,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 - 📋 [mame-curator-1154] **The guide says games are already copied when they are on the drive but not in the playlist.**
   Finding: CheckStep.tsx canStart hides Start when newGames is 0; runner.py skips write_lpl on a cancel, and _build_playlist_entries includes SKIPPED_IDEMPOTENT.
   User decision 2026-10-30: offer Start for these games, and say they are on the drive but not in the playlist.
-  Changes INV-8 and §4.4 of docs/specs/mame-curator-1144-guided-library.md, so the amendment takes review-contract before the build. The dry run must report games absent from the playlist.
+  Changes INV-8 and §4.4 of docs/specs/mame-curator-1144-guided-library.md, so the amendment is written first; the spec has reached its cap of two review loops, so no new gate is owed (rules/14-contract-gate.md). The dry run must report games absent from the playlist.
   **Layman:** After a stopped copy kept its files, the guide hides Start for those games, so it can never add them to the playlist.
   Kind: review-fix.
   Source: review-code-2026-10-30-1144.
@@ -3310,6 +3310,48 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code-2026-10-30-1144.
   Lanes: frontend.
+
+- 📋 [mame-curator-1157] **A crashed copy writes no report and no Activity entry.**
+  Found while closing the review of mame-curator-1144 (commit d0172a7). Read, not run: a worker crash writes no report and no copy_aborted entry. Not fixed now because it is outside that group's subject.
+  **Layman:** When a copy crashes, the app now says so and points to Activity, but Activity shows only that the copy started.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: api, copy, tests.
+
+- 📋 [mame-curator-1158] **Leaving a running or paused copy by the top menu or browser Back loses control of it.**
+  Found while closing the review of mame-curator-1144. Hiding the guide's exit while paused does not cover the top menu or browser Back, and the Library has the same gap. The likely fix is to reconnect to a running job when the page opens; not fixed now because that is a design change of its own. The refusal when a copy is left paused is the user-visible harm.
+  **Layman:** If you leave the page during a copy using the menu or Back, you can't pause or stop that copy when you return.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1159] **Pause and resume replies claim a state a cancel refused.**
+  JobManager.pause and .resume answer paused and running even when a cancel made the controller refuse. The frontend ignores those replies today, so nothing shows it. Not fixed now because nothing user-visible depends on it.
+  **Layman:** A small internal mismatch: the reply can say paused when the copy is actually stopping.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: api, tests.
+
+- 📋 [mame-curator-1160] **Keyboard focus falls to the page when the command palette closes or a focused card disappears.**
+  Found while closing the review of mame-curator-1144 (commit 3256068). Palette closing: run. Other dialogs with no trigger: read, not run. R under a review filter with walkthrough off removing the focused card: reasoned, not run. Outside that group's findings.
+  **Layman:** A keyboard user can lose their place after closing the palette or reviewing a game under a filter.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1161] **The versions panel has two cursors: arrows move the highlight, Tab moves focus, and Enter follows focus only.**
+  Found while closing the review of mame-curator-1144 (commit 3256068). Needs a decision on which cursor wins, so not fixed in that group.
+  **Layman:** In the versions panel, the highlighted row and the row Enter acts on can be different.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1162] **Browser test leftovers make the formatting check fail.**
+  Copy reports under frontend/e2e/fixtures/data/ are ignored by git but not by Prettier, so prettier --check and local-CI.sh fail after any e2e run until they are removed. Found while closing the review of mame-curator-1144. Outside that group's findings.
+  **Layman:** After the browser tests run, a developer check fails until their leftover files are deleted.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: frontend, tests.
 
 ## Considered / under research (no target date)
 

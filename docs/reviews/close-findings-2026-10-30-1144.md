@@ -113,7 +113,7 @@ Group 2 run-level, 2026-10-30:
 | Finding | Sev | Disposition |
 |---|---|---|
 | `AlternativesDrawer.tsx:150`: override sent with the wrong parent | HIGH | queued: `mame-curator-1149`, same defect |
-| `CheckStep.tsx:38`: Start hidden for games not in the playlist | MEDIUM | queued: `mame-curator-1154`, user ruling, spec amendment needs review-contract |
+| `CheckStep.tsx:38`: Start hidden for games not in the playlist | MEDIUM | queued: `mame-curator-1154`, user ruling, spec amendment first, no gate because the spec is at its loop cap |
 | `LibraryGrid.tsx:26`: `groupKey` never read | MEDIUM | queued: `mame-curator-1155`, needs a decision |
 | Lane 2 and lane 3 open questions | n/a | queued: `mame-curator-1156`, each needs a decision |
 | Commit dc8bb1c's body: `LibraryPage.tsx` grew by 3 lines | LOW | dismissed: a commit message is a frozen record; the true figures are in the review's return |
