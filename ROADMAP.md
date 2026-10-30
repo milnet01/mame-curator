@@ -2631,6 +2631,13 @@ P14 (per-game review state).
   advanced items behind a More options button. The user also ticked
   "leave the page as it is" alongside those two; read as: today's full
   page stays reachable by a switch. Confirm in the spec.
+  review-contract 2026-10-30:
+  docs/specs/mame-curator-1144-guided-library.md capped at 2 loops, calm
+  cap; 29 verified and fixed, the last 11 read by no lane. Status stays
+  spec draft until the user answers §14's two questions. Left for the
+  build: job_finished carries a status (PARTIAL_FAILURE on a read-only
+  destination) that useCopySession drops, so check the Copying step does
+  not show a failed copy as done.
   **Layman:** The Library page shows too much at once and gives no starting point. Add step-by-step guidance so a partially sighted user knows what to do first.
   Kind: accessibility.
   Source: user-2026-10-30.
