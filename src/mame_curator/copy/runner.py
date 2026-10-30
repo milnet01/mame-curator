@@ -306,7 +306,7 @@ def run_copy(
                 overwritten.append(OverwriteRecord(old_short=replaced_short, new_short=short))
                 if decision.kind is AppendDecisionKind.REPLACE_AND_RECYCLE:
                     old_zip = plan.dest_dir / f"{replaced_short}.zip"
-                    if old_zip.exists():
+                    if old_zip.exists() and not plan.dry_run:
                         try:
                             new_path = recycle_file(
                                 old_zip,
@@ -386,11 +386,12 @@ def run_copy(
                 on_progress(short, outcome.bytes, outcome.bytes)
 
     # OVERWRITE with delete_existing_zips: recycle every existing dest zip
-    # except the ones we just wrote.
+    # except the ones we just wrote. A cancel means no recycling.
     if (
         plan.conflict_strategy is ConflictStrategy.OVERWRITE
         and plan.delete_existing_zips
         and not plan.dry_run
+        and not ctl.should_cancel()
     ):
         # Idempotently skipped files are this run's files too (already
         # present and current); recycling them would leave the new
@@ -400,12 +401,17 @@ def run_copy(
         for existing in plan.dest_dir.glob("*.zip"):
             if existing.name in wrote:
                 continue
-            new_path = recycle_file(
-                existing,
-                reason="OVERWRITE_DELETE_EXISTING",
-                session_id=session_id,
-                recycle_root=data_dir / "recycle",
-            )
+            try:
+                new_path = recycle_file(
+                    existing,
+                    reason="OVERWRITE_DELETE_EXISTING",
+                    session_id=session_id,
+                    recycle_root=data_dir / "recycle",
+                )
+            except (OSError, CopyError) as exc:
+                # The copies are done; keep the playlist and the report.
+                warnings.append(f"recycle of {existing.name!r} failed: {exc}")
+                continue
             recycled.append(
                 RecycleRecord(
                     original_path=existing,

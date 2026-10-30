@@ -185,3 +185,7 @@ def test_read_lpl_rejects_malformed_shapes_with_playlist_error(tmp_path: Path) -
         read_lpl(lpl)
     lpl.write_text(json.dumps({"items": [1, {"path": "/a/b.zip"}]}), encoding="utf-8")
     assert read_lpl(lpl) == [{"path": "/a/b.zip"}]
+    # An item whose `path` is not a string is dropped too: the runner
+    # builds a Path from it after the copies (review-code 2026-10-30 #10).
+    lpl.write_text(json.dumps({"items": [{"path": 5}, {"path": "/a/b.zip"}]}), encoding="utf-8")
+    assert read_lpl(lpl) == [{"path": "/a/b.zip"}]

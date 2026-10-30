@@ -184,7 +184,7 @@ When `plan.playlist_file` exists at preflight time, the caller (CLI or API) choo
 | Strategy | Behaviour |
 |---|---|
 | `APPEND` | Merge new entries into existing playlist; per-entry conflicts (below) resolved per `plan.append_decisions: dict[str, AppendDecision]` |
-| `OVERWRITE` | Discard existing playlist entirely; if `plan.delete_existing_zips=True`, **all** existing dest `.zip` files are moved to the recycle bin; new entries written |
+| `OVERWRITE` | Discard existing playlist entirely; if `plan.delete_existing_zips=True`, every existing dest `.zip` this run did not copy or find already current (`SKIPPED_IDEMPOTENT`) is moved to the recycle bin, and one that cannot be moved stays and becomes a report warning; new entries written |
 | `CANCEL` | `run_copy` returns `CopyReport.status = CANCELLED_PLAYLIST_CONFLICT`; no writes; no recycling |
 
 For `APPEND`, each new winner is checked against the existing entries (matched by `path` basename, i.e. short-name + `.zip`):

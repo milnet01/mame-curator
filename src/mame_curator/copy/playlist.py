@@ -71,5 +71,6 @@ def read_lpl(playlist_path: Path) -> list[dict[str, str]]:
     items = parsed.get("items", [])
     if not isinstance(items, list):
         raise PlaylistError("playlist 'items' is not a list", path=playlist_path)
-    # Callers read entries with `.get`; drop anything that is not an object.
-    return [it for it in items if isinstance(it, dict)]
+    # Callers read entries with `.get` and build a Path from `path`; drop
+    # anything that is not an object, or whose `path` is not a string.
+    return [it for it in items if isinstance(it, dict) and isinstance(it.get("path", ""), str)]
