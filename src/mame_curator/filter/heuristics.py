@@ -63,9 +63,9 @@ def region_of(description: str) -> Region:
 
 # DS02 G1: cache descriptions on the way through. `_cmp_revision` in
 # `filter.picker` calls this twice per pair during the picker
-# comparator sort, so a candidate-group of N machines drives
-# ~N log N comparisons * 2 regex chains each. Sizing: the largest
-# DAT carries ~43k machines, and a single sort touches at most the
+# winner pick, so a candidate-group of N machines drives N - 1
+# comparisons * 2 regex chains each. Sizing: the largest
+# DAT carries ~43k machines, and a single pick touches at most the
 # machines in one candidate group (parent + clones), so 8 K covers
 # any realistic workload without risking unbounded growth. Pure
 # function of `description: str` → keys + values are hashable +

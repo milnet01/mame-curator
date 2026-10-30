@@ -53,7 +53,7 @@ Tiebreakers in order; later rules only run when earlier rules tie:
 | 6 | revision key: `revision_key_of(description)` produces a tuple, lexicographic order | higher wins (later revision) |
 | 7 | alphabetical short name | lower wins (deterministic fallback) |
 
-Composed via `functools.cmp_to_key`. Each comparator returns `-1`, `0`, or `+1` where `cmp(a, b) < 0` means **`a` outranks `b`**. The winner is `sorted(candidates, key=cmp_to_key(chain))[0]` — the highest-ranked candidate (i.e. the first element after the rank-sort, NOT Python `max()`; the cmp polarity puts the winner at index 0).
+Composed via `functools.cmp_to_key`. Each comparator returns `-1`, `0`, or `+1` where `cmp(a, b) < 0` means **`a` outranks `b`**. The winner is `min(candidates, key=cmp_to_key(chain))` — the highest-ranked candidate (NOT Python `max()`; the cmp polarity makes the winner the smallest). The chain is a total order, so this is the first element of `sorted(candidates, key=cmp_to_key(chain))`.
 
 `preferred_genres` / `preferred_publishers` / `preferred_developers` use Python `in` substring containment (case-sensitive), not `fnmatch`. This is intentional: drops + sessions use fnmatch because the user is naming categories with wildcards (`Shooter*`); preferred-* lists are typically exact terms (`Capcom`) where substring matching is the more useful default. Confirmed by the indie-review pass-3 Tier 2 finding logged in CHANGELOG `[Unreleased]`.
 

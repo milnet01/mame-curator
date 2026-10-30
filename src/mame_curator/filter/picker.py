@@ -35,10 +35,9 @@ _DRIVER_RANK: dict[DriverStatus | None, int] = {
 }
 
 # Each comparator: (a, b, ctx, cfg, parent) -> int.
-# Return -1 if a should rank ABOVE b (i.e., sort earlier — winner is first
-# after sort), +1 if b should rank above a, 0 if this comparator is silent.
-# This polarity matches Python's standard `cmp(a, b)` convention so that
-# `sorted()` puts winners first.
+# Return -1 if a should rank ABOVE b (i.e., sort earlier), +1 if b should
+# rank above a, 0 if this comparator is silent. This polarity matches
+# Python's standard `cmp(a, b)` convention, so `min()` returns the winner.
 CmpFn = Callable[[Machine, Machine, FilterContext, FilterConfig, str], int]
 
 
