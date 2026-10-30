@@ -94,8 +94,8 @@ def test_pause_resume_abort_copy(client: Any) -> None:
     in ``tests/copy/test_controller.py`` (the state machine) and
     ``tests/copy/test_runner_lifecycle.py::test_pause_holds_at_file_boundary``
     (the worker honours the gate). ``test_sse.py`` covers the happy-path SSE
-    event sequence only — it does NOT drive pause/resume — so these
-    endpoints are smoke-tested here and nowhere else.
+    event sequence only — it does NOT drive pause/resume. Their events are
+    tested in ``test_mame_curator_1144_pause_events.py``.
     """
     # Start a copy of two winners (more files → a slightly wider race window).
     start = client.post(

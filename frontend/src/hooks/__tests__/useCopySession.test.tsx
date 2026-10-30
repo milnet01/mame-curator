@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, configure, renderHook, waitFor } from "@testing-library/react";
 
 import { server, http, HttpResponse } from "@/test/handlers";
 import { makeClientWrapper } from "@/test/renderWithClient";
@@ -18,6 +18,7 @@ class MockEventSource {
   url: string;
   onmessage: ((ev: MessageEvent) => void) | null = null;
   onerror: ((ev: Event) => void) | null = null;
+  onopen: ((ev: Event) => void) | null = null;
   closed = false;
   readyState = MockEventSource.OPEN;
 
@@ -44,6 +45,10 @@ class MockEventSource {
   emitTerminalError() {
     this.readyState = MockEventSource.CLOSED;
     this.onerror?.(new Event("error"));
+  }
+  emitOpen() {
+    this.readyState = MockEventSource.OPEN;
+    this.onopen?.(new Event("open"));
   }
 
   close() {
@@ -89,7 +94,7 @@ beforeEach(() => {
     http.post("/api/copy/abort", () =>
       HttpResponse.json({
         job_id: "job-123",
-        state: "aborted",
+        state: "terminating",
         started_at: "2026-05-07T20:00:00Z",
         files_done: 0,
         files_total: 1,
@@ -416,6 +421,228 @@ describe("useCopySession", () => {
     } finally {
       consoleWarn.mockRestore();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mame-curator-1144 — the hook never misreports a copy
+// ---------------------------------------------------------------------------
+
+async function startedSession(wrapper = renderWithClient()) {
+  const hook = renderHook(() => useCopySession(), { wrapper });
+  act(() => {
+    hook.result.current.start({
+      selected_names: ["pacman"],
+      conflict_strategy: "CANCEL",
+      append_decisions: {},
+    });
+  });
+  await waitFor(() => expect(MockEventSource.instances).toHaveLength(1));
+  const es = MockEventSource.instances[0];
+  const send = (event: string, payload: Record<string, unknown> = {}) =>
+    act(() => es.emit({ event, payload, ts: new Date().toISOString() }));
+  send("job_started", { files_total: 2, bytes_total: 2048 });
+  return { ...hook, es, send };
+}
+
+const failingControl = (path: string) =>
+  server.use(
+    http.post(path, () =>
+      HttpResponse.json(
+        { code: "job_not_found", detail: "no active copy job" },
+        { status: 404 },
+      ),
+    ),
+  );
+
+describe("mame-curator-1144 — copy honesty", () => {
+  it("keeps job_aborted's reason, so a crash can read differently from Stop", async () => {
+    const { result, send } = await startedSession();
+    send("job_aborted", { reason: "PlaylistError('disk full')" });
+    expect(result.current.state?.state).toBe("aborted");
+    expect(result.current.state?.abortReason).toBe(
+      "PlaylistError('disk full')",
+    );
+  });
+
+  it("a stream closed for good says the connection is lost", async () => {
+    const { result, es } = await startedSession();
+    act(() => es.emitTerminalError());
+    expect(result.current.state?.connection).toBe("lost");
+  });
+
+  it("a dropped stream says so until it reconnects", async () => {
+    const { result, es } = await startedSession();
+    act(() => es.emitTransientError());
+    expect(result.current.state?.connection).toBe("reconnecting");
+    act(() => es.emitOpen());
+    expect(result.current.state?.connection).toBeUndefined();
+  });
+
+  it("an event also clears the dropped-stream notice", async () => {
+    const { result, es, send } = await startedSession();
+    act(() => es.emitTransientError());
+    send("file_finished", { files_done: 1 });
+    expect(result.current.state?.connection).toBeUndefined();
+  });
+
+  it("a failed pause, resume or abort says so, and the next success clears it", async () => {
+    const { result } = await startedSession();
+    const cases: [string, () => void, string][] = [
+      [
+        "/api/copy/pause",
+        () => result.current.pause(),
+        strings.copy.pauseFailed,
+      ],
+      [
+        "/api/copy/resume",
+        () => result.current.resume(),
+        strings.copy.resumeFailed,
+      ],
+      [
+        "/api/copy/abort",
+        () => result.current.abort({ recycle_partial: false }),
+        strings.copy.abortFailed,
+      ],
+    ];
+    for (const [path, act_, words] of cases) {
+      failingControl(path);
+      act(act_);
+      await waitFor(() =>
+        expect(result.current.state?.controlError).toContain(words),
+      );
+      expect(result.current.state?.state).toBe("running");
+      server.resetHandlers();
+      server.use(
+        http.post(path, () =>
+          HttpResponse.json({
+            job_id: "job-123",
+            state: "running",
+            started_at: "2026-05-07T20:00:00Z",
+            files_done: 0,
+            files_total: 1,
+            bytes_done: 0,
+            bytes_total: 1024,
+          }),
+        ),
+      );
+      if (path !== "/api/copy/abort") {
+        act(act_);
+        await waitFor(() =>
+          expect(result.current.state?.controlError).toBeUndefined(),
+        );
+      }
+    }
+  });
+
+  it("an accepted abort shows as stopping, not as still running", async () => {
+    const { result, send } = await startedSession();
+    act(() => result.current.abort({ recycle_partial: false }));
+    await waitFor(() =>
+      expect(result.current.state?.state).toBe("terminating"),
+    );
+    send("job_aborted", { reason: "CANCELLED" });
+    expect(result.current.state?.state).toBe("aborted");
+  });
+
+  it("an abort reply arriving after the job ended cannot revive it", async () => {
+    const { result, send } = await startedSession();
+    send("job_finished", { status: "OK" });
+    act(() => result.current.abort({ recycle_partial: false }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(result.current.state?.state).toBe("finished");
+  });
+
+  it("a replay after a reconnect leaves a stopping copy stopping", async () => {
+    const { result, send } = await startedSession();
+    send("paused");
+    act(() => result.current.abort({ recycle_partial: false }));
+    await waitFor(() =>
+      expect(result.current.state?.state).toBe("terminating"),
+    );
+    send("job_started", { files_total: 2, bytes_total: 2048 });
+    expect(result.current.state?.state).toBe("terminating");
+    send("paused");
+    expect(result.current.state?.state).toBe("terminating");
+    send("resumed");
+    expect(result.current.state?.state).toBe("terminating");
+  });
+
+  it("a replay after a reconnect leaves a paused copy paused", async () => {
+    const { result, send } = await startedSession();
+    send("paused");
+    send("job_started", { files_total: 2, bytes_total: 2048 });
+    expect(result.current.state?.state).toBe("paused");
+  });
+
+  it("a replay does not repeat the warnings", async () => {
+    const { result, send } = await startedSession();
+    const warning = { name: "pacman", kind: "missing_from_listxml" };
+    send("bios_warning", warning);
+    send("job_started", { files_total: 2, bytes_total: 2048 });
+    send("bios_warning", warning);
+    expect(result.current.state?.warnings).toHaveLength(1);
+  });
+
+  it("valid JSON that is not an event is discarded", async () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const { result, es } = await startedSession();
+      act(() => es.emitRaw("null"));
+      act(() => es.emitRaw('{"event":"job_started"}'));
+      expect(result.current.state?.state).toBe("running");
+      expect(consoleWarn).toHaveBeenCalledTimes(2);
+    } finally {
+      consoleWarn.mockRestore();
+    }
+  });
+
+  it("StrictMode's rehearsal unmount does not hide the copy", async () => {
+    // React rehearses effects only when StrictMode is the outermost node, as
+    // it is in main.tsx, so a StrictMode wrapper here would rehearse nothing.
+    configure({ reactStrictMode: true });
+    try {
+      const { result } = renderHook(() => useCopySession(), {
+        wrapper: renderWithClient(),
+      });
+      act(() => {
+        result.current.start({
+          selected_names: ["pacman"],
+          conflict_strategy: "CANCEL",
+          append_decisions: {},
+        });
+      });
+      await waitFor(() => expect(result.current.state?.state).toBe("running"));
+    } finally {
+      configure({ reactStrictMode: false });
+    }
+  });
+
+  it("isStarting is true until the start has answered", async () => {
+    let answer = () => {};
+    server.use(
+      http.post(
+        "/api/copy/start",
+        () =>
+          new Promise((resolve) => {
+            answer = () => resolve(HttpResponse.json({ job_id: "job-123" }));
+          }),
+      ),
+    );
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    });
+    expect(result.current.isStarting).toBe(false);
+    act(() => {
+      result.current.start({
+        selected_names: ["pacman"],
+        conflict_strategy: "CANCEL",
+        append_decisions: {},
+      });
+    });
+    await waitFor(() => expect(result.current.isStarting).toBe(true));
+    answer();
+    await waitFor(() => expect(result.current.isStarting).toBe(false));
   });
 });
 

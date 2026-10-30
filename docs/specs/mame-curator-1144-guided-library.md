@@ -83,7 +83,7 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 - It shows one `<h1>` heading, "Step N of M" as text, and one column of large actions no wider than `40rem`. M is 5 when "every game" skips a step and 6 otherwise. The first step shows "Step 1" alone, because M is not yet known.
 - Every action is a `GuideAction`, at least `3rem` tall with a `text-xl` label.
 - On every step change, focus moves to the heading (`tabIndex={-1}`) on the next animation frame, including on Back. Source: https://ezud.com/accessible-multi-step-wizard-forms/
-- Every step has a Back action, except the first and Copying, and an exit labelled "Look around on my own", which goes to `/`.
+- Every step has a Back action, except the first and Copying, and an exit labelled "Look around on my own", which goes to `/`. The exit is hidden while a copy is paused, because nothing can come back to a paused copy: only Resume and Stop are offered (user ruling, 2026-10-30).
 - Colour is never the only signal. A failure is announced with `role="alert"` and worded text.
 
 ### 4.4 The steps
@@ -182,7 +182,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Test:* `frontend/src/components/guide/__tests__/GuideStep.test.tsx`, which fails if focus stays on `document.body` or the old button.
   *Breaks when:* a step renders without focusing its heading.
 
-- **INV-3** — Every step has a working exit to `/`, and every step but the first and Copying has Back.
+- **INV-3** — Every step has a working exit to `/`, except Copying while the copy is paused, and every step but the first and Copying has Back.
   *Test:* `frontend/src/pages/__tests__/GuidePage_steps.test.tsx`, walking each step.
   *Breaks when:* a step omits an action.
 
@@ -234,6 +234,9 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 
 - **`/api/games` or a page of it fails mid-way:** no copy starts, the step shows the reason, and Back works (INV-7).
 - **The library changes between the count and the copy:** the names are fetched when the user presses "Copy these". The Check step's counts are the ones they act on.
+- **The copy crashes:** `job_aborted` carries a reason other than `CANCELLED`. The Copying step says the copy did not finish, in a `role="alert"` element, with the reason and a link to `/activity`.
+- **The status stream drops:** the step says so in a `role="alert"` element while the browser reconnects. If the stream closes for good, it says the connection is lost and the copy may still be running, and offers no controls.
+- **A pause, resume or stop fails:** the step says so in a `role="alert"` element and keeps its controls.
 - **A copy is already running:** the start's error is shown (INV-7). The guide does not attach to the other job, because `useCopySession` has no resume.
 - **The page is reloaded or closed during a copy:** the copy carries on at the server, and the guide restarts at the first step. This matches the Library's `CopyModal` today, and the guide says so on the Copying step: "You can close this page. The copy will carry on." While paused it says instead: "Resume before you close this page. This guide cannot come back to a paused copy."
 - **A playlist the server cannot read (legacy format or damaged):** `POST /api/copy/start` refuses with a 409 `playlist_unreadable` and the playlist stays as it was (mame-curator-1152). The guide shows the start's error like any other (INV-7) and adds no handling of its own.

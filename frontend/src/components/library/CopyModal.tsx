@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { AbortCopyDialog } from "@/components/library/AbortCopyDialog";
 import {
   Dialog,
@@ -8,13 +9,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  copyOutcome,
+  copyProblem,
+  copyProblemHasActivity,
+} from "@/lib/copyOutcome";
 import { strings } from "@/strings";
 import type { JobState } from "@/api/types";
-
-export interface CopyModalConflict {
-  short_name: string;
-  existing: string;
-}
 
 export interface CopyModalState {
   jobId: string;
@@ -25,9 +26,14 @@ export interface CopyModalState {
   bytesTotal: number;
   currentFile: string;
   warnings: string[];
-  conflict: CopyModalConflict | null;
   /** job_finished's status, `OK` or `PARTIAL_FAILURE`, once it has arrived. */
   finishedStatus?: string;
+  /** job_aborted's reason, once it has arrived. Only CANCELLED is the user's. */
+  abortReason?: string;
+  /** Set only while the status stream is down. */
+  connection?: "reconnecting" | "lost";
+  /** Why the last pause, resume or abort failed, in the user's words. */
+  controlError?: string;
 }
 
 interface CopyModalProps {
@@ -49,33 +55,79 @@ export function CopyModal({
 }: CopyModalProps) {
   const [abortOpen, setAbortOpen] = useState(false);
 
+  const outcome = copyOutcome(state);
+  const live = outcome === "active";
+  const paused = live && state.state === "paused";
+  const controllable = live && (state.state === "running" || paused);
+  const problem = copyProblem(state);
   const pct =
     state.filesTotal === 0 ? 0 : (state.filesDone / state.filesTotal) * 100;
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
+      {/* Nothing reattaches to a job, so closing during a copy would lose
+          Pause and Cancel for good: no way to dismiss it until it ends. */}
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!live) onOpenChange(next);
+        }}
+      >
+        <DialogContent className="max-w-lg" showCloseButton={!live}>
           <DialogHeader>
             <DialogTitle>{strings.copy.modalTitle}</DialogTitle>
           </DialogHeader>
 
-          <Progress value={pct} aria-label={strings.copy.progressAriaLabel} />
-          <p className="font-mono text-sm" data-testid="progress-line">
-            {/* mame-curator-1103: no total until job_started arrives, so
-                "0 / 0" would read as an empty job. */}
-            {state.state === "running" && state.filesTotal === 0
-              ? strings.copy.preparing
-              : strings.copy.progressLine(
-                  state.filesDone,
-                  state.filesTotal,
-                  state.currentFile,
-                )}
-          </p>
+          {/* A lost stream knows nothing current, so it shows no progress. */}
+          {outcome !== "lost" && (
+            <>
+              <Progress
+                value={pct}
+                aria-label={strings.copy.progressAriaLabel}
+              />
+              <p className="font-mono text-sm" data-testid="progress-line">
+                {/* mame-curator-1103: no total until job_started arrives, so
+                    "0 / 0" would read as an empty job. */}
+                {state.state === "running" && state.filesTotal === 0
+                  ? strings.copy.preparing
+                  : strings.copy.progressLine(
+                      state.filesDone,
+                      state.filesTotal,
+                      state.currentFile,
+                    )}
+              </p>
+            </>
+          )}
 
-          <p className="text-xs text-muted-foreground">
-            State: {strings.copy.sessionState[state.state] ?? state.state}
-          </p>
+          {/* A crash ends as "aborted" and a lost stream may still say
+              "running": neither label is true for them. */}
+          {outcome !== "failed" && outcome !== "lost" && (
+            <p className="text-xs text-muted-foreground">
+              {strings.copy.stateLine(
+                strings.copy.sessionState[state.state] ?? state.state,
+              )}
+            </p>
+          )}
+
+          {outcome === "complete" && (
+            <p role="status" className="text-sm">
+              {strings.guide.copying.finishedHeading}
+            </p>
+          )}
+          {problem.length > 0 && (
+            <div role="alert" className="flex flex-col gap-1 text-sm">
+              {problem.map((line) => (
+                <p key={line} className="break-words">
+                  {line}
+                </p>
+              ))}
+              {copyProblemHasActivity(state) && (
+                <Link to="/activity" className="underline">
+                  {strings.guide.copying.seeWhich}
+                </Link>
+              )}
+            </div>
+          )}
 
           {state.warnings.length > 0 && (
             <ul className="rounded border bg-muted/40 p-2 text-xs">
@@ -92,65 +144,28 @@ export function CopyModal({
             </ul>
           )}
 
-          {state.conflict && (
-            // FP27 A4: read-only banner replaces the prior three
-            // interactive buttons (Keep/Replace/Replace-and-Recycle).
-            // There is no /api/copy/resolve-conflict endpoint; the
-            // buttons silently dropped the user's choice. The banner
-            // now states the only real path forward: restart the copy
-            // with an updated append_decisions payload. A real
-            // backend endpoint is post-v1 work (see docs/specs/FP27-zombie-features-data-integrity.md
-            // § A4 + "Deliberately not in scope").
-            <div
-              role="region"
-              aria-label={strings.copy.conflictRegionAriaLabel}
-              className="flex flex-col gap-2 rounded border border-destructive/40 bg-destructive/10 p-3"
-            >
-              <p className="text-sm font-semibold">
-                {strings.copy.conflictTitle}
-              </p>
-              <p className="text-xs">
-                {state.conflict.short_name} would replace{" "}
-                {state.conflict.existing}.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {strings.copy.conflictReadOnlyBanner}
-              </p>
-            </div>
-          )}
-
-          {/* FP11 § D8: state-machine action row. Terminal states
-              (`finished` / `aborted`) get a single Done button so
-              the user isn't stranded with a stale Cancel against a
-              completed job. `terminating` shows non-interactive
-              status only. `running` / `paused` are the only states
-              with Pause/Resume + Cancel. */}
+          {/* FP11 § D8: state-machine action row. Settled states get a single
+              Done button so the user isn't stranded with a stale Cancel.
+              `terminating` shows non-interactive status only. */}
           <div className="flex justify-end gap-2">
-            {(state.state === "finished" || state.state === "aborted") && (
+            {!live && (
               <Button onClick={() => onOpenChange(false)}>
                 {strings.copy.done}
               </Button>
             )}
-            {state.state === "terminating" && (
+            {live && state.state === "terminating" && (
               <Button variant="outline" disabled>
                 {strings.copy.sessionState.terminating}
               </Button>
             )}
-            {state.state === "paused" && (
+            {controllable && (
               <>
-                <Button onClick={onResume}>{strings.copy.resume}</Button>
+                {/* One button, so focus stays on it when Pause becomes Resume. */}
                 <Button
-                  variant="destructive"
-                  onClick={() => setAbortOpen(true)}
+                  variant={paused ? "default" : "outline"}
+                  onClick={paused ? onResume : onPause}
                 >
-                  {strings.copy.abort}
-                </Button>
-              </>
-            )}
-            {state.state === "running" && (
-              <>
-                <Button variant="outline" onClick={onPause}>
-                  {strings.copy.pause}
+                  {paused ? strings.copy.resume : strings.copy.pause}
                 </Button>
                 <Button
                   variant="destructive"
@@ -165,7 +180,7 @@ export function CopyModal({
       </Dialog>
 
       <AbortCopyDialog
-        open={abortOpen}
+        open={abortOpen && controllable}
         onOpenChange={setAbortOpen}
         filesDone={state.filesDone}
         onAbort={onAbort}

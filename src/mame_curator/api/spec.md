@@ -265,6 +265,11 @@ matches the static `_deactivate` path first.
 - **`pause` / `resume` / `abort`** drive the `CopyController` and return a
   `JobStatus`. `abort` takes `recycle_partial`. An operation with no current
   job raises `JobNotFoundError` (404).
+- **`pause` / `resume` emit `paused` / `resumed` themselves**, once per real
+  transition, because a worker held at a file boundary sends no progress tick
+  to carry them. A pause refused after a cancel emits nothing. `abort` emits
+  nothing until the terminal event; its reply's `terminating` is the only
+  signal of it.
 - **`GET /api/copy/status`** returns an `EventSourceResponse` streaming
   `JobEvent` payloads (`job_started`, progress, terminal). No active job →
   `JobNotFoundError` (404). Progress events carry `files_total` /

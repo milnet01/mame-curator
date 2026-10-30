@@ -321,7 +321,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-10-30 (mame-curator-1152): +5 in
 # tests/copy/test_mame_curator_1152_unreadable_playlist.py; +1 in
 # tests/api/test_mame_curator_1152_unreadable_playlist.py. 917 → 923.
-EXPECTED_PYTEST_DECLARATIONS = 923
+# Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 1): +4 in
+# tests/api/test_mame_curator_1144_pause_events.py. 923 → 927.
+EXPECTED_PYTEST_DECLARATIONS = 927
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -414,7 +416,10 @@ EXPECTED_PYTEST_DECLARATIONS = 923
 # components/settings/__tests__/AboutTab.test.tsx. 374 → 376.
 # Bumped 2026-10-30 (mame-curator-1144): +48, for the guide, the text size
 # and the simple Library. 376 → 424.
-EXPECTED_VITEST_DECLARATIONS = 424
+# Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 1): +54 for copy
+# honesty, -1 for CopyModal's conflict banner, which could never show.
+# 424 → 477.
+EXPECTED_VITEST_DECLARATIONS = 477
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

@@ -32,6 +32,7 @@ import { useConfig, useConfigPatch } from "@/hooks/useConfig";
 import { useSessions, useSessionUpsert } from "@/hooks/useSessions";
 import { useSetupCheck } from "@/hooks/useSetupCheck";
 import { toastApiError } from "@/lib/apiErrorToast";
+import { copyOutcome } from "@/lib/copyOutcome";
 import { strings } from "@/strings";
 import { apiRequest } from "@/api/client";
 import { GamesPageSchema, type GamesPage } from "@/api/types";
@@ -279,24 +280,40 @@ export function useLibraryController(cart: UseCartResult) {
     );
   };
 
-  // Cart auto-clear on terminal copy state, per config.ui.cart_clear_on_copy.
+  // P15 D9: what a copy's end does to the cart, per config.ui.cart_clear_on_copy,
+  // and whether the modal still has anything to say. A lost stream's outcome is
+  // not known, so it does neither. Waits for the config: until it loads, the
+  // user may be one who chose `never`.
   // FP24-T: cart and copySession.reset are stable useCallback refs out of
   // useCart / useCopySession, so omitting them from the dep array is
   // intentional — including them would re-run this effect on every cart
   // mutation (cart.clear changes identity if cart re-renders) and the
-  // policy logic only wants to react to copy-state and policy changes.
+  // policy logic only wants to react to outcome and policy changes.
+  const copyEnd = copySession.state ? copyOutcome(copySession.state) : null;
+  const clearPolicy = config.data?.ui.cart_clear_on_copy;
   useEffect(() => {
-    const policy = config.data?.ui.cart_clear_on_copy ?? "on_success";
-    const st = copySession.state?.state;
-    if (st === "finished" && policy !== "never") {
+    if (
+      !clearPolicy ||
+      !copyEnd ||
+      copyEnd === "active" ||
+      copyEnd === "lost"
+    ) {
+      return;
+    }
+    if (
+      clearPolicy === "always" ||
+      (clearPolicy === "on_success" && copyEnd === "complete")
+    ) {
       cart.clear();
+    }
+    if (copyEnd === "complete" && clearPolicy !== "never") {
+      toast.success(strings.guide.copying.finishedHeading);
       copySession.reset();
-    } else if (st === "aborted" && policy === "always") {
-      cart.clear();
+    } else if (copyEnd === "stopped" && clearPolicy === "always") {
       copySession.reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [copySession.state?.state, config.data?.ui.cart_clear_on_copy]);
+  }, [copyEnd, clearPolicy]);
 
   // FP24-G: surface the localStorage-unavailable state as a toast so
   // the user knows their cart won't persist. Toast fires once on the

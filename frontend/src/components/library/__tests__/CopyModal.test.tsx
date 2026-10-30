@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 
+import { strings } from "@/strings";
 import { CopyModal, type CopyModalState } from "../CopyModal";
 
 const baseState: CopyModalState = {
@@ -13,7 +15,6 @@ const baseState: CopyModalState = {
   bytesTotal: 300,
   currentFile: "pacman.zip",
   warnings: [],
-  conflict: null,
 };
 
 // Render the modal in its default running state and click Cancel to open
@@ -142,7 +143,7 @@ describe("CopyModal", () => {
       <CopyModal
         open
         onOpenChange={onOpenChange}
-        state={{ ...baseState, state: "finished" }}
+        state={{ ...baseState, state: "finished", finishedStatus: "OK" }}
         onPause={() => {}}
         onResume={() => {}}
         onAbort={() => {}}
@@ -159,7 +160,7 @@ describe("CopyModal", () => {
       <CopyModal
         open
         onOpenChange={onOpenChange}
-        state={{ ...baseState, state: "aborted" }}
+        state={{ ...baseState, state: "aborted", abortReason: "CANCELLED" }}
         onPause={() => {}}
         onResume={() => {}}
         onAbort={() => {}}
@@ -167,39 +168,139 @@ describe("CopyModal", () => {
     );
     expect(screen.getByRole("button", { name: /^done$/i })).toBeInTheDocument();
   });
+});
 
-  it("renders the conflict prompt as a read-only banner (FP27 A4)", () => {
-    // The prior three Keep/Replace/Replace-and-recycle buttons were
-    // removed because there is no /api/copy/resolve-conflict endpoint
-    // — they silently dropped the user's choice. The banner now
-    // points at the only real resolution path: abort + restart with
-    // an updated append_decisions payload.
-    render(
-      <CopyModal
-        open
-        onOpenChange={() => {}}
-        state={{
-          ...baseState,
-          state: "paused",
-          conflict: {
-            short_name: "pacman",
-            existing: "pacmanf",
-          },
-        }}
-        onPause={() => {}}
-        onResume={() => {}}
-        onAbort={() => {}}
-      />,
+describe("CopyModal — mame-curator-1144 copy honesty", () => {
+  function renderModal(
+    state: Partial<CopyModalState>,
+    onOpenChange: (open: boolean) => void = () => {},
+  ) {
+    const ui = (next: Partial<CopyModalState>) => (
+      <MemoryRouter>
+        <CopyModal
+          open
+          onOpenChange={onOpenChange}
+          state={{ ...baseState, ...next }}
+          onPause={() => {}}
+          onResume={() => {}}
+          onAbort={() => {}}
+        />
+      </MemoryRouter>
     );
-    expect(screen.getByText(/Existing playlist detected/i)).toBeInTheDocument();
+    const view = render(ui(state));
+    return {
+      ...view,
+      update: (next: Partial<CopyModalState>) => view.rerender(ui(next)),
+    };
+  }
+
+  it.each(["running", "paused", "terminating"] as const)(
+    "cannot be dismissed while %s: no close button, and Esc does nothing",
+    async (jobState) => {
+      const user = userEvent.setup();
+      const onOpenChange = vi.fn();
+      renderModal({ state: jobState }, onOpenChange);
+      expect(screen.queryByRole("button", { name: /close/i })).toBeNull();
+      await user.keyboard("{Escape}");
+      expect(onOpenChange).not.toHaveBeenCalled();
+    },
+  );
+
+  it("can be dismissed once the connection is lost, since no control is left", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderModal({ connection: "lost" }, onOpenChange);
+    await user.click(screen.getByRole("button", { name: /^done$/i }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    onOpenChange.mockClear();
+    await user.keyboard("{Escape}");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("says a clean finish plainly", () => {
+    renderModal({ state: "finished", finishedStatus: "OK" });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      strings.guide.copying.finishedHeading,
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("announces a partial failure and links to Activity", () => {
+    renderModal({ state: "finished", finishedStatus: "PARTIAL_FAILURE" });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      strings.guide.copying.partial,
+    );
     expect(
-      screen.getByText(/Restart the copy with updated append_decisions/i),
-    ).toBeInTheDocument();
-    // The prior three buttons are gone.
-    expect(screen.queryByRole("button", { name: /keep existing/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^replace$/i })).toBeNull();
+      screen.getByRole("link", { name: strings.guide.copying.seeWhich }),
+    ).toHaveAttribute("href", "/activity");
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("announces a crash with its reason, and never as Cancelled", () => {
+    renderModal({ state: "aborted", abortReason: "boom" });
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(strings.copy.failed);
+    expect(alert).toHaveTextContent(strings.copy.failedDetail("boom"));
     expect(
-      screen.queryByRole("button", { name: /replace and recycle/i }),
+      screen.queryByText(new RegExp(strings.copy.sessionState.aborted)),
     ).toBeNull();
+  });
+
+  it("shows the user's own Cancel without an alert", () => {
+    renderModal({ state: "aborted", abortReason: "CANCELLED" });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(
+      screen.getByText(new RegExp(strings.copy.sessionState.aborted)),
+    ).toBeInTheDocument();
+  });
+
+  it("says when the connection is lost, with no controls and no claim to be copying", () => {
+    renderModal({ connection: "lost" });
+    expect(screen.getByRole("alert")).toHaveTextContent(strings.copy.lost);
+    expect(screen.queryByTestId("progress-line")).toBeNull();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.queryByRole("button", { name: /pause/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^cancel$/i })).toBeNull();
+    expect(
+      screen.queryByText(new RegExp(strings.copy.sessionState.running)),
+    ).toBeNull();
+  });
+
+  it("says when the connection has dropped, and keeps the controls", () => {
+    renderModal({ connection: "reconnecting" });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      strings.copy.reconnecting,
+    );
+    expect(screen.getByRole("button", { name: /pause/i })).toBeInTheDocument();
+  });
+
+  it("shows a failed control while the copy is live, but not after it ended", () => {
+    const { update } = renderModal({ controlError: "Pause failed" });
+    expect(screen.getByRole("alert")).toHaveTextContent("Pause failed");
+    update({
+      controlError: "Pause failed",
+      state: "finished",
+      finishedStatus: "OK",
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("keeps focus on the button when Pause becomes Resume", async () => {
+    const user = userEvent.setup();
+    const { update } = renderModal({});
+    await user.click(screen.getByRole("button", { name: /pause/i }));
+    const pressed = document.activeElement;
+    update({ state: "paused" });
+    expect(screen.getByRole("button", { name: /resume/i })).toBe(pressed);
+    expect(document.activeElement).toBe(pressed);
+  });
+
+  it("closes the abort prompt if the job ends behind it", async () => {
+    const user = userEvent.setup();
+    const { update } = renderModal({});
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+    update({ state: "finished", finishedStatus: "OK" });
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
   });
 });

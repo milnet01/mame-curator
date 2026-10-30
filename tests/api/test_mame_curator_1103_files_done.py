@@ -29,7 +29,6 @@ from typing import cast
 
 from mame_curator.api.jobs import JobManager, _ProgressSynthesizer
 from mame_curator.api.schemas import JobEvent
-from mame_curator.copy import CopyController
 
 
 class _RecordingSink:
@@ -46,11 +45,10 @@ async def test_file_finished_payload_carries_running_files_done_count() -> None:
     """Each file_finished event's files_done is the 1-based running count."""
     loop = asyncio.get_running_loop()
     sink = _RecordingSink()
-    controller = CopyController()
     # _RecordingSink duck-types JobManager's only seam _ProgressSynthesizer
     # calls (`_emit`); a real JobManager needs a running Job + history_dir
     # this test has no use for.
-    synth = _ProgressSynthesizer(loop, cast(JobManager, sink), controller)
+    synth = _ProgressSynthesizer(loop, cast(JobManager, sink))
 
     # Three distinct files, each finishing in one tick (done == total).
     synth("pacman", 100, 100)

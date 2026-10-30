@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/api/client";
+import { apiErrorMessage } from "@/lib/apiErrorToast";
 import { strings } from "@/strings";
 import {
   JobAcceptedSchema,
@@ -25,19 +26,16 @@ interface JobEventMsg {
  * Event shape mirrors src/mame_curator/api/schemas.py JobEvent:
  *   { event: <literal>, payload: dict, ts: ISO8601 }
  *
- * FP27 A4: there is no /api/copy/resolve-conflict endpoint. Mid-flight
- * conflicts surface via the modal's `state.conflict` field as a read-
- * only banner; the only resolution path is abort + restart with an
- * updated CopyJobRequest.append_decisions. The prior `resolveConflict`
- * callback (silently dropped the user's choice) was removed.
+ * FP27 A4: there is no /api/copy/resolve-conflict endpoint, and a conflict
+ * never becomes an SSE event: the start's 409 is the only signal.
  *
  * SSE source torn down on terminal state, reset(), or unmount.
  */
 export function useCopySession() {
   const [state, setState] = useState<CopyModalState | null>(null);
   const esRef = useRef<EventSource | null>(null);
-  // FP24-J: unmounted/cancelled flag so onSuccess returning AFTER an
-  // unmount or reset() doesn't open an orphan stream we can't close.
+  // FP24-J: unmounted flag so onSuccess returning AFTER an unmount
+  // doesn't open an orphan stream we can't close.
   const cancelledRef = useRef(false);
 
   const closeStream = useCallback(() => {
@@ -45,14 +43,26 @@ export function useCopySession() {
     esRef.current = null;
   }, []);
 
-  // Tear down SSE on unmount
-  useEffect(
-    () => () => {
+  // Tear down SSE on unmount. StrictMode's rehearsal unmounts and remounts,
+  // so the mount has to clear the flag again.
+  useEffect(() => {
+    cancelledRef.current = false;
+    return () => {
       cancelledRef.current = true;
       closeStream();
-    },
-    [closeStream],
-  );
+    };
+  }, [closeStream]);
+
+  const controlFailed = (words: string, err: unknown) =>
+    setState(
+      (prev) =>
+        prev && {
+          ...prev,
+          controlError: `${words} ${apiErrorMessage(err)}`,
+        },
+    );
+  const clearControlError = () =>
+    setState((prev) => prev && { ...prev, controlError: undefined });
 
   const startMutation = useMutation({
     mutationFn: (req: CopyJobRequest) =>
@@ -61,9 +71,9 @@ export function useCopySession() {
         body: req,
       }),
     onSuccess: (data) => {
-      // FP24-J: bail if the consumer unmounted or reset() during the
-      // start mutation in flight; opening a fresh EventSource would
-      // leak it past the component lifecycle.
+      // FP24-J: bail if the consumer unmounted during the start mutation
+      // in flight; opening a fresh EventSource would leak it past the
+      // component lifecycle.
       if (cancelledRef.current) return;
       // FP24-H: a second start() before the first stream terminates
       // must close the orphan stream so it doesn't keep dispatching
@@ -78,27 +88,36 @@ export function useCopySession() {
         bytesTotal: 0,
         currentFile: "",
         warnings: [],
-        conflict: null,
       });
       const es = new EventSource("/api/copy/status");
       es.onmessage = (ev: MessageEvent) => {
         // FP24-K: malformed SSE data must not crash the hook (React
         // doesn't catch synchronous exceptions inside event-handler
         // listeners).
-        let msg: JobEventMsg;
+        let parsed: JobEventMsg | null;
         try {
-          msg = JSON.parse(ev.data as string) as JobEventMsg;
+          parsed = JSON.parse(ev.data as string) as JobEventMsg | null;
         } catch (err) {
           console.warn("useCopySession: discarded malformed SSE event", err);
           return;
         }
-        setState((prev) => {
-          if (!prev) return prev;
+        if (!parsed?.payload) {
+          console.warn("useCopySession: discarded malformed SSE event", parsed);
+          return;
+        }
+        const msg = parsed;
+        setState((current) => {
+          if (!current) return current;
+          const prev = current.connection
+            ? { ...current, connection: undefined }
+            : current;
           switch (msg.event) {
             case "job_started":
+              // A reconnect replays history from here, so this is no state
+              // change, and the warnings are about to be sent again.
               return {
                 ...prev,
-                state: "running",
+                warnings: [],
                 filesTotal:
                   (msg.payload.files_total as number | undefined) ??
                   prev.filesTotal,
@@ -124,10 +143,15 @@ export function useCopySession() {
                   (msg.payload.bytes_done as number | undefined) ??
                   prev.bytesDone,
               };
+            // A replay's paused or resumed cannot undo an accepted abort.
             case "paused":
-              return { ...prev, state: "paused" };
+              return prev.state === "terminating"
+                ? prev
+                : { ...prev, state: "paused" };
             case "resumed":
-              return { ...prev, state: "running" };
+              return prev.state === "terminating"
+                ? prev
+                : { ...prev, state: "running" };
             case "bios_warning":
               return {
                 ...prev,
@@ -150,7 +174,11 @@ export function useCopySession() {
               };
             case "job_aborted":
               closeStream();
-              return { ...prev, state: "aborted" };
+              return {
+                ...prev,
+                state: "aborted",
+                abortReason: msg.payload.reason as string | undefined,
+              };
             case "file_finished":
               // mame-curator-1103: the server's job-wide count, not a local
               // tally, so a reconnect replay cannot double-count.
@@ -169,7 +197,15 @@ export function useCopySession() {
       // Browsers auto-reconnect on transient drops with readyState
       // back at CONNECTING; closing in that state defeats reconnect.
       es.onerror = () => {
-        if (es.readyState === EventSource.CLOSED) closeStream();
+        const closed = es.readyState === EventSource.CLOSED;
+        if (closed) closeStream();
+        setState(
+          (prev) =>
+            prev && { ...prev, connection: closed ? "lost" : "reconnecting" },
+        );
+      };
+      es.onopen = () => {
+        setState((prev) => prev && { ...prev, connection: undefined });
       };
       esRef.current = es;
     },
@@ -180,6 +216,8 @@ export function useCopySession() {
       apiRequest<JobStatus>("/api/copy/pause", JobStatusSchema, {
         method: "POST",
       }),
+    onMutate: clearControlError,
+    onError: (err) => controlFailed(strings.copy.pauseFailed, err),
   });
 
   const resumeMutation = useMutation({
@@ -187,6 +225,8 @@ export function useCopySession() {
       apiRequest<JobStatus>("/api/copy/resume", JobStatusSchema, {
         method: "POST",
       }),
+    onMutate: clearControlError,
+    onError: (err) => controlFailed(strings.copy.resumeFailed, err),
   });
 
   const abortMutation = useMutation({
@@ -195,6 +235,15 @@ export function useCopySession() {
         method: "POST",
         body: req,
       }),
+    onMutate: clearControlError,
+    onError: (err) => controlFailed(strings.copy.abortFailed, err),
+    // No event says this, and the job may have ended before the reply came.
+    onSuccess: () =>
+      setState((prev) =>
+        prev?.state === "running" || prev?.state === "paused"
+          ? { ...prev, state: "terminating" }
+          : prev,
+      ),
   });
 
   const reset = useCallback(() => {
@@ -205,6 +254,7 @@ export function useCopySession() {
   return {
     state,
     start: startMutation.mutate,
+    isStarting: startMutation.isPending,
     pause: pauseMutation.mutate,
     resume: resumeMutation.mutate,
     abort: abortMutation.mutate,

@@ -9,7 +9,8 @@ interface GuideStepProps {
   stepCount?: number;
   /** Absent where there is nothing to go back to. */
   onBack?: () => void;
-  exitLabel: string;
+  /** Absent where leaving would strand something, as a paused copy would be. */
+  exitLabel?: string;
   children: ReactNode;
 }
 
@@ -56,7 +57,9 @@ export function GuideStep({
         {onBack && (
           <GuideAction onClick={onBack}>{strings.guide.back}</GuideAction>
         )}
-        <GuideAction to="/">{exitLabel}</GuideAction>
+        {exitLabel !== undefined && (
+          <GuideAction to="/">{exitLabel}</GuideAction>
+        )}
       </div>
     </div>
   );

@@ -88,21 +88,14 @@ class Job:
 class _ProgressSynthesizer:
     """Worker-thread on_progress callback; converts ticks into JobEvents."""
 
-    def __init__(
-        self,
-        loop: AbstractEventLoop,
-        sink: JobManager,
-        controller: CopyController,
-    ) -> None:
+    def __init__(self, loop: AbstractEventLoop, sink: JobManager) -> None:
         """Build a synthesizer bound to ``loop`` for thread-safe event dispatch."""
         self._loop = loop
         self._sink = sink
-        self._controller = controller
         self._seen: set[str] = set()
         # mame-curator-1103: job-wide count carried on each file_finished,
         # so a client (or a reconnect replay) reads the count, not a tally.
         self._files_done = 0
-        self._was_paused = False
 
     def __call__(self, short: str, bytes_done: int, bytes_total: int) -> None:
         ts = datetime.now(UTC)
@@ -139,17 +132,6 @@ class _ProgressSynthesizer:
                     ts=ts,
                 )
             )
-
-        is_paused = self._controller.state == CopyControlState.PAUSED
-        if is_paused != self._was_paused:
-            self._dispatch(
-                JobEvent(
-                    event="paused" if is_paused else "resumed",
-                    payload={"at": ts.isoformat()},
-                    ts=ts,
-                )
-            )
-            self._was_paused = is_paused
 
     def _dispatch(self, event: JobEvent) -> None:
         self._loop.call_soon_threadsafe(self._sink._emit, event)
@@ -213,7 +195,7 @@ class JobManager:
             job_id = _new_job_id()
             started_at = datetime.now(UTC)
 
-            synth = _ProgressSynthesizer(self._loop, self, controller)
+            synth = _ProgressSynthesizer(self._loop, self)
 
             def worker() -> None:
                 try:
@@ -277,14 +259,18 @@ class JobManager:
     async def pause(self) -> JobStatus:
         """Pause the in-flight job at the next file boundary."""
         job = self._require_job()
+        before = job.controller.state
         job.controller.pause()
+        self._emit_control_change(job, before)
         await asyncio.sleep(0.05)
         return self._status(job, override_state="paused")
 
     async def resume(self) -> JobStatus:
         """Resume a paused job."""
         job = self._require_job()
+        before = job.controller.state
         job.controller.resume()
+        self._emit_control_change(job, before)
         await asyncio.sleep(0.05)
         return self._status(job, override_state="running")
 
@@ -320,6 +306,20 @@ class JobManager:
             files_total=job.files_total,
             bytes_done=job.bytes_done,
             bytes_total=job.bytes_total,
+        )
+
+    def _emit_control_change(self, job: Job, before: CopyControlState) -> None:
+        """Report a pause or resume now: a worker held at a boundary sends no tick."""
+        after = job.controller.state
+        if before == after:
+            return
+        now = datetime.now(UTC)
+        self._emit(
+            JobEvent(
+                event="paused" if after == CopyControlState.PAUSED else "resumed",
+                payload={"at": now.isoformat()},
+                ts=now,
+            )
         )
 
     def _emit(self, event: JobEvent) -> None:
@@ -495,8 +495,8 @@ def _sum_input_sizes(plan: CopyPlan, bios_set: frozenset[str]) -> int:
 def check_playlist_conflict(plan: CopyPlan) -> None:
     """Pre-flight: raise if CANCEL would abort or APPEND cannot read the playlist.
 
-    The API answers here rather than from the worker because useCopySession
-    drops a job_aborted reason, so the browser would not learn why.
+    The API answers here rather than from the worker so the refusal is the
+    start's own error, before any file is touched.
     """
     if not plan.playlist_file.exists():
         return

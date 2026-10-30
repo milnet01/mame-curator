@@ -618,8 +618,13 @@ describe("GuidePage steps", () => {
     expect(
       screen.getByRole("button", { name: strings.copy.resume }),
     ).toBeVisible();
+    // User ruling, 2026-10-30: only Resume and Stop while paused.
+    expect(screen.queryByRole("link", { name: g.exit })).toBeNull();
 
-    await press(user, strings.copy.abort);
+    act(() =>
+      MockEventSource.instances[0].emit("file_finished", { files_done: 1 }),
+    );
+    await press(user, g.copying.stop);
     expect(
       await screen.findByRole("button", { name: strings.copy.abortKeepFiles }),
     ).toBeVisible();

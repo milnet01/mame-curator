@@ -13,7 +13,8 @@ offers **Add all** for every game in it.
    and writes nothing.
 2. Check the list, then press **Copy**.
 
-A window shows progress while the files copy.
+A window shows progress while the files copy. It stays open until the
+copy ends, because it holds the Pause and Cancel buttons.
 
 ## What gets copied
 

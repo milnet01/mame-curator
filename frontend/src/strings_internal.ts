@@ -670,18 +670,33 @@ export const strings = {
     dryRunHint: "No files are written. Review the diff and confirm to copy.",
     /** AT-only label on the progress indicator. */
     progressAriaLabel: "Copy progress",
-    /** AT-only label on the conflict-resolution panel. */
-    conflictRegionAriaLabel: "Existing playlist conflict",
     modalTitle: "Copy in progress",
     pause: "Pause",
     resume: "Resume",
     abort: "Cancel",
+    abortTitle: "Stop the copy?",
     abortConfirm: (recyclable: boolean) =>
       recyclable
-        ? "Cancel the copy? Already-copied files can be moved to the recycle bin or kept."
-        : "Cancel the copy? Already-copied files will be kept.",
+        ? "The files already copied can be kept, or moved to the recycle bin."
+        : "Nothing has been copied yet.",
+    /** The abort prompt's way out: it means carry on, so never "Cancel". */
+    keepCopying: "Keep copying",
+    /** Shown instead of the keep and recycle choices when nothing is copied. */
+    abortNothingCopied: "Stop copying",
     abortKeepFiles: "Keep files",
     abortRecycleFiles: "Move to recycle bin",
+    /** A copy that crashed: job_aborted with any reason but CANCELLED. */
+    failed:
+      "Something went wrong and the copy stopped before it finished. Some games may not have been copied, or may be missing from your game list.",
+    failedDetail: (reason: string) => `What went wrong: ${reason}`,
+    /** The status stream closed for good, so the outcome is not known. */
+    lost: "This page can no longer see the copy, so it cannot say how far it got. The copy may still be running.",
+    reconnecting:
+      "The connection to the copy has dropped. Trying to reconnect…",
+    pauseFailed: "The copy could not be paused. It may still be running.",
+    resumeFailed: "The copy could not be resumed. It may still be paused.",
+    abortFailed: "The copy could not be stopped. It may still be running.",
+    stateLine: (label: string) => `State: ${label}`,
     /** mame-curator-1110 — one BIOS-resolution warning from the copy job. */
     biosWarning: (name: string, kind: string) =>
       kind === "missing_from_listxml"
@@ -691,9 +706,6 @@ export const strings = {
     preparing: "Preparing copy…",
     progressLine: (done: number, total: number, currentFile: string) =>
       `${done.toLocaleString()} / ${total.toLocaleString()} — ${currentFile}`,
-    conflictTitle: "Existing playlist detected",
-    conflictReadOnlyBanner:
-      "Restart the copy with updated append_decisions to change the conflict strategy.",
     sessionState: {
       running: "Copying",
       paused: "Paused",

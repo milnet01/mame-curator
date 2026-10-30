@@ -17,6 +17,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-30 Fixed — The app now tells the truth about a copy
+
+This covers the guide and the Library's copy window (mame-curator-1144).
+
+- **A crash now reads as a failure**
+  It no longer looks as if you pressed Stop.
+
+- **A lost connection says so**
+  The screen stops claiming the copy is running, and says it may still be.
+
+- **A Pause, Resume or Stop that fails says so**
+
+- **Pause always leaves a Resume button**
+  The keyboard stays on that button. While a copy is paused, the guide offers only Resume and Stop.
+
+- **BIOS warnings now show in the guide**
+
+- **The Library keeps your cart when some games could not be copied**
+  It also says when a copy has finished.
+
+- **The copy window stays open until the copy ends**
+  Closing it used to lose Pause and Cancel for good.
+
+- **The Stop question is clearer**
+  Its way out says Keep copying, not Cancel. It offers no recycle bin when nothing was copied, and it closes if the copy ends behind it.
+
 ### 2026-10-30 Added — A guide, larger text and a simpler Library
 
 The app now opens once on a guide: one question per screen, in large text, from choosing games to a finished copy. A Text size box sits on every page, and text starts larger than before. The Library starts simple, with search, games and the copy bar, and More options opens the full page. (mame-curator-1144)

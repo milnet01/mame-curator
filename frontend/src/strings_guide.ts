@@ -75,6 +75,12 @@ export const guideStrings = {
     partial: "Some games could not be copied.",
     seeWhich: "See what happened in Activity",
     stoppedHeading: "The copy has stopped.",
+    stoppingHeading: "Stopping the copy…",
+    failedHeading: "The copy did not finish.",
+    lostHeading: "The connection to the copy was lost.",
+    stop: "Stop",
+    warningsLead:
+      "Some games may not run, because MAME Curator could not work out which BIOS files they need:",
     copyMore: "Copy more games",
     goToLibrary: "Go to the Library",
   },

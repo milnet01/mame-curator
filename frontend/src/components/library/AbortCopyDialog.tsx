@@ -1,12 +1,13 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { strings } from "@/strings";
 
 interface AbortCopyDialogProps {
@@ -29,39 +30,43 @@ export function AbortCopyDialog({
   filesDone,
   onAbort,
 }: AbortCopyDialogProps) {
+  const recyclable = filesDone > 0;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{strings.copy.abort}</DialogTitle>
-          <DialogDescription>
-            {strings.copy.abortConfirm(filesDone > 0)}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {strings.common.cancel}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              onAbort({ recycle_partial: false });
-              onOpenChange(false);
-            }}
-          >
-            {strings.copy.abortKeepFiles}
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => {
-              onAbort({ recycle_partial: true });
-              onOpenChange(false);
-            }}
-          >
-            {strings.copy.abortRecycleFiles}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{strings.copy.abortTitle}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {strings.copy.abortConfirm(recyclable)}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{strings.copy.keepCopying}</AlertDialogCancel>
+          {recyclable ? (
+            <>
+              <AlertDialogAction
+                variant="outline"
+                onClick={() => onAbort({ recycle_partial: false })}
+              >
+                {strings.copy.abortKeepFiles}
+              </AlertDialogAction>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={() => onAbort({ recycle_partial: true })}
+              >
+                {strings.copy.abortRecycleFiles}
+              </AlertDialogAction>
+            </>
+          ) : (
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => onAbort({ recycle_partial: false })}
+            >
+              {strings.copy.abortNothingCopied}
+            </AlertDialogAction>
+          )}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

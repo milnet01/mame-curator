@@ -361,7 +361,11 @@ export function LibraryPage({
           onCopy={handleCopy}
           // FP24-N: lock Copy + Dry-run while a copy is queued so a
           // double-click can't fire validate+start twice.
-          copyDisabled={validateCart.isPending || copySession.state !== null}
+          copyDisabled={
+            validateCart.isPending ||
+            copySession.isStarting ||
+            copySession.state !== null
+          }
         />
       </div>
     </div>
