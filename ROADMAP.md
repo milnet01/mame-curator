@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1152 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1153 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3244,6 +3244,17 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   code and copy/spec.md agree. mame-curator-1144 sends APPEND on every
   guide copy, so its users reach this path.
   **Layman:** If your game list is in an old format or damaged, a copy that should add to it wipes it instead, and nothing on screen says so.
+  Kind: fix.
+  Source: review-contract-2026-10-30.
+  Lanes: backend.
+
+- 📋 [mame-curator-1153] **The dry run's dest_writable does not test whether the folder can be written.**
+  _can_create_dir in copy/preflight.py returns is_dir() for an existing path
+  and for the first existing parent. It never checks write permission, so a
+  read-only folder reports dest_writable true. Found reading the function,
+  2026-10-30; not run on a read-only folder. mame-curator-1144's Check step
+  and the Library's DryRunModal both read this value.
+  **Layman:** The copy check can say a read-only folder is fine, so the problem only shows once copying starts.
   Kind: fix.
   Source: review-contract-2026-10-30.
   Lanes: backend.

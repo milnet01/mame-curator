@@ -42,6 +42,7 @@ Author's calls, open to the cold review and the user:
 ```
 frontend/src/pages/GuidePage.tsx            route /start; holds the step state
 frontend/src/components/guide/GuideStep.tsx the shared screen, reused by 1145-1147
+frontend/src/components/guide/GuideAction.tsx the large action, reused by 1145-1147
 frontend/src/components/guide/steps/        one file per step
 frontend/src/lib/guideState.ts              the "guide seen" flag
 frontend/src/lib/fetchGameNames.ts          pages /api/games into a name list
@@ -59,15 +60,15 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 - On the page's first load at `/`, when `GUIDE_SEEN_KEY` is unset, the app redirects to `/start`. The check runs once per load, so a later move to `/`, including every guide exit, stays there. No other route redirects, so a link to `/settings` still works.
 - `GuidePage` sets the flag when it mounts, once `useSetupCheck` reports `setup_required` false. In setup mode the flag stays unset, so the guide opens by itself on the first load after setup.
 - "Start here" reopens the guide at any time, at the first step.
-- If `localStorage` is unavailable, the guide still opens at `/` and the flag stays in memory for the page's life. This follows the `try`/`catch` pattern in `OnboardingBanner`.
+- If `localStorage` is unavailable, the guide still opens at `/` and the flag stays in memory for the page's life. Reads and writes are both guarded, as `readWalkthroughPref` guards its read.
 
 ### 4.3 The shared screen
 
-`GuideStep` takes a heading, a body and its actions. Every step, in this and later wizards, renders through it.
+`GuideStep` takes a heading and step details, with the body and actions as `children`. Every step, in this and later wizards, renders through it.
 
 ```tsx
 <GuideStep
-  stepNumber={2} stepCount={6}
+  stepNumber={2} stepCount={6} // stepCount absent on the first step
   heading={strings.guide.chooseGroup.heading}
   onBack={...}                 // absent on the first step
   exitLabel={strings.guide.exit}
@@ -77,7 +78,7 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 ```
 
 - It shows one `<h1>` heading, "Step N of M" as text, and one column of large actions no wider than `40rem`. M is 5 when "every game" skips a step and 6 otherwise. The first step shows "Step 1" alone, because M is not yet known.
-- Actions are at least `3rem` tall with `text-xl` labels.
+- Every action is a `GuideAction`, at least `3rem` tall with a `text-xl` label.
 - On every step change, focus moves to the heading (`tabIndex={-1}`) on the next animation frame, including on Back. Source: https://ezud.com/accessible-multi-step-wizard-forms/
 - Every step has a Back action, except the first and Copying, and an exit labelled "Look around on my own", which goes to `/`.
 - Colour is never the only signal. A failure is announced with `role="alert"` and worded text.
@@ -93,11 +94,11 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 | What that finds | "This finds N games, about X." | "Copy these", "Look through them first" |
 | Where | "Copy them here?" with `paths.dest_roms` as large text | "Yes, copy here", "Choose another folder" (`FsBrowser`) |
 | Check | Plain-language report from `POST /api/copy/dry-run` | "Start copying", or a reason it cannot start |
-| Copying | Progress from `useCopySession` | Pause, Resume, Stop, then "Copy more games" and "Go to the Library" |
+| Copying | Progress from `useCopySession` | Pause, Resume, Stop (asks whether to keep or remove the files already copied, as `CopyModal` does), then "Copy more games" and "Go to the Library" |
 
 N and X come from `GET /api/games` `total` and `total_bytes`. A guide query sends only the selection's own filters: a tile's year bounds where the tile's `query` names them, and no year filter otherwise. The Library's default year range never applies, so undated games are included (mame-curator-1150 is the Library's version of this).
 
-**Look through them first** navigates to `/` with the selection in router state. `useLibraryController` applies it once: a tile through `handleTileSelect`, a genre by setting `filters.genre`, and everything by leaving `DEFAULT_FILTERS`. Add all needs an active tile, so only the tile path offers it. The Library's default year range still applies there, so its count can be lower than the guide's N until mame-curator-1150 lands. The guide ends there.
+**Look through them first** navigates to `/` with the selection in router state. `useLibraryController` applies it once: a tile through `handleTileSelect`, a genre by setting `filters.genre`, and everything by leaving `DEFAULT_FILTERS`. Add all needs an active tile, so only the tile path offers it. The Library still applies its default year range (mame-curator-1150) and shows one page of 200, so it can list fewer than the guide's N. The guide ends there.
 
 **Choose another folder** saves through `useConfigPatch` with `{ paths: { ...config.paths, dest_roms } }`, as `updatePaths` in `SettingsPage` does, then invalidates `["setup", "check"]` and the config query. A save failure stays on the step and shows the API's message.
 
@@ -159,7 +160,7 @@ export const LIBRARY_VIEW_KEY = "mame-curator:library-view:v1"; // "simple" | "f
 | `FiltersSidebar`, session pill, progress chip, walkthrough toggle, `LayoutSwitcher`, `ThemeSwitcher`, `FeaturedTilesRow`, `OnboardingBanner` | hidden | shown |
 | Layout | `covers` for this page only; config unchanged | `ui.layout` |
 
-The search box sits inside `FiltersSidebar` today, so simple view renders it on its own, bound to `filters.search`, with the sidebar's debounce and the id `filters-search`, which the `/` shortcut in `App.tsx` focuses. A "More options" button at the top of the page switches to full, and "Fewer options" switches back. The choice is remembered. Filters set in full view stay applied in simple view, and simple view says so with "Some filters are on" and a "Clear filters" action, so hidden filters cannot silently shrink the list. "Clear filters" resets `filters` to `DEFAULT_FILTERS` and clears `activeTileId`. `ListxmlBanner` and error panels show in both views.
+The search box sits inside `FiltersSidebar` today, so simple view renders it on its own, bound to `filters.search`, with the sidebar's debounce and the id `filters-search`, which the `/` shortcut in `App.tsx` focuses. A "More options" button at the top of the page switches to full, and "Fewer options" switches back. The choice is remembered. Filters set in full view stay applied in simple view. When `filters` differs from `DEFAULT_FILTERS`, simple view says "Some filters are on" and offers "Clear filters", so hidden filters cannot silently shrink the list. "Clear filters" resets `filters` to `DEFAULT_FILTERS` and clears `activeTileId`. It also empties the search box, so the box follows `filters.search`, which the sidebar's local draft does not. When `total` exceeds the cards shown, simple view says "Showing the first X of N." `ListxmlBanner` and error panels show in both views.
 
 ### 4.8 Setup mode
 
@@ -184,7 +185,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Breaks when:* the guide calls `useCart` methods or `cart_clear_on_copy` reaches its copy.
 
 - **INV-5** — The names sent to `/api/copy/start` are every game the selection found: all pages, with no year filter beyond a tile's own.
-  *Test:* `frontend/src/lib/__tests__/fetchGameNames.test.ts`, with a handler serving three pages and asserting the name count equals `total`, that an "every game" request URL has no `year_min` or `year_max`, and that the `best-of-1992` tile's URL carries its own.
+  *Test:* `frontend/src/lib/__tests__/fetchGameNames.test.ts`, with a handler serving three pages and asserting the name count equals `total`. `GuidePage_steps.test.tsx` walks "every game" and the `best-of-1992` tile, and asserts the request URLs and the start body: no `year_min` or `year_max` for the first, and the tile's own for the second.
   *Breaks when:* paging stops early or the Library's default year range leaks in.
 
 - **INV-6** — The guide's dry run and start both send `APPEND`, and a copy starts when a playlist already exists. It never sends `OVERWRITE`.
@@ -204,16 +205,16 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Breaks when:* the size is applied in an effect, or a bad stored value reaches the style.
 
 - **INV-10** — At the largest size, in a window 1280 CSS pixels wide, the guide and the Library in both views scroll in one direction only, and no game card's title is cut off by its row.
-  *Test:* `frontend/e2e/guide-flow.spec.ts`, comparing `scrollWidth` with `clientWidth`, and each visible card title's bottom edge with its row's bottom edge, at `200%`.
+  *Test:* `frontend/e2e/guide-flow.spec.ts`, at `200%`, comparing `scrollWidth` with `clientWidth` on `#main`, the shell header and the grid scroller; each row's height with twice its height at `100%`; and each visible card title's bottom edge with its row's bottom edge.
   *Breaks when:* `rowHeightPx` is not scaled, or the nav does not wrap.
 
 - **INV-11** — In simple view, the items §4.7 hides are absent from the page, and full view renders everything it does today.
   *Test:* `frontend/src/pages/__tests__/LibraryPage_view.test.tsx`, by test id and landmark for each view, and that simple view has an input with the id `filters-search`.
   *Breaks when:* a hidden item renders, or one goes missing from full view.
 
-- **INV-12** — Filters that are on when the view is simple are stated on the page, and can be cleared there.
-  *Test:* `LibraryPage_view.test.tsx`: set a genre in full, switch to simple, assert the notice, clear it, assert the query has no genre.
-  *Breaks when:* a hidden filter narrows the grid with no notice.
+- **INV-12** — In simple view, filters that differ from `DEFAULT_FILTERS` are stated on the page and can be cleared there, and a list cut to one page says so.
+  *Test:* `LibraryPage_view.test.tsx`: set a genre in full, switch to simple, assert the notice, clear it, assert the query has no genre. A handler with `total` over the page size asserts the "first X of N" line.
+  *Breaks when:* a non-default filter narrows the grid with no notice, or a cut list has no notice.
 
 - **INV-13** — The folder chosen in the guide passes the same server path validation as Settings, and the guide cannot browse outside the existing allowlist without the existing grant confirmation.
   *Test:* `GuidePage_steps.test.tsx` asserts the save goes through `PATCH /api/config` and a `fs_sandboxed` listing shows `FsBrowser`'s confirmation.
@@ -228,10 +229,11 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 - **`/api/games` or a page of it fails mid-way:** no copy starts, the step shows the reason, and Back works (INV-7).
 - **The library changes between the count and the copy:** the names are fetched when the user presses "Copy these". The Check step's counts are the ones they act on.
 - **A copy is already running:** the start's error is shown (INV-7). The guide does not attach to the other job, because `useCopySession` has no resume.
-- **The page is reloaded or closed during a copy:** the copy carries on at the server, and the guide restarts at the first step. This matches the Library's `CopyModal` today, and the guide says so on the Copying step: "You can close this page. The copy will carry on."
+- **The page is reloaded or closed during a copy:** the copy carries on at the server, and the guide restarts at the first step. This matches the Library's `CopyModal` today, and the guide says so on the Copying step: "You can close this page. The copy will carry on." While paused it says instead: "Resume before you close this page. This guide cannot come back to a paused copy."
 - **A playlist the server cannot read (legacy format or damaged):** `APPEND` does not fail. `_resolve_conflicts` records a warning that never reaches the browser, and the copy replaces the playlist without its old entries. mame-curator-1152 tracks this; the guide adds no handling of its own until it lands.
 - **A game whose chosen version changed since the last copy:** the new version is added beside the old in the playlist, and both zips stay. The guide builds no `append_decisions`, and no frontend code does today.
-- **The destination is removed after the Where step:** the Check step reports it.
+- **The destination is removed after the Where step:** the copy recreates it when a parent folder exists. Otherwise Check reports `dest_writable` false.
+- **A read-only destination:** Check passes, because `dest_writable` tests only that the path is, or can sit under, a directory (mame-curator-1153). The copy then fails while running.
 - **No genres, or an empty group:** a group with no games says so on "What that finds" and offers only Back.
 - **`localStorage` unavailable:** size and view use defaults; the guide opens on each load.
 
@@ -242,7 +244,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 | INV-1, INV-14 | `frontend/src/pages/__tests__/GuidePage_entry.test.tsx` |
 | INV-2 | `frontend/src/components/guide/__tests__/GuideStep.test.tsx` |
 | INV-3, INV-4, INV-7, INV-8, INV-13 | `frontend/src/pages/__tests__/GuidePage_steps.test.tsx` |
-| INV-5 | `frontend/src/lib/__tests__/fetchGameNames.test.ts` |
+| INV-5 | `frontend/src/lib/__tests__/fetchGameNames.test.ts` and `GuidePage_steps.test.tsx` |
 | INV-6 | `GuidePage_steps.test.tsx` and `frontend/e2e/guide-flow.spec.ts` |
 | INV-9 | `frontend/src/lib/__tests__/textSize.test.ts` |
 | INV-10 | `frontend/e2e/guide-flow.spec.ts` |
@@ -250,7 +252,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 
 **Existing tests that change:** the simple view is the default, so `_libraryPageFixtures.tsx` and `frontend/e2e/*.spec.ts` set `LIBRARY_VIEW_KEY` to `full` and `GUIDE_SEEN_KEY`, so they keep testing today's page. `LibraryPage_error_boundary.test.ts` and `landmark_labels.test.tsx` read `LibraryPage.tsx` as text, so its modals stay in that file.
 
-Each new test must be seen to fail before its code exists. `frontend/e2e` does not run in `local-CI.sh` or CI, so INV-6 and INV-10 run by hand with `cd frontend && npm run e2e`; §10 says so.
+Each new test must be seen to fail before its code exists. `frontend/e2e` does not run in `local-CI.sh` or CI, so INV-6 and INV-10 run by hand with `cd frontend && npm run build && npm run e2e`, because Playwright serves `frontend/dist`; §10 says so.
 
 ## 8. Alternatives considered (and rejected)
 
@@ -279,7 +281,7 @@ Each new test must be seen to fail before its code exists. `frontend/e2e` does n
 | INV-1, INV-14 | `GuidePage_entry.test.tsx` |
 | INV-2 | `GuideStep.test.tsx` |
 | INV-3, INV-4, INV-7, INV-8, INV-13 | `GuidePage_steps.test.tsx` |
-| INV-5 | `fetchGameNames.test.ts` |
+| INV-5 | `fetchGameNames.test.ts`, `GuidePage_steps.test.tsx` |
 | INV-6 | Partial: `GuidePage_steps.test.tsx` catches a wrong strategy in CI; the real repeat copy is `guide-flow.spec.ts`, which no gate runs |
 | INV-9 | `textSize.test.ts` |
 | INV-10 | **nothing automatic** — `guide-flow.spec.ts` runs by hand, because no gate runs `frontend/e2e` |
