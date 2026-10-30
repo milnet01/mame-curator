@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1151 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1152 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3232,6 +3232,21 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: code-read-2026-10-30.
   Lanes: frontend.
+
+- 📋 [mame-curator-1152] **An APPEND copy silently replaces a playlist it cannot read.**
+  _resolve_conflicts in copy/runner.py catches PlaylistError from read_lpl,
+  records a warning ("will be overwritten") and carries on with no existing
+  entries. Run 2026-10-30: run_copy with APPEND on a 6-line legacy playlist
+  returned status OK and the file was rewritten without its old entries.
+  The warning is on CopyReport only; api/jobs.py sends bios warnings over
+  SSE and no other. copy/spec.md says the opposite: read_lpl's failure
+  raises PlaylistError at the user. Decide which is right, then make the
+  code and copy/spec.md agree. mame-curator-1144 sends APPEND on every
+  guide copy, so its users reach this path.
+  **Layman:** If your game list is in an old format or damaged, a copy that should add to it wipes it instead, and nothing on screen says so.
+  Kind: fix.
+  Source: review-contract-2026-10-30.
+  Lanes: backend.
 
 ## Considered / under research (no target date)
 

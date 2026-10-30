@@ -56,8 +56,8 @@ frontend/src/strings_guide.ts               guide text, re-exported from strings
 export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 ```
 
-- At `/`, when `GUIDE_SEEN_KEY` is unset, the app redirects to `/start`. No other route redirects, so a link to `/settings` still works.
-- The flag is set when the user finishes the guide or leaves it by any exit, including a nav link. `GuidePage` sets it on unmount.
+- On the page's first load at `/`, when `GUIDE_SEEN_KEY` is unset, the app redirects to `/start`. The check runs once per load, so a later move to `/`, including every guide exit, stays there. No other route redirects, so a link to `/settings` still works.
+- `GuidePage` sets the flag when it mounts, once `useSetupCheck` reports `setup_required` false. In setup mode the flag stays unset, so the guide opens by itself on the first load after setup.
 - "Start here" reopens the guide at any time, at the first step.
 - If `localStorage` is unavailable, the guide still opens at `/` and the flag stays in memory for the page's life. This follows the `try`/`catch` pattern in `OnboardingBanner`.
 
@@ -67,7 +67,7 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 
 ```tsx
 <GuideStep
-  stepNumber={2} stepCount={5}
+  stepNumber={2} stepCount={6}
   heading={strings.guide.chooseGroup.heading}
   onBack={...}                 // absent on the first step
   exitLabel={strings.guide.exit}
@@ -76,10 +76,10 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 </GuideStep>
 ```
 
-- It shows one `<h1>` heading, "Step N of M" as text, and one column of large actions no wider than `40rem`.
+- It shows one `<h1>` heading, "Step N of M" as text, and one column of large actions no wider than `40rem`. M is 5 when "every game" skips a step and 6 otherwise. The first step shows "Step 1" alone, because M is not yet known.
 - Actions are at least `3rem` tall with `text-xl` labels.
 - On every step change, focus moves to the heading (`tabIndex={-1}`) on the next animation frame, including on Back. Source: https://ezud.com/accessible-multi-step-wizard-forms/
-- Every step has a Back action, except the first, and an exit labelled "Look around on my own", which goes to `/`.
+- Every step has a Back action, except the first and Copying, and an exit labelled "Look around on my own", which goes to `/`.
 - Colour is never the only signal. A failure is announced with `role="alert"` and worded text.
 
 ### 4.4 The steps
@@ -95,11 +95,11 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 | Check | Plain-language report from `POST /api/copy/dry-run` | "Start copying", or a reason it cannot start |
 | Copying | Progress from `useCopySession` | Pause, Resume, Stop, then "Copy more games" and "Go to the Library" |
 
-N and X come from `GET /api/games` `total` and `total_bytes`. Every guide query omits the year filters, so undated games are included (mame-curator-1150 is the Library's version of this).
+N and X come from `GET /api/games` `total` and `total_bytes`. A guide query sends only the selection's own filters: a tile's year bounds where the tile's `query` names them, and no year filter otherwise. The Library's default year range never applies, so undated games are included (mame-curator-1150 is the Library's version of this).
 
-**Look through them first** navigates to `/` with the selection in router state. `useLibraryController` applies it once to `filters`, using the same filter values as `handleTileSelect`. The guide ends there.
+**Look through them first** navigates to `/` with the selection in router state. `useLibraryController` applies it once: a tile through `handleTileSelect`, a genre by setting `filters.genre`, and everything by leaving `DEFAULT_FILTERS`. Add all needs an active tile, so only the tile path offers it. The Library's default year range still applies there, so its count can be lower than the guide's N until mame-curator-1150 lands. The guide ends there.
 
-**Choose another folder** saves through `useConfigPatch` with `{ paths: { dest_roms } }`, then invalidates `["setup", "check"]` and the config query. A save failure stays on the step and shows the API's message.
+**Choose another folder** saves through `useConfigPatch` with `{ paths: { ...config.paths, dest_roms } }`, as `updatePaths` in `SettingsPage` does, then invalidates `["setup", "check"]` and the config query. A save failure stays on the step and shows the API's message.
 
 **Check** reads `DryRunReport`:
 
@@ -109,10 +109,10 @@ N and X come from `GET /api/games` `total` and `total_bytes`. Every guide query 
 | `counts.already_copied` > 0 | "N are already there and will be left alone." | |
 | `counts.missing_source` > 0 | "N could not be found in your ROM folder and will be skipped." | |
 | `counts.bios` > 0 | "N BIOS files these games need will be included." | |
-| `summary.existing_playlist` | "These will be added to your existing game list." | Request uses `APPEND` |
+| `summary.existing_playlist` | "These will be added to your existing game list." | |
 | `summary.dest_writable` false | "This folder cannot be written to." | Start is hidden; offers Back |
-| `summary.free_space_gap_bytes` > 0 | "This needs X more free space." | Start is hidden; offers Back |
-| `counts.new` is 0 and nothing is missing | "All of these are already copied." | Start is hidden; offers "Copy more games" |
+| `summary.free_space_gap_bytes` < 0 | "This needs X more free space.", where X is its absolute value | Start is hidden; offers Back |
+| `counts.new` is 0 | "All of these are already copied.", when `counts.missing_source` is also 0 | Start is hidden; offers "Copy more games" |
 
 ### 4.5 The copy request
 
@@ -124,7 +124,7 @@ export async function fetchGameNames(
 ): Promise<string[]>;
 ```
 
-The guide sends `{ selected_names, conflict_strategy, append_decisions: {} }`, where `conflict_strategy` is `APPEND` when the Check step's report has `existing_playlist`, otherwise `CANCEL`. An empty `append_decisions` adds winners beside existing entries, per `copy/spec.md`. The dry run and the start use the same names and strategy.
+The dry run and the start both send `{ selected_names, conflict_strategy: "APPEND", append_decisions: {} }`, with or without a playlist. With no playlist, `APPEND` writes a new one. An empty `append_decisions` adds winners beside existing entries, per `copy/spec.md`.
 
 `fetchGameNames` returns the winners `/api/games` lists, which already carry any override. The guide does not use `useCart`, `MAX_CART_SIZE` or `handleCopy`.
 
@@ -159,7 +159,7 @@ export const LIBRARY_VIEW_KEY = "mame-curator:library-view:v1"; // "simple" | "f
 | `FiltersSidebar`, session pill, progress chip, walkthrough toggle, `LayoutSwitcher`, `ThemeSwitcher`, `FeaturedTilesRow`, `OnboardingBanner` | hidden | shown |
 | Layout | `covers` for this page only; config unchanged | `ui.layout` |
 
-A "More options" button at the top of the page switches to full, and "Fewer options" switches back. The choice is remembered. Filters set in full view stay applied in simple view, and simple view says so with "Some filters are on" and a "Clear filters" action, so hidden filters cannot silently shrink the list. `ListxmlBanner` and error panels show in both views.
+The search box sits inside `FiltersSidebar` today, so simple view renders it on its own, bound to `filters.search`, with the sidebar's debounce and the id `filters-search`, which the `/` shortcut in `App.tsx` focuses. A "More options" button at the top of the page switches to full, and "Fewer options" switches back. The choice is remembered. Filters set in full view stay applied in simple view, and simple view says so with "Some filters are on" and a "Clear filters" action, so hidden filters cannot silently shrink the list. "Clear filters" resets `filters` to `DEFAULT_FILTERS` and clears `activeTileId`. `ListxmlBanner` and error panels show in both views.
 
 ### 4.8 Setup mode
 
@@ -169,13 +169,13 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 
 - **INV-1** — Opening `/` with `GUIDE_SEEN_KEY` unset lands on `/start`; with it set, `/` stays. No other route redirects.
   *Test:* `frontend/src/pages/__tests__/GuidePage_entry.test.tsx`.
-  *Breaks when:* the redirect fires on `/settings`, or fires again after the guide is left.
+  *Breaks when:* the redirect fires on `/settings`, or fires on a move to `/` after the first load.
 
 - **INV-2** — Every step change moves focus to that step's heading, on Next and on Back.
   *Test:* `frontend/src/components/guide/__tests__/GuideStep.test.tsx`, which fails if focus stays on `document.body` or the old button.
   *Breaks when:* a step renders without focusing its heading.
 
-- **INV-3** — Every step has a working exit to `/`, and every step but the first has Back.
+- **INV-3** — Every step has a working exit to `/`, and every step but the first and Copying has Back.
   *Test:* `frontend/src/pages/__tests__/GuidePage_steps.test.tsx`, walking each step.
   *Breaks when:* a step omits an action.
 
@@ -183,15 +183,15 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Test:* `GuidePage_steps.test.tsx`, comparing `mame-curator:cart:v1` before and after.
   *Breaks when:* the guide calls `useCart` methods or `cart_clear_on_copy` reaches its copy.
 
-- **INV-5** — The names sent to `/api/copy/start` are every game the selection found: all pages, with no year filter.
-  *Test:* `frontend/src/lib/__tests__/fetchGameNames.test.ts`, with a handler serving three pages and asserting the name count equals `total`, and that the request URL has no `year_min`.
+- **INV-5** — The names sent to `/api/copy/start` are every game the selection found: all pages, with no year filter beyond a tile's own.
+  *Test:* `frontend/src/lib/__tests__/fetchGameNames.test.ts`, with a handler serving three pages and asserting the name count equals `total`, that an "every game" request URL has no `year_min` or `year_max`, and that the `best-of-1992` tile's URL carries its own.
   *Breaks when:* paging stops early or the Library's default year range leaks in.
 
-- **INV-6** — With an existing playlist, the guide's dry run and start both send `APPEND`, and a repeat copy starts. It never sends `OVERWRITE`.
-  *Test:* `frontend/e2e/guide-flow.spec.ts` runs the guide twice against the fixture with different games, and asserts the second copy completes and the playlist holds both sets. `GuidePage_steps.test.tsx` asserts no request carries `OVERWRITE`.
+- **INV-6** — The guide's dry run and start both send `APPEND`, and a copy starts when a playlist already exists. It never sends `OVERWRITE`.
+  *Test:* `frontend/e2e/guide-flow.spec.ts` seeds `data/e2e`, because the fixture's ROM folders are empty stubs and no tile matches its DAT: a zip per fixture winner in `source-roms`, and `mame.lpl` holding one other game. It takes "The best version of every game", and asserts the copy completes and the playlist holds the old entry and the new ones. `GuidePage_steps.test.tsx` asserts every request carries `APPEND`.
   *Breaks when:* the strategy stays `CANCEL`, which only the 409 path rejects, so the fixture must have a game not yet copied.
 
-- **INV-7** — A failed start, dry run or folder save shows its reason on the current step in a `role="alert"` element, and the user can go Back.
+- **INV-7** — A failed name fetch, start, dry run or folder save shows its reason on the current step in a `role="alert"` element, and the user can go Back.
   *Test:* `GuidePage_steps.test.tsx`, with handlers returning 409 and 500 for each.
   *Breaks when:* a failure leaves the step silently unchanged.
 
@@ -204,11 +204,11 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Breaks when:* the size is applied in an effect, or a bad stored value reaches the style.
 
 - **INV-10** — At the largest size, in a window 1280 CSS pixels wide, the guide and the Library in both views scroll in one direction only, and no game card's title is cut off by its row.
-  *Test:* `frontend/e2e/guide-flow.spec.ts`, comparing `scrollWidth` with `clientWidth` and each visible card's height with its row at `200%`.
+  *Test:* `frontend/e2e/guide-flow.spec.ts`, comparing `scrollWidth` with `clientWidth`, and each visible card title's bottom edge with its row's bottom edge, at `200%`.
   *Breaks when:* `rowHeightPx` is not scaled, or the nav does not wrap.
 
 - **INV-11** — In simple view, the items §4.7 hides are absent from the page, and full view renders everything it does today.
-  *Test:* `frontend/src/pages/__tests__/LibraryPage_view.test.tsx`, by test id and landmark for each view.
+  *Test:* `frontend/src/pages/__tests__/LibraryPage_view.test.tsx`, by test id and landmark for each view, and that simple view has an input with the id `filters-search`.
   *Breaks when:* a hidden item renders, or one goes missing from full view.
 
 - **INV-12** — Filters that are on when the view is simple are stated on the page, and can be cleared there.
@@ -219,9 +219,9 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Test:* `GuidePage_steps.test.tsx` asserts the save goes through `PATCH /api/config` and a `fs_sandboxed` listing shows `FsBrowser`'s confirmation.
   *Breaks when:* the guide adds its own write route or skips the grant.
 
-- **INV-14** — In setup mode, only the §4.8 step is reachable.
+- **INV-14** — In setup mode, only the §4.8 step is reachable, and `GUIDE_SEEN_KEY` stays unset.
   *Test:* `GuidePage_entry.test.tsx`, with `setup_required: true`.
-  *Breaks when:* the guide offers games that cannot load.
+  *Breaks when:* the guide offers games that cannot load, or marks itself seen before setup is done.
 
 ## 6. Failure modes
 
@@ -229,7 +229,8 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 - **The library changes between the count and the copy:** the names are fetched when the user presses "Copy these". The Check step's counts are the ones they act on.
 - **A copy is already running:** the start's error is shown (INV-7). The guide does not attach to the other job, because `useCopySession` has no resume.
 - **The page is reloaded or closed during a copy:** the copy carries on at the server, and the guide restarts at the first step. This matches the Library's `CopyModal` today, and the guide says so on the Copying step: "You can close this page. The copy will carry on."
-- **A playlist in the legacy format:** `APPEND` fails at the server, per `read_lpl`, and the reason shows through the copy's error state.
+- **A playlist the server cannot read (legacy format or damaged):** `APPEND` does not fail. `_resolve_conflicts` records a warning that never reaches the browser, and the copy replaces the playlist without its old entries. mame-curator-1152 tracks this; the guide adds no handling of its own until it lands.
+- **A game whose chosen version changed since the last copy:** the new version is added beside the old in the playlist, and both zips stay. The guide builds no `append_decisions`, and no frontend code does today.
 - **The destination is removed after the Where step:** the Check step reports it.
 - **No genres, or an empty group:** a group with no games says so on "What that finds" and offers only Back.
 - **`localStorage` unavailable:** size and view use defaults; the guide opens on each load.
