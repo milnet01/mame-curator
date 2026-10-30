@@ -7,6 +7,7 @@ Each <machine> element is processed and then cleared.
 from __future__ import annotations
 
 import logging
+import lzma
 import tempfile
 import zipfile
 import zlib
@@ -124,12 +125,19 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
         with tempfile.TemporaryDirectory() as tmp:
             try:
                 extracted = zf.extract(member, path=tmp)
-            except (zipfile.BadZipFile, zlib.error, EOFError) as exc:
+            except (zipfile.BadZipFile, zlib.error, EOFError, lzma.LZMAError) as exc:
                 # Central directory parsed fine but the member body is
                 # corrupt. A stored member fails the CRC check
                 # (BadZipFile); a deflated one, the usual case, fails in
                 # the decompressor (zlib.error) or ends early (EOFError).
                 raise DATError(f"DAT zip member is corrupt: {exc}", path=path) from exc
+            except (NotImplementedError, RuntimeError, OSError) as exc:
+                # An unsupported compression method such as Deflate64
+                # (NotImplementedError), an encrypted member (RuntimeError),
+                # a corrupt bzip2 stream or a full disk (OSError).
+                raise DATError(
+                    f"DAT zip member could not be extracted: {exc!r}", path=path
+                ) from exc
             yield Path(extracted)
     finally:
         zf.close()

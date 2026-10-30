@@ -101,6 +101,28 @@ def test_zip_member_with_bad_crc_raises_DATError(
         parse_dat(zpath)
 
 
+@pytest.mark.parametrize("case", ["bzip2_corrupt", "deflate64"])
+def test_zip_member_other_extract_errors_raise_DATError(
+    tmp_path: Path, mini_dat: Path, case: str
+) -> None:
+    """A corrupt bzip2 member raises `OSError`; a Deflate64 member (method 9,
+    which Python cannot read) raises `NotImplementedError`. Both must still
+    surface as `DATError`."""
+    zpath = tmp_path / "member.zip"
+    method = zipfile.ZIP_BZIP2 if case == "bzip2_corrupt" else zipfile.ZIP_STORED
+    with zipfile.ZipFile(zpath, "w", compression=method) as zf:
+        zf.writestr("dat.xml", mini_dat.read_bytes())
+    raw = bytearray(zpath.read_bytes())
+    if case == "bzip2_corrupt":
+        raw[50] ^= 0xFF
+    else:  # method field: offset 8 of the local header, 10 of the CD entry
+        cd = raw.find(b"PK\x01\x02")
+        raw[8:10] = raw[cd + 10 : cd + 12] = (9).to_bytes(2, "little")
+    zpath.write_bytes(bytes(raw))
+    with pytest.raises(DATError, match="zip member"):
+        parse_dat(zpath)
+
+
 def test_zip_slip_traversal_member_raises(tmp_path: Path, mini_dat: Path) -> None:
     """Per parser/spec.md G5: a .zip with a `..`-path member must raise DATError.
 
