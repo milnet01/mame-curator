@@ -1,11 +1,11 @@
 <!-- ants-spec-format: 1 -->
 # mame-curator-1144 — Guide a new or partially sighted user through choosing and copying games
 
-**Status:** spec draft (2026-10-30).
+**Status:** accepted (2026-10-30).
 **Kind:** accessibility.
 **Source:** ROADMAP mame-curator-1144 (user, 2026-10-30, on the Library page: "I am lost. I don't know where to begin.").
 
-**Blocker for:** mame-curator-1145, mame-curator-1146, mame-curator-1147.
+**Blocked by:** mame-curator-1152.  **Blocker for:** mame-curator-1145, mame-curator-1146, mame-curator-1147.
 
 **Layman:** The first thing you see is a guide with one question per screen, in large text, that takes you from "what do you want?" to a finished copy. The Library page gets larger text and shows only the essentials, with everything else behind a More options button.
 
@@ -27,7 +27,10 @@ All made by the user, 2026-10-30, through the session's questions unless marked.
 
 - **First screen:** a full-page guide, one question per screen, in large text, with a way out to the full page.
 - **Library page:** larger text and controls by default, with a remembered size setting; advanced items behind a More options button.
-- **Full page stays:** the user ticked "leave the page as it is" alongside those two. The author reads that as: today's full page stays reachable by a switch. **The user should confirm this reading** (§14).
+- **Full page stays:** today's full page stays one click away.
+- **Who sees the guide:** everyone, once, including existing users.
+- **A changed version on a repeat copy:** both versions stay, accepted for now (§6).
+- **Unreadable playlists:** mame-curator-1152 is fixed before this guide ships.
 - **Wizards:** the user chose four. This spec covers choosing and copying games, plus the shared screens. First-time setup, fixing a game's picture or version, and Settings are mame-curator-1145, mame-curator-1146 and mame-curator-1147. Splitting them is the author's call: each has its own design questions, and the shared screens must exist first.
 
 Author's calls, open to the cold review and the user:
@@ -94,7 +97,7 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 | What that finds | "This finds N games, about X." | "Copy these", "Look through them first" |
 | Where | "Copy them here?" with `paths.dest_roms` as large text | "Yes, copy here", "Choose another folder" (`FsBrowser`) |
 | Check | Plain-language report from `POST /api/copy/dry-run` | "Start copying", or a reason it cannot start |
-| Copying | Progress from `useCopySession` | Pause, Resume, Stop (asks whether to keep or remove the files already copied, as `CopyModal` does), then "Copy more games" and "Go to the Library" |
+| Copying | Progress from `useCopySession` | Pause, Resume, Stop (asks whether to keep or remove the files already copied, as `CopyModal` does), then the outcome (§4.5), "Copy more games" and "Go to the Library" |
 
 N and X come from `GET /api/games` `total` and `total_bytes`. A guide query sends only the selection's own filters: a tile's year bounds where the tile's `query` names them, and no year filter otherwise. The Library's default year range never applies, so undated games are included (mame-curator-1150 is the Library's version of this).
 
@@ -130,6 +133,8 @@ The dry run and the start both send `{ selected_names, conflict_strategy: "APPEN
 `fetchGameNames` returns the winners `/api/games` lists, which already carry any override. The guide does not use `useCart`, `MAX_CART_SIZE` or `handleCopy`.
 
 `startMutation` has no `onError`, so the guide calls `copySession.start(request, { onError })` and shows the failure on the Check step.
+
+`job_finished` carries a `status` of `OK` or `PARTIAL_FAILURE`, and `useCopySession` drops it today. The hook keeps it in its state, and the Copying step shows `PARTIAL_FAILURE` as "Some games could not be copied." in a `role="alert"` element, with a link to `/activity`. Only `OK` shows as complete.
 
 ### 4.6 Text size
 
@@ -192,9 +197,9 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Test:* `frontend/e2e/guide-flow.spec.ts` seeds `data/e2e`, because the fixture's ROM folders are empty stubs and no tile matches its DAT: a zip per fixture winner in `source-roms`, and `mame.lpl` holding one other game. It takes "The best version of every game", and asserts the copy completes and the playlist holds the old entry and the new ones. `GuidePage_steps.test.tsx` asserts every request carries `APPEND`.
   *Breaks when:* the strategy stays `CANCEL`, which only the 409 path rejects, so the fixture must have a game not yet copied.
 
-- **INV-7** — A failed name fetch, start, dry run or folder save shows its reason on the current step in a `role="alert"` element, and the user can go Back.
-  *Test:* `GuidePage_steps.test.tsx`, with handlers returning 409 and 500 for each.
-  *Breaks when:* a failure leaves the step silently unchanged.
+- **INV-7** — A failed name fetch, start, dry run or folder save shows its reason on the current step in a `role="alert"` element, and the user can go Back. A copy that finishes with `PARTIAL_FAILURE` never shows as complete.
+  *Test:* `GuidePage_steps.test.tsx`, with handlers returning 409 and 500 for each, and a stream ending in `job_finished` with `PARTIAL_FAILURE`.
+  *Breaks when:* a failure leaves the step silently unchanged, or the hook drops the status.
 
 - **INV-8** — Start is not offered when the destination cannot be written, when there is too little free space, or when nothing is new.
   *Test:* `GuidePage_steps.test.tsx`, one fixture report per case.
@@ -230,8 +235,8 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 - **The library changes between the count and the copy:** the names are fetched when the user presses "Copy these". The Check step's counts are the ones they act on.
 - **A copy is already running:** the start's error is shown (INV-7). The guide does not attach to the other job, because `useCopySession` has no resume.
 - **The page is reloaded or closed during a copy:** the copy carries on at the server, and the guide restarts at the first step. This matches the Library's `CopyModal` today, and the guide says so on the Copying step: "You can close this page. The copy will carry on." While paused it says instead: "Resume before you close this page. This guide cannot come back to a paused copy."
-- **A playlist the server cannot read (legacy format or damaged):** `APPEND` does not fail. `_resolve_conflicts` records a warning that never reaches the browser, and the copy replaces the playlist without its old entries. mame-curator-1152 tracks this; the guide adds no handling of its own until it lands.
-- **A game whose chosen version changed since the last copy:** the new version is added beside the old in the playlist, and both zips stay. The guide builds no `append_decisions`, and no frontend code does today.
+- **A playlist the server cannot read (legacy format or damaged):** `APPEND` does not fail. `_resolve_conflicts` records a warning that never reaches the browser, and the copy replaces the playlist without its old entries. mame-curator-1152 fixes this before the guide ships, so the guide adds no handling of its own.
+- **A game whose chosen version changed since the last copy:** the new version is added beside the old in the playlist, and both zips stay. The guide builds no `append_decisions`, and no frontend code does today. The user accepted this for now on 2026-10-30.
 - **The destination is removed after the Where step:** the copy recreates it when a parent folder exists. Otherwise Check reports `dest_writable` false.
 - **A read-only destination:** Check passes, because `dest_writable` tests only that the path is, or can sit under, a directory (mame-curator-1153). The copy then fails while running.
 - **No genres, or an empty group:** a group with no games says so on "What that finds" and offers only Back.
@@ -303,8 +308,3 @@ Rows live in `../reviews/mame-curator-1144-guided-library-loop-log.md`.
 ## 13. Migration / compatibility
 
 Three new `localStorage` keys, no config or API change. An existing user sees the guide once, at the larger text size, in simple view. The `/start` route and the storage keys are the only new names other work binds to; mame-curator-1145 to mame-curator-1147 reuse `GuideStep`.
-
-## 14. Open questions
-
-- Does "leave the page as it is" mean today's full page should stay reachable by a switch? The design assumes yes. If it means the Library should not change at all, §4.7 goes and the size change stays.
-- Should an existing user get the guide once, or only a new one? The design shows it once to everyone, since the user is that existing user.

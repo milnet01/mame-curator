@@ -2638,10 +2638,17 @@ P14 (per-game review state).
   build: job_finished carries a status (PARTIAL_FAILURE on a read-only
   destination) that useCopySession drops, so check the Copying step does
   not show a failed copy as done.
+  Spec accepted 2026-10-30:
+  docs/specs/mame-curator-1144-guided-library.md. User answers,
+  2026-10-30: full page one click away; guide shown once to everyone; a
+  changed version on a repeat copy keeps both for now; fix
+  mame-curator-1152 first. Deferred job_finished status finding folded
+  into the spec. Build order: 1152, then this.
   **Layman:** The Library page shows too much at once and gives no starting point. Add step-by-step guidance so a partially sighted user knows what to do first.
   Kind: accessibility.
   Source: user-2026-10-30.
   Lanes: frontend, tests.
+  Blocked-by: mame-curator-1152.
 
 - 📋 [mame-curator-1145] **First-time setup wizard in the browser.**
   User decision 2026-10-30. Uses the guide screens from mame-curator-1144. Writes the same four paths.* keys as `mame-curator setup`, through PATCH /api/config.
