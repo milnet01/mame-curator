@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1162 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1167 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2617,7 +2617,7 @@ P14 (per-game review state).
   sources).
   User decision (2026-09-28): build it this round.
 
-- 🚧 [mame-curator-1144] **Guide a new or partially sighted user through the Library instead of showing everything at once.**
+- ✅ [mame-curator-1144] **Guide a new or partially sighted user through the Library instead of showing everything at once.**
   User, 2026-10-30, on the Library page: "I am lost. I don't know where
   to begin. That is why I asked for wizards to help me through it."
   No earlier request is on this roadmap. The Walkthrough mode checkbox
@@ -2648,6 +2648,15 @@ P14 (per-game review state).
   large text on the running app, then check-code and review-code.
   review-code waits for that verdict, because the verdict may change the
   layout.
+  Closed 2026-10-30. User's verdict on the large text: good as it is.
+  check-code clean on dc8bb1c; review-code findings closed in
+  docs/reviews/close-findings-2026-10-30-1144.md: fixed in d0172a7,
+  3256068, 96423e8 and 5255cfc; the rest queued as mame-curator-1149 and
+  1154 to 1167. One layout change against the user's no-layout ruling,
+  disclosed to the user: an open cart at 200% measured a 0px games area
+  in Chromium, so the games now keep at least 60% of the window height
+  with the cart open. Not run: a real screen reader, browsers other than
+  Chromium.
   **Layman:** The Library page shows too much at once and gives no starting point. Add step-by-step guidance so a partially sighted user knows what to do first.
   Kind: accessibility.
   Source: user-2026-10-30.
@@ -3349,6 +3358,41 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 - 📋 [mame-curator-1162] **Browser test leftovers make the formatting check fail.**
   Copy reports under frontend/e2e/fixtures/data/ are ignored by git but not by Prettier, so prettier --check and local-CI.sh fail after any e2e run until they are removed. Found while closing the review of mame-curator-1144. Outside that group's findings.
   **Layman:** After the browser tests run, a developer check fails until their leftover files are deleted.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1163] **The Library's dry run always says 0 BIOS included.**
+  DryRunModal.tsx reads counts.bios_included; routes/copy.py sends counts.bios and counts.bios_missing_source. Checked by reading both, not run.
+  **Layman:** The Library's preview under-reports BIOS files, because it reads a value the server does not send.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1164] **A finished copy can read as complete when games or BIOS files were skipped.**
+  The guide says Your games are copied even when selected games were skipped as missing. On a clean finish under on_success or always, the Library closes CopyModal, so its BIOS alert and warnings are never seen. Also P15's failure table says CopyModal surfaces the failed list, while it shows an alert and an Activity link. Read, not run.
+  **Layman:** A copy can say it finished without telling you that some selected games or BIOS files were missing.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1165] **Plain disabled buttons drop focus, and a refused folder shows its message twice.**
+  Copy these and LibraryErrorPanel use plain disabled, so a failure should drop focus as Start did before GuideAction's busy state (read, not run). useConfigPatch also toasts, so a refused folder shows the same words twice in the guide.
+  **Layman:** Two small rough edges: a keyboard user can lose their place after a failure, and one error can appear twice.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1166] **The command palette promises a search of games and settings it may not do.**
+  strings.nav.commandPalette, strings.cmdK.placeholder and docs/design.md's palette lines say it searches games and settings. Reported by the fix agent; check against CmdK before changing either side.
+  **Layman:** The palette's description may promise more than it does.
+  Kind: review-fix.
+  Source: close-findings-2026-10-30-1144.
+  Lanes: frontend, docs.
+
+- 📋 [mame-curator-1167] **Activity and Stats load failures have no alert and no Try again.**
+  App.tsx gained RouteLoadError for Settings, Help and Sessions in commit 5255cfc. Activity and Stats were outside those findings.
+  **Layman:** If the Activity or Stats page fails to load, it doesn't offer a way to try again.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, tests.

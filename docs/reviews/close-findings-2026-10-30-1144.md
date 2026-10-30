@@ -163,9 +163,11 @@ Group 4 run-level, 2026-10-30:
 
 ## Run-level
 
-- `cited_by`:
-- `swept`:
-- `collateral`:
-- `surfaced`:
-- `out_of_scope`:
-- `falsified`:
+Each group's own fields are under its table. These cover the batch, swept once after commit 5255cfc.
+
+- `cited_by`: `conflictBanner`, `state.conflict` and `bios_included` searched across `frontend/src`, `docs/help` and `src`; the only frontend hit is `DryRunModal.tsx`.
+- `swept`: no row has an empty disposition: agrees. `doc_integrity` over the three help pages, the spec and this ledger: agrees, no findings. `invariant_check` on the batch's main files names P14, P15, FP27 and spec 1144: spec 1144 amended in the fixes; P14 read by the Group 2 sweep; FP27 is a dated record of the removed banner: frozen. Standing pair list: absent. A full gate runs at the push.
+- `collateral`: none beyond each group's own.
+- `surfaced`: none. The user was told of the one layout change, the games-area minimum with the cart open.
+- `out_of_scope`: filed as `mame-curator-1157` to `mame-curator-1167`. `DryRunModal.tsx` reading `bios_included` is `mame-curator-1163`.
+- `falsified`: none.

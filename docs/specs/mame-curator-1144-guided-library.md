@@ -1,7 +1,7 @@
 <!-- ants-spec-format: 1 -->
 # mame-curator-1144 — Guide a new or partially sighted user through choosing and copying games
 
-**Status:** accepted (2026-10-30).
+**Status:** shipped (2026-10-30).
 **Kind:** accessibility.
 **Source:** ROADMAP mame-curator-1144 (user, 2026-10-30, on the Library page: "I am lost. I don't know where to begin.").
 
