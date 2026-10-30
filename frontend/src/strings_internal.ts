@@ -778,6 +778,8 @@ export const strings = {
         "The copy report on disk is unreadable. Check disk integrity.",
       playlist_conflict_cancelled:
         "A playlist already exists at the destination — choose APPEND or OVERWRITE to continue.",
+      playlist_unreadable:
+        "The existing playlist is in an old format or damaged, so nothing was copied and it was left as it is. Move or rename that file, then copy again.",
       snapshot_not_found: "No configuration snapshot with that ID.",
       help_topic_not_found: "That help topic is unavailable.",
       media_kind_invalid: "That media kind is not supported.",

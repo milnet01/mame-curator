@@ -11,8 +11,10 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from mame_curator.copy import run_copy
-from mame_curator.copy.errors import CopyExecutionError
+from mame_curator.copy.errors import CopyExecutionError, PlaylistError
 from mame_curator.copy.types import (
     AppendDecision,
     AppendDecisionKind,
@@ -130,13 +132,14 @@ def test_overwrite_record_populated_on_plain_replace_no_recycle(
     assert (dest_dir / "sf2.zip").exists()
 
 
-def test_corrupt_existing_playlist_surfaces_warning(
-    source_dir: Path, dest_dir: Path, bios_chain: dict[str, BIOSChainEntry]
+def test_corrupt_existing_playlist_stops_the_copy(
+    source_dir: Path, dest_dir: Path, bios_chain: dict[str, BIOSChainEntry], tmp_path: Path
 ) -> None:
-    """A corrupt or legacy playlist surfaces a warning on the report (B-T2-3).
+    """A corrupt or legacy playlist stops an APPEND copy (B-T2-3).
 
     Without this, the user's old playlist is silently overwritten — a real
-    user-data risk caught in FP01 round-2 indie-review.
+    user-data risk caught in FP01 round-2 indie-review. A warning was not
+    enough: no browser ever saw it (mame-curator-1152).
     """
     (dest_dir / "mame.lpl").write_text(
         "this is the legacy 6-line format which we do not support",
@@ -150,10 +153,8 @@ def test_corrupt_existing_playlist_surfaces_warning(
         dest_dir=dest_dir,
         conflict_strategy=ConflictStrategy.APPEND,
     )
-    report = run_copy(plan)
-    assert any("existing playlist could not be parsed" in w for w in report.warnings), (
-        report.warnings
-    )
+    with pytest.raises(PlaylistError, match="failed to parse playlist"):
+        run_copy(plan, data_dir=tmp_path / "data")
 
 
 def test_replace_keep_existing_skips_winner(

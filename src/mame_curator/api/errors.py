@@ -127,6 +127,13 @@ class PlaylistConflictCancelledError(ApiException):
     status_code = 409
 
 
+class PlaylistUnreadableError(ApiException):
+    """409 — APPEND would lose the entries of a playlist it cannot read."""
+
+    code = "playlist_unreadable"
+    status_code = 409
+
+
 class SnapshotNotFoundError(ApiException):
     """404 — snapshot id unknown."""
 

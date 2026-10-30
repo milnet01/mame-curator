@@ -13,7 +13,7 @@ from typing import Literal
 from mame_curator.copy.activity import append_activity
 from mame_curator.copy.bios import resolve_bios_dependencies
 from mame_curator.copy.controller import CopyController
-from mame_curator.copy.errors import CopyError, PlaylistError, RecycleError
+from mame_curator.copy.errors import CopyError, RecycleError
 from mame_curator.copy.executor import copy_one
 from mame_curator.copy.playlist import read_lpl, write_lpl
 from mame_curator.copy.preflight import preflight
@@ -138,23 +138,20 @@ def _build_playlist_entries(
 
 
 def _resolve_conflicts(
-    plan: CopyPlan, pre: PreflightResult, warnings: list[str]
+    plan: CopyPlan, pre: PreflightResult
 ) -> tuple[list[dict[str, str]], frozenset[str]]:
     """Return (existing_items, replaced_shorts) for an APPEND copy.
 
     ``existing_items`` is the destination playlist's pre-existing
     entries (carried forward by ``write_lpl``), or ``[]`` for non-APPEND
-    paths. A parse failure appends a warning (mutating ``warnings``) and
-    returns ``[]`` — never silently discards. ``replaced_shorts`` is the
-    set of names targeted by REPLACE / REPLACE_AND_RECYCLE decisions.
+    paths. A playlist that cannot be read raises ``PlaylistError``: APPEND
+    promises to keep those entries, so the copy must not replace them.
+    ``replaced_shorts`` is the set of names targeted by REPLACE /
+    REPLACE_AND_RECYCLE decisions.
     """
     existing_items: list[dict[str, str]] = []
     if pre.existing_playlist and plan.conflict_strategy is ConflictStrategy.APPEND:
-        try:
-            existing_items = read_lpl(plan.playlist_file)
-        except PlaylistError as exc:
-            warnings.append(f"existing playlist could not be parsed (will be overwritten): {exc}")
-            logger.warning("playlist parse failed; existing entries discarded: %s", exc)
+        existing_items = read_lpl(plan.playlist_file)
     replaced_shorts = frozenset(
         d.replaces
         for d in plan.append_decisions.values()
@@ -179,6 +176,11 @@ def run_copy(
     bios_set, bios_warnings = resolve_bios_dependencies(plan.winners, plan.bios_chain)
     plan_summary = _make_plan_summary(plan, len(bios_set))
 
+    # mame-curator-1152: before copy_started, so a refused playlist leaves no
+    # started copy in the activity log and no file touched.
+    pre = preflight(plan)
+    existing_items, replaced_shorts = _resolve_conflicts(plan, pre)
+
     # Activity: copy_started.
     append_activity(
         ActivityEvent(
@@ -194,7 +196,6 @@ def run_copy(
         log_path=data_dir / "activity.jsonl",
     )
 
-    pre = preflight(plan)
     # FP08 R1 (Cluster R): quote w.name via repr() — the BIOS short-name
     # flows from DAT data (user-controlled). Same threat model as FP08 A1
     # at runner.py:240; missed by FP08's initial `warnings.append(f"...")`
@@ -227,11 +228,6 @@ def run_copy(
         (w, "winner") for w in sorted(plan.winners)
     ]
     work += [(b, "bios") for b in sorted(bios_set)]
-
-    # DS02 A4: pull existing-playlist load + replaced-shorts computation
-    # into a module-level helper. See `_resolve_conflicts` doc for the
-    # contract; warnings are mutated in place on parse failure.
-    existing_items, replaced_shorts = _resolve_conflicts(plan, pre, warnings)
 
     # Cancellation check before any work.
     if ctl.should_cancel():

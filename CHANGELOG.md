@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-30 Fixed — An APPEND copy no longer wipes a playlist it cannot read
+
+If your game list is in an old format or damaged, the copy now stops before touching anything and says why. The list stays exactly as it was. (mame-curator-1152)
+
 ### 2026-10-30 Fixed — No extra browser page from LocalWebServerManager
 
 MAME Curator no longer opens a page in your default browser when

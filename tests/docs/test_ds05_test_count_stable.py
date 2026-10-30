@@ -318,7 +318,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/cli/test_serve_config_layer.py. 908 → 915.
 # Bumped 2026-10-30 (mame-curator-1142): +2 in
 # tests/cli/test_serve_browser.py. 915 → 917.
-EXPECTED_PYTEST_DECLARATIONS = 917
+# Bumped 2026-10-30 (mame-curator-1152): +5 in
+# tests/copy/test_mame_curator_1152_unreadable_playlist.py; +1 in
+# tests/api/test_mame_curator_1152_unreadable_playlist.py. 917 → 923.
+EXPECTED_PYTEST_DECLARATIONS = 923
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

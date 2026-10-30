@@ -26,6 +26,7 @@ from mame_curator.api.errors import (
     JobAlreadyRunningError,
     JobNotFoundError,
     PlaylistConflictCancelledError,
+    PlaylistUnreadableError,
 )
 from mame_curator.api.schemas import JobEvent, JobStatus
 from mame_curator.api.schemas_copy import JobState
@@ -36,6 +37,8 @@ from mame_curator.copy import (
     CopyPlan,
     CopyReport,
     CopyReportStatus,
+    PlaylistError,
+    read_lpl,
     resolve_bios_dependencies,
     run_copy,
 )
@@ -490,10 +493,20 @@ def _sum_input_sizes(plan: CopyPlan, bios_set: frozenset[str]) -> int:
 
 
 def check_playlist_conflict(plan: CopyPlan) -> None:
-    """Pre-flight: raise PlaylistConflictCancelledError if CANCEL would abort."""
-    if plan.conflict_strategy is not ConflictStrategy.CANCEL:
-        return
+    """Pre-flight: raise if CANCEL would abort or APPEND cannot read the playlist.
+
+    The API answers here rather than from the worker because useCopySession
+    drops a job_aborted reason, so the browser would not learn why.
+    """
     if not plan.playlist_file.exists():
+        return
+    if plan.conflict_strategy is ConflictStrategy.APPEND:
+        try:
+            read_lpl(plan.playlist_file)
+        except PlaylistError as exc:
+            raise PlaylistUnreadableError(str(exc)) from exc
+        return
+    if plan.conflict_strategy is not ConflictStrategy.CANCEL:
         return
     # Only raise if not idempotent — let run_copy handle the no-op case.
     all_present = all((plan.dest_dir / f"{w}.zip").exists() for w in plan.winners)

@@ -163,6 +163,7 @@ class vars). `install_handlers` registers three handlers:
 | `JobNotFoundError` | `job_not_found` | 404 |
 | `CopyReportCorruptError` | `copy_report_corrupt` | 502 |
 | `PlaylistConflictCancelledError` | `playlist_conflict_cancelled` | 409 |
+| `PlaylistUnreadableError` | `playlist_unreadable` | 409 |
 | `SnapshotNotFoundError` | `snapshot_not_found` | 404 |
 | `GameNotFoundError` | `game_not_found` | 404 |
 | `OverrideNotFoundError` | `override_not_found` | 404 |
@@ -258,7 +259,9 @@ matches the static `_deactivate` path first.
   `Job` whose `id` the route returns as `JobAccepted`.
 - `POST /api/copy/start` first calls `check_playlist_conflict(plan)` —
   a `CANCEL` conflict strategy against an existing playlist raises
-  `PlaylistConflictCancelledError` (409) before the worker spawns.
+  `PlaylistConflictCancelledError` (409) before the worker spawns, and an
+  `APPEND` against a playlist that `read_lpl` cannot read raises
+  `PlaylistUnreadableError` (409) there too.
 - **`pause` / `resume` / `abort`** drive the `CopyController` and return a
   `JobStatus`. `abort` takes `recycle_partial`. An operation with no current
   job raises `JobNotFoundError` (404).

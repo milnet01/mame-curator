@@ -175,7 +175,7 @@ The writer routes through **`_atomic.atomic_write_text`** (FP20-B): unique tmp n
 
 ### `read_lpl` input scope
 
-`read_lpl(playlist_path) -> list[dict[str, str]]` reads existing playlists during `APPEND` conflict resolution. **Only RetroArch v1.5+ JSON-format playlists are supported.** The legacy 6-line format (deprecated since RetroArch 1.7.5; see libretro/RetroArch#7959 / #8439) is **out of scope for v1** — a pre-1.7.5 playlist at the destination raises `PlaylistError("failed to parse playlist")`. Users on legacy installs should run RetroArch's built-in conversion (Settings → Playlists → Refresh Playlist) before using this tool. (Post-v1: a legacy-format reader could ship as a feature flag.)
+`read_lpl(playlist_path) -> list[dict[str, str]]` reads existing playlists during `APPEND` conflict resolution. **Only RetroArch v1.5+ JSON-format playlists are supported.** The legacy 6-line format (deprecated since RetroArch 1.7.5; see libretro/RetroArch#7959 / #8439) is **out of scope for v1** — a pre-1.7.5 playlist at the destination raises `PlaylistError("failed to parse playlist")`. `run_copy` lets it propagate before writing anything, the activity log included, so the playlist keeps its bytes (mame-curator-1152). `OVERWRITE` and `CANCEL` never read the playlist. Users on legacy installs should run RetroArch's built-in conversion (Settings → Playlists → Refresh Playlist) before using this tool. (Post-v1: a legacy-format reader could ship as a feature flag.)
 
 ## Playlist conflict resolution
 
