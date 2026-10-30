@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import tempfile
 import zipfile
+import zlib
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -123,9 +124,11 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
         with tempfile.TemporaryDirectory() as tmp:
             try:
                 extracted = zf.extract(member, path=tmp)
-            except zipfile.BadZipFile as exc:
+            except (zipfile.BadZipFile, zlib.error, EOFError) as exc:
                 # Central directory parsed fine but the member body is
-                # corrupt (bad CRC, truncated stream).
+                # corrupt. A stored member fails the CRC check
+                # (BadZipFile); a deflated one, the usual case, fails in
+                # the decompressor (zlib.error) or ends early (EOFError).
                 raise DATError(f"DAT zip member is corrupt: {exc}", path=path) from exc
             yield Path(extracted)
     finally:
