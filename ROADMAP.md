@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1144 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1151 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2623,7 +2623,36 @@ P14 (per-game review state).
   No earlier request is on this roadmap. The Walkthrough mode checkbox
   is not a guide: it only moves to the next game after a review. Scope
   waits on the user's answers.
+  User decisions, 2026-10-30. First screen: a full-page guide, one
+  question per screen, in large text, with a way out to the full page.
+  Wizards, all four: choose and copy games; first-time setup in the
+  browser; fix a game's picture or version; settings. Library page:
+  larger text and controls by default with a remembered size setting;
+  advanced items behind a More options button. The user also ticked
+  "leave the page as it is" alongside those two; read as: today's full
+  page stays reachable by a switch. Confirm in the spec.
   **Layman:** The Library page shows too much at once and gives no starting point. Add step-by-step guidance so a partially sighted user knows what to do first.
+  Kind: accessibility.
+  Source: user-2026-10-30.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1145] **First-time setup wizard in the browser.**
+  User decision 2026-10-30. Uses the guide screens from mame-curator-1144. Writes the same four paths.* keys as `mame-curator setup`, through PATCH /api/config.
+  **Layman:** A new user picks their ROM folder, game list file and destination one screen at a time in the browser, instead of answering questions in a terminal or finding Settings.
+  Kind: accessibility.
+  Source: user-2026-10-30.
+  Lanes: frontend, api, tests.
+
+- 📋 [mame-curator-1146] **Wizard to fix a game's picture or version.**
+  User decision 2026-10-30. Uses the guide screens from mame-curator-1144. No route or UI chooses a picture per game today, so the picture half is new backend and frontend work and needs its own design. The version half depends on mame-curator-1149.
+  **Layman:** Step-by-step help to pick a different version of a game, or a different picture for it.
+  Kind: accessibility.
+  Source: user-2026-10-30.
+  Lanes: frontend, api, tests.
+
+- 📋 [mame-curator-1147] **Wizard for Settings, one topic at a time.**
+  User decision 2026-10-30. Uses the guide screens from mame-curator-1144.
+  **Layman:** Walks through the Settings page one topic at a time instead of showing every option.
   Kind: accessibility.
   Source: user-2026-10-30.
   Lanes: frontend, tests.
@@ -3175,6 +3204,34 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: perf.
   Source: user-2026-10-30.
   Lanes: media.
+
+- 📋 [mame-curator-1148] **A repeat copy from the Library fails with no message when a playlist already exists.**
+  handleCopy and handleDryRun send conflict_strategy CANCEL, and no UI offers another. check_playlist_conflict then raises a 409 unless every game is already at the destination. useCopySession's startMutation has no onError, and handleCopy passes none. Read from the code, not yet reproduced.
+  **Layman:** If you have copied games before, pressing Copy again can do nothing and say nothing.
+  Kind: fix.
+  Source: code-read-2026-10-30.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1149] **Choosing a version can report success and change nothing when the current pick is a clone.**
+  AlternativesDrawer sends parent = winner.short_name. filter/runner.py ignores an override whose key is not a group parent and only adds a warning. The Library still toasts success and shows no warnings. Read from the code, not yet reproduced. mame-curator-1146 depends on this.
+  **Layman:** Picking a different version of a game may say it worked while the old version stays.
+  Kind: fix.
+  Source: code-read-2026-10-30.
+  Lanes: frontend, filter.
+
+- 📋 [mame-curator-1150] **The Library's default year range hides games with no year.**
+  DEFAULT_FILTERS.yearRange is applied as year_min and year_max, which exclude undated games. Measured on the running server 2026-10-30: 6262 games with no year filter, 5948 with 1975 to 2025.
+  **Layman:** Some games never appear in the Library unless you know to change the year filter.
+  Kind: fix.
+  Source: measured-2026-10-30.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1151] **Add all ignores the review-state filter.**
+  handleBulkAdd in useLibraryController builds its own query string and omits review_state, so it pages through a different set from the total it shows.
+  **Layman:** With a review filter on, Add all can add different games from the ones on screen.
+  Kind: fix.
+  Source: code-read-2026-10-30.
+  Lanes: frontend.
 
 ## Considered / under research (no target date)
 
