@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1167 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1173 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2663,13 +2663,17 @@ P14 (per-game review state).
   Lanes: frontend, tests.
   Blocked-by: mame-curator-1152.
 
-- 📋 [mame-curator-1145] **First-time setup wizard in the browser.**
+- 🚧 [mame-curator-1145] **First-time setup wizard in the browser.**
   User decision 2026-10-30. Uses the guide screens from mame-curator-1144. Writes the same four paths.* keys as `mame-curator setup`, through PATCH /api/config.
   2026-10-30: spec docs/specs/mame-curator-1145-setup-wizard.md (gated,
   2 loops, capped calm). Decided: three questions, the playlist goes in
   the destination as mame.lpl; one save at the end; a save in setup mode
   re-reads the DAT, so no restart; run.sh and run.bat stop asking in a
   terminal; `mame-curator setup` stays as a command.
+  Built 2026-10-30 in af1c274, stays in progress. Still owed before
+  done: check-code and review-code on it, then close-findings, and the
+  user's judgement of the wording on the running app. Not run: real
+  Windows or macOS, timing with the real 48 MB list.
   **Layman:** A new user picks their ROM folder, game list file and destination one screen at a time in the browser, instead of answering questions in a terminal or finding Settings.
   Kind: accessibility.
   Source: user-2026-10-30.
@@ -3401,6 +3405,48 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, tests.
+
+- 📋 [mame-curator-1168] **A Settings save accepts a malformed paths.listxml, and the next start then fails.**
+  Predates mame-curator-1145. Recorded in that spec's §6 and §9 as not yet queued. Reported by the build agent, not run in this session.
+  **Layman:** A bad file chosen in Settings can stop the app from starting next time.
+  Kind: fix.
+  Source: build-mame-curator-1145-2026-10-30.
+  Lanes: api, tests.
+
+- 📋 [mame-curator-1169] **The folder picker cannot make a new folder, and a missing destination is refused.**
+  Deferred in mame-curator-1145's spec §9.
+  **Layman:** A new user must make their destination folder outside the app before the setup wizard will accept it.
+  Kind: ux.
+  Source: build-mame-curator-1145-2026-10-30.
+  Lanes: frontend, api, tests.
+
+- 📋 [mame-curator-1170] **Reaching a game drive on Linux means allowing the whole disk.**
+  It works, and the app listens locally only. Needs the user's decision: keep it, or offer mounted drives directly. Reported by the mame-curator-1145 build agent.
+  **Layman:** To pick a folder on another drive you press / and then Allow /, which gives the app access to the whole disk.
+  Kind: ux.
+  Source: build-mame-curator-1145-2026-10-30.
+  Lanes: frontend, api.
+
+- 📋 [mame-curator-1171] **The guide's Where step still uses the normal-size folder picker.**
+  Deferred in mame-curator-1145's spec §9. FsBrowser's large option exists. It already has the plain wording.
+  **Layman:** The folder picker in the copy guide is smaller than the one in the setup wizard.
+  Kind: accessibility.
+  Source: build-mame-curator-1145-2026-10-30.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1172] **/api/setup/check re-reads the whole game list on every call.**
+  Reported by the mame-curator-1145 build agent. Not timed with the real 48 MB list.
+  **Layman:** Finishing the setup wizard reads the game list twice, which is slow on a large list.
+  Kind: perf.
+  Source: build-mame-curator-1145-2026-10-30.
+  Lanes: api, tests.
+
+- 📋 [mame-curator-1173] **docs/design.md § 6.6 still describes the old setup wizard.**
+  It describes the old P08 setup/ wizard; mame-curator-1145 is the real one.
+  **Layman:** A design document describes a setup wizard that was replaced.
+  Kind: doc-fix.
+  Source: build-mame-curator-1145-2026-10-30.
+  Lanes: docs.
 
 ## Considered / under research (no target date)
 
