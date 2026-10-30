@@ -81,12 +81,16 @@ def test_corrupt_zip_raises_DATError_not_BadZipFile(tmp_path: Path) -> None:
         parse_dat(bad)
 
 
-def test_zip_member_with_bad_crc_raises_DATError(tmp_path: Path, mini_dat: Path) -> None:
+@pytest.mark.parametrize("compression", [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED])
+def test_zip_member_with_bad_crc_raises_DATError(
+    tmp_path: Path, mini_dat: Path, compression: int
+) -> None:
     """A zip whose central directory is valid but whose member data is
     corrupt only fails at extraction time; that failure must still surface
-    as `DATError`, not a bare `zipfile.BadZipFile`."""
+    as `DATError`. A stored member fails with `zipfile.BadZipFile`; a
+    deflated one, the usual case for a real DAT, with `zlib.error`."""
     zpath = tmp_path / "badcrc.zip"
-    with zipfile.ZipFile(zpath, "w", compression=zipfile.ZIP_STORED) as zf:
+    with zipfile.ZipFile(zpath, "w", compression=compression) as zf:
         zf.writestr("dat.xml", mini_dat.read_bytes())
     raw = bytearray(zpath.read_bytes())
     # Flip a byte inside the stored member body (just past the 30-byte

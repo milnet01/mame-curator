@@ -17,6 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-30 Fixed — Re-running a copy no longer deletes games already in place, and crash fixes
+
+- A copy set to overwrite and to remove old zips, run a second time,
+  sent games that were already up to date to the recycle bin, and the
+  new playlist pointed at the missing files. Those games now stay.
+- A zipped DAT file with damaged contents stopped the app with a Python
+  error. It now reports that the DAT is corrupt.
+- The activity log returned a server error when filtered by a date with
+  no timezone. Such dates are now read as UTC.
+- A damaged RetroArch playlist stopped an append copy. The copy now
+  warns and carries on.
+- The game list, winner picking and dry-run copies do less repeated
+  work.
+
 ### 2026-10-19 Added — A support link and a disclaimer on Settings → About (mame-curator-1133)
 
 Settings → About now links to GitHub Sponsors, and the README carries a
