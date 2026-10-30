@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-30
+
+**Theme:** Library polish.
+
 ### 2026-10-30 Fixed — Rollbacks start, About shows the version, and safer copies
 
 - After a rollback, a setting the older version did not know in
