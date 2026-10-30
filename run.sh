@@ -2,10 +2,9 @@
 #
 # MAME Curator clone-and-run bootstrap (Linux / macOS).
 #
-# Provisions Python 3.12+ + uv + project deps, runs the interactive
-# setup wizard if config.yaml is missing, then starts the server — which
-# opens a browser itself, once the port is accepting. Idempotent — running
-# twice does the right thing on the second run.
+# Provisions Python 3.12+ + uv + project deps, then starts the server — which
+# opens a browser itself, once the port is accepting, where a first run is set
+# up. Idempotent — running twice does the right thing on the second run.
 #
 # For developer dual-server (backend + Vite HMR), use scripts/dev.sh.
 
@@ -71,21 +70,7 @@ echo "Syncing Python deps via uv..."
 # --no-dev: end users do not need the test and lint tools.
 uv sync --inexact --no-dev --quiet
 
-# ---- 4. config.yaml — interactive setup if missing -------------------
-
-if [ ! -f config.yaml ]; then
-    echo
-    echo "First run — let's get a starter config.yaml in place."
-    echo "(You will be asked for paths to your MAME DAT, ROMs, etc.)"
-    echo
-    uv run --no-dev mame-curator setup
-    if [ ! -f config.yaml ]; then
-        echo "error: setup did not produce config.yaml." >&2
-        exit 1
-    fi
-fi
-
-# ---- 5. serve --------------------------------------------------------
+# ---- 4. serve --------------------------------------------------------
 
 # No `${PORT:-8080}` default: an unset $PORT must stay empty so that
 # `mame-curator serve` can fall through to config.yaml's `server.port`.

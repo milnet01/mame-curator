@@ -6,16 +6,23 @@ for RetroArch. Your original ROM folder is never changed.
 
 ## Starting the app
 
-Run `./run.sh` on Linux or macOS, or `run.bat` on Windows. The first
-run asks four questions:
+Run `./run.sh` on Linux or macOS, or `run.bat` on Windows. The app
+opens in your browser.
 
-- where your ROMs are (a non-merged set);
-- where your MAME DAT file is (`.xml` or `.zip`);
-- where the chosen games should be copied to;
-- where to write the RetroArch playlist.
+## First-time setup
 
-After that the app opens in your browser. Running the same script
-again later is safe; it skips the questions once `config.yaml` exists.
+The first time, the app asks three questions, one per screen:
+
+- where your MAME games are (a folder holding a non-merged set);
+- where your game list is (a MAME DAT file, ending in `.xml` or `.zip`);
+- where the chosen games should be copied to. The folder must already exist.
+
+When you finish, your games load and the guide begins. You do not need to
+restart anything. If the app later cannot read your game list, **Start here**
+asks these questions again.
+
+Your RetroArch playlist goes in the folder you copy to, as `mame.lpl`. To
+put it somewhere else, use **Settings**.
 
 ## The guide
 

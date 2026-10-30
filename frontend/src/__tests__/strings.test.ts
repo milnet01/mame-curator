@@ -68,6 +68,10 @@ const DYNAMIC_ACCESS_PARENTS = new Set<string>([
   // every leaf under the parent as reachable. Update with a comment
   // when a new pattern lands.
   //
+  // SetupWizard.tsx: a step's words are read through its STEPS row
+  "guide.setup.games",
+  "guide.setup.list",
+  "guide.setup.dest",
   // CopyModal.tsx: `strings.copy.sessionState[state.state]`
   "copy.sessionState",
   // CmdKPalette.tsx: `strings.cmdK.sections[item.section]`

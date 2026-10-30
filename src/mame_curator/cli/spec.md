@@ -44,8 +44,9 @@ exist, then writes a starter `config.yaml` that omits the rest of the
 sections so they fall back to `AppConfig` defaults. Anything richer
 (filter chip lists, region priority, theme, …) is tweaked through the
 in-app Settings page or by hand-editing — `setup`'s job is "get me to a
-running app", not "configure every knob". The full P08 wizard (browser
-flow, FS picker, INI auto-detection) replaces `setup` when it lands.
+running app", not "configure every knob". A first run now happens in the
+browser (mame-curator-1145): `run.sh` and `run.bat` no longer call `setup`, and
+it stays as a command for scripts.
 
 | `setup` flag | Effect |
 |---|---|

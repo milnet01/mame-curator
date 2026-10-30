@@ -99,17 +99,16 @@ describe("the guide's first opening", () => {
     expect(at()).toBe("/");
   });
 
-  it("INV-14: in setup mode only the setup step shows, and the flag stays unset", async () => {
+  it("INV-14: in setup mode only the setup wizard shows, and the flag stays unset", async () => {
     server.use(
       http.get("/api/setup/check", () =>
         HttpResponse.json({ ...setupCheckFixture, setup_required: true }),
       ),
     );
     renderApp("/");
-    await screen.findByRole("heading", { name: strings.guide.setup.heading });
-    expect(
-      screen.getByRole("link", { name: strings.guide.setup.openSettings }),
-    ).toHaveAttribute("href", "/settings?tab=paths");
+    await screen.findByRole("heading", {
+      name: strings.guide.setup.games.heading,
+    });
     expect(
       screen.queryByRole("button", { name: strings.guide.which.everything }),
     ).not.toBeInTheDocument();

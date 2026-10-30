@@ -44,10 +44,10 @@ cd mame-curator
 ```
 
 `run.sh` checks for Python 3.12+ (and says how to install it if
-missing), installs `uv`, syncs deps, runs the
-interactive setup wizard the first time (it asks for your ROM
-directory, MAME DAT, destination, and RetroArch playlist path), then opens
-[http://127.0.0.1:8080](http://127.0.0.1:8080) in your browser.
+missing), installs `uv`, syncs deps, then opens
+[http://127.0.0.1:8080](http://127.0.0.1:8080) in your browser. The first
+time, the browser asks where your ROMs, MAME DAT and destination are, one
+question per screen.
 
 Re-run `./run.sh` anytime — it's idempotent.
 
@@ -80,7 +80,7 @@ Re-run `./run.sh` anytime — it's idempotent.
 - **A modern web browser** — the SPA is shipped pre-built in
   `frontend/dist/` so no Node toolchain is needed for end users.
 - **A MAME non-merged ROM set + matching DAT XML** — you supply
-  these. The setup wizard prompts for paths.
+  these. The first-time setup in the browser asks where they are.
 - **(Optional)** the four progettoSnaps reference INIs — fetch them
   any time after first run with `uv run mame-curator refresh-inis
   --dest data/ini`.
@@ -91,7 +91,7 @@ Re-run `./run.sh` anytime — it's idempotent.
 # Refresh the four mandatory progettoSnaps reference INIs
 uv run mame-curator refresh-inis --dest data/ini
 
-# Re-run the interactive setup wizard (overwrite existing config)
+# Answer the setup questions in the terminal (overwrite existing config)
 uv run mame-curator setup --force
 
 # Run the API server explicitly (run.sh does this for you)

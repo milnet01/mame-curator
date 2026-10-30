@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import {
   useFsHome,
   useFsListing,
 } from "@/hooks/useFs";
+import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
 
 interface FsBrowserProps {
@@ -27,6 +28,10 @@ interface FsBrowserProps {
   mode?: "directory" | "file";
   /** Path to start at; falls back to the home directory once it loads. */
   initialPath?: string;
+  /** Large words, rows and buttons, for the guide's screens. */
+  large?: boolean;
+  /** Only what a new user needs: no hidden folders, and not the app's own. */
+  simple?: boolean;
 }
 
 export function FsBrowser({
@@ -35,6 +40,8 @@ export function FsBrowser({
   onPick,
   mode = "directory",
   initialPath,
+  large,
+  simple,
 }: FsBrowserProps) {
   // mame-curator-1047: gate the fs queries on `open` so a closed (but still
   // mounted) browser issues no requests. The hooks run unconditionally
@@ -43,6 +50,10 @@ export function FsBrowser({
   const driveRoots = useFsDriveRoots(open);
   const allowed = useFsAllowedRoots(open);
   const grant = useFsGrantRoot();
+  // mame-curator-1145 INV-12: the grant prompt closes itself on confirm as well
+  // as on cancel, and only cancel may close the picker. Set until the grant
+  // settles, because the prompt reports its close more than once.
+  const granting = useRef(false);
 
   // userPath holds a user-navigated path; falls back to home until they
   // pick something. Derived `path` keeps default-on-async-load drift-free
@@ -86,7 +97,7 @@ export function FsBrowser({
   };
 
   const visibleEntries = (listing.data?.entries ?? []).filter(
-    (e) => mode === "file" || e.is_dir,
+    (e) => (mode === "file" || e.is_dir) && !(simple && e.name.startsWith(".")),
   );
 
   // FP20-K: render only one dialog layer at a time. Previously both
@@ -104,46 +115,70 @@ export function FsBrowser({
         onOpenChange={(o) => {
           // FP13 § C2: cancel = close FsBrowser entirely (avoid the
           // re-prompt loop when home isn't loaded — see C2 comment).
-          if (!o) onOpenChange(false);
+          if (!o && !granting.current) onOpenChange(false);
         }}
         title={strings.settings.fsGrantTitle}
         description={strings.settings.fsGrantConfirm(sandboxBlocked)}
         actionLabel={strings.settings.fsGrantActionLabel(sandboxBlocked)}
-        onConfirm={() => grant.mutate(sandboxBlocked)}
+        onConfirm={() => {
+          granting.current = true;
+          grant.mutate(sandboxBlocked, {
+            onSettled: () => {
+              granting.current = false;
+            },
+          });
+        }}
         destructive={false}
+        large={large}
       />
     );
   }
 
+  const words = large ? "text-xl" : "text-sm";
+  const quickJump = large
+    ? ({ size: "default", className: "min-h-12 text-xl" } as const)
+    : ({ size: "sm" } as const);
+  const footerButton = large ? "min-h-12 text-xl" : undefined;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent
+        className={cn("max-w-2xl", large && "max-h-[90dvh] overflow-y-auto")}
+      >
         <DialogHeader>
-          <DialogTitle>{strings.settings.fsBrowserTitle}</DialogTitle>
-          <DialogDescription>
-            {strings.settings.fsBrowserDescription}
+          <DialogTitle className={large ? "text-xl" : undefined}>
+            {mode === "file"
+              ? strings.settings.fsBrowserTitleFile
+              : strings.settings.fsBrowserTitle}
+          </DialogTitle>
+          <DialogDescription className={large ? "text-xl" : undefined}>
+            {mode === "file"
+              ? strings.settings.fsBrowserDescriptionFile
+              : strings.settings.fsBrowserDescription}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <Button
-            size="sm"
+            {...quickJump}
             variant="outline"
             onClick={() => home.data && setUserPath(home.data.path)}
             disabled={!home.data}
           >
             {strings.settings.fsBrowserHome}
           </Button>
-          {(allowed.data?.roots ?? []).map((r) => (
-            <Button
-              key={r.id}
-              size="sm"
-              variant="outline"
-              onClick={() => setUserPath(r.path)}
-            >
-              {r.path}
-            </Button>
-          ))}
+          {(allowed.data?.roots ?? [])
+            .filter((r) => !simple || r.source !== "config")
+            .map((r) => (
+              <Button
+                key={r.id}
+                {...quickJump}
+                variant="outline"
+                onClick={() => setUserPath(r.path)}
+              >
+                {r.path}
+              </Button>
+            ))}
           {/* FP13 § C4: drive roots that are already covered by an allowed
               root would otherwise render as a visual duplicate. */}
           {(driveRoots.data?.roots ?? [])
@@ -153,7 +188,7 @@ export function FsBrowser({
             .map((r) => (
               <Button
                 key={r}
-                size="sm"
+                {...quickJump}
                 variant="outline"
                 onClick={() => setUserPath(r)}
               >
@@ -162,9 +197,9 @@ export function FsBrowser({
             ))}
         </div>
 
-        <div className="flex items-center gap-2 text-sm">
+        <div className={cn("flex items-center gap-2", words)}>
           <Button
-            size="sm"
+            {...quickJump}
             variant="outline"
             onClick={goUp}
             disabled={!listing.data?.parent}
@@ -182,18 +217,18 @@ export function FsBrowser({
         {/* FP13 § C7: home detection failed and the user hasn't quick-jumped
             anywhere — surface so the path bar isn't an unexplained blank. */}
         {home.error && !userPath && !sandboxBlocked && (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className={cn(words, "text-destructive")}>
             {strings.settings.fsBrowserHomeError}
           </p>
         )}
 
         {listing.isLoading && (
-          <p className="text-sm text-muted-foreground">
+          <p className={cn(words, "text-muted-foreground")}>
             {strings.settings.fsBrowserLoading}
           </p>
         )}
         {listing.error && !sandboxBlocked && (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className={cn(words, "text-destructive")}>
             {strings.settings.fsBrowserListError}
           </p>
         )}
@@ -203,18 +238,27 @@ export function FsBrowser({
               <li key={entry.path}>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/40"
+                  className={cn(
+                    "flex w-full items-center justify-between px-3 py-2 text-left hover:bg-muted/40",
+                    words,
+                    large && "min-h-12",
+                  )}
                   onClick={() => handleEntryClick(entry.path, entry.is_dir)}
                 >
                   <span>{entry.name}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span
+                    className={cn(
+                      large ? "text-xl" : "text-xs",
+                      "text-muted-foreground",
+                    )}
+                  >
                     {entry.is_dir ? strings.settings.fsBrowserDirTag : ""}
                   </span>
                 </button>
               </li>
             ))}
             {visibleEntries.length === 0 && (
-              <li className="px-3 py-2 text-sm text-muted-foreground">
+              <li className={cn("px-3 py-2 text-muted-foreground", words)}>
                 {strings.settings.fsBrowserEmpty}
               </li>
             )}
@@ -222,13 +266,21 @@ export function FsBrowser({
         )}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="ghost"
+            className={footerButton}
+            onClick={() => onOpenChange(false)}
+          >
             {strings.common.cancel}
           </Button>
           {/* FP13 § C3: in file mode the user picks via clicking a row;
               the directory-confirm button is meaningless here. */}
           {mode === "directory" && (
-            <Button onClick={usePath} disabled={!path || !!sandboxBlocked}>
+            <Button
+              className={footerButton}
+              onClick={usePath}
+              disabled={!path || !!sandboxBlocked}
+            >
               {strings.settings.fsBrowserUseDirectory}
             </Button>
           )}

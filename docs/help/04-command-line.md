@@ -3,8 +3,8 @@
 Some tasks can also be run from a terminal. Run these from the folder
 you installed MAME Curator into.
 
-- `uv run mame-curator setup --force` — answer the first-run
-  questions again and rewrite `config.yaml`.
+- `uv run mame-curator setup --force` — answer the setup questions in
+  the terminal instead of the browser, and rewrite `config.yaml`.
 - `uv run mame-curator refresh-inis --dest data/ini` — download the
   community reference files the filters use.
 - `uv run mame-curator serve` — start the app without the launcher

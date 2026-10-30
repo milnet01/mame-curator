@@ -361,7 +361,9 @@ Every **other** path error stays fatal even in setup mode, and once
 call site passes it explicitly:
 `_validate_paths(new_config, setup_required=world.setup_required)`.
 
-**(b) `restart_required` must fire when the DAT path changes.** It is
+**(b) `restart_required` must fire when the DAT path changes.** Amended by
+`mame-curator-1145-setup-wizard.md` §4.1, which re-reads the DAT on the save.
+It is
 currently `server_changed = new_config.server != world.config.server` —
 `server:` only. A user who corrects `paths.source_dat` therefore gets
 `restart_required: false` and no prompt, while `machines` stays empty
@@ -811,7 +813,9 @@ measured here.
   saves that have nothing to do with paths.
 
 - **INV-10** — Correcting `paths.source_dat` while in setup mode returns
-  `restart_required: true`.
+  `restart_required: true`. **Amended by `mame-curator-1145-setup-wizard.md`
+  INV-1 and INV-2:** the save now loads a readable DAT, and returns `true` only
+  when the DAT still cannot be read.
   *Test:* `tests/api/test_setup_mode.py::test_dat_change_requests_restart`.
   *Breaks when:* the condition stays `server_changed` alone — the user
   fixes the path, sees no prompt, and the library stays empty because

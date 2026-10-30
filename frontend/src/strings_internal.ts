@@ -653,26 +653,29 @@ export const strings = {
       `Replace settings from ${filename}`,
     backupWizardForwardLink: "Re-running the setup wizard ships in Phase 8.",
     /** FP12 § G — `<FsBrowser>` modal copy. */
-    fsBrowserTitle: "Pick a path",
+    fsBrowserTitle: "Choose a folder",
+    fsBrowserTitleFile: "Choose a file",
     fsBrowserDescription:
-      "Browse directories on this machine. Picking a path outside the existing allowlist surfaces a grant prompt.",
+      "Open folders until you reach the one you want, then choose Use this folder.",
+    fsBrowserDescriptionFile:
+      "Open folders until you find the file, then press it.",
     fsBrowserHome: "Home",
     fsBrowserUp: "Up",
-    fsBrowserUpAtTop: "Already at the top of the allowed area.",
+    fsBrowserUpAtTop: "Already at the top.",
     fsBrowserBrowse: "Browse…",
-    fsBrowserUseDirectory: "Use this directory",
+    fsBrowserUseDirectory: "Use this folder",
     fsBrowserLoading: "Loading…",
-    fsBrowserListError: "Could not list this directory.",
+    fsBrowserListError: "This folder could not be opened.",
     fsBrowserHomeError:
-      "Could not detect home directory — pick a drive root or quick-jump to continue.",
+      "Your home folder could not be found. Choose a drive to carry on.",
     fsBrowserEmpty: "Empty.",
-    fsBrowserDirTag: "dir",
+    fsBrowserDirTag: "folder",
     /** FP13 § D4 — accessible name for the per-row Browse button. */
     fsBrowseAriaLabel: (target: string) => `Browse for ${target}`,
-    fsGrantTitle: "Grant filesystem access?",
+    fsGrantTitle: "Allow MAME Curator to look here?",
     fsGrantConfirm: (path: string) =>
-      `${path} is outside the current allowlist. Grant access so the picker can list its contents?`,
-    fsGrantActionLabel: (path: string) => `Grant access to ${path}`,
+      `MAME Curator is not yet allowed to look in ${path}. Allow it?`,
+    fsGrantActionLabel: (path: string) => `Allow ${path}`,
   },
 
   copy: {

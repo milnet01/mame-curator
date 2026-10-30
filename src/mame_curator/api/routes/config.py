@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import json
 import os
@@ -41,6 +42,7 @@ from mame_curator.api.state import (
     filter_relevant_changed,
     load_app_config,
     replace_world,
+    retry_setup,
 )
 from mame_curator.filter import (
     Overrides,
@@ -180,8 +182,10 @@ async def patch_config(
 
         # FP09 B6: short-circuit no-op PATCH so the world (and its
         # filter_result / allowed_roots) preserves identity. Spec § "What does
-        # NOT trigger a re-run" plus the P01 hypothesis property.
-        if new_config == world.config:
+        # NOT trigger a re-run" plus the P01 hypothesis property. Not in setup
+        # mode: a DAT dropped at the configured path is found by this save
+        # (mame-curator-1145 INV-3).
+        if new_config == world.config and not world.setup_required:
             return _to_response(world.config, restart_required=False)
 
         snapshots_dir = world.data_dir / "snapshots"
@@ -193,14 +197,14 @@ async def patch_config(
         server_changed = new_config.server != world.config.server
         rerun = filter_relevant_changed(world.config, new_config)
         new_world = replace_world(base=world, config=new_config, rerun_filter=rerun)
+        # mame-curator-1145 §4.1: in setup mode ANY save retries the DAT,
+        # deliberately not just a `source_dat` change: the likeliest recovery
+        # leaves the path string unchanged (mame-curator-1095 § 4.2b). Off the
+        # event loop, because a full DAT takes seconds to read.
+        if world.setup_required:
+            new_world = await asyncio.to_thread(retry_setup, new_world)
         set_world(request, new_world)
-        # mame-curator-1095 § 4.2b: in setup mode ANY successful save asks for
-        # the restart, deliberately not just a `source_dat` change. The
-        # likeliest recovery is the user dropping their DAT at exactly the path
-        # the starter config already names — the path string is then unchanged,
-        # and a difference-based condition would leave the library empty with
-        # no prompt. One extra prompt during setup; it cannot miss.
-        return _to_response(new_config, restart_required=server_changed or world.setup_required)
+        return _to_response(new_config, restart_required=server_changed or new_world.setup_required)
 
 
 @router.get("/api/config/snapshots", response_model=SnapshotsListing)

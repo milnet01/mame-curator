@@ -11,7 +11,7 @@ import {
   ChooseTypeStep,
 } from "@/components/guide/steps/ChooseGroupStep";
 import { CopyingStep } from "@/components/guide/steps/CopyingStep";
-import { SetupNeededStep } from "@/components/guide/steps/SetupNeededStep";
+import { SetupWizard } from "@/components/guide/steps/SetupWizard";
 import { WhatThatFindsStep } from "@/components/guide/steps/WhatThatFindsStep";
 import { WhereStep } from "@/components/guide/steps/WhereStep";
 import { WhichGamesStep } from "@/components/guide/steps/WhichGamesStep";
@@ -162,7 +162,7 @@ export function GuidePage() {
     if (setupRequired === false) markGuideSeen();
   }, [setupRequired]);
 
-  if (setupRequired === true) return <SetupNeededStep />;
+  if (setupRequired === true) return <SetupWizard />;
   if (setupRequired === false) return <GuideSteps />;
   return (
     <GuideStep

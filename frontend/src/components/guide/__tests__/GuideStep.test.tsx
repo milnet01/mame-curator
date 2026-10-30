@@ -50,6 +50,22 @@ describe("GuideStep", () => {
     await waitFor(() => expect(heading("First question")).toHaveFocus());
   });
 
+  // mame-curator-1145 INV-10: a second choice keeps the same heading.
+  it("moves focus again when focusKey changes, though the heading has not", async () => {
+    const ui = (focusKey: number) => (
+      <MemoryRouter>
+        <GuideStep heading="Use this folder?" focusKey={focusKey}>
+          <button type="button">Elsewhere</button>
+        </GuideStep>
+      </MemoryRouter>
+    );
+    const { rerender } = render(ui(1));
+    await waitFor(() => expect(heading("Use this folder?")).toHaveFocus());
+    screen.getByRole("button", { name: "Elsewhere" }).focus();
+    rerender(ui(2));
+    await waitFor(() => expect(heading("Use this folder?")).toHaveFocus());
+  });
+
   it("gives a changed heading a new focus event, so a screen reader hears it", async () => {
     const ui = (heading: string) => (
       <MemoryRouter>

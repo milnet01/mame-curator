@@ -16,13 +16,15 @@ lifespan to the first request.
 
 Starting is necessary but not sufficient — INV-9 and INV-10 cover the
 other half, the save that ends setup mode: the missing DAT must not veto
-the PATCH that fixes it, and the fix must ask for the restart that
-re-parses it.
+the PATCH that fixes it. mame-curator-1145 INV-1 to INV-5 make that save load
+the games itself; a restart is asked for only when it could not.
 """
 
 from __future__ import annotations
 
+import asyncio
 import re
+import shutil
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -119,16 +121,90 @@ def test_patch_persists_while_only_dat_missing(setup_mode_client: Any) -> None:
     assert setup_mode_client.get("/api/config").json()["ui"]["theme"] == "light"
 
 
-def test_dat_change_requests_restart(setup_mode_client: Any, mini_dat: Path) -> None:
-    """INV-10 — correcting the DAT path asks for the restart that reloads it.
-
-    ``replace_world`` does not re-parse the DAT, so without the prompt the
-    user fixes the path, sees no complaint, and the library stays empty.
+def test_dat_change_requests_restart(setup_mode_client: Any, tmp_path: Path) -> None:
+    """mame-curator-1145 INV-2 (amends 1095 INV-10) — a DAT that still cannot
+    be read keeps the save and setup mode, and asks for the restart.
     """
-    response = setup_mode_client.patch("/api/config", json={"paths": {"source_dat": str(mini_dat)}})
+    broken = tmp_path / "broken.dat.xml"
+    broken.write_text("<mame><machine name='pacman'", encoding="utf-8")
+
+    response = setup_mode_client.patch("/api/config", json={"paths": {"source_dat": str(broken)}})
 
     assert response.status_code == 200, response.text
     assert response.json()["restart_required"] is True
+    assert response.json()["paths"]["source_dat"] == str(broken)
+    assert setup_mode_client.get("/api/setup/check").json()["setup_required"] is True
+
+
+def test_setup_save_with_readable_dat_ends_setup_mode(
+    setup_mode_client: Any, mini_dat: Path
+) -> None:
+    """mame-curator-1145 INV-1 — the save loads the games, with no restart."""
+    assert setup_mode_client.get("/api/games").json()["total"] == 0
+
+    response = setup_mode_client.patch("/api/config", json={"paths": {"source_dat": str(mini_dat)}})
+
+    assert response.status_code == 200, response.text
+    assert response.json()["restart_required"] is False
+    assert setup_mode_client.get("/api/setup/check").json()["setup_required"] is False
+    assert setup_mode_client.get("/api/games").json()["total"] > 0
+
+
+def test_setup_save_same_path_rereads_dat(
+    setup_mode_client: Any, mini_dat: Path, tmp_path: Path
+) -> None:
+    """mame-curator-1145 INV-3 — a DAT dropped at the configured path is found
+    by a save that changes nothing, which the no-op return would swallow.
+    """
+    shutil.copy(mini_dat, tmp_path / "does-not-exist.xml")
+    paths = setup_mode_client.get("/api/config").json()["paths"]
+
+    response = setup_mode_client.patch("/api/config", json={"paths": paths})
+
+    assert response.status_code == 200, response.text
+    assert response.json()["restart_required"] is False
+    assert setup_mode_client.get("/api/setup/check").json()["setup_required"] is False
+    assert setup_mode_client.get("/api/games").json()["total"] > 0
+
+
+def test_setup_save_survives_other_unreadable_input(
+    setup_mode_client: Any, mini_dat: Path, tmp_path: Path
+) -> None:
+    """mame-curator-1145 INV-4 — a bad listxml during the retry is not a 500."""
+    bad_listxml = tmp_path / "bad-listxml.xml"
+    bad_listxml.write_text("<mame><machine name='pacman'", encoding="utf-8")
+
+    response = setup_mode_client.patch(
+        "/api/config",
+        json={"paths": {"source_dat": str(mini_dat), "listxml": str(bad_listxml)}},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["restart_required"] is True
+    assert response.json()["paths"]["source_dat"] == str(mini_dat)
+    assert setup_mode_client.get("/api/setup/check").json()["setup_required"] is True
+
+
+def test_setup_retry_runs_off_the_event_loop(
+    setup_mode_client: Any, mini_dat: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """mame-curator-1145 INV-5 — a long read must not stop other requests."""
+    calls: list[bool] = []
+
+    def recording_build_world(config_path: Path) -> WorldState:
+        try:
+            asyncio.get_running_loop()
+            calls.append(True)
+        except RuntimeError:
+            calls.append(False)
+        return build_world(config_path)
+
+    monkeypatch.setattr("mame_curator.api.state.build_world", recording_build_world)
+
+    response = setup_mode_client.patch("/api/config", json={"paths": {"source_dat": str(mini_dat)}})
+
+    assert response.status_code == 200, response.text
+    assert calls == [False]
 
 
 def test_setup_check_reports_setup_mode(setup_mode_client: Any) -> None:

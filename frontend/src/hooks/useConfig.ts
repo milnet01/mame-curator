@@ -6,6 +6,7 @@ import {
   SnapshotsListingSchema,
   type AppConfigResponse,
   type ConfigExportBundle,
+  type SetupCheck,
   type SnapshotsListing,
 } from "@/api/types";
 import { toast } from "sonner";
@@ -43,6 +44,15 @@ export function useConfigPatch() {
         id: "config-saved",
         duration: 1500,
       });
+      // mame-curator-1145 §4.3: a save that ended setup mode changed every
+      // answer the page holds. Returning the promise keeps the mutation
+      // pending until they are fresh. Not when setup mode stays on: a refetch
+      // would drop this reply's restart_required, which GET never carries.
+      const check = qc.getQueryData<SetupCheck>(["setup", "check"]);
+      if (check?.setup_required && !next.restart_required) {
+        return qc.invalidateQueries();
+      }
+      return undefined;
     },
     onError: toastApiError,
   });

@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
 
 interface ConfirmationDialogProps {
@@ -18,6 +19,8 @@ interface ConfirmationDialogProps {
   actionLabel: string;
   onConfirm: () => void;
   destructive?: boolean;
+  /** Large words and buttons, for the guide's screens. */
+  large?: boolean;
 }
 
 /**
@@ -47,6 +50,7 @@ export function ConfirmationDialog({
   actionLabel,
   onConfirm,
   destructive = true,
+  large,
 }: ConfirmationDialogProps) {
   // Enforce design §8: destructive-action labels must be concrete (e.g.
   // "Delete 3 files from drive"), never generic. Throw at render time so
@@ -64,22 +68,28 @@ export function ConfirmationDialog({
     onOpenChange(false);
   };
 
+  const largeWords = large ? "text-xl" : undefined;
+  const largeButton = large ? "min-h-12 text-xl" : undefined;
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          <AlertDialogTitle className={largeWords}>{title}</AlertDialogTitle>
+          <AlertDialogDescription className={largeWords}>
+            {description}
+          </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
+          <AlertDialogCancel className={largeButton}>
+            {strings.common.cancel}
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            className={
-              destructive
-                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                : undefined
-            }
+            className={cn(
+              destructive &&
+                "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+              largeButton,
+            )}
           >
             {actionLabel}
           </AlertDialogAction>

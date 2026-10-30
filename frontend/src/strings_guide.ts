@@ -17,8 +17,35 @@ export const guideStrings = {
       ? `${(bytes / 1024 ** 3).toFixed(1)} GB`
       : `${Math.ceil(bytes / 1024 ** 2).toLocaleString()} MB`,
   setup: {
-    heading: "MAME Curator can't read your game list yet.",
-    openSettings: "Open Settings",
+    games: {
+      heading: "Where are your MAME games?",
+      help: "Choose the folder that holds your game files. They are usually .zip files.",
+      chosenHeading: "Use this folder for your games?",
+      choose: "Choose a folder",
+      chooseAnother: "Choose another folder",
+      yes: "Yes, use this folder",
+    },
+    list: {
+      heading: "Where is your game list?",
+      help: "This is the file that lists every MAME game. It ends in .xml or .zip, and is often called a DAT file.",
+      chosenHeading: "Use this game list?",
+      choose: "Choose a file",
+      chooseAnother: "Choose another file",
+      yes: "Yes, use this file",
+    },
+    dest: {
+      heading: "Where should copied games go?",
+      help: "Choose the folder your chosen games will be copied to. Your original games are not changed.",
+      chosenHeading: "Copy games to this folder?",
+      choose: "Choose a folder",
+      chooseAnother: "Choose another folder",
+      yes: "Yes, finish setup",
+    },
+    reading: "Reading your game list. This can take a minute.",
+    notAGameList:
+      "That file could not be read as a game list. Please choose another.",
+    sameFolder:
+      "Please choose a different folder from the one holding your games.",
   },
   which: {
     heading: "Which games would you like?",

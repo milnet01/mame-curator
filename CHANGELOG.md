@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-30 Added — First-time setup now happens in your browser, one question per screen
+
+The app asks where your games are, where your game list is, and where to copy to, in large text and plain words (mame-curator-1145). When you finish, your games load straight away, with no terminal and no restart, and the guide begins.
+
+- **The launchers no longer ask questions in a terminal**
+  `run.sh` and `run.bat` go straight to the browser. A first run with no `config.yaml` now keeps its settings in your user folder, not the project folder.
+
+- **The folder picker speaks plainly everywhere**
+  It no longer says "allowlist" or "directory", and it stays open after you allow a new folder.
+
 ### 2026-10-30 Fixed — Settings, Help and Sessions say when something fails
 
 This covers failures that used to show nothing or never end (mame-curator-1144).

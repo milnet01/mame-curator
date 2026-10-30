@@ -176,7 +176,7 @@ The search box sits inside `FiltersSidebar` today, so simple view renders it on 
 
 ### 4.8 Setup mode
 
-When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator can't read your game list yet." and offers "Open Settings" (`/settings?tab=paths`). No other step is reachable. mame-curator-1145 replaces this with the setup wizard.
+When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator can't read your game list yet." and offers "Open Settings" (`/settings?tab=paths`). No other step is reachable. Replaced by the setup wizard: `mame-curator-1145-setup-wizard.md`, whose INV-6 now holds this section's place in INV-14.
 
 ## 5. Invariants
 

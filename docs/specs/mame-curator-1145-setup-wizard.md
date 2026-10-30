@@ -1,7 +1,7 @@
 <!-- ants-spec-format: 1 -->
 # mame-curator-1145 — Set up MAME Curator in the browser, one question per screen
 
-**Status:** spec draft (2026-10-30).
+**Status:** accepted (2026-10-30).
 **Kind:** accessibility.
 **Source:** ROADMAP mame-curator-1145 (user, 2026-10-30: "That wizard is basically all I wanted right from the beginning.").
 
@@ -70,7 +70,7 @@ frontend/src/lib/playlistPath.ts                      playlistIn(dest)
 | 3 | "Where should copied games go?" | "Choose the folder your chosen games will be copied to. Your original games are not changed." | "Copy games to this folder?" | "Yes, finish setup", "Choose another folder" |
 
 - Before a choice the one action is "Choose a folder" or "Choose a file", which opens `FsBrowser` (`mode="file"` on step 2).
-- After a choice the path shows as large text in a `role="status"` element, and focus moves to the heading. `GuideStep` gains `focusKey?: number`, added to its focus effect's dependencies. The wizard passes a count of choices made, so a second choice moves focus although the heading stays the same.
+- After a choice the path shows as large text in a `role="status"` element, and focus moves to the heading. `GuideStep` gains `focusKey?: number`, added to its focus effect's dependencies. The wizard changes it each time the picker closes, Cancel included, so focus moves although the heading stays the same. Without that, the dialog drops focus on the page, because it has no trigger to return it to.
 - Every step has the exit "Look around on my own". Steps 2 and 3 have Back, which keeps the answers given.
 - `FsBrowser` opens at the current answer on steps 1 and 3 and at the home folder if there is none. Step 2 opens at the home folder too, because step 1's folder can hold tens of thousands of game files and `mode="file"` draws a row for each.
 
@@ -94,11 +94,11 @@ While the save runs, Back and the exit are hidden, the action shows busy, and a 
 
 Choosing the games folder as the destination is stopped on step 3 before any save, with `role="alert"`: "Please choose a different folder from the one holding your games."
 
-`useConfigPatch`'s `onSuccess` returns `qc.invalidateQueries()` for everything when the cached `["setup", "check"]` answer says `setup_required` is true. The mutation therefore stays pending, and the action busy, until the refetch settles. A Settings save that ends setup mode refreshes too, and no prompt is needed.
+`useConfigPatch`'s `onSuccess` returns `qc.invalidateQueries()` for everything when the cached `["setup", "check"]` answer says `setup_required` is true and the reply's `restart_required` is false. A refetch would otherwise drop the reply's `restart_required`, which `GET /api/config` never carries. The mutation therefore stays pending, and the action busy, until the refetch settles. A Settings save that ends setup mode refreshes too, and no prompt is needed.
 
 ### 4.4 The picker
 
-`FsBrowser` gains `large?: boolean`. When set, all its text is `text-xl`, messages and buttons included, and its rows and buttons are at least `3rem` tall. `ConfirmationDialog`, which draws the grant prompt, gains the same prop. `SetupWizard` sets it. Its title follows `mode`: "Choose a folder" or "Choose a file".
+`FsBrowser` gains `large?: boolean`. When set, all its text is `text-xl`, messages and buttons included, and its rows and buttons are at least `3rem` tall. `ConfirmationDialog`, which draws the grant prompt, gains the same prop. The picker also scrolls rather than run off the window. `FsBrowser` gains `simple?: boolean` too, which leaves out hidden folders and allowed folders whose `source` is `config`, such as the starter config's own. `SetupWizard` sets both. The title follows `mode`: "Choose a folder" or "Choose a file".
 
 After "Allow", the picker stays open on the allowed folder, for every caller. Today `ConfirmationDialog`'s confirm also calls its `onOpenChange(false)`, which closes the picker. Cancel still closes it.
 
@@ -167,9 +167,9 @@ Its strings change for every caller, to plain words:
   *Test:* `GuidePage_setup.test.tsx`, asserting the alert and no PATCH.
   *Breaks when:* the check is removed, which leaves "All of these are already copied." as the user's only clue.
 
-- **INV-12** — The wizard's picker asks before looking outside the existing allowed folders, stays open on a folder the user allows, and step 2 picks a file. `large` changes only size.
-  *Test:* `GuidePage_setup.test.tsx` for a `fs_sandboxed` listing, and `frontend/src/components/settings/__tests__/FsBrowser.test.tsx` for the title by mode, `large` and the open picker after a grant.
-  *Breaks when:* the wizard adds its own listing, skips `FsBrowser`'s grant, or a confirmed grant closes the picker.
+- **INV-12** — The wizard's picker asks before looking outside the existing allowed folders, stays open on a folder the user allows, fits the window, shows only what `simple` leaves, and step 2 picks a file. `large` changes only size.
+  *Test:* `GuidePage_setup.test.tsx` for a `fs_sandboxed` listing, and `frontend/src/components/settings/__tests__/FsBrowser.test.tsx` for the title by mode, `large`, `simple` and the open picker after a grant, and `frontend/e2e/setup-wizard.spec.ts` for the fit.
+  *Breaks when:* the wizard adds its own listing, skips `FsBrowser`'s grant, a confirmed grant closes the picker, or the picker's own buttons fall outside the window.
 
 - **INV-13** — With no `config.yaml`, neither launcher runs `mame-curator setup`, and both reach `serve`.
   *Test:* `tests/tools/test_run_sh_port.py::test_no_config_goes_straight_to_serve`, running a copy with no config against the stub `uv`, and `tests/tools/test_run_sh_port.py::test_run_bat_never_runs_setup`, reading the script. It lives there because `test_run_bat_port.py` skips itself off Windows.

@@ -325,7 +325,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/api/test_mame_curator_1144_pause_events.py. 923 → 927.
 # Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 3): +5 in
 # tests/api/test_mame_curator_1144_bios_report.py. 927 → 932.
-EXPECTED_PYTEST_DECLARATIONS = 932
+# Bumped 2026-10-30 (mame-curator-1145): +4 in tests/api/test_setup_mode.py,
+# +2 in tests/tools/test_run_sh_port.py. 932 → 938.
+EXPECTED_PYTEST_DECLARATIONS = 938
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -427,7 +429,9 @@ EXPECTED_PYTEST_DECLARATIONS = 932
 # honest and audible guide. 496 → 521.
 # Bumped 2026-10-30 (mame-curator-1144 close-findings, Group 4): +6 in
 # src/__tests__/App_route_failures.test.tsx. 521 → 527.
-EXPECTED_VITEST_DECLARATIONS = 527
+# Bumped 2026-10-30 (mame-curator-1145): the setup wizard, its picker and the
+# hook's refresh. 527 → 552.
+EXPECTED_VITEST_DECLARATIONS = 552
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

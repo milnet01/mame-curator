@@ -141,16 +141,14 @@ describe("FsBrowser (FP12 § G)", () => {
     expect(await screen.findByText("projects")).toBeInTheDocument();
   });
 
-  it("calls onPick with the current path when Use this directory is clicked", async () => {
+  it("calls onPick with the current path when Use this folder is clicked", async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
     renderWithClient(
       <FsBrowser open onOpenChange={() => {}} onPick={onPick} />,
     );
     await screen.findByText("projects");
-    await user.click(
-      screen.getByRole("button", { name: /use this directory/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /use this folder/i }));
     expect(onPick).toHaveBeenCalledExactlyOnceWith(HOME);
   });
 
@@ -196,21 +194,23 @@ describe("FsBrowser (FP12 § G)", () => {
     );
     await waitFor(() =>
       expect(
-        screen.getByRole("alertdialog", { name: /grant filesystem access/i }),
+        screen.getByRole("alertdialog", {
+          name: /allow mame curator to look here/i,
+        }),
       ).toBeInTheDocument(),
     );
     expect(
-      screen.getByRole("button", { name: "Grant access to /etc" }),
+      screen.getByRole("button", { name: "Allow /etc" }),
     ).toBeInTheDocument();
   });
 
-  it('hides the "Use this directory" footer button in file mode (FP13 § C3)', async () => {
+  it('hides the "Use this folder" footer button in file mode (FP13 § C3)', async () => {
     renderWithClient(
       <FsBrowser open onOpenChange={() => {}} onPick={() => {}} mode="file" />,
     );
     await screen.findByText("projects");
     expect(
-      screen.queryByRole("button", { name: /use this directory/i }),
+      screen.queryByRole("button", { name: /use this folder/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -233,7 +233,7 @@ describe("FsBrowser (FP12 § G)", () => {
 
   it("renders ONLY the grant prompt when sandbox-blocked (not co-mounted with browse Dialog)", async () => {
     /**
-     * FP20-K: previously both the outer "Pick a path" Dialog and the
+     * FP20-K: previously both the outer picker Dialog and the
      * grant ConfirmationDialog were rendered as siblings of a fragment.
      * ``Esc`` in the grant prompt then fired BOTH dialogs' onOpenChange
      * handlers — the outer Dialog's handler calls the parent's
@@ -256,7 +256,7 @@ describe("FsBrowser (FP12 § G)", () => {
       />,
     );
     await screen.findByRole("alertdialog", {
-      name: /grant filesystem access/i,
+      name: /allow mame curator to look here/i,
     });
     // The outer browse Dialog's title is the canonical signal that it
     // is in the DOM. If both dialogs were co-mounted (pre-FP20-K), the
@@ -282,9 +282,9 @@ describe("FsBrowser (FP12 § G)", () => {
       />,
     );
     await screen.findByRole("alertdialog", {
-      name: /grant filesystem access/i,
+      name: /allow mame curator to look here/i,
     });
-    // The grant prompt offers Cancel + the "Grant access to /etc" affirm.
+    // The grant prompt offers Cancel + the "Allow /etc" affirm.
     // Clicking Cancel must close FsBrowser entirely, not silently reset to
     // home (which would re-open the prompt if home hadn't loaded).
     await user.click(screen.getByRole("button", { name: /^cancel$/i }));
@@ -304,7 +304,7 @@ describe("FsBrowser (FP12 § G)", () => {
       <FsBrowser open onOpenChange={() => {}} onPick={() => {}} />,
     );
     expect(
-      await screen.findByText(/could not detect home directory/i),
+      await screen.findByText(/your home folder could not be found/i),
     ).toBeInTheDocument();
   });
 
@@ -333,9 +333,169 @@ describe("FsBrowser (FP12 § G)", () => {
       />,
     );
     const grantBtn = await screen.findByRole("button", {
-      name: "Grant access to /etc",
+      name: "Allow /etc",
     });
     await user.click(grantBtn);
     await waitFor(() => expect(granted).toBe("/etc"));
+  });
+
+  // mame-curator-1145 INV-12.
+  it("keeps the picker open on a folder the user allows", async () => {
+    const user = userEvent.setup();
+    let granted = false;
+    server.use(
+      http.get("/api/fs/list", ({ request }) => {
+        if (!granted) {
+          return HttpResponse.json(
+            { code: "fs_sandboxed", detail: "outside", fields: [] },
+            { status: 403 },
+          );
+        }
+        const path = new URL(request.url).searchParams.get("path");
+        return HttpResponse.json({ path, parent: null, entries: [] });
+      }),
+      http.post("/api/fs/allowed-roots", () => {
+        granted = true;
+        return HttpResponse.json({ roots: [] });
+      }),
+    );
+    const onOpenChange = vi.fn();
+    renderWithClient(
+      <FsBrowser
+        open
+        onOpenChange={onOpenChange}
+        onPick={() => {}}
+        initialPath="/mnt/games"
+      />,
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Allow /mnt/games" }),
+    );
+    expect(
+      await screen.findByRole("button", {
+        name: strings.settings.fsBrowserUseDirectory,
+      }),
+    ).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
+  it("names what it is choosing by mode", async () => {
+    const { unmount } = renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} />,
+    );
+    expect(
+      await screen.findByRole("dialog", {
+        name: strings.settings.fsBrowserTitle,
+      }),
+    ).toBeInTheDocument();
+    unmount();
+    renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} mode="file" />,
+    );
+    expect(
+      await screen.findByRole("dialog", {
+        name: strings.settings.fsBrowserTitleFile,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(strings.settings.fsBrowserDescriptionFile),
+    ).toBeInTheDocument();
+  });
+
+  it("large makes its rows, buttons, words and grant prompt large", async () => {
+    const { unmount } = renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} large />,
+    );
+    const row = await screen.findByRole("button", { name: /projects/ });
+    expect(row).toHaveClass("text-xl", "min-h-12");
+    expect(
+      screen.getByRole("button", { name: strings.settings.fsBrowserHome }),
+    ).toHaveClass("text-xl", "min-h-12");
+    expect(screen.getByText(strings.settings.fsBrowserDescription)).toHaveClass(
+      "text-xl",
+    );
+    unmount();
+
+    server.use(makeSandboxedListHandler(HOME, homeListing));
+    renderWithClient(
+      <FsBrowser
+        open
+        onOpenChange={() => {}}
+        onPick={() => {}}
+        initialPath="/etc"
+        large
+      />,
+    );
+    expect(
+      await screen.findByRole("button", { name: "Allow /etc" }),
+    ).toHaveClass("text-xl", "min-h-12");
+    expect(
+      screen.getByText(strings.settings.fsGrantConfirm("/etc")),
+    ).toHaveClass("text-xl");
+  });
+
+  it("without large keeps today's sizes", async () => {
+    renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} />,
+    );
+    const row = await screen.findByRole("button", { name: /projects/ });
+    expect(row).toHaveClass("text-sm");
+    expect(row).not.toHaveClass("text-xl");
+  });
+
+  // mame-curator-1145 INV-12: a new user sees only what they need.
+  it("simple leaves out hidden folders and the app's own, and keeps the rest", async () => {
+    server.use(
+      http.get("/api/fs/roots", () => HttpResponse.json({ roots: ["/"] })),
+      http.get("/api/fs/allowed-roots", () =>
+        HttpResponse.json({
+          roots: [
+            { id: "a", path: "/data/app-folder", source: "config" },
+            { id: "b", path: "/mnt/granted", source: "granted" },
+          ],
+        }),
+      ),
+      http.get("/api/fs/list", () =>
+        HttpResponse.json({
+          ...homeListing,
+          entries: [
+            ...homeListing.entries,
+            { ...homeListing.entries[0], name: ".cache", path: "/h/.cache" },
+          ],
+        }),
+      ),
+    );
+    const { unmount } = renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} simple />,
+    );
+    await screen.findByRole("button", { name: /^projects/ });
+    expect(
+      screen.getByRole("button", { name: "/mnt/granted" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "/" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "/data/app-folder" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^\.cache/ }),
+    ).not.toBeInTheDocument();
+    unmount();
+
+    renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} />,
+    );
+    expect(
+      await screen.findByRole("button", { name: /^\.cache/ }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "/data/app-folder" }),
+    ).toBeInTheDocument();
+  });
+
+  it("large scrolls rather than run off the window", async () => {
+    renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} large />,
+    );
+    expect(await screen.findByRole("dialog")).toHaveClass("overflow-y-auto");
   });
 });

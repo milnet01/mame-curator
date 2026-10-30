@@ -65,7 +65,8 @@ composed `allowed_roots`, the resolved `config` + `config_path` +
 `setup_required` flag (default `False`) that records whether the DAT was
 readable at startup.
 
-- **`build_world(config_path)`** — called once at startup. Parses the DAT,
+- **`build_world(config_path)`** — called at startup, and by `retry_setup` on
+  a save in setup mode (mame-curator-1145 §4.1). Parses the DAT,
   the five reference INIs (each optional in config), and the listxml joins;
   runs the filter; composes the allowlist; returns the assembled world.
   A `source_dat` that raises `ParserError` or `OSError` (missing, truncated
@@ -330,10 +331,13 @@ All FS browsing crosses `api/fs.py`:
     skipped** — otherwise the missing DAT rejects every save, including the
     one that fixes it. Every other path error stays fatal
     (mame-curator-1095 § 4.2a, INV-9).
-  - `restart_required` is `server_changed or world.setup_required`: in setup
-    mode *any* successful save asks for the restart, because `replace_world`
-    does not re-parse the DAT and the likeliest recovery leaves the path
-    string unchanged (mame-curator-1095 § 4.2b, INV-10).
+  - In setup mode *any* save, a same-value one included, runs
+    `retry_setup` off the event loop: the likeliest recovery leaves the path
+    string unchanged. It returns a world rebuilt by `build_world` when the DAT
+    now loads, and otherwise keeps the current one, including when another
+    input raises. `restart_required` is `server_changed or
+    new_world.setup_required`, so it is true only when setup mode stayed on
+    (mame-curator-1145 §4.1, INV-1 to INV-5, amending mame-curator-1095 § 4.2b).
 - `snapshot_files` captures the pre-write state before each config mutation;
   `restore_snapshot` reverts to a captured snapshot id (unknown id →
   `SnapshotNotFoundError` 404). Old snapshots are pruned.

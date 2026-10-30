@@ -77,8 +77,8 @@ def run_sh(tmp_path: Path) -> RunSh:
     """Return a callable that runs a copy of `run.sh` in a sandbox.
 
     The sandbox has a stub `uv` first on `PATH` (recording argv to a log
-    rather than syncing or binding a port) and a `config.yaml` so the
-    interactive setup branch is skipped. `python3` is the real one — the
+    rather than syncing or binding a port) and a `config.yaml`, which the
+    no-config test removes. `python3` is the real one — the
     version gate at the top of the script is part of what's being run.
 
     The no-op `xdg-open` / `open` stubs are sandbox hygiene rather than
@@ -212,3 +212,22 @@ def test_port_invalid_exits_nonzero_before_exec(run_sh: RunSh, raw: str) -> None
     # No exec at all is also the proof of "never silently falls back to
     # 8080" — a fallback would show up here as a `--port 8080` line.
     assert result.serve_argv is None, f"invalid PORT reached the server: {result.serve_argv!r}"
+
+
+def test_no_config_goes_straight_to_serve(run_sh: RunSh, tmp_path: Path) -> None:
+    """mame-curator-1145 INV-13 — a first run is answered in the browser."""
+    (tmp_path / "sandbox" / "config.yaml").unlink()
+
+    result = run_sh(None)
+
+    assert result.returncode == 0, result.stderr
+    assert not [line for line in result.uv_argv if "mame-curator setup" in line]
+    assert result.serve_argv is not None
+
+
+def test_run_bat_never_runs_setup() -> None:
+    """mame-curator-1145 INV-13 — read as text, so it runs off Windows too.
+
+    `test_run_bat_port.py` skips itself anywhere but Windows.
+    """
+    assert "mame-curator setup" not in (REPO_ROOT / "run.bat").read_text(encoding="utf-8")

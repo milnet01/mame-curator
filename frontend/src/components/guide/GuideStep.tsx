@@ -7,6 +7,8 @@ interface GuideStepProps {
   stepNumber?: number;
   /** Absent until the total is known, which is the first step. */
   stepCount?: number;
+  /** Change it to move focus to the heading again, though its text is the same. */
+  focusKey?: number;
   /** Absent where there is nothing to go back to. */
   onBack?: () => void;
   /** Absent where leaving would strand something, as a paused copy would be. */
@@ -22,6 +24,7 @@ export function GuideStep({
   heading,
   stepNumber,
   stepCount,
+  focusKey,
   onBack,
   exitLabel,
   children,
@@ -33,7 +36,7 @@ export function GuideStep({
   useEffect(() => {
     const id = requestAnimationFrame(() => headingRef.current?.focus());
     return () => cancelAnimationFrame(id);
-  }, [heading]);
+  }, [heading, focusKey]);
 
   return (
     <div

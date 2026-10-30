@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { server, http, HttpResponse } from "@/test/handlers";
 import { makeClientWrapper } from "@/test/renderWithClient";
@@ -59,6 +61,63 @@ describe("useConfigPatch onSuccess → saved indicator (mame-curator-1038)", () 
       expect.objectContaining({ id: "config-saved" }),
     );
     expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
+  });
+});
+
+// mame-curator-1145 INV-8: a save that ended setup mode changed every answer.
+describe("useConfigPatch after a save in setup mode", () => {
+  function setupClient(setupRequired: boolean) {
+    const client = new QueryClient();
+    client.setQueryData(["setup", "check"], { setup_required: setupRequired });
+    client.setQueryData(["games", "anything"], { total: 0 });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    return { client, wrapper };
+  }
+  const stale = (client: QueryClient) =>
+    client.getQueryState(["games", "anything"])?.isInvalidated;
+
+  it("refreshes everything when the save ended setup mode", async () => {
+    server.use(
+      http.patch("/api/config", () =>
+        HttpResponse.json({ ...config, restart_required: false }),
+      ),
+    );
+    const { client, wrapper } = setupClient(true);
+    const { result } = renderHook(() => useConfigPatch(), { wrapper });
+    result.current.mutate({} as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(stale(client)).toBe(true);
+  });
+
+  it("keeps the restart prompt when the save did not end setup mode", async () => {
+    server.use(
+      http.patch("/api/config", () =>
+        HttpResponse.json({ ...config, restart_required: true }),
+      ),
+    );
+    const { client, wrapper } = setupClient(true);
+    const { result } = renderHook(() => useConfigPatch(), { wrapper });
+    result.current.mutate({} as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(stale(client)).toBe(false);
+    expect(client.getQueryData(["config"])).toMatchObject({
+      restart_required: true,
+    });
+  });
+
+  it("refreshes nothing extra outside setup mode", async () => {
+    server.use(
+      http.patch("/api/config", () =>
+        HttpResponse.json({ ...config, restart_required: false }),
+      ),
+    );
+    const { client, wrapper } = setupClient(false);
+    const { result } = renderHook(() => useConfigPatch(), { wrapper });
+    result.current.mutate({} as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(stale(client)).toBe(false);
   });
 });
 

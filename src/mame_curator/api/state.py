@@ -19,6 +19,7 @@ from mame_curator.api.fs import compose_allowlist
 from mame_curator.api.schemas import AppConfig, FsAllowedRoot, merge_picker_into_filters
 from mame_curator.filter import (
     FilterContext,
+    FilterError,
     FilterResult,
     Overrides,
     ReviewState,
@@ -237,6 +238,22 @@ def build_world(config_path: Path) -> WorldState:
         bytes_by_machine=_compute_bytes_by_machine(machines),
         setup_required=setup_required,
     )
+
+
+def retry_setup(world: WorldState) -> WorldState:
+    """Re-read everything from disk; return `world` unless the DAT now loads.
+
+    `build_world` rather than a DAT-only parse, because the listxml's driver
+    status and clone data are not held on the world (mame-curator-1145 §4.1).
+    Any other input that fails leaves the app in setup mode: the save stands
+    and the reply asks for the restart.
+    """
+    try:
+        rebuilt = build_world(world.config_path)
+    except (ParserError, FilterError, ConfigError, OSError) as exc:
+        logger.warning("still in setup mode: could not reload the world: %s", exc)
+        return world
+    return world if rebuilt.setup_required else rebuilt
 
 
 def _compute_bytes_by_machine(machines: dict[str, Machine]) -> Mapping[str, int]:

@@ -2665,6 +2665,11 @@ P14 (per-game review state).
 
 - 📋 [mame-curator-1145] **First-time setup wizard in the browser.**
   User decision 2026-10-30. Uses the guide screens from mame-curator-1144. Writes the same four paths.* keys as `mame-curator setup`, through PATCH /api/config.
+  2026-10-30: spec docs/specs/mame-curator-1145-setup-wizard.md (gated,
+  2 loops, capped calm). Decided: three questions, the playlist goes in
+  the destination as mame.lpl; one save at the end; a save in setup mode
+  re-reads the DAT, so no restart; run.sh and run.bat stop asking in a
+  terminal; `mame-curator setup` stays as a command.
   **Layman:** A new user picks their ROM folder, game list file and destination one screen at a time in the browser, instead of answering questions in a terminal or finding Settings.
   Kind: accessibility.
   Source: user-2026-10-30.

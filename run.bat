@@ -2,10 +2,9 @@
 REM
 REM MAME Curator clone-and-run bootstrap (Windows).
 REM
-REM Provisions Python 3.12+ + uv + project deps, runs the interactive
-REM setup wizard if config.yaml is missing, then starts the server — which
-REM opens a browser itself, once the port is accepting. Idempotent — running
-REM twice does the right thing on the second run.
+REM Provisions Python 3.12+ + uv + project deps, then starts the server — which
+REM opens a browser itself, once the port is accepting, where a first run is set
+REM up. Idempotent — running twice does the right thing on the second run.
 
 setlocal enabledelayedexpansion
 
@@ -56,21 +55,7 @@ REM `call` on every uv line: without it, a uv installed as a .cmd or .bat
 REM wrapper would end this script instead of returning to it.
 call uv sync --inexact --no-dev --quiet
 
-REM ---- 4. config.yaml - interactive setup if missing --------------------
-
-if not exist config.yaml (
-    echo.
-    echo First run - let's get a starter config.yaml in place.
-    echo You will be asked for paths to your MAME DAT, ROMs, etc.
-    echo.
-    call uv run --no-dev mame-curator setup
-    if not exist config.yaml (
-        echo error: setup did not produce config.yaml.
-        exit /b 1
-    )
-)
-
-REM ---- 5. serve --------------------------------------------------------
+REM ---- 4. serve --------------------------------------------------------
 
 REM No PORT=8080 default and no --port flag: `serve` reads %PORT% itself,
 REM validates it (exit 1 with a named error), and falls back to
