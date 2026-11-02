@@ -45,6 +45,7 @@ from mame_curator.api.state import (
     retry_setup,
 )
 from mame_curator.filter import (
+    FilterError,
     Overrides,
     Sessions,
     load_overrides,
@@ -55,7 +56,13 @@ from mame_curator.filter import (
 router = APIRouter()
 
 
-def _to_response(config: AppConfig, *, restart_required: bool = False) -> AppConfigResponse:
+# The page shows `msg` for this type; a `path_` type reads "could not be found".
+_SAME_FOLDER_WORDS = "Please choose a different folder from the one holding your games."
+
+
+def _to_response(
+    config: AppConfig, *, restart_required: bool, setup_ended: bool = False
+) -> AppConfigResponse:
     return AppConfigResponse(
         paths=config.paths,
         server=config.server,
@@ -65,10 +72,75 @@ def _to_response(config: AppConfig, *, restart_required: bool = False) -> AppCon
         updates=config.updates,
         fs=config.fs,
         restart_required=restart_required,
+        setup_ended=setup_ended,
     )
 
 
-def _validate_paths(config: AppConfig, *, setup_required: bool = False) -> tuple[FieldError, ...]:
+def _restart_required(request: Request) -> bool:
+    """Mame-curator-1145 §4.1: asked of the server, so a refetch keeps the prompt."""
+    state = request.app.state
+    world: WorldState = state.world
+    return bool(
+        world.config.server != state.started_server
+        or (world.setup_required and state.setup_save_kept)
+    )
+
+
+async def _swap_in_and_reply(request: Request, new_world: WorldState) -> AppConfigResponse:
+    """Swap in a save, restore or import; in setup mode, retry the DAT.
+
+    mame-curator-1145 §4.1, INV-4, INV-15: the swap comes first, so an
+    unexpected failure in the retry cannot leave the running config behind the
+    file. Off the event loop, because a full DAT takes seconds to read.
+    """
+    state = request.app.state
+    set_world(request, new_world)
+    setup_ended = False
+    if new_world.setup_required:
+        retried = await asyncio.to_thread(retry_setup, new_world)
+        if retried.setup_required:
+            state.setup_save_kept = True
+        else:
+            set_world(request, retried)
+            # Computed from the empty library; applying it would put its
+            # context over the one just built.
+            state.ini_staged = None
+            setup_ended = True
+    return _to_response(
+        new_world.config,
+        restart_required=_restart_required(request),
+        setup_ended=setup_ended,
+    )
+
+
+def _nul_path_errors(config: AppConfig) -> tuple[FieldError, ...]:
+    """A NUL byte reaches `resolve()`, which raises (mame-curator-1145 §4.1)."""
+    return tuple(
+        FieldError(loc=f"paths.{name}", msg="path holds a NUL byte", type="path_invalid")
+        for name, value in config.paths
+        if isinstance(value, Path) and "\0" in str(value)
+    )
+
+
+def _same_folder(config: AppConfig, previous: AppConfig) -> bool:
+    """Would this save newly make the games folder the destination too?
+
+    A save that changes neither path is not asked, and loading a config never
+    runs this, so a config already naming one folder twice keeps working
+    (mame-curator-1145 INV-11).
+    """
+    new, old = config.paths, previous.paths
+    if new.source_roms == old.source_roms and new.dest_roms == old.dest_roms:
+        return False
+    try:
+        return new.source_roms.resolve() == new.dest_roms.resolve()
+    except OSError:
+        return False
+
+
+def _validate_paths(
+    config: AppConfig, previous: AppConfig, *, setup_required: bool = False
+) -> tuple[FieldError, ...]:
     """Collect `path_not_found` / `path_invalid` errors for the configured paths.
 
     mame-curator-1095 § 4.2a: while `setup_required` is true the
@@ -79,6 +151,9 @@ def _validate_paths(config: AppConfig, *, setup_required: bool = False) -> tuple
     the DAT parses. The missing DAT is already reported through
     `setup_required` on `SetupCheck` and `build_world`'s warning.
     """
+    nul_errs = _nul_path_errors(config)
+    if nul_errs:
+        return nul_errs
     errs: list[FieldError] = []
     p = config.paths
     if not p.source_roms.exists():
@@ -135,12 +210,14 @@ def _validate_paths(config: AppConfig, *, setup_required: bool = False) -> tuple
                 type="path_invalid",
             )
         )
+    if not errs and _same_folder(config, previous):
+        errs.append(FieldError(loc="paths.dest_roms", msg=_SAME_FOLDER_WORDS, type="same_folder"))
     return tuple(errs)
 
 
 @router.get("/api/config", response_model=AppConfigResponse)
-def get_config(world: WorldState = Depends(get_world)) -> AppConfigResponse:
-    return _to_response(world.config)
+def get_config(request: Request, world: WorldState = Depends(get_world)) -> AppConfigResponse:
+    return _to_response(world.config, restart_required=_restart_required(request))
 
 
 @router.patch("/api/config", response_model=AppConfigResponse)
@@ -176,7 +253,7 @@ async def patch_config(
                 fields=field_errors_from_pydantic(exc.errors()),
             ) from exc
 
-        path_errs = _validate_paths(new_config, setup_required=world.setup_required)
+        path_errs = _validate_paths(new_config, world.config, setup_required=world.setup_required)
         if path_errs:
             raise ConfigError("config validation failed", fields=path_errs)
 
@@ -186,7 +263,7 @@ async def patch_config(
         # mode: a DAT dropped at the configured path is found by this save
         # (mame-curator-1145 INV-3).
         if new_config == world.config and not world.setup_required:
-            return _to_response(world.config, restart_required=False)
+            return _to_response(world.config, restart_required=_restart_required(request))
 
         snapshots_dir = world.data_dir / "snapshots"
         if world.config_path.exists():
@@ -194,17 +271,12 @@ async def patch_config(
 
         write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
 
-        server_changed = new_config.server != world.config.server
         rerun = filter_relevant_changed(world.config, new_config)
         new_world = replace_world(base=world, config=new_config, rerun_filter=rerun)
         # mame-curator-1145 §4.1: in setup mode ANY save retries the DAT,
         # deliberately not just a `source_dat` change: the likeliest recovery
-        # leaves the path string unchanged (mame-curator-1095 § 4.2b). Off the
-        # event loop, because a full DAT takes seconds to read.
-        if world.setup_required:
-            new_world = await asyncio.to_thread(retry_setup, new_world)
-        set_world(request, new_world)
-        return _to_response(new_config, restart_required=server_changed or new_world.setup_required)
+        # leaves the path string unchanged (mame-curator-1095 § 4.2b).
+        return await _swap_in_and_reply(request, new_world)
 
 
 @router.get("/api/config/snapshots", response_model=SnapshotsListing)
@@ -234,14 +306,20 @@ async def restore_config_snapshot(
             "state.yaml": world.data_dir / "state.yaml",
         }
         # The restore is itself undoable: keep what it is about to replace.
-        snapshot_files(snapshots_dir, targets)
+        undo_id = snapshot_files(snapshots_dir, targets)
         restore_snapshot(snapshots_dir, snap_id, targets)
 
-        new_config = load_app_config(world.config_path)
-        new_overrides = load_overrides(targets["overrides.yaml"])
-        new_sessions = load_sessions(targets["sessions.yaml"])
-        new_notes = _read_json_dict(targets["notes.json"])
-        new_review_state = load_review_state(targets["state.yaml"])
+        try:
+            new_config = load_app_config(world.config_path)
+            new_overrides = load_overrides(targets["overrides.yaml"])
+            new_sessions = load_sessions(targets["sessions.yaml"])
+            new_notes = _read_json_dict(targets["notes.json"])
+            new_review_state = load_review_state(targets["state.yaml"])
+        except (ConfigError, FilterError, OSError, ValueError):
+            # Otherwise the next save would write the old config over the
+            # restored files around it (mame-curator-1145 INV-16).
+            restore_snapshot(snapshots_dir, undo_id, targets)
+            raise
         new_world = replace_world(
             base=world,
             config=new_config,
@@ -251,8 +329,7 @@ async def restore_config_snapshot(
             review_state=new_review_state,
             rerun_filter=True,
         )
-        set_world(request, new_world)
-        return _to_response(new_config)
+        return await _swap_in_and_reply(request, new_world)
 
 
 @router.post("/api/config/export", response_model=ConfigExportBundle)
@@ -374,8 +451,7 @@ async def import_config(
             notes=bundle.notes,
             rerun_filter=True,
         )
-        set_world(request, new_world)
-        return _to_response(new_config)
+        return await _swap_in_and_reply(request, new_world)
 
 
 def _config_to_yaml(config: AppConfig) -> dict[str, Any]:
@@ -399,7 +475,7 @@ def _read_json_dict(path: Path) -> dict[str, str]:
         return {}
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):  # ValueError: bad JSON, or bad UTF-8.
         return {}
     if not isinstance(raw, dict):
         return {}

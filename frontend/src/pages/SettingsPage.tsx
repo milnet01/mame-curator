@@ -230,14 +230,17 @@ export function SettingsPage({
         </div>
       )}
 
-      {/* FP13 § A4: surface PATCH-response `restart_required` so server-bind
-          changes (host/port) don't silently take effect only after restart. */}
+      {/* FP13 § A4: surface `restart_required` so server-bind changes
+          (host/port) don't silently take effect only after restart. In setup
+          mode it means a save left the games unloaded (mame-curator-1145). */}
       {config.restart_required && (
         <p
           role="status"
           className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
         >
-          {strings.settings.banners.restartRequired}
+          {setupInfo?.setup_required
+            ? strings.settings.banners.gamesNotLoaded
+            : strings.settings.banners.restartRequired}
         </p>
       )}
 

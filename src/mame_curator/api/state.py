@@ -272,7 +272,7 @@ def _load_notes(path: Path) -> dict[str, str]:
         return {}
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):  # ValueError: bad JSON, or bad UTF-8.
         logger.exception("failed to read notes file %r", str(path))
         return {}
     if not isinstance(raw, dict):

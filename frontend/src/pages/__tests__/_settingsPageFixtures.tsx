@@ -102,6 +102,7 @@ export const config: AppConfigResponse = {
   },
   fs: { granted_roots: [] },
   restart_required: false,
+  setup_ended: false,
 };
 
 /** An update-check answer; the three banner fields vary per test. */

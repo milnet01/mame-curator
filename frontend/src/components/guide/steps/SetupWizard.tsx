@@ -1,8 +1,14 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { GuideAction } from "../GuideAction";
 import { GuideStep } from "../GuideStep";
 import { FsBrowser } from "@/components/settings/FsBrowser";
-import { useConfig, useConfigPatch } from "@/hooks/useConfig";
+import type { SetupCheck } from "@/api/types";
+import {
+  refreshEverything,
+  useConfig,
+  useConfigPatch,
+} from "@/hooks/useConfig";
 import { apiErrorMessage } from "@/lib/apiErrorToast";
 import { playlistIn } from "@/lib/playlistPath";
 import { strings } from "@/strings";
@@ -27,7 +33,8 @@ const LAST_STEP = STEPS.length - 1;
  */
 export function SetupWizard() {
   const config = useConfig();
-  const patch = useConfigPatch();
+  const patch = useConfigPatch({ quiet: true });
+  const queryClient = useQueryClient();
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Partial<Record<Answer, string>>>({});
   const [focusKey, setFocusKey] = useState(0);
@@ -80,16 +87,23 @@ export function SetupWizard() {
         },
       },
       {
-        onSuccess: (next) => {
+        onSuccess: async (next) => {
           if (next.restart_required) {
             setAnswers((prev) => ({ ...prev, source_dat: undefined }));
             setStepIndex(LIST_STEP);
             setError(strings.guide.setup.notAGameList);
-          } else {
-            // Good save, but the setup check could not say so: this page
-            // would have left otherwise. Pressing again is safe.
-            setError(strings.guide.loadFailed);
+            return;
           }
+          // A repeat press after the alert below: the server had nothing left
+          // to end, so the hook did not refresh, and the page must still catch up.
+          if (!next.setup_ended) await refreshEverything(queryClient);
+          // Read the cache, not this render: the check can have its new answer
+          // while React has not yet heard, and this page is about to leave.
+          const check = queryClient.getQueryData<SetupCheck>([
+            "setup",
+            "check",
+          ]);
+          if (check?.setup_required) setError(strings.guide.loadFailed);
         },
         onError: (err) => setError(apiErrorMessage(err)),
       },
@@ -105,13 +119,11 @@ export function SetupWizard() {
       onBack={stepIndex > 0 && !saving ? () => goTo(stepIndex - 1) : undefined}
       exitLabel={saving ? undefined : strings.guide.exit}
     >
-      {chosen === undefined ? (
-        <p className="text-xl">{words.help}</p>
-      ) : (
-        <p role="status" className="break-words text-2xl font-medium">
-          {chosen}
-        </p>
-      )}
+      {chosen === undefined && <p className="text-xl">{words.help}</p>}
+      {/* On the page before the choice, so a screen reader hears the first. */}
+      <p role="status" className="break-words text-2xl font-medium">
+        {chosen}
+      </p>
       {config.isError && (
         <p role="alert" className="text-xl text-destructive">
           {apiErrorMessage(config.error)}

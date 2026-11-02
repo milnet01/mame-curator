@@ -211,6 +211,7 @@ export interface AppConfigResponse {
   updates: UpdatesConfig;
   fs: FsConfig;
   restart_required: boolean;
+  setup_ended: boolean;
 }
 
 // === Games + metadata ======================================================

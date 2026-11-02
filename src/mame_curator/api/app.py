@@ -105,6 +105,9 @@ def create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         world = build_world(config_path)
         app.state.world = world
+        # mame-curator-1145 §4.1: what `restart_required` compares with.
+        app.state.started_server = world.config.server
+        app.state.setup_save_kept = False
         app.state.job = JobManager(history_dir=world.data_dir / "copy-history")
         # FP20-C / FP25-A: per-app asyncio.Lock guarding every
         # read-merge-write-set_world path on app.state.world. Without

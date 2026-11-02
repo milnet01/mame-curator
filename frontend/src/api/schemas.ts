@@ -292,6 +292,7 @@ export const AppConfigResponseSchema = z
     updates: UpdatesConfigSchema,
     fs: FsConfigSchema,
     restart_required: z.boolean(),
+    setup_ended: z.boolean(),
   })
   .strict();
 

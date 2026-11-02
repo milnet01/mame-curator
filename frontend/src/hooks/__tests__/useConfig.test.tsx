@@ -1,11 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  QueryObserver,
+} from "@tanstack/react-query";
 
 import { server, http, HttpResponse } from "@/test/handlers";
 import { makeClientWrapper } from "@/test/renderWithClient";
-import { useConfigPatch, useSnapshotRestore } from "../useConfig";
+import { apiRequest } from "@/api/client";
+import { AppConfigResponseSchema } from "@/api/types";
+import { _resetApiErrorToastDedupForTests } from "@/lib/apiErrorToast";
+import {
+  REFRESH_LIMIT_MS,
+  refreshEverything,
+  useConfigImport,
+  useConfigPatch,
+  useSnapshotRestore,
+} from "../useConfig";
 import { strings } from "@/strings";
 import { config } from "@/pages/__tests__/_settingsPageFixtures";
 
@@ -26,6 +39,7 @@ afterEach(() => {
 });
 
 const renderWithClient = makeClientWrapper;
+const STARTUP_CHECK = ["updates", "startup"] as const;
 
 describe("useConfigPatch onError → toast (FP13 § A1)", () => {
   it("toasts byCode-friendly copy when PATCH /api/config returns 422", async () => {
@@ -66,10 +80,15 @@ describe("useConfigPatch onSuccess → saved indicator (mame-curator-1038)", () 
 
 // mame-curator-1145 INV-8: a save that ended setup mode changed every answer.
 describe("useConfigPatch after a save in setup mode", () => {
-  function setupClient(setupRequired: boolean) {
+  function setupClient(setupRequired?: boolean) {
     const client = new QueryClient();
-    client.setQueryData(["setup", "check"], { setup_required: setupRequired });
+    if (setupRequired !== undefined) {
+      client.setQueryData(["setup", "check"], {
+        setup_required: setupRequired,
+      });
+    }
     client.setQueryData(["games", "anything"], { total: 0 });
+    client.setQueryData(STARTUP_CHECK, { latest_version: null });
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
@@ -78,10 +97,34 @@ describe("useConfigPatch after a save in setup mode", () => {
   const stale = (client: QueryClient) =>
     client.getQueryState(["games", "anything"])?.isInvalidated;
 
-  it("refreshes everything when the save ended setup mode", async () => {
+  it.each([
+    ["says setup mode is on", true],
+    ["has already flipped", false],
+    ["is missing", undefined],
+  ])(
+    "refreshes everything on setup_ended when the cached check %s",
+    async (_name, cached) => {
+      server.use(
+        http.patch("/api/config", () =>
+          HttpResponse.json({ ...config, setup_ended: true }),
+        ),
+      );
+      const { client, wrapper } = setupClient(cached);
+      const { result } = renderHook(() => useConfigPatch(), { wrapper });
+      result.current.mutate({} as never);
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(stale(client)).toBe(true);
+    },
+  );
+
+  it("refreshes when one save ended setup mode and changed the server too", async () => {
     server.use(
       http.patch("/api/config", () =>
-        HttpResponse.json({ ...config, restart_required: false }),
+        HttpResponse.json({
+          ...config,
+          setup_ended: true,
+          restart_required: true,
+        }),
       ),
     );
     const { client, wrapper } = setupClient(true);
@@ -89,6 +132,28 @@ describe("useConfigPatch after a save in setup mode", () => {
     result.current.mutate({} as never);
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(stale(client)).toBe(true);
+  });
+
+  it("leaves the once-a-session update check alone", async () => {
+    server.use(
+      http.patch("/api/config", () =>
+        HttpResponse.json({ ...config, setup_ended: true }),
+      ),
+    );
+    const { client, wrapper } = setupClient(true);
+    const { result } = renderHook(() => useConfigPatch(), { wrapper });
+    result.current.mutate({} as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(client.getQueryState(STARTUP_CHECK)?.isInvalidated).toBe(false);
+  });
+
+  it("refreshes nothing extra when the reply does not say setup ended, whatever is cached", async () => {
+    server.use(http.patch("/api/config", () => HttpResponse.json(config)));
+    const { client, wrapper } = setupClient(true);
+    const { result } = renderHook(() => useConfigPatch(), { wrapper });
+    result.current.mutate({} as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(stale(client)).toBe(false);
   });
 
   it("keeps the restart prompt when the save did not end setup mode", async () => {
@@ -107,17 +172,128 @@ describe("useConfigPatch after a save in setup mode", () => {
     });
   });
 
-  it("refreshes nothing extra outside setup mode", async () => {
+  it("an older answer still on its way cannot overwrite the reply", async () => {
+    let answerOld = () => {};
+    const held = new Promise<void>((resolve) => {
+      answerOld = resolve;
+    });
     server.use(
+      http.get("/api/config", async () => {
+        await held;
+        return HttpResponse.json({ ...config, restart_required: false });
+      }),
       http.patch("/api/config", () =>
-        HttpResponse.json({ ...config, restart_required: false }),
+        HttpResponse.json({ ...config, restart_required: true }),
       ),
     );
     const { client, wrapper } = setupClient(false);
+    const inFlight = client
+      .fetchQuery({
+        queryKey: ["config"],
+        queryFn: () => apiRequest("/api/config", AppConfigResponseSchema),
+      })
+      .catch(() => undefined);
     const { result } = renderHook(() => useConfigPatch(), { wrapper });
     result.current.mutate({} as never);
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(stale(client)).toBe(false);
+    answerOld();
+    await inFlight;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(client.getQueryData(["config"])).toMatchObject({
+      restart_required: true,
+    });
+  });
+
+  it("stays quiet when its caller says the outcome itself", async () => {
+    server.use(http.patch("/api/config", () => HttpResponse.json(config)));
+    const { wrapper } = setupClient(true);
+    const { result } = renderHook(() => useConfigPatch({ quiet: true }), {
+      wrapper,
+    });
+    result.current.mutate({} as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+  });
+
+  it("does not repeat a failure its caller shows itself", async () => {
+    _resetApiErrorToastDedupForTests();
+    server.use(
+      http.patch("/api/config", () =>
+        HttpResponse.json(
+          { code: "fs_path_invalid", detail: "bad path", fields: [] },
+          { status: 422 },
+        ),
+      ),
+    );
+    const { wrapper } = setupClient(true);
+    const { result } = renderHook(() => useConfigPatch({ quiet: true }), {
+      wrapper,
+    });
+    result.current.mutate({} as never);
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
+  });
+});
+
+describe("refreshEverything's wait (mame-curator-1145 §4.3)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("gives up after its time limit, so one hung request cannot hold the wizard", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const client = new QueryClient();
+    const observer = new QueryObserver(client, {
+      queryKey: ["hung"],
+      queryFn: () => new Promise(() => {}),
+    });
+    const unsubscribe = observer.subscribe(() => {});
+    let settled = false;
+    void refreshEverything(client).then(() => {
+      settled = true;
+    });
+    await vi.advanceTimersByTimeAsync(REFRESH_LIMIT_MS - 1);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(settled).toBe(true);
+    unsubscribe();
+  });
+});
+
+// mame-curator-1145 INV-15: both replace most of what the page holds.
+describe.each<[string, string, () => { ok: boolean; run: () => void }]>([
+  [
+    "useSnapshotRestore",
+    "/api/config/snapshots/a/restore",
+    () => {
+      const restore = useSnapshotRestore();
+      return { ok: restore.isSuccess, run: () => restore.mutate("a") };
+    },
+  ],
+  [
+    "useConfigImport",
+    "/api/config/import",
+    () => {
+      const load = useConfigImport();
+      return { ok: load.isSuccess, run: () => load.mutate({} as never) };
+    },
+  ],
+])("%s on success", (_name, url, hook) => {
+  it("refreshes everything but the once-a-session update check", async () => {
+    server.use(http.post(url, () => HttpResponse.json(config)));
+    const client = new QueryClient();
+    client.setQueryData(["games", "anything"], { total: 0 });
+    client.setQueryData(STARTUP_CHECK, { latest_version: null });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(hook, { wrapper });
+    result.current.run();
+    await waitFor(() => expect(result.current.ok).toBe(true));
+    expect(client.getQueryState(["games", "anything"])?.isInvalidated).toBe(
+      true,
+    );
+    expect(client.getQueryState(STARTUP_CHECK)?.isInvalidated).toBe(false);
   });
 });
 

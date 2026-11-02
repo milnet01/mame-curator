@@ -49,10 +49,17 @@ It calls `build_world(world.config_path)` and returns the result when `setup_req
 In `patch_config`, under the existing `world_lock`:
 
 - The no-op return gains `and not world.setup_required`, so a same-path save still retries (§2.3).
-- After `write_yaml_atomic` and `replace_world`, when `world.setup_required` holds: `new_world = await asyncio.to_thread(retry_setup, new_world)`.
-- `restart_required` becomes `server_changed or new_world.setup_required`.
+- After `write_yaml_atomic` and `replace_world`, `set_world` runs first, so an unexpected failure in the retry cannot leave the running config behind the file. Then, when `world.setup_required` holds, `retried = await asyncio.to_thread(retry_setup, new_world)`, and `set_world` again when it ended setup mode.
+- The reply's `restart_required` means: `server` differs from what this server started with, or a save in setup mode left setup mode on. `GET /api/config` gives the same answer, so a refetch keeps the prompt.
+- The reply gains `setup_ended`: true only in the reply to the save that ended setup mode, and in every other reply false. It is independent of `restart_required`, because one save can end setup mode and change `server`.
+- A retry that ends setup mode clears any stored INI preview. It was computed from the empty library, and applying it would put its context over the rebuilt one.
 
-Every save in setup mode retries, not only one that changes `source_dat`, for the reason mame-curator-1095 §4.2b gives. This replaces that section's condition. `_validate_paths` is unchanged, so 1095 INV-9 holds.
+Every save in setup mode retries, not only one that changes `source_dat`, for the reason mame-curator-1095 §4.2b gives. This replaces that section's condition. **Restoring a snapshot and importing a backup in setup mode retry the same way**, under the same lock, and their replies carry the same two fields.
+
+`_validate_paths` still skips the DAT check in setup mode, so 1095 INV-9 holds. It gains two refusals:
+
+- Any path holding a NUL byte is refused, in setup mode too, because it would stop the next start. `compose_allowlist` also skips such a path rather than raise, so a config that already holds one still starts.
+- When a save changes `source_roms` or `dest_roms`, and the two resolve to the same folder, `paths.dest_roms` is refused with §4.3's sentence. A save that changes neither is not refused, and loading a config never runs this check, so an existing config with the two the same keeps working.
 
 ### 4.2 The wizard
 
@@ -70,13 +77,13 @@ frontend/src/lib/playlistPath.ts                      playlistIn(dest)
 | 3 | "Where should copied games go?" | "Choose the folder your chosen games will be copied to. Your original games are not changed." | "Copy games to this folder?" | "Yes, finish setup", "Choose another folder" |
 
 - Before a choice the one action is "Choose a folder" or "Choose a file", which opens `FsBrowser` (`mode="file"` on step 2).
-- After a choice the path shows as large text in a `role="status"` element, and focus moves to the heading. `GuideStep` gains `focusKey?: number`, added to its focus effect's dependencies. The wizard changes it each time the picker closes, Cancel included, so focus moves although the heading stays the same. Without that, the dialog drops focus on the page, because it has no trigger to return it to.
+- After a choice the path shows as large text in a `role="status"` element, which is on the page, empty, before the choice, so a screen reader hears the first choice too. Focus moves to the heading. `GuideStep` gains `focusKey?: number`, added to its focus effect's dependencies. The wizard changes it each time the picker closes, Cancel included, so focus moves although the heading stays the same. Without that, the dialog drops focus on the page, because it has no trigger to return it to.
 - Every step has the exit "Look around on my own". Steps 2 and 3 have Back, which keeps the answers given.
 - `FsBrowser` opens at the current answer on steps 1 and 3 and at the home folder if there is none. Step 2 opens at the home folder too, because step 1's folder can hold tens of thousands of game files and `mode="file"` draws a row for each.
 
 ### 4.3 The save
 
-"Yes, finish setup" sends one `PATCH /api/config` through `useConfigPatch`.
+"Yes, finish setup" sends one `PATCH /api/config` through `useConfigPatch`, with its toasts off: the wizard says the outcome itself, so a "saved" toast cannot sit beside its alert and a failure is not spoken twice.
 
 ```ts
 { paths: { ...config.paths, source_roms, source_dat, dest_roms, retroarch_playlist } }
@@ -88,13 +95,19 @@ While the save runs, Back and the exit are hidden, the action shows busy, and a 
 
 | The save's answer | What the wizard does |
 |---|---|
-| Success, `restart_required` false | `useConfigPatch` has already refetched everything (below). `GuidePage` then sees `setup_required` false and shows the guide's first step, and marks the guide seen |
+| Success, `restart_required` false | `useConfigPatch` has already refetched everything (below). `GuidePage` then sees `setup_required` false and shows the guide's first step, and marks the guide seen. The wizard shows `strings.guide.loadFailed` only if the cached setup check still says `setup_required` once the refetch is over (§6). A reply with `setup_ended` false here is a repeat press after that alert: the wizard repeats the refetch first |
 | Success, `restart_required` true | Returns to step 2 with `role="alert"`: "That file could not be read as a game list. Please choose another." |
 | Refused or failed | Stays on step 3 with `apiErrorMessage` in a `role="alert"` element. Actions and Back return |
 
-Choosing the games folder as the destination is stopped on step 3 before any save, with `role="alert"`: "Please choose a different folder from the one holding your games."
+Choosing the games folder as the destination is stopped on step 3 before any save, with `role="alert"`: "Please choose a different folder from the one holding your games." The guide's Where step stops it the same way. Both compare the two paths as text, because the page cannot resolve them; the server's refusal (§4.1) catches the same folder reached by another route, and says the same sentence.
 
-`useConfigPatch`'s `onSuccess` returns `qc.invalidateQueries()` for everything when the cached `["setup", "check"]` answer says `setup_required` is true and the reply's `restart_required` is false. A refetch would otherwise drop the reply's `restart_required`, which `GET /api/config` never carries. The mutation therefore stays pending, and the action busy, until the refetch settles. A Settings save that ends setup mode refreshes too, and no prompt is needed.
+`useConfigPatch`'s `onSuccess` refreshes everything when the reply's `setup_ended` is true, and reads no cached answer to decide. The mutation therefore stays pending, and the action busy, until the refetch settles or 30 seconds pass, so one hung request cannot leave the wizard busy for ever. A Settings save that ends setup mode refreshes too, and no prompt is needed.
+
+"Everything" leaves out `["updates", "startup"]`, which is one check per session and can wait 30 seconds on a network failure. `useSnapshotRestore` and `useConfigImport` always refresh everything the same way, because both replace most of what the page holds.
+
+Before writing a reply to the cache, these hooks cancel any `["config"]` request still running, so an older answer cannot overwrite it.
+
+The Settings banner for `restart_required` names no false cause. While setup mode is on it says the games are not loaded because a file could not be read, and points at the Paths section. Otherwise it says some settings changed and asks the user to close and reopen the app.
 
 ### 4.4 The picker
 
@@ -127,17 +140,17 @@ Its strings change for every caller, to plain words:
   *Test:* `tests/api/test_setup_mode.py::test_setup_save_with_readable_dat_ends_setup_mode`, asserting the PATCH reply, then `/api/setup/check` and a non-empty `/api/games`.
   *Breaks when:* `patch_config` keeps only `replace_world`, which passes the empty `machines` through.
 
-- **INV-2** — In setup mode, a save naming an unreadable DAT is kept, setup mode stays on, and `restart_required` is true. This amends mame-curator-1095 INV-10.
-  *Test:* `tests/api/test_setup_mode.py::test_dat_change_requests_restart`, re-pointed at a malformed DAT, and asserting `setup_required` stays true.
-  *Breaks when:* `restart_required` is computed from the old world, or from `server_changed` alone.
+- **INV-2** — In setup mode, a save naming an unreadable DAT is kept, setup mode stays on, `restart_required` is true, and stays true on `GET /api/config`. This amends mame-curator-1095 INV-10.
+  *Test:* `tests/api/test_setup_mode.py::test_dat_change_requests_restart`, re-pointed at a malformed DAT, and asserting `setup_required` stays true; `tests/api/test_setup_save.py` for the GET.
+  *Breaks when:* `restart_required` is computed from the old world, or from `server_changed` alone, or held only in the reply.
 
 - **INV-3** — In setup mode, a save that changes nothing still retries the DAT.
   *Test:* `tests/api/test_setup_mode.py::test_setup_save_same_path_rereads_dat`: start with the DAT absent, write it at the configured path, PATCH the current paths, assert setup mode ended.
   *Breaks when:* the no-op return fires in setup mode.
 
-- **INV-4** — A failure elsewhere in the retry leaves the save kept and the app in setup mode, not a 500.
-  *Test:* `tests/api/test_setup_mode.py::test_setup_save_survives_other_unreadable_input`, with one PATCH naming a readable DAT and a malformed `paths.listxml`.
-  *Breaks when:* `retry_setup` lets a `ParserError` from the listxml escape.
+- **INV-4** — A failure elsewhere in the retry leaves the save kept and the app in setup mode, not a 500. A file that is not valid UTF-8 is such a failure. An unexpected failure still leaves the running config matching the saved file.
+  *Test:* `tests/api/test_setup_mode.py::test_setup_save_survives_other_unreadable_input`, with one PATCH naming a readable DAT and a malformed `paths.listxml`; `tests/api/test_setup_save.py` for undecodable files and for the running config.
+  *Breaks when:* `retry_setup` lets a `ParserError` from the listxml escape, a loader lets `UnicodeDecodeError` escape, or `set_world` runs only after the retry.
 
 - **INV-5** — The retry does not run on the event loop, so other requests are answered during a long read.
   *Test:* `tests/api/test_setup_mode.py::test_setup_retry_runs_off_the_event_loop`, patching `build_world` with a recorder that compares its thread with the loop's.
@@ -151,9 +164,9 @@ Its strings change for every caller, to plain words:
   *Test:* `GuidePage_setup.test.tsx`, counting PATCH bodies through a full walk, an exit from step 3, a changed destination and an unchanged one.
   *Breaks when:* a step saves its own answer, which `_validate_paths` could refuse because of another path not yet answered; or the playlist is always overwritten.
 
-- **INV-8** — After a successful save the guide's first step shows without a page load, and every query is refetched. A Settings save that ends setup mode refetches every query too.
+- **INV-8** — After a successful save the guide's first step shows without a page load. Every query on screen is refetched then, and every other query is refetched the next time it is viewed, the startup update check excepted. The trigger is the reply's `setup_ended`, so a Settings save that ends setup mode does the same, whatever the cached setup check says. The wizard waits at most 30 seconds, and no failure alert appears on a good save.
   *Test:* `GuidePage_setup.test.tsx`, whose setup-check handler flips after the PATCH, `frontend/e2e/setup-wizard.spec.ts`, and `frontend/src/hooks/__tests__/useConfig.test.tsx` for the hook.
-  *Breaks when:* only the setup check is invalidated, which leaves the empty games list cached for its `staleTime`; or the invalidation lives in the wizard alone.
+  *Breaks when:* only the setup check is invalidated, which leaves the empty games list cached for its `staleTime`; the invalidation lives in the wizard alone; or the trigger reads a cached answer.
 
 - **INV-9** — A DAT that cannot be read returns the user to step 2 with §4.3's sentence, their other answers kept. A refused save stays on step 3 and says why in a `role="alert"` element, and Back works again.
   *Test:* `GuidePage_setup.test.tsx`, with a reply of `restart_required: true`, a 422 naming `paths.source_roms`, and a 500.
@@ -163,9 +176,9 @@ Its strings change for every caller, to plain words:
   *Test:* `GuidePage_setup.test.tsx` for the actions, and `frontend/e2e/setup-wizard.spec.ts` for focus, walking a second choice too, because jsdom does not run the dialog's focus return against the frame `GuideStep` waits for.
   *Breaks when:* the dialog's returning focus lands after the heading's, or a second choice does not change `focusKey`.
 
-- **INV-11** — Choosing the games folder as the destination is refused before any save.
-  *Test:* `GuidePage_setup.test.tsx`, asserting the alert and no PATCH.
-  *Breaks when:* the check is removed, which leaves "All of these are already copied." as the user's only clue.
+- **INV-11** — Choosing the games folder as the destination is refused before any save, in the wizard and the Where step. The server refuses a save that changes either path so that both resolve to one folder, a symlink included, and refuses no other save.
+  *Test:* `GuidePage_setup.test.tsx` and `GuidePage_results.test.tsx`, asserting the alert and no PATCH; `tests/api/test_setup_save.py` for the server.
+  *Breaks when:* either check is removed, which leaves "All of these are already copied." as the user's only clue; or the server refuses a config that already held the two the same.
 
 - **INV-12** — The wizard's picker asks before looking outside the existing allowed folders, stays open on a folder the user allows, fits the window, shows only what `simple` leaves, and step 2 picks a file. `large` changes only size.
   *Test:* `GuidePage_setup.test.tsx` for a `fs_sandboxed` listing, and `frontend/src/components/settings/__tests__/FsBrowser.test.tsx` for the title by mode, `large`, `simple` and the open picker after a grant, and `frontend/e2e/setup-wizard.spec.ts` for the fit.
@@ -179,6 +192,14 @@ Its strings change for every caller, to plain words:
   *Test:* `frontend/e2e/setup-wizard.spec.ts` starts its own `mame-curator serve` from a temporary starter config on its own port, with its own origin, so the browser holds no guide key. It uses the fixture DAT `tests/parser/fixtures/mini.dat.xml`.
   *Breaks when:* any link in the journey is missing, which is what the unit tests' fake handlers cannot show.
 
+- **INV-15** — In setup mode, restoring a snapshot or importing a backup retries the DAT exactly as a save does, and says so in `setup_ended` and `restart_required`. Outside setup mode neither retries. Both hooks refresh everything.
+  *Test:* `tests/api/test_setup_save.py`, and `useConfig.test.tsx` for the hooks.
+  *Breaks when:* a route keeps only `replace_world`, or a hook refreshes only the snapshots.
+
+- **INV-16** — A snapshot whose files will not load leaves the disk as it was before the restore, so the next save cannot mix the two.
+  *Test:* `tests/api/test_setup_save.py`.
+  *Breaks when:* the route reloads the files without putting back what it replaced.
+
 ## 6. Failure modes
 
 - **The chosen file is not a game list:** INV-9. The user picks again without losing the other answers.
@@ -186,7 +207,8 @@ Its strings change for every caller, to plain words:
 - **A folder the user wants does not exist yet:** `FsBrowser` cannot make one, and `_validate_paths` refuses a missing destination. The user makes it elsewhere first. §9 keeps this out of scope.
 - **The folder or file vanishes between choice and save:** the save is refused, INV-9.
 - **The user closes the page during the read:** the server finishes the save. On the next load, setup mode is already over.
-- **The setup check fails after a good save:** the query keeps its old answer, so the wizard stays. It then shows `strings.guide.loadFailed` on step 3, and pressing the action again is safe (INV-3).
+- **The user leaves the wizard during the read,** by the page's other links: the server finishes the save and the wizard's answers are gone. If the list was good, setup mode is over when they return to `/start`, and the hook has already refreshed. If it was not, they get no message, because the wizard that would say it has closed: they return to step 1 with nothing filled in and answer again. Their other answers are saved, and the wizard does not offer them.
+- **The setup check fails after a good save, or a refresh takes over 30 seconds:** the query keeps its old answer, so the wizard stays. It then shows `strings.guide.loadFailed` on step 3, and pressing the action again is safe: the server has nothing to change, so the reply says `setup_ended` false, and the wizard repeats the refresh. A check that lands after the 30 seconds still moves the user on.
 - **Another input fails during the retry:** a listxml, INI or overrides file that went bad after the server started, or a malformed `paths.listxml` saved through Settings. INV-4 keeps the save and §4.1 asks for a restart. The wizard shows §4.3's sentence, which then blames the wrong file, and the next start fails, as it already does after any save of a malformed listxml. A new user cannot reach this, because neither the starter config nor the wizard names those files. §9 keeps the repair out of scope.
 - **A second tab is open:** its own queries catch up when they next refetch. Nothing else depends on it.
 - **A copy is running:** setup mode has no games, so no copy can be.
@@ -195,14 +217,16 @@ Its strings change for every caller, to plain words:
 
 | Invariant | Test |
 |---|---|
-| INV-1, INV-2, INV-3, INV-4, INV-5 | `tests/api/test_setup_mode.py` |
+| INV-1, INV-2, INV-3, INV-4, INV-5 | `tests/api/test_setup_mode.py`, `tests/api/test_setup_save.py` |
 | INV-6 | `frontend/src/pages/__tests__/GuidePage_setup.test.tsx`, `GuidePage_entry.test.tsx` |
-| INV-7, INV-9, INV-11 | `GuidePage_setup.test.tsx` |
+| INV-7, INV-9 | `GuidePage_setup.test.tsx` |
+| INV-11 | `GuidePage_setup.test.tsx`, `GuidePage_results.test.tsx`, `tests/api/test_setup_save.py` |
 | INV-8 | `GuidePage_setup.test.tsx`, `frontend/e2e/setup-wizard.spec.ts`, `frontend/src/hooks/__tests__/useConfig.test.tsx` |
 | INV-10 | `GuidePage_setup.test.tsx`, `frontend/e2e/setup-wizard.spec.ts` |
 | INV-12 | `GuidePage_setup.test.tsx`, `frontend/src/components/settings/__tests__/FsBrowser.test.tsx` |
 | INV-13 | `tests/tools/test_run_sh_port.py` |
 | INV-14 | `frontend/e2e/setup-wizard.spec.ts` |
+| INV-15, INV-16 | `tests/api/test_setup_save.py`, `frontend/src/hooks/__tests__/useConfig.test.tsx` |
 
 **Existing tests that change:** `test_dat_change_requests_restart` (INV-2), `GuidePage_entry.test.tsx`'s setup case (INV-6), and `FsBrowser.test.tsx`'s literals for the changed strings.
 
@@ -229,13 +253,15 @@ Each new test must be seen to fail before its code exists. `frontend/e2e` runs b
 
 | Rule | What catches a breach |
 |------|----------------------|
-| INV-1, INV-2, INV-3, INV-4, INV-5 | `tests/api/test_setup_mode.py` |
-| INV-6, INV-7, INV-9, INV-11 | `GuidePage_setup.test.tsx` |
+| INV-1, INV-2, INV-3, INV-4, INV-5 | `tests/api/test_setup_mode.py`, `tests/api/test_setup_save.py` |
+| INV-6, INV-7, INV-9 | `GuidePage_setup.test.tsx` |
+| INV-11 | `GuidePage_setup.test.tsx`, `GuidePage_results.test.tsx`, `tests/api/test_setup_save.py` |
 | INV-8 | `GuidePage_setup.test.tsx` and `useConfig.test.tsx`, for the refetch; the real journey only by hand |
 | INV-10 | Partial: `GuidePage_setup.test.tsx` for the actions; focus is `setup-wizard.spec.ts`, which no gate runs |
 | INV-12 | `GuidePage_setup.test.tsx`, `FsBrowser.test.tsx` |
 | INV-13 | `test_run_sh_port.py` |
 | INV-14 | **nothing automatic** — `setup-wizard.spec.ts` runs by hand, because no gate runs `frontend/e2e` |
+| INV-15, INV-16 | `tests/api/test_setup_save.py`, `useConfig.test.tsx` |
 | The words and the large text suit this user | **nothing** — only the user can judge this, on the running app |
 
 ## 11. Cross-doc impact
@@ -251,4 +277,4 @@ Rows live in `../reviews/mame-curator-1145-setup-wizard-loop-log.md`.
 
 ## 13. Migration / compatibility
 
-No config or file format changes. `restart_required` keeps its type and its meaning for the Settings banner, and is now false when a setup-mode save ends setup mode. A user with a `./config.yaml` is unaffected by §4.5. A user who runs `./run.sh` with none now gets the per-user config rather than one in the project folder.
+No config or file format changes. The Backup export file does not change: `setup_ended` is on the HTTP reply only, which `versioning-overrides.md` says is not a breaking surface. `restart_required` keeps its type and its meaning for the Settings banner, is now false when a setup-mode save ends setup mode without changing `server`, and is now also reported by `GET /api/config`. A user with a `./config.yaml` is unaffected by §4.5. A user who runs `./run.sh` with none now gets the per-user config rather than one in the project folder.

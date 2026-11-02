@@ -2,7 +2,7 @@
  * mame-curator-1145 INV-6, 7, 8, 9, 10, 11, 12 — the setup wizard. Real focus,
  * real picker and a real server are frontend/e2e/setup-wizard.spec.ts.
  */
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,6 +17,13 @@ import {
   setupCheckFixture,
 } from "./_libraryPageFixtures";
 import { config as appConfig } from "./_settingsPageFixtures";
+
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+  Toaster: () => null,
+}));
+
+import { toast } from "sonner";
 
 const g = strings.guide;
 const s = strings.guide.setup;
@@ -55,7 +62,7 @@ function useSetupServer(reply?: PatchReply): Seen {
       seen.patches.push(body);
       if (reply) return reply(body);
       setupRequired = false;
-      return HttpResponse.json({ ...appConfig, restart_required: false });
+      return HttpResponse.json({ ...appConfig, setup_ended: true });
     }),
     http.get("/api/fs/home", () => HttpResponse.json({ path: HOME })),
     http.get("/api/fs/roots", () => HttpResponse.json({ roots: [] })),
@@ -148,6 +155,8 @@ async function walkToLastStep(user: UserEvent) {
 
 beforeEach(() => {
   localStorage.clear();
+  vi.mocked(toast.success).mockClear();
+  vi.mocked(toast.error).mockClear();
 });
 
 describe("the setup wizard", () => {
@@ -248,12 +257,115 @@ describe("the setup wizard", () => {
     );
   });
 
+  it("§4.2: the chosen path's status element is on the page before the choice", async () => {
+    useSetupServer();
+    const user = userEvent.setup();
+    renderGuide();
+    await heading(s.games.heading);
+    const regions = screen.getAllByRole("status");
+    await pickFolder(user, s.games.choose, "roms");
+    await heading(s.games.chosenHeading);
+    expect(regions).toContain(screen.getByText(`${HOME}/roms`));
+  });
+
+  it("§4.3: a good save says nothing in a toast", async () => {
+    useSetupServer();
+    const user = userEvent.setup();
+    renderGuide();
+    await walkToLastStep(user);
+    await pickFolder(user, s.dest.choose, "copied");
+    await press(user, s.dest.yes);
+    await heading(g.which.heading);
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+  });
+
+  it("§4.3: an unreadable list has no saved toast beside its alert", async () => {
+    useSetupServer(() =>
+      HttpResponse.json({ ...appConfig, restart_required: true }),
+    );
+    const user = userEvent.setup();
+    renderGuide();
+    await walkToLastStep(user);
+    await pickFolder(user, s.dest.choose, "copied");
+    await press(user, s.dest.yes);
+    expect(await screen.findByRole("alert")).toHaveTextContent(s.notAGameList);
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+  });
+
+  it("§6: a setup check that fails after a good save says so, and pressing again carries on", async () => {
+    let answers = 0;
+    let saves = 0;
+    useSetupServer(() => {
+      saves += 1;
+      // The second save changes nothing on the server, so it ended nothing.
+      return HttpResponse.json({ ...appConfig, setup_ended: saves === 1 });
+    });
+    server.use(
+      http.get("/api/setup/check", () => {
+        if (saves === 0) {
+          return HttpResponse.json({
+            ...setupCheckFixture,
+            setup_required: true,
+          });
+        }
+        answers += 1;
+        if (answers === 1) {
+          return HttpResponse.json(
+            { code: "something_else", detail: "it broke", fields: [] },
+            { status: 500 },
+          );
+        }
+        return HttpResponse.json({
+          ...setupCheckFixture,
+          setup_required: false,
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderGuide();
+    await walkToLastStep(user);
+    await pickFolder(user, s.dest.choose, "copied");
+    await press(user, s.dest.yes);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(g.loadFailed);
+    await heading(s.dest.chosenHeading);
+
+    await press(user, s.dest.yes);
+    await heading(g.which.heading);
+  });
+
+  it("INV-8: the wizard shows no failure alert when the cached check already says setup is over", async () => {
+    // The order a slow computer can produce: the save's callback runs after
+    // the cache has the new answer, and before React has heard of it.
+    const seen = useSetupServer();
+    const alerts: string[] = [];
+    const watcher = new MutationObserver(() => {
+      document.querySelectorAll('[role="alert"]').forEach((el) => {
+        alerts.push(el.textContent ?? "");
+      });
+    });
+    watcher.observe(document.body, { childList: true, subtree: true });
+    const user = userEvent.setup();
+    renderGuide();
+    await walkToLastStep(user);
+    await pickFolder(user, s.dest.choose, "copied");
+    await press(user, s.dest.yes);
+    await heading(g.which.heading);
+    watcher.disconnect();
+    expect(seen.patches).toHaveLength(1);
+    expect(alerts).not.toContain(g.loadFailed);
+  });
+
   it("INV-9: an unreadable game list returns to its step and keeps the others", async () => {
     let bad = true;
     const seen = useSetupServer(() => {
       const restart_required = bad;
       bad = false;
-      return HttpResponse.json({ ...appConfig, restart_required });
+      return HttpResponse.json({
+        ...appConfig,
+        restart_required,
+        setup_ended: !restart_required,
+      });
     });
     const user = userEvent.setup();
     renderGuide();

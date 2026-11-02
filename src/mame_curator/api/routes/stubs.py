@@ -47,7 +47,7 @@ def _probe_dat(path: Path) -> SetupPathStatus:
         try:
             parse_dat(path)
             parses = True
-        except ParserError:
+        except (ParserError, OSError):  # OSError: no scratch space to unzip it.
             parses = False
     return base.model_copy(update={"dat_parses": parses})
 

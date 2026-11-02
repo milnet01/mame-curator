@@ -20,8 +20,8 @@ def read_capped_text(path: Path, *, exc_cls: type[Exception]) -> str:
     """Read `path` as UTF-8 text, enforcing the 1 MiB cap.
 
     Wraps every `OSError` (including `IsADirectoryError`, perm-denied,
-    EIO, NFS hiccups) into the caller-supplied `exc_cls` so the loader's
-    typed-error contract is preserved. Closes the size-vs-content TOCTOU
+    EIO, NFS hiccups) and any undecodable byte into the caller-supplied
+    `exc_cls` so the loader's typed-error contract is preserved. Closes the size-vs-content TOCTOU
     by reading both from one file descriptor (FP05 B5).
     """
     try:
@@ -39,5 +39,7 @@ def read_capped_text(path: Path, *, exc_cls: type[Exception]) -> str:
                     f"actual: {size}); refusing to parse to defend against YAML alias bombs"
                 )
             return fh.read().decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise exc_cls(f"{path!r} is not valid UTF-8: {exc}") from exc
     except OSError as exc:
         raise exc_cls(f"failed to read {path!r}: {exc}") from exc

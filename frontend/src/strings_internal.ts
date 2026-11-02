@@ -596,7 +596,10 @@ export const strings = {
       updateUnknown: (version: string, error: string | null) =>
         `You're on version ${version}. The update check did not finish${error ? `: ${error}` : ""}.`,
       restartRequired:
-        "Server settings changed — restart `mame-curator serve` for the new bind address to take effect.",
+        "Some settings changed. Close MAME Curator and open it again for them to take effect.",
+      // mame-curator-1145 §4.3: restart_required while setup mode is still on.
+      gamesNotLoaded:
+        "Your games are not loaded yet, because a file could not be read. Check your game list under Paths.",
       /** FP16 § C — per-INI status line under the setup banner. */
       iniStatusLine: (
         present: number,

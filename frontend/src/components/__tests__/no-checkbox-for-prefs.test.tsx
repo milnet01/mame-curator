@@ -85,6 +85,7 @@ const config: AppConfigResponse = {
   },
   fs: { granted_roots: [] },
   restart_required: false,
+  setup_ended: false,
 };
 
 describe("no-checkbox-for-prefs invariant", () => {

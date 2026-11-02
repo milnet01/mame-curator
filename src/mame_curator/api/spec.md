@@ -83,7 +83,8 @@ readable at startup.
   `AppConfigPatch` does (mame-curator-1135). It then **drops keys
   `AppConfig` has no field for**, at any depth, and logs one WARNING naming
   them, so a rollback to older code still starts (mame-curator-1131). The
-  next Settings save that changes a value writes the file without them. A bad
+  next Settings save that changes a value writes the file without them, and so
+  does any save in setup mode, a same-value one included. A bad
   value for a known key still raises `ConfigError`. `PATCH /api/config` and
   import still refuse unknown keys.
 - **`replace_world(*, base, ...)`** — builds a *new* world from `base` with
@@ -327,7 +328,11 @@ All FS browsing crosses `api/fs.py`:
   and swaps the world.
   - `_validate_paths(config, *, setup_required=False)` collects the
     `path_not_found` / `path_invalid` field errors; a non-empty tuple is a
-    422. While `world.setup_required` is true the **`source_dat` check is
+    422. A path holding a NUL byte is `path_invalid`. A save that changes
+    `source_roms` or `dest_roms`, so that both resolve to one folder, gets
+    `same_folder` on `paths.dest_roms`, whose `msg` is the sentence the user
+    sees; a save changing neither is not refused, and loading a config never
+    runs this (mame-curator-1145 INV-11). While `world.setup_required` is true the **`source_dat` check is
     skipped** — otherwise the missing DAT rejects every save, including the
     one that fixes it. Every other path error stays fatal
     (mame-curator-1095 § 4.2a, INV-9).
@@ -335,9 +340,14 @@ All FS browsing crosses `api/fs.py`:
     `retry_setup` off the event loop: the likeliest recovery leaves the path
     string unchanged. It returns a world rebuilt by `build_world` when the DAT
     now loads, and otherwise keeps the current one, including when another
-    input raises. `restart_required` is `server_changed or
-    new_world.setup_required`, so it is true only when setup mode stayed on
+    input raises. The save is swapped in before the retry
     (mame-curator-1145 §4.1, INV-1 to INV-5, amending mame-curator-1095 § 4.2b).
+  - The reply's `restart_required` is true when `server` differs from what
+    this process started with, or when a save in setup mode left setup mode
+    on. `GET /api/config` answers the same. `setup_ended` is true only in the
+    reply to the save that ended setup mode, which also clears a stored INI
+    preview. Restore and import in setup mode retry and reply the same way
+    (mame-curator-1145 §4.1, INV-15).
 - `snapshot_files` captures the pre-write state before each config mutation;
   `restore_snapshot` reverts to a captured snapshot id (unknown id →
   `SnapshotNotFoundError` 404). Old snapshots are pruned.
@@ -347,6 +357,8 @@ All FS browsing crosses `api/fs.py`:
   be undone. It then reloads each into the world, review state included,
   so an update snapshot restores whole and the next review write cannot
   save stale state over the restored file (mame-curator-1010 §4.3 step 2).
+  If a restored file will not load, the files it replaced are put back and the
+  error is raised (mame-curator-1145 INV-16).
 - `export` returns a `ConfigExportBundle`; `import` validates + applies a
   bundle (invalid → `ConfigError` 422).
 

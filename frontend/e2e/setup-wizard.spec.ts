@@ -95,6 +95,25 @@ test("a new user reaches a Library with games, in three questions", async ({
   // From the filesystem's top, as the picker's drive button starts there.
   const toRoot = root.split(path.sep).filter(Boolean);
 
+  // Every alert the page ever shows, however briefly: a screen reader can speak
+  // one that never reaches a frame.
+  await page.addInitScript(() => {
+    const seen: string[] = [];
+    (window as unknown as { alertsSeen: string[] }).alertsSeen = seen;
+    const known = new Set<Element>();
+    new MutationObserver(() => {
+      document.querySelectorAll('[role="alert"]').forEach((el) => {
+        if (known.has(el)) return;
+        known.add(el);
+        seen.push(el.textContent ?? "");
+      });
+    }).observe(document, { childList: true, subtree: true });
+  });
+  // A slow computer: at this speed, before the wizard checked the cached setup
+  // answer, its failure alert reached the page on some runs after a good save,
+  // gone within two frames. At full speed it never did.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 6 });
   await page.goto(`${BASE}/`);
   await expect(page).toHaveURL(/\/start$/);
   await expectFocusedHeading(page, "Where are your MAME games?");
@@ -195,6 +214,10 @@ test("a new user reaches a Library with games, in three questions", async ({
   await expectFocusedHeading(page, "Copy games to this folder?");
   await page.getByRole("button", { name: "Yes, finish setup" }).click();
   await expectFocusedHeading(page, "Which games would you like?");
+  const alertsSeen = await page.evaluate(
+    () => (window as unknown as { alertsSeen: string[] }).alertsSeen,
+  );
+  expect(alertsSeen).not.toContain("That could not be loaded.");
 
   // The guide finds games, and the Library shows them.
   await page

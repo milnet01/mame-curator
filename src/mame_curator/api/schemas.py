@@ -258,7 +258,12 @@ class ConfigExportBundle(BaseModel):
 
 
 class AppConfigResponse(BaseModel):
-    """``AppConfig`` plus the ``restart_required`` flag returned by R15."""
+    """``AppConfig`` plus what R15, restore and import report about it.
+
+    ``restart_required``: ``server`` differs from what this process started
+    with, or a save in setup mode left setup mode on. ``setup_ended``: this
+    reply's save ended setup mode (mame-curator-1145 §4.1).
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
     paths: PathsConfig
@@ -269,6 +274,7 @@ class AppConfigResponse(BaseModel):
     updates: UpdatesConfig
     fs: FsConfig
     restart_required: bool = False
+    setup_ended: bool = False
 
 
 # ---------------------------------------------------------------------------

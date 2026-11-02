@@ -7,6 +7,8 @@ import { SettingsPage } from "../SettingsPage";
 import type { AppConfigResponse } from "@/api/types";
 
 import { config, render } from "./_settingsPageFixtures";
+import { setupCheckFixture } from "./_libraryPageFixtures";
+import { strings } from "@/strings";
 
 /**
  * DS05 Cluster A — main SettingsPage test file.
@@ -262,8 +264,34 @@ describe("SettingsPage", () => {
       />,
     );
     expect(
-      screen.getByText(/restart `mame-curator serve`/i),
+      screen.getByText(strings.settings.banners.restartRequired),
     ).toBeInTheDocument();
+  });
+
+  it("the banner uses plain words, and names no technical cause (mame-curator-1145 §4.3)", () => {
+    expect(strings.settings.banners.restartRequired).not.toMatch(
+      /mame-curator serve|bind address|`/,
+    );
+    expect(strings.settings.banners.gamesNotLoaded).not.toMatch(
+      /server|DAT|restart|`/i,
+    );
+  });
+
+  it("in setup mode the banner says the games are not loaded, not that the server changed", () => {
+    render(
+      <SettingsPage
+        config={{ ...config, restart_required: true }}
+        setupInfo={{ ...setupCheckFixture, setup_required: true }}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    );
+    expect(
+      screen.getByText(strings.settings.banners.gamesNotLoaded),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(strings.settings.banners.restartRequired),
+    ).not.toBeInTheDocument();
   });
 
   it("omits the restart-required banner when config.restart_required is false (FP13 § A4)", () => {
@@ -275,7 +303,7 @@ describe("SettingsPage", () => {
       />,
     );
     expect(
-      screen.queryByText(/restart `mame-curator serve`/i),
+      screen.queryByText(strings.settings.banners.restartRequired),
     ).not.toBeInTheDocument();
   });
 

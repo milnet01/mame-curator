@@ -46,7 +46,7 @@ def compose_allowlist(config: AppConfig) -> tuple[FsAllowedRoot, ...]:
     def _add_config(p: Path) -> None:
         try:
             resolved = p.resolve(strict=False)
-        except OSError:
+        except (OSError, ValueError):  # ValueError: a NUL byte in the path.
             return
         if resolved in config_roots:
             return
@@ -64,7 +64,7 @@ def compose_allowlist(config: AppConfig) -> tuple[FsAllowedRoot, ...]:
     for raw in config.fs.granted_roots:
         try:
             resolved = Path(raw).resolve(strict=False)
-        except OSError:
+        except (OSError, ValueError):  # ValueError: a NUL byte in the path.
             continue
         # FP20-D: drop granted entries whose target is no longer an existing
         # directory. ``resolve(strict=False)`` is happy with ghosts, but

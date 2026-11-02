@@ -32,6 +32,11 @@ export function WhereStep({
   // the same path validation (INV-13).
   const saveFolder = (dest_roms: string) => {
     if (!paths) return;
+    // mame-curator-1145 INV-11: the server also refuses it, by resolved path.
+    if (dest_roms === paths.source_roms) {
+      setError(strings.guide.setup.sameFolder);
+      return;
+    }
     setError(null);
     patch.mutate(
       { paths: { ...paths, dest_roms } },

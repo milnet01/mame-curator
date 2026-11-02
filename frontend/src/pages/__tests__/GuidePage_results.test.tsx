@@ -368,6 +368,38 @@ describe("a chosen folder", () => {
     expect(alert).not.toHaveTextContent(/below/);
   });
 
+  it("INV-11: refuses the games folder as the destination, before any save", async () => {
+    useHandlers();
+    folderHandlers();
+    let saves = 0;
+    server.use(
+      http.get("/api/config", () =>
+        HttpResponse.json({
+          ...appConfig,
+          paths: {
+            ...appConfig.paths,
+            source_roms: appConfig.paths.dest_roms,
+          },
+        }),
+      ),
+      http.patch("/api/config", () => {
+        saves += 1;
+        return HttpResponse.json(appConfig);
+      }),
+    );
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, g.finds.copyThese);
+    await press(user, g.where.choose);
+    await press(user, strings.settings.fsBrowserUseDirectory);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      g.setup.sameFolder,
+    );
+    expect(saves).toBe(0);
+  });
+
   it("that is saved is heard", async () => {
     useHandlers();
     folderHandlers();

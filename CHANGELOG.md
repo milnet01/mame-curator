@@ -17,6 +17,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-02 Fixed — Finishing setup is more dependable
+
+Saving your answers now reliably brings up your games, and the app tells you plainly when it could not (mame-curator-1145).
+
+- **No false alarm when setup works**
+  On a slow computer, a save that worked could briefly raise "That could not be loaded.", which a screen reader might speak. It no longer does.
+
+- **Restoring or importing a backup during setup loads your games**
+  They now try your game list as a save does, and every page catches up afterwards. A restore or import outside setup refreshes every page too.
+
+- **The games folder cannot also be where games are copied to**
+  The Where step now refuses this, as setup already did. The app also refuses it when the same folder is reached by a shortcut. A setup you already have is not affected until you change one of those two folders.
+
+- **The Settings message tells the truth**
+  It no longer blames server settings when your game list could not be read, and it stays on screen when you come back to the window. It uses plain words.
+
+- **A bad file no longer breaks setup**
+  A settings file with unreadable characters, or a path with an invalid character, gets a clear refusal or leaves you in setup, and the app still starts next time. A restore that will not load now puts your files back as they were.
+
+- **Setup cannot stay busy for ever**
+  The wait after saving now ends after 30 seconds, and pressing the button again carries on. Setup no longer shows a "saved" message beside its own answer, and a screen reader hears the first folder you choose.
+
 ### 2026-10-30 Added — First-time setup now happens in your browser, one question per screen
 
 The app asks where your games are, where your game list is, and where to copy to, in large text and plain words (mame-curator-1145). When you finish, your games load straight away, with no terminal and no restart, and the guide begins.
