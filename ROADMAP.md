@@ -3585,11 +3585,15 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: api, tests.
 
-- 📋 [mame-curator-1186] **The test suite writes into the real data folder.**
+- ✅ [mame-curator-1186] **The test suite writes into the real data folder.**
   run_copy defaults to data_dir=Path("data"), and tests run from the repo
   root. Measured 2026-11-02: new folders in data/recycle and lines in
   data/activity.jsonl appeared during local-CI.sh runs. The push gate runs
   the same tests, so every push adds more. Fix before pushing.
+  2026-11-02, df151cf: every pytest test starts in its own empty folder
+  and a guard fails the run if data/ changes. Playwright's folders and
+  media cache moved under the fixture folder, with a pytest test on the
+  fixture config. Real data/ sha256 identical across a full local-CI.sh.
   **Layman:** Running the project's tests adds fake copy records and files to your real app data.
   Kind: fix.
   Source: measured-2026-11-02.

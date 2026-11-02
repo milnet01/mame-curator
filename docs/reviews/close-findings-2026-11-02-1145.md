@@ -102,9 +102,9 @@ Waiting on the user: the wording of the grant prompt, with mame-curator-1170.
 
 ## Run-level
 
-- **cited_by:**
-- **swept:**
-- **collateral:**
-- **surfaced:**
-- **out_of_scope:** 1175 to 1185 filed as they surfaced; 1179 names a hazard.
-- **falsified:**
+- **cited_by:** searched the tree outside history for `import.in_progress`, `fetch_videos`, `backupWizardForwardLink`, `SetupNeededStep`, `data/e2e`, `Fetch video` and `Phase 8`.
+- **swept:** `fetch_videos` docs agree (the key is kept, unread). `import.in_progress` remains only in a test asserting its absence. `SetupNeededStep` in spec 1145 is frozen: it describes what the wizard replaced. `Phase 8` in `design.md` and plans is frozen phase history; `design.md` § 6.6 is 1173. `data/e2e` now names the fixture folder. The project has no `.claude/code-pairs.json`, so no pair list was walked. Asked of every fix: contradict, break, stale.
+- **collateral:** none found by this sweep.
+- **surfaced:** whether `setup` landing in the per-user config counts as MAJOR under versioning-overrides, for the user; the grant prompt's wording, with 1170.
+- **out_of_scope:** 1175 to 1187 filed as they surfaced, 1174 before them; 1179 names a hazard. 1177 and 1186 were fixed in this run.
+- **falsified:** none.
