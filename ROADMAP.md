@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1191 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1194 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2677,6 +2677,10 @@ P14 (per-game review state).
   done: check-code and review-code on it, then close-findings, and the
   user's judgement of the wording on the running app. Not run: real
   Windows or macOS, timing with the real 48 MB list.
+  2026-11-02: check-code, review-code and close-findings are done, all
+  findings disposed: docs/reviews/close-findings-2026-11-02-1145.md.
+  Only the user's judgement of the wording on the running app is still
+  owed before this flips to shipped.
   **Layman:** A new user picks their ROM folder, game list file and destination one screen at a time in the browser, instead of answering questions in a terminal or finding Settings.
   Kind: accessibility.
   Source: user-2026-10-30.
@@ -3647,6 +3651,35 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: build-mame-curator-1149-2026-11-02.
   Lanes: filter.
+
+- 📋 [mame-curator-1192] **A refused recycle lock can stop a copy on the REPLACE_AND_RECYCLE path.**
+  runner.py's REPLACE_AND_RECYCLE path catches only CopyError, so a raw
+  PermissionError from _session_lock is not caught there. The other recycle
+  call read catches OSError too. Read, not run; not traced further up.
+  **Layman:** If the recycle folder refuses a write, a copy that replaces games could stop instead of reporting that one game.
+  Kind: fix.
+  Source: build-ci-fix-2026-11-02.
+  Lanes: copy, tests.
+
+- 📋 [mame-curator-1193] **_session_lock can spin forever or reclaim a lock still in use.**
+  A lock older than 60 seconds that cannot be deleted loops with no sleep,
+  because the unlink error is suppressed. A move holding the lock over 60
+  seconds, such as a large cross-drive file, can have it reclaimed while it
+  runs. Read, not run.
+  **Layman:** In rare cases, recycling a game could hang, or two recycles could collide on a very large file.
+  Kind: fix.
+  Source: build-ci-fix-2026-11-02.
+  Lanes: copy, tests.
+
+- 📋 [mame-curator-1194] **The Windows recycle-lock fix is unproven.**
+  87c2edc retries PermissionError on Windows for 5 seconds. test_recycle_file_serializes_parallel_sessions
+  failed on one of two Windows legs at 3596487, with the cause unmeasured:
+  ssh wintest timed out 2026-11-02. Prove it by repeated Windows CI runs or
+  on the Windows box. NTFS lone-surrogate names in fs_list are also untested.
+  **Layman:** A fix for a rare Windows failure could not be tested on Windows, so it needs watching.
+  Kind: investigate.
+  Source: build-ci-fix-2026-11-02.
+  Lanes: copy, tests.
 
 ## Considered / under research (no target date)
 
