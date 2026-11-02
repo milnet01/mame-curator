@@ -2688,6 +2688,9 @@ P14 (per-game review state).
 
 - 📋 [mame-curator-1146] **Wizard to fix a game's picture or version.**
   User decision 2026-10-30. Uses the guide screens from mame-curator-1144. No route or UI chooses a picture per game today, so the picture half is new backend and frontend work and needs its own design. The version half depends on mame-curator-1149.
+  2026-11-02: 1149 shipped in 5d00641. The parent is on the alternatives
+  reply, not the card. The earlier note saying it was on the card was
+  wrong. The picture half still needs its own spec.
   **Layman:** Step-by-step help to pick a different version of a game, or a different picture for it.
   Kind: accessibility.
   Source: user-2026-10-30.
@@ -3256,6 +3259,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 
 - 📋 [mame-curator-1148] **A repeat copy from the Library fails with no message when a playlist already exists.**
   handleCopy and handleDryRun send conflict_strategy CANCEL, and no UI offers another. check_playlist_conflict then raises a 409 unless every game is already at the destination. useCopySession's startMutation has no onError, and handleCopy passes none. Read from the code, not yet reproduced.
+  2026-11-02: a5417fa gave a Library start an onError, so a refused
+  start now shows a toast. Handling a playlist that already exists is
+  still open; see also 1174.
   **Layman:** If you have copied games before, pressing Copy again can do nothing and say nothing.
   Kind: fix.
   Source: code-read-2026-10-30.
@@ -3454,6 +3460,8 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 
 - 📋 [mame-curator-1170] **Reaching a game drive on Linux means allowing the whole disk.**
   It works, and the app listens locally only. Needs the user's decision: keep it, or offer mounted drives directly. Reported by the mame-curator-1145 build agent.
+  2026-11-02: also waiting on this decision: the grant prompt's wording
+  (says it is saved, and how wide). The revoke control is 1175.
   **Layman:** To pick a folder on another drive you press / and then Allow /, which gives the app access to the whole disk.
   Kind: ux.
   Source: build-mame-curator-1145-2026-10-30.
@@ -3616,6 +3624,14 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   entries dating back to at least 2026-07-03. Which are real has not been
   worked out. Nothing deleted: these files have no other copy, so this waits
   on the user.
+  2026-11-02: the user said what is no longer needed can be deleted. The
+  permission check refused rm from the session, so the user runs
+  ~/.local/share/claude-scratch/mame-cleanup.py with the ! prefix.
+  Checked: no recycle file is a real zip. It keeps the real 2026-10-30
+  copy's lines and the purge lines, copy-history, snapshots and
+  media-cache. It also removes
+  /mnt/Games/Trailers/incoming/mame-curator/. Not run yet; do not run it
+  during a gate, whose data/ guard would go red.
   **Layman:** Your recycle folder and Activity page hold leftovers from test runs. Clearing them is your choice.
   Kind: chore.
   Source: measured-2026-11-02.
