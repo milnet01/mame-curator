@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
  */
 const e2eData = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../../data/e2e",
+  "fixtures/data/e2e",
 );
 const sourceRoms = path.join(e2eData, "source-roms");
 const destRoms = path.join(e2eData, "dest-roms");

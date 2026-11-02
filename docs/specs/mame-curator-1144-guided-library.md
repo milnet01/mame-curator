@@ -201,7 +201,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Breaks when:* paging stops early, the Library's default year range leaks in, or a stale fetch reaches `onNames`.
 
 - **INV-6** — The guide's dry run and start both send `APPEND`, and a copy starts when a playlist already exists. It never sends `OVERWRITE`.
-  *Test:* `frontend/e2e/guide-flow.spec.ts` seeds `data/e2e`, because the fixture's ROM folders are empty stubs and no tile matches its DAT: a zip per fixture winner in `source-roms`, and `mame.lpl` holding one other game. It takes "The best version of every game", and asserts the copy completes and the playlist holds the old entry and the new ones. `GuidePage_steps.test.tsx` asserts every request carries `APPEND`.
+  *Test:* `frontend/e2e/guide-flow.spec.ts` seeds `frontend/e2e/fixtures/data/e2e`, because the fixture's ROM folders are empty stubs and no tile matches its DAT: a zip per fixture winner in `source-roms`, and `mame.lpl` holding one other game. It takes "The best version of every game", and asserts the copy completes and the playlist holds the old entry and the new ones. `GuidePage_steps.test.tsx` asserts every request carries `APPEND`.
   *Breaks when:* the strategy stays `CANCEL`, which only the 409 path rejects, so the fixture must have a game not yet copied.
 
 - **INV-7** — A failed name fetch, start, dry run or folder save shows its reason on the current step in a `role="alert"` element, and the user can go Back once the step has its answer. A copy that finishes with `PARTIAL_FAILURE` never shows as complete.

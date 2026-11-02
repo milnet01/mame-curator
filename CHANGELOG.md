@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-02 Fixed — Running the project's tests leaves your data alone
+
+- **Test runs no longer add to your data folder.** (mame-curator-1186)
+  If you run MAME Curator from a copy of its source, running the project's tests used to add folders to `data/recycle` and lines to `data/activity.jsonl`. The browser tests also filled `data/media-cache` and `data/e2e`. Tests now keep to temporary folders, and a test run fails if `data/` changes, naming what changed. Anything already added stays where it is. Nothing changes for people who only use the app.
+
 ### 2026-11-02 Fixed — The Library and Settings do what they say
 
 - **Add all follows the review filter.**

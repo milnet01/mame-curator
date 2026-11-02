@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -10,6 +11,14 @@ const fixtureConfig = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   "e2e/fixtures/config.yaml",
 );
+
+// The fixture config names these folders, and git ignores them, so a clean
+// checkout has neither (mame-curator-1186).
+for (const folder of ["source-roms", "dest-roms"]) {
+  fs.mkdirSync(path.join(path.dirname(fixtureConfig), "data/e2e", folder), {
+    recursive: true,
+  });
+}
 
 export default defineConfig({
   testDir: "./e2e",

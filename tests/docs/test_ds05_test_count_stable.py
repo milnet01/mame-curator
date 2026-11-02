@@ -343,7 +343,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # the marker. 1027 → 1068.
 # Bumped 2026-11-02 (mame-curator-1145 review, library and leftovers): a config
 # holding the retired video switch still loads. 1068 → 1069.
-EXPECTED_PYTEST_DECLARATIONS = 1069
+# Bumped 2026-11-02 (mame-curator-1186): test_mame_curator_1186_user_data.py
+# proves tests stay out of the repo's data/ folder. 1069 → 1074.
+EXPECTED_PYTEST_DECLARATIONS = 1074
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
