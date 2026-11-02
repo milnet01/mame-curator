@@ -34,6 +34,38 @@ test("Settings says it failed, and Try again keeps focus until it works", async 
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 });
 
+for (const [path, url, words] of [
+  ["/activity", "**/api/activity*", "Could not load activity."],
+  ["/stats", "**/api/stats", "Could not load stats."],
+]) {
+  test(`${path} says it failed, and Try again keeps focus until it works`, async ({
+    page,
+  }) => {
+    let answer: "fail" | "pass" = "fail";
+    await page.route(url, async (route) => {
+      if (answer === "pass") return route.continue();
+      await route.fulfill({
+        status: 500,
+        json: { code: "boom", detail: "it broke", fields: [] },
+      });
+    });
+
+    await page.goto(path);
+    const alert = page.getByRole("alert");
+    await expect(alert).toContainText(words);
+
+    const tryAgain = page.getByRole("button", { name: "Try again" });
+    await tryAgain.focus();
+    await page.keyboard.press("Enter");
+    await expect(tryAgain).toBeFocused();
+    await expect(alert).toContainText(words);
+
+    answer = "pass";
+    await page.keyboard.press("Enter");
+    await expect(alert).toHaveCount(0);
+  });
+}
+
 test("A failed session delete says so after its dialog has closed", async ({
   page,
 }) => {

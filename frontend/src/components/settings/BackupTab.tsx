@@ -19,12 +19,18 @@ interface BackupTabProps {
       controls. BackupTab also owns its own validation-error state and
       displays whichever is set (validation wins when both are non-null). */
   error?: string | null;
+  /** An import is under way; stays on the page until it has finished. */
+  importing?: boolean;
+  /** The last import worked. */
+  imported?: boolean;
 }
 
 export function BackupTab({
   onExport,
   onImport,
   error = null,
+  importing = false,
+  imported = false,
 }: BackupTabProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<{
@@ -38,7 +44,7 @@ export function BackupTab({
     // Clear the input so picking the same file twice still fires onChange.
     event.target.value = "";
     setValidationError(null);
-    if (!file) return;
+    if (!file || importing) return;
     if (file.size > MAX_IMPORT_BYTES) {
       setValidationError(strings.settings.backupImportTooLarge);
       return;
@@ -72,11 +78,29 @@ export function BackupTab({
         </p>
       )}
 
+      {importing && (
+        <p role="status" className="text-sm">
+          {strings.settings.backupImporting}
+        </p>
+      )}
+      {imported && !displayError && (
+        <p role="status" className="text-sm">
+          {strings.settings.backupImported}
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={onExport} variant="outline">
           {strings.settings.backupExportLabel}
         </Button>
-        <Button onClick={() => inputRef.current?.click()} variant="outline">
+        {/* aria-disabled, not disabled, so a closing dialog can hand focus back. */}
+        <Button
+          onClick={() => {
+            if (!importing) inputRef.current?.click();
+          }}
+          variant="outline"
+          aria-disabled={importing || undefined}
+        >
           {strings.settings.backupImportLabel}
         </Button>
         <input

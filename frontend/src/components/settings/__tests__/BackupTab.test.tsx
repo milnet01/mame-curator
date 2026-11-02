@@ -144,4 +144,41 @@ describe("BackupTab (FP12 § J + FP13 § B1/B3)", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(onImport).not.toHaveBeenCalled();
   });
+
+  // Group 5 of the 2026-11-02 review: an import says it is under way, and that it worked.
+  it("says an import is under way, and ignores another file", async () => {
+    const user = userEvent.setup();
+    render(<BackupTab onExport={() => {}} onImport={() => {}} importing />);
+    expect(screen.getByRole("status")).toHaveTextContent(/importing/i);
+
+    await user.upload(screen.getByLabelText(/^Import/), sampleFile());
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+
+  it("does not open the file chooser while an import is under way", async () => {
+    const user = userEvent.setup();
+    const choose = vi.spyOn(HTMLInputElement.prototype, "click");
+    render(<BackupTab onExport={() => {}} onImport={() => {}} importing />);
+    await user.click(screen.getByRole("button", { name: /^Import/ }));
+    expect(choose).not.toHaveBeenCalled();
+    choose.mockRestore();
+  });
+
+  it("says an import worked", () => {
+    render(<BackupTab onExport={() => {}} onImport={() => {}} imported />);
+    expect(screen.getByRole("status")).toHaveTextContent(/imported/i);
+  });
+
+  it("drops the success words once something newer has failed", () => {
+    render(
+      <BackupTab
+        onExport={() => {}}
+        onImport={() => {}}
+        imported
+        error="Could not export configuration."
+      />,
+    );
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
 });

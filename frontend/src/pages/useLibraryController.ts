@@ -25,7 +25,7 @@ import {
 import { useCopySession } from "@/hooks/useCopySession";
 import { useDryRun } from "@/hooks/useDryRun";
 import { useFacets } from "@/hooks/useFacets";
-import { useGames, type GamesQuery } from "@/hooks/useGames";
+import { toQueryString, useGames, type GamesQuery } from "@/hooks/useGames";
 import {
   useReviewState,
   useReviewStateClear,
@@ -206,25 +206,10 @@ export function useLibraryController(cart: UseCartResult) {
     let page = 1;
     while (collected.length < targetTotal) {
       const pageQuery: GamesQuery = { ...query, page, pageSize: PAGE_SIZE };
-      const params = new URLSearchParams();
-      params.set("page", String(pageQuery.page));
-      params.set("page_size", String(pageQuery.pageSize));
-      if (pageQuery.search) params.set("q", pageQuery.search);
-      if (pageQuery.yearFrom)
-        params.set("year_min", String(pageQuery.yearFrom));
-      if (pageQuery.yearTo) params.set("year_max", String(pageQuery.yearTo));
-      if (pageQuery.letter) params.set("letter", pageQuery.letter);
-      if (pageQuery.genre) params.set("genre", pageQuery.genre);
-      if (pageQuery.publisher) params.set("publisher", pageQuery.publisher);
-      if (pageQuery.developer) params.set("developer", pageQuery.developer);
-      if (pageQuery.onlyContested) params.set("only_contested", "1");
-      if (pageQuery.onlyOverridden) params.set("only_overridden", "1");
-      if (pageQuery.onlyChdMissing) params.set("only_chd_missing", "1");
-      if (pageQuery.onlyBiosMissing) params.set("only_bios_missing", "1");
       let pageData: GamesPage;
       try {
         pageData = await apiRequest<GamesPage>(
-          `/api/games?${params}`,
+          `/api/games?${toQueryString(pageQuery)}`,
           GamesPageSchema,
         );
       } catch (err) {
@@ -262,7 +247,13 @@ export function useLibraryController(cart: UseCartResult) {
     validateCart.mutate(
       { short_names: cart.items.map(nameOf) },
       {
-        onSuccess: ({ existing, missing }) => {
+        onSuccess: ({ existing, missing, setupRequired }) => {
+          // With no game list, every name is "missing" and none of them has
+          // gone. Taking them out would empty the saved cart.
+          if (setupRequired) {
+            toast.error(strings.errors.byCode.copy_setup_required);
+            return;
+          }
           if (missing.length > 0) {
             toast.warning(
               strings.library.cart.validateDroppedToast(missing.length),

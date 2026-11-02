@@ -710,7 +710,7 @@ A single helper `atomic_write_bytes(dst: Path, data: bytes)` lives in a shared m
 ### What does NOT trigger a re-run
 
 - `ui.*` changes (purely client-side hints).
-- `media.fetch_videos` (consumed only by media-fetch in P05+).
+- `media.fetch_videos` (nothing reads it; kept so existing files load).
 - `updates.*` (consumed only by `updates/` in P07+).
 - `server.*` (requires restart).
 - `fs.granted_roots` swaps (filter unchanged; sandbox does change).

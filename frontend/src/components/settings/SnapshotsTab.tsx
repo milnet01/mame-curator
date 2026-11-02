@@ -24,6 +24,10 @@ interface SnapshotsTabProps {
    * distinguish "Settings just mounted" from "user opened the tab
    * after a fresh restore failed" once it remounted. */
   restoreError?: string | null;
+  /** A restore is under way; stays on the page until it has finished. */
+  restoring?: boolean;
+  /** The last restore worked. */
+  restored?: boolean;
   onRestore: (id: string) => void;
 }
 
@@ -37,9 +41,21 @@ export function SnapshotsTab({
   loading = false,
   error = null,
   restoreError = null,
+  restoring = false,
+  restored = false,
   onRestore,
 }: SnapshotsTabProps) {
   const [pending, setPending] = useState<Snapshot | null>(null);
+
+  // Words that stay, for a toast has gone by the time the user looks. The list
+  // reloads after a restore, and may come back with an error or empty.
+  const restoreStatus = (restoring || restored) && (
+    <p role="status" className="text-sm">
+      {restoring
+        ? strings.settings.snapshotRestoring
+        : strings.settings.snapshotRestored}
+    </p>
+  );
 
   if (loading) {
     return (
@@ -50,14 +66,18 @@ export function SnapshotsTab({
   }
   if (error) {
     return (
-      <p role="alert" className="text-sm text-destructive">
-        {error}
-      </p>
+      <div className="flex flex-col gap-2">
+        {restoreStatus}
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      </div>
     );
   }
   if (snapshots.length === 0) {
     return (
       <div className="flex flex-col gap-2">
+        {restoreStatus}
         <p className="text-sm text-muted-foreground">
           {strings.settings.snapshotsEmpty}
         </p>
@@ -74,6 +94,7 @@ export function SnapshotsTab({
       <p className="text-xs text-muted-foreground">
         {strings.settings.snapshotsStateExclusionNote}
       </p>
+      {restoreStatus}
       {restoreError && (
         <p role="alert" className="text-sm text-destructive">
           {restoreError}
@@ -92,7 +113,15 @@ export function SnapshotsTab({
                 {strings.settings.snapshotItemFiles(s.files.length)}
               </span>
             </span>
-            <Button size="sm" variant="outline" onClick={() => setPending(s)}>
+            {/* aria-disabled, not disabled, so a closing dialog can hand focus back. */}
+            <Button
+              size="sm"
+              variant="outline"
+              aria-disabled={restoring || undefined}
+              onClick={() => {
+                if (!restoring) setPending(s);
+              }}
+            >
               {strings.settings.snapshotRestoreLabel}
             </Button>
           </li>

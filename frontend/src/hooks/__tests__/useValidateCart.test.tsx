@@ -4,6 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { server, http, HttpResponse } from "@/test/handlers";
 import { makeClientWrapper } from "@/test/renderWithClient";
 import { useValidateCart } from "@/hooks/useValidateCart";
+import { setupCheckFixture } from "@/pages/__tests__/_libraryPageFixtures";
 
 // DS04 T3.1: removed redundant `afterEach(() => cleanup())` — vitest
 // `globals: true` enables RTL's auto-cleanup.
@@ -23,6 +24,9 @@ describe("useValidateCart", () => {
           missing: body.short_names.filter((n) => !REAL.has(n)),
         });
       }),
+      http.get("/api/setup/check", () =>
+        HttpResponse.json({ ...setupCheckFixture, setup_required: false }),
+      ),
     );
   });
 
@@ -35,6 +39,7 @@ describe("useValidateCart", () => {
     expect(result.current.data).toEqual({
       existing: ["pacman", "1942"],
       missing: ["ghost"],
+      setupRequired: false,
     });
   });
 

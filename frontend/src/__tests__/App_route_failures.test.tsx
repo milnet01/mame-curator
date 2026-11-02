@@ -1,6 +1,6 @@
 /**
- * mame-curator-1144 — Settings, Help and Sessions say when something fails,
- * with a way forward, and the words stay on the page after a toast has gone.
+ * mame-curator-1144, 1167 — every page says when something fails, with a way
+ * forward, and the words stay on the page after a toast has gone.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
@@ -30,6 +30,26 @@ const LISTING = {
   active: "shooters",
   sessions: { fighters: session, shooters: session },
 };
+const healthyPages = () => [
+  http.get("/api/sessions", () => HttpResponse.json(LISTING)),
+  http.get("/api/help/index", () =>
+    HttpResponse.json({
+      topics: [{ slug: "start", title: "Getting started" }],
+    }),
+  ),
+  http.get("/api/activity", () =>
+    HttpResponse.json({ items: [], page: 1, page_size: 50, total: 0 }),
+  ),
+  http.get("/api/stats", () =>
+    HttpResponse.json({
+      by_genre: {},
+      by_decade: {},
+      by_publisher: {},
+      by_driver_status: {},
+      total_bytes: 0,
+    }),
+  ),
+];
 
 function renderAt(path: string) {
   const client = new QueryClient({
@@ -92,6 +112,8 @@ describe("a page that cannot load", () => {
   it.each([
     ["Sessions", "/sessions", "/api/sessions", strings.sessions.loadError],
     ["Help", "/help", "/api/help/index", strings.help.loadError],
+    ["Activity", "/activity", "/api/activity", strings.activity.loadError],
+    ["Stats", "/stats", "/api/stats", strings.stats.loadError],
   ])(
     "%s says so in an alert, and can try again",
     async (_name, path, url, words) => {
@@ -103,14 +125,7 @@ describe("a page that cannot load", () => {
       expect(alert).toHaveTextContent(words);
       expect(alert).toHaveTextContent(strings.common.loadFailedHint);
 
-      server.use(
-        http.get("/api/sessions", () => HttpResponse.json(LISTING)),
-        http.get("/api/help/index", () =>
-          HttpResponse.json({
-            topics: [{ slug: "start", title: "Getting started" }],
-          }),
-        ),
-      );
+      server.use(...healthyPages());
       await retry(user);
 
       await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
@@ -119,33 +134,40 @@ describe("a page that cannot load", () => {
 });
 
 describe("a retry", () => {
-  it("says it is retrying, and a second press does not ask again", async () => {
-    let requests = 0;
-    let finish = () => {};
-    const held = new Promise<void>((resolve) => {
-      finish = resolve;
-    });
-    server.use(
-      http.get("/api/sessions", async () => {
-        requests += 1;
-        if (requests > 1) await held;
-        return boom();
-      }),
-    );
-    const user = userEvent.setup();
-    renderAt("/sessions");
-    await screen.findByRole("alert");
-    await retry(user);
+  it.each([
+    ["/sessions", "/api/sessions"],
+    ["/activity", "/api/activity"],
+    ["/stats", "/api/stats"],
+  ])(
+    "on %s says it is retrying, and a second press does not ask again",
+    async (path, url) => {
+      let requests = 0;
+      let finish = () => {};
+      const held = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      server.use(
+        http.get(url, async () => {
+          requests += 1;
+          if (requests > 1) await held;
+          return boom();
+        }),
+      );
+      const user = userEvent.setup();
+      renderAt(path);
+      await screen.findByRole("alert");
+      await retry(user);
 
-    const retrying = await screen.findByRole("button", {
-      name: strings.common.retrying,
-    });
-    await user.click(retrying);
-    finish();
+      const retrying = await screen.findByRole("button", {
+        name: strings.common.retrying,
+      });
+      await user.click(retrying);
+      finish();
 
-    await screen.findByRole("button", { name: strings.common.retry });
-    expect(requests).toBe(2);
-  });
+      await screen.findByRole("button", { name: strings.common.retry });
+      expect(requests).toBe(2);
+    },
+  );
 });
 
 describe("a help topic that cannot load", () => {

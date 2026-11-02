@@ -228,7 +228,7 @@ Drawers (`AlternativesDrawer`) and modals (`DryRunModal`, `CopyModal`, `Confirma
 
 ## Component contracts (binding details only)
 
-- **`GameCard`** — props: `card: GameCard, focused?: boolean, onOpen: () => void`. Renders flyer via `/media/{name}/boxart` with `onError` fallback to placeholder SVG. Shows corner badges from `card.badges` per design §8 mapping. **The frontend MUST NOT request `/media/{name}/video`** — R39 short-circuits `kind=video` to `media_upstream_not_found` (404) by design, and `MediaUrls` has no `video` field upstream; P06 only renders `boxart` (cards) and `boxart`+`title`+`snap` (detail drawer). The `media.fetch_videos` Settings toggle is forward-wiring for a post-P06 progettoSnaps integration; flipping it has no observable client behavior in P06.
+- **`GameCard`** — props: `card: GameCard, focused?: boolean, onOpen: () => void`. Renders flyer via `/media/{name}/boxart` with `onError` fallback to placeholder SVG. Shows corner badges from `card.badges` per design §8 mapping. **The frontend MUST NOT request `/media/{name}/video`** — R39 short-circuits `kind=video` to `media_upstream_not_found` (404) by design, and `MediaUrls` has no `video` field upstream; P06 only renders `boxart` (cards) and `boxart`+`title`+`snap` (detail drawer). Settings offered a `media.fetch_videos` toggle until 2026-11-02; it was removed because nothing read it.
 - **`LibraryGrid`** — props: `cards: GameCard[], layout: "masonry" | "list" | "covers" | "grouped", groupKey?: "genre" | "year" | "publisher"`. Virtualizes via `@tanstack/react-virtual`. Acceptance: 3,000-card fixture renders in `<200ms` first paint and scrolls at 60 fps in dev tools.
 - **`FiltersSidebar`** — every binary preference uses `<Switch>` from shadcn (NOT `<Checkbox>`). Year-range slider, free-text search (debounced 200 ms), Save-as-session button.
 - **`AlternativesDrawer`** — slides from the right, shows parent + clones with media, click-to-override calls R11 then closes. `WhyPickedPanel` underneath renders the `Explanation.hits` chain.
@@ -322,7 +322,7 @@ Re-ordered from the long-form roadmap's 28-step list to surface the type-sync CI
 - **INI refresh flow** (Phase 7). The Updates banner mentions INI status but no diff-preview / apply UI.
 - **Help content** (Phase 7). The Help page renders the topic list from R37 and the per-topic HTML from R38; the underlying Markdown library + topic catalogue are not P06's deliverable.
 - **Setup wizard** (Phase 8). R35 banner only.
-- **Video thumbnails** beyond the Settings toggle. The toggle is in the Settings page; flipping it persists `media.fetch_videos` via R15 PATCH, but the actual progettoSnaps fetch path is post-P06 (the toggle is harmless because R39 short-circuits on `kind=video` → 404 today).
+- **Video thumbnails.** R39 short-circuits `kind=video` → 404. The `media.fetch_videos` key stays only so existing `config.yaml` files load; Settings no longer shows it.
 - **Cloud sync, telemetry, analytics.** Forbidden by long-form roadmap "Things this project deliberately does not do".
 - **Server-rendering / SSR.** Static SPA only; no Node runtime in production.
 - **i18n locale catalogues.** `strings.ts` exists to make i18n possible later, but P06 ships English only.

@@ -6,7 +6,6 @@ import { DownloadPackModal } from "@/components/settings/DownloadPackModal";
 import { DragReorderList } from "@/components/settings/DragReorderList";
 import { FolderField } from "@/components/settings/FolderField";
 import { MediaSourceRow } from "@/components/settings/MediaSourceRow";
-import { PrefSwitch } from "@/components/settings/PrefSwitch";
 import { useMediaSources } from "@/hooks/useMediaSources";
 import { strings } from "@/strings";
 import type { AppConfigResponse, SourceReadinessRow } from "@/api/types";
@@ -62,12 +61,6 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
 
   return (
     <>
-      <PrefSwitch
-        id="media-fetch-videos"
-        label={strings.settings.mediaLabels.fetch_videos}
-        checked={media.fetch_videos}
-        onChange={(v) => onChange("fetch_videos", v)}
-      />
       <FolderField
         id="media-cache-dir"
         label={strings.settings.mediaCacheLabel}

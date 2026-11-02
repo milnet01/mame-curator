@@ -247,7 +247,7 @@ When the user runs `refresh-inis` or swaps the DAT (Settings → Paths → DAT),
 
 - A new endpoint `POST /api/games/validate` (or `GET` with a `?short_names=a,b,c` query param) accepts the cart's shortname list and returns `{ existing: string[], missing: string[] }`. Implementation reads `world.machines` directly — no pagination, no filter chain, just a set lookup against the in-memory map.
 - Cart-side reconciliation runs in two situations only:
-  1. **Pre-Copy.** When the user clicks Copy, `LibraryPage` validates the cart synchronously before opening `CopyModal`; missing items are dropped with a single toast (`"3 cart items removed — they're no longer in your library"`); modal opens with the surviving set.
+  1. **Pre-Copy.** When the user clicks Copy, `LibraryPage` validates the cart synchronously before opening `CopyModal`; missing items are dropped with a single toast (`"3 cart items removed — they're no longer in your library"`); modal opens with the surviving set. With no game list loaded (setup mode, or the setup check itself fails), nothing is dropped and no copy starts (mame-curator-1183).
   2. **DAT-swap signal.** If a future signal (e.g., `useConfigPatch`'s success on `paths.source_dat` change) tells the frontend the world has been rebuilt, the cart calls `validate` opportunistically.
 
 No reconciliation on `LibraryPage` mount — page-load shouldn't toast at the user about cart hygiene. The eventual-consistency cost is one click of Copy that validates and degrades gracefully if some items are missing.

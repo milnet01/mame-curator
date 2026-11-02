@@ -35,6 +35,15 @@ function renderTab(cfg = media(), onChange = vi.fn()) {
   return { onChange };
 }
 
+describe("MediaTab", () => {
+  // Nothing fetches videos, so a switch for it would promise what never happens.
+  it("offers no video switch", () => {
+    renderTab();
+    expect(screen.queryByText(/video/i)).toBeNull();
+    expect(screen.queryByRole("switch")).toBeNull();
+  });
+});
+
 describe("MediaTab — scraped-art folders", () => {
   it("shows an empty ES-DE field when the setting is unset", () => {
     renderTab();

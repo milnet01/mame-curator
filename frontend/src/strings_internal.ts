@@ -511,9 +511,6 @@ export const strings = {
       stable: "Stable",
       dev: "Dev",
     },
-    mediaLabels: {
-      fetch_videos: "Fetch video previews (post-P06)",
-    },
     pathRowLabels: {
       sourceRoms: "Source ROMs",
       destination: "Destination",
@@ -623,6 +620,8 @@ export const strings = {
     snapshotsLoadError: "Could not load snapshots.",
     /** FP20-J — generic fallback when ``restore.error`` is non-ApiError. */
     snapshotRestoreError: "Could not restore that snapshot.",
+    snapshotRestoring: "Restoring your settings…",
+    snapshotRestored: "Your settings have been restored.",
     snapshotsEmpty:
       "No snapshots yet — one is written automatically before each PATCH.",
     /** P14 / mame-curator-1078 — snapshots cover config only, not
@@ -644,6 +643,8 @@ export const strings = {
     backupImportLabel: "Import bundle",
     backupExportError: "Could not export configuration.",
     backupImportError: "Could not import configuration.",
+    backupImporting: "Importing your settings…",
+    backupImported: "Your settings have been imported.",
     backupImportInvalidJson: "That file is not a valid JSON bundle.",
     backupImportInvalidShape:
       "That JSON is not a configuration bundle (expected `config`, `overrides`, `sessions`, `notes` keys).",

@@ -161,4 +161,37 @@ describe("SnapshotsTab (FP12 § I)", () => {
       screen.getByRole("alertdialog", { name: /restore configuration/i }),
     ).toBeInTheDocument();
   });
+
+  // Group 5 of the 2026-11-02 review: a restore says it is under way, and that it worked.
+  it("says a restore is under way, and ignores another press", async () => {
+    const user = userEvent.setup();
+    render(<SnapshotsTab snapshots={sample} restoring onRestore={() => {}} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/restoring/i);
+
+    const [first] = screen.getAllByRole("button", { name: /^restore$/i });
+    await user.click(first);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+
+  it("says a restore worked", () => {
+    render(<SnapshotsTab snapshots={sample} restored onRestore={() => {}} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/restored/i);
+  });
+
+  it("says a restore worked even when the list comes back empty", () => {
+    render(<SnapshotsTab snapshots={[]} restored onRestore={() => {}} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/restored/i);
+  });
+
+  it("says a restore worked even when the list could not reload", () => {
+    render(
+      <SnapshotsTab
+        snapshots={sample}
+        error="Could not load snapshots."
+        restored
+        onRestore={() => {}}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(/restored/i);
+  });
 });

@@ -499,7 +499,8 @@ The following are **caller-side** and live outside `media/`:
 - **`MediaConfig` schema** (`fetch_videos`, `cache_dir`, `snaps_dir`, `sources`,
   `arcadedb_rate_limit_per_min`, `mobygames_rate_limit_per_min`) + the
   `SourceReadinessRow` / `SourceReadiness` / `SourceSecret` wire models —
-  `api/schemas.py`.
+  `api/schemas.py`. No code reads `fetch_videos`. It stays so existing
+  `config.yaml` files still load; Settings no longer shows it.
 - **Lifespan wiring** — the shared `httpx.AsyncClient` (UA header, `timeout=10`,
   `follow_redirects=True`), the three `TokenBucket`s, and the
   `SourceDisabledFlag` are constructed on `app.state` in `api/app.py`.

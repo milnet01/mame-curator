@@ -90,11 +90,15 @@ interface SettingsPageProps {
       fires; this is the inline counterpart so the failure stays
       visible after the toast dismisses). */
   snapshotRestoreError?: string | null;
+  snapshotRestoring?: boolean;
+  snapshotRestored?: boolean;
   /** FP12 § J — Backup tab callbacks. No-op defaults so callers without
       export/import wiring still compile. */
   onBackupExport?: () => void;
   onBackupImport?: (bundle: ConfigExportBundle) => void;
   backupError?: string | null;
+  backupImporting?: boolean;
+  backupImported?: boolean;
 }
 
 export function SettingsPage({
@@ -108,9 +112,13 @@ export function SettingsPage({
   snapshotsLoading = false,
   snapshotsError = null,
   snapshotRestoreError = null,
+  snapshotRestoring = false,
+  snapshotRestored = false,
   onBackupExport = () => {},
   onBackupImport = () => {},
   backupError = null,
+  backupImporting = false,
+  backupImported = false,
 }: SettingsPageProps) {
   const updateUi = <K extends keyof UiCfg>(key: K, value: UiCfg[K]) => {
     onPatch({ ui: { ...config.ui, [key]: value } });
@@ -444,6 +452,8 @@ export function SettingsPage({
             loading={snapshotsLoading}
             error={snapshotsError}
             restoreError={snapshotRestoreError}
+            restoring={snapshotRestoring}
+            restored={snapshotRestored}
             onRestore={onSnapshotRestore}
           />
         </TabsContent>
@@ -453,6 +463,8 @@ export function SettingsPage({
             onExport={onBackupExport}
             onImport={onBackupImport}
             error={backupError}
+            importing={backupImporting}
+            imported={backupImported}
           />
         </TabsContent>
 

@@ -189,7 +189,7 @@ For each machine, construct URLs to:
 - **Flyer (boxart equivalent for arcade):** `https://raw.githubusercontent.com/libretro-thumbnails/MAME/master/Named_Boxarts/<urlencode(description)>.png`
 - **Title screen:** `…/Named_Titles/<description>.png`
 - **Snap (gameplay):** `…/Named_Snaps/<description>.png`
-- **Video preview (optional, opt-in):** progettoSnaps videosnap pattern, fetched only when user opens the detail drawer
+- **Video preview (not built):** progettoSnaps videosnap pattern, to be fetched only when the user opens the detail drawer
 
 The browser fetches images directly via `<img src>` — no Python proxy needed for hits. A small `/media/<name>` proxy endpoint exists for **fallback only**: if libretro doesn't have a thumbnail, the proxy tries alternate sources (progettoSnaps mirrors) and caches the result to `data/media-cache/`.
 
@@ -436,7 +436,7 @@ picker:
   prefer_good_driver: true
 
 media:
-  fetch_videos: false         # opt-in, bandwidth-heavy
+  fetch_videos: false         # not used; kept so older config files keep their value
   cache_dir: ./data/media-cache
 
 ui:

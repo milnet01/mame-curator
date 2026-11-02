@@ -78,6 +78,8 @@ class FsConfig(BaseModel):
 
 class MediaConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
+    # Nothing reads this and Settings does not show it. It stays so an existing
+    # config.yaml keeps its value (docs/standards/versioning-overrides.md item 1).
     fetch_videos: bool = False
     cache_dir: Path = Path("./data/media-cache")
     # mame-curator-1081 — local progettoSnaps pack root. `refresh-snaps`

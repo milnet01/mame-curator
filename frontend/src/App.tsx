@@ -252,6 +252,15 @@ function ActivityRoute() {
   const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const activity = useActivity(page, ACTIVITY_PAGE_SIZE);
 
+  if (loadFailed(activity)) {
+    return (
+      <RouteLoadError
+        message={strings.activity.loadError}
+        onRetry={() => void activity.refetch()}
+        retrying={activity.isFetching}
+      />
+    );
+  }
   if (activity.isLoading) {
     return (
       <div
@@ -260,13 +269,6 @@ function ActivityRoute() {
         className="p-4 text-sm text-muted-foreground"
       >
         {strings.loading.activity}
-      </div>
-    );
-  }
-  if (activity.error) {
-    return (
-      <div className="p-4 text-sm text-destructive">
-        {strings.activity.loadError}
       </div>
     );
   }
@@ -288,7 +290,16 @@ function ActivityRoute() {
 
 function StatsRoute() {
   const stats = useStats();
-  if (stats.isLoading) {
+  if (loadFailed(stats)) {
+    return (
+      <RouteLoadError
+        message={strings.stats.loadError}
+        onRetry={() => void stats.refetch()}
+        retrying={stats.isFetching}
+      />
+    );
+  }
+  if (!stats.data) {
     return (
       <div
         role="status"
@@ -296,13 +307,6 @@ function StatsRoute() {
         className="p-4 text-sm text-muted-foreground"
       >
         {strings.loading.stats}
-      </div>
-    );
-  }
-  if (stats.error || !stats.data) {
-    return (
-      <div className="p-4 text-sm text-destructive">
-        {strings.stats.loadError}
       </div>
     );
   }
@@ -475,9 +479,13 @@ function SettingsRoute() {
           : null
       }
       onSnapshotRestore={(id) => restore.mutate(id)}
+      snapshotRestoring={restore.isPending}
+      snapshotRestored={restore.isSuccess}
       onBackupExport={handleExport}
       onBackupImport={handleImport}
       backupError={backupError}
+      backupImporting={importConfig.isPending}
+      backupImported={importConfig.isSuccess}
       setupInfo={setupCheck.data}
       updateInfo={updatesCheck.data?.app}
       updateActions={{

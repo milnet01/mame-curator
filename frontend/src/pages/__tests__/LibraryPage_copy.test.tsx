@@ -16,6 +16,7 @@ import {
   makeFakeCart,
   makeGamesPage,
   renderLibraryPageTree,
+  setupCheckFixture,
 } from "./_libraryPageFixtures";
 import { config as appConfig } from "./_settingsPageFixtures";
 
@@ -341,5 +342,84 @@ describe("LibraryPage when a copy is refused", () => {
     expect(toast.warning).toHaveBeenCalledWith(
       strings.library.cart.validateDroppedToast(1),
     );
+  });
+
+  // mame-curator-1183: with no game list loaded, every name comes back missing.
+  describe("when the game list is not loaded", () => {
+    function everyNameMissing() {
+      const started = vi.fn();
+      serve("on_success");
+      server.use(
+        http.post("/api/games/validate", async ({ request }) => {
+          const { short_names } = (await request.json()) as {
+            short_names: string[];
+          };
+          return HttpResponse.json({ existing: [], missing: short_names });
+        }),
+        http.post("/api/copy/start", () => {
+          started();
+          return HttpResponse.json({ job_id: "job-1" });
+        }),
+      );
+      return { started };
+    }
+    const inSetupMode = () =>
+      HttpResponse.json({ ...setupCheckFixture, setup_required: true });
+
+    it("keeps the cart and says why", async () => {
+      const { started } = everyNameMissing();
+      server.use(http.get("/api/setup/check", inSetupMode));
+      const user = userEvent.setup();
+      const { remove } = renderCart([
+        { shortName: "pacman" },
+        { shortName: "dkong" },
+      ]);
+      await user.click(await copyButton());
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          strings.errors.byCode.copy_setup_required,
+        ),
+      );
+      expect(remove).not.toHaveBeenCalled();
+      expect(toast.warning).not.toHaveBeenCalled();
+      expect(started).not.toHaveBeenCalled();
+    });
+
+    it("asks afresh, for the app may have restarted since the page loaded", async () => {
+      everyNameMissing();
+      const user = userEvent.setup();
+      const { remove } = renderCart([{ shortName: "pacman" }]);
+      await configLoaded();
+      server.use(http.get("/api/setup/check", inSetupMode));
+      await user.click(await copyButton());
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          strings.errors.byCode.copy_setup_required,
+        ),
+      );
+      expect(remove).not.toHaveBeenCalled();
+    });
+
+    it("keeps the cart when it cannot tell", async () => {
+      everyNameMissing();
+      const user = userEvent.setup();
+      const { remove } = renderCart([{ shortName: "pacman" }]);
+      await configLoaded();
+      server.use(
+        http.get("/api/setup/check", () =>
+          HttpResponse.json(
+            { code: "boom", detail: "setup check broke", fields: [] },
+            { status: 500 },
+          ),
+        ),
+      );
+      await user.click(await copyButton());
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalled());
+      expect(remove).not.toHaveBeenCalled();
+      expect(toast.warning).not.toHaveBeenCalled();
+    });
   });
 });

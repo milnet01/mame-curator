@@ -341,7 +341,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # test_snapshot_safety.py, test_jobs_replay_and_replies.py,
 # test_short_name_containment.py and additions; the import-marker test goes with
 # the marker. 1027 → 1068.
-EXPECTED_PYTEST_DECLARATIONS = 1068
+# Bumped 2026-11-02 (mame-curator-1145 review, library and leftovers): a config
+# holding the retired video switch still loads. 1068 → 1069.
+EXPECTED_PYTEST_DECLARATIONS = 1069
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -451,7 +453,10 @@ EXPECTED_PYTEST_DECLARATIONS = 1068
 # mame-curator-1165 and 1171). 566 → 594.
 # Bumped 2026-11-02 (mame-curator-1145 review, copy and snapshot safety): a
 # refused start, a stale variant, and the names in the message. 594 → 597.
-EXPECTED_VITEST_DECLARATIONS = 597
+# Bumped 2026-11-02 (mame-curator-1145 review, library and leftovers, with
+# mame-curator-1151, 1183): Add all's filter, setup mode's cart, the restore and
+# import words, and the video switch. 597 → 611.
+EXPECTED_VITEST_DECLARATIONS = 611
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

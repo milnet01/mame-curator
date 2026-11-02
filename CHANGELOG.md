@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-02 Fixed — The Library and Settings do what they say
+
+- **Add all follows the review filter.**
+  With a review filter on, Add all could add different games from the ones on screen. It now adds the games you see. (mame-curator-1151)
+
+- **Pressing Copy before your game list is loaded keeps your cart.**
+  This used to remove every game from your saved cart. It now says the list is not loaded and leaves the cart alone. (mame-curator-1183)
+
+- **Activity and Stats offer Try again.**
+  If either page cannot load, it now says so plainly and gives you a Try again button. (mame-curator-1167)
+
+- **Restoring and importing settings tell you what is happening.**
+  Settings now says when a restore or an import is under way, and says so when it has worked.
+
+- **The video previews switch is gone from Settings.**
+  It did nothing, because the app has no video previews. If your config.yaml mentions `fetch_videos`, the file still loads.
+
 ### 2026-11-02 Fixed — Copying and settings backups are safer
 
 - **A large copy's progress no longer freezes when the page reloads.**

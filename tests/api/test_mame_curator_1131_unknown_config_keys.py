@@ -107,3 +107,9 @@ def test_dropped_key_names_are_logged_escaped(
         load_app_config(config)
     assert "evil\\nkey" in caplog.text
     assert "evil\nkey" not in caplog.text
+
+
+def test_a_config_that_sets_the_retired_video_switch_still_loads(tmp_path: Path) -> None:
+    """Settings no longer shows `media.fetch_videos`; a file holding it must keep loading."""
+    config = _write(tmp_path, "media:\n  fetch_videos: true\n")
+    assert load_app_config(config).media.fetch_videos is True

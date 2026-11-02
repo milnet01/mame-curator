@@ -811,7 +811,7 @@ Manual (recorded in the closing journal):
 
 ## Out of scope (deferred)
 
-- **Video thumbnails.** P10 does not extend any source to cover video; the `ProgettoSnapsSource.kinds` ClassVar is `{boxart, title, snap}`. The existing `MediaConfig.fetch_videos` toggle stays untouched. Future video-source plumbing is a separate phase.
+- **Video thumbnails.** P10 does not extend any source to cover video; the `ProgettoSnapsSource.kinds` ClassVar is `{boxart, title, snap}`. The existing `MediaConfig.fetch_videos` key stays untouched; Settings no longer shows it (2026-11-02), since nothing reads it. Future video-source plumbing is a separate phase.
 - **EmuMovies.** Paid account, no public API. Out per `ROADMAP.md` § `mame-curator-1005` (EmuMovies line of the P10 bullet).
 - **Per-image license inspection** (Wikipedia images vary). P10 conservatively marks the Wikipedia image source `license_compatible=False`; P11 will refine if it consumes this source.
 - **MobyGames screenshot / snap support.** API exists; coverage on arcade specifically is sparse; revisit as a fix-pass if user feedback demands it.
