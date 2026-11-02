@@ -365,7 +365,9 @@ def get_alternatives(name: str, world: WorldState = Depends(get_world)) -> Alter
     parent = _parent_of(name, world)
     siblings = [m for m in world.machines.values() if _parent_of(m.name, world) == parent]
     contested_parents = _contested_parents(world)
-    return Alternatives(items=tuple(_card(m, world, contested_parents) for m in siblings))
+    return Alternatives(
+        parent=parent, items=tuple(_card(m, world, contested_parents) for m in siblings)
+    )
 
 
 @router.get("/api/games/{name}/explanation", response_model=Explanation)

@@ -75,6 +75,7 @@ describe("AlternativesDrawer", () => {
         open
         onOpenChange={onOpenChange}
         winner={winner}
+        parent="pacman"
         alternatives={[winner, ...clones]}
         onOverride={onOverride}
       />,
@@ -85,6 +86,29 @@ describe("AlternativesDrawer", () => {
       winner: "pacmanjr",
     });
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("mame-curator-1149: keys the choice by the family's parent when a clone is the winner", async () => {
+    const user = userEvent.setup();
+    const onOverride = vi.fn();
+    const [fast, junior] = clones;
+    renderWithRouter(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={fast!}
+        parent="pacman"
+        alternatives={[winner, ...clones]}
+        onOverride={onOverride}
+      />,
+    );
+    await user.click(
+      screen.getByRole("button", { name: `Use ${junior!.description}` }),
+    );
+    expect(onOverride).toHaveBeenCalledWith({
+      parent: "pacman",
+      winner: "pacmanjr",
+    });
   });
 
   it("disables the use-this-version button on the current winner", () => {

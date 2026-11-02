@@ -33,6 +33,9 @@ export interface UseGameGridFocusResult {
   setActive: (idx: number) => void;
   focusNextPending: (startIndex: number) => number | null;
   noteFocus: (idx: number) => void;
+  /** Sends focus to a card even if it is already the active one. The focus
+   *  lands on the next render, which the caller must cause. */
+  focusCard: (idx: number) => void;
 }
 
 export function useGameGridFocus(
@@ -87,6 +90,14 @@ export function useGameGridFocus(
     [activeIndex, cardsLen, columns, virtualizer],
   );
 
+  const focusCard = useCallback(
+    (idx: number) => {
+      if (cardsLen > 0) focusPending.current = true;
+      setActive(idx);
+    },
+    [cardsLen, setActive],
+  );
+
   const move = useCallback(
     (delta: number) => setActive(activeIndex + delta),
     [activeIndex, setActive],
@@ -110,5 +121,6 @@ export function useGameGridFocus(
     setActive,
     focusNextPending,
     noteFocus: setActiveIndex,
+    focusCard,
   };
 }

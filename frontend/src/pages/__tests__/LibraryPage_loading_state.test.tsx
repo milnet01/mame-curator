@@ -246,7 +246,10 @@ describe("LibraryPage — pending-query empty states", () => {
       http.get("/api/games/:name/alternatives", () =>
         fail
           ? HttpResponse.json({ detail: "boom" }, { status: 500 })
-          : HttpResponse.json({ items: [winner, clone] }),
+          : HttpResponse.json({
+              parent: winner.short_name,
+              items: [winner, clone],
+            }),
       ),
     );
     const user = userEvent.setup();

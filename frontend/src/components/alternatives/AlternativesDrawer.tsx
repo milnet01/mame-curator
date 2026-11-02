@@ -24,6 +24,10 @@ interface AlternativesDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   winner: GameCard;
+  /** mame-curator-1149: the family's real parent, which keys a choice. The
+   *  winner may be a clone. Undefined until the family list has loaded, and
+   *  until then there are no rows to choose from. */
+  parent?: string;
   alternatives: GameCard[];
   /** mame-curator-1100: true while the family list has not loaded yet.
    *  The subtitle then reads as loading, not as an empty family. */
@@ -135,6 +139,7 @@ export function AlternativesDrawer({
   open,
   onOpenChange,
   winner,
+  parent,
   alternatives,
   loading = false,
   error = false,
@@ -148,8 +153,8 @@ export function AlternativesDrawer({
   onSetReviewState,
   onClearReviewState,
 }: AlternativesDrawerProps) {
-  const parent = winner.short_name;
   const handleClick = (alt: GameCard) => {
+    if (parent === undefined) return;
     onOverride({ parent, winner: alt.short_name });
     onOpenChange(false);
   };

@@ -32,8 +32,7 @@ export function useAlternatives(shortName: string | null) {
 
 /**
  * POST a manual override (parent → winner). Invalidates the games listing
- * + the affected alternatives query so the UI re-renders with the picked
- * winner. FP21-R: ``toastApiError`` baked into the hook so all call-sites
+ * + the family lists so the UI re-renders with the picked winner. FP21-R: ``toastApiError`` baked into the hook so all call-sites
  * surface failures via toast by default; an explicit ``onError`` override
  * remains possible per ``useMutation``'s contract.
  */
@@ -45,11 +44,13 @@ export function useOverride() {
         method: "POST",
         body: req,
       }),
-    onSuccess: (_data, req) => {
-      qc.invalidateQueries({ queryKey: ["games"] });
-      qc.invalidateQueries({ queryKey: KEY(req.winner) });
-      qc.invalidateQueries({ queryKey: KEY(req.parent) });
-    },
+    // Returned, so a caller's onSuccess runs once the page shows the choice.
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ["games"] }),
+        // Every version's family list: any of them may be the next one opened.
+        qc.invalidateQueries({ queryKey: ["alternatives"] }),
+      ]),
     onError: toastApiError,
   });
 }

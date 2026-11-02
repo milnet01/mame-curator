@@ -71,6 +71,8 @@ Phase C is an internal phase of `run_filter`, not a standalone callable. It iter
 - The override value must exist in the parsed DAT and must belong to the same parent/clone group (i.e. either is the parent or has `cloneof_map[value] == parent`). If not: log a warning, skip the override, and append the message to `FilterResult.warnings`. **Never crash.**
 - Override-target machines that were dropped in Phase A are still allowed as winners (per design — user choice trumps community filters). The dropped reason is removed from `dropped` for that machine.
 
+A key that is a clone's name is not a group, so Phase C ignores it with a warning. Callers that hold old saved data run `migrate_clone_keys` first (§ `overrides.yaml`).
+
 ## Phase D — session focus
 
 Phase D is also an internal phase of `run_filter`, applied at the end of the orchestrator (private helper `_apply_session` in `filter/runner.py`). When `sessions.active` is non-null and points at a defined session, the winner set is filtered to machines matching **all** non-empty include rules:
@@ -105,6 +107,13 @@ class Overrides(BaseModel):
 Constraints:
 - Keys and values are non-empty strings.
 - Single winner per parent (no multi-winner support in v1; keep "always include both versions" as a future enhancement — see design §3 future enhancements).
+
+**Old entries keyed by a clone (mame-curator-1149).** Releases before this fix let the version panel save `clone: chosen` when the current pick was a clone, and Phase C ignored those entries. `versioning-overrides.md` item 2 makes that file a surface, so `migrate_clone_keys(overrides, cloneof_map, known)` reads them as the user's choice. `build_world`, `replace_world` and the CLI `filter` command all run it before `run_filter`. The rule, per family:
+
+- An entry moves only if its key is a clone and its value is a machine in the DAT from the same family. Any other entry stays as it is, and Phase C warns about it as before.
+- With a usable `parent: W` entry, the choice is the entry keyed by `W` if there is one, else `W`. The app was showing `W`, so only an entry keyed by `W` can be newer than `parent: W`.
+- With no usable parent entry, the one clone-keyed entry is the choice. The file is written sorted, so it keeps no order: among several, the alphabetically first key wins and the rest are logged at WARNING.
+- The migration happens in memory. The file keeps the old form until the next save, which writes the new form after taking the usual snapshot.
 
 ### `sessions.yaml`
 

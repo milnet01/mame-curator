@@ -11,7 +11,7 @@ from mame_curator.filter.errors import (
     SessionsError,
 )
 from mame_curator.filter.heuristics import Region, region_of, revision_key_of
-from mame_curator.filter.overrides import Overrides, load_overrides
+from mame_curator.filter.overrides import Overrides, load_overrides, migrate_clone_keys
 from mame_curator.filter.picker import explain_pick, pick_winner
 from mame_curator.filter.review_state import (
     ReviewState,
@@ -51,6 +51,7 @@ __all__ = [
     "load_overrides",
     "load_review_state",
     "load_sessions",
+    "migrate_clone_keys",
     "pick_winner",
     "region_of",
     "revision_key_of",

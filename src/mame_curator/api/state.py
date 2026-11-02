@@ -27,6 +27,7 @@ from mame_curator.filter import (
     load_overrides,
     load_review_state,
     load_sessions,
+    migrate_clone_keys,
     run_filter,
 )
 from mame_curator.parser import (
@@ -209,7 +210,9 @@ def build_world(config_path: Path) -> WorldState:
 
     ctx = FilterContext(chd_required=chd_required, cloneof_map=cloneof_map, **ini_fields)
 
-    overrides = load_overrides(config_path.parent / "overrides.yaml")
+    overrides = migrate_clone_keys(
+        load_overrides(config_path.parent / "overrides.yaml"), cloneof_map, machines
+    )
     sessions = load_sessions(config_path.parent / "sessions.yaml")
 
     data_dir = config_path.parent / "data"
@@ -303,7 +306,11 @@ def replace_world(
     is applied per-request inside ``api/routes/games.py``.
     """
     new_config = config if config is not None else base.config
-    new_overrides = overrides if overrides is not None else base.overrides
+    new_overrides = (
+        migrate_clone_keys(overrides, base.cloneof_map, base.machines)
+        if overrides is not None
+        else base.overrides
+    )
     new_sessions = sessions if sessions is not None else base.sessions
     new_notes = dict(notes) if notes is not None else dict(base.notes)
     new_review_state = review_state if review_state is not None else base.review_state

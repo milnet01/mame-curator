@@ -176,6 +176,13 @@ class OverrideNotFoundError(ApiException):
     status_code = 404
 
 
+class OverrideRejectedError(ApiException):
+    """422 — the choice would not take effect, so nothing was saved."""
+
+    code = "override_rejected"
+    status_code = 422
+
+
 class SessionNotFoundError(ApiException):
     """404 — session name unknown."""
 

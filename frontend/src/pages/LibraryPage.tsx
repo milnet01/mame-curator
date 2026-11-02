@@ -63,7 +63,7 @@ export function LibraryPage({
     facets,
     activeSession,
     alternatives,
-    override,
+    versionChoice,
     launch,
     setupCheck,
     validateCart,
@@ -217,6 +217,8 @@ export function LibraryPage({
                 isInCart={(s) => cart.has(s)}
                 onAdd={(s) => cart.add(s)}
                 onOpen={(card) => setOpenedShortName(card.short_name)}
+                focusCard={versionChoice.focusCard}
+                onFocusCardTaken={versionChoice.clearFocusCard}
                 reviewState={reviewState.data}
                 walkthrough={walkthrough}
                 onSetReviewState={(shortName, state) =>
@@ -257,6 +259,7 @@ export function LibraryPage({
             open={openedShortName !== null}
             onOpenChange={(o) => !o && setOpenedShortName(null)}
             winner={openedWinner}
+            parent={alternatives.data?.parent}
             alternatives={alternatives.data?.items ?? []}
             loading={alternatives.isPending}
             // mame-curator-1107: same sticky-error rule as the games grid
@@ -270,16 +273,10 @@ export function LibraryPage({
             onRetry={() => alternatives.refetch()}
             retrying={alternatives.isFetching}
             onOverride={(req) => {
-              override.mutate(req, {
-                onSuccess: () => {
-                  // P15 § 5.2 — cart-aware variant tracking.
-                  if (cart.has(req.parent))
-                    cart.setVariant(req.parent, req.winner);
-                  toast.success(strings.library.overrideApplied);
-                  setOpenedShortName(null);
-                },
-                onError: toastApiError,
-              });
+              // P15 § 5.2: the family list goes too, for cart variant tracking.
+              if (alternatives.data) {
+                versionChoice.chooseVersion(req, alternatives.data);
+              }
             }}
             onLaunch={(short) => {
               launch.mutate(short, {

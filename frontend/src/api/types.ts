@@ -259,6 +259,8 @@ export interface GameDetail {
 }
 
 export interface Alternatives {
+  /** The family's real parent: an override's key, whichever version is on show. */
+  parent: string;
   items: GameCard[];
 }
 

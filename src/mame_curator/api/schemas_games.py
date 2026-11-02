@@ -81,6 +81,7 @@ class GameDetail(BaseModel):
 
 class Alternatives(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
+    parent: str
     items: tuple[GameCard, ...]
 
 

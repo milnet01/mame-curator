@@ -253,7 +253,13 @@ export const strings = {
     sessionNotSaved:
       "The session was not saved, because your settings have not loaded.",
     /** FP16 § B toast on successful manual override. */
-    overrideApplied: "Override applied.",
+    overrideApplied: (game: string) => `Now using ${game}.`,
+    /** mame-curator-1149: the choice took, but the reply carried warnings,
+     *  which are about other saved choices. */
+    overrideOldChoicesUnusable: (count: number) =>
+      count === 1
+        ? "Your choice is saved, but 1 older choice could not be used, because it does not match your current game list."
+        : `Your choice is saved, but ${count} older choices could not be used, because they do not match your current game list.`,
     /** FP15 § B header pill copy (active + idle states). */
     activeSessionPill: (name: string) => `Session: ${name}`,
     activeSessionTitle: (name: string) =>
@@ -814,6 +820,8 @@ export const strings = {
     byCode: {
       game_not_found: "No game with that short name in the loaded DAT.",
       override_not_found: "No override registered for that parent.",
+      override_rejected:
+        "That version could not be used, so nothing has changed. Reload the page and try again.",
       session_name_invalid:
         "Session names must start with a letter and use only letters, numbers, hyphens, and underscores.",
       session_not_found: "No session by that name.",

@@ -46,7 +46,12 @@ async function serveMany(page: Page, count: number) {
     const games = await (
       await page.request.get("/api/games?page=1&page_size=1")
     ).json();
-    await route.fulfill({ json: { items: copies(games.items[0]) } });
+    await route.fulfill({
+      json: {
+        parent: games.items[0].short_name,
+        items: copies(games.items[0]),
+      },
+    });
   });
 }
 

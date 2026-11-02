@@ -345,7 +345,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # holding the retired video switch still loads. 1068 → 1069.
 # Bumped 2026-11-02 (mame-curator-1186): test_mame_curator_1186_user_data.py
 # proves tests stay out of the repo's data/ folder. 1069 → 1074.
-EXPECTED_PYTEST_DECLARATIONS = 1074
+# Bumped 2026-11-02 (mame-curator-1149): choosing a version, and old saved
+# choices. 1074 → 1091.
+EXPECTED_PYTEST_DECLARATIONS = 1091
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -458,7 +460,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1074
 # Bumped 2026-11-02 (mame-curator-1145 review, library and leftovers, with
 # mame-curator-1151, 1183): Add all's filter, setup mode's cart, the restore and
 # import words, and the video switch. 597 → 611.
-EXPECTED_VITEST_DECLARATIONS = 611
+# Bumped 2026-11-02 (mame-curator-1149): the choice's real parent, messages,
+# cart and focus. 611 → 617.
+EXPECTED_VITEST_DECLARATIONS = 617
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

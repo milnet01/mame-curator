@@ -12,11 +12,7 @@ import { useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useQueries } from "@tanstack/react-query";
 import { type FilterSidebarState } from "@/components/library/FiltersSidebar";
-import {
-  useAlternatives,
-  useLaunchGame,
-  useOverride,
-} from "@/hooks/useAlternatives";
+import { useAlternatives, useLaunchGame } from "@/hooks/useAlternatives";
 import {
   type CartItem,
   MAX_CART_SIZE,
@@ -55,6 +51,7 @@ import {
   readGuideSelection,
   readWalkthroughPref,
 } from "./libraryPageHelpers";
+import { useVersionChoice } from "./useVersionChoice";
 
 export function useLibraryController(cart: UseCartResult) {
   // mame-curator-1144: a selection from the guide's "Look through them first"
@@ -90,7 +87,7 @@ export function useLibraryController(cart: UseCartResult) {
   const sessions = useSessions();
   const upsertSession = useSessionUpsert();
   const alternatives = useAlternatives(openedShortName);
-  const override = useOverride();
+  const versionChoice = useVersionChoice(cart);
   const launch = useLaunchGame();
   const facets = useFacets();
   const setupCheck = useSetupCheck();
@@ -362,7 +359,7 @@ export function useLibraryController(cart: UseCartResult) {
     facets,
     activeSession,
     alternatives,
-    override,
+    versionChoice,
     launch,
     setupCheck,
     validateCart,

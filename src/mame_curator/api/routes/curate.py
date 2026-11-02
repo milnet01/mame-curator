@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Request
 from mame_curator.api.errors import (
     GameNotFoundError,
     OverrideNotFoundError,
+    OverrideRejectedError,
     SessionNameInvalidError,
     SessionNotFoundError,
 )
@@ -78,11 +79,18 @@ async def post_override(
         entries = dict(world.overrides.entries)
         entries[body.parent] = body.winner
         new_overrides = Overrides.model_validate({"entries": entries})
-        _persist_overrides(world, new_overrides)
         new_world = replace_world(base=world, overrides=new_overrides)
+        # Mirrors Phase C by asking it, so the two cannot disagree. The reply's
+        # warnings are the whole world's: only a new one is about this choice.
+        new_warnings = set(new_world.filter_result.warnings) - set(world.filter_result.warnings)
+        if new_warnings or new_world.overrides.entries.get(body.parent) != body.winner:
+            raise OverrideRejectedError(
+                f"override {body.parent!r} -> {body.winner!r} would not take effect"
+            )
+        _persist_overrides(world, new_world.overrides)
         set_world(request, new_world)
         return OverridesView(
-            entries=dict(new_overrides.entries),
+            entries=dict(new_world.overrides.entries),
             warnings=new_world.filter_result.warnings,
         )
 

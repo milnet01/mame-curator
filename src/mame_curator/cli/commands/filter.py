@@ -15,6 +15,7 @@ from mame_curator.filter import (
     Sessions,
     load_overrides,
     load_sessions,
+    migrate_clone_keys,
     run_filter,
 )
 from mame_curator.parser import (
@@ -65,6 +66,7 @@ def _cmd_filter(args: argparse.Namespace) -> int:
         err_console.print(f"[red]error:[/red] cannot read input: {exc}")
         return 1
 
+    overrides = migrate_clone_keys(overrides, ctx.cloneof_map, machines)
     result = run_filter(machines, ctx, FilterConfig(), overrides, sessions)
     # FP05 C2: atomic write via shared `atomic_write_text` helper (was an
     # inline tmp + os.replace block; the helper handles `try/finally`,

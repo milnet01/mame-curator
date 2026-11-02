@@ -40,6 +40,10 @@ interface LibraryGridProps {
   /** P14 — when true, R/S/? on a card that ends up non-pending also
    *  advances focus to the next pending card. Default true. */
   walkthrough?: boolean;
+  /** mame-curator-1149: short name of a card to send focus to, once. */
+  focusCard?: string | null;
+  /** Called when focus has been sent, so the owner can clear `focusCard`. */
+  onFocusCardTaken?: () => void;
 }
 
 const KEY_TO_STATE: Record<string, ReviewStateValue> = {
@@ -89,6 +93,8 @@ export function LibraryGrid({
   onSetReviewState,
   onClearReviewState,
   walkthrough = true,
+  focusCard,
+  onFocusCardTaken,
 }: LibraryGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const columns = resolveColumns(layout, cardsPerRowHint);
@@ -131,9 +137,25 @@ export function LibraryGrid({
   // The component still owns the key→action wiring (below); the hook
   // owns `activeIndex` and the move() / setActive() / focusNextPending()
   // setters.
-  const { activeIndex, move, setActive, focusNextPending, noteFocus } =
-    useGameGridFocus(cards, reviewState, columns, virtualizer);
+  const {
+    activeIndex,
+    move,
+    setActive,
+    focusNextPending,
+    noteFocus,
+    focusCard: sendFocus,
+  } = useGameGridFocus(cards, reviewState, columns, virtualizer);
   const cardsLen = cards.length;
+
+  // mame-curator-1149: the card that had focus may be gone. If the named card
+  // is not listed either (a search or session hides it), the active card takes
+  // focus. Clearing the prop is the render that delivers it.
+  useEffect(() => {
+    if (!focusCard) return;
+    const index = cards.findIndex((c) => c.short_name === focusCard);
+    sendFocus(index === -1 ? activeIndex : index);
+    onFocusCardTaken?.();
+  }, [activeIndex, cards, focusCard, onFocusCardTaken, sendFocus]);
 
   useEffect(() => {
     activeRow.current = Math.floor(activeIndex / columns);

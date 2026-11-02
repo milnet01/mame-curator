@@ -176,6 +176,7 @@ class vars). `install_handlers` registers three handlers:
 | `SnapshotUnusableError` | `snapshot_unusable` | 422 |
 | `GameNotFoundError` | `game_not_found` | 404 |
 | `OverrideNotFoundError` | `override_not_found` | 404 |
+| `OverrideRejectedError` | `override_rejected` | 422 |
 | `SessionNotFoundError` | `session_not_found` | 404 |
 | `SessionNameInvalidError` | `session_name_invalid` | 422 |
 | `HelpTopicNotFoundError` | `help_topic_not_found` | 404 |
@@ -256,6 +257,18 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 Route ordering note: `POST /api/sessions/_deactivate` is registered
 **before** the dynamic `POST /api/sessions/{name}/activate` so FastAPI
 matches the static `_deactivate` path first.
+
+### Choosing a version (mame-curator-1149)
+
+`GET /api/games/{name}/alternatives` names the family's real parent in
+`parent`. A client sends that as `parent` to `POST /api/overrides`, whichever
+family member is the current pick.
+
+`POST /api/overrides` writes nothing and replies `override_rejected` when the
+choice would not take: `parent` is a clone's name, or the filter would add a
+warning for it. So a 200 means the choice took. Its `warnings` are the world's
+(`filter/spec.md` § Phase C), so they concern other saved choices that cannot
+be used.
 
 ## Copy job lifecycle
 

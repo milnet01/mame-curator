@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-02 Fixed — Choosing a version now always works (mame-curator-1149)
+
+Picking a different version of a game could say it worked and change nothing. This happened whenever the version on show was not the game's main version, which includes any game you had already changed once.
+
+- **The version you pick is the one you get.**
+  The game's card changes to your choice at once, and stays after a reload. A game in your copy list follows the choice too.
+
+- **Choices that seemed to do nothing now count.**
+  A choice saved by an earlier release and then ignored is read as what you asked for. So after this update, a game may change to the version you picked back then. Your saved file takes the new form the next time you choose a version, and Settings keeps a snapshot of the old one.
+
+- **The message tells the truth.**
+  Success now names the version, as in "Now using Pac-Man (Midway).". If a choice cannot be used, the app says so and nothing changes. If older saved choices no longer match your game list, the app says that instead of success.
+
+- **Keyboard focus lands on your choice.**
+  After you choose by keyboard, focus moves to the chosen version's card, so you do not lose your place.
+
 ### 2026-11-02 Fixed — Running the project's tests leaves your data alone
 
 - **Test runs no longer add to your data folder.** (mame-curator-1186)
