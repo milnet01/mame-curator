@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1174 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1178 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3364,8 +3364,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1162] **Browser test leftovers make the formatting check fail.**
+- ✅ [mame-curator-1162] **Browser test leftovers make the formatting check fail.**
   Copy reports under frontend/e2e/fixtures/data/ are ignored by git but not by Prettier, so prettier --check and local-CI.sh fail after any e2e run until they are removed. Found while closing the review of mame-curator-1144. Outside that group's findings.
+  2026-11-02: frontend/.prettierignore names e2e/fixtures/data/.
+  prettier --check failed on four leftovers, then passed with them still
+  there.
   **Layman:** After the browser tests run, a developer check fails until their leftover files are deleted.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
@@ -3385,8 +3388,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1165] **Plain disabled buttons drop focus, and a refused folder shows its message twice.**
+- ✅ [mame-curator-1165] **Plain disabled buttons drop focus, and a refused folder shows its message twice.**
   Copy these and LibraryErrorPanel use plain disabled, so a failure should drop focus as Start did before GuideAction's busy state (read, not run). useConfigPatch also toasts, so a refused folder shows the same words twice in the guide.
+  2026-11-02, 5601d16: Copy these, Retry and Where's Yes keep focus with
+  busy and aria-disabled; WhereStep's refusal shows one alert and no
+  toast. e2e and unit tests, red seen.
   **Layman:** Two small rough edges: a keyboard user can lose their place after a failure, and one error can appear twice.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
@@ -3427,8 +3433,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1145-2026-10-30.
   Lanes: frontend, api.
 
-- 📋 [mame-curator-1171] **The guide's Where step still uses the normal-size folder picker.**
+- ✅ [mame-curator-1171] **The guide's Where step still uses the normal-size folder picker.**
   Deferred in mame-curator-1145's spec §9. FsBrowser's large option exists. It already has the plain wording.
+  2026-11-02, 5601d16: the Where step passes large; rows and buttons
+  measured at 48 px or more.
   **Layman:** The folder picker in the copy guide is smaller than the one in the setup wizard.
   Kind: accessibility.
   Source: build-mame-curator-1145-2026-10-30.
@@ -3459,6 +3467,42 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: measured-2026-11-02.
   Lanes: copy.
+
+- 📋 [mame-curator-1175] **Nothing in the app can take back a folder grant.**
+  The server has a DELETE for allowed roots, but a search of frontend/src
+  found no caller and strings.destructive.revokeRoot has none. Queued, not
+  fixed: it wants a design beside mame-curator-1170, which is the user's.
+  **Layman:** Once you allow a folder for the app, there is no button to undo that.
+  Kind: review-fix.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1176] **Settings folder pickers drop keyboard focus when they close.**
+  Measured on PathRow with Cancel and Esc, and from the grant prompt, while
+  building 5601d16. FolderField is the same code, not measured. Only the
+  wizard and the Where step return focus. The picker also opens with focus on
+  Cancel, so Enter closes it. Outside that group's findings.
+  **Layman:** After you close a folder picker in Settings, the keyboard position is lost.
+  Kind: accessibility.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1177] **Import skips the path checks a save runs.**
+  Import never calls _validate_paths, so a bundle can name one folder for
+  games and destination, or hold a NUL path. A NUL path no longer stops the
+  start (8c403ce). Found while closing Group 1; read, not run.
+  **Layman:** A backup file can still name the same folder twice or hold a broken path.
+  Kind: review-fix.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: api, tests.
+
+- 📋 [mame-curator-1178] **routes/config.py is close to the hard size cap.**
+  Measured 482 lines after 8c403ce; the cap is 500. Split the snapshot and
+  import routes out before the next change there.
+  **Layman:** One code file is nearly too big under the project's own limit.
+  Kind: refactor.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: api.
 
 ## Considered / under research (no target date)
 
