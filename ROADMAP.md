@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1187 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1191 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3257,7 +3257,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: code-read-2026-10-30.
   Lanes: frontend.
 
-- 📋 [mame-curator-1149] **Choosing a version can report success and change nothing when the current pick is a clone.**
+- ✅ [mame-curator-1149] **Choosing a version can report success and change nothing when the current pick is a clone.**
   AlternativesDrawer sends parent = winner.short_name. filter/runner.py ignores an override whose key is not a group parent and only adds a warning. The Library still toasts success and shows no warnings. Read from the code, not yet reproduced. mame-curator-1146 depends on this.
   review-code 2026-10-30 reached the same defect: AlternativesDrawer.tsx
   sends winner.short_name as the override's parent, and filter/runner.py
@@ -3266,6 +3266,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   api/types.ts). LibraryPage.tsx also shows success without reading the
   response's warnings. Closed here, not separately. Text:
   docs/reviews/review-code-2026-10-30-1144/lane-03-shell-text-size.md.
+  2026-11-02, 5d00641: the drawer sends the family's real parent, from a
+  new parent field on the alternatives reply (the card has none; the
+  earlier note was wrong). A choice that would not take is refused with
+  422 and nothing saved. Old clone-keyed entries migrate on load, so a
+  game may switch to a version picked earlier that seemed to do nothing.
+  Reproduced on a real server first; red seen; Playwright covers the
+  path.
   **Layman:** Picking a different version of a game may say it worked while the old version stays.
   Kind: fix.
   Source: code-read-2026-10-30.
@@ -3609,6 +3616,37 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: chore.
   Source: measured-2026-11-02.
   Lanes: data.
+
+- 📋 [mame-curator-1188] **After choosing a version, the new card may offer Add for a game already in the cart.**
+  isInCart checks shortName alone. Read, not run.
+  **Layman:** After you pick another version of a game, the cart could end up with that game twice.
+  Kind: fix.
+  Source: build-mame-curator-1149-2026-11-02.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1189] **An old choice that cannot be used keeps warning, with no way to remove it.**
+  Every later choice shows the warning in place of success. No screen was
+  found for removing one, though the search was not full.
+  **Layman:** A version choice from an old game list can keep showing a warning, and no screen was found to remove it.
+  Kind: ux.
+  Source: build-mame-curator-1149-2026-11-02.
+  Lanes: frontend, api.
+
+- 📋 [mame-curator-1190] **Error toasts disappear after about four seconds.**
+  5d00641 lengthened only its new warning. The refusal error and other
+  messages use the default. Stated by the build helper, not measured here.
+  **Layman:** Pop-up error messages vanish quickly, which is too short for someone who reads slowly.
+  Kind: accessibility.
+  Source: build-mame-curator-1149-2026-11-02.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1191] **A family whose versions are all dropped by filters ignores a version choice.**
+  The spec allows dropped targets. No way to reach this from the panel was
+  seen. Read, not run.
+  **Layman:** In one unusual case a version choice still has no effect.
+  Kind: fix.
+  Source: build-mame-curator-1149-2026-11-02.
+  Lanes: filter.
 
 ## Considered / under research (no target date)
 
