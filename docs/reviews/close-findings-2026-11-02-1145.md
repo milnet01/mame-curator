@@ -79,17 +79,17 @@ Waiting on the user: the wording of the grant prompt, with mame-curator-1170.
 
 | Finding | Sev | Verified | Disposition | Was → now |
 |---|---|---|---|---|
-| `jobs.py:470`: replay past the queue size hangs | HIGH | orchestrator read the constants | | |
-| `routes/copy.py:38`: unchecked names reach paths outside the sandbox | HIGH → MEDIUM | orchestrator grep: no containment check | | |
-| `routes/copy.py:35-38`: copy can run in setup mode and empty the playlist | MEDIUM | | | |
-| `routes/config.py:237-238`: restoring the oldest snapshot can destroy it (with 1132) | MEDIUM | | | |
-| `routes/config.py:225`, `routes/copy.py:158`: id not format-checked (with 1132) | LOW | | | |
-| `jobs.py:267`: pause reply claims a state (1159) | LOW | | | |
-| `jobs.py:344`: `bytes_done` is per file | LOW | | | |
-| `routes/config.py:366-367`: import marker has no reader | LOW | | | |
-| `_atomic.py`: replace cuts a symlinked config | LOW | | | |
-| `routes/config.py:283`: import does not fold `picker:` | LOW | | | |
-| `api/fs.py:30`: module-level set | LOW | | | |
+| `jobs.py:470`: replay past the queue size hangs | HIGH | yes, ran: timed out past the queue size | fixed in a5417fa | Hung on finished and live jobs → yields stored events, then drains the queue |
+| `routes/copy.py:38`: unchecked names reach paths outside the sandbox | HIGH → MEDIUM | yes, ran on a temp tree: `replaces` moved an outside file to the recycle bin | fixed in a5417fa | → 422 `copy_names_unknown`, no job starts; `copy/paths.py` guards the build point |
+| `routes/copy.py:35-38`: copy can run in setup mode and empty the playlist | MEDIUM | yes, ran | fixed in a5417fa | OVERWRITE emptied the playlist → 409 `copy_setup_required`, playlist bytes unchanged |
+| `routes/config.py:237-238`: restoring the oldest snapshot can destroy it (with 1132) | MEDIUM | yes, ran | fixed in a5417fa | 404 and snapshot gone → 200, snapshot survives; closes 1132's prune half |
+| `routes/config.py:225`, `routes/copy.py:158`: id not format-checked (with 1132) | LOW | yes, ran; history `..` read `data/report.json` | fixed in a5417fa | → 404 at both |
+| `jobs.py:267`: pause reply claims a state (1159) | LOW | yes, ran | fixed in a5417fa | Said `paused` after a cancel → the controller's real state; closes 1159 |
+| `jobs.py:344`: `bytes_done` is per file | LOW | yes, read: nothing displays it | fixed in a5417fa | Largest file's bytes → finished files plus current |
+| `routes/config.py:366-367`: import marker has no reader | LOW | yes, read: no reader | fixed in a5417fa | Marker and its promise removed; a failed import puts back what it wrote |
+| `_atomic.py`: replace cuts a symlinked config | LOW | yes, ran | fixed in a5417fa | Link replaced by a file → link survives; mode stays 0o644, a pinned trade-off |
+| `routes/config.py:283`: import does not fold `picker:` | LOW | yes, ran | fixed in a5417fa | 422 → folded |
+| `api/fs.py:30`: module-level set | LOW | yes, read: two callers | fixed in a5417fa | Module set gone |
 
 ## Group 5: Library and leftovers
 
@@ -106,5 +106,5 @@ Waiting on the user: the wording of the grant prompt, with mame-curator-1170.
 - **swept:**
 - **collateral:**
 - **surfaced:**
-- **out_of_scope:**
+- **out_of_scope:** 1175 to 1185 filed as they surfaced; 1179 names a hazard.
 - **falsified:**

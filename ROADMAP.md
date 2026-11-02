@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1181 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1185 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3084,7 +3084,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-code-2026-09-28 mame-curator-1010 lane 1 (open question, settled by the orchestrator).
   Lanes: updates, api.
 
-- 📋 [mame-curator-1132] **Settings snapshot restore validates the config only after overwriting it, and never checks the snapshot id.**
+- ✅ [mame-curator-1132] **Settings snapshot restore validates the config only after overwriting it, and never checks the snapshot id.**
   Two pre-existing gaps in POST /api/config/snapshots/{id}/restore
   (api/routes/config.py), found beside the mame-curator-1010 fixes.
   1. The files are overwritten first and load_app_config runs after; a
@@ -3096,6 +3096,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
      themselves). Match it against the id format anyway.
   Not fixed in the 1010 pass: both predate it, and the first needs a
   choice about how a snapshot from an older schema is handled.
+  2026-11-02, a5417fa: a failed restore answers 422 snapshot_unusable
+  with the files put back; the id is matched against the format.
+  Older-schema choice: roll back with a clear error; unknown keys and
+  picker: still migrate.
   **Layman:** Restoring an old settings backup could, in rare cases, fail half-way and leave the app confused.
   Kind: review-fix.
   Source: review-code-2026-09-28 mame-curator-1010 lane 2 (L2-8, L2-9).
@@ -3348,8 +3352,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1159] **Pause and resume replies claim a state a cancel refused.**
+- ✅ [mame-curator-1159] **Pause and resume replies claim a state a cancel refused.**
   JobManager.pause and .resume answer paused and running even when a cancel made the controller refuse. The frontend ignores those replies today, so nothing shows it. Not fixed now because nothing user-visible depends on it.
+  2026-11-02, a5417fa: pause and resume report the controller's real
+  state.
   **Layman:** A small internal mismatch: the reply can say paused when the copy is actually stopping.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
@@ -3492,10 +3498,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1177] **Import skips the path checks a save runs.**
+- ✅ [mame-curator-1177] **Import skips the path checks a save runs.**
   Import never calls _validate_paths, so a bundle can name one folder for
   games and destination, or hold a NUL path. A NUL path no longer stops the
   start (8c403ce). Found while closing Group 1; read, not run.
+  2026-11-02, a5417fa: import refuses a NUL path and a new same-folder
+  pair with 422. It does not check existence, so a backup from another
+  machine still imports.
   **Layman:** A backup file can still name the same folder twice or hold a broken path.
   Kind: review-fix.
   Source: close-findings-2026-11-02-1145.
@@ -3535,6 +3544,39 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: close-findings-2026-11-02-1145.
   Lanes: launchers.
+
+- 📋 [mame-curator-1182] **An empty game list with OVERWRITE empties the playlist.**
+  Measured: selected_names [] with OVERWRITE in normal mode answers 200 and
+  empties the playlist. The frontend guards it; the API does not. Found while
+  building a5417fa, outside that group.
+  **Layman:** A copy request naming no games could wipe your playlist. The app's screens stop this; the server does not.
+  Kind: fix.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: api, tests.
+
+- 📋 [mame-curator-1183] **Pressing Copy in setup mode empties the saved cart.**
+  Validate calls every name missing in setup mode, so handleCopy removes
+  them all. API measured; frontend read, not run.
+  **Layman:** If the game list is not set up yet, pressing Copy can clear the games you had saved in your cart.
+  Kind: fix.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1184] **jobs.py and runner.py are over the hard size cap.**
+  Measured 2026-11-02 at a5417fa: 527 and 580 lines against a cap of 500.
+  Both were over before that commit, which added a few lines to each.
+  **Layman:** Two code files are bigger than the project's own limit.
+  Kind: refactor.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: api, copy.
+
+- 📋 [mame-curator-1185] **Import keeps unknown keys that load_app_config drops.**
+  Read, not run. Versioning-overrides item 1 only asks for this on renames,
+  so decide whether it matters when picked up.
+  **Layman:** A backup with old settings in it may be handled differently from the same settings in your settings file.
+  Kind: fix.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: api, tests.
 
 ## Considered / under research (no target date)
 
