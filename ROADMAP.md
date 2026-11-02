@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1173 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1174 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3447,6 +3447,18 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: doc-fix.
   Source: build-mame-curator-1145-2026-10-30.
   Lanes: docs.
+
+- 📋 [mame-curator-1174] **The app cannot read a playlist RetroArch has compressed, so adding to it is refused.**
+  The user's real mame.lpl starts `#RZIPv` (zstd), RetroArch's compressed
+  form. read_lpl on that file raises PlaylistError: 'utf-8' codec can't
+  decode byte 0x9d. Run on the real file 2026-11-02. By code read, not run:
+  check_playlist_conflict turns that into PlaylistUnreadableError under
+  APPEND, and run_copy's APPEND read raises too. write_lpl always writes
+  plain JSON. Nothing in src reads RZIP.
+  **Layman:** After RetroArch re-saves your playlist in its compressed form, adding more games to it is refused as unreadable.
+  Kind: fix.
+  Source: measured-2026-11-02.
+  Lanes: copy.
 
 ## Considered / under research (no target date)
 
