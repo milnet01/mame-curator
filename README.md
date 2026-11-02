@@ -20,8 +20,8 @@ RetroArch playlist (`mame.lpl`) on the way out.
 Releases after 1.3.0 attach a single file per platform to the
 [Releases page](https://github.com/milnet01/mame-curator/releases). Each
 carries its own Python and everything else it needs: nothing else to
-install, no terminal. Run it and MAME Curator opens in your browser;
-point it at your ROMs and DAT under **Settings → Paths**.
+install, no terminal. Run it and MAME Curator opens in your browser. The first-time setup asks
+where your ROMs and DAT are.
 
 | Platform | File | How to start it |
 |---|---|---|
@@ -91,16 +91,19 @@ Re-run `./run.sh` anytime — it's idempotent.
 # Refresh the four mandatory progettoSnaps reference INIs
 uv run mame-curator refresh-inis --dest data/ini
 
-# Answer the setup questions in the terminal (overwrite existing config)
+# Answer the setup questions in the terminal (overwrites the app's config)
 uv run mame-curator setup --force
 
 # Run the API server explicitly (run.sh does this for you)
-uv run mame-curator serve --config config.yaml --port 8080
+uv run mame-curator serve --port 8080
 
 # CLI dry-run / copy without the UI
 uv run mame-curator filter --dat ... --catver ... --out report.json
 uv run mame-curator copy --dry-run --filter-report report.json --source ... --dest ...
 ```
+
+These commands use the same config file as the app.
+[`docs/help/04-command-line.md`](docs/help/04-command-line.md) says where it is.
 
 ## Developer setup
 

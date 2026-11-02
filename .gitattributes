@@ -1,0 +1,4 @@
+# Windows batch files are CRLF. A ZIP download or a Linux checkout would otherwise
+# give run.bat bare LF. cmd.exe's goto is reported to miss labels in such files; an
+# LF copy did not show that on Windows 10 (2026-11-02), so this is a precaution.
+run.bat text eol=crlf

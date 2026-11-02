@@ -47,8 +47,27 @@ _STUB_UV = """@echo off
 setlocal enabledelayedexpansion
 >>"%UV_LOG%" echo %*
 if "%1"=="run" >>"%UV_LOG%" echo PORT=[!PORT!]
+if "%1"=="run" >>"%UV_LOG%" echo CD=[!CD!]
+if "%1"=="sync" if defined UV_SYNC_RC exit /b %UV_SYNC_RC%
+if "%1"=="run" if defined UV_RUN_RC exit /b %UV_RUN_RC%
 exit /b 0
 """
+
+# What the Microsoft Store shortcut named `python` does (measured on Windows 10,
+# 2026-11-02): `where` finds it, it prints only to stderr, and it exits 9009.
+_STUB_STORE_PYTHON = """@echo off
+>&2 echo Python was not found; run without arguments to install from the Microsoft Store.
+exit /b 9009
+"""
+
+_STUB_OLD_PYTHON = """@echo off
+echo %* | find "sys.version_info >=" >nul && (echo 1 & exit /b 0)
+echo 3.9
+exit /b 0
+"""
+
+_PAUSE_LINE = "Press any key to close this window"
+_INSTALL_WORDS = "Install Python 3.12 or newer"
 
 
 class _Result:
@@ -149,3 +168,221 @@ def test_port_with_cmd_metacharacters_does_not_break_the_parse(run_bat: RunBat, 
     assert "was unexpected at this time" not in result.output
     assert result.returncode == 0, result.output
     assert result.serve_argv == "run --no-dev mame-curator serve"
+
+
+# ---- Failing well (review-code 2026-11-02, lane 02) -------------------
+
+
+def _system32() -> str:
+    return str(Path(os.environ["SYSTEMROOT"]) / "System32")
+
+
+class _Sandbox:
+    """A copy of `run.bat`, stubs, and the ways a user can start it."""
+
+    def __init__(self, tmp_path: Path, folder: str = "sandbox") -> None:
+        self.folder = tmp_path / folder
+        self.folder.mkdir()
+        self.script = self.folder / "run.bat"
+        shutil.copy(RUN_BAT, self.script)
+        self.stubs = tmp_path / "bin"
+        self.stubs.mkdir()
+        self.uv_log = tmp_path / "uv.log"
+        self.uv_log.touch()
+
+    def stub(self, name: str, body: str) -> None:
+        (self.stubs / name).write_text(body)
+
+    def _env(self, path: str, **extra: str) -> dict[str, str]:
+        env = {k: v for k, v in os.environ.items() if k.upper() not in {"PORT", "PATH"}}
+        env.update(PATH=path, UV_LOG=str(self.uv_log), **extra)
+        return env
+
+    def run(
+        self,
+        command: str | list[str],
+        *,
+        path: str | None = None,
+        cwd: Path | None = None,
+        env: dict[str, str] | None = None,
+    ) -> _Result:
+        """Run `command` raw, so a test controls the exact command line cmd.exe sees."""
+        # S603: cmd.exe and the project's own script, in a tmp_path sandbox. stdin
+        # is empty, so a `pause` returns at once instead of hanging the suite.
+        proc = subprocess.run(  # noqa: S603
+            command,
+            capture_output=True,
+            text=True,
+            env=self._env(path or f"{self.stubs}{os.pathsep}{os.environ['PATH']}", **(env or {})),
+            cwd=str(cwd or self.folder),
+            check=False,
+            stdin=subprocess.DEVNULL,
+            timeout=120,
+        )
+        return _Result(
+            proc.returncode, proc.stdout + proc.stderr, self.uv_log.read_text().splitlines()
+        )
+
+    def double_click(self, *, cwd: Path | None = None, **extra: str) -> _Result:
+        """The command line Windows builds for a double-click (measured)."""
+        return self.run(f'cmd.exe /c ""{self.script}" "', cwd=cwd, env=extra)
+
+    def from_powershell(self, **extra: str) -> _Result:
+        """The command line PowerShell builds for `.\\run.bat` (measured)."""
+        return self.run(f'cmd.exe /c ""{self.script}""', env=extra)
+
+    def from_program(self, **extra: str) -> _Result:
+        return self.run(["cmd.exe", "/c", str(self.script)], env=extra)
+
+    def typed_at_a_prompt(self, before: str = "", **extra: str) -> _Result:
+        """Type the command into an open prompt: cmd.exe has no `/c` at all."""
+        typed = f'{before}"{self.script}"\r\nexit\r\n'
+        env = self._env(f"{self.stubs}{os.pathsep}{os.environ['PATH']}", **extra)
+        # S603: as `run`.
+        proc = subprocess.run(
+            ["cmd.exe"],  # noqa: S607
+            input=typed,
+            capture_output=True,
+            text=True,
+            env=env,
+            cwd=str(self.folder),
+            check=False,
+            timeout=120,
+        )
+        return _Result(
+            proc.returncode, proc.stdout + proc.stderr, self.uv_log.read_text().splitlines()
+        )
+
+
+@pytest.fixture
+def sandbox(tmp_path: Path) -> _Sandbox:
+    box = _Sandbox(tmp_path)
+    box.stub("uv.cmd", _STUB_UV)
+    return box
+
+
+def test_store_shortcut_counts_as_no_python(sandbox: _Sandbox) -> None:
+    """The HIGH finding: "Python  is too old" to someone who has no Python."""
+    sandbox.stub("python.cmd", _STUB_STORE_PYTHON)
+    result = sandbox.from_program()
+    assert result.returncode == 1, result.output
+    assert "too old" not in result.output, result.output
+    assert _INSTALL_WORDS in result.output, result.output
+    assert result.serve_argv is None
+
+
+def test_store_shortcut_message_is_not_shown(sandbox: _Sandbox) -> None:
+    """One instruction, ours: its Store advice would contradict the python.org words."""
+    sandbox.stub("python.cmd", _STUB_STORE_PYTHON)
+    assert "Microsoft Store" not in sandbox.from_program().output
+
+
+def test_a_stale_py_ok_in_the_environment_is_ignored(sandbox: _Sandbox) -> None:
+    sandbox.stub("python.cmd", _STUB_STORE_PYTHON)
+    result = sandbox.from_program(PY_OK="0")
+    assert result.returncode == 1, result.output
+    assert _INSTALL_WORDS in result.output, result.output
+
+
+def test_no_python_on_path_gets_the_install_words(sandbox: _Sandbox) -> None:
+    result = sandbox.run(
+        ["cmd.exe", "/c", str(sandbox.script)], path=f"{sandbox.stubs}{os.pathsep}{_system32()}"
+    )
+    assert result.returncode == 1, result.output
+    assert "python not found" in result.output
+    assert _INSTALL_WORDS in result.output
+
+
+def test_too_old_python_gets_the_version_and_the_install_words(sandbox: _Sandbox) -> None:
+    sandbox.stub("python.cmd", _STUB_OLD_PYTHON)
+    result = sandbox.from_program()
+    assert result.returncode == 1, result.output
+    assert "Python 3.9 is too old" in result.output, result.output
+    assert _INSTALL_WORDS in result.output, result.output
+
+
+def test_failed_sync_stops_before_starting(sandbox: _Sandbox) -> None:
+    result = sandbox.from_program(UV_SYNC_RC="7")
+    assert result.returncode == 7, result.output
+    assert "Starting MAME Curator" not in result.output, result.output
+    assert result.serve_argv is None
+
+
+def _real_python_dir() -> str:
+    return str(Path(sys.executable).parent)
+
+
+def test_failed_uv_install_says_so(tmp_path: Path) -> None:
+    """A failed install must not claim it completed and send the user to a new window."""
+    box = _Sandbox(tmp_path)
+    box.stub("powershell.cmd", "@echo off\nexit /b 1\n")
+    result = box.run(
+        ["cmd.exe", "/c", str(box.script)],
+        path=os.pathsep.join([str(box.stubs), _real_python_dir(), _system32()]),
+    )
+    assert result.returncode == 1, result.output
+    assert "could not install uv" in result.output, result.output
+    assert "completed" not in result.output, result.output
+
+
+def test_uv_installed_but_not_on_path_says_open_a_new_window(tmp_path: Path) -> None:
+    box = _Sandbox(tmp_path)
+    box.stub("powershell.cmd", "@echo off\nexit /b 0\n")
+    result = box.run(
+        ["cmd.exe", "/c", str(box.script)],
+        path=os.pathsep.join([str(box.stubs), _real_python_dir(), _system32()]),
+    )
+    assert result.returncode == 1, result.output
+    assert "new Command Prompt" in result.output, result.output
+
+
+@pytest.mark.parametrize("folder", ["a!b", "a (b)", "a & b"])
+def test_awkward_folder_names_reach_serve(tmp_path: Path, folder: str) -> None:
+    """A `!` was eaten by delayed expansion, so `uv` ran in the wrong folder."""
+    box = _Sandbox(tmp_path, folder)
+    box.stub("uv.cmd", _STUB_UV)
+    result = box.double_click(cwd=tmp_path)
+    assert result.returncode == 0, result.output
+    assert result.serve_argv == "run --no-dev mame-curator serve"
+    assert f"CD=[{box.folder}]" in result.uv_log, result.uv_log
+
+
+def test_double_click_pauses_on_failure(sandbox: _Sandbox) -> None:
+    """Without the pause the window closes and takes the error with it."""
+    result = sandbox.double_click(UV_RUN_RC="1")
+    assert _PAUSE_LINE in result.output, result.output
+    assert result.returncode == 1
+
+
+def test_double_click_pauses_on_an_early_failure_too(sandbox: _Sandbox) -> None:
+    sandbox.stub("python.cmd", _STUB_STORE_PYTHON)
+    result = sandbox.double_click()
+    assert _INSTALL_WORDS in result.output, result.output
+    assert _PAUSE_LINE in result.output, result.output
+
+
+def test_double_click_does_not_pause_on_success(sandbox: _Sandbox) -> None:
+    result = sandbox.double_click()
+    assert result.returncode == 0, result.output
+    assert _PAUSE_LINE not in result.output, result.output
+
+
+def test_double_click_does_not_pause_after_ctrl_c(sandbox: _Sandbox) -> None:
+    """`serve` exits 130 when stopped; that is not a failure to read about."""
+    result = sandbox.double_click(UV_RUN_RC="130")
+    assert _PAUSE_LINE not in result.output, result.output
+    assert result.returncode == 130
+
+
+@pytest.mark.parametrize("start", ["typed_at_a_prompt", "from_powershell", "from_program"])
+def test_no_pause_when_started_from_a_prompt(sandbox: _Sandbox, start: str) -> None:
+    """An open prompt keeps the message on screen, and a program must not hang."""
+    result = getattr(sandbox, start)(UV_RUN_RC="1")
+    assert result.serve_argv == "run --no-dev mame-curator serve", result.output
+    assert _PAUSE_LINE not in result.output, result.output
+
+
+def test_an_earlier_failure_at_the_prompt_is_not_mistaken_for_ours(sandbox: _Sandbox) -> None:
+    """The errorlevel left by the last command at the prompt must not stop the script."""
+    result = sandbox.typed_at_a_prompt(before="cmd /c exit 1\r\n")
+    assert result.serve_argv == "run --no-dev mame-curator serve", result.output

@@ -3,7 +3,9 @@
 A downloaded bundle has no `config.yaml` and no terminal to answer the
 interactive `mame-curator setup` wizard in, so `serve` resolves its
 config through three layers — flag, working directory, per-user
-directory — and creates the last one when it is absent.
+directory — and creates the last one when it is absent. `setup`,
+`refresh-inis` and `refresh-snaps` resolve the same way, so they use the
+file `serve` reads; only `serve` creates the starter.
 
 See `docs/specs/mame-curator-1095-desktop-bundles.md` § 4.1.
 """
@@ -15,6 +17,8 @@ from pathlib import Path
 
 import platformdirs
 import yaml
+
+from mame_curator._atomic import atomic_write_text
 
 _APP_NAME = "mame-curator"
 
@@ -110,6 +114,7 @@ def ensure_starter_config(path: Path) -> bool:
         },
         "server": {"host": "127.0.0.1", "port": 8080, "open_browser_on_start": True},
     }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(STARTER_HEADER + yaml.safe_dump(body, sort_keys=False), encoding="utf-8")
+    # Atomic: a partial file left by a full disk would never be recreated,
+    # because this returns early for any path that exists.
+    atomic_write_text(path, STARTER_HEADER + yaml.safe_dump(body, sort_keys=False))
     return True

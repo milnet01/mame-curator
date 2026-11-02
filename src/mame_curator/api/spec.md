@@ -43,6 +43,10 @@ The async **lifespan** populates `app.state` once at startup:
 | `arcadedb_limiter` | `TokenBucket` (`mame_curator.media`) | `rate = N/60` per s, `capacity = N`, where `N = config.media.arcadedb_rate_limit_per_min` |
 | `wikipedia_limiter` | `TokenBucket` (`mame_curator.media`) | `rate = 1.0` per s, `capacity = 60` — 60 req/min hardcoded courtesy cap |
 
+When `build_world` raises `ConfigError`, `ParserError` or `FilterError`, the
+lifespan sets `app.state.startup_error` to it and re-raises, so `serve` can
+report it in one line (`cli/spec.md` § Exit codes).
+
 On shutdown the lifespan closes `media_client` and, if a copy job is
 in flight, cancels its controller and joins the worker thread with a
 5-second timeout (logging a warning if it does not exit — the daemon

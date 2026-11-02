@@ -19,13 +19,15 @@ from starlette.staticfiles import StaticFiles
 from starlette.types import Scope
 
 from mame_curator._resources import frontend_dist
-from mame_curator.api.errors import install_handlers
+from mame_curator.api.errors import ConfigError, install_handlers
 from mame_curator.api.jobs import JobManager
 from mame_curator.api.origin_guard import OriginGuard
 from mame_curator.api.routes import router as api_router
 from mame_curator.api.routes.updates import init_update_state, install_update_error_handler
 from mame_curator.api.state import build_world
+from mame_curator.filter import FilterError
 from mame_curator.media import SourceDisabledFlag, TokenBucket, _build_user_agent
+from mame_curator.parser import ParserError
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +105,13 @@ def create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        world = build_world(config_path)
+        try:
+            world = build_world(config_path)
+        except (ConfigError, ParserError, FilterError) as exc:
+            # mame-curator-1139: uvicorn turns this into a logged traceback and
+            # `sys.exit`, which loses it. `serve` reads it back for its one line.
+            app.state.startup_error = exc
+            raise
         app.state.world = world
         # mame-curator-1145 §4.1: what `restart_required` compares with.
         app.state.started_server = world.config.server

@@ -231,3 +231,75 @@ def test_run_bat_never_runs_setup() -> None:
     `test_run_bat_port.py` skips itself anywhere but Windows.
     """
     assert "mame-curator setup" not in (REPO_ROOT / "run.bat").read_text(encoding="utf-8")
+
+
+# ---- The Python gate (review-code 2026-11-02, lane 02) ----------------
+
+
+def _stub_python(version: str) -> str:
+    """A fake interpreter: `sys.exit` code asks the gate, anything else its version."""
+    major, minor = (int(part) for part in version.split("."))
+    verdict = 0 if (major, minor) >= (3, 12) else 1
+    return f"""#!/bin/sh
+case "$2" in
+    *sys.exit*) exit {verdict} ;;
+    *) echo {version} ;;
+esac
+"""
+
+
+def _run_with_pythons(tmp_path: Path, pythons: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    """Run `run.sh` with a `PATH` holding only stubs and the tools it needs."""
+    sandbox = tmp_path / "gate"
+    sandbox.mkdir()
+    shutil.copy(RUN_SH, sandbox / "run.sh")
+    only = tmp_path / "only"
+    only.mkdir()
+    for tool in ("bash", "dirname", "cat"):
+        found = shutil.which(tool)
+        assert found is not None
+        (only / tool).symlink_to(found)
+    uv_log = tmp_path / "gate-uv.log"
+    uv_log.touch()
+    for name, body in {"uv": _STUB_UV, **{k: _stub_python(v) for k, v in pythons.items()}}.items():
+        stub = only / name
+        stub.write_text(body)
+        stub.chmod(stub.stat().st_mode | stat.S_IXUSR)
+    bash = shutil.which("bash")
+    assert bash is not None
+    # S603: bash plus a path to the project's own script, in a tmp_path sandbox.
+    return subprocess.run(  # noqa: S603
+        [bash, str(sandbox / "run.sh")],
+        capture_output=True,
+        text=True,
+        env={"PATH": str(only), "HOME": str(tmp_path), "UV_LOG": str(uv_log)},
+        cwd=str(sandbox),
+        check=False,
+        timeout=60,
+    )
+
+
+def test_a_side_by_side_python_passes_the_gate(tmp_path: Path) -> None:
+    """Following the hint on Ubuntu or Fedora leaves `python3` old: it must still start."""
+    result = _run_with_pythons(tmp_path, {"python3": "3.9", "python3.12": "3.12"})
+    assert result.returncode == 0, result.stderr
+    assert "too old" not in result.stderr
+
+
+def test_a_versioned_python_alone_passes_the_gate(tmp_path: Path) -> None:
+    result = _run_with_pythons(tmp_path, {"python3.13": "3.13"})
+    assert result.returncode == 0, result.stderr
+
+
+def test_a_too_old_python_is_told_where_to_get_a_new_one(tmp_path: Path) -> None:
+    result = _run_with_pythons(tmp_path, {"python3": "3.9"})
+    assert result.returncode == 1
+    assert "Python 3.9 is too old" in result.stderr
+    assert "Install Python 3.12 or newer" in result.stderr
+
+
+def test_no_python_at_all_is_still_named(tmp_path: Path) -> None:
+    result = _run_with_pythons(tmp_path, {})
+    assert result.returncode == 1
+    assert "python3 not found" in result.stderr
+    assert "Install Python 3.12 or newer" in result.stderr

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import http.client
 import ipaddress
 import logging
 import os
 import re
-import socket
+import secrets
 import threading
 import time
 import webbrowser
@@ -43,14 +44,20 @@ _BROWSER_POLL_INTERVAL_S = 0.1
 _BROWSER_CONNECT_TIMEOUT_S = 0.25
 _BROWSER_POLL_TIMEOUT_S = 300.0
 
+# uvicorn puts this on every reply, with a value made fresh for each `serve`
+# run, so the browser poller can tell this server from whatever else holds the
+# port, including another copy of this app. It proves identity to ourselves on
+# loopback and guards nothing, so it is not a secret.
+_INSTANCE_HEADER = "x-mame-curator-instance"
+
 
 def _resolve_port(explicit: int | None) -> int:
     """Resolve the bind port: ``--port`` flag → ``$PORT`` → 8080.
 
-    `run.sh` converts `$PORT` into an explicit `--port`, so this only
-    fires for callers that invoke `mame-curator serve` directly — but the
-    range and the message match `run.sh`'s own check so the error reads
-    the same whichever way the user came in.
+    `run.sh` checks `$PORT` itself and passes it as `--port`, so `$PORT` is
+    read here for `run.bat`, which leaves it to this check, and for callers
+    that invoke `mame-curator serve` directly. The range and the message match
+    `run.sh`'s check, so the error reads the same whichever way the user came in.
 
     Raises:
         ValueError: `$PORT` is set to something other than an integer in
@@ -138,30 +145,50 @@ def _is_wildcard(host: str) -> bool:
         return False  # use it as given
 
 
-def _open_browser_when_ready(host: str, port: int) -> None:
-    """Poll `host:port` until it accepts a connection, then open a browser.
+def _answers_as_this_server(host: str, port: int, instance: str) -> bool:
+    """Does the server at `host:port` carry this run's identity header?
+
+    Any status counts: uvicorn adds the header to every reply, and only
+    identity is being asked. A port that refuses, stays silent or speaks
+    something other than HTTP is simply not this server, yet.
+    """
+    connection = http.client.HTTPConnection(host, port, timeout=_BROWSER_CONNECT_TIMEOUT_S)
+    try:
+        connection.request("HEAD", "/")
+        return connection.getresponse().getheader(_INSTANCE_HEADER) == instance
+    except (OSError, http.client.HTTPException):
+        return False
+    finally:
+        connection.close()
+
+
+def _open_browser_when_ready(host: str, port: int, instance: str) -> None:
+    """Poll `host:port` until this server answers there, then open a browser.
 
     A fixed delay is not a conforming implementation: uvicorn runs the
     application lifespan — which parses a ~48 MB DAT, tens of seconds on a
     cold cache — *before* it creates the listening socket, so any constant
     is simultaneously too short on a cold start and too long on a warm one.
+    A port that merely accepts is not enough either: another program, or
+    another copy of this app, may hold it, and this copy is about to fail to
+    bind.
 
     Best-effort by contract: every failure path returns rather than
     raising, and each non-open outcome logs its own distinguishable line.
     """
-    connect_host = "127.0.0.1" if _is_wildcard(host) else host
-    url = f"http://{connect_host}:{port}/"
+    connect_host = "127.0.0.1" if _is_wildcard(host) else host.strip("[]")
+    # An IPv6 literal needs brackets in a URL, and none on a socket.
+    url_host = f"[{connect_host}]" if ":" in connect_host else connect_host
+    url = f"http://{url_host}:{port}/"
     deadline = time.monotonic() + _BROWSER_POLL_TIMEOUT_S
 
     while time.monotonic() < deadline:
-        try:
-            with socket.create_connection((connect_host, port), timeout=_BROWSER_CONNECT_TIMEOUT_S):
-                pass
-        except OSError:
+        if not _answers_as_this_server(connect_host, port, instance):
             time.sleep(_BROWSER_POLL_INTERVAL_S)
             continue
         try:
-            webbrowser.open(url)
+            if not webbrowser.open(url):
+                logger.debug("browser open failed: no browser could be started")
         except Exception as exc:
             # Deliberately broad, and the one place in `cli/` where that is
             # right: this runs in a daemon thread, `webbrowser` backends
@@ -176,7 +203,7 @@ def _open_browser_when_ready(host: str, port: int) -> None:
 
 
 def _maybe_open_browser(
-    host: str, port: int, *, enabled: bool, suppressed: bool, managed: bool
+    host: str, port: int, instance: str, *, enabled: bool, suppressed: bool, managed: bool
 ) -> None:
     """Start the browser poller, or log the reason it was skipped.
 
@@ -199,10 +226,30 @@ def _maybe_open_browser(
         # construction and would burn the whole budget before giving up.
         logger.debug("browser open skipped: port 0 (bound port not knowable before listen)")
     else:
-        threading.Thread(target=_open_browser_when_ready, args=(host, port), daemon=True).start()
+        threading.Thread(
+            target=_open_browser_when_ready, args=(host, port, instance), daemon=True
+        ).start()
 
 
-def _run_server(app: FastAPI, host: str, port: int, err_console: Console) -> int:
+class _HideKnownStartupFailure(logging.Filter):
+    """Drop uvicorn's traceback once the lifespan has recorded a typed failure.
+
+    A failure the user caused gets one line from `_run_server`, not a stack
+    (`cli/spec.md` § "Errors the CLI catches"). Any other failure records
+    nothing here, so a bug in our own code still shows its traceback.
+    """
+
+    def __init__(self, app: FastAPI) -> None:
+        super().__init__()
+        self._app = app
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return getattr(self._app.state, "startup_error", None) is None
+
+
+def _run_server(
+    app: FastAPI, host: str, port: int, instance: str, config_path: Path, err_console: Console
+) -> int:
     """Run uvicorn, and translate how it ended into an exit code.
 
     Everything from the socket inwards belongs to `api/`; this owns only
@@ -210,8 +257,13 @@ def _run_server(app: FastAPI, host: str, port: int, err_console: Console) -> int
     """
     import uvicorn
 
+    uvicorn_logger = logging.getLogger("uvicorn.error")
+    hide_known_failure = _HideKnownStartupFailure(app)
+    uvicorn_logger.addFilter(hide_known_failure)
     try:
-        uvicorn.run(app, host=host, port=port, log_level="info")
+        uvicorn.run(
+            app, host=host, port=port, log_level="info", headers=[(_INSTANCE_HEADER, instance)]
+        )
     except (OSError, OverflowError) as exc:
         # OverflowError, not an OSError subclass, is what `socket.bind`
         # raises for a resolved port outside 0-65535 — reachable from both
@@ -220,11 +272,32 @@ def _run_server(app: FastAPI, host: str, port: int, err_console: Console) -> int
             f"[red]error:[/red] failed to bind {escape(host)}:{port}: {escape(str(exc))}"
         )
         return 1
+    except SystemExit:
+        # mame-curator-1139: uvicorn reports a startup failure by calling
+        # `sys.exit` itself, with 1 for a failed bind and 3 for a failed
+        # lifespan. The code is its own; ours for "failed to start" is 1, and 3
+        # means a cancelled copy (`cli/spec.md` § Exit codes).
+        cause = getattr(app.state, "startup_error", None)
+        if cause is not None:
+            reason = " ".join(str(cause).split())
+            err_console.print(
+                f"[red]error:[/red] could not start with {escape(str(config_path))}: "
+                f"{escape(reason)}"
+            )
+        else:
+            err_console.print(
+                f"[red]error:[/red] the server could not start on {escape(host)}:{port}. "
+                "The lines above say why. If the port is in use, MAME Curator may "
+                "already be running."
+            )
+        return 1
     except KeyboardInterrupt:
         # FP28 D1: uvicorn catches Ctrl-C internally and returns normally
         # in the current version; this except is defence-in-depth for a
         # future re-raise. POSIX convention for SIGINT is exit 130.
         return 130
+    finally:
+        uvicorn_logger.removeFilter(hide_known_failure)
     # FP28 D1: fall-through is also 130, not 0 — uvicorn's internal
     # KeyboardInterrupt catch means the function reaches here when the
     # user Ctrl-C'd a healthy server. The visible exit code must reflect
@@ -276,8 +349,8 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         # Only reachable for an explicit --config: layer 2 is skipped when
         # absent and layer 3 was just created.
         err_console.print(
-            f"[red]error:[/red] config file not found: {escape(repr(config_path))} — "
-            "run `mame-curator setup` first"
+            f"[red]error:[/red] config file not found: {escape(str(config_path))} — "
+            "check the path, or run `mame-curator setup --out` with it first"
         )
         return 1
 
@@ -313,20 +386,23 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     # coding-standards.md § 9 — the trace is the actionable signal.
     # NOTE: create_app is currently a pure FastAPI factory; config
     # validation happens inside the async lifespan and surfaces during
-    # uvicorn.run, not here. This catch is defence-in-depth in case a
-    # future refactor moves validation up into the factory body.
+    # uvicorn.run, as `_run_server`'s SystemExit. This catch is
+    # defence-in-depth in case a future refactor moves validation up into
+    # the factory body.
     try:
         app = create_app(config_path, bind_host=host)
     except (ConfigError, ParserError, FilterError) as exc:
         err_console.print(f"[red]error:[/red] failed to create app: {escape(str(exc))}")
         return 1
 
+    instance = secrets.token_hex(16)
     _maybe_open_browser(
         host,
         port,
+        instance,
         enabled=server.open_browser_on_start,
         suppressed=args.no_open_browser,
         managed=os.environ.get("LWSM_MANAGED") == "1",
     )
 
-    return _run_server(app, host, port, err_console)
+    return _run_server(app, host, port, instance, config_path, err_console)

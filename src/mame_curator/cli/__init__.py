@@ -109,8 +109,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub_setup.add_argument(
         "--out",
         type=Path,
-        default=Path("config.yaml"),
-        help="Where to write the config (default: ./config.yaml).",
+        default=None,
+        help=(
+            "Where to write the config. Default: the file `serve` reads, "
+            "./config.yaml if present, else the per-user config."
+        ),
     )
     sub_setup.add_argument(
         "--force", action="store_true", help="Overwrite an existing config file."
@@ -147,11 +150,13 @@ def build_parser() -> argparse.ArgumentParser:
     refresh.add_argument(
         "--config",
         type=Path,
-        default=Path("config.yaml"),
+        default=None,
         help=(
             "Path to config.yaml — fields under paths.{catver,languages,bestgames,"
             "series,mature} that are currently unset will be patched to point at the "
-            "downloaded INIs (existing values are preserved). Pass --no-config to skip."
+            "downloaded INIs (existing values are preserved). Default: the file `serve` "
+            "reads, ./config.yaml if present, else the per-user config. Pass --no-config "
+            "to skip."
         ),
     )
     refresh.add_argument(
@@ -182,8 +187,11 @@ def build_parser() -> argparse.ArgumentParser:
     refresh_snaps.add_argument(
         "--config",
         type=Path,
-        default=Path("config.yaml"),
-        help="Config file to read media.snaps_dir from when --dest is omitted.",
+        default=None,
+        help=(
+            "Config file to read media.snaps_dir from when --dest is omitted. Default: "
+            "the file `serve` reads, ./config.yaml if present, else the per-user config."
+        ),
     )
     refresh_snaps.add_argument(
         "--url",

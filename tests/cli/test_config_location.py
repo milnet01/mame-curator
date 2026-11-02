@@ -212,3 +212,27 @@ def test_invalid_port_still_beats_config_resolution(
 
     assert rc == 1
     assert not user_config.exists(), "no config I/O may happen before the $PORT raise"
+
+
+def test_starter_config_failed_write_leaves_no_partial_file(
+    user_dirs: tuple[Path, Path],
+) -> None:
+    """A partial starter would never be recreated: `ensure` skips an existing file."""
+    config, _ = user_dirs
+    real_write_text = Path.write_text
+
+    def _partial_write(self: Path, data: str, **kwargs: Any) -> int:
+        real_write_text(self, data[:5], **kwargs)
+        raise OSError(28, "No space left on device")
+
+    def _no_replace(*_: Any) -> None:
+        raise OSError(28, "No space left on device")
+
+    with (
+        patch.object(Path, "write_text", _partial_write),
+        patch("mame_curator._atomic.os.replace", _no_replace),
+        pytest.raises(OSError, match="No space"),
+    ):
+        ensure_starter_config(config)
+
+    assert not config.exists()

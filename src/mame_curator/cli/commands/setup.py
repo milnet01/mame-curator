@@ -7,9 +7,11 @@ from pathlib import Path
 
 import yaml
 from rich.console import Console
+from rich.markup import escape
 from rich.prompt import Prompt
 
-from mame_curator.config_location import STARTER_HEADER
+from mame_curator._atomic import atomic_write_text
+from mame_curator.config_location import STARTER_HEADER, resolve_config_path
 
 
 def _prompt_path(label: str, supplied: Path | None) -> Path:
@@ -27,16 +29,22 @@ def _prompt_path(label: str, supplied: Path | None) -> Path:
 
 
 def _cmd_setup(args: argparse.Namespace) -> int:
-    console = Console()
+    # soft_wrap: a path must stay whole, to be copied or read back.
+    console = Console(soft_wrap=True)
     err_console = Console(stderr=True, soft_wrap=True)
 
-    if args.out.exists() and not args.force:
+    # Without --out, write the file `serve` will read. A new ./config.yaml beside
+    # a per-user config would silently take over from it.
+    out, _ = resolve_config_path(args.out)
+    shown_out = escape(str(out))
+
+    if out.exists() and not args.force:
         err_console.print(
-            f"[red]error:[/red] {args.out!r} already exists — pass --force to overwrite."
+            f"[red]error:[/red] {shown_out} already exists — pass --force to overwrite."
         )
         return 1
 
-    console.print("[bold]MAME Curator setup[/bold] — writes a starter config.yaml.")
+    console.print(f"[bold]MAME Curator setup[/bold] — writes a starter config to {shown_out}.")
     console.print("Press Enter after each path. Tilde (~) is expanded.\n")
 
     try:
@@ -57,13 +65,14 @@ def _cmd_setup(args: argparse.Namespace) -> int:
 
     if not source_roms.is_dir():
         err_console.print(
-            f"[red]error:[/red] source_roms {str(source_roms)!r} "
+            f"[red]error:[/red] source_roms {escape(repr(str(source_roms)))} "
             "does not exist or is not a directory."
         )
         return 1
     if not source_dat.is_file():
         err_console.print(
-            f"[red]error:[/red] source_dat {str(source_dat)!r} does not exist or is not a file."
+            f"[red]error:[/red] source_dat {escape(repr(str(source_dat)))} "
+            "does not exist or is not a file."
         )
         return 1
 
@@ -78,14 +87,14 @@ def _cmd_setup(args: argparse.Namespace) -> int:
     body = STARTER_HEADER + yaml.safe_dump(paths_block, sort_keys=False)
 
     try:
-        args.out.write_text(body, encoding="utf-8")
+        atomic_write_text(out, body)
     except OSError as exc:
-        err_console.print(f"[red]error:[/red] failed to write {args.out!r}: {exc}")
+        err_console.print(f"[red]error:[/red] failed to write {shown_out}: {escape(str(exc))}")
         return 1
 
-    console.print(f"\n[green]✓[/green] wrote {args.out}")
-    console.print(
-        "Run [bold]mame-curator serve --config "
-        f"{args.out}[/bold] (or [bold]./scripts/dev.sh[/bold]) to start the app."
-    )
+    console.print(f"\n[green]✓[/green] wrote {shown_out}")
+    serve_command = "mame-curator serve"
+    if args.out is not None:
+        serve_command += f" --config {shown_out}"
+    console.print(f"Run [bold]{serve_command}[/bold] to start the app.")
     return 0

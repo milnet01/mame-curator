@@ -331,7 +331,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests/api/test_setup_save.py. 938 → 966.
 # Bumped 2026-11-02 (mame-curator-1145 review, the folder picker): one odd file,
 # and FsEntry.hidden. 966 → 970.
-EXPECTED_PYTEST_DECLARATIONS = 970
+# Bumped 2026-11-02 (mame-curator-1145 review, launchers and command line;
+# mame-curator-1139): tests/cli/test_cli_config_default.py,
+# test_serve_startup_failure.py, tests/tools/test_launcher_text.py, and additions
+# to test_run_bat_port.py, test_run_sh_port.py, test_serve_browser.py and
+# test_config_location.py. 970 → 1027.
+EXPECTED_PYTEST_DECLARATIONS = 1027
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

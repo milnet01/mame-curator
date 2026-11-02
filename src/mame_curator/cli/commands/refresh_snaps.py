@@ -12,14 +12,18 @@ import argparse
 from pathlib import Path
 
 from rich.console import Console
+from rich.markup import escape
+
+from mame_curator.config_location import resolve_config_path
 
 
 def _resolve_dest(args: argparse.Namespace, err_console: Console) -> Path | None:
     """Resolve the pack destination root, or ``None`` if config is unreadable.
 
     mame-curator-1081: an explicit ``--dest`` always wins. Otherwise bind the
-    download folder to ``media.snaps_dir`` from ``--config`` so it can't diverge
-    from the folder the progettoSnaps media source reads. An absent config file
+    download folder to ``media.snaps_dir`` from ``--config``, or without it from
+    the file ``serve`` reads, so it can't diverge from the folder the
+    progettoSnaps media source reads. An absent config file
     falls back to the ``MediaConfig`` default; a present-but-invalid config is a
     hard error (the user can pass ``--dest`` to bypass it).
     """
@@ -31,18 +35,20 @@ def _resolve_dest(args: argparse.Namespace, err_console: Console) -> Path | None
 
     from mame_curator.api.schemas import MediaConfig
 
-    if not args.config.exists():
+    config_path, _ = resolve_config_path(args.config)
+    if not config_path.exists():
         return MediaConfig().snaps_dir
 
     from mame_curator.api.errors import ConfigError
     from mame_curator.api.state import load_app_config
 
     try:
-        return load_app_config(args.config).media.snaps_dir
+        return load_app_config(config_path).media.snaps_dir
     except (ConfigError, OSError) as exc:
         err_console.print(
-            f"[red]error:[/red] could not read media.snaps_dir from {args.config!s} "
-            f"({exc}); fix the config or pass --dest explicitly"
+            f"[red]error:[/red] could not read media.snaps_dir from "
+            f"{escape(str(config_path))} ({escape(str(exc))}); "
+            "fix the config or pass --dest explicitly"
         )
         return None
 
@@ -66,7 +72,7 @@ def _cmd_refresh_snaps(args: argparse.Namespace) -> int:
         from mame_curator.updates import refresh_snaps
     except ImportError as exc:
         err_console.print(
-            f"[red]error:[/red] failed to import dependencies ({exc}); "
+            f"[red]error:[/red] failed to import dependencies ({escape(str(exc))}); "
             "reinstall the project (uv sync, or pip install -e .)"
         )
         return 1
@@ -84,16 +90,18 @@ def _cmd_refresh_snaps(args: argparse.Namespace) -> int:
             )
 
         if report.error:
-            err_console.print(f"[red]✗[/red] {report.error}")
+            err_console.print(f"[red]✗[/red] {escape(str(report.error))}")
             return 1
         if report.downloaded:
             console.print(
-                f"[green]✓[/green] downloaded {report.pack_url} "
+                f"[green]✓[/green] downloaded {escape(str(report.pack_url))} "
                 f"→ {report.files_extracted} PNG(s) extracted, "
                 f"{report.files_skipped} skipped (existed; use --force to overwrite)"
             )
         else:
-            console.print(f"[yellow]·[/yellow] no download performed ({report.pack_url})")
+            console.print(
+                f"[yellow]·[/yellow] no download performed ({escape(str(report.pack_url))})"
+            )
         return 0
 
     return asyncio.run(_run())

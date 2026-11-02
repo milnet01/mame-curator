@@ -14,9 +14,26 @@ cd "$(dirname "$0")"
 
 # ---- 1. Python 3.12+ detection ---------------------------------------
 
-if ! command -v python3 >/dev/null 2>&1; then
+# Installing python3.12 beside an older system Python leaves `python3` old, so
+# the versioned names count too. `uv` looks for those names itself.
+PY_OK=""
+PY_VERSION=""
+for candidate in python3 python3.14 python3.13 python3.12; do
+    command -v "${candidate}" >/dev/null 2>&1 || continue
+    if "${candidate}" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)'; then
+        PY_OK=1
+        break
+    fi
+    [ -n "${PY_VERSION}" ] || PY_VERSION=$("${candidate}" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+done
+
+if [ -z "${PY_OK}" ]; then
+    if [ -n "${PY_VERSION}" ]; then
+        echo "error: Python ${PY_VERSION} is too old; need 3.12+." >&2
+    else
+        echo "error: python3 not found on PATH." >&2
+    fi
     cat >&2 <<'EOF'
-error: python3 not found on PATH.
 
 Install Python 3.12 or newer:
   openSUSE Tumbleweed:  sudo zypper in python313
@@ -26,12 +43,6 @@ Install Python 3.12 or newer:
 
 Then re-run ./run.sh.
 EOF
-    exit 1
-fi
-
-PY_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)'; then
-    echo "error: Python ${PY_VERSION} is too old; need 3.12+." >&2
     exit 1
 fi
 
@@ -45,9 +56,8 @@ if ! command -v uv >/dev/null 2>&1; then
     # the user's DNS or a captive-portal layer can swap in a malicious
     # installer over plain HTTP. The official Astral installer publishes
     # over HTTPS only, so these flags are no-ops on a clean network and
-    # a real defense on a hostile one. (Full integrity via a vendored
-    # release tarball + sha256 is tracked as a separate ADR — see
-    # docs/decisions/.)
+    # a real defense on a hostile one. This protects the download only:
+    # nothing pins the installer's version or checks a hash of it.
     curl --proto '=https' --tlsv1.2 -LsSf https://astral.sh/uv/install.sh | sh
     # The uv installer drops the binary in ~/.local/bin or ~/.cargo/bin.
     export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"

@@ -40,7 +40,7 @@ The `setup` subcommand is a small CLI-only bootstrap shipped ahead of the
 P08 browser-based first-run wizard. Scope is deliberately minimal:
 prompts for the four required `paths.*` fields (or accepts them via flags
 for non-interactive use), validates that `source_roms` and `source_dat`
-exist, then writes a starter `config.yaml` that omits the rest of the
+exist, then writes a starter config that omits the rest of the
 sections so they fall back to `AppConfig` defaults. Anything richer
 (filter chip lists, region priority, theme, …) is tweaked through the
 in-app Settings page or by hand-editing — `setup`'s job is "get me to a
@@ -50,8 +50,8 @@ it stays as a command for scripts.
 
 | `setup` flag | Effect |
 |---|---|
-| `--out <path>` | Where to write the config. Default `./config.yaml`. |
-| `--force` | Overwrite an existing `--out` file. |
+| `--out <path>` | Where to write the config. Default: the file `serve` reads, by `resolve_config_path`: `./config.yaml` if present, else the per-user config. |
+| `--force` | Overwrite the existing target file. |
 | `--source-roms <dir>` | Skip that prompt. |
 | `--source-dat <file>` | Skip that prompt. |
 | `--dest-roms <dir>` | Skip that prompt. |
@@ -64,8 +64,10 @@ and an empty answer re-prompts. With all four path flags supplied,
 | `setup` exit | When |
 |---|---|
 | `0` | The config was written. |
-| `1` | `--out` exists without `--force`; stdin closes before a prompt is answered (the line names the four path flags); `source_roms` is not a directory; `source_dat` is not a file; or the write failed. Each prints one `error:` line on stderr. |
+| `1` | The target file exists without `--force`; stdin closes before a prompt is answered (the line names the four path flags); `source_roms` is not a directory; `source_dat` is not a file; or the write failed. Each prints one `error:` line on stderr. |
 | `2` | argparse usage error. |
+
+**`refresh-inis` and `refresh-snaps` find their config the same way.** With no `--config` they use `resolve_config_path`, so they read and update the file `serve` reads. None of the three creates the per-user starter; only `serve` does. `refresh-inis` updates only `paths.*` fields that are unset, and a relative `--dest` goes into a per-user config as an absolute path. When it downloads files but updates nothing, it says so, and still exits by the downloads alone: there is no such file, the file cannot be read or written, the file or its `paths:` is not a mapping, or every path was already set. `--no-config` skips the update and the message.
 
 The CLI MUST refuse to run with no subcommand (argparse `required=True` on the subparsers group). Adding a subcommand is a change to `build_parser()` alone — register the subparser and attach its handler with `set_defaults(func=...)`; `run()` is never edited. See § "Dispatch pattern" for the mandatory form. Handlers live one-per-module in `cli/commands/<name>.py` (dashes in the subcommand name become underscores in the module name: `refresh-inis` → `cli/commands/refresh_inis.py`) and are re-exported from `cli/__init__.py` as `_cmd_<name>` so tests can import them from their historical location.
 
@@ -114,7 +116,8 @@ surface too**; `P04-http-api.md` § "Contract" says so and defers here.
 `_cmd_serve`'s exit-`1` paths, in the order they are checked:
 
 1. `--port` absent and `$PORT` set and invalid (see § Port).
-2. `--config` names a file that does not exist.
+2. `--config` names a file that does not exist, or the per-user starter
+   cannot be created (`cannot create config at`).
 3. The API extras are not installed (`ImportError` on `uvicorn` / `mame_curator.api`).
 4. `config.yaml` is unreadable, is not a YAML mapping, or its
    `server:` block fails validation (`ConfigError`). Because `load_app_config`
@@ -130,10 +133,17 @@ surface too**; `P04-http-api.md` § "Contract" says so and defers here.
    `Exception` — not reusing a sibling module's typed error for the exact
    condition it names.
 5. `create_app` raised `ConfigError` / `ParserError` / `FilterError`.
-6. The bind failed — `OSError` (address in use, permission denied for a
-   privileged port), or `OverflowError` (a **resolved** port outside
-   0-65535, which can come from `--port` or from `server.port` — neither
-   is range-checked, see § Port rules (1) and (3)).
+6. The bind raised — `OSError`, or `OverflowError` (a **resolved** port
+   outside 0-65535, which can come from `--port` or from `server.port` —
+   neither is range-checked, see § Port rules (1) and (3)).
+7. uvicorn exited — `SystemExit`, whatever its code (mame-curator-1139).
+   uvicorn logs the cause and calls `sys.exit` itself: `1` when the address is
+   in use or the privileged port is refused, `3` when the lifespan fails.
+   Neither code passes through. `serve` prints one `error:` line and returns 1.
+   When the lifespan raised `ConfigError`, `ParserError` or `FilterError`, it
+   records that as `app.state.startup_error`. The line then names the config
+   file and the cause, and uvicorn's traceback is hidden. Any other lifespan
+   exception keeps its traceback, as § "Errors the CLI catches" requires.
 
 ## `serve` host, port and browser resolution
 
@@ -172,8 +182,9 @@ The `config.yaml` layer is the `server:` block, typed by
 - An empty file parses to null, which is not a mapping: exit 1.
 
 **Only the `server:` block is read here, not the whole `AppConfig`**:
-full config validation belongs to the API lifespan, and `serve` must still
-be able to start a server whose *other* sections are mid-edit.
+full config validation belongs to the API lifespan. A bad value in another
+section therefore gets past this read and fails in the lifespan: exit-`1`
+path 7. (Measured 2026-11-02, `filters.region_priority: 5`.)
 
 **The block is read once, and unconditionally** — not lazily when a layer
 below the flags turns out to be needed. So a malformed `server:` block
@@ -265,7 +276,8 @@ still starts, the key dropped with a WARNING naming it; an unreadable `config.ya
 `server:` block failing `ServerConfig` validation each exit 1 naming the
 file and the cause **even when `--host`, `--port` and
 `--no-open-browser` are all supplied**; and a config whose *other*
-sections are invalid still starts (only `server:` is parsed here).
+sections are invalid still reaches `uvicorn.run` (only `server:` is parsed
+here; `tests/cli/test_serve_startup_failure.py` pins what the lifespan then does).
 
 ### Port
 
@@ -286,14 +298,16 @@ A port that passes resolution but lies outside the OS socket range (`--port 9999
 
 The browser opens on start iff `server.open_browser_on_start` is true AND `--no-open-browser` was not passed AND `LWSM_MANAGED` is not exactly `1`. LocalWebServerManager sets that marker on what it starts and has its own Open button, so the user picks the browser there; RetroDB and Contact_List do the same. Any other value is the unchanged path. **The flag is a one-way suppression, not a two-way override**: it can turn an open off, and there is deliberately no flag that forces one on against a config saying false. That asymmetry is what lets `scripts/dev.sh` suppress the open without editing anyone's config.
 
-It is opened from a **daemon thread that polls the resolved address until it accepts a TCP connection**, then calls `webbrowser.open`. A fixed delay is not a conforming implementation: uvicorn runs the application lifespan — which parses a ~48 MB DAT, tens of seconds on a cold cache — *before* it creates the listening socket, so any constant is simultaneously too short on a cold start (the browser shows "unable to connect") and too long on a warm one. Polling makes the open coincide with the port actually accepting.
+It is opened from a **daemon thread that polls the resolved address until this server answers there**, then calls `webbrowser.open`. A fixed delay is not a conforming implementation: uvicorn runs the application lifespan — which parses a ~48 MB DAT, tens of seconds on a cold cache — *before* it creates the listening socket, so any constant is simultaneously too short on a cold start (the browser shows "unable to connect") and too long on a warm one. Polling makes the open coincide with the port actually accepting.
+
+**A port that accepts is not enough.** Another program, or another copy of this app, may hold it, and this copy is then about to fail to bind. Each `serve` run makes a random value and hands it to uvicorn as the `x-mame-curator-instance` header, which uvicorn adds to every reply. Each poll sends `HEAD /` and opens only when the reply carries this run's value. The value identifies, and guards nothing.
 
 **Poll budget** — all three constants are module-level in `cli/commands/serve.py` so a test can monkeypatch them:
 
 | Constant | Value | Why |
 |---|---|---|
 | `_BROWSER_POLL_INTERVAL_S` | `0.1` | Sleep between connect attempts. Without it "polls until it accepts" permits a tight `connect()` loop for the whole giveup window. |
-| `_BROWSER_CONNECT_TIMEOUT_S` | `0.25` | Per-attempt socket timeout. Bounds one attempt against a host that blackholes rather than refusing. |
+| `_BROWSER_CONNECT_TIMEOUT_S` | `0.25` | Per-attempt socket timeout, for the connection and the reply. Bounds one attempt against a host that blackholes rather than refusing, or a service that accepts and stays silent. |
 | `_BROWSER_POLL_TIMEOUT_S` | `300.0` | Total giveup. Sized for a cold-cache DAT parse with headroom. |
 
 The poll is **best-effort and MUST NOT be able to fail the server**: it returns rather than raising on every failure path, never touches the exit code, and the thread is a daemon so a failed open can never hold the process open at shutdown.
@@ -302,18 +316,19 @@ The poll is **best-effort and MUST NOT be able to fail the server**: it returns 
 
 | Outcome | Line |
 |---|---|
-| Poll exhausted `_BROWSER_POLL_TIMEOUT_S` | `browser open gave up: <url> not accepting after <n>s` |
+| Poll exhausted `_BROWSER_POLL_TIMEOUT_S` | `browser open gave up: <url> not accepting after <n>s`, also when something else held the port throughout |
 | Resolved port is `0` | `browser open skipped: port 0 (bound port not knowable before listen)` |
 | `--no-open-browser` passed | `browser open skipped: disabled by flag` |
 | `LWSM_MANAGED=1` | `browser open skipped: started by LocalWebServerManager` |
 | `open_browser_on_start` false | `browser open skipped: disabled by config` |
 | `webbrowser.open` raised | `browser open failed: <exc>` |
+| `webbrowser.open` returned false | `browser open failed: no browser could be started` |
 
 **When more than one skip applies, one line is logged**, checked in this order: the flag, then the marker, then the config, then port `0`.
 
 **The browser open is skipped entirely when the resolved port is `0`.** `--port 0` means "any free port", so the port uvicorn actually binds is not knowable to the resolver — the address the poller would be given is unconnectable by construction, and it would burn the full 300 s budget before giving up.
 
-When the bind host is a wildcard, **both the poll target and the opened URL** use `127.0.0.1` instead — a wildcard is an address to listen on, not one every platform can connect to. Polling the wildcard itself would never connect on some platforms and would burn the whole budget. Wildcards are the empty string, `0.0.0.0`, and every unspecified IPv6 form (`::`, `[::]`, `::0`).
+When the bind host is a wildcard, **both the poll target and the opened URL** use `127.0.0.1` instead — a wildcard is an address to listen on, not one every platform can connect to. Polling the wildcard itself would never connect on some platforms and would burn the whole budget. Wildcards are the empty string, `0.0.0.0`, and every unspecified IPv6 form (`::`, `[::]`, `::0`). Any other IPv6 literal gets brackets in the opened URL and none on the socket (`http://[::1]:8080/`).
 
 **A bare `ipaddress.ip_address(host).is_unspecified` is NOT a conforming test** — it raises `ValueError` on the empty string, which is itself one of the wildcard forms, and on any hostname (`--host localhost`, `--host myhost.local`), for which the spec's answer is "not a wildcard". The predicate is:
 
@@ -327,7 +342,7 @@ def _is_wildcard(host: str) -> bool:
         return False                   # use it as given
 ```
 
-**Test surface** (`tests/cli/test_serve_browser.py`): the open is skipped when `open_browser_on_start` is false; skipped when `--no-open-browser` is passed with config true; skipped when `LWSM_MANAGED=1` with config true, and not skipped for any other value of it; skipped when the resolved port is `0`; fires once the poll target starts accepting; gives up after `_BROWSER_POLL_TIMEOUT_S` (monkeypatched small); each of the outcomes above emits its own distinct line; `_is_wildcard` returns true for `""`, `0.0.0.0`, `::`, `[::]`, `::0` and false for `127.0.0.1`, `192.168.1.5` and `localhost`; and a `webbrowser.open` that raises does not change the exit code.
+**Test surface** (`tests/cli/test_serve_browser.py`): the open is skipped when `open_browser_on_start` is false; skipped when `--no-open-browser` is passed with config true; skipped when `LWSM_MANAGED=1` with config true, and not skipped for any other value of it; skipped when the resolved port is `0`; fires once this server answers at the poll target; does not fire for another program's reply, another copy's reply, or a port that accepts and stays silent; gives up after `_BROWSER_POLL_TIMEOUT_S` (monkeypatched small); each of the outcomes above emits its own distinct line; `_is_wildcard` returns true for `""`, `0.0.0.0`, `::`, `[::]`, `::0` and false for `127.0.0.1`, `192.168.1.5` and `localhost`; and a `webbrowser.open` that raises does not change the exit code.
 
 **Every test-built `serve` Namespace carries `no_open_browser`**, because `_cmd_serve` reads it unconditionally and a missing attribute raises `AttributeError`. `_serve_args` in `tests/cli/test_serve_port_env.py` defaults it to argparse's own `False`; `tests/cli/test_fp28_serve_signal.py` sets it explicitly. Production code MUST NOT paper the gap over with `getattr(args, …, False)`, which would hide a genuinely missing argparse registration.
 
@@ -345,6 +360,8 @@ def _is_wildcard(host: str) -> bool:
 
 `run.sh` still performs its own `$PORT` check before the exec. The two checks are deliberate duplicates across a language boundary: `run.sh` must reject the value before it `exec`s, and it cannot import Python to do so. Its regex carries a `{1,5}` digit bound the Python side does not need — a wider digit string makes `test -lt` error out instead of comparing, which would read as "in range". The **plain-text** messages are identical for every value either check accepts as *reaching* the message. Two axes on which the emitted bytes still differ, neither of which is a defect: the Python side prints through `rich` with `[red]error:[/red]`, so on a tty it carries ANSI styling the bash `echo` does not; and quoting differs for values containing a quote or a newline (bash prints `PORT='<raw>'`, Python uses `repr`). Assert on the text, never on the byte stream.
 
+**`run.sh`'s Python check accepts `python3`, `python3.14`, `python3.13` or `python3.12`**, whichever is 3.12 or newer, because installing `python3.12` beside an older system Python leaves `python3` old. uv finds those names on `PATH` (measured 2026-11-02 with a `python3.13`-only `PATH`). Every refusal prints the install words.
+
 `run.sh` MUST NOT open the browser — `_cmd_serve` does, per § Browser above. The shell script cannot see when the socket starts accepting without polling it in bash, and duplicating the poll across the language boundary buys nothing here (unlike the `$PORT` check, which must happen before the exec).
 
 `run.sh` used to open it from a backgrounded subshell that slept 2 s and then called `xdg-open` / `open`. That block was **deleted** alongside the Python poller — keeping both gives every bootstrap two browser opens, and the blind 2 s sleep was the "Unable to connect" first-load wart the poller exists to fix. `run.sh` keeps an announce line — it is the manual fallback when no opener is available — but **the line had to change, because `URL` is built from `$PORT`.** With the `:-8080` default dropped and `$PORT` unset, `URL="http://127.0.0.1:${PORT}/"` renders as `http://127.0.0.1:/`, and the real port is not knowable to the shell at all once it can come from `server.port`. So:
@@ -354,7 +371,13 @@ def _is_wildcard(host: str) -> bool:
 
 Pin both cases in `tests/tools/test_run_sh_port.py`; the existing `PORT=5999` case already asserts `http://127.0.0.1:5999/` is announced, and the empty case must assert that no `http://127.0.0.1:/` appears.
 
-**`run.bat` (the Windows bootstrap) MUST NOT forward `--port` at all.** It runs `mame-curator serve` with no port flag and leaves `%PORT%` in the environment, so `_resolve_port` validates it and an unset `%PORT%` falls through to `server.port`. It has no check of its own: batch has no regex, and `serve` validates before it reads config or binds. It announces `http://127.0.0.1:<PORT>/` when `%PORT%` is defined and the no-URL line otherwise, as `run.sh` does. It does not open the browser. `tests/tools/test_run_bat_port.py` pins this on CI's `windows-latest` leg. Before mame-curator-1089 it forwarded an unconditional `--port`, so a bad `PORT` reached argparse (exit 2) and `server.port` was ignored on Windows. `scripts/dev.sh` passes `--port 8080` and `--no-open-browser` explicitly, for two different reasons: `--port 8080` because Vite proxies `/api` and `/media` to a hardcoded `http://127.0.0.1:8080`, so a developer with `PORT` exported would otherwise move the backend out from under the proxy; `--no-open-browser` because dev.sh already opens the Vite dev server at `:5173`, and a second tab on the backend port is noise.
+**`run.bat` (the Windows bootstrap) MUST NOT forward `--port` at all.** It runs `mame-curator serve` with no port flag and leaves `%PORT%` in the environment, so `_resolve_port` validates it and an unset `%PORT%` falls through to `server.port`. It has no check of its own: batch has no regex, and `serve` validates before it reads config or binds. It announces `http://127.0.0.1:<PORT>/` when `%PORT%` is defined and the no-URL line otherwise, as `run.sh` does. It does not open the browser. `tests/tools/test_run_bat_port.py` pins this on CI's `windows-latest` leg, and `tests/tools/test_launcher_text.py` pins what can be read as text on every platform.
+
+**How `run.bat` fails.** The Microsoft Store shortcut named `python` counts as no Python: `where` finds it, it prints only to stderr and it exits 9009 (measured 2026-11-02, Windows 10), so an empty answer to the version check prints the install words. A failed `cd`, uv install or `uv sync` prints its own `error:` line and stops, with the failing command's exit code where it has one. Every non-zero exit other than `serve`'s 130 waits for a key when the script was double-clicked, so the window keeps the message. It does not wait from an open Command Prompt, a PowerShell prompt or another program. The test is the command line: only a double-click ends in space-quote (`cmd.exe /c ""path\run.bat" "`). `.gitattributes` keeps the file CRLF, as a precaution for its `goto` labels: an LF copy ran correctly on Windows 10 (2026-11-02).
+
+**The installer.** `run.sh`'s curl flags refuse plain HTTP and TLS below 1.2. `run.bat` sets the same TLS floor; Windows PowerShell has no flag to refuse a redirect to plain HTTP. Neither launcher pins the installer's version or checks a hash of it.
+
+Before mame-curator-1089 `run.bat` forwarded an unconditional `--port`, so a bad `PORT` reached argparse (exit 2) and `server.port` was ignored on Windows. `scripts/dev.sh` passes `--port 8080` and `--no-open-browser` explicitly, for two different reasons: `--port 8080` because Vite proxies `/api` and `/media` to a hardcoded `http://127.0.0.1:8080`, so a developer with `PORT` exported would otherwise move the backend out from under the proxy; `--no-open-browser` because dev.sh already opens the Vite dev server at `:5173`, and a second tab on the backend port is noise.
 
 ## Output routing (per coding standards §9)
 
@@ -384,12 +407,10 @@ URL, override key or exception string reaching a `Console.print` in `cli/`
 is user input for this purpose. Style markup the CLI itself writes
 (`[red]error:[/red]`) is not, and is the only markup that should survive.
 
-**Enforced class-wide in `_cmd_serve` as of mame-curator-1091.** All six
-`Console.print` sites escape their interpolated values: the `$PORT`
-message, the config-not-found path (`{args.config!r}` — a user-supplied
-path, the likeliest of them to contain brackets), the missing-extras
-message, the `server:`-block failure, the `create_app` failure and the
-bind failure. The one literal the CLI writes that *looks* like markup —
+**Enforced class-wide in `_cmd_serve`, `setup`, `refresh-inis` and
+`refresh-snaps`.** Every `Console.print` site there escapes its interpolated
+values. A path prints as the plain path, not as `PosixPath('...')`. Their
+consoles use `soft_wrap=True`, so a long path stays on one line. The one literal the CLI writes that *looks* like markup —
 `pip install mame-curator[api]` — is backslash-escaped at the source
 rather than passed through `escape()`, since it is not user input.
 
@@ -426,8 +447,8 @@ The CLI is the outermost user-facing layer. It catches the **typed** library
 errors (`ParserError`, `FilterError`, `CopyError`, `ConfigError` and their
 subclasses) plus the specific stdlib errors a bad user input or a missing
 install can reach: `ValueError` from `_resolve_port` (an invalid `$PORT`),
-`ImportError` (the API extras are absent), and `OSError` plus
-`OverflowError` at the bind. Each converts into a
+`ImportError` (the API extras are absent), and `OSError`, `OverflowError` and
+uvicorn's `SystemExit` around `uvicorn.run`. Each converts into a
 `(stderr message, exit code 1)` pair. `KeyboardInterrupt` is also caught
 at `_cmd_serve`, but maps to 130 rather than 1 and so is not part of this
 class. Every `_cmd_<name>` function wraps its
@@ -456,6 +477,8 @@ can raise on valid inputs. If the list is "anything", the catch is too wide.
 - Per-phase contract details (how `parse` counts BIOSes, how `filter` orders tiebreakers, etc.) — see the host module's `spec.md`.
 
 ## Cold-eyes loop log
+
+Amendments since the last row, none gated by a review (global rule 14, settled 2026-10-31), are in `CHANGELOG.md` and `git log`.
 
 | Loop | Date | Lanes | Severity (verified) | Dimensions | Outcome |
 |---|---|---|---|---|---|

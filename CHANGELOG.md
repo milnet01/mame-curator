@@ -17,6 +17,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-02 Fixed — The launchers and commands fail plainly, and use the settings the app uses
+
+Starting the app now says what went wrong and leaves the message on screen. The command-line tools now work on the settings file the app reads (mame-curator-1145, mame-curator-1139).
+
+- **Commands use the app's settings file**
+  Without a file named on the command line, `refresh-inis`, `refresh-snaps` and `setup` use the file the app reads: `config.yaml` in the current folder, otherwise your per-user one. `refresh-inis` used to download its files and update nothing after a browser first run. `setup --force` used to create a second file that silently took over from your settings.
+  **Scripts:** `setup` with no `--out` no longer always writes `./config.yaml`, and refuses an existing per-user file without `--force`. Add `--out config.yaml` to keep the old place.
+
+- **`refresh-inis` says when it updated nothing**
+  If there is no settings file, or it cannot be changed, it says the app will not use the downloaded files. If your paths were already set, it says it left them.
+
+- **A server that cannot start gives one error line and exit code 1**
+  A bad value in `config.yaml` used to print a long traceback and exit with 3, the code for a cancelled copy. Now one line names the file and the problem. If the port is taken, a line says so and that the app may already be running.
+
+- **The browser opens only at this copy of the app**
+  If another program or another copy holds the port, no browser opens on its page.
+
+- **`run.bat` on a Windows PC with no Python says how to install it**
+  The Microsoft Store shortcut named `python` used to give "Python  is too old". A failed install or download now stops with a message instead of carrying on.
+
+- **A double-clicked `run.bat` stays open after a failure**
+  It waits for a key, so you can read the message. It does not wait when started from an open Command Prompt or PowerShell, or after you stop the app with Ctrl-C.
+
+- **`run.sh` accepts a newer Python installed beside an old one**
+  Installing `python3.12` next to an older system Python used to leave the launcher refusing to start. Every refusal now says how to install Python.
+
+- **Smaller fixes**
+  A folder name holding `!` no longer sends `run.bat` to the wrong folder. Messages keep paths with square brackets whole. A full disk during `setup --force` no longer costs you your settings. An IPv6 address such as `::1` now opens a working browser address.
+
 ### 2026-11-02 Fixed — The folder picker is clearer and easier to use
 
 Choosing a folder or a file now works from every row, says plainly what it finds, and fits the window with large text and long paths (mame-curator-1145, mame-curator-1165, mame-curator-1171).
