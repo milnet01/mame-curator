@@ -7,8 +7,14 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 from sse_starlette.sse import EventSourceResponse
 
-from mame_curator.api.errors import CopyReportCorruptError, JobNotFoundError
-from mame_curator.api.jobs import JobManager, check_playlist_conflict
+from mame_curator.api.errors import (
+    CopyNamesUnknownError,
+    CopyReportCorruptError,
+    CopySetupRequiredError,
+    FieldError,
+    JobNotFoundError,
+)
+from mame_curator.api.jobs import JobManager, check_playlist_conflict, is_job_id
 from mame_curator.api.routes._deps import get_jobs, get_world
 from mame_curator.api.schemas import (
     CopyAbortRequest,
@@ -30,13 +36,36 @@ from mame_curator.copy import (
 router = APIRouter()
 
 
+# A cart holds up to 10,000 names; a reply names enough to act on.
+_MAX_NAMES_IN_REPLY = 20
+
+
+def _refuse_what_cannot_be_copied(body: CopyJobRequest, world: WorldState) -> None:
+    """Every name becomes a path, so only the library's own names get through.
+
+    In setup mode nothing would, and a copy would rewrite the playlist with no
+    entries, so that gets its own answer (`api/spec.md` § Copy job lifecycle).
+    """
+    if world.setup_required:
+        raise CopySetupRequiredError("no game list loaded yet, so nothing can be copied")
+    replaces = (d.replaces for d in body.append_decisions.values() if d.replaces is not None)
+    unknown = sorted({n for n in (*body.selected_names, *replaces) if n not in world.machines})
+    if unknown:
+        raise CopyNamesUnknownError(
+            f"{len(unknown)} name(s) not in the library, so nothing was copied: "
+            f"{unknown[:_MAX_NAMES_IN_REPLY]!r}",
+            fields=tuple(
+                FieldError(loc="selected_names", msg=name, type="unknown_game")
+                for name in unknown[:_MAX_NAMES_IN_REPLY]
+            ),
+        )
+
+
 def _build_plan(body: CopyJobRequest, world: WorldState) -> CopyPlan:
-    machines = {
-        short: world.machines[short] for short in body.selected_names if short in world.machines
-    }
+    _refuse_what_cannot_be_copied(body, world)
     return CopyPlan(
         winners=body.selected_names,
-        machines=machines,
+        machines={short: world.machines[short] for short in body.selected_names},
         bios_chain=dict(world.bios_chain),
         chd_required=world.chd_required,
         source_dir=world.config.paths.source_roms,
@@ -156,7 +185,7 @@ def list_history(
 @router.get("/api/copy/history/{job_id}/report", response_model=CopyReport)
 def get_history_report(job_id: str, world: WorldState = Depends(get_world)) -> CopyReport:
     path = world.data_dir / "copy-history" / job_id / "report.json"
-    if not path.exists():
+    if not is_job_id(job_id) or not path.exists():
         raise JobNotFoundError(f"history report not found: {job_id!r}")
     # FP09 A2: validate against the CopyReport schema on egress so a corrupt
     # or truncated report.json (manual edit, partial write) doesn't leak

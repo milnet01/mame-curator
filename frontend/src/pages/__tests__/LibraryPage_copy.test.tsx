@@ -104,6 +104,8 @@ beforeEach(() => {
   vi.stubGlobal("EventSource", MockEventSource);
   localStorage.setItem(LIBRARY_VIEW_KEY, "full");
   vi.mocked(toast.success).mockClear();
+  vi.mocked(toast.error).mockClear();
+  vi.mocked(toast.warning).mockClear();
 });
 
 describe("LibraryPage when a copy ends", () => {
@@ -261,5 +263,83 @@ describe("LibraryPage during a copy", () => {
     expect(await copyButton()).toBeDisabled();
     answerStart();
     await screen.findByRole("dialog");
+  });
+});
+
+describe("LibraryPage when a copy is refused", () => {
+  function renderCart(items: { shortName: string; chosenVariant?: string }[]) {
+    const remove = vi.fn();
+    renderLibraryPageTree(
+      <LibraryPage
+        cart={{ ...makeFakeCart(), items, remove }}
+        cartExpanded={false}
+        onCartExpandedChange={() => {}}
+      />,
+    );
+    return { remove };
+  }
+
+  it("says so when the server refuses the start", async () => {
+    serve("on_success");
+    server.use(
+      http.post("/api/copy/start", () =>
+        HttpResponse.json(
+          {
+            code: "copy_names_unknown",
+            detail: "raw",
+            fields: [
+              { loc: "selected_names", msg: "gone", type: "unknown_game" },
+            ],
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderCart([{ shortName: "pacman" }]);
+    await user.click(await copyButton());
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        `${strings.errors.byCode.copy_names_unknown} gone`,
+      ),
+    );
+  });
+
+  it("checks the variant it would send, and drops one the library lost", async () => {
+    const sent: string[][] = [];
+    const checked: string[][] = [];
+    serve("on_success");
+    server.use(
+      http.post("/api/games/validate", async ({ request }) => {
+        const { short_names } = (await request.json()) as {
+          short_names: string[];
+        };
+        checked.push(short_names);
+        return HttpResponse.json({
+          existing: short_names.filter((n) => n !== "gonevariant"),
+          missing: short_names.filter((n) => n === "gonevariant"),
+        });
+      }),
+      http.post("/api/copy/start", async ({ request }) => {
+        const body = (await request.json()) as { selected_names: string[] };
+        sent.push(body.selected_names);
+        return HttpResponse.json({ job_id: "job-1" });
+      }),
+    );
+    const user = userEvent.setup();
+    const { remove } = renderCart([
+      { shortName: "pacman", chosenVariant: "pacmanf" },
+      { shortName: "dkong", chosenVariant: "gonevariant" },
+    ]);
+    await user.click(await copyButton());
+
+    await screen.findByRole("dialog");
+    expect(checked).toEqual([["pacmanf", "gonevariant"]]);
+    expect(sent).toEqual([["pacmanf"]]);
+    expect(remove).toHaveBeenCalledExactlyOnceWith("dkong");
+    expect(toast.warning).toHaveBeenCalledWith(
+      strings.library.cart.validateDroppedToast(1),
+    );
   });
 });

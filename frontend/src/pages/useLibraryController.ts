@@ -17,7 +17,11 @@ import {
   useLaunchGame,
   useOverride,
 } from "@/hooks/useAlternatives";
-import { MAX_CART_SIZE, type UseCartResult } from "@/hooks/useCart";
+import {
+  type CartItem,
+  MAX_CART_SIZE,
+  type UseCartResult,
+} from "@/hooks/useCart";
 import { useCopySession } from "@/hooks/useCopySession";
 import { useDryRun } from "@/hooks/useDryRun";
 import { useFacets } from "@/hooks/useFacets";
@@ -252,28 +256,31 @@ export function useLibraryController(cart: UseCartResult) {
 
   const handleCopy = () => {
     if (cart.items.length === 0) return;
+    // What is checked is what is sent: the server refuses a whole copy over a
+    // name it does not hold, so a stale variant is dropped and said here too.
+    const nameOf = (i: CartItem) => i.chosenVariant ?? i.shortName;
     validateCart.mutate(
-      { short_names: cart.items.map((i) => i.shortName) },
+      { short_names: cart.items.map(nameOf) },
       {
         onSuccess: ({ existing, missing }) => {
           if (missing.length > 0) {
             toast.warning(
               strings.library.cart.validateDroppedToast(missing.length),
             );
-            for (const name of missing) cart.remove(name);
+            const gone = new Set(missing);
+            for (const item of cart.items) {
+              if (gone.has(nameOf(item))) cart.remove(item.shortName);
+            }
           }
           if (existing.length === 0) return;
-          const variantBySrc = new Map(
-            cart.items.map((i) => [
-              i.shortName,
-              i.chosenVariant ?? i.shortName,
-            ]),
+          copySession.start(
+            {
+              selected_names: [...existing],
+              conflict_strategy: "CANCEL",
+              append_decisions: {},
+            },
+            { onError: toastApiError },
           );
-          copySession.start({
-            selected_names: existing.map((s) => variantBySrc.get(s) ?? s),
-            conflict_strategy: "CANCEL",
-            append_decisions: {},
-          });
         },
         onError: toastApiError,
       },

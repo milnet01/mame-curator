@@ -377,9 +377,10 @@ def test_restore_that_will_not_load_puts_the_files_back(client: Any, config_file
     (snap / "overrides.yaml").write_bytes(b"caf\xe9: 1\n")
     _set_paths(snap / "config.yaml", dest_roms=str(config_file.parent))
 
-    with pytest.raises(OverridesError):
-        client.post(f"/api/config/snapshots/{snap.name}/restore")
+    reply = client.post(f"/api/config/snapshots/{snap.name}/restore")
 
+    assert reply.status_code == 422, reply.text
+    assert reply.json()["code"] == "snapshot_unusable"
     assert overrides.read_text(encoding="utf-8") == "overrides: {}\n"
     assert config_file.read_bytes() == before
     # The next save starts from what the running app holds, and matches the disk.

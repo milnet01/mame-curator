@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import heapq
 import logging
+import re
 import secrets
 import threading
 from asyncio import AbstractEventLoop
@@ -60,8 +62,16 @@ _TERMINAL_EVENTS = ("job_finished", "job_aborted")
 _PROGRESS_CAP = 200_000
 
 
+_JOB_ID_RE = re.compile(r"\d{8}T\d{6}Z-[0-9a-f]{8}", re.ASCII)
+
+
 def _new_job_id() -> str:
     return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ-") + secrets.token_hex(4)
+
+
+def is_job_id(text: str) -> bool:
+    """Is `text` in the form `_new_job_id` makes? Never a path part."""
+    return _JOB_ID_RE.fullmatch(text) is not None
 
 
 @dataclass
@@ -77,6 +87,7 @@ class Job:
     bytes_total: int
     files_done: int = 0
     bytes_done: int = 0
+    finished_bytes: int = 0
     state: JobState = "running"
     # FP09 Cluster R H1: split lifecycle vs progress storage. Lifecycle is
     # unbounded but small; progress is bounded with drop-oldest. See
@@ -264,7 +275,7 @@ class JobManager:
         job.controller.pause()
         self._emit_control_change(job, before)
         await asyncio.sleep(0.05)
-        return self._status(job, override_state="paused")
+        return self._status(job, override_state=_control_state(job))
 
     async def resume(self) -> JobStatus:
         """Resume a paused job."""
@@ -273,7 +284,7 @@ class JobManager:
         job.controller.resume()
         self._emit_control_change(job, before)
         await asyncio.sleep(0.05)
-        return self._status(job, override_state="running")
+        return self._status(job, override_state=_control_state(job))
 
     async def abort(self, *, recycle_partial: bool) -> JobStatus:
         """Cancel the in-flight job, optionally recycling already-copied files."""
@@ -341,13 +352,14 @@ class JobManager:
         if event.event == "file_progress":
             self._current.progress_history.append(event)
             payload = event.payload
-            self._current.bytes_done = max(
-                self._current.bytes_done, int(payload.get("bytes_done", 0))
+            self._current.bytes_done = self._current.finished_bytes + int(
+                payload.get("bytes_done", 0)
             )
         else:
             self._current.lifecycle_history.append(event)
             if event.event == "file_finished":
                 self._current.files_done += 1
+                self._current.finished_bytes += int(event.payload.get("bytes", 0))
         for q in list(self._current.subscribers):
             try:
                 q.put_nowait(event)
@@ -441,39 +453,23 @@ class JobManager:
         if job is None:
             raise JobNotFoundError("no active copy job")
         q: asyncio.Queue[JobEvent | None] = asyncio.Queue(maxsize=_QUEUE_SIZE)
-        # FP21-K: register the subscriber FIRST, then snapshot history
-        # into a local tuple, then drain the snapshot into ``q``. Two
-        # bugs the old order had:
-        #   (1) ``heapq.merge`` iterated ``progress_history`` (deque) +
-        #       ``lifecycle_history`` (list) live; the worker thread's
-        #       ``_emit`` mutates them concurrently via the loop's
-        #       ``call_soon_threadsafe`` queue, so a yielding ``await``
-        #       between merge-iteration steps could provoke
-        #       ``RuntimeError: deque mutated during iteration``.
-        #   (2) Events emitted between the replay loop ending and the
-        #       subscriber appending went only to *other* subscribers —
-        #       this subscriber missed them entirely.
-        # Register-then-snapshot solves both: snapshotted tuples are
-        # immutable so iteration is safe, and any ``_emit`` between
-        # snapshot and drain queues to ``q`` (since it's already in
-        # ``subscribers``) — replay then drains-after-live entries arrive
-        # but heap-merge by ``ts`` still produces a globally ordered stream
-        # on the consumer side because every live event has a ``ts``
-        # strictly later than the snapshotted ones.
-        import heapq
-
-        if job.state not in ("finished", "aborted"):
+        # FP21-K: register, then snapshot with no await between, so each event is
+        # in the snapshot or the queue, never both or neither. Tuples, because
+        # `_emit` appends to the stores while this generator waits on its client.
+        # The replay is yielded, not queued: this coroutine is the queue's only
+        # consumer, so more stored events than the queue holds would never fit.
+        finished = job.state in ("finished", "aborted")
+        if not finished:
             job.subscribers.append(q)
         lifecycle_snapshot = tuple(job.lifecycle_history)
         progress_snapshot = tuple(job.progress_history)
-        merged = heapq.merge(lifecycle_snapshot, progress_snapshot, key=lambda ev: ev.ts)
-        for ev in merged:
-            await q.put(ev)
-        # If the job already terminated before subscription, push sentinel
-        # so the consumer exits cleanly after seeing the replay.
-        if job.state in ("finished", "aborted"):
-            await q.put(None)
         try:
+            for ev in heapq.merge(lifecycle_snapshot, progress_snapshot, key=lambda ev: ev.ts):
+                yield ev
+                if ev.event in _TERMINAL_EVENTS:
+                    return
+            if finished:
+                return
             while True:
                 next_ev: JobEvent | None = await q.get()
                 if next_ev is None:
@@ -485,6 +481,14 @@ class JobManager:
             with contextlib.suppress(ValueError):
                 if job.subscribers and q in job.subscribers:
                     job.subscribers.remove(q)
+
+
+def _control_state(job: Job) -> JobState:
+    """What the controller holds now: a cancel makes it refuse a pause or resume."""
+    state = job.controller.state
+    if state is CopyControlState.PAUSED:
+        return "paused"
+    return "terminating" if state is CopyControlState.CANCELLING else "running"
 
 
 def _sum_input_sizes(plan: CopyPlan, bios_set: frozenset[str]) -> int:

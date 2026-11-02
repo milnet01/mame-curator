@@ -53,11 +53,11 @@ def test_a2_r27_corrupt_report_json_returns_typed_error(client: Any, tmp_path: P
     bytes to clients. Post-fix: ValidationError → typed exception → 502 envelope.
     """
     # Write a corrupt report.json under data/copy-history/.
-    history_dir = tmp_path / "data" / "copy-history" / "fake_job_id"
+    history_dir = tmp_path / "data" / "copy-history" / "20260101T000000Z-0000abcd"
     history_dir.mkdir(parents=True)
     (history_dir / "report.json").write_text("{not valid json")
 
-    response = client.get("/api/copy/history/fake_job_id/report")
+    response = client.get("/api/copy/history/20260101T000000Z-0000abcd/report")
     # FP31: the corrupt-but-existing branch is specifically 502
     # (`CopyReportCorruptError`); the route's 404 path is reserved for
     # missing-id lookups (the `path.exists()` short-circuit at copy.py:153).

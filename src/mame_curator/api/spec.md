@@ -170,7 +170,10 @@ class vars). `install_handlers` registers three handlers:
 | `CopyReportCorruptError` | `copy_report_corrupt` | 502 |
 | `PlaylistConflictCancelledError` | `playlist_conflict_cancelled` | 409 |
 | `PlaylistUnreadableError` | `playlist_unreadable` | 409 |
+| `CopyNamesUnknownError` | `copy_names_unknown` | 422 |
+| `CopySetupRequiredError` | `copy_setup_required` | 409 |
 | `SnapshotNotFoundError` | `snapshot_not_found` | 404 |
+| `SnapshotUnusableError` | `snapshot_unusable` | 422 |
 | `GameNotFoundError` | `game_not_found` | 404 |
 | `OverrideNotFoundError` | `override_not_found` | 404 |
 | `SessionNotFoundError` | `session_not_found` | 404 |
@@ -263,14 +266,25 @@ matches the static `_deactivate` path first.
   `files_total` / `bytes_total`, spawns a **daemon worker thread** running
   `copy.run_copy`, and emits the initial `job_started` event. Returns a
   `Job` whose `id` the route returns as `JobAccepted`.
-- `POST /api/copy/start` first calls `check_playlist_conflict(plan)` —
+- **Both copy routes check the request before anything else.** In setup mode
+  they answer `CopySetupRequiredError` (409): there is no library to copy from,
+  and a copy would rewrite the playlist with nothing in it. Otherwise every name
+  in `selected_names`, and every `append_decisions[*].replaces`, must be in
+  `world.machines`. One that is not refuses the whole request with
+  `CopyNamesUnknownError` (422), which names them in `fields[]` and starts no job.
+  The Library's Copy button drops and reports stale cart items first, through
+  `POST /api/games/validate`, so this refusal is the last word, not the usual one.
+- `POST /api/copy/start` then calls `check_playlist_conflict(plan)` —
   a `CANCEL` conflict strategy against an existing playlist raises
   `PlaylistConflictCancelledError` (409) before the worker spawns, and an
   `APPEND` against a playlist that `read_lpl` cannot read raises
   `PlaylistUnreadableError` (409) there too.
 - **`pause` / `resume` / `abort`** drive the `CopyController` and return a
   `JobStatus`. `abort` takes `recycle_partial`. An operation with no current
-  job raises `JobNotFoundError` (404).
+  job raises `JobNotFoundError` (404). The `state` in a `pause` or `resume`
+  reply is the controller's own, so one refused after a cancel says
+  `terminating`. `JobStatus.bytes_done` counts the whole job: finished files
+  plus the current file's progress.
 - **`pause` / `resume` emit `paused` / `resumed` themselves**, once per real
   transition, because a worker held at a file boundary sends no progress tick
   to carry them. A pause refused after a cancel emits nothing. `abort` emits
@@ -280,6 +294,8 @@ matches the static `_deactivate` path first.
   `JobEvent` payloads (`job_started`, progress, terminal). No active job →
   `JobNotFoundError` (404). Progress events carry `files_total` /
   `bytes_total` keys matching the typed `JobStatus` / frontend contract.
+  A subscriber gets the stored events first, however many there are, then the
+  live ones; replay never passes through the subscriber's bounded queue.
 - **A BIOS file missing from `source_roms` is skipped, not failed**, so the job
   can still end `OK`. `POST /api/copy/dry-run` reports the count before a copy
   as `counts.bios_missing_source`, and `job_finished` after one as `bios_missing`.
@@ -293,7 +309,8 @@ Completed jobs persist a `report.json` under
 `data_dir / copy-history / <job_id>/`. `GET /api/copy/history` paginates
 (`page` ≥ 1, `page_size` 1..500, newest first), skipping unreadable /
 unparseable report dirs. `GET /api/copy/history/{job_id}/report` validates
-the file against `CopyReport` on egress: missing id → `404 job_not_found`;
+the file against `CopyReport` on egress: missing id, or one not in the job id
+format → `404 job_not_found`;
 present-but-unreadable / corrupt → `502 copy_report_corrupt` (a distinct
 "filesystem rot" code, separate from the 404).
 
@@ -301,7 +318,7 @@ present-but-unreadable / corrupt → `502 copy_report_corrupt` (a distinct
 
 All FS browsing crosses `api/fs.py`:
 
-- **`compose_allowlist(config)`** builds the allowed-root tuple from the
+- **`compose_allowlist(config, *, log_stale=True)`** builds the allowed-root tuple from the
   **home directory** (`Path.home()`) plus four config-derived paths
   (`source_roms`, `source_dat.parent`, `dest_roms`,
   `retroarch_playlist.parent`), plus `config.fs.granted_roots` (user-granted
@@ -309,7 +326,10 @@ All FS browsing crosses `api/fs.py`:
   SHA-256 of the resolved path) and a
   `source` (`config` vs `granted`); a granted path overlapping a
   config-derived root takes the `config` label. Granted roots whose target
-  is no longer an existing directory are dropped.
+  is no longer an existing directory are dropped. A drop logs at INFO when
+  `log_stale` is true (a world build, or a swap that changed the granted roots)
+  and at DEBUG otherwise, so routine saves do not repeat the line. The function
+  keeps no state between calls.
 - **`validate_fs_path` / `validate_within_allowlist`** reject any requested
   path that resolves outside every allowed root → `FsSandboxError` (403).
   Empty / NUL-byte / non-directory paths → `FsPathInvalidError` (400);
@@ -330,7 +350,9 @@ All FS browsing crosses `api/fs.py`:
 
 `api/persist.py` performs all disk writes **atomically** (temp file +
 `os.replace` + parent fsync) so a crash mid-write never leaves a truncated
-`config.yaml` / `notes.json`:
+`config.yaml` / `notes.json`. A write to a symlink lands on the file it points
+to, and the link stays. The file ends at mode `0o644`, as every atomic write
+does unless its caller asks otherwise:
 
 - `PATCH /api/config` deep-merges the patch (`deep_merge`, depth-capped at
   10 for defence-in-depth), validates against `AppConfig`, writes the YAML,
@@ -358,8 +380,9 @@ All FS browsing crosses `api/fs.py`:
     preview. Restore and import in setup mode retry and reply the same way
     (mame-curator-1145 §4.1, INV-15).
 - `snapshot_files` captures the pre-write state before each config mutation;
-  `restore_snapshot` reverts to a captured snapshot id (unknown id →
-  `SnapshotNotFoundError` 404). Old snapshots are pruned.
+  `restore_snapshot` reverts to a captured snapshot id (unknown id, or one not
+  in the snapshot id format → `SnapshotNotFoundError` 404). Old snapshots are
+  pruned, oldest first, except the one a restore is about to read.
 - The restore route's targets are `config.yaml`, `overrides.yaml`,
   `sessions.yaml`, `data/notes.json` and `data/state.yaml`, keyed by bare
   name. It first snapshots the current state of all five, so a restore can
@@ -367,9 +390,18 @@ All FS browsing crosses `api/fs.py`:
   so an update snapshot restores whole and the next review write cannot
   save stale state over the restored file (mame-curator-1010 §4.3 step 2).
   If a restored file will not load, the files it replaced are put back and the
-  error is raised (mame-curator-1145 INV-16).
+  reply is `SnapshotUnusableError` (422) (mame-curator-1145 INV-16). This is how
+  a snapshot from an older schema is handled: `load_app_config` drops keys it no
+  longer knows and folds `picker:`; anything else that does not fit is refused
+  whole, with the current settings untouched (mame-curator-1132).
 - `export` returns a `ConfigExportBundle`; `import` validates + applies a
-  bundle (invalid → `ConfigError` 422).
+  bundle (invalid → `ConfigError` 422). `picker:` in a bundle's config folds
+  into `filters:` as `load_app_config` does. A NUL path is `path_invalid` and a
+  bundle newly naming one folder for games and destination is `same_folder`
+  (mame-curator-1177). A path that does not exist is not refused: a kept backup
+  may come from another machine, and setup mode or a later save reports it. If
+  writing the files fails, the ones already written are put back from the
+  snapshot taken first, and the error is raised.
 
 ## Media proxy
 

@@ -21,25 +21,19 @@ from mame_curator.api.schemas import AppConfig, FsAllowedRoot
 
 logger = logging.getLogger(__name__)
 
-# FP25-K(6): dedupe the FP20-D "dropping stale granted root" INFO log.
-# compose_allowlist fires at world build AND every replace_world (i.e.
-# every config PATCH); without this, a stale granted_root drains the
-# same INFO line every cycle. Entries are added on first-seen-stale and
-# discarded when the path becomes valid again, so a later re-deletion
-# re-logs cleanly.
-_logged_stale_granted_roots: set[Path] = set()
-
 
 def _hash_root_id(p: Path) -> str:
     """Stable 12-char id for a resolved absolute path."""
     return hashlib.sha256(str(p).encode("utf-8")).hexdigest()[:12]
 
 
-def compose_allowlist(config: AppConfig) -> tuple[FsAllowedRoot, ...]:
+def compose_allowlist(config: AppConfig, *, log_stale: bool = True) -> tuple[FsAllowedRoot, ...]:
     """Build the allowlist: home + 4 config-derived paths + granted roots.
 
     Each entry is resolved to a canonical absolute path. Granted roots that
-    overlap a config-derived root take the ``"config"`` source label.
+    overlap a config-derived root take the ``"config"`` source label. A dropped
+    granted root logs at INFO when ``log_stale``, else at DEBUG: ``replace_world``
+    runs this on every save, and an unchanged list needs no new INFO line.
     """
     config_roots: dict[Path, FsAllowedRoot] = {}
 
@@ -72,24 +66,14 @@ def compose_allowlist(config: AppConfig) -> tuple[FsAllowedRoot, ...]:
         # re-made dir) is silently inside the sandbox without an explicit
         # re-grant. The INFO log gives the Settings UI a signal to surface
         # "your granted root ``<path>`` is gone" to the user.
-        # FP25-K(6): dedupe the INFO log under polling load. compose_allowlist
-        # runs at world build + every replace_world; without this, a config
-        # PATCH that leaves a stale granted_root drains the same INFO line
-        # to the log every time. Track first-seen-stale paths in a module
-        # set and clear the entry once the path becomes valid again, so a
-        # later re-deletion logs again.
         if not resolved.exists() or not resolved.is_dir():
-            if resolved not in _logged_stale_granted_roots:
-                logger.info(
-                    "compose_allowlist: dropping stale granted root %s "
-                    "(no longer an existing directory)",
-                    resolved,
-                )
-                _logged_stale_granted_roots.add(resolved)
+            logger.log(
+                logging.INFO if log_stale else logging.DEBUG,
+                "compose_allowlist: dropping stale granted root %s "
+                "(no longer an existing directory)",
+                resolved,
+            )
             continue
-        # Path is valid again — drop any prior dedup entry so a future
-        # deletion re-logs.
-        _logged_stale_granted_roots.discard(resolved)
         if resolved in config_roots or resolved in granted:
             continue
         granted[resolved] = FsAllowedRoot(

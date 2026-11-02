@@ -313,25 +313,3 @@ def test_fp21_n_deep_merge_caps_recursion_depth() -> None:
     # The merge MUST return without RecursionError.
     result = deep_merge({}, deep)
     assert isinstance(result, dict)
-
-
-# ---- O — import_config drops in-progress sentinel for crash detection -----
-
-
-def test_fp21_o_import_config_writes_and_clears_sentinel(client: Any) -> None:
-    """FP21-O: the import path writes ``data/import.in_progress`` before
-    the four atomic file writes and removes it after the last one
-    succeeds. A startup-time check (out of scope here) can detect a
-    half-applied import by the sentinel's presence.
-    """
-    bundle = client.post("/api/config/export").json()
-    response = client.post("/api/config/import", json=bundle)
-    assert response.status_code == 200, f"import failed: {response.json()}"
-
-    # On success the sentinel is cleared. Reach into the app state
-    # directly via the client fixture's app attribute.
-    world = client.app.state.world
-    sentinel = world.data_dir / "import.in_progress"
-    assert not sentinel.exists(), (
-        "FP21-O: import.in_progress sentinel must be cleared on successful import"
-    )

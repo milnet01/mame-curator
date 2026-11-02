@@ -431,6 +431,8 @@ class CopyPlan(BaseModel):
 
 **`plan.playlist_file`** is `playlist_path` when set, else `dest_dir / "mame.lpl"`. `run_copy` writes the playlist there, the APPEND reader and `preflight` read it there, and the API's CANCEL pre-check (`check_playlist_conflict`) tests it there. The API sets `playlist_path` from `paths.retroarch_playlist`; the CLI leaves it unset (mame-curator-1104). Entry `path`s stay absolute, so the playlist need not share a folder with the ROMs.
 
+**A short name is one plain file name.** Empty, `.`, `..`, or one holding `/`, `\`, `:` or NUL could reach outside `source_dir` or `dest_dir`, so `copy/paths.py` refuses it where a zip path is built. `run_copy` reports such a winner or BIOS as `FAILED`, naming the folders rather than a path, and goes on. A `replaces` that fails the check recycles nothing and adds a warning. `preflight` counts such a winner as `missing_source` and leaves it out of the size total. The names come from a DAT, a listxml or a saved filter report, so this holds for the CLI and the API alike.
+
 **Multiple winners targeting the same `replaces` is undefined.** The runner records one `OverwriteRecord` per decision (so duplicates surface in the report), but only the first `recycle_file` call moves the file; subsequent calls find the source missing. The caller-responsibility contract (§ "Playlist conflict resolution") requires each `replaces` short to be unique within `append_decisions`.
 
 A `CopyPlan` is constructed by the CLI from parsed config + a `FilterResult`, or by the API from a request body. `run_copy` validates the plan via `preflight()` before doing any work.
@@ -442,6 +444,7 @@ A `CopyPlan` is constructed by the CLI from parsed config + a `FilterResult`, or
 - `PlaylistError` — `append_decisions` missing for a conflicting winner; existing playlist file is corrupt JSON; write failure.
 - `RecycleError` — recycle move failed (filesystem readonly, permission denied), or the manifest write failed and the rollback was attempted (FP25-C).
 - `CopyExecutionError` — wrapped `OSError` from `copy_one` that escaped retry (currently no retry; surfaces directly).
+- `UnsafeShortNameError` — a name that is not one plain file name (§ CopyPlan). `run_copy` turns it into a `FAILED` outcome or a warning.
 - `ActivityLogError` — `os.open` / `os.write` / parent-`mkdir` failure inside `append_activity` (FP25-B + FP26-B). Wraps the originating `OSError` via `__cause__`.
 
 (`PreflightError` retired in FP27 — never `raise`-d in `src/`; the

@@ -15,6 +15,7 @@ tests. The interactive path is exercised by a single test that stubs
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -286,3 +287,30 @@ def test_setup_closed_stdin_exits_1_without_traceback(
     err = capsys.readouterr().err
     assert "Traceback" not in err
     assert "--source-roms" in err and "--retroarch-playlist" in err
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privilege on Windows")
+def test_setup_force_keeps_a_symlinked_config(tmp_path: Path) -> None:
+    """Ccbdfbd moved `setup` onto the atomic writer, so it reaches the same rule."""
+    real = tmp_path / "elsewhere" / "config.yaml"
+    real.parent.mkdir()
+    real.write_text("old: true\n", encoding="utf-8")
+    link = tmp_path / "config.yaml"
+    link.symlink_to(real)
+    (tmp_path / "roms").mkdir()
+    (tmp_path / "dest").mkdir()
+
+    args = build_parser().parse_args(
+        _flag_args(
+            out=link,
+            source_roms=tmp_path / "roms",
+            source_dat=_write_dat(tmp_path / "mame.dat.xml"),
+            dest_roms=tmp_path / "dest",
+            retroarch_playlist=tmp_path / "mame.lpl",
+            force=True,
+        )
+    )
+
+    assert run(args) == 0
+    assert link.is_symlink()
+    assert "source_roms" in real.read_text(encoding="utf-8")

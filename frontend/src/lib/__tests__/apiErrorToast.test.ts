@@ -165,3 +165,23 @@ describe("toastApiError", () => {
     expect(vi.mocked(toast.error)).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("apiErrorMessage: a copy refused over names", () => {
+  it("says which names the library no longer holds", () => {
+    const err = new ApiError(
+      {
+        code: "copy_names_unknown",
+        detail: "raw",
+        fields: [
+          { loc: "selected_names", msg: "gone1", type: "unknown_game" },
+          { loc: "selected_names", msg: "gone2", type: "unknown_game" },
+        ],
+      },
+      422,
+    );
+
+    expect(apiErrorMessage(err)).toBe(
+      `${strings.errors.byCode.copy_names_unknown} gone1, gone2`,
+    );
+  });
+});

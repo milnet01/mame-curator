@@ -16,6 +16,7 @@ manager exit.
 from __future__ import annotations
 
 import contextlib
+import errno
 import os
 import sys
 import tempfile
@@ -24,6 +25,7 @@ from pathlib import Path
 
 def atomic_write_bytes(path: Path, data: bytes) -> None:
     """Atomically write `data` to `path`. Same protocol as `atomic_write_text`."""
+    path = path.resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     # FP25-K(4): SIM115 normally requires `with NamedTemporaryFile(...)`; the
     # close+replace ordering on Windows requires explicit close-before-replace
@@ -71,6 +73,20 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
                 tmp_path.unlink(missing_ok=True)
 
 
+def replace_keeping_links(src: Path, dst: Path) -> None:
+    """Move `src` onto `dst`; a symlink at `dst` survives, as in the writers above.
+
+    The real file may be on another disk than `src`, which a rename cannot reach.
+    """
+    target = dst.resolve()
+    try:
+        os.replace(src, target)
+    except OSError as exc:
+        if exc.errno != errno.EXDEV:
+            raise
+        atomic_write_bytes(target, src.read_bytes())
+
+
 def fsync_parent_dir(path: Path) -> None:
     """Best-effort fsync of `path`'s parent directory."""
     try:
@@ -99,7 +115,12 @@ def atomic_write_text(path: Path, text: str, *, encoding: str = "utf-8", mode: i
     source rejects unless it's owner-only). The mode is applied to the tmp
     inode *before* the rename, so the target is never briefly world-readable.
     POSIX-only (Windows has no fchmod; NTFS ACLs are the gate there).
+
+    A symlink at `path` survives: the write lands on the file it points to, and
+    `mode` applies to that file. Renaming onto the link would replace the link
+    with a regular file (a config kept elsewhere and linked in, say).
     """
+    path = path.resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     # `delete=False` because we want to control deletion ourselves; the
     # context-manager exit on Windows would close the file but leave it,

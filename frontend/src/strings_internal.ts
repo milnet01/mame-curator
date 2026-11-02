@@ -834,7 +834,13 @@ export const strings = {
         "A playlist already exists at the destination — choose APPEND or OVERWRITE to continue.",
       playlist_unreadable:
         "The existing playlist is in an old format or damaged, so nothing was copied and it was left as it is. Move or rename that file, then copy again.",
+      copy_names_unknown:
+        "Nothing was copied, because these are no longer in your library:",
+      copy_setup_required:
+        "Your game list is not loaded yet, so nothing can be copied. Finish setting up first.",
       snapshot_not_found: "No configuration snapshot with that ID.",
+      snapshot_unusable:
+        "That saved copy of your settings could not be used, so it was not restored. Your current settings are unchanged. Try a different one.",
       help_topic_not_found: "That help topic is unavailable.",
       media_kind_invalid: "That media kind is not supported.",
       media_source_unknown:

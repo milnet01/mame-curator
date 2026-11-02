@@ -26,8 +26,7 @@ bump, unless the release migrates the old form for them.
    them as well.
 2. **Files the app saves and reads back later.** A release must still read
    what an earlier release wrote. The candidates are every path found by
-   `grep -rnE 'data_dir / "|config_path\.parent / "' src/mame_curator`, less
-   the `import.in_progress` marker, which the app clears itself. The
+   `grep -rnE 'data_dir / "|config_path\.parent / "' src/mame_curator`. The
    Settings → Backup export file counts too: `/api/config/import` reads a
    `ConfigExportBundle` a user may have kept. So does the cart the web page
    keeps in browser storage (`CART_STORAGE_KEY` in

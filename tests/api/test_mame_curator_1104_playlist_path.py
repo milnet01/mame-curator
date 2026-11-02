@@ -20,6 +20,7 @@ from mame_curator.api.jobs import check_playlist_conflict
 from mame_curator.api.routes.copy import _build_plan
 from mame_curator.api.schemas_copy import CopyJobRequest
 from mame_curator.api.state import WorldState
+from mame_curator.parser.models import Machine
 
 
 def _world(tmp_path: Path) -> tuple[WorldState, Path]:
@@ -33,7 +34,11 @@ def _world(tmp_path: Path) -> tuple[WorldState, Path]:
     # Only the attributes _build_plan reads; a real WorldState needs parsed
     # DAT/listxml/INI state this test has no use for.
     world = SimpleNamespace(
-        machines={}, bios_chain={}, chd_required=frozenset(), config=SimpleNamespace(paths=paths)
+        machines={"pacman": Machine(name="pacman", description="Pac-Man")},
+        setup_required=False,
+        bios_chain={},
+        chd_required=frozenset(),
+        config=SimpleNamespace(paths=paths),
     )
     return cast(WorldState, world), playlist
 

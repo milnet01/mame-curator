@@ -19,6 +19,17 @@ import pytest
 REQUEST = {"selected_names": ["kof94"], "conflict_strategy": "OVERWRITE"}
 
 
+@pytest.fixture
+def mini_dat(mini_dat: Path, tmp_path: Path) -> Path:
+    """The mini DAT plus kof94: a copy refuses a name the library does not hold."""
+    machine = '<machine name="kof94"><description>KOF 94</description></machine>\n</datafile>'
+    text = mini_dat.read_text(encoding="utf-8").replace("</datafile>", machine)
+    assert "kof94" in text
+    path = tmp_path / "with-kof94.dat.xml"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
 def _dry_run_counts(client: Any) -> dict[str, int]:
     response = client.post("/api/copy/dry-run", json=REQUEST)
     assert response.status_code == 200, response.text

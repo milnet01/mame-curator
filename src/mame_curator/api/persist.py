@@ -8,7 +8,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
-import os
+import re
 import shutil
 from collections.abc import Mapping
 from datetime import UTC, datetime
@@ -17,7 +17,7 @@ from typing import Any
 
 import yaml
 
-from mame_curator._atomic import atomic_write_bytes
+from mame_curator._atomic import atomic_write_bytes, replace_keeping_links
 from mame_curator.api.errors import SnapshotNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -36,8 +36,18 @@ MAX_SNAPSHOTS = 200
 # snapshot of config.yaml alone never touches the other restore targets.
 _COVERS = ".covers.json"
 
+_SNAPSHOT_ID_FORMAT = "%Y%m%dT%H%M%S_%fZ"
+_SNAPSHOT_ID_RE = re.compile(r"\d{8}T\d{6}_\d{6}Z", re.ASCII)
 
-def snapshot_files(snapshots_dir: Path, files: Mapping[str, Path]) -> str:
+
+def is_snapshot_id(text: str) -> bool:
+    """Is `text` in the form `snapshot_files` names a snapshot? Never a path part."""
+    return _SNAPSHOT_ID_RE.fullmatch(text) is not None
+
+
+def snapshot_files(
+    snapshots_dir: Path, files: Mapping[str, Path], *, keep: str | None = None
+) -> str:
     """Snapshot any files that currently exist into a new timestamped directory.
 
     Returns the snapshot id (timestamp string). Files that don't exist are
@@ -45,9 +55,10 @@ def snapshot_files(snapshots_dir: Path, files: Mapping[str, Path]) -> str:
 
     FP21-M: after creating the new snapshot dir, prune oldest siblings
     that exceed ``MAX_SNAPSHOTS``. Best-effort — a stat / rmtree failure
-    is logged but doesn't fail the snapshot itself.
+    is logged but doesn't fail the snapshot itself. ``keep`` names a snapshot
+    the prune must spare: the one a restore is about to read.
     """
-    snap_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%S_%fZ")
+    snap_id = datetime.now(UTC).strftime(_SNAPSHOT_ID_FORMAT)
     snap_dir = snapshots_dir / snap_id
     snap_dir.mkdir(parents=True, exist_ok=True)
     for name, src in files.items():
@@ -60,11 +71,11 @@ def snapshot_files(snapshots_dir: Path, files: Mapping[str, Path]) -> str:
             continue
         atomic_write_bytes(snap_dir / name, data)
     atomic_write_bytes(snap_dir / _COVERS, json.dumps(sorted(files)).encode("utf-8"))
-    _prune_old_snapshots(snapshots_dir)
+    _prune_old_snapshots(snapshots_dir, keep=keep)
     return snap_id
 
 
-def _prune_old_snapshots(snapshots_dir: Path) -> None:
+def _prune_old_snapshots(snapshots_dir: Path, *, keep: str | None = None) -> None:
     """FP21-M: enforce ``MAX_SNAPSHOTS`` cap by removing oldest siblings."""
     try:
         all_dirs = [p for p in snapshots_dir.iterdir() if p.is_dir()]
@@ -75,7 +86,7 @@ def _prune_old_snapshots(snapshots_dir: Path) -> None:
     # Sort oldest-first by name (timestamp prefix is monotonic).
     all_dirs.sort(key=lambda p: p.name)
     overflow = len(all_dirs) - MAX_SNAPSHOTS
-    for victim in all_dirs[:overflow]:
+    for victim in [p for p in all_dirs if p.name != keep][:overflow]:
         try:
             shutil.rmtree(victim)
         except OSError:
@@ -117,7 +128,7 @@ def restore_snapshot(snapshots_dir: Path, snap_id: str, targets: Mapping[str, Pa
     mid-loop with N files left k restored and (M-k) unlinked, a
     half-restored state. Now the snapshot bytes are first read into a
     sibling staging directory; only after every stage-write succeeds
-    do the live-target promotes (``os.replace``) and absent-file
+    do the live-target promotes (``replace_keeping_links``) and absent-file
     unlinks run. Mid-stage failures leave the live targets untouched.
     A mid-promote failure can still produce a half-restored end state
     (per-file ``os.replace`` is the POSIX atomic unit), but the
@@ -155,7 +166,7 @@ def restore_snapshot(snapshots_dir: Path, snap_id: str, targets: Mapping[str, Pa
         # order within each phase is best-effort; once we're here,
         # every stage write succeeded and the bytes are safely on disk.
         for name, stage_path in stage_paths.items():
-            os.replace(stage_path, targets[name])
+            replace_keeping_links(stage_path, targets[name])
         for name in unlink_names:
             dst = targets[name]
             if dst.exists():

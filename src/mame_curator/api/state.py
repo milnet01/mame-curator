@@ -331,7 +331,13 @@ def replace_world(
     # future refactor lets sessions / notes / overrides affect allowlist
     # composition (e.g. session-scoped path grants), DROP THIS SHORT-CIRCUIT
     # — silently eliding the recompute would break sandbox correctness.
-    allowed_roots = compose_allowlist(new_config) if config is not None else base.allowed_roots
+    allowed_roots = (
+        compose_allowlist(
+            new_config, log_stale=new_config.fs.granted_roots != base.config.fs.granted_roots
+        )
+        if config is not None
+        else base.allowed_roots
+    )
 
     return WorldState(
         config_path=base.config_path,

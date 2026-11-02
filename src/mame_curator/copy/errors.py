@@ -61,6 +61,10 @@ class CopyExecutionError(CopyError):
     """Wrapped OSError from copy_one that escaped retry."""
 
 
+class UnsafeShortNameError(CopyError):
+    """A short name that could lead outside the folder it is joined to."""
+
+
 class ActivityLogError(CopyError):
     """OSError from the activity-log writer (open, write, or close).
 

@@ -13,8 +13,9 @@ from typing import Literal
 from mame_curator.copy.activity import append_activity
 from mame_curator.copy.bios import resolve_bios_dependencies
 from mame_curator.copy.controller import CopyController
-from mame_curator.copy.errors import CopyError, RecycleError
+from mame_curator.copy.errors import CopyError, RecycleError, UnsafeShortNameError
 from mame_curator.copy.executor import copy_one
+from mame_curator.copy.paths import is_safe_short_name, zip_path
 from mame_curator.copy.playlist import read_lpl, write_lpl
 from mame_curator.copy.preflight import preflight
 from mame_curator.copy.recyclebin import recycle_file
@@ -249,8 +250,22 @@ def run_copy(
         if ctl.should_cancel():
             break
 
-        src = plan.source_dir / f"{short}.zip"
-        dst = plan.dest_dir / f"{short}.zip"
+        try:
+            src, dst = zip_path(plan.source_dir, short), zip_path(plan.dest_dir, short)
+        except UnsafeShortNameError as exc:
+            failed.append(
+                CopyOutcome(
+                    short_name=short,
+                    role=role,
+                    status=CopyOutcomeStatus.FAILED,
+                    src=plan.source_dir,
+                    dst=plan.dest_dir,
+                    error=str(exc),
+                )
+            )
+            if on_progress is not None:
+                on_progress(short, 0, 0)
+            continue
 
         if not src.exists():
             skipped.append(
@@ -300,8 +315,10 @@ def run_copy(
             if decision.replaces is not None:
                 replaced_short = decision.replaces
                 overwritten.append(OverwriteRecord(old_short=replaced_short, new_short=short))
-                if decision.kind is AppendDecisionKind.REPLACE_AND_RECYCLE:
-                    old_zip = plan.dest_dir / f"{replaced_short}.zip"
+                if not is_safe_short_name(replaced_short):
+                    warnings.append(f"not recycling {replaced_short!r}: not a plain game name")
+                elif decision.kind is AppendDecisionKind.REPLACE_AND_RECYCLE:
+                    old_zip = zip_path(plan.dest_dir, replaced_short)
                     if old_zip.exists() and not plan.dry_run:
                         try:
                             new_path = recycle_file(

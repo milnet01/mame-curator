@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 from mame_curator.copy.bios import resolve_bios_dependencies
+from mame_curator.copy.paths import is_safe_short_name
 from mame_curator.copy.types import CopyPlan, PreflightResult
 
 
@@ -39,6 +40,9 @@ def preflight(plan: CopyPlan) -> PreflightResult:
     missing: list[str] = []
     already: list[str] = []
     for short in plan.winners:
+        if not is_safe_short_name(short):
+            missing.append(short)
+            continue
         src = plan.source_dir / f"{short}.zip"
         if not src.exists():
             missing.append(short)
@@ -65,7 +69,7 @@ def preflight(plan: CopyPlan) -> PreflightResult:
             total_needed = sum(
                 _size_or_zero(plan.source_dir / f"{short}.zip")
                 for short in transfer_set
-                if short not in already_set
+                if short not in already_set and is_safe_short_name(short)
             )
             anchor = plan.dest_dir if plan.dest_dir.exists() else plan.dest_dir.parent
             if anchor.exists():

@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-02 Fixed — Copying and settings backups are safer
+
+- **A large copy's progress no longer freezes when the page reloads.**
+  Reopening the progress view on a copy with thousands of stored updates used to hang with no error. It now shows them all and carries on.
+
+- **A copy can only name games in your library.**
+  A request naming anything else, such as a path that leads out of your folders, is refused and says which names. One such request could move a file from outside your folders into the recycle bin. The Library's Copy button still drops games the library lost, and now also checks a chosen variant. If the server refuses a Library copy, you now see why; before, nothing happened.
+
+- **No copy while the game list is not loaded.**
+  In setup mode a copy used to empty your RetroArch playlist. It is now refused and the playlist is left alone.
+
+- **Restoring a saved copy of your settings is dependable.**
+  Restoring the oldest copy when the list was full could delete it first; it now survives. A copy that no longer fits this version, or a file that cannot be read, is refused in plain words and your current settings stay as they were.
+
+- **Importing a backup is checked, and a failed import undoes itself.**
+  A backup can no longer name the same folder for games and destination, or hold a broken path. Older backups using `picker:` load. If writing fails part way, the files already written are put back. A backup whose folders do not exist on this machine still imports.
+
+- **A linked config file stays linked.**
+  If config.yaml is a link to a file elsewhere, saving, restoring and `setup --force` now write to that file and keep the link. The file ends up readable by everyone on the machine (mode 644), as all the app's saved files do.
+
 ### 2026-11-02 Fixed — The launchers and commands fail plainly, and use the settings the app uses
 
 Starting the app now says what went wrong and leaves the message on screen. The command-line tools now work on the settings file the app reads (mame-curator-1145, mame-curator-1139).

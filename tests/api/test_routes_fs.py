@@ -309,3 +309,35 @@ def test_is_hidden_reads_each_system_s_mark(
     name: str, marks: dict[str, int], expected: bool
 ) -> None:
     assert fs_routes.is_hidden(name, SimpleNamespace(**marks)) is expected
+
+
+def test_a_stale_root_is_reported_with_no_memory_between_calls(
+    config_file: Path, fake_home: Path, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Coding-standards §3: the old dedupe was a module-level set."""
+    from mame_curator.api.fs import compose_allowlist
+    from mame_curator.api.schemas import FsConfig
+    from mame_curator.api.state import load_app_config
+
+    base = load_app_config(config_file)
+    config = base.model_copy(update={"fs": FsConfig(granted_roots=(tmp_path / "ghost",))})
+
+    with caplog.at_level("INFO", logger="mame_curator.api.fs"):
+        compose_allowlist(config)
+        compose_allowlist(config)
+
+    assert len(caplog.records) == 2
+
+
+def test_a_save_that_keeps_the_granted_roots_does_not_repeat_the_line(
+    client: Any, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    ghost = tmp_path / "ghost"
+    with caplog.at_level("INFO", logger="mame_curator.api.fs"):
+        patch = client.patch("/api/config", json={"fs": {"granted_roots": [str(ghost)]}})
+        assert patch.status_code == 200, patch.text
+        assert sum(str(ghost) in r.message for r in caplog.records) == 1
+        caplog.clear()
+        assert client.patch("/api/config", json={"ui": {"theme": "light"}}).status_code == 200
+
+    assert not caplog.records

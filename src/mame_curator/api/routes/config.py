@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import json
 import os
 import shutil
 import sys
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -19,8 +17,10 @@ from mame_curator.api.errors import (
     ConfigError,
     FieldError,
     SnapshotNotFoundError,
+    SnapshotUnusableError,
 )
 from mame_curator.api.persist import (
+    is_snapshot_id,
     list_snapshots,
     restore_snapshot,
     snapshot_files,
@@ -35,6 +35,7 @@ from mame_curator.api.schemas import (
     ConfigExportBundle,
     Snapshot,
     SnapshotsListing,
+    merge_picker_into_filters,
 )
 from mame_curator.api.state import (
     WorldState,
@@ -136,6 +137,18 @@ def _same_folder(config: AppConfig, previous: AppConfig) -> bool:
         return new.source_roms.resolve() == new.dest_roms.resolve()
     except OSError:
         return False
+
+
+def _import_path_errors(config: AppConfig, previous: AppConfig) -> tuple[FieldError, ...]:
+    """The save's checks a kept backup can fairly be held to (mame-curator-1177).
+
+    Not existence: a backup may come from another machine, and setup mode or
+    the next save reports a folder that is not there.
+    """
+    nul_errs = _nul_path_errors(config)
+    if nul_errs or not _same_folder(config, previous):
+        return nul_errs
+    return (FieldError(loc="paths.dest_roms", msg=_SAME_FOLDER_WORDS, type="same_folder"),)
 
 
 def _validate_paths(
@@ -295,7 +308,7 @@ async def restore_config_snapshot(
         world: WorldState = request.app.state.world
         snapshots_dir = world.data_dir / "snapshots"
         snap_dir = snapshots_dir / snap_id
-        if not snap_dir.exists() or not snap_dir.is_dir():
+        if not is_snapshot_id(snap_id) or not snap_dir.is_dir():
             raise SnapshotNotFoundError(f"snapshot id not found: {snap_id!r}")
 
         targets = {
@@ -306,20 +319,21 @@ async def restore_config_snapshot(
             "state.yaml": world.data_dir / "state.yaml",
         }
         # The restore is itself undoable: keep what it is about to replace.
-        undo_id = snapshot_files(snapshots_dir, targets)
-        restore_snapshot(snapshots_dir, snap_id, targets)
+        undo_id = snapshot_files(snapshots_dir, targets, keep=snap_id)
 
         try:
+            restore_snapshot(snapshots_dir, snap_id, targets)
             new_config = load_app_config(world.config_path)
             new_overrides = load_overrides(targets["overrides.yaml"])
             new_sessions = load_sessions(targets["sessions.yaml"])
             new_notes = _read_json_dict(targets["notes.json"])
             new_review_state = load_review_state(targets["state.yaml"])
-        except (ConfigError, FilterError, OSError, ValueError):
+        except (ConfigError, FilterError, OSError, ValueError) as exc:
             # Otherwise the next save would write the old config over the
-            # restored files around it (mame-curator-1145 INV-16).
+            # restored files around it (mame-curator-1145 INV-16). This is also
+            # the answer to a snapshot from an older schema (mame-curator-1132).
             restore_snapshot(snapshots_dir, undo_id, targets)
-            raise
+            raise SnapshotUnusableError(f"snapshot {snap_id!r} not restored: {exc!r}") from exc
         new_world = replace_world(
             base=world,
             config=new_config,
@@ -356,8 +370,13 @@ async def import_config(
     """FP20-C: async + world_lock-guarded read-merge-write-set_world."""
     async with request.app.state.world_lock:
         world: WorldState = request.app.state.world
+        # versioning-overrides item 1: the same old forms load_app_config reads.
         try:
-            new_config = AppConfig.model_validate(bundle.config)
+            raw_config = merge_picker_into_filters(dict(bundle.config))
+        except ValueError as exc:
+            raise ConfigError(f"config import: {exc}") from exc
+        try:
+            new_config = AppConfig.model_validate(raw_config)
         except ValidationError as exc:
             from mame_curator.api.errors import field_errors_from_pydantic
 
@@ -397,29 +416,22 @@ async def import_config(
             if not _SESSION_NAME_RE.match(name):
                 raise SessionNameInvalidError(f"session name invalid in import: {name!r}")
 
-        snapshots_dir = world.data_dir / "snapshots"
-        snapshot_files(
-            snapshots_dir,
-            {
-                "config.yaml": world.config_path,
-                "overrides.yaml": world.config_path.parent / "overrides.yaml",
-                "sessions.yaml": world.config_path.parent / "sessions.yaml",
-                "notes.json": world.data_dir / "notes.json",
-            },
-        )
+        path_errs = _import_path_errors(new_config, world.config)
+        if path_errs:
+            raise ConfigError("config import: invalid paths", fields=path_errs)
 
-        # FP21-O: stage all 4 files atomically. Each write_*_atomic does
-        # its own tmp+replace, but the 4-write batch is NOT atomic — a
-        # crash between writes 2 and 3 leaves the on-disk set incoherent
-        # (config + overrides updated; sessions + notes stale). Mitigate
-        # by writing all four targets in succession AND dropping an
-        # ``import.in_progress`` sentinel so a startup-time check can
-        # detect a half-applied import. The sentinel is removed only
-        # after the fourth replace succeeds; rollback via the
-        # immediately-prior snapshot is the user-visible recovery path.
-        sentinel = world.data_dir / "import.in_progress"
-        sentinel.parent.mkdir(parents=True, exist_ok=True)
-        sentinel.write_text(datetime.now(UTC).isoformat(), encoding="utf-8")
+        snapshots_dir = world.data_dir / "snapshots"
+        targets = {
+            "config.yaml": world.config_path,
+            "overrides.yaml": world.config_path.parent / "overrides.yaml",
+            "sessions.yaml": world.config_path.parent / "sessions.yaml",
+            "notes.json": world.data_dir / "notes.json",
+        }
+        undo_id = snapshot_files(snapshots_dir, targets)
+
+        # Each write is atomic but the four together are not. A failure puts back
+        # what was written. A crash between writes leaves a mixed set, and that
+        # snapshot, listed in Settings, is the way back.
         try:
             write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
             write_yaml_atomic(
@@ -437,11 +449,9 @@ async def import_config(
                 },
             )
             write_json_atomic(world.data_dir / "notes.json", bundle.notes)
-        finally:
-            # Remove the sentinel even on partial failure — the snapshot
-            # taken above is the user-visible recovery path.
-            with contextlib.suppress(OSError):
-                sentinel.unlink(missing_ok=True)
+        except OSError:
+            restore_snapshot(snapshots_dir, undo_id, targets)
+            raise
 
         new_world = replace_world(
             base=world,

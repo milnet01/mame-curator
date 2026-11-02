@@ -70,6 +70,9 @@ export function apiErrorMessage(err: unknown): string {
   }
   const friendly =
     strings.errors.byCode[err.code as keyof typeof strings.errors.byCode];
+  if (err.code === "copy_names_unknown" && err.fields.length > 0) {
+    return `${friendly} ${err.fields.map((f) => f.msg).join(", ")}`;
+  }
   return friendly ?? err.detail;
 }
 

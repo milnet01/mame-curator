@@ -134,6 +134,27 @@ class PlaylistUnreadableError(ApiException):
     status_code = 409
 
 
+class CopyNamesUnknownError(ApiException):
+    """422 — a copy request names something the library does not hold."""
+
+    code = "copy_names_unknown"
+    status_code = 422
+
+
+class CopySetupRequiredError(ApiException):
+    """409 — a copy was asked for in setup mode, which has no library to copy from."""
+
+    code = "copy_setup_required"
+    status_code = 409
+
+
+class SnapshotUnusableError(ApiException):
+    """422 — a snapshot would not load, so the files it replaced were put back."""
+
+    code = "snapshot_unusable"
+    status_code = 422
+
+
 class SnapshotNotFoundError(ApiException):
     """404 — snapshot id unknown."""
 
