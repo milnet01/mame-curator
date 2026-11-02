@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1178 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1181 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -1194,6 +1194,9 @@ wave lands.
   then passed all tests, and the retried push passed the whole gate.
   The failing test is unknown: only the gate's last lines were kept.
   Next time it fires, keep the full gate log and name the test.
+  2026-11-02: seen again while building ccbdfbd. Two
+  GuidePage_entry.test.tsx tests failed at machine load about 36; alone
+  that file failed once and passed twice; the full rerun was green.
   **Layman:** The frontend tests failed once for no clear reason during a push, then passed on their own and on the retry; find the unreliable test.
   Kind: investigate.
   Source: in-session-2026-10-15.
@@ -3184,7 +3187,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-code-2026-10-30.
   Lanes: frontend.
 
-- 📋 [mame-curator-1139] **serve exits 3, not 1, when the API fails to start.**
+- ✅ [mame-curator-1139] **serve exits 3, not 1, when the API fails to start.**
   Found out of radius by the review-contract gate on cli/spec.md's
   server: amendment, 2026-10-30 (loop-log row 5). When the API lifespan
   raises at startup (for example load_app_config refusing a bad value in
@@ -3194,6 +3197,8 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   cancel. Measured by the gate's orchestrator with a lifespan that
   raises. Fix: map a lifespan-startup SystemExit to 1, or document 3 for
   serve. Pre-existing; not caused by the amendment.
+  2026-11-02, ccbdfbd: serve catches uvicorn's SystemExit; a start
+  failure exits 1 with one error: line. Red seen with real uvicorn.
   **Layman:** If the server can't start because of a bad setting, the app exits with the code meant for a cancelled copy instead of the normal error code.
   Kind: review-fix.
   Source: review-contract-2026-10-30.
@@ -3503,6 +3508,33 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: refactor.
   Source: close-findings-2026-11-02-1145.
   Lanes: api.
+
+- 📋 [mame-curator-1179] **The launchers run uv's install script with no version pin or checksum.**
+  run.sh and run.bat fetch astral.sh's script and run it. Hazard: whoever
+  controls that host runs code on the user's machine at first start. On
+  Windows a redirect to plain HTTP is not refused either. Queued because a
+  pin needs a rewrite of the fetch that could not be tested without
+  installing uv on the Windows box. Read, and the fetch run; script not run.
+  **Layman:** On first start the launcher downloads and runs another project's install script without checking it.
+  Kind: security.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: launchers.
+
+- 📋 [mame-curator-1180] **parse, filter and copy print paths unescaped.**
+  Same defect ccbdfbd fixed in setup, serve and the refresh commands; cli/spec.md
+  § Error messages requires escaping. copy was outside that group.
+  **Layman:** A folder with square brackets in its name can print wrongly in some command-line messages.
+  Kind: review-fix.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: cli, tests.
+
+- 📋 [mame-curator-1181] **run.bat does not put uv on PATH after installing it.**
+  run.sh adds uv's folder after install; run.bat does not. Read, not run: a
+  real install was not done on the Windows box.
+  **Layman:** On Windows, the very first start may need a second try in a new window.
+  Kind: fix.
+  Source: close-findings-2026-11-02-1145.
+  Lanes: launchers.
 
 ## Considered / under research (no target date)
 

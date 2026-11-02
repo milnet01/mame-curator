@@ -62,18 +62,18 @@ Waiting on the user: the wording of the grant prompt, with mame-curator-1170.
 
 | Finding | Sev | Verified | Disposition | Was → now |
 |---|---|---|---|---|
-| `cli/__init__.py:150`, `refresh_inis.py:110`: refresh-inis silently skips the config update | HIGH | | | |
-| `run.bat:15`, `:24-27`: Windows Store stub gives a false error | HIGH | | | |
-| `README.md:95`, `:98`, `04-command-line.md:6-7`, `setup.py:81`: documents assume `./config.yaml` | MEDIUM | | | |
-| `run.bat:56`: failed sync carries on | MEDIUM | | | |
-| `serve.py:213-222`: uvicorn's exit passes through (with 1139) | MEDIUM | orchestrator read uvicorn | | |
-| `serve.py:158`: browser opens whatever holds the port | MEDIUM | | | |
-| `run.bat:21`, `:28`, `:44`: window closes on error | MEDIUM | | | |
-| `run.sh:51`, `run.bat:37`: uv installer unverified; comment cites a missing ADR | MEDIUM | | | |
-| `run.bat:37-42`, `:9-11`; `run.sh:22-24`, `:34` | LOW | | | |
-| `setup.py:35` and others: paths not escaped | LOW | | | |
-| `serve.py:164`, `:153`, `:50-53`; `setup.py:81` atomic write | LOW | | | |
-| `cli/spec.md` exit-1 list; `README.md:24` | LOW | | | |
+| `cli/__init__.py:150`, `refresh_inis.py:110`: refresh-inis silently skips the config update | HIGH | yes, read and ran | fixed in ccbdfbd | Green ticks and no update → updates the file `serve` reads, says so when nothing was updated; `refresh-snaps` too |
+| `run.bat:15`, `:24-27`: Windows Store stub gives a false error | HIGH | yes, ran on real Windows with the Store stub | fixed in ccbdfbd | "Python  is too old" → "python not found" with install words |
+| `README.md:95`, `:98`, `04-command-line.md:6-7`, `setup.py:81`: documents assume `./config.yaml` | MEDIUM | yes, read and ran | fixed in ccbdfbd | `setup` writes where `serve` reads; documents say where settings live. Narrowly breaking by versioning-overrides items 1 and 3; `--out config.yaml` restores the old target |
+| `run.bat:56`: failed sync carries on | MEDIUM | yes, ran on Windows | fixed in ccbdfbd | Went on to Starting → stops with an `error:` line and the sync's exit code |
+| `serve.py:213-222`: uvicorn's exit passes through (with 1139) | MEDIUM | yes, ran real uvicorn: exit 3 and a traceback; taken port gave exit 1 with no `error:` line | fixed in ccbdfbd | Exit 1 and one `error:` line; closes 1139 |
+| `serve.py:158`: browser opens whatever holds the port | MEDIUM | yes, opened on a foreign server | fixed in ccbdfbd | Opens only when this run's random header comes back |
+| `run.bat:21`, `:28`, `:44`: window closes on error | MEDIUM | yes, ran on Windows; ShellExecute stood in for a double-click | fixed in ccbdfbd | Pauses on failure after a double-click only |
+| `run.sh:51`, `run.bat:37`: uv installer unverified; comment cites a missing ADR | MEDIUM | yes, read; no matching ADR in `docs/decisions` | part fixed in ccbdfbd, rest queued as mame-curator-1179 | False comment gone; TLS 1.2 floor and failed-fetch report in `run.bat`. No pin or checksum |
+| `run.bat:37-42`, `:9-11`; `run.sh:22-24`, `:34` | LOW | yes, ran on Windows and with stubs | fixed in ccbdfbd | Failed install says so; failed `cd` stops; `!` survives; `run.sh` accepts python3.12 to 3.14 |
+| `setup.py:35` and others: paths not escaped | LOW | yes, ran | fixed in ccbdfbd | Fixed in setup, serve and both refresh commands; rest queued as mame-curator-1180 |
+| `serve.py:164`, `:153`, `:50-53`; `setup.py:81` atomic write | LOW | yes, ran; `:50-53` read | fixed in ccbdfbd | Logs False; IPv6 URL bracketed; comment corrected; atomic write |
+| `cli/spec.md` exit-1 list; `README.md:24` | LOW | yes, read | fixed in ccbdfbd | Prose. Exit list completed; README points at first-time setup |
 
 ## Group 4: copy and snapshot safety
 
