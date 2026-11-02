@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import shutil
+import sys
 import time
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
@@ -36,6 +37,10 @@ _LOCK_STALE_SECONDS = 60.0
 # enough that the test's ThreadPoolExecutor barrier converges fast
 # (~ms), long enough not to busy-loop the CPU.
 _LOCK_RETRY_SLEEP = 0.01
+# Windows only: how long an unbroken run of PermissionError on the lock may last
+# before it counts as a real refusal. See _session_lock.
+_LOCK_DENIED_RETRY_SECONDS = 5.0
+_WINDOWS = sys.platform == "win32"
 
 
 @contextlib.contextmanager
@@ -55,10 +60,22 @@ def _session_lock(recycle_root: Path, session_id: str) -> Iterator[None]:
     recycle_root.mkdir(parents=True, exist_ok=True)
     lock_path = recycle_root / f"{session_id}.lock"
     fd: int | None = None
+    denied_since: float | None = None
     while fd is None:
         try:
             fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except PermissionError:
+            # Windows is expected to refuse a file whose delete is still pending,
+            # so a holder letting go can look like this for a moment. Elsewhere,
+            # and once it has lasted, the refusal is real: retrying would spin on
+            # a read-only folder for ever.
+            now = time.monotonic()
+            denied_since = now if denied_since is None else denied_since
+            if not _WINDOWS or now - denied_since >= _LOCK_DENIED_RETRY_SECONDS:
+                raise
+            time.sleep(_LOCK_RETRY_SLEEP)
         except FileExistsError:
+            denied_since = None  # The lock is held and working; the refusals have ended.
             try:
                 age = time.time() - lock_path.stat().st_mtime
             except OSError:

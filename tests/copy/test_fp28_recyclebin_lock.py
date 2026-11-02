@@ -23,12 +23,16 @@ See ``docs/specs/FP28-hardening-correctness.md`` §§ A2, A3.
 
 from __future__ import annotations
 
+import os
 import threading
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from mame_curator.copy import recyclebin
 from mame_curator.copy.recyclebin import recycle_file
 
 
@@ -139,3 +143,136 @@ def test_recycle_file_rollback_does_not_rmdir_parallel_session_dir(
     assert len(successes) == 1
     assert successes[0].exists()
     assert successes[0].parent.exists()
+
+
+# ---- Windows refusing the lock file ------------------------------------------
+#
+# These stub os.open, so they prove what the lock does WITH a PermissionError.
+# They do not prove Windows raises one for a lock being deleted.
+
+DENIED = PermissionError(13, "Permission denied")
+
+
+class _Clock:
+    """Stands in for `time` in the module: a sleep moves it on and waits for nothing."""
+
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.now += seconds
+
+    def time(self) -> float:
+        return self.now
+
+
+@pytest.fixture
+def clock(monkeypatch: pytest.MonkeyPatch) -> _Clock:
+    fake = _Clock()
+    monkeypatch.setattr(recyclebin, "time", fake)
+    return fake
+
+
+def _stub_lock_open(monkeypatch: pytest.MonkeyPatch, step: Callable[[int], None]) -> list[int]:
+    """Call `step(attempt)` before each open of the lock; if it returns, really open it."""
+    real_open = os.open
+    attempts: list[int] = []
+
+    def _open(path: Any, flags: int, mode: int = 0o777) -> int:
+        if Path(path).name == "s1.lock":
+            attempts.append(len(attempts) + 1)
+            step(attempts[-1])
+        return real_open(path, flags, mode)
+
+    monkeypatch.setattr(os, "open", _open)
+    return attempts
+
+
+def test_windows_retries_a_lock_it_is_refused_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, clock: _Clock
+) -> None:
+    monkeypatch.setattr(recyclebin, "_WINDOWS", True)
+
+    def _refuse_first(attempt: int) -> None:
+        if attempt == 1:
+            raise DENIED
+
+    attempts = _stub_lock_open(monkeypatch, _refuse_first)
+
+    with recyclebin._session_lock(tmp_path, "s1"):
+        assert (tmp_path / "s1.lock").exists()
+
+    assert len(attempts) == 2
+    assert not (tmp_path / "s1.lock").exists()
+
+
+def test_windows_gives_the_real_error_when_refused_until_the_deadline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, clock: _Clock
+) -> None:
+    monkeypatch.setattr(recyclebin, "_WINDOWS", True)
+    deadline = recyclebin._LOCK_DENIED_RETRY_SECONDS
+
+    def _always_refuse(attempt: int) -> None:
+        # Ends the test if the deadline or the sleep is gone; it would loop for ever.
+        assert clock.now < deadline * 2 and attempt < 10_000, "still retrying past the deadline"
+        raise DENIED
+
+    attempts = _stub_lock_open(monkeypatch, _always_refuse)
+
+    with (
+        pytest.raises(PermissionError) as refused,
+        recyclebin._session_lock(tmp_path, "s1"),
+    ):
+        pass
+
+    assert refused.value is DENIED
+    assert len(attempts) > 1
+    assert clock.now >= deadline
+
+
+def test_windows_deadline_counts_only_an_unbroken_run_of_refusals(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, clock: _Clock
+) -> None:
+    """A long wait behind a working holder must not use up the time for a refusal."""
+    monkeypatch.setattr(recyclebin, "_WINDOWS", True)
+
+    def _refuse_wait_refuse(attempt: int) -> None:
+        if attempt == 1:
+            raise DENIED
+        if attempt == 2:
+            clock.now += recyclebin._LOCK_DENIED_RETRY_SECONDS * 2
+            raise FileExistsError
+        if attempt == 3:
+            raise DENIED
+
+    attempts = _stub_lock_open(monkeypatch, _refuse_wait_refuse)
+
+    with recyclebin._session_lock(tmp_path, "s1"):
+        pass
+
+    assert len(attempts) == 4
+
+
+def test_posix_gives_the_real_error_at_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, clock: _Clock
+) -> None:
+    """POSIX has no delete-pending state: a refusal is a folder that stays refused."""
+    monkeypatch.setattr(recyclebin, "_WINDOWS", False)
+
+    def _always_refuse(_attempt: int) -> None:
+        raise DENIED
+
+    attempts = _stub_lock_open(monkeypatch, _always_refuse)
+
+    with (
+        pytest.raises(PermissionError) as refused,
+        recyclebin._session_lock(tmp_path, "s1"),
+    ):
+        pass
+
+    assert refused.value is DENIED
+    assert len(attempts) == 1
+    assert clock.now == 0.0

@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-02 Fixed — Recycling on Windows no longer gives up on a brief refusal
+
+While a copy moves an old file to the recycle bin, it holds a small lock file so two moves cannot collide. On Windows, opening that lock failed with "Permission denied" once in our automated checks, just as another move was finishing. A copy could stop at that point.
+
+- **Windows now tries again for up to five seconds.**
+  If it is still refused after that, you see the real error. Other systems report a refusal at once, because there it means the folder really cannot be written. The cause on Windows is our best reading of that one failure; it has not been measured on a Windows machine.
+
 ### 2026-11-02 Fixed — Choosing a version now always works (mame-curator-1149)
 
 Picking a different version of a game could say it worked and change nothing. This happened whenever the version on show was not the game's main version, which includes any game you had already changed once.

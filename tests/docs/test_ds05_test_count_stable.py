@@ -347,7 +347,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # proves tests stay out of the repo's data/ folder. 1069 → 1074.
 # Bumped 2026-11-02 (mame-curator-1149): choosing a version, and old saved
 # choices. 1074 → 1091.
-EXPECTED_PYTEST_DECLARATIONS = 1091
+# Bumped 2026-11-02 (CI fix): Windows refusing the recycle lock. 1091 → 1095.
+EXPECTED_PYTEST_DECLARATIONS = 1095
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

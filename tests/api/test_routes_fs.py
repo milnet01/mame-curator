@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import stat
+import sys
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -241,6 +242,11 @@ def _granted(client: Any, tmp_path: Path) -> Path:
     return folder
 
 
+@pytest.mark.skipif(
+    sys.platform in ("win32", "darwin"),
+    reason="Cannot make a file with this byte name: macOS refuses it (errno 92) "
+    "and Windows does not name files in bytes (open() fails to decode it).",
+)
 def test_fs_list_leaves_out_a_name_it_cannot_send(client: Any, tmp_path: Path) -> None:
     """A name that is not valid UTF-8 cannot go in JSON; the rest still list."""
     folder = _granted(client, tmp_path)
