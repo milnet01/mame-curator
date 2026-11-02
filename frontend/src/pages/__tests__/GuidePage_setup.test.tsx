@@ -32,6 +32,7 @@ const entry = (name: string, is_dir: boolean) => ({
   name,
   path: `${HOME}/${name}`,
   is_dir,
+  hidden: name.startsWith("."),
   size: null,
   mtime: "2026-05-01T00:00:00Z",
 });

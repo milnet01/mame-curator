@@ -61,7 +61,9 @@ export function useFsListing(path: string | null, enabled = true) {
     FsListingSchema,
     // Gated on BOTH `enabled` (open) and a real path: an `initialPath` makes
     // `path` non-null even while closed, so `enabled` is the load-bearing gate.
-    { enabled: enabled && path !== null },
+    // Silent: FsBrowser says a failure itself, and asks about a grant.
+    // Never stale: a folder made elsewhere shows when the user comes back.
+    { enabled: enabled && path !== null, meta: { silent: true }, staleTime: 0 },
   );
 }
 

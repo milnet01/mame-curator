@@ -17,6 +17,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-02 Fixed — The folder picker is clearer and easier to use
+
+Choosing a folder or a file now works from every row, says plainly what it finds, and fits the window with large text and long paths (mame-curator-1145, mame-curator-1165, mame-curator-1171).
+
+- **A folder of game files no longer reads "Empty."**
+  It now says the folder holds only files and that you can still use it. A folder with nothing in it says "No folders here."
+
+- **Browse works on a row that holds a file**
+  On the game list, playlist and RetroArch rows, Browse opens the folder that holds the file, even if the playlist does not exist yet. Before, it could stop on "This folder could not be opened."
+
+- **No confusing message when the picker asks to look somewhere new**
+  The message telling you to add a path in Settings is gone. The question in front of you is the way forward.
+
+- **Long paths fit**
+  The picker and the question it asks wrap a long path and scroll, so their buttons stay in the window at every text size. The large picker now shows the whole path.
+
+- **The guide's Where step has the large picker**
+  Your place returns to the heading when the picker closes, however you close it. A refused folder is said once, on the step, not again in a pop-up.
+
+- **Keyboard users keep their place after a failure**
+  Copy these, the Library's Try again and the Where step's Yes stay focused while they work, and when they fail.
+
+- **Hidden folders on Windows and macOS are hidden in the setup wizard**
+  Folders such as AppData and $RECYCLE.BIN no longer clutter the wizard's picker. Hidden files can still be chosen.
+
+- **A folder that did not open cannot be chosen**
+  Use this folder waits until the folder has opened, and stays unavailable if it could not be.
+
+- **A drive stays available**
+  A drive that also holds one of your folders no longer disappears from the wizard's picker.
+
+- **Huge folders open faster**
+  A folder of 40,000 files opened about three times faster on the computer we measured, and the picker draws only the rows near what you can see. All of them can still be reached.
+
+- **One odd file no longer stops a folder opening**
+  A file whose name cannot be shown is left out, and the rest of the folder lists.
+
+- **A folder made elsewhere shows when you come back**
+  The picker looks again each time a folder opens.
+
+- **A refused path does not stay in its field**
+  The field goes back to what is saved, so a refused path cannot look saved. The message says why it was refused. Text you typed that is refused has to be typed again.
+
+- **Allow cannot be pressed twice**
+  While the app is being allowed to look in a folder, the question's buttons show that it is busy.
+
+- **An out-of-date sentence is gone from Backup**
+  It said re-running the setup wizard would come in a later phase.
+
 ### 2026-11-02 Fixed — Finishing setup is more dependable
 
 Saving your answers now reliably brings up your games, and the app tells you plainly when it could not (mame-curator-1145).

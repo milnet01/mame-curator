@@ -19,6 +19,7 @@ class FsEntry(BaseModel):
     name: str
     path: str
     is_dir: bool
+    hidden: bool
     size: int | None
     mtime: datetime
 

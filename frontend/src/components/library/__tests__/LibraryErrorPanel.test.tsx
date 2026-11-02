@@ -40,12 +40,13 @@ describe("LibraryErrorPanel", () => {
   });
 
   // FP25-H: in-flight feedback for Retry
-  it("FP25-H: disables Retry while isFetching=true", () => {
+  it("FP25-H: Retry looks disabled while isFetching=true, and keeps focus (1165)", () => {
     render(<LibraryErrorPanel onRetry={() => {}} isFetching />);
     const button = screen.getByRole("button", {
       name: strings.common.retrying,
     });
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).not.toBeDisabled();
   });
 
   it('FP25-H: shows "Retrying…" label while in-flight', () => {

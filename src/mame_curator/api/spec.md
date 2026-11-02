@@ -310,6 +310,11 @@ All FS browsing crosses `api/fs.py`:
   path that resolves outside every allowed root → `FsSandboxError` (403).
   Empty / NUL-byte / non-directory paths → `FsPathInvalidError` (400);
   non-existent paths → `FsNotFoundError` (404).
+- **Listing** (`GET /api/fs/list`): one odd entry never stops a listing. An
+  entry that cannot be read, or whose name is not UTF-8 and so cannot travel as
+  JSON, is left out. A file whose date the clock cannot express stays, dated
+  1970. `FsEntry.hidden` is true for a name starting with a dot, Windows' hidden
+  attribute or macOS's hidden flag.
 - **Grant** (`POST /api/fs/allowed-roots`) adds a `granted` root; a path
   already covered by an existing root → `FsAlreadyCoveredError` (409).
 - **Revoke** (`DELETE /api/fs/allowed-roots/{root_id}`) removes a `granted`

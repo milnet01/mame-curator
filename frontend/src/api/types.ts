@@ -445,6 +445,7 @@ export interface FsEntry {
   name: string;
   path: string;
   is_dir: boolean;
+  hidden: boolean;
   size: number | null;
   mtime: Date;
 }

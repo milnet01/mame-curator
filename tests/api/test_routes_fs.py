@@ -6,10 +6,15 @@ Per ``docs/specs/P04-http-api.md`` § Routes (Filesystem browser) and § Filesys
 from __future__ import annotations
 
 import os
+import stat
+from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
+
+from mame_curator.api.routes import fs as fs_routes
 
 # ---- Per-route shape tests --------------------------------------------------
 
@@ -224,3 +229,83 @@ def test_compose_allowlist_logs_info_on_dropped_granted_root(
     assert any(str(nonexistent) in r.message for r in caplog.records), (
         f"expected INFO log naming {nonexistent}; got {[r.message for r in caplog.records]}"
     )
+
+
+# ---- One odd entry must not stop a listing (mame-curator-1145 review) --------
+
+
+def _granted(client: Any, tmp_path: Path) -> Path:
+    folder = tmp_path / "listed"
+    folder.mkdir()
+    assert client.post("/api/fs/allowed-roots", json={"path": str(folder)}).status_code == 200
+    return folder
+
+
+def test_fs_list_leaves_out_a_name_it_cannot_send(client: Any, tmp_path: Path) -> None:
+    """A name that is not valid UTF-8 cannot go in JSON; the rest still list."""
+    folder = _granted(client, tmp_path)
+    (folder / "good.zip").write_text("")
+    with open(os.fsencode(folder) + b"/bad\xff.zip", "w"):
+        pass
+
+    listed = client.get("/api/fs/list", params={"path": str(folder)})
+
+    assert listed.status_code == 200
+    assert [e["name"] for e in listed.json()["entries"]] == ["good.zip"]
+
+
+@pytest.mark.parametrize("error", [OverflowError, ValueError, OSError])
+def test_fs_list_keeps_a_file_with_an_impossible_date(
+    client: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, error: type[Exception]
+) -> None:
+    """A date the clock cannot express says nothing about the file, so it stays."""
+    folder = _granted(client, tmp_path)
+    (folder / "old.zip").write_text("")
+
+    class FussyDatetime(datetime):
+        @classmethod
+        def fromtimestamp(cls, *args: Any, **kwargs: Any) -> Any:
+            if args and args[0] != 0:
+                raise error("out of range")
+            return datetime.fromtimestamp(*args, **kwargs)
+
+    monkeypatch.setattr(fs_routes, "datetime", FussyDatetime)
+
+    listed = client.get("/api/fs/list", params={"path": str(folder)})
+
+    assert listed.status_code == 200
+    entry = listed.json()["entries"][0]
+    assert entry["name"] == "old.zip"
+    assert entry["mtime"].startswith("1970-01-01")
+
+
+def test_fs_list_says_which_entries_are_hidden(client: Any, tmp_path: Path) -> None:
+    folder = _granted(client, tmp_path)
+    (folder / ".config").mkdir()
+    (folder / "games").mkdir()
+    (folder / ".dotfile").write_text("")
+
+    listed = client.get("/api/fs/list", params={"path": str(folder)})
+
+    hidden = {e["name"]: e.get("hidden") for e in listed.json()["entries"]}
+    assert hidden == {".config": True, ".dotfile": True, "games": False}
+
+
+@pytest.mark.parametrize(
+    ("name", "marks", "expected"),
+    [
+        ("games", {}, False),
+        (".config", {}, True),
+        # What os.stat gives on Windows, with no dot in the name.
+        ("AppData", {"st_file_attributes": stat.FILE_ATTRIBUTE_HIDDEN}, True),
+        ("$RECYCLE.BIN", {"st_file_attributes": 0x16}, True),
+        ("Games", {"st_file_attributes": stat.FILE_ATTRIBUTE_DIRECTORY}, False),
+        # What os.stat gives on macOS.
+        ("Library", {"st_flags": stat.UF_HIDDEN}, True),
+        ("Applications", {"st_flags": 0}, False),
+    ],
+)
+def test_is_hidden_reads_each_system_s_mark(
+    name: str, marks: dict[str, int], expected: bool
+) -> None:
+    assert fs_routes.is_hidden(name, SimpleNamespace(**marks)) is expected

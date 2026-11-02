@@ -18,6 +18,12 @@ import {
 } from "./_libraryPageFixtures";
 import { config as appConfig } from "./_settingsPageFixtures";
 
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}));
+
+import { toast } from "sonner";
+
 const g = strings.guide;
 
 const REPORT = {
@@ -400,6 +406,61 @@ describe("a chosen folder", () => {
     expect(saves).toBe(0);
   });
 
+  it("mame-curator-1165: a refused folder is said once, on the step", async () => {
+    vi.mocked(toast.error).mockClear();
+    useHandlers();
+    folderHandlers();
+    server.use(
+      http.patch("/api/config", () =>
+        HttpResponse.json(
+          { code: "boom", detail: "it broke", fields: [] },
+          { status: 500 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, g.finds.copyThese);
+    await press(user, g.where.choose);
+    await press(user, strings.settings.fsBrowserUseDirectory);
+
+    await screen.findByRole("alert");
+    expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
+  });
+
+  it("mame-curator-1165: the save keeps the Yes button in the focus order", async () => {
+    useHandlers();
+    folderHandlers();
+    server.use(http.patch("/api/config", () => new Promise(() => {})));
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, g.finds.copyThese);
+    await press(user, g.where.choose);
+    await press(user, strings.settings.fsBrowserUseDirectory);
+
+    const yes = await screen.findByRole("button", { name: g.where.yes });
+    await waitFor(() => expect(yes).toHaveAttribute("aria-disabled", "true"));
+    expect(yes).not.toBeDisabled();
+  });
+
+  it("mame-curator-1171: the picker is the large one", async () => {
+    useHandlers();
+    folderHandlers();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, g.finds.copyThese);
+    await press(user, g.where.choose);
+
+    expect(
+      await screen.findByRole("button", {
+        name: strings.settings.fsBrowserUseDirectory,
+      }),
+    ).toHaveClass("text-xl", "min-h-12");
+  });
+
   it("that is saved is heard", async () => {
     useHandlers();
     folderHandlers();
@@ -425,6 +486,28 @@ describe("a chosen folder", () => {
     await press(user, strings.settings.fsBrowserUseDirectory);
 
     await waitFor(() => expect(region).toHaveTextContent("/mnt/new"));
+  });
+});
+
+describe("Copy these while it fetches (mame-curator-1165)", () => {
+  it("stays in the focus order, and ignores another press", async () => {
+    useHandlers();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    const copy = await screen.findByRole("button", { name: g.finds.copyThese });
+    let fetches = 0;
+    server.use(
+      http.get("/api/games", () => {
+        fetches += 1;
+        return new Promise(() => {});
+      }),
+    );
+    await user.click(copy);
+    await waitFor(() => expect(copy).toHaveAttribute("aria-disabled", "true"));
+    expect(copy).not.toBeDisabled();
+    await user.click(copy);
+    expect(fetches).toBe(1);
   });
 });
 

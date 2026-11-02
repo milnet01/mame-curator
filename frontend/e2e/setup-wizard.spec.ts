@@ -82,9 +82,18 @@ async function expectFocusedHeading(page: Page, name: string) {
 async function openFolders(page: Page, route: string[]) {
   const dialog = page.getByRole("dialog");
   for (const name of route) {
-    await dialog
-      .getByRole("button", { name: `${name} folder`, exact: true })
-      .click();
+    const row = dialog.getByRole("button", {
+      name: `${name} folder`,
+      exact: true,
+    });
+    // A busy /tmp has more folders than the picker draws at once, so scroll.
+    await expect(async () => {
+      await dialog
+        .getByTestId("fs-entries")
+        .evaluate((el) => el.scrollBy(0, el.clientHeight));
+      expect(await row.count()).toBeGreaterThan(0);
+    }).toPass({ intervals: [20], timeout: 60_000 });
+    await row.click();
   }
 }
 

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FsBrowser } from "@/components/settings/FsBrowser";
+import { folderOf } from "@/lib/folderOf";
 import { strings } from "@/strings";
 
 interface PathRowProps {
@@ -16,11 +17,9 @@ interface PathRowProps {
 
 // FP12 § H — single Label + Input + Browse cell. The Input patches on blur
 // (avoids per-keystroke noise); the Browse button opens an <FsBrowser>
-// scoped to this row so multiple PathRows don't share a modal. The local
-// draft seeds from `value` on mount; out-of-band resets (e.g. snapshot
-// restore while the tab is open) won't reflect until the input is blurred.
-// Parents that need a "reset draft on cancel" hook bump a `key` prop to
-// re-mount this component (FP13 § B2 pattern, used by the DAT swap row).
+// scoped to this row so multiple PathRows don't share a modal. The draft
+// lives only while typing, so the field always ends on what is saved: a path
+// the server refused does not stay in it looking saved.
 export function PathRow({
   id,
   label,
@@ -28,7 +27,7 @@ export function PathRow({
   mode = "directory",
   onChange,
 }: PathRowProps) {
-  const [draft, setDraft] = useState(value);
+  const [draft, setDraft] = useState<string | null>(null);
   const [browseOpen, setBrowseOpen] = useState(false);
   return (
     <div className="flex flex-col gap-1">
@@ -36,10 +35,11 @@ export function PathRow({
       <div className="flex items-center gap-2">
         <Input
           id={id}
-          value={draft}
+          value={draft ?? value}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => {
-            if (draft !== value) onChange(draft);
+            if (draft !== null && draft !== value) onChange(draft);
+            setDraft(null);
           }}
         />
         <Button
@@ -54,12 +54,11 @@ export function PathRow({
         <FsBrowser
           open
           onOpenChange={setBrowseOpen}
-          onPick={(picked) => {
-            setDraft(picked);
-            onChange(picked);
-          }}
+          onPick={onChange}
           mode={mode}
-          initialPath={value || undefined}
+          // A file row holds a file, which may not exist yet, and a listing
+          // or a grant needs a folder.
+          initialPath={mode === "file" ? folderOf(value) : value || undefined}
         />
       )}
     </div>

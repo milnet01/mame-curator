@@ -172,10 +172,6 @@ export function SettingsPage({
   // FP12 § H — DAT swap is destructive (replaces the whole library);
   // hold the pending value here until the user confirms.
   const [pendingDat, setPendingDat] = useState<string | null>(null);
-  // FP13 § B2: bumped after each pendingDat resolution (cancel or confirm)
-  // so the source_dat PathRow re-mounts and `draft` re-seeds from `value`.
-  // Without this, a typed-then-cancelled DAT path stays stale in the input.
-  const [datResetTick, setDatResetTick] = useState(0);
 
   return (
     <section className="flex flex-col gap-4 p-4">
@@ -267,7 +263,6 @@ export function SettingsPage({
             onChange={(next) => updatePaths("dest_roms", next)}
           />
           <PathRow
-            key={`paths-source-dat-${datResetTick}`}
             id="paths-source-dat"
             label={strings.settings.pathRowLabels.dat}
             value={config.paths.source_dat}
@@ -309,19 +304,13 @@ export function SettingsPage({
             <ConfirmationDialog
               open
               onOpenChange={(o) => {
-                if (!o) {
-                  setPendingDat(null);
-                  setDatResetTick((n) => n + 1);
-                }
+                if (!o) setPendingDat(null);
               }}
               title={strings.settings.datSwapConfirmTitle}
               description={strings.settings.datSwapConfirm}
               actionLabel={strings.settings.datSwapActionLabel(pendingDat)}
               destructive
-              onConfirm={() => {
-                updatePaths("source_dat", pendingDat);
-                setDatResetTick((n) => n + 1);
-              }}
+              onConfirm={() => updatePaths("source_dat", pendingDat)}
             />
           )}
         </TabsContent>

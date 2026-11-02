@@ -329,7 +329,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # +2 in tests/tools/test_run_sh_port.py. 932 → 938.
 # Bumped 2026-11-02 (mame-curator-1145 review fixes): the new
 # tests/api/test_setup_save.py. 938 → 966.
-EXPECTED_PYTEST_DECLARATIONS = 966
+# Bumped 2026-11-02 (mame-curator-1145 review, the folder picker): one odd file,
+# and FsEntry.hidden. 966 → 970.
+EXPECTED_PYTEST_DECLARATIONS = 970
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -435,7 +437,9 @@ EXPECTED_PYTEST_DECLARATIONS = 966
 # hook's refresh. 527 → 552.
 # Bumped 2026-11-02 (mame-curator-1145 review fixes): the save hook, the wizard,
 # the Where step and the Settings banner. 552 → 566.
-EXPECTED_VITEST_DECLARATIONS = 566
+# Bumped 2026-11-02 (mame-curator-1145 review, the folder picker, with
+# mame-curator-1165 and 1171). 566 → 594.
+EXPECTED_VITEST_DECLARATIONS = 594
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

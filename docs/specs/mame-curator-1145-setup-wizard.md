@@ -111,7 +111,13 @@ The Settings banner for `restart_required` names no false cause. While setup mod
 
 ### 4.4 The picker
 
-`FsBrowser` gains `large?: boolean`. When set, all its text is `text-xl`, messages and buttons included, and its rows and buttons are at least `3rem` tall. `ConfirmationDialog`, which draws the grant prompt, gains the same prop. The picker also scrolls rather than run off the window. `FsBrowser` gains `simple?: boolean` too, which leaves out hidden folders and allowed folders whose `source` is `config`, such as the starter config's own. `SetupWizard` sets both. The title follows `mode`: "Choose a folder" or "Choose a file".
+`FsBrowser` gains `large?: boolean`. When set, all its text is `text-xl`, messages and buttons included, and its rows and buttons are at least `3rem` tall, and it has no small close button. `ConfirmationDialog`, which draws the grant prompt, gains the same prop. The picker and the prompt scroll rather than run off the window, and a long path wraps rather than push a button out of it, for every caller. `FsBrowser` gains `simple?: boolean` too, which leaves out hidden folders and allowed folders whose `source` is `config`, such as the starter config's own. A drive that is also such a folder stays, as a drive. `SetupWizard` sets both. The guide's Where step sets `large`. The title follows `mode`: "Choose a folder" or "Choose a file".
+
+Hidden is the server's word, in `FsEntry.hidden`: a name starting with a dot, Windows' hidden attribute, or macOS's hidden flag. `simple` hides folders only, so a dot-file stays in file mode.
+
+A listing failure is said by the picker alone, with no toast, and a folder that failed or is still loading cannot be chosen. Listings are never treated as fresh, so a folder made elsewhere shows on return. A folder with very many rows draws only those near the window; every row can still be reached by keyboard and by scrolling. While a grant is under way the prompt ignores its buttons and Esc, and keeps focus.
+
+`PathRow` opens a file row's picker at the folder that holds the file, which need not exist yet. A field holds typed text only while typing, then shows what is saved, so a path the server refused does not stay in it.
 
 After "Allow", the picker stays open on the allowed folder, for every caller. Today `ConfirmationDialog`'s confirm also calls its `onOpenChange(false)`, which closes the picker. Cancel still closes it.
 
@@ -124,6 +130,9 @@ Its strings change for every caller, to plain words:
 | `fsBrowserUseDirectory` | "Use this folder" |
 | `fsBrowserDirTag` | "folder" |
 | `fsBrowserListError` | "This folder could not be opened." |
+| `fsBrowserNoFolders` (new) | "No folders here." |
+| `fsBrowserOnlyFiles` (new), a folder with files in directory mode | "This folder holds only files, so there are no folders to open. You can still use it." |
+| `fsBrowserEmpty`, file mode | "No files or folders here." |
 | `fsBrowserUpAtTop` | "Already at the top." |
 | `fsBrowserHomeError` | "Your home folder could not be found. Choose a drive to carry on." |
 | `fsGrantTitle` | "Allow MAME Curator to look here?" |
@@ -172,17 +181,17 @@ Its strings change for every caller, to plain words:
   *Test:* `GuidePage_setup.test.tsx`, with a reply of `restart_required: true`, a 422 naming `paths.source_roms`, and a 500.
   *Breaks when:* a kept-but-unreadable save is treated as success, or a refused save leaves the step busy.
 
-- **INV-10** — Every step has the exit, steps 2 and 3 have Back, and neither shows during the save. Focus moves to the heading on each step change and on each choice, including after the picker closes.
-  *Test:* `GuidePage_setup.test.tsx` for the actions, and `frontend/e2e/setup-wizard.spec.ts` for focus, walking a second choice too, because jsdom does not run the dialog's focus return against the frame `GuideStep` waits for.
+- **INV-10** — Every step has the exit, steps 2 and 3 have Back, and neither shows during the save. Focus moves to the heading on each step change and on each choice, including after the picker closes. The guide's Where step returns focus the same way.
+  *Test:* `GuidePage_setup.test.tsx` for the actions, and `frontend/e2e/setup-wizard.spec.ts` and `folder-picker.spec.ts` for focus, walking a second choice too, because jsdom does not run the dialog's focus return against the frame `GuideStep` waits for.
   *Breaks when:* the dialog's returning focus lands after the heading's, or a second choice does not change `focusKey`.
 
 - **INV-11** — Choosing the games folder as the destination is refused before any save, in the wizard and the Where step. The server refuses a save that changes either path so that both resolve to one folder, a symlink included, and refuses no other save.
   *Test:* `GuidePage_setup.test.tsx` and `GuidePage_results.test.tsx`, asserting the alert and no PATCH; `tests/api/test_setup_save.py` for the server.
   *Breaks when:* either check is removed, which leaves "All of these are already copied." as the user's only clue; or the server refuses a config that already held the two the same.
 
-- **INV-12** — The wizard's picker asks before looking outside the existing allowed folders, stays open on a folder the user allows, fits the window, shows only what `simple` leaves, and step 2 picks a file. `large` changes only size.
-  *Test:* `GuidePage_setup.test.tsx` for a `fs_sandboxed` listing, and `frontend/src/components/settings/__tests__/FsBrowser.test.tsx` for the title by mode, `large`, `simple` and the open picker after a grant, and `frontend/e2e/setup-wizard.spec.ts` for the fit.
-  *Breaks when:* the wizard adds its own listing, skips `FsBrowser`'s grant, a confirmed grant closes the picker, or the picker's own buttons fall outside the window.
+- **INV-12** — The wizard's picker asks before looking outside the existing allowed folders, stays open on a folder the user allows, fits the window with its grant prompt whatever the path's length and the text size, shows only what `simple` leaves, and step 2 picks a file. `large` changes only size.
+  *Test:* `GuidePage_setup.test.tsx` for a `fs_sandboxed` listing, and `frontend/src/components/settings/__tests__/FsBrowser.test.tsx` for the title by mode, `large`, `simple` and the open picker after a grant, and `frontend/e2e/setup-wizard.spec.ts` and `folder-picker.spec.ts` for the fit.
+  *Breaks when:* the wizard adds its own listing, skips `FsBrowser`'s grant, a confirmed grant closes the picker, or the picker's own buttons or a long path fall outside the window.
 
 - **INV-13** — With no `config.yaml`, neither launcher runs `mame-curator setup`, and both reach `serve`.
   *Test:* `tests/tools/test_run_sh_port.py::test_no_config_goes_straight_to_serve`, running a copy with no config against the stub `uv`, and `tests/tools/test_run_sh_port.py::test_run_bat_never_runs_setup`, reading the script. It lives there because `test_run_bat_port.py` skips itself off Windows.
@@ -222,8 +231,8 @@ Its strings change for every caller, to plain words:
 | INV-7, INV-9 | `GuidePage_setup.test.tsx` |
 | INV-11 | `GuidePage_setup.test.tsx`, `GuidePage_results.test.tsx`, `tests/api/test_setup_save.py` |
 | INV-8 | `GuidePage_setup.test.tsx`, `frontend/e2e/setup-wizard.spec.ts`, `frontend/src/hooks/__tests__/useConfig.test.tsx` |
-| INV-10 | `GuidePage_setup.test.tsx`, `frontend/e2e/setup-wizard.spec.ts` |
-| INV-12 | `GuidePage_setup.test.tsx`, `frontend/src/components/settings/__tests__/FsBrowser.test.tsx` |
+| INV-10 | `GuidePage_setup.test.tsx`, `frontend/e2e/setup-wizard.spec.ts`, `frontend/e2e/folder-picker.spec.ts` |
+| INV-12 | `GuidePage_setup.test.tsx`, `frontend/src/components/settings/__tests__/FsBrowser.test.tsx`, `frontend/e2e/folder-picker.spec.ts` |
 | INV-13 | `tests/tools/test_run_sh_port.py` |
 | INV-14 | `frontend/e2e/setup-wizard.spec.ts` |
 | INV-15, INV-16 | `tests/api/test_setup_save.py`, `frontend/src/hooks/__tests__/useConfig.test.tsx` |
@@ -245,7 +254,6 @@ Each new test must be seen to fail before its code exists. `frontend/e2e` runs b
 - Making a new folder from the picker — deferred; not yet queued.
 - Asking for the optional reference files or `paths.listxml` — deferred; not yet queued. The Library's existing `ListxmlBanner` says what they add.
 - Changing the DAT outside setup mode, which still needs a restart (1095 §4.2b) — deferred; not yet queued.
-- Giving the guide's Where step the `large` picker — deferred; not yet queued.
 - Refusing a save whose `paths.listxml` or other reference file will not parse, or starting in setup mode when one is bad — deferred; not yet queued.
 - Removing `mame-curator setup`, which `cli/spec.md` says the browser wizard replaces — it stays for scripts.
 
@@ -257,8 +265,8 @@ Each new test must be seen to fail before its code exists. `frontend/e2e` runs b
 | INV-6, INV-7, INV-9 | `GuidePage_setup.test.tsx` |
 | INV-11 | `GuidePage_setup.test.tsx`, `GuidePage_results.test.tsx`, `tests/api/test_setup_save.py` |
 | INV-8 | `GuidePage_setup.test.tsx` and `useConfig.test.tsx`, for the refetch; the real journey only by hand |
-| INV-10 | Partial: `GuidePage_setup.test.tsx` for the actions; focus is `setup-wizard.spec.ts`, which no gate runs |
-| INV-12 | `GuidePage_setup.test.tsx`, `FsBrowser.test.tsx` |
+| INV-10 | Partial: `GuidePage_setup.test.tsx` for the actions; focus is `setup-wizard.spec.ts` and `folder-picker.spec.ts`, which no gate runs |
+| INV-12 | Partial: `GuidePage_setup.test.tsx`, `FsBrowser.test.tsx`; the fit is `folder-picker.spec.ts`, which no gate runs |
 | INV-13 | `test_run_sh_port.py` |
 | INV-14 | **nothing automatic** — `setup-wizard.spec.ts` runs by hand, because no gate runs `frontend/e2e` |
 | INV-15, INV-16 | `tests/api/test_setup_save.py`, `useConfig.test.tsx` |

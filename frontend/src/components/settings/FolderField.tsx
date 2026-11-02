@@ -29,7 +29,8 @@ export function FolderField({
   onCommit,
   optional = false,
 }: FolderFieldProps) {
-  const [draft, setDraft] = useState(value ?? "");
+  // Only while typing, so a path the server refused does not stay looking saved.
+  const [draft, setDraft] = useState<string | null>(null);
   const [browseOpen, setBrowseOpen] = useState(false);
 
   const commit = (next: string) => {
@@ -43,9 +44,12 @@ export function FolderField({
       <div className="flex items-center gap-2">
         <Input
           id={id}
-          value={draft}
+          value={draft ?? value ?? ""}
           onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => commit(draft)}
+          onBlur={() => {
+            if (draft !== null) commit(draft);
+            setDraft(null);
+          }}
         />
         <Button
           variant="outline"
@@ -60,10 +64,7 @@ export function FolderField({
         <FsBrowser
           open
           onOpenChange={setBrowseOpen}
-          onPick={(picked) => {
-            setDraft(picked);
-            commit(picked);
-          }}
+          onPick={commit}
           initialPath={value || undefined}
         />
       )}

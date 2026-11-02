@@ -96,7 +96,7 @@ export function WhatThatFindsStep({
           <GuideAction
             primary
             onClick={() => void copyThese()}
-            disabled={progress !== null}
+            busy={progress !== null}
           >
             {strings.guide.finds.copyThese}
           </GuideAction>

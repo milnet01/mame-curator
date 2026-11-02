@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import stat
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -37,25 +38,43 @@ from mame_curator.api.state import WorldState, replace_world
 router = APIRouter()
 
 
+def is_hidden(name: str, st: object) -> bool:
+    """Hidden as the user's own system counts it: a dot, or its mark on the file."""
+    return (
+        name.startswith(".")
+        or bool(getattr(st, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_HIDDEN)  # Windows
+        or bool(getattr(st, "st_flags", 0) & stat.UF_HIDDEN)  # macOS
+    )
+
+
+def _fs_entry(child: Path) -> FsEntry | None:
+    """One row, or None for one the picker cannot show. One odd entry never stops a listing."""
+    try:
+        child.name.encode("utf-8")  # A name that is not UTF-8 cannot travel as JSON.
+        st = child.stat()
+    except (OSError, UnicodeEncodeError):
+        return None
+    is_dir = stat.S_ISDIR(st.st_mode)
+    try:
+        mtime = datetime.fromtimestamp(st.st_mtime, tz=UTC)
+    except (OverflowError, OSError, ValueError):
+        # A date the clock cannot express says nothing about the file, so it stays.
+        mtime = datetime.fromtimestamp(0, tz=UTC)
+    return FsEntry(
+        name=child.name,
+        path=str(child),
+        is_dir=is_dir,
+        hidden=is_hidden(child.name, st),
+        size=None if is_dir else st.st_size,
+        mtime=mtime,
+    )
+
+
 @router.get("/api/fs/list", response_model=FsListing)
 def fs_list(path: str, world: WorldState = Depends(get_world)) -> FsListing:
     requested = validate_fs_path(path, world.allowed_roots, require_dir=True)
-    entries: list[FsEntry] = []
     try:
-        for child in sorted(requested.iterdir()):
-            try:
-                stat = child.stat()
-            except OSError:
-                continue
-            entries.append(
-                FsEntry(
-                    name=child.name,
-                    path=str(child),
-                    is_dir=child.is_dir(),
-                    size=stat.st_size if not child.is_dir() else None,
-                    mtime=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
-                )
-            )
+        entries = [entry for child in sorted(requested.iterdir()) if (entry := _fs_entry(child))]
     except OSError as exc:
         # FP09 A1: repr-quote `exc` so a multi-line OSError str can't break
         # the FP06-FP08 single-line `detail` invariant.

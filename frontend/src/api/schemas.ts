@@ -560,6 +560,7 @@ export const FsEntrySchema = z
     name: z.string(),
     path: z.string(),
     is_dir: z.boolean(),
+    hidden: z.boolean(),
     size: z.number().int().nullable(),
     mtime: zDateTime,
   })

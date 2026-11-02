@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { FsEntryList } from "@/components/settings/FsEntryList";
 import {
   useFsAllowedRoots,
   useFsDriveRoots,
@@ -18,6 +19,7 @@ import {
 } from "@/hooks/useFs";
 import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
+import type { FsEntry } from "@/api/types";
 
 interface FsBrowserProps {
   open: boolean;
@@ -30,7 +32,8 @@ interface FsBrowserProps {
   initialPath?: string;
   /** Large words, rows and buttons, for the guide's screens. */
   large?: boolean;
-  /** Only what a new user needs: no hidden folders, and not the app's own. */
+  /** Only what a new user needs: no hidden folders, and not the app's own.
+      Files are never hidden: a game list can have any name. */
   simple?: boolean;
 }
 
@@ -80,8 +83,8 @@ export function FsBrowser({
     if (listing.data?.parent) setUserPath(listing.data.parent);
   };
 
-  const handleEntryClick = (entryPath: string, isDir: boolean) => {
-    if (isDir) {
+  const handleEntryClick = ({ path: entryPath, is_dir }: FsEntry) => {
+    if (is_dir) {
       setUserPath(entryPath);
     } else if (mode === "file") {
       onPick(entryPath);
@@ -96,9 +99,16 @@ export function FsBrowser({
     }
   };
 
-  const visibleEntries = (listing.data?.entries ?? []).filter(
-    (e) => (mode === "file" || e.is_dir) && !(simple && e.name.startsWith(".")),
+  const allEntries = listing.data?.entries ?? [];
+  const visibleEntries = allEntries.filter(
+    (e) => (mode === "file" || e.is_dir) && !(simple && e.is_dir && e.hidden),
   );
+  const emptyMessage =
+    mode === "file"
+      ? strings.settings.fsBrowserEmpty
+      : allEntries.some((e) => !e.is_dir)
+        ? strings.settings.fsBrowserOnlyFiles
+        : strings.settings.fsBrowserNoFolders;
 
   // FP20-K: render only one dialog layer at a time. Previously both
   // the browse Dialog and the grant ConfirmationDialog were siblings
@@ -120,7 +130,9 @@ export function FsBrowser({
         title={strings.settings.fsGrantTitle}
         description={strings.settings.fsGrantConfirm(sandboxBlocked)}
         actionLabel={strings.settings.fsGrantActionLabel(sandboxBlocked)}
+        busy={grant.isPending}
         onConfirm={() => {
+          if (granting.current) return;
           granting.current = true;
           grant.mutate(sandboxBlocked, {
             onSettled: () => {
@@ -139,11 +151,20 @@ export function FsBrowser({
     ? ({ size: "default", className: "min-h-12 text-xl" } as const)
     : ({ size: "sm" } as const);
   const footerButton = large ? "min-h-12 text-xl" : undefined;
+  // A long path wraps, because nowrap would push the buttons off the window.
+  const pathButton = cn(
+    large ? quickJump.className : undefined,
+    "h-auto max-w-full whitespace-normal [overflow-wrap:anywhere]",
+  );
+  const shownRoots = (allowed.data?.roots ?? []).filter(
+    (r) => !simple || r.source !== "config",
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn("max-w-2xl", large && "max-h-[90dvh] overflow-y-auto")}
+        showCloseButton={!large}
+        className="max-h-[90dvh] grid-cols-1 overflow-y-auto sm:max-w-2xl"
       >
         <DialogHeader>
           <DialogTitle className={large ? "text-xl" : undefined}>
@@ -167,28 +188,26 @@ export function FsBrowser({
           >
             {strings.settings.fsBrowserHome}
           </Button>
-          {(allowed.data?.roots ?? [])
-            .filter((r) => !simple || r.source !== "config")
-            .map((r) => (
-              <Button
-                key={r.id}
-                {...quickJump}
-                variant="outline"
-                onClick={() => setUserPath(r.path)}
-              >
-                {r.path}
-              </Button>
-            ))}
+          {shownRoots.map((r) => (
+            <Button
+              key={r.id}
+              {...quickJump}
+              className={pathButton}
+              variant="outline"
+              onClick={() => setUserPath(r.path)}
+            >
+              {r.path}
+            </Button>
+          ))}
           {/* FP13 § C4: drive roots that are already covered by an allowed
               root would otherwise render as a visual duplicate. */}
           {(driveRoots.data?.roots ?? [])
-            .filter(
-              (r) => !(allowed.data?.roots ?? []).some((a) => a.path === r),
-            )
+            .filter((r) => !shownRoots.some((a) => a.path === r))
             .map((r) => (
               <Button
                 key={r}
                 {...quickJump}
+                className={pathButton}
                 variant="outline"
                 onClick={() => setUserPath(r)}
               >
@@ -204,14 +223,22 @@ export function FsBrowser({
             onClick={goUp}
             disabled={!listing.data?.parent}
             title={
-              !listing.data?.parent
+              listing.data && !listing.data.parent
                 ? strings.settings.fsBrowserUpAtTop
                 : undefined
             }
           >
             {strings.settings.fsBrowserUp}
           </Button>
-          <code className="flex-1 truncate">{path ?? ""}</code>
+          <code
+            title={path ?? undefined}
+            className={cn(
+              "min-w-0 flex-1",
+              large ? "[overflow-wrap:anywhere]" : "truncate",
+            )}
+          >
+            {path ?? ""}
+          </code>
         </div>
 
         {/* FP13 § C7: home detection failed and the user hasn't quick-jumped
@@ -232,37 +259,15 @@ export function FsBrowser({
             {strings.settings.fsBrowserListError}
           </p>
         )}
-        {!listing.isLoading && !listing.error && (
-          <ul className="max-h-72 overflow-auto rounded border border-muted">
-            {visibleEntries.map((entry) => (
-              <li key={entry.path}>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex w-full items-center justify-between px-3 py-2 text-left hover:bg-muted/40",
-                    words,
-                    large && "min-h-12",
-                  )}
-                  onClick={() => handleEntryClick(entry.path, entry.is_dir)}
-                >
-                  <span>{entry.name}</span>
-                  <span
-                    className={cn(
-                      large ? "text-xl" : "text-xs",
-                      "text-muted-foreground",
-                    )}
-                  >
-                    {entry.is_dir ? strings.settings.fsBrowserDirTag : ""}
-                  </span>
-                </button>
-              </li>
-            ))}
-            {visibleEntries.length === 0 && (
-              <li className={cn("px-3 py-2 text-muted-foreground", words)}>
-                {strings.settings.fsBrowserEmpty}
-              </li>
-            )}
-          </ul>
+        {listing.data && !listing.error && (
+          // Its own scroll position per folder, starting at the top.
+          <FsEntryList
+            key={listing.data.path}
+            entries={visibleEntries}
+            emptyMessage={emptyMessage}
+            onOpen={handleEntryClick}
+            large={large}
+          />
         )}
 
         <DialogFooter>
@@ -279,7 +284,7 @@ export function FsBrowser({
             <Button
               className={footerButton}
               onClick={usePath}
-              disabled={!path || !!sandboxBlocked}
+              disabled={!listing.data || !!listing.error}
             >
               {strings.settings.fsBrowserUseDirectory}
             </Button>

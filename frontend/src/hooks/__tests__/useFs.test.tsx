@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 import { server, http, HttpResponse } from "@/test/handlers";
 import {
   makeClientWrapper,
   renderWithClient as makeClientWithQc,
 } from "@/test/renderWithClient";
-import { useFsGrantRoot } from "../useFs";
+import { createAppQueryClient } from "@/lib/queryClient";
+import { useFsGrantRoot, useFsListing } from "../useFs";
 
 vi.mock("sonner", () => ({
   toast: {
@@ -23,6 +25,30 @@ afterEach(() => {
 });
 
 const renderWithClient = makeClientWrapper;
+
+describe("useFsListing failure (mame-curator-1145 review)", () => {
+  it("raises no toast: FsBrowser says it, and asks about a grant itself", async () => {
+    server.use(
+      http.get("/api/fs/list", () =>
+        HttpResponse.json(
+          { code: "fs_sandboxed", detail: "outside", fields: [] },
+          { status: 403 },
+        ),
+      ),
+    );
+    // The app's own client, whose cache is what raises the toast.
+    const qc = createAppQueryClient();
+    const { result } = renderHook(() => useFsListing("/mnt/games"), {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+      ),
+    });
+    await waitFor(() => expect(result.current.isError).toBe(true), {
+      timeout: 5000,
+    });
+    expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
+  });
+});
 
 describe("useFsGrantRoot onError → toast (FP13 § A3)", () => {
   it("toasts byCode-friendly copy when grant POST returns 422 fs_path_invalid", async () => {

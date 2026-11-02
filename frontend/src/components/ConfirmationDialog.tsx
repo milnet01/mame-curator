@@ -21,6 +21,8 @@ interface ConfirmationDialogProps {
   destructive?: boolean;
   /** Large words and buttons, for the guide's screens. */
   large?: boolean;
+  /** Shows its action is under way, keeping focus. The caller ignores presses. */
+  busy?: boolean;
 }
 
 /**
@@ -51,6 +53,7 @@ export function ConfirmationDialog({
   onConfirm,
   destructive = true,
   large,
+  busy,
 }: ConfirmationDialogProps) {
   // Enforce design §8: destructive-action labels must be concrete (e.g.
   // "Delete 3 files from drive"), never generic. Throw at render time so
@@ -68,27 +71,38 @@ export function ConfirmationDialog({
     onOpenChange(false);
   };
 
-  const largeWords = large ? "text-xl" : undefined;
+  // A long path or file name wraps, here and on the button that names it.
+  const wrap = "[overflow-wrap:anywhere]";
+  const words = cn(wrap, large && "text-xl");
   const largeButton = large ? "min-h-12 text-xl" : undefined;
+  const busyButton =
+    "aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="max-h-[90dvh] grid-cols-1 overflow-y-auto">
         <AlertDialogHeader>
-          <AlertDialogTitle className={largeWords}>{title}</AlertDialogTitle>
-          <AlertDialogDescription className={largeWords}>
+          <AlertDialogTitle className={words}>{title}</AlertDialogTitle>
+          <AlertDialogDescription className={words}>
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className={largeButton}>
+          <AlertDialogCancel
+            aria-disabled={busy || undefined}
+            className={cn(largeButton, busyButton)}
+          >
             {strings.common.cancel}
           </AlertDialogCancel>
           <AlertDialogAction
+            aria-disabled={busy || undefined}
             onClick={handleConfirm}
             className={cn(
               destructive &&
                 "bg-destructive text-destructive-foreground hover:bg-destructive/90",
               largeButton,
+              busyButton,
+              wrap,
+              "h-auto min-w-0 shrink whitespace-normal",
             )}
           >
             {actionLabel}

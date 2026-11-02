@@ -16,15 +16,17 @@ const sampleFile = () =>
   });
 
 describe("BackupTab (FP12 § J + FP13 § B1/B3)", () => {
+  it("names no internal phase", () => {
+    const { container } = render(
+      <BackupTab onExport={() => {}} onImport={() => {}} />,
+    );
+    expect(container).not.toHaveTextContent(/phase \d/i);
+  });
+
   it("renders Export and Import controls", () => {
     render(<BackupTab onExport={() => {}} onImport={() => {}} />);
     expect(screen.getByRole("button", { name: /^Export/ })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Import/)).toBeInTheDocument();
-  });
-
-  it("renders the Phase-8 forward-link banner", () => {
-    render(<BackupTab onExport={() => {}} onImport={() => {}} />);
-    expect(screen.getByText(/setup wizard/i)).toBeInTheDocument();
   });
 
   it("calls onExport when Export is clicked", async () => {

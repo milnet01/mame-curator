@@ -21,12 +21,21 @@ export function WhereStep({
   onConfirm,
 }: WhereStepProps) {
   const config = useConfig();
-  const patch = useConfigPatch();
+  // quiet: this step says the outcome itself, so no toast repeats it.
+  const patch = useConfigPatch({ quiet: true });
   const queryClient = useQueryClient();
   const [browseOpen, setBrowseOpen] = useState(false);
+  const [focusKey, setFocusKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const paths = config.data?.paths;
+
+  // As in the wizard: with no trigger to return to, the dialog would otherwise
+  // drop focus on the page, and this user with it.
+  const closePicker = (open: boolean) => {
+    setBrowseOpen(open);
+    if (!open) setFocusKey((key) => key + 1);
+  };
 
   // Through PATCH /api/config, as Settings saves it, so the server applies
   // the same path validation (INV-13).
@@ -55,6 +64,7 @@ export function WhereStep({
       heading={strings.guide.where.heading}
       stepNumber={stepNumber}
       stepCount={stepCount}
+      focusKey={focusKey}
       onBack={onBack}
       exitLabel={strings.guide.exit}
     >
@@ -74,7 +84,7 @@ export function WhereStep({
               {error}
             </p>
           )}
-          <GuideAction primary onClick={onConfirm} disabled={patch.isPending}>
+          <GuideAction primary onClick={onConfirm} busy={patch.isPending}>
             {strings.guide.where.yes}
           </GuideAction>
           <GuideAction onClick={() => setBrowseOpen(true)}>
@@ -83,7 +93,8 @@ export function WhereStep({
           {browseOpen && (
             <FsBrowser
               open
-              onOpenChange={setBrowseOpen}
+              large
+              onOpenChange={closePicker}
               onPick={saveFolder}
               initialPath={paths.dest_roms}
             />

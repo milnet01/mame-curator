@@ -89,10 +89,6 @@ export function BackupTab({
         />
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        {strings.settings.backupWizardForwardLink}
-      </p>
-
       {pending && (
         <ConfirmationDialog
           open

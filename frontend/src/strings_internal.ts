@@ -654,7 +654,6 @@ export const strings = {
       `Replace every configuration file with the contents of ${filename}? Current settings will be overwritten.`,
     backupImportActionLabel: (filename: string) =>
       `Replace settings from ${filename}`,
-    backupWizardForwardLink: "Re-running the setup wizard ships in Phase 8.",
     /** FP12 § G — `<FsBrowser>` modal copy. */
     fsBrowserTitle: "Choose a folder",
     fsBrowserTitleFile: "Choose a file",
@@ -671,7 +670,10 @@ export const strings = {
     fsBrowserListError: "This folder could not be opened.",
     fsBrowserHomeError:
       "Your home folder could not be found. Choose a drive to carry on.",
-    fsBrowserEmpty: "Empty.",
+    fsBrowserEmpty: "No files or folders here.",
+    fsBrowserNoFolders: "No folders here.",
+    fsBrowserOnlyFiles:
+      "This folder holds only files, so there are no folders to open. You can still use it.",
     fsBrowserDirTag: "folder",
     /** FP13 § D4 — accessible name for the per-row Browse button. */
     fsBrowseAriaLabel: (target: string) => `Browse for ${target}`,
