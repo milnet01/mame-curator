@@ -95,10 +95,10 @@ Waiting on the user: the wording of the grant prompt, with mame-curator-1170.
 
 | Finding | Sev | Verified | Disposition | Was → now |
 |---|---|---|---|---|
-| `useLibraryController.ts:205-219`: Add all ignores the review filter | HIGH | duplicate of 1151 | | |
-| `strings_internal.ts:515`: a switch no code reads | HIGH | | | |
-| `App.tsx:418,477`: restore and import show no progress or success | LOW | | | |
-| `App.tsx:266,302`: Activity and Stats have no Try again | LOW | duplicate of 1167 | | |
+| `useLibraryController.ts:205-219`: Add all ignores the review filter | HIGH | yes, ran; duplicate of 1151 | fixed in 1aba9f5 | Hand-built query without `review_state` → `toQueryString(pageQuery)` |
+| `strings_internal.ts:515`: a switch no code reads | HIGH | yes, ran; search found no code reading it | fixed in 1aba9f5 | Switch and string gone; the config key stays so existing files load |
+| `App.tsx:418,477`: restore and import show no progress or success | LOW | yes, ran under vitest only | fixed in 1aba9f5 | No progress or success words → plain words on the page; a second press ignored |
+| `App.tsx:266,302`: Activity and Stats have no Try again | LOW | yes, ran; duplicate of 1167 | fixed in 1aba9f5 | Bare error text → `RouteLoadError` with Try again |
 
 ## Run-level
 

@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1185 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1187 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3278,8 +3278,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: measured-2026-10-30.
   Lanes: frontend.
 
-- 📋 [mame-curator-1151] **Add all ignores the review-state filter.**
+- ✅ [mame-curator-1151] **Add all ignores the review-state filter.**
   handleBulkAdd in useLibraryController builds its own query string and omits review_state, so it pages through a different set from the total it shows.
+  2026-11-02, 1aba9f5: handleBulkAdd uses toQueryString(pageQuery), so
+  Add all follows the review filter. Red seen.
   **Layman:** With a review filter on, Add all can add different games from the ones on screen.
   Kind: fix.
   Source: code-read-2026-10-30.
@@ -3416,8 +3418,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, docs.
 
-- 📋 [mame-curator-1167] **Activity and Stats load failures have no alert and no Try again.**
+- ✅ [mame-curator-1167] **Activity and Stats load failures have no alert and no Try again.**
   App.tsx gained RouteLoadError for Settings, Help and Sessions in commit 5255cfc. Activity and Stats were outside those findings.
+  2026-11-02, 1aba9f5: Activity and Stats use loadFailed and
+  RouteLoadError with Try again. Red seen.
   **Layman:** If the Activity or Stats page fails to load, it doesn't offer a way to try again.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
@@ -3554,9 +3558,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: api, tests.
 
-- 📋 [mame-curator-1183] **Pressing Copy in setup mode empties the saved cart.**
+- ✅ [mame-curator-1183] **Pressing Copy in setup mode empties the saved cart.**
   Validate calls every name missing in setup mode, so handleCopy removes
   them all. API measured; frontend read, not run.
+  2026-11-02, 1aba9f5: Copy in setup mode removes nothing from the cart
+  and shows the refusal. Red with a mocked API; the real app in setup
+  mode was not run.
   **Layman:** If the game list is not set up yet, pressing Copy can clear the games you had saved in your cart.
   Kind: fix.
   Source: close-findings-2026-11-02-1145.
@@ -3577,6 +3584,27 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: close-findings-2026-11-02-1145.
   Lanes: api, tests.
+
+- 📋 [mame-curator-1186] **The test suite writes into the real data folder.**
+  run_copy defaults to data_dir=Path("data"), and tests run from the repo
+  root. Measured 2026-11-02: new folders in data/recycle and lines in
+  data/activity.jsonl appeared during local-CI.sh runs. The push gate runs
+  the same tests, so every push adds more. Fix before pushing.
+  **Layman:** Running the project's tests adds fake copy records and files to your real app data.
+  Kind: fix.
+  Source: measured-2026-11-02.
+  Lanes: tests, copy.
+
+- 📋 [mame-curator-1187] **Remove the test leftovers from the real data folder.**
+  Measured 2026-11-02: data/recycle holds 274 folders and 277 MB, with
+  folders dated from 2026-10-15; data/activity.jsonl holds 47,052 lines, with
+  entries dating back to at least 2026-07-03. Which are real has not been
+  worked out. Nothing deleted: these files have no other copy, so this waits
+  on the user.
+  **Layman:** Your recycle folder and Activity page hold leftovers from test runs. Clearing them is your choice.
+  Kind: chore.
+  Source: measured-2026-11-02.
+  Lanes: data.
 
 ## Considered / under research (no target date)
 
