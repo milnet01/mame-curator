@@ -2686,6 +2686,10 @@ P14 (per-game review state).
   findings disposed: docs/reviews/close-findings-2026-11-02-1145.md.
   Only the user's judgement of the wording on the running app is still
   owed before this flips to shipped.
+  Waiting-on: user (do the wizard's wording and large text suit you?, 2026-11-05)
+  Recommend: try it on a fresh setup with an empty home folder. 1145 stays in progress until then.
+  Waiting-on: user (setup with no --out now writes the per-user config, a break by the letter of versioning-overrides: accept as a fix, or make the next release MAJOR?, 2026-11-05)
+  Recommend: accept as a fix. The old behaviour was the defect, --out config.yaml restores it, and the launchers do not call setup.
   **Layman:** A new user picks their ROM folder, game list file and destination one screen at a time in the browser, instead of answering questions in a terminal or finding Settings.
   Kind: accessibility.
   Source: user-2026-10-30.
@@ -3353,6 +3357,8 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 
 - 📋 [mame-curator-1155] **Grouped layout renders the same as masonry.**
   Finding: LibraryGrid.tsx groupKey is never read; docs/design.md promises sections by genre. Needs a decision: build it, or remove the option and correct the document. Not fixed now because it needs that decision.
+  Waiting-on: user (build the Grouped layout as sections by genre, or remove the choice and correct docs/design.md?, 2026-11-05)
+  Recommend: remove it. It does nothing today, and the user wants fewer extras, not more.
   **Layman:** The Grouped layout choice does nothing different from the normal grid.
   Kind: review-fix.
   Source: review-code-2026-10-30-1144.
@@ -3360,6 +3366,8 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 
 - 📋 [mame-curator-1156] **Walkthrough stays on in simple view with its switch hidden, and other small simple-view questions.**
   From lane 2's open questions in docs/reviews/review-code-2026-10-30-1144/lane-02-library-page.md: walkthrough active in simple view with its toggle hidden; More/Fewer options dropping focus to the page body; typing a search showing Some filters are on (spec §4.7 requires it); handleSaveSession saving config genres against the help's your current focus. Lane 3: changing text size keeps the pixel scroll offset, so the user loses their place. No contract addresses these; not fixed now because each needs a decision.
+  Waiting-on: user (the five simple-view behaviours, 2026-11-05)
+  Recommend: walkthrough off in simple view while its switch is hidden; More/Fewer options keeps focus on the button; keep Some filters are on for a search, as spec 4.7 says; Save session saves what is on screen now; changing text size keeps the reader's place.
   **Layman:** A few small behaviours in simple view have no agreed answer yet.
   Kind: review-fix.
   Source: review-code-2026-10-30-1144.
@@ -3470,6 +3478,8 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   It works, and the app listens locally only. Needs the user's decision: keep it, or offer mounted drives directly. Reported by the mame-curator-1145 build agent.
   2026-11-02: also waiting on this decision: the grant prompt's wording
   (says it is saved, and how wide). The revoke control is 1175.
+  Waiting-on: user (keep Allow / for another drive, or list mounted drives directly?, 2026-11-05)
+  Recommend: list drives directly. Allow / grants the whole disk. The grant wording and 1175's revoke control follow from this answer.
   **Layman:** To pick a folder on another drive you press / and then Allow /, which gives the app access to the whole disk.
   Kind: ux.
   Source: build-mame-curator-1145-2026-10-30.
@@ -3702,6 +3712,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   failed on one of two Windows legs at 3596487, with the cause unmeasured:
   ssh wintest timed out 2026-11-02. Prove it by repeated Windows CI runs or
   on the Windows box. NTFS lone-surrogate names in fs_list are also untested.
+  2026-11-05: Windows CI green on 3.12 and 3.13 at a04f51b (run
+  41935842658). One more green run; still not a proof, since the
+  original refusal was seen once.
   **Layman:** A fix for a rare Windows failure could not be tested on Windows, so it needs watching.
   Kind: investigate.
   Source: build-ci-fix-2026-11-02.
