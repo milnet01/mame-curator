@@ -19,7 +19,7 @@ A user who opens MAME Curator for the first time sees one question at a time and
 2. **Text is small and fixed.** No root `font-size` is set in `frontend/src/index.css`, and no size preference exists. Most text uses `text-sm` or `text-xs`. Those classes are rem-based, so a root size would scale them.
 3. **Enlarged text would clip the grid.** `LAYOUT_DEFAULTS` in `LibraryGrid.tsx` fixes each row height in pixels.
 4. **"Walkthrough mode" is not a guide.** The `library-walkthrough-toggle` checkbox controls `walkthrough` in `useLibraryController`, which `LibraryGrid` uses for review navigation. Its label suggests help it does not give.
-5. **A repeat copy is refused.** `handleCopy` sends `conflict_strategy: "CANCEL"`, and `check_playlist_conflict` raises a 409 when a playlist exists and any selected game is not yet at the destination. A guide reusing that request would fail on every repeat copy. The Library's own failure is mame-curator-1148.
+5. **A repeat copy is refused.** `handleCopy` sends `conflict_strategy: "CANCEL"`, and `check_playlist_conflict` raises a 409 when a playlist exists and any selected game is not yet at the destination. A guide reusing that request would fail on every repeat copy. The Library's own failure is mame-curator-1148, fixed 2026-11-05: the Library now sends `APPEND` too.
 
 ## 3. Scope decisions (agreed with the user)
 

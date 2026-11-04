@@ -3262,11 +3262,14 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: user-2026-10-30.
   Lanes: media.
 
-- 📋 [mame-curator-1148] **A repeat copy from the Library fails with no message when a playlist already exists.**
+- ✅ [mame-curator-1148] **A repeat copy from the Library fails with no message when a playlist already exists.**
   handleCopy and handleDryRun send conflict_strategy CANCEL, and no UI offers another. check_playlist_conflict then raises a 409 unless every game is already at the destination. useCopySession's startMutation has no onError, and handleCopy passes none. Read from the code, not yet reproduced.
   2026-11-02: a5417fa gave a Library start an onError, so a refused
   start now shows a toast. Handling a playlist that already exists is
   still open; see also 1174.
+  2026-11-05: the Library's dry run and copy send APPEND, as the guide
+  does. Test: LibraryPage_copy.test.tsx "adds to an existing playlist".
+  Not tried against a real playlist in the running app.
   **Layman:** If you have copied games before, pressing Copy again can do nothing and say nothing.
   Kind: fix.
   Source: code-read-2026-10-30.

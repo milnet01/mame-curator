@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-05 Fixed — Copying from the Library again adds to your playlist (mame-curator-1148)
+
+Once a playlist existed, a second copy from the Library was refused whenever it held any game not yet on the drive.
+
+- **A repeat copy now adds the new games to the playlist.**
+  Games already in it stay, and games already on the drive are not copied again. This is what the guide already did. The Library's dry run previews the same thing.
+
 ### 2026-11-05 Fixed — Adding games to a playlist RetroArch has compressed (mame-curator-1174)
 
 RetroArch can save a playlist in a compressed form. The app could not read that form, so adding more games to such a playlist was refused as unreadable.

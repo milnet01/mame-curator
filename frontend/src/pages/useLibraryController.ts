@@ -223,13 +223,17 @@ export function useLibraryController(cart: UseCartResult) {
     }
   };
 
+  // mame-curator-1148: add to an existing playlist, as the guide does. CANCEL
+  // made the server refuse every copy once a playlist existed.
+  const conflictStrategy = "APPEND";
+
   // P15: dry-run reads from cart.items (with chosenVariant substitution).
   const handleDryRun = () => {
     if (cart.items.length === 0) return;
     dryRun.mutate(
       {
         selected_names: cart.items.map((i) => i.chosenVariant ?? i.shortName),
-        conflict_strategy: "CANCEL",
+        conflict_strategy: conflictStrategy,
         append_decisions: {},
       },
       { onSuccess: setDryRunReport, onError: toastApiError },
@@ -264,7 +268,7 @@ export function useLibraryController(cart: UseCartResult) {
           copySession.start(
             {
               selected_names: [...existing],
-              conflict_strategy: "CANCEL",
+              conflict_strategy: conflictStrategy,
               append_decisions: {},
             },
             { onError: toastApiError },

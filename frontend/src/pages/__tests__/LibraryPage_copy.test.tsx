@@ -422,4 +422,38 @@ describe("LibraryPage when a copy is refused", () => {
       expect(toast.warning).not.toHaveBeenCalled();
     });
   });
+
+  // mame-curator-1148: with CANCEL, the server refuses a start whenever a
+  // playlist already exists, so a second copy from the Library could never run.
+  // APPEND adds to the playlist, as the guide does.
+  it("adds to an existing playlist, for the dry run and the copy", async () => {
+    const strategies: Record<string, string> = {};
+    serve("on_success");
+    server.use(
+      http.post("/api/copy/dry-run", async ({ request }) => {
+        const body = (await request.json()) as { conflict_strategy: string };
+        strategies.dryRun = body.conflict_strategy;
+        return HttpResponse.json(
+          { code: "boom", detail: "not under test", fields: [] },
+          { status: 500 },
+        );
+      }),
+      http.post("/api/copy/start", async ({ request }) => {
+        const body = (await request.json()) as { conflict_strategy: string };
+        strategies.start = body.conflict_strategy;
+        return HttpResponse.json({ job_id: "job-1" });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(
+      await screen.findByRole("button", {
+        name: strings.library.actions.dryRun,
+      }),
+    );
+    await waitFor(() => expect(strategies.dryRun).toBeDefined());
+    await startCopy(user);
+
+    expect(strategies).toEqual({ dryRun: "APPEND", start: "APPEND" });
+  });
 });
