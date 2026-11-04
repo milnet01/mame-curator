@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-05 Fixed — Adding games to a playlist RetroArch has compressed (mame-curator-1174)
+
+RetroArch can save a playlist in a compressed form. The app could not read that form, so adding more games to such a playlist was refused as unreadable.
+
+- **The app now reads compressed playlists.**
+  Tried on a real compressed MAME playlist: all of its games were read. RetroArch's older compressed form is read too; that one is tested only on files the tests make.
+  The app still saves the playlist uncompressed. RetroArch reads that, and compresses it again on its own next save if it is set to.
+
 ### 2026-11-02 Fixed — Recycling on Windows no longer gives up on a brief refusal
 
 While a copy moves an old file to the recycle bin, it holds a small lock file so two moves cannot collide. On Windows, opening that lock failed with "Permission denied" once in our automated checks, just as another move was finishing. A copy could stop at that point.

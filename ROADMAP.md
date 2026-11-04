@@ -1197,6 +1197,11 @@ wave lands.
   2026-11-02: seen again while building ccbdfbd. Two
   GuidePage_entry.test.tsx tests failed at machine load about 36; alone
   that file failed once and passed twice; the full rerun was green.
+  2026-11-05: local-CI.sh Vitest failed 6 of 699 at load average 69 on
+  12 cores (other sessions' builds). Rerunning the 4 files alone still
+  failed 4: findBy waits and a 5 s test timeout. No frontend file had
+  changed since a green 699. Load, not code; a fix would be longer waits
+  for slow machines.
   **Layman:** The frontend tests failed once for no clear reason during a push, then passed on their own and on the retry; find the unreliable test.
   Kind: investigate.
   Source: in-session-2026-10-15.
@@ -3490,13 +3495,15 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1145-2026-10-30.
   Lanes: docs.
 
-- 📋 [mame-curator-1174] **The app cannot read a playlist RetroArch has compressed, so adding to it is refused.**
+- ✅ [mame-curator-1174] **The app cannot read a playlist RetroArch has compressed, so adding to it is refused.**
   The user's real mame.lpl starts `#RZIPv` (zstd), RetroArch's compressed
   form. read_lpl on that file raises PlaylistError: 'utf-8' codec can't
   decode byte 0x9d. Run on the real file 2026-11-02. By code read, not run:
   check_playlist_conflict turns that into PlaylistUnreadableError under
   APPEND, and run_copy's APPEND read raises too. write_lpl always writes
   plain JSON. Nothing in src reads RZIP.
+  2026-11-05: read_lpl reads RZIP v2 (zstd, via the zstandard package) and v1 (zlib).
+  The user's real mame.lpl now reads: 6262 items. write_lpl still writes plain JSON.
   **Layman:** After RetroArch re-saves your playlist in its compressed form, adding more games to it is refused as unreadable.
   Kind: fix.
   Source: measured-2026-11-02.

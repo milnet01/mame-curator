@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import json
+import struct
+import zlib
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+
+import zstandard
 
 from mame_curator._atomic import atomic_write_text
 from mame_curator.copy.errors import PlaylistError
@@ -56,15 +60,63 @@ def write_lpl(playlist_path: Path, entries: Iterable[PlaylistEntry]) -> None:
         raise PlaylistError(f"failed to write playlist: {exc}", path=playlist_path) from exc
 
 
+_RZIP_MAGIC = b"#RZIPv"
+_RZIP_HEADER = struct.Struct("<8sIQ")  # magic+version+'#', chunk size, total size
+_RZIP_CHUNK_LEN = struct.Struct("<I")
+
+
+def _decode_rzip(data: bytes) -> bytes:
+    """Decompress RetroArch's RZIP playlist form (mame-curator-1174).
+
+    Version 2 chunks are zstd; version 1 chunks are zlib. Raises
+    ValueError on anything malformed, so the caller's parse error covers it.
+    """
+    if len(data) < _RZIP_HEADER.size or data[7:8] != b"#":
+        raise ValueError("RZIP header is truncated")
+    _, chunk_size, total = _RZIP_HEADER.unpack_from(data)
+    version = data[6]
+    if version not in (1, 2):
+        raise ValueError(f"RZIP version {version} is not supported")
+    out = bytearray()
+    pos = _RZIP_HEADER.size
+    while pos < len(data):
+        if pos + _RZIP_CHUNK_LEN.size > len(data):
+            raise ValueError("RZIP chunk length is truncated")
+        (length,) = _RZIP_CHUNK_LEN.unpack_from(data, pos)
+        pos += _RZIP_CHUNK_LEN.size
+        chunk = data[pos : pos + length]
+        if len(chunk) != length:
+            raise ValueError("RZIP chunk is truncated")
+        pos += length
+        try:
+            if version == 2:
+                block = zstandard.ZstdDecompressor().decompress(chunk, max_output_size=chunk_size)
+            else:
+                block = zlib.decompress(chunk)
+        except (zstandard.ZstdError, zlib.error) as exc:
+            raise ValueError(f"RZIP chunk does not decompress: {exc}") from exc
+        out += block
+        if len(out) > total:
+            break
+    if len(out) != total:
+        raise ValueError(f"RZIP holds {len(out)} bytes, header says {total}")
+    return bytes(out)
+
+
 def read_lpl(playlist_path: Path) -> list[dict[str, str]]:
-    """Parse an existing `.lpl` and return the items list."""
+    """Parse an existing `.lpl` and return the items list.
+
+    Reads plain JSON and RetroArch's compressed RZIP form.
+    """
     if not playlist_path.exists():
         raise PlaylistError("playlist does not exist", path=playlist_path)
     try:
-        raw = playlist_path.read_text(encoding="utf-8")
-        parsed = json.loads(raw)
+        data = playlist_path.read_bytes()
+        if data.startswith(_RZIP_MAGIC):
+            data = _decode_rzip(data)
+        parsed = json.loads(data.decode("utf-8"))
     except (OSError, ValueError) as exc:
-        # ValueError covers JSONDecodeError and UnicodeDecodeError.
+        # ValueError covers JSONDecodeError, UnicodeDecodeError and RZIP errors.
         raise PlaylistError(f"failed to parse playlist: {exc}", path=playlist_path) from exc
     if not isinstance(parsed, dict):
         raise PlaylistError("playlist is not a JSON object", path=playlist_path)
