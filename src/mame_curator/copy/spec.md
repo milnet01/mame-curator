@@ -213,7 +213,7 @@ Semantics:
 
 - `KEEP_EXISTING` — winner is recorded in `CopyReport.skipped_existing_version`; not copied; existing playlist entry untouched. `replaces` is ignored.
 - `REPLACE` — winner is copied (atomic); old playlist entry (matched by `replaces`) is replaced with new; **old `.zip` stays on disk untouched** (per design § 6.4 — explicit confirmation is required to delete). `replaces` is required.
-- `REPLACE_AND_RECYCLE` — winner is copied (atomic); old playlist entry (matched by `replaces`) replaced; old `.zip` (`<replaces>.zip`) is moved to `data/recycle/<session_id>/<old-short>.zip`; recycled file recorded in `CopyReport.recycled` and one `file_recycled` activity event is emitted. `replaces` is required.
+- `REPLACE_AND_RECYCLE` — winner is copied (atomic); old playlist entry (matched by `replaces`) replaced; old `.zip` (`<replaces>.zip`) is moved to `data/recycle/<session_id>/<old-short>.zip`; recycled file recorded in `CopyReport.recycled` and one `file_recycled` activity event is emitted. `replaces` is required. An old `.zip` that cannot be moved, for any reason including a refused recycle lock, stays where it is and becomes a report warning; the winner is still copied (mame-curator-1192).
 
 **Caller responsibility for conflict detection.** Same-parent-group cross-version conflict detection requires the cloneof map (P02 produces it; the runner does not carry it). The CLI / API caller is responsible for:
 

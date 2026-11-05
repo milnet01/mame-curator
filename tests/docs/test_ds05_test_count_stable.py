@@ -352,7 +352,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # reads RetroArch's compressed playlists. 1095 → 1097.
 # Bumped 2026-11-05 (mame-curator-1182): an empty copy selection is refused
 # by the API and the CLI. 1097 → 1099.
-EXPECTED_PYTEST_DECLARATIONS = 1099
+# Bumped 2026-11-05 (mame-curator-1192): a refused recycle lock on the
+# REPLACE_AND_RECYCLE path is a warning. 1099 → 1100.
+EXPECTED_PYTEST_DECLARATIONS = 1100
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

@@ -107,3 +107,50 @@ def test_replace_and_recycle_is_a_no_op_on_dry_run(
     report = run_copy(plan, data_dir=tmp_path)
     assert old.exists()
     assert report.recycled == ()
+
+
+def test_replace_and_recycle_refused_lock_warns_and_still_copies(
+    source_dir: Path,
+    dest_dir: Path,
+    bios_chain: dict[str, BIOSChainEntry],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """mame-curator-1192: the recycle lock refused with a raw PermissionError
+    must become a warning for that one game, as the OVERWRITE site does."""
+    import os
+
+    from mame_curator.copy import recyclebin
+
+    old = dest_dir / "kof94a.zip"
+    old.write_bytes(b"old")
+    _seed_existing_playlist(dest_dir, [{"path": str(old.resolve()), "label": "KOF 94a"}])
+    real_open = os.open
+
+    def _refuse_lock(path: object, flags: int, mode: int = 0o777) -> int:
+        if str(path).endswith(".lock"):
+            raise PermissionError(13, "Permission denied")
+        return real_open(path, flags, mode)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(recyclebin, "_WINDOWS", False)
+    monkeypatch.setattr(os, "open", _refuse_lock)
+    plan = CopyPlan(
+        winners=("kof94",),
+        machines={"kof94": _machine("kof94")},
+        bios_chain=bios_chain,
+        source_dir=source_dir,
+        dest_dir=dest_dir,
+        conflict_strategy=ConflictStrategy.APPEND,
+        append_decisions={
+            "kof94": AppendDecision(kind=AppendDecisionKind.REPLACE_AND_RECYCLE, replaces="kof94a")
+        },
+    )
+
+    report = run_copy(plan, data_dir=tmp_path)
+
+    assert report.status is CopyReportStatus.OK
+    assert [o.short_name for o in report.succeeded if o.role == "winner"] == ["kof94"]
+    assert (dest_dir / "kof94.zip").exists()
+    assert old.read_bytes() == b"old"
+    assert report.recycled == ()
+    assert any("'kof94a.zip'" in w for w in report.warnings)

@@ -334,14 +334,15 @@ def run_copy(
                                     reason="REPLACE_AND_RECYCLE",
                                 )
                             )
-                        except CopyError as exc:
+                        except (OSError, CopyError) as exc:
+                            # mame-curator-1192: OSError too, as the OVERWRITE
+                            # recycle site catches — _session_lock can raise a
+                            # raw PermissionError, which must not stop the copy.
                             # FP08 A1: quote old_zip.name via repr() — the
                             # basename embeds replaced_short which flows from
                             # AppendDecision.replaces (a DAT machine short
                             # name; user-data path). Same threat model as
-                            # FP06 B3 / FP07 A4. The {exc} portion is a
-                            # CopyError subclass that already repr-quotes
-                            # any embedded path post-FP07 A4.
+                            # FP06 B3 / FP07 A4.
                             warnings.append(f"recycle of {old_zip.name!r} failed: {exc}")
 
         if plan.dry_run:
