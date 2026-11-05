@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1194 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1197 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2695,11 +2695,14 @@ P14 (per-game review state).
   Source: user-2026-10-30.
   Lanes: frontend, api, tests.
 
-- 📋 [mame-curator-1146] **Wizard to fix a game's picture or version.**
+- 🚧 [mame-curator-1146] **Wizard to fix a game's picture or version.**
   User decision 2026-10-30. Uses the guide screens from mame-curator-1144. No route or UI chooses a picture per game today, so the picture half is new backend and frontend work and needs its own design. The version half depends on mame-curator-1149.
   2026-11-02: 1149 shipped in 5d00641. The parent is on the alternatives
   reply, not the card. The earlier note saying it was on the card was
   wrong. The picture half still needs its own spec.
+  2026-11-05: version half built in 28ca60f: the game's panel links to
+  /fix/<game>, a guide screen per 1144. Picture half: spec
+  docs/specs/mame-curator-1146-picture-choice.md, in review.
   **Layman:** Step-by-step help to pick a different version of a game, or a different picture for it.
   Kind: accessibility.
   Source: user-2026-10-30.
@@ -3719,6 +3722,27 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: investigate.
   Source: build-ci-fix-2026-11-02.
   Lanes: copy, tests.
+
+- 📋 [mame-curator-1195] **A failed save in the version guide shows two error messages.**
+  FixVersionPage shows the error on screen, and useOverride also shows its own error toast. Reported by the 1146 build helper; not run.
+  **Layman:** If saving a version choice fails, you get the message on the screen and a second pop-up saying the same.
+  Kind: fix.
+  Source: build-mame-curator-1146-2026-11-05.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1196] **Leaving the version guide does not return focus to the game's card.**
+  The Library's own version choice focuses the chosen card (useVersionChoice focusCard). The guide's way back goes to the Library with no focus target.
+  **Layman:** After choosing a version in the guide, you have to find the game again yourself.
+  Kind: fix.
+  Source: build-mame-curator-1146-2026-11-05.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1197] **The version guide marks the game in its address as in use.**
+  The alternatives reply does not say which version is in use, so FixVersionPage takes the address's game. True from a Library card; wrong for a hand-typed address naming another version.
+  **Layman:** Only matters if someone types the guide's address by hand.
+  Kind: fix.
+  Source: build-mame-curator-1146-2026-11-05.
+  Lanes: frontend.
 
 ## Considered / under research (no target date)
 

@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-05 Added — Choose a game's version step by step (mame-curator-1146, first half)
+
+A game's panel now has a large button: "Choose a different version, step by step". It opens a guide screen in large text.
+
+- **One big button per version.**
+  Each shows the version's name, year and maker. The one in use now is marked "In use now".
+
+- **It says what happened.**
+  After a choice the screen says "Now using" and the name. If saving fails, it says why and that nothing changed, with Try again. Every screen has a way back to the Library.
+
+- **Only where there is a choice.**
+  A game with only one version does not show the button. Choosing a different picture for a game comes later.
+
 ### 2026-11-05 Fixed — Copying from the Library again adds to your playlist (mame-curator-1148)
 
 Once a playlist existed, a second copy from the Library was refused whenever it held any game not yet on the drive.
