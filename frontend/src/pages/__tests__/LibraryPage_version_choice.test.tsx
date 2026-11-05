@@ -18,7 +18,10 @@ import type { ReactNode } from "react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 
+import { Route, Routes } from "react-router";
+
 import { LibraryPage } from "../LibraryPage";
+import { FixVersionRoute } from "../FixVersionPage";
 import { useOverride } from "@/hooks/useAlternatives";
 import { delay } from "msw";
 import { server, http, HttpResponse } from "@/test/handlers";
@@ -80,8 +83,12 @@ const junior = makeGameCard({
   description: "Puck Junior",
 });
 
-/** Puts the clone `puckf` on show; a POST then answers as `reply` says. */
-function serve(reply: () => Response) {
+/** Puts the clone `puckf` on show, after any `before`; a POST then answers
+ *  as `reply` says. */
+function serve(
+  reply: () => Response,
+  before: ReturnType<typeof makeGameCard>[] = [],
+) {
   const posted: unknown[] = [];
   let shown = fast;
   server.use(
@@ -89,7 +96,7 @@ function serve(reply: () => Response) {
     // The reload is not instant, and the page must wait for it.
     http.get("/api/games", async () => {
       if (shown === junior) await delay(50);
-      return HttpResponse.json(makeGamesPage([shown]));
+      return HttpResponse.json(makeGamesPage([...before, shown]));
     }),
     http.get("/api/games/:name/alternatives", () =>
       HttpResponse.json({ parent: "puck", items: [parent, fast, junior] }),
@@ -188,6 +195,75 @@ describe("choosing a version from a clone", () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalled());
     expect(setVariant).toHaveBeenCalledTimes(1);
     expect(setVariant).toHaveBeenCalledWith(item.shortName, "puckj");
+  });
+});
+
+describe("coming back from the version guide (mame-curator-1196)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  /** The guide at /fix/puckf, with the Library one link away. */
+  function openGuide() {
+    const cart = makeFakeCart();
+    renderLibraryPageTree(
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <LibraryPage
+              cart={cart}
+              cartExpanded={false}
+              onCartExpandedChange={() => {}}
+            />
+          }
+        />
+        <Route
+          path="/fix/:shortName"
+          element={<FixVersionRoute cart={cart} />}
+        />
+      </Routes>,
+      { initialPath: "/fix/puckf" },
+    );
+    return userEvent.setup();
+  }
+  // The card is drawn again as the list settles, so look it up each time.
+  const cardHasFocus = (name: string) =>
+    waitFor(() => expect(screen.getByRole("button", { name })).toHaveFocus());
+  const backToLibrary = () =>
+    screen.findByRole("link", { name: strings.guide.fix.toLibrary });
+
+  it("puts focus on the chosen version's card", async () => {
+    // Another card first, so the grid's own first card is not the answer.
+    serve(accepted, [
+      makeGameCard({ short_name: "solo", description: "Solo" }),
+    ]);
+    const user = openGuide();
+    await user.click(
+      await screen.findByRole("button", { name: /Puck Junior/ }),
+    );
+    await screen.findByRole("heading", {
+      name: strings.library.overrideApplied("Puck Junior"),
+    });
+    await user.click(await backToLibrary());
+    await cardHasFocus("Puck Junior");
+  });
+
+  it("puts focus on the game's own card when nothing was chosen", async () => {
+    serve(() => accepted());
+    const user = openGuide();
+    await screen.findByRole("heading", { name: strings.guide.fix.heading });
+    await user.click(await backToLibrary());
+    await cardHasFocus("Puck Fast");
+  });
+
+  it("puts focus on the game's own card when the version in use was chosen", async () => {
+    serve(() => accepted());
+    const user = openGuide();
+    await user.click(await screen.findByRole("button", { name: /Puck Fast/ }));
+    await screen.findByRole("heading", {
+      name: strings.guide.fix.unchanged("Puck Fast"),
+    });
+    await user.click(await backToLibrary());
+    await cardHasFocus("Puck Fast");
   });
 });
 

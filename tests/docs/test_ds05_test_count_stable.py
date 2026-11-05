@@ -483,7 +483,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1103
 # missing-BIOS line. 641 → 643.
 # Bumped 2026-11-05 (mame-curator-1164): a copy that skipped games or BIOS
 # files, or warned, is told as such in the guide and the Library. 643 → 648.
-EXPECTED_VITEST_DECLARATIONS = 648
+# Bumped 2026-11-05 (mame-curator-1196): the version guide's way back focuses
+# the game's card. 648 → 651.
+EXPECTED_VITEST_DECLARATIONS = 651
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

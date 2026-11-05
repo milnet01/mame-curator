@@ -23,10 +23,14 @@ export interface VersionChoiceReport {
  * `useOverride` waits for the game list to reload, so the page already shows
  * the choice when the message appears and `focusCard` can be found.
  */
-export function useVersionChoice(cart: UseCartResult) {
+export function useVersionChoice(
+  cart: UseCartResult,
+  initialFocus: string | null = null,
+) {
   const override = useOverride();
-  // The chosen version's card, which replaces the one that had focus.
-  const [focusCard, setFocusCard] = useState<string | null>(null);
+  // The chosen version's card, which replaces the one that had focus; or the
+  // card the version guide sent back (mame-curator-1196).
+  const [focusCard, setFocusCard] = useState<string | null>(initialFocus);
 
   const chooseVersion = (
     req: OverridePostRequest,

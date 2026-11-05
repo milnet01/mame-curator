@@ -49,6 +49,7 @@ import {
   filtersForGuideSelection,
   filtersForTile,
   readGuideSelection,
+  readReturnFocus,
   readWalkthroughPref,
 } from "./libraryPageHelpers";
 import { useVersionChoice } from "./useVersionChoice";
@@ -59,6 +60,7 @@ export function useLibraryController(cart: UseCartResult) {
   const location = useLocation();
   const navigate = useNavigate();
   const [guideSelection] = useState(() => readGuideSelection(location.state));
+  const [returnFocus] = useState(() => readReturnFocus(location.state));
   const [filters, setFilters] = useState<FilterSidebarState>(() =>
     filtersForGuideSelection(guideSelection),
   );
@@ -69,8 +71,10 @@ export function useLibraryController(cart: UseCartResult) {
   );
   // Off the history entry, so a reload starts clean.
   useEffect(() => {
-    if (guideSelection) navigate(".", { replace: true, state: null });
-  }, [guideSelection, navigate]);
+    if (guideSelection || returnFocus) {
+      navigate(".", { replace: true, state: null });
+    }
+  }, [guideSelection, returnFocus, navigate]);
   // P14 — walkthrough toggle (default on; persisted to localStorage).
   const [walkthrough, setWalkthrough] = useState<boolean>(() =>
     readWalkthroughPref(),
@@ -87,7 +91,7 @@ export function useLibraryController(cart: UseCartResult) {
   const sessions = useSessions();
   const upsertSession = useSessionUpsert();
   const alternatives = useAlternatives(openedShortName);
-  const versionChoice = useVersionChoice(cart);
+  const versionChoice = useVersionChoice(cart, returnFocus);
   const launch = useLaunchGame();
   const facets = useFacets();
   const setupCheck = useSetupCheck();

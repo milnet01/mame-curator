@@ -48,6 +48,17 @@ export function readGuideSelection(state: unknown): GuideSelection | null {
   return sent ?? null;
 }
 
+/** mame-curator-1196: what the version guide's way back sends the Library,
+ *  the card to focus: the version in use when the guide was left. */
+export interface ReturnToLibrary {
+  focusCard: string;
+}
+
+export function readReturnFocus(state: unknown): string | null {
+  const sent = (state as Partial<ReturnToLibrary> | null)?.focusCard;
+  return typeof sent === "string" ? sent : null;
+}
+
 export function filtersForGuideSelection(
   selection: GuideSelection | null,
 ): FilterSidebarState {

@@ -15,6 +15,8 @@ interface GuideStepProps {
   exitLabel?: string;
   /** Where the way out leads; the Library unless given. */
   exitTo?: string;
+  /** Router state the way out carries, as the version guide's card to focus. */
+  exitState?: unknown;
   children: ReactNode;
 }
 
@@ -30,6 +32,7 @@ export function GuideStep({
   onBack,
   exitLabel,
   exitTo = "/",
+  exitState,
   children,
 }: GuideStepProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -67,7 +70,9 @@ export function GuideStep({
           <GuideAction onClick={onBack}>{strings.guide.back}</GuideAction>
         )}
         {exitLabel !== undefined && (
-          <GuideAction to={exitTo}>{exitLabel}</GuideAction>
+          <GuideAction to={exitTo} state={exitState}>
+            {exitLabel}
+          </GuideAction>
         )}
       </div>
     </div>

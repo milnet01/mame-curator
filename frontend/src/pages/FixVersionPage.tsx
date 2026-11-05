@@ -14,6 +14,7 @@ import { apiErrorMessage } from "@/lib/apiErrorToast";
 import { strings } from "@/strings";
 import type { Alternatives, GameCard } from "@/api/types";
 import { useVersionChoice } from "./useVersionChoice";
+import type { ReturnToLibrary } from "./libraryPageHelpers";
 
 type Screen =
   | { kind: "choose" }
@@ -50,10 +51,12 @@ function VersionLabel({ game, inUse }: { game: GameCard; inUse: boolean }) {
 /** What happened to a choice: every screen after "Which version?". */
 function OutcomeStep({
   screen,
+  back,
   onBack,
   onRetry,
 }: {
   screen: Exclude<Screen, { kind: "choose" }>;
+  back: ReturnToLibrary;
   onBack: () => void;
   onRetry: (game: GameCard) => void;
 }) {
@@ -63,6 +66,7 @@ function OutcomeStep({
         <GuideStep
           heading={strings.guide.fix.savingHeading}
           exitLabel={strings.guide.fix.toLibrary}
+          exitState={back}
         >
           {null}
         </GuideStep>
@@ -73,6 +77,7 @@ function OutcomeStep({
           heading={strings.library.overrideApplied(screen.name)}
           onBack={onBack}
           exitLabel={strings.guide.fix.toLibrary}
+          exitState={back}
         >
           {screen.warnings > 0 && (
             <p className="text-xl">
@@ -87,6 +92,7 @@ function OutcomeStep({
           heading={strings.guide.fix.unchanged(screen.name)}
           onBack={onBack}
           exitLabel={strings.guide.fix.toLibrary}
+          exitState={back}
         >
           <p className="text-xl">{strings.guide.fix.nothingChanged}</p>
         </GuideStep>
@@ -97,6 +103,7 @@ function OutcomeStep({
           heading={strings.guide.fix.failedHeading}
           onBack={onBack}
           exitLabel={strings.guide.fix.toLibrary}
+          exitState={back}
         >
           <p role="alert" className="text-xl text-destructive">
             {apiErrorMessage(screen.error)}
@@ -113,8 +120,10 @@ function OutcomeStep({
 /** Before the versions arrive: waiting, or saying why they did not. */
 function LoadingStep({
   family,
+  back,
 }: {
   family: ReturnType<typeof useAlternatives>;
+  back: ReturnToLibrary;
 }) {
   return (
     <GuideStep
@@ -122,6 +131,7 @@ function LoadingStep({
         family.isError ? strings.guide.loadFailed : strings.guide.loading
       }
       exitLabel={strings.guide.fix.toLibrary}
+      exitState={back}
     >
       {family.isError && (
         <>
@@ -150,6 +160,7 @@ function FixVersionGuide({
   const [inUse, setInUse] = useState(shortName);
   const [screen, setScreen] = useState<Screen>({ kind: "choose" });
   const toChoice = () => setScreen({ kind: "choose" });
+  const back: ReturnToLibrary = { focusCard: inUse };
 
   const choose = (game: GameCard, versions: Alternatives) => {
     if (game.short_name === inUse) {
@@ -174,13 +185,14 @@ function FixVersionGuide({
     );
   };
 
-  if (!family.data) return <LoadingStep family={family} />;
+  if (!family.data) return <LoadingStep family={family} back={back} />;
   const versions = family.data;
 
   if (screen.kind !== "choose") {
     return (
       <OutcomeStep
         screen={screen}
+        back={back}
         onBack={toChoice}
         onRetry={(game) => choose(game, versions)}
       />
@@ -191,6 +203,7 @@ function FixVersionGuide({
       <GuideStep
         heading={strings.guide.fix.onlyOneHeading}
         exitLabel={strings.guide.fix.toLibrary}
+        exitState={back}
       >
         <p className="text-xl">{strings.guide.fix.onlyOne}</p>
       </GuideStep>
@@ -200,6 +213,7 @@ function FixVersionGuide({
     <GuideStep
       heading={strings.guide.fix.heading}
       exitLabel={strings.guide.fix.toLibrary}
+      exitState={back}
     >
       {versions.items.map((game) => (
         <GuideAction

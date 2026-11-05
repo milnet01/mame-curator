@@ -7,6 +7,8 @@ interface GuideActionProps {
   /** A button when given onClick, a link when given to. */
   onClick?: () => void;
   to?: string;
+  /** Router state the link carries, with `to`. */
+  state?: unknown;
   disabled?: boolean;
   /** Looks disabled and ignores presses, but keeps focus, which disabled drops. */
   busy?: boolean;
@@ -19,6 +21,7 @@ export function GuideAction({
   children,
   onClick,
   to,
+  state,
   disabled,
   busy,
   primary,
@@ -34,7 +37,7 @@ export function GuideAction({
   );
   if (to !== undefined) {
     return (
-      <Link to={to} className={className}>
+      <Link to={to} state={state} className={className}>
         {children}
       </Link>
     );
