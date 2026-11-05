@@ -187,8 +187,10 @@ test.describe("the grid by keyboard", () => {
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toBeHidden();
-    // K alone moves up a row. With Ctrl, the active card has not moved.
+    // K alone moves up a row. With Ctrl, the active card has not moved, and
+    // closing the palette gives it focus back (mame-curator-1160).
     await expect(card(page, 3)).toHaveAttribute("tabindex", "0");
+    await expect(card(page, 3)).toBeFocused();
     expect(writes).toEqual([]);
   });
 });

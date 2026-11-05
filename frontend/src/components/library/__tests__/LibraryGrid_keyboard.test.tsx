@@ -184,3 +184,89 @@ describe("LibraryGrid: a key with Ctrl, Cmd or Alt is not the grid's", () => {
     expect(start).toHaveFocus();
   });
 });
+
+describe("LibraryGrid: a focused card that leaves the list (mame-curator-1160)", () => {
+  it("hands focus to the card that takes its place", async () => {
+    const { rerender } = setup();
+    card(3).focus();
+    const without = cards.filter((c) => c.short_name !== "g3");
+    rerender(
+      <>
+        <LibraryGrid
+          cards={without}
+          layout="covers"
+          isInCart={() => false}
+          walkthrough={false}
+          onOpen={vi.fn()}
+          onAdd={vi.fn()}
+        />
+        <button type="button">after the grid</button>
+      </>,
+    );
+    await vi.waitFor(() => expect(card(4)).toHaveFocus());
+  });
+
+  it("takes the card before it when the last card leaves", async () => {
+    const { rerender } = setup();
+    card(11).focus();
+    rerender(
+      <>
+        <LibraryGrid
+          cards={cards.slice(0, 11)}
+          layout="covers"
+          isInCart={() => false}
+          walkthrough={false}
+          onOpen={vi.fn()}
+          onAdd={vi.fn()}
+        />
+        <button type="button">after the grid</button>
+      </>,
+    );
+    await vi.waitFor(() => expect(card(10)).toHaveFocus());
+  });
+
+  it("follows a focused card that moves up a row as others leave", async () => {
+    const { rerender, container } = setup();
+    const columns = Number(
+      container.querySelector("[data-columns]")?.getAttribute("data-columns"),
+    );
+    // The first card of the second row moves to the end of the first.
+    card(columns).focus();
+    rerender(
+      <>
+        <LibraryGrid
+          cards={cards.slice(1)}
+          layout="covers"
+          isInCart={() => false}
+          walkthrough={false}
+          onOpen={vi.fn()}
+          onAdd={vi.fn()}
+        />
+        <button type="button">after the grid</button>
+      </>,
+    );
+    await vi.waitFor(() => expect(card(columns)).toHaveFocus());
+  });
+
+  it("leaves focus alone when it is outside the grid", async () => {
+    const { rerender } = setup();
+    card(3).focus();
+    const after = screen.getByRole("button", { name: "after the grid" });
+    after.focus();
+    rerender(
+      <>
+        <LibraryGrid
+          cards={cards.filter((c) => c.short_name !== "g3")}
+          layout="covers"
+          isInCart={() => false}
+          walkthrough={false}
+          onOpen={vi.fn()}
+          onAdd={vi.fn()}
+        />
+        <button type="button">after the grid</button>
+      </>,
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    expect(after).toHaveFocus();
+  });
+});

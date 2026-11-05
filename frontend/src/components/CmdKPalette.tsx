@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -56,6 +56,25 @@ export function CmdKPalette({
   // scores against — we set it to the **id** (stable, opaque) so
   // routing-shaped values (e.g. `/settings/paths`) don't leak into
   // the search match. Free-text matching is driven by `keywords`.
+  // mame-curator-1160: the palette opens from a hotkey or a button, never a
+  // Radix trigger, so Radix had nowhere to send focus back to. Remember what
+  // had focus when it opened. If that control has gone (a chosen page
+  // replaced it), the page's main area takes focus instead.
+  const [wasOpen, setWasOpen] = useState(open);
+  const [opener, setOpener] = useState<Element | null>(null);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setOpener(document.activeElement);
+  }
+  const returnFocus = (e: Event) => {
+    e.preventDefault();
+    const target =
+      opener instanceof HTMLElement && opener.isConnected
+        ? opener
+        : document.getElementById("main");
+    target?.focus();
+  };
+
   const handleSelect = (id: string) => {
     const picked = items.find((i) => i.id === id);
     if (!picked) return;
@@ -68,6 +87,7 @@ export function CmdKPalette({
       open={open}
       onOpenChange={onOpenChange}
       title={strings.app.name}
+      onCloseAutoFocus={returnFocus}
     >
       <CommandInput placeholder={strings.cmdK.placeholder} />
       <CommandList>

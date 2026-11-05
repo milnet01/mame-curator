@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { CmdKPalette, type CmdKItem } from "../CmdKPalette";
@@ -147,5 +148,67 @@ describe("FP27 A5 — CmdK games/settings sections removed", () => {
     const sections = strings.cmdK.sections as Record<string, string>;
     expect(sections).not.toHaveProperty("games");
     expect(sections).not.toHaveProperty("settings");
+  });
+});
+
+// mame-curator-1160: the palette has no trigger button, so Radix sent focus
+// to the page when it closed. It now goes back to where the user was.
+describe("CmdKPalette: focus when it closes (mame-curator-1160)", () => {
+  function Harness({ withOpener = true }: { withOpener?: boolean }) {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <main id="main" tabIndex={-1}>
+          {withOpener && (
+            <button type="button" onClick={() => setOpen(true)}>
+              opener
+            </button>
+          )}
+        </main>
+        <CmdKPalette
+          open={open}
+          onOpenChange={setOpen}
+          items={items}
+          onSelect={() => {}}
+        />
+      </>
+    );
+  }
+
+  it("Escape returns focus to the control that had it", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole("button", { name: "opener" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "opener" })).toHaveFocus();
+  });
+
+  it("choosing an item returns focus too", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole("button", { name: "opener" }));
+    await screen.findByRole("dialog");
+    await user.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "opener" })).toHaveFocus();
+  });
+
+  it("goes to the page's main area when that control has gone", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<Harness />);
+    await user.click(screen.getByRole("button", { name: "opener" }));
+    await screen.findByRole("dialog");
+    rerender(<Harness withOpener={false} />);
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(document.getElementById("main")).toHaveFocus();
   });
 });

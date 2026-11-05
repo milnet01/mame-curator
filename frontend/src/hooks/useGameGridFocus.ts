@@ -47,10 +47,15 @@ export function useGameGridFocus(
   const [activeIndex, setActiveIndex] = useState(0);
   const cardsLen = cards.length;
   const focusPending = useRef(false);
-
-  // No dependency list: a far-off card's row is drawn only after the scroll
-  // that follows the move, so this keeps trying until the card exists.
+  const activeIndexRef = useRef(activeIndex);
   useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
+  // The card that last had focus, by short name.
+  const focusedName = useRef<string | null>(null);
+
+  const focusActiveCard = useCallback(() => {
     if (!focusPending.current) return;
     const card = virtualizer.scrollElement?.querySelector<HTMLElement>(
       '[data-active] [role="button"]',
@@ -60,7 +65,34 @@ export function useGameGridFocus(
       // The virtualizer has already scrolled, and aligns the row better.
       card.focus({ preventScroll: true });
     }
-  });
+  }, [virtualizer]);
+
+  // No dependency list: a far-off card's row is drawn only after the scroll
+  // that follows the move, so this keeps trying until the card exists.
+  useEffect(focusActiveCard);
+
+  // mame-curator-1160: a focused card can leave the list, for example when R
+  // marks it under a review filter, or move to another row as others leave.
+  // Its element goes and focus falls to the page. The card follows its new
+  // place; a card that left hands focus to the one now in its place, and the
+  // clamp below moves it to the card before when the last one went. Focus
+  // the user put elsewhere is left alone.
+  useEffect(() => {
+    const name = focusedName.current;
+    if (name === null || cards.length === 0) return;
+    const index = cards.findIndex((c) => c.short_name === name);
+    if (index === activeIndexRef.current) return;
+    const now = document.activeElement;
+    if (now !== null && now !== document.body) return;
+    focusPending.current = true;
+    if (index === -1) {
+      focusedName.current = null;
+      focusActiveCard();
+    } else {
+      // The render this causes moves data-active, then focuses the card.
+      setActiveIndex(index);
+    }
+  }, [cards, focusActiveCard]);
 
   // Clamp activeIndex when `cards` shrinks (filter change, pagination).
   // Effect-set is intentional here: the derive-in-render alternative
@@ -103,6 +135,14 @@ export function useGameGridFocus(
     [activeIndex, setActive],
   );
 
+  const noteFocus = useCallback(
+    (idx: number) => {
+      focusedName.current = cards[idx]?.short_name ?? null;
+      setActiveIndex(idx);
+    },
+    [cards],
+  );
+
   const focusNextPending = useCallback(
     (startIndex: number): number | null => {
       const entries = reviewState?.entries ?? {};
@@ -120,7 +160,7 @@ export function useGameGridFocus(
     move,
     setActive,
     focusNextPending,
-    noteFocus: setActiveIndex,
+    noteFocus,
     focusCard,
   };
 }
