@@ -118,6 +118,20 @@ export const guideStrings = {
     copyMore: "Copy more games",
     goToLibrary: "Go to the Library",
   },
+  /** mame-curator-1146: choosing a game's version, one question at a time. */
+  fix: {
+    entry: "Choose a different version, step by step",
+    heading: "Which version would you like?",
+    inUse: "In use now",
+    onlyOneHeading: "This game has only one version.",
+    onlyOne: "There is no other version to choose.",
+    savingHeading: "Saving your choice…",
+    unchanged: (name: string) => `You are already using ${name}.`,
+    failedHeading: "Your choice was not saved.",
+    nothingChanged: "Nothing has changed.",
+    tryAgain: "Try again",
+    toLibrary: "Back to the Library",
+  },
   nav: {
     startHere: "Start here",
     goStartHere: "Go to Start here",

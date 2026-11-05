@@ -127,6 +127,36 @@ describe("AlternativesDrawer", () => {
     expect(winnerButton).toBeDisabled();
   });
 
+  it("mame-curator-1146: offers the step-by-step version guide for this game", () => {
+    renderWithRouter(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={winner}
+        alternatives={[winner, ...clones]}
+        onOverride={() => {}}
+      />,
+    );
+    expect(
+      screen.getByRole("link", { name: strings.guide.fix.entry }),
+    ).toHaveAttribute("href", "/fix/pacman");
+  });
+
+  it("mame-curator-1146: leaves the version guide out when there is only one version", () => {
+    renderWithRouter(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={winner}
+        alternatives={[winner]}
+        onOverride={() => {}}
+      />,
+    );
+    expect(
+      screen.queryByRole("link", { name: strings.guide.fix.entry }),
+    ).toBeNull();
+  });
+
   it('shows "only version" hint and no rows when alternatives.length === 1 (FP11 § B5)', () => {
     renderWithRouter(
       <AlternativesDrawer

@@ -10,6 +10,13 @@ import { strings } from "@/strings";
 /** The warning is a long sentence, and it needs reading: the default is 4 s. */
 const WARNING_MS = 15_000;
 
+/** mame-curator-1146: a caller that says the outcome on screen, not in a
+ *  pop-up message, as the version guide does. */
+export interface VersionChoiceReport {
+  onSaved: (warnings: string[]) => void;
+  onFailed: (error: unknown) => void;
+}
+
 /**
  * mame-curator-1149: what choosing a version does after the server answers.
  *
@@ -21,7 +28,11 @@ export function useVersionChoice(cart: UseCartResult) {
   // The chosen version's card, which replaces the one that had focus.
   const [focusCard, setFocusCard] = useState<string | null>(null);
 
-  const chooseVersion = (req: OverridePostRequest, family: Alternatives) => {
+  const chooseVersion = (
+    req: OverridePostRequest,
+    family: Alternatives,
+    report?: VersionChoiceReport,
+  ) => {
     override.mutate(req, {
       onSuccess: ({ warnings }) => {
         // A cart entry is saved under whichever version was on show when added.
@@ -30,6 +41,10 @@ export function useVersionChoice(cart: UseCartResult) {
           if (names.has(shortName)) cart.setVariant(shortName, req.winner);
         }
         setFocusCard(req.winner);
+        if (report) {
+          report.onSaved(warnings);
+          return;
+        }
         if (warnings.length > 0) {
           toast.warning(
             strings.library.overrideOldChoicesUnusable(warnings.length),
@@ -42,7 +57,7 @@ export function useVersionChoice(cart: UseCartResult) {
           strings.library.overrideApplied(chosen?.description ?? req.winner),
         );
       },
-      onError: toastApiError,
+      onError: report?.onFailed ?? toastApiError,
     });
   };
 

@@ -77,6 +77,12 @@ const GuidePage = lazy(() =>
   import("@/pages/GuidePage").then((m) => ({ default: m.GuidePage })),
 );
 
+const FixVersionRoute = lazy(() =>
+  import("@/pages/FixVersionPage").then((m) => ({
+    default: m.FixVersionRoute,
+  })),
+);
+
 const queryClient = createAppQueryClient();
 
 const PALETTE_ITEMS: CmdKItem[] = [
@@ -632,6 +638,10 @@ export function ShellWithPalette() {
                 }
               />
               <Route path="/start" element={<GuidePage />} />
+              <Route
+                path="/fix/:shortName"
+                element={<FixVersionRoute cart={cart} />}
+              />
               <Route path="/sessions" element={<SessionsRoute />} />
               <Route path="/activity" element={<ActivityRoute />} />
               <Route path="/stats" element={<StatsRoute />} />

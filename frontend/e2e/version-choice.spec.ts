@@ -212,3 +212,26 @@ test("a refused choice is said, success is not, and the game stays", async ({
   await expect(card(page, FAST)).toBeVisible();
   await expect(card(page, FAST)).toBeFocused();
 });
+
+test("mame-curator-1146: the step-by-step guide changes the version", async ({
+  page,
+}) => {
+  await startServer({ puck: "puckf" });
+  await page.goto(BASE);
+  await card(page, FAST).click();
+  await page
+    .getByRole("link", { name: "Choose a different version, step by step" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Which version would you like?" }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: JUNIOR }).click();
+  await expect(
+    page.getByRole("heading", { name: `Now using ${JUNIOR}.` }),
+  ).toBeVisible();
+  expect(saved()).toContain("puck: puckj");
+
+  await page.getByRole("link", { name: "Back to the Library" }).click();
+  await expect(card(page, JUNIOR)).toBeVisible();
+  await expect(card(page, FAST)).toHaveCount(0);
+});

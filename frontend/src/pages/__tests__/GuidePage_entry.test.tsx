@@ -90,6 +90,19 @@ describe("the guide's first opening", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("mame-curator-1146: a game's version guide opens at its own address", async () => {
+    server.use(
+      http.get("/api/games/:name/alternatives", () =>
+        HttpResponse.json({ parent: "puck", items: [] }),
+      ),
+    );
+    renderApp("/fix/puck");
+    await screen.findByRole("heading", {
+      name: strings.guide.fix.onlyOneHeading,
+    });
+    expect(at()).toBe("/fix/puck");
+  });
+
   it("INV-1: leaving the guide for / stays on / on that same load", async () => {
     const user = userEvent.setup();
     renderApp("/");

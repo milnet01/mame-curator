@@ -467,7 +467,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1097
 # cart and focus. 611 → 617.
 # Bumped 2026-11-05 (mame-curator-1148): the Library adds to an existing
 # playlist. 617 → 618.
-EXPECTED_VITEST_DECLARATIONS = 618
+# Bumped 2026-11-05 (mame-curator-1146, version half): the version guide, its
+# entry in the game's panel and its address. 618 → 630.
+EXPECTED_VITEST_DECLARATIONS = 630
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
