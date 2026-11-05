@@ -366,7 +366,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # but not in the playlist. 1108 → 1115.
 # Bumped 2026-11-05 (mame-curator-1197): the alternatives reply names the
 # version in use. 1115 → 1117.
-EXPECTED_PYTEST_DECLARATIONS = 1117
+# Bumped 2026-11-05 (mame-curator-1153): the dry run really tests that the
+# folder can be written. 1117 → 1119.
+EXPECTED_PYTEST_DECLARATIONS = 1119
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

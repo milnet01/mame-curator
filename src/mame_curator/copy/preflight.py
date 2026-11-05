@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
+import os
 import shutil
+import tempfile
 from pathlib import Path
 
 from mame_curator.copy.bios import resolve_bios_dependencies
@@ -10,13 +13,30 @@ from mame_curator.copy.paths import is_safe_short_name
 from mame_curator.copy.types import CopyPlan, PreflightResult
 
 
+def _can_write_in(folder: Path) -> bool:
+    """Create and remove a uniquely named file in ``folder``; True if both work.
+
+    mame-curator-1153: ``os.access`` misreports on some network and FUSE
+    filesystems and ignores Windows ACLs, so the probe really writes.
+    """
+    try:
+        fd, name = tempfile.mkstemp(prefix=".mame-curator-write-test-", dir=folder)
+    except OSError:
+        return False
+    try:
+        os.close(fd)
+    finally:
+        with contextlib.suppress(OSError):
+            Path(name).unlink()
+    return True
+
+
 def _can_create_dir(target: Path) -> bool:
-    if target.exists():
-        return target.is_dir()
-    # Walk up to first existing ancestor; check it's a writable dir.
+    # The nearest existing folder (the target itself, or its first existing
+    # parent) must be a folder this process can write into.
     for parent in [target, *target.parents]:
         if parent.exists():
-            return parent.is_dir()
+            return parent.is_dir() and _can_write_in(parent)
     return False
 
 

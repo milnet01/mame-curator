@@ -108,7 +108,7 @@ Checks (all non-fatal — accumulate into `PreflightResult`; the caller decides 
 | Check | Lands in `PreflightResult.` |
 |---|---|
 | Each `<short>.zip` exists in `plan.source_dir` | `missing_source: tuple[str, ...]` |
-| `plan.dest_dir` exists or can be created | `dest_writable: bool` |
+| `plan.dest_dir` exists or can be created, and a file can really be written there (the nearest existing folder gets a uniquely named file created and removed; mame-curator-1153) | `dest_writable: bool` |
 | Sum of source-zip sizes ≤ free space at dest | `free_space_gap_bytes: int` (positive = sufficient; negative = shortfall) |
 | `plan.playlist_file` exists | `existing_playlist: bool` |
 | Each existing dest zip's size+mtime matches source (idempotency hit count) | `already_copied: tuple[str, ...]` |

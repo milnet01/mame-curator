@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import stat
+import sys
 from pathlib import Path
 
 import pytest
@@ -197,3 +200,42 @@ def test_preflight_dest_writable_false_when_dest_missing_and_uncreatable(tmp_pat
     plan = _plan(winners=(), source_dir=src, dest_dir=dest)
     result = preflight(plan)
     assert result.dest_writable is False
+
+
+# mame-curator-1153: dest_writable must test that the folder can be written,
+# not only that it is a folder. chmod cannot make a folder read-only on
+# Windows, and root writes through any mode bits, so both are skipped.
+_CHMOD_READ_ONLY_WORKS = sys.platform != "win32" and getattr(os, "geteuid", lambda: 0)() != 0
+
+
+@pytest.mark.skipif(not _CHMOD_READ_ONLY_WORKS, reason="chmod cannot make a folder read-only here")
+@pytest.mark.parametrize(
+    "missing_child", [False, True], ids=["existing", "missing-under-read-only"]
+)
+def test_preflight_dest_writable_false_for_read_only_folder(
+    tmp_path: Path, missing_child: bool
+) -> None:
+    """A read-only dest, or a missing dest under a read-only parent → False."""
+    locked = tmp_path / "locked"
+    locked.mkdir()
+    dest = locked / "roms" if missing_child else locked
+    src = tmp_path / "source"
+    src.mkdir()
+    locked.chmod(stat.S_IRUSR | stat.S_IXUSR)
+    try:
+        result = preflight(_plan(winners=(), source_dir=src, dest_dir=dest))
+    finally:
+        locked.chmod(stat.S_IRWXU)
+    assert result.dest_writable is False
+    assert list(locked.iterdir()) == []
+
+
+def test_preflight_dest_writable_probe_leaves_nothing_behind(tmp_path: Path) -> None:
+    """The writability probe writes into the folder and must remove what it wrote."""
+    dest = tmp_path / "dest"
+    dest.mkdir()
+    src = tmp_path / "source"
+    src.mkdir()
+    result = preflight(_plan(winners=(), source_dir=src, dest_dir=dest))
+    assert result.dest_writable is True
+    assert list(dest.iterdir()) == []
