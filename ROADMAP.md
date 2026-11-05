@@ -3387,15 +3387,21 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-code-2026-10-30-1144.
   Lanes: frontend.
 
-- 📋 [mame-curator-1157] **A crashed copy writes no report and no Activity entry.**
+- ✅ [mame-curator-1157] **A crashed copy writes no report and no Activity entry.**
   Found while closing the review of mame-curator-1144 (commit d0172a7). Read, not run: a worker crash writes no report and no copy_aborted entry. Not fixed now because it is outside that group's subject.
+  2026-11-05: 89e4db5. A crash writes a copy_aborted Activity entry
+  (reason ERROR) and an ERROR report under copy-history/<job_id>/. New
+  CopyReportStatus.ERROR.
   **Layman:** When a copy crashes, the app now says so and points to Activity, but Activity shows only that the copy started.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
   Lanes: api, copy, tests.
 
-- 📋 [mame-curator-1158] **Leaving a running or paused copy by the top menu or browser Back loses control of it.**
+- ✅ [mame-curator-1158] **Leaving a running or paused copy by the top menu or browser Back loses control of it.**
   Found while closing the review of mame-curator-1144. Hiding the guide's exit while paused does not cover the top menu or browser Back, and the Library has the same gap. The likely fix is to reconnect to a running job when the page opens; not fixed now because that is a design change of its own. The refusal when a copy is left paused is the user-visible harm.
+  2026-11-05: f298911. GET /api/copy/current; useCopySession takes up a running or paused copy when the Library or the guide opens.
+  Waiting-on: user (the guide hides its exit while a copy is paused, by your 2026-10-30 choice, because nothing could come back to a paused copy. Now both pages can. Bring the exit back while paused?, 2026-11-05)
+  Recommend: yes. Leaving no longer loses the copy, and a hidden exit can feel like being trapped.
   **Layman:** If you leave the page during a copy using the menu or Back, you can't pause or stop that copy when you return.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
@@ -3631,6 +3637,8 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 - 📋 [mame-curator-1184] **jobs.py and runner.py are over the hard size cap.**
   Measured 2026-11-02 at a5417fa: 527 and 580 lines against a cap of 500.
   Both were over before that commit, which added a few lines to each.
+  2026-11-05: 89e4db5 moved run_copy's body into _run_copy, still well
+  over the 80-line function cap.
   **Layman:** Two code files are bigger than the project's own limit.
   Kind: refactor.
   Source: close-findings-2026-11-02-1145.

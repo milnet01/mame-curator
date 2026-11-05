@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-05 Fixed — A copy you left, or one that crashed, is no longer lost (mame-curator-1157, 1158)
+
+Two ways a copy could slip out of sight.
+
+- **Come back to a running or paused copy.** (mame-curator-1158)
+  If you leave the page during a copy, by the top menu or the browser's Back, opening the Library or the guide shows that copy again. Pause, Resume and Stop work as before.
+
+- **A crashed copy says so in Activity.** (mame-curator-1157)
+  Activity now shows that the copy stopped because of an error, with a short reason, and the copy's report lists what was done before it stopped.
+
 ### 2026-11-05 Fixed — A copy tells you what it left out (mame-curator-1163, 1164, 1196)
 
 Three places where the app said less than it knew.
