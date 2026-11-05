@@ -3726,8 +3726,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-ci-fix-2026-11-02.
   Lanes: copy, tests.
 
-- 📋 [mame-curator-1195] **A failed save in the version guide shows two error messages.**
+- ✅ [mame-curator-1195] **A failed save in the version guide shows two error messages.**
   FixVersionPage shows the error on screen, and useOverride also shows its own error toast. Reported by the 1146 build helper; not run.
+  2026-11-05: fixed in 1767cb2. The Library never showed two:
+  toastApiError folds identical messages. Only the guide did.
   **Layman:** If saving a version choice fails, you get the message on the screen and a second pop-up saying the same.
   Kind: fix.
   Source: build-mame-curator-1146-2026-11-05.
