@@ -427,8 +427,9 @@ does unless its caller asks otherwise:
   progettoSnaps rather than libretro-thumbnails (design §6.3) and is not
   served by this proxy today.
 - The image is resolved by `media.resolve_image`, which walks the
-  configured `media.sources` fallback chain (default order: `libretro` →
-  `progettoSnaps` → `arcadeDB` → `wikipediaImage` → `mobyGames`; `libretro`
+  configured `media.sources` fallback chain (default order: `esde` →
+  `retroarchThumbnails` → `libretro` → `progettoSnaps` → `arcadeDB` →
+  `wikipediaImage` → `mobyGames`, from `MediaConfig.sources`; `libretro`
   is always appended as the baseline if a user omits it). A single source's
   failure (`MediaFetchError` /
   `MediaRateLimited`) is swallowed and the chain advances — there is **no

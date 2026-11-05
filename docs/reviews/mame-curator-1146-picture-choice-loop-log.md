@@ -1,0 +1,8 @@
+# mame-curator-1146 picture choice — loop log
+
+## Cold-eyes loop log
+
+| Loop | Date | Trigger | Lanes | Q1 | Q2 | Q3 | Q4 | Outcome |
+|------|------|---------|-------|----|----|----|----|---------|
+| 1 | 2026-11-05 | New spec (rule 14 gate); gated span: the whole document (new, untracked file) | 2 (both held every question) | 0 | 3 | 2 | 0 | 7 lane findings and open questions: 5 verified, all fixed — `list_candidates` token cost vs §13 [Q2], INV-6 vs the stored-choice lookup [Q2], the plain `boxart` address cached holding a chosen picture [Q2], `?source=` on a rate limit or fetch error [Q3], the preview address [Q3]. 1 dismissed as not material (backup fixture shape), 1 out of scope (`api/spec.md` source order). One false clause deleted (§7 restore tests). One design question left for the user (choice keyed by short name). 1b: every citation windowed, none defective. Loop 2 dispatched. |
+| 2 | 2026-11-05 | Same gate, second loop | 2 (both held every question) | 3 | 2 | 2 | 0 | 7 verified, all fixed, 0 dismissed: the version half's failure screen [Q1], an unreadable file cannot be snapshotted [Q1], §6 ignored the browser's cached chosen picture [Q1], the backup's `pictures` shape vs the INV-10 fixture [Q2, raised again with a new reason and fixed], INV-6's "a listing" vs §13 [Q2], `chosen_found` with no choice stored [Q3], which short name the picture screens use [Q3]. **Cap reached (2 of 2).** These 7 fixes, the §3 "the server falls back" wording and the new §15 question 4 were read by no lane; the build is their reader. Calm cap: 1 of 7 findings landed on text this run wrote (INV-6). No second share, because the gated span is the whole document. Status left at `spec draft`: the project's `CLAUDE.md` puts user sign-off after this gate. |

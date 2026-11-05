@@ -2703,6 +2703,9 @@ P14 (per-game review state).
   2026-11-05: version half built in 28ca60f: the game's panel links to
   /fix/<game>, a guide screen per 1144. Picture half: spec
   docs/specs/mame-curator-1146-picture-choice.md, in review.
+  2026-11-05: picture-half spec docs/specs/mame-curator-1146-picture-choice.md: review-contract, 2 loops (cap), 12 findings fixed, calm cap; loop log in docs/reviews/. Status: draft.
+  Waiting-on: user (the spec's section 15 questions 1 to 4, 2026-11-05)
+  Recommend: 1 yes, an older backup clears picture choices (the snapshot keeps them); 2 yes, Look in more places asks the limited online sources; 3 yes, the entry reads "Fix this game's picture or version, step by step"; 4 no, a choice stays with its version, and the guide says so. Then Status becomes accepted and the build starts.
   **Layman:** Step-by-step help to pick a different version of a game, or a different picture for it.
   Kind: accessibility.
   Source: user-2026-10-30.
