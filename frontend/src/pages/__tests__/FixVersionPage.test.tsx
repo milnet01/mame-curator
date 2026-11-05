@@ -137,6 +137,8 @@ describe("the version guide", () => {
       strings.errors.byCode.override_rejected,
     );
     expect(screen.getByText(fix.nothingChanged)).toBeInTheDocument();
+    // mame-curator-1195: the screen says it; no pop-up repeats it.
+    expect(toast.error).not.toHaveBeenCalled();
     fail = false;
     await userEvent.click(screen.getByRole("button", { name: fix.tryAgain }));
     await screen.findByRole("heading", {

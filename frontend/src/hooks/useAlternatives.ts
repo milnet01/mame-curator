@@ -32,9 +32,8 @@ export function useAlternatives(shortName: string | null) {
 
 /**
  * POST a manual override (parent → winner). Invalidates the games listing
- * + the family lists so the UI re-renders with the picked winner. FP21-R: ``toastApiError`` baked into the hook so all call-sites
- * surface failures via toast by default; an explicit ``onError`` override
- * remains possible per ``useMutation``'s contract.
+ * + the family lists so the UI re-renders with the picked winner. A caller
+ * reports failure through ``mutate``'s ``onError`` (mame-curator-1195).
  */
 export function useOverride() {
   const qc = useQueryClient();
@@ -51,7 +50,8 @@ export function useOverride() {
         // Every version's family list: any of them may be the next one opened.
         qc.invalidateQueries({ queryKey: ["alternatives"] }),
       ]),
-    onError: toastApiError,
+    // No onError here: each caller says a failure its own way, and the
+    // version guide says it on screen (mame-curator-1195).
   });
 }
 
