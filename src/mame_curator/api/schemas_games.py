@@ -83,6 +83,9 @@ class Alternatives(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     parent: str
     items: tuple[GameCard, ...]
+    # The family's current winner, a saved choice included; None when the
+    # filters or the active session show no version (mame-curator-1197).
+    in_use: str | None
 
 
 class Explanation(BaseModel):

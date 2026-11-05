@@ -357,7 +357,11 @@ export const GameDetailSchema = z
   .strict();
 
 export const AlternativesSchema = z
-  .object({ parent: z.string(), items: z.array(GameCardSchema) })
+  .object({
+    parent: z.string(),
+    items: z.array(GameCardSchema),
+    in_use: z.string().nullable(),
+  })
   .strict();
 
 export const LibraryFacetsSchema = z

@@ -266,6 +266,8 @@ export interface Alternatives {
   /** The family's real parent: an override's key, whichever version is on show. */
   parent: string;
   items: GameCard[];
+  /** The family's current pick, a saved choice included; null when none shows. */
+  in_use: string | null;
 }
 
 /** FP17: facets for FiltersSidebar dropdowns. ``letters`` uses ``'#'`` for digit-prefixed games. */

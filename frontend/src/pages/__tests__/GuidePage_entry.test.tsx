@@ -93,7 +93,7 @@ describe("the guide's first opening", () => {
   it("mame-curator-1146: a game's version guide opens at its own address", async () => {
     server.use(
       http.get("/api/games/:name/alternatives", () =>
-        HttpResponse.json({ parent: "puck", items: [] }),
+        HttpResponse.json({ parent: "puck", items: [], in_use: "puck" }),
       ),
     );
     renderApp("/fix/puck");

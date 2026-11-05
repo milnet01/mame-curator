@@ -99,7 +99,11 @@ function serve(
       return HttpResponse.json(makeGamesPage([...before, shown]));
     }),
     http.get("/api/games/:name/alternatives", () =>
-      HttpResponse.json({ parent: "puck", items: [parent, fast, junior] }),
+      HttpResponse.json({
+        parent: "puck",
+        items: [parent, fast, junior],
+        in_use: shown.short_name,
+      }),
     ),
     http.post("/api/overrides", async ({ request }) => {
       posted.push(await request.json());
@@ -271,7 +275,11 @@ it("marks every version's family list out of date after a choice", async () => {
   serve(() => accepted());
   const client = new QueryClient();
   // The version the panel was opened from is neither the parent nor the choice.
-  client.setQueryData(["alternatives", "puckf"], { parent: "puck", items: [] });
+  client.setQueryData(["alternatives", "puckf"], {
+    parent: "puck",
+    items: [],
+    in_use: "puckf",
+  });
   const { result } = renderHook(() => useOverride(), {
     wrapper: ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>

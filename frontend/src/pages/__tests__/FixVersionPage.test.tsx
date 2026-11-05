@@ -31,11 +31,15 @@ const junior = {
 };
 
 /** Serves the Puck family; a POST answers as `reply` says. */
-function serve(reply: () => Response, items = [parent, fast, junior]) {
+function serve(
+  reply: () => Response,
+  items = [parent, fast, junior],
+  inUse: string | null = "puckf",
+) {
   const posted: unknown[] = [];
   server.use(
     http.get("/api/games/:name/alternatives", () =>
-      HttpResponse.json({ parent: "puck", items }),
+      HttpResponse.json({ parent: "puck", items, in_use: inUse }),
     ),
     http.post("/api/overrides", async ({ request }) => {
       posted.push(await request.json());
@@ -88,6 +92,23 @@ describe("the version guide", () => {
     expect(juniorButton).not.toHaveTextContent(fix.inUse);
     expect(await versionButton("Puck World")).not.toHaveTextContent(fix.inUse);
     expect(await versionButton("Puck Fast")).toHaveTextContent(fix.inUse);
+  });
+
+  it("marks the version the server says is in use, not the one in the address", async () => {
+    // mame-curator-1197: a hand-typed /fix/puckf while Puck World is in use.
+    const posted = serve(accepted, [parent, fast, junior], "puck");
+    const user = userEvent.setup();
+    renderFix();
+
+    expect(await versionButton("Puck World")).toHaveTextContent(fix.inUse);
+    expect(await versionButton("Puck Fast")).not.toHaveTextContent(fix.inUse);
+    await user.click(await versionButton("Puck Fast"));
+    expect(
+      await screen.findByRole("heading", {
+        name: strings.library.overrideApplied("Puck Fast"),
+      }),
+    ).toBeInTheDocument();
+    expect(posted).toEqual([{ parent: "puck", winner: "puckf" }]);
   });
 
   it("saves a choice under the family's parent and says what is in use now", async () => {
@@ -179,7 +200,11 @@ describe("the version guide", () => {
               { code: "internal", detail: "boom", fields: [] },
               { status: 500 },
             )
-          : HttpResponse.json({ parent: "puck", items: [parent, fast] }),
+          : HttpResponse.json({
+              parent: "puck",
+              items: [parent, fast],
+              in_use: "puckf",
+            }),
       ),
     );
     renderFix();

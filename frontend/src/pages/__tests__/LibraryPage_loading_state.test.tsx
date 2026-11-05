@@ -249,6 +249,7 @@ describe("LibraryPage — pending-query empty states", () => {
           : HttpResponse.json({
               parent: winner.short_name,
               items: [winner, clone],
+              in_use: winner.short_name,
             }),
       ),
     );

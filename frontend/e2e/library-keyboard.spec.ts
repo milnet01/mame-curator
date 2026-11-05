@@ -50,6 +50,7 @@ async function serveMany(page: Page, count: number) {
       json: {
         parent: games.items[0].short_name,
         items: copies(games.items[0]),
+        in_use: games.items[0].short_name,
       },
     });
   });

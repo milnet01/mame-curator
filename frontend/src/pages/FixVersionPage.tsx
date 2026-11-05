@@ -2,7 +2,8 @@
  * mame-curator-1146, version half — choose a game's version one question at
  * a time, at /fix/:shortName. Saving goes through mame-curator-1149's
  * `useVersionChoice`, so the cart follows the choice as it does from the
- * Library. Opened from a Library card, so `shortName` is the version in use.
+ * Library. The version in use is the server's `in_use`, not `shortName`: a
+ * typed address can name any version (mame-curator-1197).
  */
 import { useState } from "react";
 import { useParams } from "react-router";
@@ -157,10 +158,12 @@ function FixVersionGuide({
 }: FixVersionProps & { shortName: string }) {
   const family = useAlternatives(shortName);
   const { chooseVersion } = useVersionChoice(cart);
-  const [inUse, setInUse] = useState(shortName);
+  // useOverride reloads the family before onSaved, so this follows a save.
+  const inUse = family.data?.in_use ?? null;
   const [screen, setScreen] = useState<Screen>({ kind: "choose" });
   const toChoice = () => setScreen({ kind: "choose" });
-  const back: ReturnToLibrary = { focusCard: inUse };
+  // The Library shows the version in use; without one, the address's game.
+  const back: ReturnToLibrary = { focusCard: inUse ?? shortName };
 
   const choose = (game: GameCard, versions: Alternatives) => {
     if (game.short_name === inUse) {
@@ -173,7 +176,6 @@ function FixVersionGuide({
       versions,
       {
         onSaved: (warnings) => {
-          setInUse(game.short_name);
           setScreen({
             kind: "saved",
             name: game.description,

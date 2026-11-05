@@ -265,6 +265,9 @@ matches the static `_deactivate` path first.
 `GET /api/games/{name}/alternatives` names the family's real parent in
 `parent`. A client sends that as `parent` to `POST /api/overrides`, whichever
 family member is the current pick.
+`in_use` names the family's current pick, a saved choice included, so a
+client need not assume it from the name it asked about (mame-curator-1197).
+It is `null` when the filters or the active session show no version.
 
 `POST /api/overrides` writes nothing and replies `override_rejected` when the
 choice would not take: `parent` is a clone's name, or the filter would add a
