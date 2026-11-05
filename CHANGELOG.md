@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-05 Fixed — The keyboard keeps its place, and errors stay to be read (mame-curator-1160, 1161, 1176, 1190)
+
+Four fixes for anyone using the keyboard or large text.
+
+- **Error messages stay until you close them.** (mame-curator-1190)
+  They used to vanish after about four seconds. Each has a close button you can reach with the keyboard, and a screen reader reads it out.
+
+- **Focus comes back after the command palette closes.** (mame-curator-1160)
+  It returns to where you were. If the game card you were on leaves the list, the card that takes its place gets focus.
+
+- **The versions panel has one cursor.** (mame-curator-1161)
+  The arrow keys move between versions, and the highlight is always where the keyboard is.
+
+- **Settings' folder pickers give focus back.** (mame-curator-1176)
+  Closing a picker returns you to the button that opened it.
+
 ### 2026-11-05 Fixed — The copy check and starting the app (mame-curator-1153, 1168, 1172)
 
 Three fixes behind the scenes.

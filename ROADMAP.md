@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1200 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1204 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3422,15 +3422,19 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-10-30-1144.
   Lanes: api, tests.
 
-- 📋 [mame-curator-1160] **Keyboard focus falls to the page when the command palette closes or a focused card disappears.**
+- ✅ [mame-curator-1160] **Keyboard focus falls to the page when the command palette closes or a focused card disappears.**
   Found while closing the review of mame-curator-1144 (commit 3256068). Palette closing: run. Other dialogs with no trigger: read, not run. R under a review filter with walkthrough off removing the focused card: reasoned, not run. Outside that group's findings.
+  2026-11-05: f5c469c. The palette returns focus; the grid hands focus
+  to the card now in a lost card's place.
   **Layman:** A keyboard user can lose their place after closing the palette or reviewing a game under a filter.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1161] **The versions panel has two cursors: arrows move the highlight, Tab moves focus, and Enter follows focus only.**
+- ✅ [mame-curator-1161] **The versions panel has two cursors: arrows move the highlight, Tab moves focus, and Enter follows focus only.**
   Found while closing the review of mame-curator-1144 (commit 3256068). Needs a decision on which cursor wins, so not fixed in that group.
+  2026-11-05: f303d92. Arrows move real focus along the version rows;
+  the chosen row is aria-disabled.
   **Layman:** In the versions panel, the highlighted row and the row Enter acts on can be different.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
@@ -3566,11 +3570,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: frontend.
 
-- 📋 [mame-curator-1176] **Settings folder pickers drop keyboard focus when they close.**
+- ✅ [mame-curator-1176] **Settings folder pickers drop keyboard focus when they close.**
   Measured on PathRow with Cancel and Esc, and from the grant prompt, while
   building 5601d16. FolderField is the same code, not measured. Only the
   wizard and the Where step return focus. The picker also opens with focus on
   Cancel, so Enter closes it. Outside that group's findings.
+  2026-11-05: d0687f1. FsBrowser returns focus to its opener.
   **Layman:** After you close a folder picker in Settings, the keyboard position is lost.
   Kind: accessibility.
   Source: close-findings-2026-11-02-1145.
@@ -3715,9 +3720,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1149-2026-11-02.
   Lanes: frontend, api.
 
-- 📋 [mame-curator-1190] **Error toasts disappear after about four seconds.**
+- ✅ [mame-curator-1190] **Error toasts disappear after about four seconds.**
   5d00641 lengthened only its new warning. The refusal error and other
   messages use the default. Stated by the build helper, not measured here.
+  2026-11-05: 867e26b. Error toasts stay until closed (duration
+  Infinity, close button).
   **Layman:** Pop-up error messages vanish quickly, which is too short for someone who reads slowly.
   Kind: accessibility.
   Source: build-mame-curator-1149-2026-11-02.
@@ -3754,7 +3761,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-ci-fix-2026-11-02.
   Lanes: copy, tests.
 
-- 📋 [mame-curator-1194] **The Windows recycle-lock fix is unproven.**
+- ✅ [mame-curator-1194] **The Windows recycle-lock fix is unproven.**
   87c2edc retries PermissionError on Windows for 5 seconds. test_recycle_file_serializes_parallel_sessions
   failed on one of two Windows legs at 3596487, with the cause unmeasured:
   ssh wintest timed out 2026-11-02. Prove it by repeated Windows CI runs or
@@ -3765,6 +3772,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   2026-11-05: 944acf8 changed _session_lock again (bounded stale wait; a
   refresher thread calls os.utime on the held lock). Watch Windows CI
   for both. A run on wintest was asked of the album-builder session.
+  2026-11-05: proven on real Windows. album-builder ran
+  tests/copy/test_fp28_recyclebin_lock.py and
+  test_runner_recycle_guards.py on ssh wintest (Windows 10, Python
+  3.14.7) at c739a9b: 12 passed. Windows CI green since a04f51b.
   **Layman:** A fix for a rare Windows failure could not be tested on Windows, so it needs watching.
   Kind: investigate.
   Source: build-ci-fix-2026-11-02.
@@ -3819,6 +3830,34 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: build-mame-curator-1168-2026-11-05.
   Lanes: api, tests.
+
+- 📋 [mame-curator-1201] **The recycle lock can admit two holders or spin, against its own spec.**
+  Cold read of 944acf8 and 0d3aa18 by the oneup session; reasoning, not reproduced. Latent today: the lock is per session and each run_copy mints its own id, so it is never contended. F1: two waiters both reclaim a stale lock (unlink by path). F2: release and the refresher act on a lock they no longer own; fix F1+F2 with a token in the lock or an st_ino check. F3: staleness is wall clock, the refresher monotonic (suspend, or NFS clock skew). F4: the stat-OSError branch spins with no sleep or deadline (a dangling symlink); use lstat. F5: no overall deadline while a move blocks on a dead share. Full text: session_message id 1391 to mame-curator.
+  **Layman:** Rare cases in how the recycle bin takes turns. They cannot happen with today's copies, but the code promises more than it does.
+  Kind: fix.
+  Source: cold-read-oneup-2026-11-05.
+  Lanes: copy, tests.
+
+- 📋 [mame-curator-1202] **Error toasts that no longer expire can stack the same message.**
+  Since 867e26b errors stay until closed; repeats more than 1.5 s apart stack (sonner caps 3 visible). A toast id per error code would merge them; revisit FP26-K's comment in apiErrorToast.ts, which rejected ids.
+  **Layman:** The same error happening again a few seconds later shows a second copy that stays.
+  Kind: fix.
+  Source: build-mame-curator-1190-2026-11-05.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1203] **Focus falls to the page when a filter empties the grid.**
+  The empty-grid message has nothing to focus. Found while fixing 1160.
+  **Layman:** If a filter leaves no games, the keyboard's place is lost.
+  Kind: accessibility.
+  Source: build-mame-curator-1160-2026-11-05.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1204] **Return-focus-to-opener is written three times.**
+  AlternativesDrawer, CmdKPalette and FsBrowser each remember what had focus when they opened. A shared hook could replace them.
+  **Layman:** Tidy-up only: one piece of code would replace three copies.
+  Kind: refactor.
+  Source: build-mame-curator-1176-2026-11-05.
+  Lanes: frontend.
 
 ## Considered / under research (no target date)
 
