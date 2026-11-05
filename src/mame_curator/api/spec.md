@@ -232,6 +232,7 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | POST | `/api/copy/pause` | `JobStatus` | |
 | POST | `/api/copy/resume` | `JobStatus` | |
 | POST | `/api/copy/abort` | `JobStatus` | |
+| GET | `/api/copy/current` | `JobStatus \| null` | |
 | GET | `/api/copy/status` | SSE (`text/event-stream`) | |
 | GET | `/api/copy/history` | `HistoryListing` | |
 | GET | `/api/copy/history/{job_id}/report` | `CopyReport` | |
@@ -312,6 +313,11 @@ be used.
   `bytes_total` keys matching the typed `JobStatus` / frontend contract.
   A subscriber gets the stored events first, however many there are, then the
   live ones; replay never passes through the subscriber's bounded queue.
+- **`GET /api/copy/current`** answers the in-flight job's `JobStatus`, its
+  `state` the controller's as in a `pause` reply, or `null` when no copy is in
+  flight (mame-curator-1158). The Library and the guide read it on opening to
+  reconnect to a copy the user left; the status stream cannot answer this,
+  since it also replays a finished job.
 - **A BIOS file missing from `source_roms` is skipped, not failed**, so the job
   can still end `OK`. `POST /api/copy/dry-run` reports the count before a copy
   as `counts.bios_missing_source`, and `job_finished` after one as `bios_missing`.

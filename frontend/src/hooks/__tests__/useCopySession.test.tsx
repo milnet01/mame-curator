@@ -721,3 +721,73 @@ describe("FP27 A4 — useCopySession.resolveConflict removed", () => {
     expect(result.current).not.toHaveProperty("resolveConflict");
   });
 });
+
+// mame-curator-1158: a page opened while a copy is running or paused on the
+// server reconnects to it, so Pause, Resume and Stop are reachable again.
+describe("useCopySession reconnects to a copy left in flight", () => {
+  const paused = {
+    job_id: "job-left",
+    state: "paused",
+    started_at: "2026-11-05T05:00:00Z",
+    files_done: 3,
+    files_total: 10,
+    bytes_done: 300,
+    bytes_total: 1000,
+  };
+
+  it("takes up a paused copy, its stream and its controls", async () => {
+    let resumed = 0;
+    server.use(
+      http.get("/api/copy/current", () => HttpResponse.json(paused)),
+      http.post("/api/copy/resume", () => {
+        resumed += 1;
+        return HttpResponse.json({ ...paused, state: "running" });
+      }),
+    );
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    });
+    await waitFor(() => expect(result.current.state?.state).toBe("paused"));
+    expect(result.current.state).toMatchObject({
+      jobId: "job-left",
+      filesDone: 3,
+      filesTotal: 10,
+      bytesDone: 300,
+      bytesTotal: 1000,
+      reattached: true,
+    });
+    expect(MockEventSource.instances.map((es) => es.url)).toEqual([
+      "/api/copy/status",
+    ]);
+
+    act(() => result.current.resume());
+    await waitFor(() => expect(resumed).toBe(1));
+    act(() =>
+      MockEventSource.instances[0].emit({
+        event: "resumed",
+        payload: {},
+        ts: new Date().toISOString(),
+      }),
+    );
+    expect(result.current.state?.state).toBe("running");
+  });
+
+  it("stays idle when no copy is in flight", async () => {
+    let asked = 0;
+    server.use(
+      http.get("/api/copy/current", () => {
+        asked += 1;
+        return HttpResponse.json(null);
+      }),
+    );
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    });
+    await waitFor(() => expect(asked).toBe(1));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(result.current.state).toBeNull();
+    expect(MockEventSource.instances).toHaveLength(0);
+  });
+});

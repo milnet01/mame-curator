@@ -133,6 +133,13 @@ async def abort_copy(body: CopyAbortRequest, jobs: JobManager = Depends(get_jobs
     return await jobs.abort(recycle_partial=body.recycle_partial)
 
 
+@router.get("/api/copy/current", response_model=JobStatus | None)
+async def current_copy(jobs: JobManager = Depends(get_jobs)) -> JobStatus | None:
+    # mame-curator-1158: lets a page reconnect to a copy it was left during;
+    # the status stream cannot say this, since it also replays a finished job.
+    return jobs.in_flight()
+
+
 @router.get("/api/copy/status")
 async def copy_status(jobs: JobManager = Depends(get_jobs)) -> EventSourceResponse:
     # mame-curator-1111: a job that finished before the client subscribed

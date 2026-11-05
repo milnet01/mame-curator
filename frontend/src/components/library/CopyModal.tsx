@@ -38,6 +38,8 @@ export interface CopyModalState {
   connection?: "reconnecting" | "lost";
   /** Why the last pause, resume or abort failed, in the user's words. */
   controlError?: string;
+  /** A copy this page found running when it opened, not one it started. */
+  reattached?: boolean;
 }
 
 interface CopyModalProps {

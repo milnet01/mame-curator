@@ -10,7 +10,8 @@ import { http, HttpResponse, type JsonBodyType } from "msw";
  * returns an empty readiness list, because the Settings → Media tab
  * fires `useMediaSources` on mount — any SettingsPage-rendering test
  * would otherwise hit an unhandled request. Tests that assert on
- * readiness override it with their own `server.use(...)`.
+ * readiness override it with their own `server.use(...)`. The others are
+ * commented where they are listed.
  */
 export const baseHandlers: Parameters<typeof setupServer> = [
   http.get("/api/media/sources", () => HttpResponse.json({ sources: [] })),
@@ -19,6 +20,9 @@ export const baseHandlers: Parameters<typeof setupServer> = [
   // tests don't hit an unhandled request. Tests that assert the About text
   // override this with their own server.use(...).
   http.get("/media/:name/wiki", () => HttpResponse.json(null)),
+  // mame-curator-1158: every useCopySession asks on mount whether a copy is
+  // still in flight; default to "none". Reconnect tests override it.
+  http.get("/api/copy/current", () => HttpResponse.json(null)),
 ];
 
 export const server = setupServer(...baseHandlers);

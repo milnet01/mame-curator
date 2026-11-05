@@ -652,3 +652,30 @@ describe("GuidePage steps", () => {
     await heading(g.which.heading);
   });
 });
+
+// mame-curator-1158: the guide opened while a copy is paused shows that copy.
+describe("GuidePage with a copy left in flight", () => {
+  it("opens on the copying step, with Resume and Stop", async () => {
+    useHandlers();
+    server.use(
+      http.get("/api/copy/current", () =>
+        HttpResponse.json({
+          job_id: "job-left",
+          state: "paused",
+          started_at: new Date().toISOString(),
+          files_done: 1,
+          files_total: 2,
+          bytes_done: 1,
+          bytes_total: 2,
+        }),
+      ),
+    );
+    renderGuide();
+    await heading(g.copying.heading);
+    expect(screen.getByText(g.copying.pausedHint)).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: strings.copy.resume }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: g.copying.stop })).toBeVisible();
+  });
+});

@@ -30,7 +30,8 @@ The first time the app opens, it shows a guide. It asks one question per
 screen, in large text, and takes you from choosing games to a finished
 copy. Choose **Look around on my own** to leave it at any time, except
 while a copy is paused: resume or stop it first. Choose **Start here** in
-the top menu to come back to it. A copy from the guide
+the top menu to come back to it. If you leave during a copy, the guide and
+the Library both show that copy again when you open them. A copy from the guide
 adds to your existing game list. It never changes your cart.
 
 ## Text size

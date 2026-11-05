@@ -105,7 +105,7 @@ export const guideStrings = {
     heading: "Copying your games",
     closeHint: "You can close this page. The copy will carry on.",
     pausedHint:
-      "Resume before you close this page. This guide cannot come back to a paused copy.",
+      "The copy is paused. If you leave, open the guide or the Library to come back to it.",
     finishedHeading: "Your games are copied.",
     partialHeading: "The copy has finished.",
     partial: "Some games could not be copied.",

@@ -53,6 +53,163 @@ export function useCopySession() {
     };
   }, [closeStream]);
 
+  // Opens the status stream; a subscriber gets the job's history first.
+  const openStream = useCallback(() => {
+    const es = new EventSource("/api/copy/status");
+    es.onmessage = (ev: MessageEvent) => {
+      // FP24-K: malformed SSE data must not crash the hook (React
+      // doesn't catch synchronous exceptions inside event-handler
+      // listeners).
+      let parsed: JobEventMsg | null;
+      try {
+        parsed = JSON.parse(ev.data as string) as JobEventMsg | null;
+      } catch (err) {
+        console.warn("useCopySession: discarded malformed SSE event", err);
+        return;
+      }
+      if (!parsed?.payload) {
+        console.warn("useCopySession: discarded malformed SSE event", parsed);
+        return;
+      }
+      const msg = parsed;
+      setState((current) => {
+        if (!current) return current;
+        const prev = current.connection
+          ? { ...current, connection: undefined }
+          : current;
+        switch (msg.event) {
+          case "job_started":
+            // A reconnect replays history from here, so this is no state
+            // change, and the warnings are about to be sent again.
+            return {
+              ...prev,
+              warnings: [],
+              filesTotal:
+                (msg.payload.files_total as number | undefined) ??
+                prev.filesTotal,
+              bytesTotal:
+                (msg.payload.bytes_total as number | undefined) ??
+                prev.bytesTotal,
+            };
+          case "file_started":
+            return {
+              ...prev,
+              currentFile:
+                (msg.payload.short_name as string | undefined) ??
+                (msg.payload.name as string | undefined) ??
+                prev.currentFile,
+            };
+          case "file_progress":
+            return {
+              ...prev,
+              filesDone:
+                (msg.payload.files_done as number | undefined) ??
+                prev.filesDone,
+              bytesDone:
+                (msg.payload.bytes_done as number | undefined) ??
+                prev.bytesDone,
+            };
+          // A replay's paused or resumed cannot undo an accepted abort.
+          case "paused":
+            return prev.state === "terminating"
+              ? prev
+              : { ...prev, state: "paused" };
+          case "resumed":
+            return prev.state === "terminating"
+              ? prev
+              : { ...prev, state: "running" };
+          case "bios_warning":
+            return {
+              ...prev,
+              // mame-curator-1110: the server sends {name, kind}
+              // (api/jobs.py JobManager.start), never a message.
+              warnings: [
+                ...prev.warnings,
+                strings.copy.biosWarning(
+                  String(msg.payload.name ?? "?"),
+                  String(msg.payload.kind ?? "unknown"),
+                ),
+              ],
+            };
+          case "job_finished":
+            closeStream();
+            return {
+              ...prev,
+              state: "finished",
+              finishedStatus: msg.payload.status as string | undefined,
+              biosMissing: msg.payload.bios_missing as number | undefined,
+              gamesMissing: msg.payload.games_missing as number | undefined,
+            };
+          case "job_aborted":
+            closeStream();
+            return {
+              ...prev,
+              state: "aborted",
+              abortReason: msg.payload.reason as string | undefined,
+            };
+          case "file_finished":
+            // mame-curator-1103: the server's job-wide count, not a local
+            // tally, so a reconnect replay cannot double-count.
+            return {
+              ...prev,
+              filesDone:
+                (msg.payload.files_done as number | undefined) ??
+                prev.filesDone,
+            };
+          default:
+            return prev;
+        }
+      });
+    };
+    // FP24-I: only close on a terminal failure (readyState===CLOSED).
+    // Browsers auto-reconnect on transient drops with readyState
+    // back at CONNECTING; closing in that state defeats reconnect.
+    es.onerror = () => {
+      const closed = es.readyState === EventSource.CLOSED;
+      if (closed) closeStream();
+      setState(
+        (prev) =>
+          prev && { ...prev, connection: closed ? "lost" : "reconnecting" },
+      );
+    };
+    es.onopen = () => {
+      setState((prev) => prev && { ...prev, connection: undefined });
+    };
+    esRef.current = es;
+  }, [closeStream]);
+
+  // mame-curator-1158: a copy left running or paused, by the top menu or
+  // Back, is still on the server. Take it up again, so its Pause, Resume and
+  // Stop are back; a copy started meanwhile keeps its own state.
+  useEffect(() => {
+    apiRequest<JobStatus | null>(
+      "/api/copy/current",
+      JobStatusSchema.nullable(),
+    )
+      .then((job) => {
+        if (cancelledRef.current || !job || esRef.current) return;
+        if (job.state === "finished" || job.state === "aborted") return;
+        setState(
+          (prev) =>
+            prev ?? {
+              jobId: job.job_id,
+              state: job.state,
+              filesDone: job.files_done,
+              filesTotal: job.files_total,
+              bytesDone: job.bytes_done,
+              bytesTotal: job.bytes_total,
+              currentFile: "",
+              warnings: [],
+              reattached: true,
+            },
+        );
+        openStream();
+      })
+      .catch((err: unknown) => {
+        console.warn("useCopySession: could not ask for a running copy", err);
+      });
+  }, [openStream]);
+
   const controlFailed = (words: string, err: unknown) =>
     setState(
       (prev) =>
@@ -89,127 +246,7 @@ export function useCopySession() {
         currentFile: "",
         warnings: [],
       });
-      const es = new EventSource("/api/copy/status");
-      es.onmessage = (ev: MessageEvent) => {
-        // FP24-K: malformed SSE data must not crash the hook (React
-        // doesn't catch synchronous exceptions inside event-handler
-        // listeners).
-        let parsed: JobEventMsg | null;
-        try {
-          parsed = JSON.parse(ev.data as string) as JobEventMsg | null;
-        } catch (err) {
-          console.warn("useCopySession: discarded malformed SSE event", err);
-          return;
-        }
-        if (!parsed?.payload) {
-          console.warn("useCopySession: discarded malformed SSE event", parsed);
-          return;
-        }
-        const msg = parsed;
-        setState((current) => {
-          if (!current) return current;
-          const prev = current.connection
-            ? { ...current, connection: undefined }
-            : current;
-          switch (msg.event) {
-            case "job_started":
-              // A reconnect replays history from here, so this is no state
-              // change, and the warnings are about to be sent again.
-              return {
-                ...prev,
-                warnings: [],
-                filesTotal:
-                  (msg.payload.files_total as number | undefined) ??
-                  prev.filesTotal,
-                bytesTotal:
-                  (msg.payload.bytes_total as number | undefined) ??
-                  prev.bytesTotal,
-              };
-            case "file_started":
-              return {
-                ...prev,
-                currentFile:
-                  (msg.payload.short_name as string | undefined) ??
-                  (msg.payload.name as string | undefined) ??
-                  prev.currentFile,
-              };
-            case "file_progress":
-              return {
-                ...prev,
-                filesDone:
-                  (msg.payload.files_done as number | undefined) ??
-                  prev.filesDone,
-                bytesDone:
-                  (msg.payload.bytes_done as number | undefined) ??
-                  prev.bytesDone,
-              };
-            // A replay's paused or resumed cannot undo an accepted abort.
-            case "paused":
-              return prev.state === "terminating"
-                ? prev
-                : { ...prev, state: "paused" };
-            case "resumed":
-              return prev.state === "terminating"
-                ? prev
-                : { ...prev, state: "running" };
-            case "bios_warning":
-              return {
-                ...prev,
-                // mame-curator-1110: the server sends {name, kind}
-                // (api/jobs.py JobManager.start), never a message.
-                warnings: [
-                  ...prev.warnings,
-                  strings.copy.biosWarning(
-                    String(msg.payload.name ?? "?"),
-                    String(msg.payload.kind ?? "unknown"),
-                  ),
-                ],
-              };
-            case "job_finished":
-              closeStream();
-              return {
-                ...prev,
-                state: "finished",
-                finishedStatus: msg.payload.status as string | undefined,
-                biosMissing: msg.payload.bios_missing as number | undefined,
-                gamesMissing: msg.payload.games_missing as number | undefined,
-              };
-            case "job_aborted":
-              closeStream();
-              return {
-                ...prev,
-                state: "aborted",
-                abortReason: msg.payload.reason as string | undefined,
-              };
-            case "file_finished":
-              // mame-curator-1103: the server's job-wide count, not a local
-              // tally, so a reconnect replay cannot double-count.
-              return {
-                ...prev,
-                filesDone:
-                  (msg.payload.files_done as number | undefined) ??
-                  prev.filesDone,
-              };
-            default:
-              return prev;
-          }
-        });
-      };
-      // FP24-I: only close on a terminal failure (readyState===CLOSED).
-      // Browsers auto-reconnect on transient drops with readyState
-      // back at CONNECTING; closing in that state defeats reconnect.
-      es.onerror = () => {
-        const closed = es.readyState === EventSource.CLOSED;
-        if (closed) closeStream();
-        setState(
-          (prev) =>
-            prev && { ...prev, connection: closed ? "lost" : "reconnecting" },
-        );
-      };
-      es.onopen = () => {
-        setState((prev) => prev && { ...prev, connection: undefined });
-      };
-      esRef.current = es;
+      openStream();
     },
   });
 

@@ -310,6 +310,13 @@ class JobManager:
         job = self._require_job()
         return self._status(job)
 
+    def in_flight(self) -> JobStatus | None:
+        """The in-flight job's status with the controller's state, or None when idle."""
+        job = self._current
+        if job is None:
+            return None
+        return self._status(job, override_state=_control_state(job))
+
     def events(self) -> AsyncIterator[JobEvent]:
         """Subscribe; replay history first, then live events until terminal."""
         return self._events_iterator()

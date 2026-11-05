@@ -506,3 +506,53 @@ describe("LibraryPage when a copy is refused", () => {
     expect(strategies).toEqual({ dryRun: "APPEND", start: "APPEND" });
   });
 });
+
+// mame-curator-1158: leaving by the top menu or Back used to lose the copy.
+describe("LibraryPage with a copy left in flight", () => {
+  const leftPaused = {
+    job_id: "job-left",
+    state: "paused",
+    started_at: "2026-11-05T05:00:00Z",
+    files_done: 1,
+    files_total: 4,
+    bytes_done: 10,
+    bytes_total: 40,
+  };
+
+  it("reopens the copy window with Resume and Stop", async () => {
+    serve("on_success");
+    server.use(
+      http.get("/api/copy/current", () => HttpResponse.json(leftPaused)),
+    );
+    renderPage();
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent(strings.copy.sessionState.paused);
+    expect(
+      screen.getByRole("button", { name: strings.copy.resume }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: strings.copy.abort }),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves the cart alone when that copy ends, for it may not be the cart's", async () => {
+    serve("always");
+    server.use(
+      http.get("/api/copy/current", () =>
+        HttpResponse.json({ ...leftPaused, state: "running" }),
+      ),
+    );
+    const { clear } = renderPage();
+    await configLoaded();
+    await screen.findByRole("dialog");
+    act(() =>
+      MockEventSource.instances[0].emit("job_finished", { status: "OK" }),
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        strings.guide.copying.finishedHeading,
+      ),
+    );
+    expect(clear).not.toHaveBeenCalled();
+  });
+});

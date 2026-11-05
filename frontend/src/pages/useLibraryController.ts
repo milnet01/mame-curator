@@ -303,9 +303,12 @@ export function useLibraryController(cart: UseCartResult) {
     ) {
       return;
     }
+    // mame-curator-1158: a copy taken up on opening may be the guide's, so
+    // its end is no reason to empty the cart.
     if (
-      clearPolicy === "always" ||
-      (clearPolicy === "on_success" && copyEnd === "complete")
+      !copySession.state?.reattached &&
+      (clearPolicy === "always" ||
+        (clearPolicy === "on_success" && copyEnd === "complete"))
     ) {
       cart.clear();
     }

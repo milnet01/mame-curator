@@ -56,8 +56,9 @@ export function CopyingStep({
       heading={heading}
       stepNumber={stepNumber}
       stepCount={stepCount}
-      // User ruling, 2026-10-30: nothing can come back to a paused copy, so
-      // Resume and Stop are the only ways on.
+      // User ruling, 2026-10-30: Resume and Stop are the only ways on while
+      // paused. Its reason, that nothing could come back to a paused copy,
+      // went with mame-curator-1158; the ruling stands until the user says.
       exitLabel={paused ? undefined : strings.guide.exit}
     >
       {/* A lost stream knows nothing current, so it shows no progress. */}
