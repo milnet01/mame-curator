@@ -119,12 +119,15 @@ function AlternativeRow({
               .join(" · ")}
           </span>
         </div>
+        {/* aria-disabled, not disabled, so the arrows can reach this row and
+            R can mark it (mame-curator-1161). */}
         <Button
           size="sm"
           variant={isWinner ? "secondary" : "default"}
-          disabled={isWinner}
+          aria-disabled={isWinner || undefined}
           aria-label={buttonName}
-          onClick={onPick}
+          onClick={isWinner ? undefined : onPick}
+          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
         >
           {isWinner
             ? strings.alternatives.pickedLabel
@@ -167,18 +170,29 @@ export function AlternativesDrawer({
   const loadFailed = error && alternatives.length === 0;
 
   // P14 — highlight + R/S/? on drawer rows. Independent of grid focus.
-  const [highlightedRowIndex, setHighlightedRowIndex] = useState(0);
+  // mame-curator-1161: one cursor. The highlight is on the row that has
+  // focus, and only while one does; the arrows move real focus. `lastRow`
+  // is where an arrow pressed from outside the rows comes back to.
+  const [focusedRow, setFocusedRow] = useState<number | null>(null);
+  const [lastRow, setLastRow] = useState(0);
   const rowsRef = useRef<HTMLUListElement>(null);
   // Radix returns focus only to a trigger, and this panel has none, so a
   // keyboard user would be left at the top of the page when it closes.
   const [opener] = useState(() => document.activeElement);
-  const moveHighlight = (delta: number) => {
-    const next = Math.max(
-      0,
-      Math.min(alternatives.length - 1, highlightedRowIndex + delta),
-    );
-    setHighlightedRowIndex(next);
-    rowsRef.current?.children[next]?.scrollIntoView({ block: "nearest" });
+  const moveFocus = (delta: number) => {
+    // From outside the rows, either arrow lands on `lastRow` itself.
+    const from = focusedRow ?? lastRow - delta;
+    const next = Math.max(0, Math.min(alternatives.length - 1, from + delta));
+    const row = rowsRef.current?.children[next];
+    row?.querySelector<HTMLElement>("button")?.focus();
+    row?.scrollIntoView({ block: "nearest" });
+  };
+  const noteRowFocus = (idx: number) => {
+    setFocusedRow(idx);
+    setLastRow(idx);
+  };
+  const noteRowsBlur = (e: React.FocusEvent<HTMLUListElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) setFocusedRow(null);
   };
 
   useKeyboard(
@@ -188,21 +202,22 @@ export function AlternativesDrawer({
             combo: "ArrowDown",
             handler: (e) => {
               e.preventDefault();
-              moveHighlight(1);
+              moveFocus(1);
             },
           },
           {
             combo: "ArrowUp",
             handler: (e) => {
               e.preventDefault();
-              moveHighlight(-1);
+              moveFocus(-1);
             },
           },
           ...(["r", "s", "?"] as const).map((key) => ({
             combo: key,
             handler: (e: KeyboardEvent) => {
               if (!onSetReviewState) return;
-              const row = alternatives[highlightedRowIndex];
+              const row =
+                focusedRow === null ? undefined : alternatives[focusedRow];
               if (!row) return;
               e.preventDefault();
               const target = DRAWER_KEY_TO_STATE[key]!;
@@ -277,14 +292,18 @@ export function AlternativesDrawer({
         <AboutSection shortName={winner.short_name} />
 
         {!onlyOne && (
-          <ul ref={rowsRef} className="flex flex-col gap-2">
+          <ul
+            ref={rowsRef}
+            className="flex flex-col gap-2"
+            onBlur={noteRowsBlur}
+          >
             {alternatives.map((alt, idx) => (
-              <li key={alt.short_name}>
+              <li key={alt.short_name} onFocus={() => noteRowFocus(idx)}>
                 <AlternativeRow
                   alt={alt}
                   isWinner={alt.short_name === winner.short_name}
                   onPick={() => handleClick(alt)}
-                  highlighted={idx === highlightedRowIndex}
+                  highlighted={idx === focusedRow}
                 />
               </li>
             ))}

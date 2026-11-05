@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import type { ReactElement } from "react";
@@ -111,20 +111,25 @@ describe("AlternativesDrawer", () => {
     });
   });
 
-  it("disables the use-this-version button on the current winner", () => {
+  // mame-curator-1161: aria-disabled, so the arrows can still reach it.
+  it("disables the use-this-version button on the current winner", async () => {
+    const onOverride = vi.fn();
     renderWithRouter(
       <AlternativesDrawer
         open
         onOpenChange={() => {}}
         winner={winner}
+        parent="pacman"
         alternatives={[winner, ...clones]}
-        onOverride={() => {}}
+        onOverride={onOverride}
       />,
     );
     const winnerButton = screen.getByRole("button", {
       name: /Pac-Man.*selected/i,
     });
-    expect(winnerButton).toBeDisabled();
+    expect(winnerButton).toHaveAttribute("aria-disabled", "true");
+    await userEvent.setup().click(winnerButton);
+    expect(onOverride).not.toHaveBeenCalled();
   });
 
   it("mame-curator-1146: offers the step-by-step version guide for this game", () => {
@@ -386,7 +391,7 @@ describe("AlternativesDrawer", () => {
       );
     });
 
-    it("highlights the first row after a retry loads the family", async () => {
+    it("an arrow reaches the first row after a retry loads the family", async () => {
       const user = userEvent.setup();
       const props = {
         open: true,
@@ -403,9 +408,91 @@ describe("AlternativesDrawer", () => {
           <AlternativesDrawer {...props} alternatives={[winner, ...clones]} />,
         ),
       );
+      await user.keyboard("{ArrowDown}");
+      expect(
+        screen.getByRole("button", { name: /Pac-Man.*selected/i }),
+      ).toHaveFocus();
       expect(
         screen.getByText("Pac-Man").closest("[data-highlighted]"),
       ).not.toBeNull();
     });
+  });
+});
+
+// mame-curator-1161: one cursor. The arrows move real focus along the rows,
+// the highlight is on the row that has focus, and Enter and R act on it.
+describe("AlternativesDrawer: one cursor (mame-curator-1161)", () => {
+  function setup() {
+    const onOverride = vi.fn();
+    const onSetReviewState = vi.fn();
+    renderWithRouter(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={winner}
+        parent="pacman"
+        alternatives={[winner, ...clones]}
+        onOverride={onOverride}
+        onSetReviewState={onSetReviewState}
+        onClearReviewState={() => {}}
+      />,
+    );
+    return { onOverride, onSetReviewState, user: userEvent.setup() };
+  }
+  const rowButton = (name: RegExp) => screen.getByRole("button", { name });
+  const highlighted = () =>
+    Array.from(document.querySelectorAll("[data-highlighted]"));
+
+  it("the arrows move focus along the rows, and the highlight goes with it", async () => {
+    const { user } = setup();
+    act(() => rowButton(/Pac-Man \(fast hack\)/i).focus());
+    await user.keyboard("{ArrowDown}");
+    const jr = rowButton(/Pac-Man Jr\./i);
+    expect(jr).toHaveFocus();
+    expect(highlighted()).toEqual([jr.closest("[data-highlighted]")]);
+    await user.keyboard("{ArrowUp}{ArrowUp}");
+    expect(rowButton(/Pac-Man.*selected/i)).toHaveFocus();
+  });
+
+  it("Tab onto a row moves the highlight there, and Enter chooses that row", async () => {
+    const { user, onOverride } = setup();
+    const jr = rowButton(/Pac-Man Jr\./i);
+    act(() => jr.focus());
+    expect(highlighted()).toEqual([jr.closest("[data-highlighted]")]);
+    await user.keyboard("{Enter}");
+    expect(onOverride).toHaveBeenCalledWith({
+      parent: "pacman",
+      winner: "pacmanjr",
+    });
+  });
+
+  it("R marks the row that has focus", async () => {
+    const { user, onSetReviewState } = setup();
+    act(() => rowButton(/Pac-Man Jr\./i).focus());
+    await user.keyboard("r");
+    expect(onSetReviewState).toHaveBeenCalledWith("pacmanjr", "reviewed");
+  });
+
+  it("no row is highlighted or marked while focus is outside the rows, and an arrow comes back", async () => {
+    const { user, onSetReviewState } = setup();
+    const fast = rowButton(/Pac-Man \(fast hack\)/i);
+    act(() => fast.focus());
+    act(() => screen.getByRole("button", { name: "Close" }).focus());
+    expect(highlighted()).toEqual([]);
+    // R acts on the row that has focus, and none has.
+    await user.keyboard("r");
+    expect(onSetReviewState).not.toHaveBeenCalled();
+    await user.keyboard("{ArrowDown}");
+    expect(fast).toHaveFocus();
+  });
+
+  it("the chosen version's row takes focus and choosing it again does nothing", async () => {
+    const { user, onOverride } = setup();
+    act(() => rowButton(/Pac-Man \(fast hack\)/i).focus());
+    await user.keyboard("{ArrowUp}");
+    const chosen = rowButton(/Pac-Man.*selected/i);
+    expect(chosen).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(onOverride).not.toHaveBeenCalled();
   });
 });

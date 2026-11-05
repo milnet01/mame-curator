@@ -208,16 +208,22 @@ test.describe("the versions panel at the largest size", () => {
     await page.goto("/");
     await card(page, 0).click();
     const panel = page.getByRole("dialog");
-    await expect(panel.locator("[data-highlighted]")).toBeVisible();
+    await expect(panel).toBeVisible();
     const [scrollH, clientH] = await panel.evaluate((el) => [
       el.scrollHeight,
       el.clientHeight,
     ]);
     expect(scrollH).toBeGreaterThan(clientH);
 
-    for (let i = 0; i < 14; i++) await page.keyboard.press("ArrowDown");
+    // mame-curator-1161: the highlight is on the row that has focus. The
+    // first arrow brings focus into the rows, at the first one.
     const row = panel.locator("[data-highlighted]");
+    await page.keyboard.press("ArrowDown");
+    await expect(row).toContainText("Game 0");
+    await expect(row.getByRole("button")).toBeFocused();
+    for (let i = 0; i < 14; i++) await page.keyboard.press("ArrowDown");
     await expect(row).toContainText("Game 14");
+    await expect(row.getByRole("button")).toBeFocused();
     await expect(row).toBeInViewport({ ratio: 0.9 });
     const ring = await row.evaluate((el) => getComputedStyle(el).boxShadow);
     expect(ring, "the ring is drawn inside, where nothing clips it").toMatch(
@@ -225,6 +231,8 @@ test.describe("the versions panel at the largest size", () => {
     );
     for (let i = 0; i < 14; i++) await page.keyboard.press("ArrowUp");
     await expect(row).toContainText("Game 0");
+    await expect(row.getByRole("button")).toBeFocused();
+    await expect(panel.locator("[data-highlighted]")).toHaveCount(1);
     await expect(row).toBeInViewport({ ratio: 0.9 });
 
     const launch = panel.getByRole("button", { name: /launch/i });
