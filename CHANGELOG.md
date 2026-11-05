@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-05 Added — Change a setting step by step (mame-curator-1147)
+
+Settings now starts with a large button: "Change a setting, step by step". It asks what you would like to change, one question per screen, in large text. The full Settings page stays below it, unchanged.
+
+- **Four topics.**
+  Where your games are and where they are copied to; which kinds of games to leave out; which region's versions to favour; whether your cart empties after a copy.
+
+- **It says what changed.**
+  After each change a screen says what is different now. If saving fails, it says why and that nothing changed, with Try again.
+
 ### 2026-11-05 Added — Choose a game's version step by step (mame-curator-1146, first half)
 
 A game's panel now has a large button: "Choose a different version, step by step". It opens a guide screen in large text.

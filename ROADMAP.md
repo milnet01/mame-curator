@@ -2711,8 +2711,12 @@ P14 (per-game review state).
   Source: user-2026-10-30.
   Lanes: frontend, api, tests.
 
-- 📋 [mame-curator-1147] **Wizard for Settings, one topic at a time.**
+- ✅ [mame-curator-1147] **Wizard for Settings, one topic at a time.**
   User decision 2026-10-30. Uses the guide screens from mame-curator-1144.
+  2026-11-05: 06209a7. /settings/guide with four topics: folders, which
+  kinds to leave out, region, cart after a copy. Technical settings stay
+  on the full page. local-CI.sh green on the commit. Not yet seen by the
+  user.
   **Layman:** Walks through the Settings page one topic at a time instead of showing every option.
   Kind: accessibility.
   Source: user-2026-10-30.
