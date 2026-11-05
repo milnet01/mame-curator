@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1199 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1200 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3352,12 +3352,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-contract-2026-10-30.
   Lanes: backend.
 
-- 📋 [mame-curator-1153] **The dry run's dest_writable does not test whether the folder can be written.**
+- ✅ [mame-curator-1153] **The dry run's dest_writable does not test whether the folder can be written.**
   _can_create_dir in copy/preflight.py returns is_dir() for an existing path
   and for the first existing parent. It never checks write permission, so a
   read-only folder reports dest_writable true. Found reading the function,
   2026-10-30; not run on a read-only folder. mame-curator-1144's Check step
   and the Library's DryRunModal both read this value.
+  2026-11-05: de5b029. A real write probe (mkstemp, removed in finally).
   **Layman:** The copy check can say a read-only folder is fine, so the problem only shows once copying starts.
   Kind: fix.
   Source: review-contract-2026-10-30.
@@ -3489,8 +3490,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1168] **A Settings save accepts a malformed paths.listxml, and the next start then fails.**
+- ✅ [mame-curator-1168] **A Settings save accepts a malformed paths.listxml, and the next start then fails.**
   Predates mame-curator-1145. Recorded in that spec's §6 and §9 as not yet queued. Reported by the build agent, not run in this session.
+  2026-11-05: c41b8b3. Startup survives a bad listxml: logged, world
+  built without it, banner reworded. No save-time check (a cheap one
+  cannot catch a truncated file).
   **Layman:** A bad file chosen in Settings can stop the app from starting next time.
   Kind: fix.
   Source: build-mame-curator-1145-2026-10-30.
@@ -3523,8 +3527,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1145-2026-10-30.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1172] **/api/setup/check re-reads the whole game list on every call.**
+- ✅ [mame-curator-1172] **/api/setup/check re-reads the whole game list on every call.**
   Reported by the mame-curator-1145 build agent. Not timed with the real 48 MB list.
+  2026-11-05: 78fa047. The check answers from the world's DAT stamp
+  (path, mtime_ns, size). Not timed on the real 48 MB list.
   **Layman:** Finishing the setup wizard reads the game list twice, which is slow on a large list.
   Kind: perf.
   Source: build-mame-curator-1145-2026-10-30.
@@ -3649,9 +3655,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: api, copy.
 
-- 📋 [mame-curator-1185] **Import keeps unknown keys that load_app_config drops.**
+- 🚫 [mame-curator-1185] **Import keeps unknown keys that load_app_config drops.**
   Read, not run. Versioning-overrides item 1 only asks for this on renames,
   so decide whether it matters when picked up.
+  2026-11-05: the claim is false. Run: /api/config/import refuses
+  unknown keys with 422 config_invalid naming each; api/spec.md states
+  this on purpose (mame-curator-1131). Dropping on read is for rollback,
+  which versioning-overrides does not promise.
   **Layman:** A backup with old settings in it may be handled differently from the same settings in your settings file.
   Kind: fix.
   Source: close-findings-2026-11-02-1145.
@@ -3802,6 +3812,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: ux.
   Source: build-mame-curator-1164-2026-11-05.
   Lanes: frontend, api.
+
+- 📋 [mame-curator-1200] **A missing or bad reference INI named in Settings stops the next start.**
+  Same shape as mame-curator-1168, fixed there for listxml only. The 1145 spec's §9 lists it as deferred. Also: the listxml banner's title, "MAME listxml not configured", shows when a file is set but gave no clone data. Reported by the 1168 helper; not run.
+  **Layman:** A bad catver or other list file chosen in Settings can stop the app from starting next time, as the listxml file did before.
+  Kind: fix.
+  Source: build-mame-curator-1168-2026-11-05.
+  Lanes: api, tests.
 
 ## Considered / under research (no target date)
 

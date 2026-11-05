@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-05 Fixed — The copy check and starting the app (mame-curator-1153, 1168, 1172)
+
+Three fixes behind the scenes.
+
+- **The copy check now finds a folder that cannot be written.** (mame-curator-1153)
+  Before, a read-only destination passed the check, and the problem only showed once copying started.
+
+- **A bad MAME listxml file no longer stops the app from starting.** (mame-curator-1168)
+  The app starts without it and says that the file could not be read. Region and version variants then show as separate cards until it is fixed.
+
+- **Finishing setup is quicker on a large game list.** (mame-curator-1172)
+  The app no longer reads the whole game list again on every setup check while the file is unchanged.
+
 ### 2026-11-05 Fixed — Games on your drive but missing from your game list (mame-curator-1154, 1197, 1198)
 
 After a stopped copy, some games can be on your drive but not in RetroArch's game list.
