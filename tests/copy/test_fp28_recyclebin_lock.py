@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -276,3 +277,76 @@ def test_posix_gives_the_real_error_at_once(
     assert refused.value is DENIED
     assert len(attempts) == 1
     assert clock.now == 0.0
+
+
+# ---- a stale lock, and a lock still in use (mame-curator-1193) ---------------
+
+
+def test_a_stale_lock_that_cannot_be_removed_gives_a_clear_error_in_bounded_time(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, clock: _Clock
+) -> None:
+    """Before the fix the unlink error was suppressed and the loop retried at
+    once, with no sleep and no end."""
+    from mame_curator.copy.errors import RecycleError
+
+    lock = tmp_path / "s1.lock"
+    lock.write_bytes(b"")
+    os.utime(lock, (0, 0))
+    clock.now = recyclebin._LOCK_STALE_SECONDS * 10
+    started = clock.now
+    real_unlink = Path.unlink
+    unlinks: list[int] = []
+
+    def _refuse_unlink(self: Path, missing_ok: bool = False) -> None:
+        if self.name == "s1.lock":
+            unlinks.append(1)
+            # Ends the test if the sleep or the deadline is gone.
+            assert len(unlinks) < 10_000, "still retrying a lock it cannot remove"
+            raise DENIED
+        real_unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", _refuse_unlink)
+
+    with pytest.raises(RecycleError) as stuck, recyclebin._session_lock(tmp_path, "s1"):
+        pass
+
+    assert stuck.value.path == lock
+    assert "stale" in str(stuck.value)
+    waited = clock.now - started
+    assert recyclebin._LOCK_UNREMOVABLE_SECONDS <= waited < recyclebin._LOCK_UNREMOVABLE_SECONDS * 2
+    assert lock.exists()
+
+
+def test_a_lock_held_longer_than_the_stale_age_is_not_reclaimed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A move holding the lock past the stale age (a large cross-drive file)
+    must keep it: the second caller waits for the release.
+
+    Real time, scaled down: stale after 0.5 s, the holder holds for 1.5 s.
+    """
+    monkeypatch.setattr(recyclebin, "_LOCK_STALE_SECONDS", 0.5)
+    monkeypatch.setattr(recyclebin, "_LOCK_REFRESH_SECONDS", 0.05)
+    held = threading.Event()
+    order: list[str] = []
+
+    def _holder() -> None:
+        with recyclebin._session_lock(tmp_path, "s1"):
+            held.set()
+            time.sleep(1.5)
+            order.append("holder released")
+
+    def _waiter() -> None:
+        held.wait(timeout=5)
+        with recyclebin._session_lock(tmp_path, "s1"):
+            order.append("waiter acquired")
+
+    threads = [threading.Thread(target=f, daemon=True) for f in (_holder, _waiter)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10)
+    assert not any(t.is_alive() for t in threads), "a lock user is stuck"
+
+    assert order == ["holder released", "waiter acquired"]
+    assert not (tmp_path / "s1.lock").exists()

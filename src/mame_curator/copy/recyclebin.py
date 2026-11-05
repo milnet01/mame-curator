@@ -12,6 +12,7 @@ import logging
 import os
 import shutil
 import sys
+import threading
 import time
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
@@ -33,6 +34,12 @@ logger = logging.getLogger(__name__)
 # (50 ms per § Scope A2 perf budget). A lockfile older than this is
 # assumed to be from a crashed process and is reclaimed.
 _LOCK_STALE_SECONDS = 60.0
+# mame-curator-1193: a holder touches its lock this often, so a long move
+# (a large cross-drive file) never lets the lock reach the stale age above.
+_LOCK_REFRESH_SECONDS = 10.0
+# mame-curator-1193: how long a stale lock may refuse to be deleted before the
+# wait gives up with a RecycleError naming it.
+_LOCK_UNREMOVABLE_SECONDS = 5.0
 # Same-process contention sleep between O_EXCL retry attempts. Short
 # enough that the test's ThreadPoolExecutor barrier converges fast
 # (~ms), long enough not to busy-loop the CPU.
@@ -54,13 +61,16 @@ def _session_lock(recycle_root: Path, session_id: str) -> Iterator[None]:
     Windows) by using stdlib ``os.O_EXCL``.
 
     Orphan recovery: a lockfile older than ``_LOCK_STALE_SECONDS`` is
-    assumed crash-orphaned and reclaimed. Same-process contention falls
-    through to a short sleep + retry.
+    assumed crash-orphaned and reclaimed; a live holder keeps its lock
+    fresh (``_keep_lock_fresh``). A stale lock that cannot be deleted
+    raises ``RecycleError`` after ``_LOCK_UNREMOVABLE_SECONDS``.
+    Same-process contention falls through to a short sleep + retry.
     """
     recycle_root.mkdir(parents=True, exist_ok=True)
     lock_path = recycle_root / f"{session_id}.lock"
     fd: int | None = None
     denied_since: float | None = None
+    stuck_since: float | None = None
     while fd is None:
         try:
             fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -82,18 +92,63 @@ def _session_lock(recycle_root: Path, session_id: str) -> Iterator[None]:
                 # The holder released the lock between the failed open and
                 # our stat. Retry immediately.
                 continue
-            if age > _LOCK_STALE_SECONDS:
-                with contextlib.suppress(OSError):
-                    lock_path.unlink()
-                continue
-            time.sleep(_LOCK_RETRY_SLEEP)
+            if age <= _LOCK_STALE_SECONDS:
+                stuck_since = None
+                time.sleep(_LOCK_RETRY_SLEEP)
+            elif not _remove_stale_lock(lock_path):
+                now = time.monotonic()
+                stuck_since = now if stuck_since is None else stuck_since
+                if now - stuck_since >= _LOCK_UNREMOVABLE_SECONDS:
+                    raise RecycleError(
+                        "recycle lock is stale and cannot be removed; delete it by hand",
+                        path=lock_path,
+                    ) from None
+                time.sleep(_LOCK_RETRY_SLEEP)
     try:
-        yield
+        with _keep_lock_fresh(lock_path):
+            yield
     finally:
         with contextlib.suppress(OSError):
             os.close(fd)
         with contextlib.suppress(OSError):
             lock_path.unlink()
+
+
+def _remove_stale_lock(lock_path: Path) -> bool:
+    """Delete a crash-orphaned lock; False when it is still there."""
+    try:
+        lock_path.unlink()
+    except FileNotFoundError:
+        return True  # Someone else removed it first.
+    except OSError:
+        return False
+    return True
+
+
+@contextlib.contextmanager
+def _keep_lock_fresh(lock_path: Path) -> Iterator[None]:
+    """Touch the held lock every ``_LOCK_REFRESH_SECONDS`` so it never looks stale.
+
+    mame-curator-1193. A crashed holder stops touching it, so its lock still
+    ages out and is reclaimed. Chosen over recording the holder's pid: telling
+    whether a pid is alive differs per OS (``os.kill(pid, 0)`` terminates the
+    process on Windows), and a reused pid would keep a dead lock for ever.
+    ``Event.wait`` paces the thread, so release does not wait out an interval.
+    """
+    stop = threading.Event()
+
+    def _refresh() -> None:
+        while not stop.wait(_LOCK_REFRESH_SECONDS):
+            with contextlib.suppress(OSError):
+                os.utime(lock_path)
+
+    refresher = threading.Thread(target=_refresh, name="recycle-lock-refresh", daemon=True)
+    refresher.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        refresher.join()
 
 
 def recycle_file(
