@@ -5,13 +5,16 @@ import userEvent from "@testing-library/user-event";
 import { DryRunModal } from "../DryRunModal";
 import type { DryRunReport } from "@/api/types";
 
+// The server's fields (api/routes/copy.py dry_run). mame-curator-1198: the
+// modal read `replace` and `skip`, which the server never sends.
 const report: DryRunReport = {
   counts: {
+    selected: 21,
     new: 12,
-    replace: 3,
-    skip: 5,
-    // The server's fields (api/routes/copy.py): every BIOS the games need,
-    // and how many of those are not in the ROM folder.
+    already_copied: 4,
+    missing_source: 5,
+    not_in_playlist: 1,
+    // Every BIOS the games need, and how many are not in the ROM folder.
     bios: 2,
     bios_missing_source: 0,
   },
@@ -19,7 +22,7 @@ const report: DryRunReport = {
 };
 
 describe("DryRunModal", () => {
-  it("renders new / replace / skip counts when open", () => {
+  it("renders the counts the server sends, in plain words", () => {
     render(
       <DryRunModal
         open
@@ -28,10 +31,13 @@ describe("DryRunModal", () => {
         onConfirm={() => {}}
       />,
     );
-    expect(screen.getByText(/12 new/)).toBeInTheDocument();
-    expect(screen.getByText(/3 replace/)).toBeInTheDocument();
-    expect(screen.getByText(/5 skip/)).toBeInTheDocument();
-    expect(screen.getByText(/2 BIOS/)).toBeInTheDocument();
+    expect(screen.getByText("12 new")).toBeInTheDocument();
+    expect(screen.getByText("4 already there")).toBeInTheDocument();
+    expect(
+      screen.getByText("5 missing from your ROM folder"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("1 not in your game list")).toBeInTheDocument();
+    expect(screen.getByText("2 BIOS included")).toBeInTheDocument();
   });
 
   it("counts only the BIOS files it can copy, and names the missing ones", () => {
