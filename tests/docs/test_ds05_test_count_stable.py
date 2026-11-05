@@ -370,7 +370,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # folder can be written. 1117 → 1119.
 # Bumped 2026-11-05 (mame-curator-1168): a bad listxml is skipped at
 # startup. 1119 → 1121.
-EXPECTED_PYTEST_DECLARATIONS = 1121
+# Bumped 2026-11-05 (mame-curator-1172): the setup check does not re-read
+# an unchanged game list. 1121 → 1125.
+EXPECTED_PYTEST_DECLARATIONS = 1125
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

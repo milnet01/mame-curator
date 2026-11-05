@@ -87,6 +87,11 @@ readable at startup.
   bad listxml saved through Settings no longer stops the next start
   (mame-curator-1168). The Library's listxml banner then says the file could
   not be read or lists no clone games.
+  `dat_stamp` holds the DAT's path, mtime and size, taken before the parse,
+  when it parsed. `GET /api/setup/check` answers `dat_parses` from it while
+  the file is unchanged, and otherwise from the last probe of the same
+  stamp, so an unchanged game list is not read again (mame-curator-1172). An
+  `OSError` during a probe is not kept: it may pass next time.
 - **`load_app_config(config_path)`** — reads `config.yaml` for
   `build_world`, the snapshot-restore and INI-apply routes, and
   `refresh-snaps`. It folds a top-level `picker:` section into `filters:`, as

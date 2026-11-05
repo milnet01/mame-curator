@@ -15,7 +15,7 @@ from mame_curator.api.schemas import (
     SetupReferenceFiles,
     SetupReferenceStatus,
 )
-from mame_curator.api.state import WorldState
+from mame_curator.api.state import WorldState, file_stamp
 from mame_curator.parser import ParserError, parse_dat
 
 router = APIRouter()
@@ -40,15 +40,40 @@ def _probe_path(path: Path, *, kind: str, writable: bool = False) -> SetupPathSt
     return SetupPathStatus(path=str(path), exists=exists, readable=readable, writable=is_writable)
 
 
-def _probe_dat(path: Path) -> SetupPathStatus:
+# mame-curator-1172: the last probe's answer, keyed by `file_stamp`, so a DAT
+# the world did not load (setup mode) is not re-read on every check either.
+_last_probe: tuple[tuple[str, int, int], bool] | None = None
+
+
+def _dat_parses(path: Path, world: WorldState) -> bool:
+    """Does the DAT at ``path`` parse? Read it only if it changed since last asked.
+
+    mame-curator-1172: a full parse per check read the game list twice when
+    the setup wizard finished, and again on every later check.
+    """
+    global _last_probe
+    stamp = file_stamp(path)
+    if stamp is not None and stamp == world.dat_stamp:
+        return True
+    if stamp is not None and _last_probe is not None and _last_probe[0] == stamp:
+        return _last_probe[1]
+    try:
+        parse_dat(path)
+        parses = True
+    except ParserError:
+        parses = False
+    except OSError:  # No scratch space to unzip it: may pass next time, so not kept.
+        return False
+    if stamp is not None:
+        _last_probe = (stamp, parses)
+    return parses
+
+
+def _probe_dat(path: Path, world: WorldState) -> SetupPathStatus:
     base = _probe_path(path, kind="file")
     parses: bool | None = None
     if base.exists and base.readable:
-        try:
-            parse_dat(path)
-            parses = True
-        except (ParserError, OSError):  # OSError: no scratch space to unzip it.
-            parses = False
+        parses = _dat_parses(path, world)
     return base.model_copy(update={"dat_parses": parses})
 
 
@@ -68,7 +93,7 @@ def setup_check(world: WorldState = Depends(get_world)) -> SetupCheck:
         config_present=True,
         paths=SetupPaths(
             source_roms=_probe_path(p.source_roms, kind="dir"),
-            source_dat=_probe_dat(p.source_dat),
+            source_dat=_probe_dat(p.source_dat, world),
             dest_roms=_probe_path(p.dest_roms, kind="dir", writable=True),
         ),
         reference_files=SetupReferenceFiles(

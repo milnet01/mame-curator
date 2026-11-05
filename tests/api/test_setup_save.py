@@ -391,11 +391,17 @@ def test_restore_that_will_not_load_puts_the_files_back(client: Any, config_file
 
 
 def test_setup_check_survives_an_os_error_reading_the_dat(
-    client: Any, monkeypatch: pytest.MonkeyPatch
+    client: Any, mini_dat: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def no_scratch_space(path: Path) -> Any:
         raise OSError("no space left on device")
 
+    # A DAT the world did not load, so the check has to read it
+    # (mame-curator-1172 answers from the world for the one it loaded).
+    other = tmp_path / "other.dat.xml"
+    other.write_bytes(mini_dat.read_bytes())
+    saved = client.patch("/api/config", json={"paths": {"source_dat": str(other)}})
+    assert saved.status_code == 200, saved.text
     monkeypatch.setattr("mame_curator.api.routes.stubs.parse_dat", no_scratch_space)
     reply = client.get("/api/setup/check")
     assert reply.status_code == 200, reply.text

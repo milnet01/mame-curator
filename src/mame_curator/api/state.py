@@ -81,6 +81,19 @@ class WorldState(BaseModel):
     # aborting the lifespan. Surfaced on `GET /api/setup/check` so the SPA can
     # tell a genuinely empty library from an unconfigured one.
     setup_required: bool = False
+    # mame-curator-1172: `file_stamp` of the DAT `machines` was parsed from,
+    # taken before the parse; None when it did not parse. Lets
+    # `GET /api/setup/check` answer `dat_parses` without reading it again.
+    dat_stamp: tuple[str, int, int] | None = None
+
+
+def file_stamp(path: Path) -> tuple[str, int, int] | None:
+    """``(path, mtime_ns, size)`` for a file, or None when it cannot be stat'ed."""
+    try:
+        st = path.stat()
+    except (OSError, ValueError):  # ValueError: a NUL byte in the path.
+        return None
+    return (str(path), st.st_mtime_ns, st.st_size)
 
 
 def load_app_config(config_path: Path) -> AppConfig:
@@ -196,10 +209,12 @@ def build_world(config_path: Path) -> WorldState:
     # the path can be corrected, and it is unreachable when startup fails. The
     # catch names classes deliberately: a RuntimeError from our own parser is
     # still a bug and still propagates.
+    dat_stamp = file_stamp(paths.source_dat)
     try:
         machines = parse_dat(paths.source_dat)
         setup_required = False
     except (ParserError, OSError) as exc:
+        dat_stamp = None
         logger.warning(
             "DAT unreadable (%s) — starting in setup mode: %s", str(paths.source_dat), exc
         )
@@ -258,6 +273,7 @@ def build_world(config_path: Path) -> WorldState:
         data_dir=data_dir,
         bytes_by_machine=_compute_bytes_by_machine(machines),
         setup_required=setup_required,
+        dat_stamp=dat_stamp,
     )
 
 
@@ -388,6 +404,7 @@ def replace_world(
         # it fall back to the default would clear the SPA's setup banner
         # while the library was still empty.
         setup_required=base.setup_required,
+        dat_stamp=base.dat_stamp,
     )
 
 
