@@ -170,13 +170,16 @@ def test_setup_save_same_path_rereads_dat(
 def test_setup_save_survives_other_unreadable_input(
     setup_mode_client: Any, mini_dat: Path, tmp_path: Path
 ) -> None:
-    """mame-curator-1145 INV-4 — a bad listxml during the retry is not a 500."""
-    bad_listxml = tmp_path / "bad-listxml.xml"
-    bad_listxml.write_text("<mame><machine name='pacman'", encoding="utf-8")
+    """mame-curator-1145 INV-4 — a bad reference file during the retry is not a 500.
+
+    A bad catver INI, since mame-curator-1168 made a bad listxml skipped
+    rather than failing the read.
+    """
+    missing_catver = tmp_path / "missing-catver.ini"
 
     response = setup_mode_client.patch(
         "/api/config",
-        json={"paths": {"source_dat": str(mini_dat), "listxml": str(bad_listxml)}},
+        json={"paths": {"source_dat": str(mini_dat), "catver": str(missing_catver)}},
     )
 
     assert response.status_code == 200, response.text

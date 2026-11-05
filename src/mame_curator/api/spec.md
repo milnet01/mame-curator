@@ -81,6 +81,12 @@ readable at startup.
   (mame-curator-1095 § 4.2, INV-7 / INV-8). `GET /api/setup/check` reports
   the flag as `SetupCheck.setup_required`, the page's signal that an empty
   library is setup rather than a filter result.
+  A `paths.listxml` that raises `ListxmlError` (missing or will not parse) is
+  **skipped** with a WARNING naming the path: the world builds with empty
+  `cloneof_map`, `bios_chain` and `chd_required`, as if none were set, so a
+  bad listxml saved through Settings no longer stops the next start
+  (mame-curator-1168). The Library's listxml banner then says the file could
+  not be read or lists no clone games.
 - **`load_app_config(config_path)`** — reads `config.yaml` for
   `build_world`, the snapshot-restore and INI-apply routes, and
   `refresh-snaps`. It folds a top-level `picker:` section into `filters:`, as

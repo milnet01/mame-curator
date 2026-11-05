@@ -40,8 +40,10 @@ from mame_curator.parser import (
     parse_mature,
     parse_series,
 )
+from mame_curator.parser.errors import ListxmlError
 from mame_curator.parser.listxml import (
     BIOSChainEntry,
+    ListxmlFacts,
     apply_driver_status,
     parse_listxml,
 )
@@ -167,6 +169,23 @@ def ini_context_fields(
     }
 
 
+def _read_listxml(path: Path | None) -> ListxmlFacts | None:
+    """The listxml's facts; None when none is set or it cannot be read.
+
+    mame-curator-1168: the file is optional, so one that is missing or will
+    not parse is skipped with a WARNING instead of failing the start. A
+    Settings save of a bad path used to stop the next start.
+    """
+    if not path:
+        return None
+    try:
+        # mame-curator-1118: one pass over the ~300 MB file, not four.
+        return parse_listxml(path)
+    except ListxmlError as exc:
+        logger.warning("listxml unreadable (%s) — starting without it: %s", str(path), exc)
+        return None
+
+
 def build_world(config_path: Path) -> WorldState:
     """Parse all inputs and assemble a WorldState. Called from lifespan startup."""
     config = load_app_config(config_path)
@@ -195,9 +214,8 @@ def build_world(config_path: Path) -> WorldState:
         series=paths.series,
     )
 
-    if paths.listxml:
-        # mame-curator-1118: one pass over the ~300 MB file, not four.
-        listxml = parse_listxml(paths.listxml)
+    listxml = _read_listxml(paths.listxml)
+    if listxml is not None:
         cloneof_map = listxml.cloneof
         bios_chain = listxml.bios_chain
         chd_required: frozenset[str] = listxml.disks

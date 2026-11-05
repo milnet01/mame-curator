@@ -274,8 +274,10 @@ export const strings = {
       title: "MAME listxml not configured",
       body: "Without a MAME listxml file, region and version variants of the same game appear as separate cards. Configure the listxml path in Settings to collapse them into one card per game.",
       cta: "Open Settings",
+      // mame-curator-1168: also shown when the file could not be read,
+      // because startup now skips a bad listxml instead of failing.
       emptyParseBody:
-        "Listxml loaded but contains no cloneof entries — region/version variants will appear separately.",
+        "The listxml file could not be read, or it lists no clone games. Region and version variants will appear as separate cards.",
     },
     // FP24-FF: dryRunConfirmDeferred deleted — the FP23-era toast for
     // the deferred Copy wiring is no longer needed; P15's cart redesign

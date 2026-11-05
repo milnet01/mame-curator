@@ -43,7 +43,9 @@ describe("ListxmlBanner", () => {
   it("renders empty-parse body when exists=true and cloneofMapSize=0", () => {
     renderBanner({ exists: true, cloneofMapSize: 0 });
     expect(
-      screen.getByText(/Listxml loaded but contains no cloneof entries/i),
+      screen.getByText(
+        /listxml file could not be read, or it lists no clone games/i,
+      ),
     ).toBeInTheDocument();
   });
 });
