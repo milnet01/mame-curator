@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-05 Fixed — Games on your drive but missing from your game list (mame-curator-1154, 1197, 1198)
+
+After a stopped copy, some games can be on your drive but not in RetroArch's game list.
+
+- **The guide now offers to add them.** (mame-curator-1154)
+  It says how many games are on your drive but not in your game list, and Start adds them. Before, it said they were already copied and offered no Start.
+
+- **The Library's dry run shows real numbers.** (mame-curator-1198)
+  It lists new games, games already there, games missing from your ROM folder, games not in your game list, and BIOS files. Two of its rows always said 0 before.
+
+- **The version guide marks the right version as in use.** (mame-curator-1197)
+
 ### 2026-11-05 Fixed — A copy you left, or one that crashed, is no longer lost (mame-curator-1157, 1158)
 
 Two ways a copy could slip out of sight.

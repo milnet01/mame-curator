@@ -2710,6 +2710,9 @@ P14 (per-game review state).
   2026-11-05: picture-half spec docs/specs/mame-curator-1146-picture-choice.md: review-contract, 2 loops (cap), 12 findings fixed, calm cap; loop log in docs/reviews/. Status: draft.
   Waiting-on: user (the spec's section 15 questions 1 to 4, 2026-11-05)
   Recommend: 1 yes, an older backup clears picture choices (the snapshot keeps them); 2 yes, Look in more places asks the limited online sources; 3 yes, the entry reads "Fix this game's picture or version, step by step"; 4 no, a choice stays with its version, and the guide says so. Then Status becomes accepted and the build starts.
+  2026-11-05: the picture spec (draft) assumes the address's game is the
+  version in use. Since 5ed8924 the alternatives reply's in_use says it;
+  amend the spec to use in_use before building.
   **Layman:** Step-by-step help to pick a different version of a game, or a different picture for it.
   Kind: accessibility.
   Source: user-2026-10-30.
@@ -3360,10 +3363,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-contract-2026-10-30.
   Lanes: backend.
 
-- 📋 [mame-curator-1154] **The guide says games are already copied when they are on the drive but not in the playlist.**
+- ✅ [mame-curator-1154] **The guide says games are already copied when they are on the drive but not in the playlist.**
   Finding: CheckStep.tsx canStart hides Start when newGames is 0; runner.py skips write_lpl on a cancel, and _build_playlist_entries includes SKIPPED_IDEMPOTENT.
   User decision 2026-10-30: offer Start for these games, and say they are on the drive but not in the playlist.
   Changes INV-8 and §4.4 of docs/specs/mame-curator-1144-guided-library.md, so the amendment is written first; the spec has reached its cap of two review loops, so no new gate is owed (rules/14-contract-gate.md). The dry run must report games absent from the playlist.
+  2026-11-05: 6f426e6. Spec 1144 amended first (INV-8, 4.4). Dry run
+  counts not_in_playlist; the guide offers Start for those games.
   **Layman:** After a stopped copy kept its files, the guide hides Start for those games, so it can never add them to the playlist.
   Kind: review-fix.
   Source: review-code-2026-10-30-1144.
@@ -3773,15 +3778,19 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1146-2026-11-05.
   Lanes: frontend.
 
-- 📋 [mame-curator-1197] **The version guide marks the game in its address as in use.**
+- ✅ [mame-curator-1197] **The version guide marks the game in its address as in use.**
   The alternatives reply does not say which version is in use, so FixVersionPage takes the address's game. True from a Library card; wrong for a hand-typed address naming another version.
+  2026-11-05: 5ed8924. The alternatives reply carries in_use; the
+  version guide marks it.
   **Layman:** Only matters if someone types the guide's address by hand.
   Kind: fix.
   Source: build-mame-curator-1146-2026-11-05.
   Lanes: frontend.
 
-- 📋 [mame-curator-1198] **The Library's dry run shows 0 games to replace and 0 to skip, always.**
+- ✅ [mame-curator-1198] **The Library's dry run shows 0 games to replace and 0 to skip, always.**
   DryRunModal reads counts.replace and counts.skip; the server sends already_copied and missing_source. Read, not run.
+  2026-11-05: 26e789d. The modal reads already_copied, missing_source
+  and not_in_playlist.
   **Layman:** The preview's replace and skip numbers are always zero, whatever the copy would really do.
   Kind: fix.
   Source: build-mame-curator-1164-2026-11-05.
