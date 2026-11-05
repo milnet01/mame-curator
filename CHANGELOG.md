@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-05 Fixed — A copy tells you what it left out (mame-curator-1163, 1164, 1196)
+
+Three places where the app said less than it knew.
+
+- **The Library's dry run counts BIOS files.** (mame-curator-1163)
+  It always said 0 before. It now says how many are included, and how many are missing from your ROM folder.
+
+- **A copy that skipped games no longer says "Your games are copied."** (mame-curator-1164)
+  It says "The copy has finished.", how many games and BIOS files were not in your ROM folder, and links to Activity. The Library's copy window stays open so you can read it. If your cart empties only when every game was copied, it now keeps the games after such a copy.
+
+- **Back from the version guide, focus returns to the game.** (mame-curator-1196)
+  Keyboard focus lands on the version you chose, or on the game you started from.
+
 ### 2026-11-05 Fixed — Safer copies: an empty request, and the recycle bin's lock (mame-curator-1182, 1192, 1193)
 
 Three ways a copy could go wrong in rare cases.

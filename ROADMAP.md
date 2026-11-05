@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1197 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1199 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3434,15 +3434,19 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1163] **The Library's dry run always says 0 BIOS included.**
+- ✅ [mame-curator-1163] **The Library's dry run always says 0 BIOS included.**
   DryRunModal.tsx reads counts.bios_included; routes/copy.py sends counts.bios and counts.bios_missing_source. Checked by reading both, not run.
+  2026-11-05: c6b425f.
   **Layman:** The Library's preview under-reports BIOS files, because it reads a value the server does not send.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1164] **A finished copy can read as complete when games or BIOS files were skipped.**
+- ✅ [mame-curator-1164] **A finished copy can read as complete when games or BIOS files were skipped.**
   The guide says Your games are copied even when selected games were skipped as missing. On a clean finish under on_success or always, the Library closes CopyModal, so its BIOS alert and warnings are never seen. Also P15's failure table says CopyModal surfaces the failed list, while it shows an alert and an Activity link. Read, not run.
+  2026-11-05: 613874d. job_finished gains games_missing. A skipped
+  finish is not complete: no auto-close, cart kept under on_success. P15
+  spec's failure table corrected.
   **Layman:** A copy can say it finished without telling you that some selected games or BIOS files were missing.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
@@ -3752,8 +3756,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1146-2026-11-05.
   Lanes: frontend.
 
-- 📋 [mame-curator-1196] **Leaving the version guide does not return focus to the game's card.**
+- ✅ [mame-curator-1196] **Leaving the version guide does not return focus to the game's card.**
   The Library's own version choice focuses the chosen card (useVersionChoice focusCard). The guide's way back goes to the Library with no focus target.
+  2026-11-05: 6433a21. The guide's exits carry the version in use as
+  router state; the Library focuses it.
   **Layman:** After choosing a version in the guide, you have to find the game again yourself.
   Kind: fix.
   Source: build-mame-curator-1146-2026-11-05.
@@ -3765,6 +3771,20 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: build-mame-curator-1146-2026-11-05.
   Lanes: frontend.
+
+- 📋 [mame-curator-1198] **The Library's dry run shows 0 games to replace and 0 to skip, always.**
+  DryRunModal reads counts.replace and counts.skip; the server sends already_copied and missing_source. Read, not run.
+  **Layman:** The preview's replace and skip numbers are always zero, whatever the copy would really do.
+  Kind: fix.
+  Source: build-mame-curator-1164-2026-11-05.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1199] **Activity says how many games a copy skipped, but not which.**
+  Activity shows counts only (copy ok: N ok, N skipped, N failed). The names are only in the job's report.json. The guide and the copy window now point users to Activity to see what happened.
+  **Layman:** Activity tells you some games were skipped, but not their names.
+  Kind: ux.
+  Source: build-mame-curator-1164-2026-11-05.
+  Lanes: frontend, api.
 
 ## Considered / under research (no target date)
 
