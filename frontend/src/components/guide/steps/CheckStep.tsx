@@ -21,17 +21,21 @@ interface CheckStepProps {
 function readReport({ counts, summary }: DryRunReport) {
   const newGames = counts.new ?? 0;
   const missing = counts.missing_source ?? 0;
+  // On the drive but not in the playlist: Start adds them (mame-curator-1154).
+  const notInPlaylist = counts.not_in_playlist ?? 0;
+  const nothingNew = newGames === 0 && notInPlaylist === 0;
   const gap = Number(summary.free_space_gap_bytes ?? 0);
   const notWritable = summary.dest_writable === false;
-  const canStart = !notWritable && gap >= 0 && newGames > 0;
+  const canStart = !notWritable && gap >= 0 && !nothingNew;
   // A missing BIOS is skipped, not failed, so only the rest can be promised.
   const biosMissing = counts.bios_missing_source ?? 0;
   const biosIncluded = (counts.bios ?? 0) - biosMissing;
   const lines = [
     newGames > 0 && strings.guide.check.newGames(newGames),
-    newGames === 0 && missing === 0 && strings.guide.check.allCopied,
+    nothingNew && missing === 0 && strings.guide.check.allCopied,
     (counts.already_copied ?? 0) > 0 &&
       strings.guide.check.alreadyCopied(counts.already_copied),
+    notInPlaylist > 0 && strings.guide.check.notInPlaylist(notInPlaylist),
     missing > 0 && strings.guide.check.missingSource(missing),
     biosIncluded > 0 && strings.guide.check.bios(biosIncluded),
     biosMissing > 0 && strings.guide.check.biosMissing(biosMissing),
@@ -42,11 +46,7 @@ function readReport({ counts, summary }: DryRunReport) {
     gap < 0 &&
       strings.guide.check.needsSpace(strings.guide.size(Math.abs(gap))),
   ].filter((line): line is string => typeof line === "string");
-  return {
-    lines,
-    canStart,
-    nothingNew: newGames === 0,
-  };
+  return { lines, canStart, nothingNew };
 }
 
 type Report = ReturnType<typeof readReport>;

@@ -2,7 +2,7 @@
  * mame-curator-1144 INV-3, 4, 5, 6, 7, 8, 13 — walking the guide's steps.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, useLocation } from "react-router";
@@ -48,6 +48,7 @@ const REPORT = {
     missing_source: 0,
     already_copied: 0,
     new: 2,
+    not_in_playlist: 0,
   },
   summary: {
     dest_writable: true,
@@ -525,6 +526,22 @@ describe("GuidePage steps", () => {
       expect(await screen.findByText(message)).toBeVisible();
       expect(screen.queryByRole("button", { name: g.check.start })).toBeNull();
       expectBack();
+    });
+
+    it("offers Start for games on the drive but not in the playlist (mame-curator-1154)", async () => {
+      // A stopped copy keeps its files and writes no playlist; Start adds them.
+      const seen = useHandlers(
+        report({ new: 0, already_copied: 2, not_in_playlist: 2 }, {}),
+      );
+      const user = userEvent.setup();
+      renderGuide();
+      await walkToCheck(user);
+
+      expect(screen.getByText(g.check.notInPlaylist(2))).toBeVisible();
+      expect(screen.queryByText(g.check.allCopied)).toBeNull();
+      await press(user, g.check.start);
+      await waitFor(() => expect(seen.starts).toHaveLength(1));
+      expect(seen.starts[0]).toMatchObject({ conflict_strategy: "APPEND" });
     });
 
     it("offers Start when all is well, and says what will happen", async () => {

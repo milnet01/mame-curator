@@ -88,6 +88,8 @@ export const guideStrings = {
     newGames: (n: number) => `${games(n)} will be copied.`,
     alreadyCopied: (n: number) =>
       `${count(n)} ${n === 1 ? "is" : "are"} already there and will be left alone.`,
+    notInPlaylist: (n: number) =>
+      `${games(n)} ${n === 1 ? "is" : "are"} on your drive but not in your game list. Starting the copy adds ${n === 1 ? "it" : "them"}.`,
     missingSource: (n: number) =>
       `${count(n)} could not be found in your ROM folder and will be skipped.`,
     bios: (n: number) =>

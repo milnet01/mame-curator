@@ -321,6 +321,11 @@ be used.
 - **A BIOS file missing from `source_roms` is skipped, not failed**, so the job
   can still end `OK`. `POST /api/copy/dry-run` reports the count before a copy
   as `counts.bios_missing_source`, and `job_finished` after one as `bios_missing`.
+- **`counts.not_in_playlist`** in the dry run is how many games already on the
+  drive (`counts.already_copied`) no entry of the destination playlist names,
+  matched by file name as the copy matches them (mame-curator-1154). With no
+  readable playlist, every one counts. Under `APPEND` the dry run refuses an
+  unreadable playlist with the start's 409 `playlist_unreadable`.
 - **A worker crash still leaves a record** (mame-curator-1157). The stream ends
   with `job_aborted` whose `reason` is the error, repr-quoted. The `ERROR`
   report `run_copy` hands over is persisted as for a finished job. A crash

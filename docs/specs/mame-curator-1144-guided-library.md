@@ -1,7 +1,7 @@
 <!-- ants-spec-format: 1 -->
 # mame-curator-1144 — Guide a new or partially sighted user through choosing and copying games
 
-**Status:** shipped (2026-10-30).
+**Status:** shipped (2026-10-30); amended 2026-11-05 (mame-curator-1154: Check offers Start for games on the drive but not in the playlist; §4.4, INV-8, §6).
 **Kind:** accessibility.
 **Source:** ROADMAP mame-curator-1144 (user, 2026-10-30, on the Library page: "I am lost. I don't know where to begin.").
 
@@ -112,15 +112,18 @@ N and X come from `GET /api/games` `total` and `total_bytes`. A guide query send
 |---|---|---|
 | `counts.new` | "N games will be copied." | |
 | `counts.already_copied` > 0 | "N are already there and will be left alone." | |
+| `counts.not_in_playlist` > 0 | "N games are on your drive but not in your game list. Starting the copy adds them." | Start is offered, even when `counts.new` is 0 |
 | `counts.missing_source` > 0 | "N could not be found in your ROM folder and will be skipped." | |
 | `counts.bios` less `counts.bios_missing_source`, when > 0 | "N BIOS files these games need will be included." | |
 | `counts.bios_missing_source` > 0 | "N BIOS files these games need are not in your ROM folder, so some games may not run." | |
 | `summary.existing_playlist`, when Start is offered | "These will be added to your existing game list." | |
 | `summary.dest_writable` false | "This folder cannot be written to." | Start is hidden; offers Back |
 | `summary.free_space_gap_bytes` < 0 | "This needs X more free space.", where X is its absolute value | Start is hidden; offers Back |
-| `counts.new` is 0 | "All of these are already copied.", when `counts.missing_source` is also 0 | Start is hidden; offers "Copy more games" |
+| `counts.new` and `counts.not_in_playlist` are 0 | "All of these are already copied.", when `counts.missing_source` is also 0 | Start is hidden; offers "Copy more games" |
 
-The report sits in a `role="status"` region that is on the page before the report arrives, so a screen reader hears it. The heading says how the check came out: "Ready to copy?" only when Start is offered, "There is nothing new to copy." when `counts.new` is 0, "This copy can't start yet." otherwise, and `loadFailed` when the dry run fails. While the start waits for its answer, Start is disabled and the region says so.
+`counts.not_in_playlist` counts the games already on the drive (`counts.already_copied`) that no entry of the destination playlist names. It matches by file name, as `_build_playlist_entries` does. With no playlist, every game already there counts. A start with `APPEND` writes these games into the playlist, because `_build_playlist_entries` keeps `SKIPPED_IDEMPOTENT` winners. Under `APPEND`, the dry run refuses an unreadable playlist with the start's 409 `playlist_unreadable`.
+
+The report sits in a `role="status"` region that is on the page before the report arrives, so a screen reader hears it. The heading says how the check came out: "Ready to copy?" only when Start is offered, "There is nothing new to copy." when `counts.new` and `counts.not_in_playlist` are both 0, "This copy can't start yet." otherwise, and `loadFailed` when the dry run fails. While the start waits for its answer, Start is disabled and the region says so.
 
 ### 4.5 The copy request
 
@@ -208,9 +211,9 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Test:* `GuidePage_steps.test.tsx`, with handlers returning 409 and 500 for each, and a stream ending in `job_finished` with `PARTIAL_FAILURE`.
   *Breaks when:* a failure leaves the step silently unchanged, or the hook drops the status.
 
-- **INV-8** — Start is not offered when the destination cannot be written, when there is too little free space, or when nothing is new.
-  *Test:* `GuidePage_steps.test.tsx`, one fixture report per case.
-  *Breaks when:* any of the three reports shows Start.
+- **INV-8** — Start is not offered when the destination cannot be written, when there is too little free space, or when nothing is new and every game already on the drive is in the playlist. It is offered when every game is on the drive and some are not in the playlist (amended 2026-11-05, mame-curator-1154).
+  *Test:* `GuidePage_steps.test.tsx`, one fixture report per case, and one where `counts.new` is 0 and `counts.not_in_playlist` is not. `tests/api/test_mame_curator_1154_not_in_playlist.py` checks the dry run's count against a real playlist.
+  *Breaks when:* any of the three refusing reports shows Start, or the not-in-playlist report hides it.
 
 - **INV-9** — The stored text size is applied before first paint, every size scales rem text, and an unknown stored value gives the default.
   *Test:* `frontend/src/lib/__tests__/textSize.test.ts`, for the root value and the fallback. A test on `main.tsx`'s call order, in the `?raw` style of `LibraryPage_error_boundary.test.ts`, fails if `applyTextSize` follows `createRoot`.
@@ -245,7 +248,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 - **A pause, resume or stop fails:** the step says so in a `role="alert"` element and keeps its controls.
 - **A copy is already running:** the start's error is shown (INV-7). The guide does not attach to the other job, because `useCopySession` has no resume.
 - **The page is reloaded or closed during a copy:** the copy carries on at the server, and the guide restarts at the first step. This matches the Library's `CopyModal` today, and the guide says so on the Copying step: "You can close this page. The copy will carry on." While paused it says instead: "Resume before you close this page. This guide cannot come back to a paused copy."
-- **A playlist the server cannot read (legacy format or damaged):** `POST /api/copy/start` refuses with a 409 `playlist_unreadable` and the playlist stays as it was (mame-curator-1152). The guide shows the start's error like any other (INV-7) and adds no handling of its own.
+- **A playlist the server cannot read (legacy format or damaged):** `POST /api/copy/start` refuses with a 409 `playlist_unreadable` and the playlist stays as it was (mame-curator-1152). The dry run refuses the same way, so Check shows the reason before Start (mame-curator-1154). The guide shows either error like any other (INV-7) and adds no handling of its own.
 - **A game whose chosen version changed since the last copy:** the new version is added beside the old in the playlist, and both zips stay. The guide builds no `append_decisions`, and no frontend code does today. The user accepted this for now on 2026-10-30.
 - **The destination is removed after the Where step:** the copy recreates it when a parent folder exists. Otherwise Check reports `dest_writable` false.
 - **A read-only destination:** Check passes, because `dest_writable` tests only that the path is, or can sit under, a directory (mame-curator-1153). The copy then fails while running.
@@ -264,6 +267,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 | INV-9 | `frontend/src/lib/__tests__/textSize.test.ts` |
 | INV-10 | `frontend/e2e/guide-flow.spec.ts` |
 | INV-11, INV-12 | `frontend/src/pages/__tests__/LibraryPage_view.test.tsx` |
+| INV-8 (the dry run's count) | `tests/api/test_mame_curator_1154_not_in_playlist.py` |
 
 **Existing tests that change:** the simple view is the default, so `_libraryPageFixtures.tsx` and `frontend/e2e/*.spec.ts` set `LIBRARY_VIEW_KEY` to `full` and `GUIDE_SEEN_KEY`, so they keep testing today's page. `LibraryPage_error_boundary.test.ts` and `landmark_labels.test.tsx` read `LibraryPage.tsx` as text, so its modals stay in that file.
 
@@ -301,6 +305,7 @@ Each new test must be seen to fail before its code exists. `frontend/e2e` does n
 | INV-9 | `textSize.test.ts` |
 | INV-10 | **nothing automatic** — `guide-flow.spec.ts` runs by hand, because no gate runs `frontend/e2e` |
 | INV-11, INV-12 | `LibraryPage_view.test.tsx` |
+| INV-8 (the dry run's count) | `test_mame_curator_1154_not_in_playlist.py` |
 | Large text and the one-column layout read well for this user | **nothing** — only the user can judge this, on the running app |
 
 ## 11. Cross-doc impact

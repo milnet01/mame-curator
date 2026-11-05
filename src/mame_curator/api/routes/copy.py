@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
@@ -28,11 +29,14 @@ from mame_curator.api.schemas import (
 )
 from mame_curator.api.state import WorldState
 from mame_curator.copy import (
+    ConflictStrategy,
     CopyPlan,
     CopyReport,
+    PlaylistError,
     preflight,
     resolve_bios_dependencies,
 )
+from mame_curator.copy.playlist import read_lpl
 
 router = APIRouter()
 
@@ -80,12 +84,29 @@ def _build_plan(body: CopyJobRequest, world: WorldState) -> CopyPlan:
     )
 
 
+def _not_in_playlist(plan: CopyPlan, already_copied: tuple[str, ...]) -> int:
+    """Games already on the drive that no playlist entry names (mame-curator-1154).
+
+    Matched by file name, as the copy matches existing entries. A start adds
+    them, so the guide offers one. With no readable playlist, every one counts.
+    """
+    try:
+        items = read_lpl(plan.playlist_file) if plan.playlist_file.exists() else []
+    except PlaylistError:
+        items = []
+    named = {Path(item.get("path", "")).name for item in items}
+    return sum(1 for short in already_copied if f"{short}.zip" not in named)
+
+
 @router.post("/api/copy/dry-run", response_model=DryRunReport)
 def dry_run(
     body: CopyJobRequest,
     world: WorldState = Depends(get_world),
 ) -> DryRunReport:
     plan = _build_plan(body, world)
+    if plan.conflict_strategy is ConflictStrategy.APPEND:
+        # The start's own refusal of an unreadable playlist, said before Start.
+        check_playlist_conflict(plan)
     pre = preflight(plan)
     bios_set, _warnings = resolve_bios_dependencies(plan.winners, dict(world.bios_chain))
     # A missing BIOS is skipped, not failed, so nothing else would report it.
@@ -97,6 +118,7 @@ def dry_run(
         "missing_source": len(pre.missing_source),
         "already_copied": len(pre.already_copied),
         "new": len(plan.winners) - len(pre.already_copied) - len(pre.missing_source),
+        "not_in_playlist": _not_in_playlist(plan, pre.already_copied),
     }
     summary = {
         "dest_writable": pre.dest_writable,

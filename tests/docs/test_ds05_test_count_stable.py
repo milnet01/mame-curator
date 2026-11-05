@@ -362,7 +362,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # entry and its report. 1103 → 1106.
 # Bumped 2026-11-05 (mame-curator-1158): GET /api/copy/current, idle and
 # paused. 1106 → 1108.
-EXPECTED_PYTEST_DECLARATIONS = 1108
+# Bumped 2026-11-05 (mame-curator-1154): the dry run counts games on the drive
+# but not in the playlist. 1108 → 1115.
+EXPECTED_PYTEST_DECLARATIONS = 1115
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -491,7 +493,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1108
 # the game's card. 648 → 651.
 # Bumped 2026-11-05 (mame-curator-1158): the Library and the guide reconnect
 # to a copy left running or paused. 651 → 656.
-EXPECTED_VITEST_DECLARATIONS = 656
+# Bumped 2026-11-05 (mame-curator-1154): the guide offers Start for games on
+# the drive but not in the playlist. 656 → 657.
+EXPECTED_VITEST_DECLARATIONS = 657
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
