@@ -51,13 +51,27 @@ const button = (name: string) => screen.queryByRole("button", { name });
 const link = (name: string) => screen.queryByRole("link", { name });
 
 describe("CopyingStep outcome", () => {
-  it("says so when a BIOS file was missing, though the copy finished", () => {
+  it("says so when a BIOS file was missing, and does not call it complete", () => {
+    // mame-curator-1164: a skipped BIOS file is no clean finish.
     renderStep({ state: "finished", finishedStatus: "OK", biosMissing: 2 });
-    heading(g.copying.finishedHeading);
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      strings.copy.biosMissing(2),
-    );
-    expect(link(g.copying.seeWhich)).toBeNull();
+    heading(g.copying.partialHeading);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(strings.copy.biosMissing(2));
+    expect(alert).not.toHaveTextContent(g.copying.partial);
+    expect(link(g.copying.seeWhich)).toBeVisible();
+  });
+
+  it("says how many games were skipped, and where to see what happened", () => {
+    // mame-curator-1164: the job ends OK, but these games were not copied.
+    renderStep({ state: "finished", finishedStatus: "OK", gamesMissing: 2 });
+    expect(
+      screen.queryByRole("heading", { name: g.copying.finishedHeading }),
+    ).toBeNull();
+    heading(g.copying.partialHeading);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(strings.copy.gamesMissing(2));
+    expect(alert).not.toHaveTextContent(g.copying.partial);
+    expect(link(g.copying.seeWhich)).toBeVisible();
   });
 
   it("says so on a partial finish too", () => {

@@ -6,9 +6,11 @@ export type CopyOutcome =
   "active" | "complete" | "partial" | "stopped" | "failed" | "lost";
 
 export function copyOutcome(state: CopyModalState): CopyOutcome {
-  // Only OK is complete: anything else may have left games uncopied.
+  // Only OK is complete, and only when nothing was skipped as missing: a
+  // missing game or BIOS file is skipped, not failed, so OK alone says nothing.
   if (state.state === "finished") {
-    return state.finishedStatus === "OK" ? "complete" : "partial";
+    const skipped = Boolean(state.gamesMissing) || Boolean(state.biosMissing);
+    return state.finishedStatus === "OK" && !skipped ? "complete" : "partial";
   }
   // Only CANCELLED is the user's own Stop; a crash also ends as job_aborted.
   if (state.state === "aborted") {
@@ -19,15 +21,20 @@ export function copyOutcome(state: CopyModalState): CopyOutcome {
 
 /** The words of a role="alert" for this state; empty when nothing is wrong. */
 export function copyProblem(state: CopyModalState): string[] {
-  // A missing BIOS is skipped, not failed, so even a job that ends OK has it.
-  const biosMissing = state.biosMissing
-    ? [strings.copy.biosMissing(state.biosMissing)]
-    : [];
   switch (copyOutcome(state)) {
-    case "complete":
-      return biosMissing;
     case "partial":
-      return [strings.guide.copying.partial, ...biosMissing];
+      // A missing game or BIOS is skipped, not failed: OK can carry either.
+      return [
+        ...(state.finishedStatus !== "OK"
+          ? [strings.guide.copying.partial]
+          : []),
+        ...(state.gamesMissing
+          ? [strings.copy.gamesMissing(state.gamesMissing)]
+          : []),
+        ...(state.biosMissing
+          ? [strings.copy.biosMissing(state.biosMissing)]
+          : []),
+      ];
     case "failed":
       return [
         strings.copy.failed,

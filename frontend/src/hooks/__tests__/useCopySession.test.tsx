@@ -296,6 +296,29 @@ describe("useCopySession", () => {
     await waitFor(() => expect(result.current.state?.biosMissing).toBe(2));
   });
 
+  it("keeps the count of games job_finished says were missing", async () => {
+    // mame-curator-1164: a skipped game still ends OK, so only this says so.
+    const { result } = renderHook(() => useCopySession(), {
+      wrapper: renderWithClient(),
+    });
+    act(() => {
+      result.current.start({
+        selected_names: ["sf2"],
+        conflict_strategy: "CANCEL",
+        append_decisions: {},
+      });
+    });
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(1));
+    act(() => {
+      MockEventSource.instances[0].emit({
+        event: "job_finished",
+        payload: { status: "OK", bios_missing: 0, games_missing: 3 },
+        ts: new Date().toISOString(),
+      });
+    });
+    await waitFor(() => expect(result.current.state?.gamesMissing).toBe(3));
+  });
+
   it("job_finished closes the SSE source and flips state to finished", async () => {
     const { result } = renderHook(() => useCopySession(), {
       wrapper: renderWithClient(),

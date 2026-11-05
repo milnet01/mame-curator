@@ -400,6 +400,11 @@ class JobManager:
                         o.role == "bios" and o.status is CopyOutcomeStatus.SKIPPED_MISSING_SOURCE
                         for o in report.skipped
                     ),
+                    # mame-curator-1164: likewise the games not in the ROM folder.
+                    "games_missing": sum(
+                        o.role == "winner" and o.status is CopyOutcomeStatus.SKIPPED_MISSING_SOURCE
+                        for o in report.skipped
+                    ),
                 },
                 ts=datetime.now(UTC),
             )

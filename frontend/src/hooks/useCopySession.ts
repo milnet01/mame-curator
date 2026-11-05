@@ -172,6 +172,7 @@ export function useCopySession() {
                 state: "finished",
                 finishedStatus: msg.payload.status as string | undefined,
                 biosMissing: msg.payload.bios_missing as number | undefined,
+                gamesMissing: msg.payload.games_missing as number | undefined,
               };
             case "job_aborted":
               closeStream();

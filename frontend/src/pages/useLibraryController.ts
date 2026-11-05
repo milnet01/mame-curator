@@ -305,7 +305,9 @@ export function useLibraryController(cart: UseCartResult) {
     ) {
       cart.clear();
     }
-    if (copyEnd === "complete" && clearPolicy !== "never") {
+    // mame-curator-1164: BIOS warnings stay on screen until the user closes them.
+    const warned = (copySession.state?.warnings.length ?? 0) > 0;
+    if (copyEnd === "complete" && clearPolicy !== "never" && !warned) {
       toast.success(strings.guide.copying.finishedHeading);
       copySession.reset();
     } else if (copyEnd === "stopped" && clearPolicy === "always") {

@@ -356,7 +356,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # REPLACE_AND_RECYCLE path is a warning. 1099 → 1100.
 # Bumped 2026-11-05 (mame-curator-1193): a stale lock that cannot be removed,
 # and a lock held past the stale age. 1100 → 1102.
-EXPECTED_PYTEST_DECLARATIONS = 1102
+# Bumped 2026-11-05 (mame-curator-1164): job_finished counts the games it
+# skipped. 1102 → 1103.
+EXPECTED_PYTEST_DECLARATIONS = 1103
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -479,7 +481,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1102
 # its entry at the top of the Settings page. 630 → 641.
 # Bumped 2026-11-05 (mame-curator-1163): the dry run's BIOS count and its
 # missing-BIOS line. 641 → 643.
-EXPECTED_VITEST_DECLARATIONS = 643
+# Bumped 2026-11-05 (mame-curator-1164): a copy that skipped games or BIOS
+# files, or warned, is told as such in the guide and the Library. 643 → 648.
+EXPECTED_VITEST_DECLARATIONS = 648
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

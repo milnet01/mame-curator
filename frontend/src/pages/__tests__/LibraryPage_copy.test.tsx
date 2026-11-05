@@ -139,6 +139,55 @@ describe("LibraryPage when a copy ends", () => {
     expect(toast.success).not.toHaveBeenCalled();
   });
 
+  it("on_success, OK with skipped games: keeps the cart and stays open saying how many", async () => {
+    // mame-curator-1164: the job ends OK, but not every game was copied.
+    serve("on_success");
+    const user = userEvent.setup();
+    const { clear } = renderPage();
+    await configLoaded();
+    const es = await startCopy(user);
+    act(() => es.emit("job_finished", { status: "OK", games_missing: 1 }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      strings.copy.gamesMissing(1),
+    );
+    await configLoaded();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(clear).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("on_success, OK with a missing BIOS file: stays open with the alert", async () => {
+    serve("on_success");
+    const user = userEvent.setup();
+    renderPage();
+    await configLoaded();
+    const es = await startCopy(user);
+    act(() => es.emit("job_finished", { status: "OK", bios_missing: 1 }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      strings.copy.biosMissing(1),
+    );
+    await configLoaded();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("on_success, OK with BIOS warnings: clears the cart, but stays open to show them", async () => {
+    serve("on_success");
+    const user = userEvent.setup();
+    const { clear } = renderPage();
+    await configLoaded();
+    const es = await startCopy(user);
+    act(() =>
+      es.emit("bios_warning", { name: "sf2", kind: "missing_from_listxml" }),
+    );
+    act(() => es.emit("job_finished", { status: "OK" }));
+    await waitFor(() => expect(clear).toHaveBeenCalledOnce());
+    await configLoaded();
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      strings.copy.biosWarning("sf2", "missing_from_listxml"),
+    );
+  });
+
   it("on_success, crash: keeps the cart and stays open with the alert", async () => {
     serve("on_success");
     const user = userEvent.setup();

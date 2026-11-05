@@ -730,6 +730,9 @@ export const strings = {
     /** job_finished's bios_missing: skipped, so the job can still end OK. */
     biosMissing: (n: number) =>
       `${n.toLocaleString()} BIOS file${n === 1 ? " these games need was" : "s these games need were"} not in your ROM folder, so some games may not run.`,
+    /** job_finished's games_missing: skipped, so the job can still end OK. */
+    gamesMissing: (n: number) =>
+      `${n.toLocaleString()} game${n === 1 ? " was" : "s were"} not in your ROM folder, so ${n === 1 ? "it was" : "they were"} not copied.`,
     /** mame-curator-1103 — shown until the server reports the job's total. */
     preparing: "Preparing copy…",
     progressLine: (done: number, total: number, currentFile: string) =>

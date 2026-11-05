@@ -266,7 +266,7 @@ User has `1942` in the cart, opens `AlternativesDrawer`, picks `1942 (Japan)` in
 | `localStorage` quota / disabled (private-browsing modes, browser policy) | Cart silently drops on reload | Detect on mount via probe write. One-time banner: `"Browser storage unavailable; cart will not persist for this session"`. Cart degrades to in-memory only. |
 | Picker returns 0 winners (DAT mis-parse, filter too aggressive) | Empty grid | Existing empty-state UI ("No games match your filters") + "Reset filters" button. |
 | Featured tile query returns 0 (INI mis-mapping, filter typo) | Tile shows `0 games`. | Click still works (filters grid → empty); recoverable by resetting filters. Operational bug: open an issue to retune the tile query. |
-| Cart copy fails mid-run (disk full, source vanished) | `CopyController` reports `FAILED` per `copy/spec.md` | `CopyModal` surfaces the failed list. Cart **does not auto-clear** on partial failure (D9). |
+| Cart copy fails mid-run (disk full, source vanished) | `CopyController` reports `FAILED` per `copy/spec.md` | `CopyModal` stays open with an alert saying some games could not be copied, and a link to Activity. Cart **does not auto-clear** on partial failure (D9). |
 
 ### 5.4 Cart auto-clear policy after Copy
 

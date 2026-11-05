@@ -107,3 +107,19 @@ def test_job_finished_counts_no_bios_already_at_the_destination(
     payload = asyncio.run(_finished_payload(app))
 
     assert payload["bios_missing"] == 0
+
+
+@pytest.mark.parametrize(("game_there", "expected"), [(True, 0), (False, 1)])
+def test_job_finished_counts_the_games_it_skipped(
+    app: Any, source_dir: Path, *, game_there: bool, expected: int
+) -> None:
+    # mame-curator-1164: a game missing from the ROM folder is skipped and the
+    # job still ends OK, so only this count tells the page it was not copied.
+    if game_there:
+        (source_dir / "kof94.zip").write_bytes(b"kof94")
+
+    payload = asyncio.run(_finished_payload(app))
+
+    assert payload["status"] == "OK"
+    assert isinstance(payload.get("games_missing"), int)
+    assert payload["games_missing"] == expected
