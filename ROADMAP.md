@@ -1202,6 +1202,10 @@ wave lands.
   failed 4: findBy waits and a 5 s test timeout. No frontend file had
   changed since a green 699. Load, not code; a fix would be longer waits
   for slow machines.
+  2026-11-05 04:53: push gate at 0dffa41 failed Vitest with 22 "Failed
+  to start forks worker ... Timeout waiting for worker to respond" at
+  load average 40; the 63 files that started passed (403 tests). A
+  second load symptom: worker start-up, not test waits.
   **Layman:** The frontend tests failed once for no clear reason during a push, then passed on their own and on the retry; find the unreliable test.
   Kind: investigate.
   Source: in-session-2026-10-15.
