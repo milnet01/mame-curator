@@ -10,7 +10,10 @@ const report: DryRunReport = {
     new: 12,
     replace: 3,
     skip: 5,
-    bios_included: 2,
+    // The server's fields (api/routes/copy.py): every BIOS the games need,
+    // and how many of those are not in the ROM folder.
+    bios: 2,
+    bios_missing_source: 0,
   },
   summary: {},
 };
@@ -29,6 +32,41 @@ describe("DryRunModal", () => {
     expect(screen.getByText(/3 replace/)).toBeInTheDocument();
     expect(screen.getByText(/5 skip/)).toBeInTheDocument();
     expect(screen.getByText(/2 BIOS/)).toBeInTheDocument();
+  });
+
+  it("counts only the BIOS files it can copy, and names the missing ones", () => {
+    // mame-curator-1163: the modal read a field the server never sends.
+    render(
+      <DryRunModal
+        open
+        onOpenChange={() => {}}
+        report={{
+          ...report,
+          counts: { ...report.counts, bios: 3, bios_missing_source: 1 },
+        }}
+        onConfirm={() => {}}
+      />,
+    );
+    expect(screen.getByText("2 BIOS included")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /1 BIOS file these games need is not in your ROM folder/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("says nothing about missing BIOS files when none are missing", () => {
+    render(
+      <DryRunModal
+        open
+        onOpenChange={() => {}}
+        report={report}
+        onConfirm={() => {}}
+      />,
+    );
+    expect(
+      screen.queryByText(/not in your ROM folder/),
+    ).not.toBeInTheDocument();
   });
 
   it("does not render when closed", () => {

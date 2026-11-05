@@ -477,7 +477,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1102
 # entry in the game's panel and its address. 618 → 630.
 # Bumped 2026-11-05 (mame-curator-1147): the Settings guide, its topics, and
 # its entry at the top of the Settings page. 630 → 641.
-EXPECTED_VITEST_DECLARATIONS = 641
+# Bumped 2026-11-05 (mame-curator-1163): the dry run's BIOS count and its
+# missing-BIOS line. 641 → 643.
+EXPECTED_VITEST_DECLARATIONS = 643
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
