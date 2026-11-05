@@ -13,6 +13,8 @@ interface GuideStepProps {
   onBack?: () => void;
   /** Absent where leaving would strand something, as a paused copy would be. */
   exitLabel?: string;
+  /** Where the way out leads; the Library unless given. */
+  exitTo?: string;
   children: ReactNode;
 }
 
@@ -27,6 +29,7 @@ export function GuideStep({
   focusKey,
   onBack,
   exitLabel,
+  exitTo = "/",
   children,
 }: GuideStepProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -64,7 +67,7 @@ export function GuideStep({
           <GuideAction onClick={onBack}>{strings.guide.back}</GuideAction>
         )}
         {exitLabel !== undefined && (
-          <GuideAction to="/">{exitLabel}</GuideAction>
+          <GuideAction to={exitTo}>{exitLabel}</GuideAction>
         )}
       </div>
     </div>

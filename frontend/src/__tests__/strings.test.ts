@@ -72,6 +72,11 @@ const DYNAMIC_ACCESS_PARENTS = new Set<string>([
   "guide.setup.games",
   "guide.setup.list",
   "guide.setup.dest",
+  // mame-curator-1147, the Settings guide: a topic's words by its key
+  "guide.settings.topics",
+  "guide.settings.leaveOut.kinds",
+  "guide.settings.cart.options",
+  "guide.settings.cart.saved",
   // CopyModal.tsx: `strings.copy.sessionState[state.state]`
   "copy.sessionState",
   // CmdKPalette.tsx: `strings.cmdK.sections[item.section]`

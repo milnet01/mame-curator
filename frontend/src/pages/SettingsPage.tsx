@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { GuideAction } from "@/components/guide/GuideAction";
 import { AboutTab } from "@/components/settings/AboutTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { FiltersTab } from "@/components/settings/FiltersTab";
@@ -184,6 +185,10 @@ export function SettingsPage({
   return (
     <section className="flex flex-col gap-4 p-4">
       <h1 className="text-2xl font-semibold">{strings.settings.pageTitle}</h1>
+      {/* mame-curator-1147: the guided path first; the tabs stay below. */}
+      <GuideAction primary to="/settings/guide">
+        {strings.guide.settings.entry}
+      </GuideAction>
 
       {/* FP11 § B3 + FP16 § C: read-only Setup banner driven by R35.
           FP16 enriches the original binary "ready / incomplete" with

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { strings } from "@/strings";
 import { SettingsPage } from "../SettingsPage";
 
 import { config, render, updateInfo } from "./_settingsPageFixtures";
@@ -20,6 +21,25 @@ import { config, render, updateInfo } from "./_settingsPageFixtures";
  */
 
 describe("SettingsPage — render", () => {
+  it("mame-curator-1147: opens the step-by-step guide from the top of the page", () => {
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={() => {}}
+        onSnapshotRestore={() => {}}
+      />,
+    );
+    const entry = screen.getByRole("link", {
+      name: strings.guide.settings.entry,
+    });
+    expect(entry).toHaveAttribute("href", "/settings/guide");
+    // Above the tabs, so it is the first thing after the title.
+    expect(
+      entry.compareDocumentPosition(screen.getByRole("tablist")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("renders every section header (FP12 § J — 9 tabs incl. backup)", () => {
     render(
       <SettingsPage

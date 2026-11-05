@@ -2,6 +2,8 @@
  * mame-curator-1144 — guide text. `strings_internal.ts` is past its size cap,
  * so this has its own module, re-exported as `strings.guide` by `strings.ts`.
  */
+import { settingsGuideStrings } from "./strings_guide_settings";
+
 const count = (n: number) => n.toLocaleString();
 const games = (n: number) => `${count(n)} game${n === 1 ? "" : "s"}`;
 
@@ -132,6 +134,8 @@ export const guideStrings = {
     tryAgain: "Try again",
     toLibrary: "Back to the Library",
   },
+  /** mame-curator-1147: changing a setting, one topic at a time. */
+  settings: settingsGuideStrings,
   nav: {
     startHere: "Start here",
     goStartHere: "Go to Start here",

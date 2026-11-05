@@ -83,6 +83,12 @@ const FixVersionRoute = lazy(() =>
   })),
 );
 
+const SettingsGuidePage = lazy(() =>
+  import("@/pages/SettingsGuidePage").then((m) => ({
+    default: m.SettingsGuidePage,
+  })),
+);
+
 const queryClient = createAppQueryClient();
 
 const PALETTE_ITEMS: CmdKItem[] = [
@@ -646,6 +652,7 @@ export function ShellWithPalette() {
               <Route path="/activity" element={<ActivityRoute />} />
               <Route path="/stats" element={<StatsRoute />} />
               <Route path="/settings" element={<SettingsRoute />} />
+              <Route path="/settings/guide" element={<SettingsGuidePage />} />
               <Route path="/help" element={<HelpRoute />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
