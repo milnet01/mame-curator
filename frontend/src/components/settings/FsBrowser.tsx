@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -76,6 +76,30 @@ export function FsBrowser({
       ? (listing.error as unknown as { code: string }).code
       : null;
   const sandboxBlocked = errCode === "fs_sandboxed" ? path : null;
+
+  // mame-curator-1176: no caller opens the picker from a Radix trigger, so
+  // Radix sent focus to the page when it closed. Remember what had focus
+  // when it opened and give focus back to it, unless the caller has already
+  // put focus somewhere. (A guide step moves focus to its heading a frame
+  // later, so the heading still wins there.)
+  const [wasOpen, setWasOpen] = useState(open);
+  const [opener, setOpener] = useState<Element | null>(() =>
+    open ? document.activeElement : null,
+  );
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setOpener(document.activeElement);
+  }
+  useEffect(() => {
+    if (!open) return;
+    return () => {
+      const now = document.activeElement;
+      const lost = now === null || now === document.body;
+      if (lost && opener instanceof HTMLElement && opener.isConnected) {
+        opener.focus();
+      }
+    };
+  }, [open, opener]);
 
   if (!open) return null;
 
@@ -165,6 +189,13 @@ export function FsBrowser({
       <DialogContent
         showCloseButton={!large}
         className="max-h-[90dvh] grid-cols-1 overflow-y-auto sm:max-w-2xl"
+        // mame-curator-1176: until the folders load, Cancel is the first
+        // control, and Radix put focus there, so Enter closed the picker.
+        // Focus starts on the dialog itself; Tab reaches its controls.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          (e.currentTarget as HTMLElement | null)?.focus();
+        }}
       >
         <DialogHeader>
           <DialogTitle className={large ? "text-xl" : undefined}>

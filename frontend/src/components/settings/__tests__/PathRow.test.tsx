@@ -104,3 +104,102 @@ describe("a save the server refuses (mame-curator-1145 review)", () => {
     expect(onCommit).toHaveBeenCalledTimes(1);
   });
 });
+
+// mame-curator-1176: the pickers have no Radix trigger, so focus fell to the
+// page when they closed. It goes back to Browse.
+describe("Settings folder pickers give focus back (mame-curator-1176)", () => {
+  const browse = () => screen.getByRole("button", { name: /browse/i });
+  const closed = () =>
+    waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
+
+  it("PathRow: Cancel gives focus back to Browse", async () => {
+    const user = userEvent.setup();
+    listed();
+    inClient(row({ value: "/mnt/roms" }));
+    await user.click(browse());
+    await screen.findByRole("dialog");
+    await user.click(screen.getByRole("button", { name: /^cancel$/i }));
+    await closed();
+    expect(browse()).toHaveFocus();
+  });
+
+  it("PathRow: Esc gives focus back to Browse", async () => {
+    const user = userEvent.setup();
+    listed();
+    inClient(row({ value: "/mnt/roms" }));
+    browse().focus();
+    await user.keyboard("{Enter}");
+    await screen.findByRole("dialog");
+    await user.keyboard("{Escape}");
+    await closed();
+    expect(browse()).toHaveFocus();
+  });
+
+  it("PathRow: choosing a folder gives focus back to Browse", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    listed();
+    inClient(row({ value: "/mnt/roms", onChange }));
+    await user.click(browse());
+    const use = await screen.findByRole("button", { name: /use this folder/i });
+    await waitFor(() => expect(use).toBeEnabled());
+    await user.click(use);
+    await closed();
+    expect(onChange).toHaveBeenCalledWith("/mnt/roms");
+    expect(browse()).toHaveFocus();
+  });
+
+  it("PathRow: cancelling the grant prompt gives focus back to Browse", async () => {
+    const user = userEvent.setup();
+    listed();
+    server.use(
+      http.get("/api/fs/list", () =>
+        HttpResponse.json(
+          { code: "fs_sandboxed", detail: "outside", fields: [] },
+          { status: 403 },
+        ),
+      ),
+    );
+    inClient(row({ value: "/etc" }));
+    await user.click(browse());
+    await screen.findByRole("alertdialog");
+    await user.click(screen.getByRole("button", { name: /^cancel$/i }));
+    await closed();
+    expect(browse()).toHaveFocus();
+  });
+
+  it("FolderField: Esc gives focus back to Browse", async () => {
+    const user = userEvent.setup();
+    listed();
+    inClient(
+      <FolderField
+        id="f"
+        label="Folder"
+        browseLabel="Browse for the folder"
+        value="/mnt/roms"
+        onCommit={() => {}}
+      />,
+    );
+    await user.click(browse());
+    await screen.findByRole("dialog");
+    await user.keyboard("{Escape}");
+    await closed();
+    expect(browse()).toHaveFocus();
+  });
+
+  it("the picker does not open with focus on Cancel, so Enter does not close it", async () => {
+    const user = userEvent.setup();
+    listed();
+    inClient(row({ value: "/mnt/roms" }));
+    browse().focus();
+    await user.keyboard("{Enter}");
+    const dialog = await screen.findByRole("dialog");
+    expect(screen.getByRole("button", { name: /^cancel$/i })).not.toHaveFocus();
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+});

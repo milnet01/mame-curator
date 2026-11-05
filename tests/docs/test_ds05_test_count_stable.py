@@ -511,7 +511,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1125
 # closes, and follows a focused card that leaves or moves. 660 → 667.
 # Bumped 2026-11-05 (mame-curator-1161): the versions panel has one cursor;
 # the arrows move focus and the highlight follows it. 667 → 672.
-EXPECTED_VITEST_DECLARATIONS = 672
+# Bumped 2026-11-05 (mame-curator-1176): Settings folder pickers give focus
+# back to Browse, and do not open with focus on Cancel. 672 → 678.
+EXPECTED_VITEST_DECLARATIONS = 678
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

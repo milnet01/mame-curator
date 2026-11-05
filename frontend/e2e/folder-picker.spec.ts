@@ -176,6 +176,49 @@ test("Settings' grant prompt fits too, with a long path", async ({ page }) => {
   ]);
 });
 
+test("Settings' picker gives focus back to Browse however it closes (mame-curator-1176)", async ({
+  page,
+}) => {
+  await page.route("**/api/config", async (route) => {
+    const reply = await route.fetch();
+    const body = await reply.json();
+    body.paths.retroarch = "/usr/bin/retroarch";
+    await route.fulfill({ response: reply, json: body });
+  });
+  await page.goto("/settings");
+  const browse = page.getByRole("button", {
+    name: "Browse for RetroArch playlist",
+  });
+  const dialog = page.getByRole("dialog");
+
+  await browse.focus();
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeVisible();
+  // Focus starts on the picker itself, so Enter does not close it.
+  await expect(dialog).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(browse).toBeFocused();
+
+  await browse.press("Enter");
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(browse).toBeFocused();
+
+  // From the grant prompt, as the item measured it.
+  const retroarch = page.getByRole("button", {
+    name: "Browse for RetroArch executable",
+  });
+  await retroarch.focus();
+  await page.keyboard.press("Enter");
+  const prompt = page.getByRole("alertdialog");
+  await prompt.getByRole("button", { name: "Cancel" }).click();
+  await expect(prompt).toBeHidden();
+  await expect(retroarch).toBeFocused();
+});
+
 test("Browse on a file row asks to look in the folder, not at the file", async ({
   page,
 }) => {
