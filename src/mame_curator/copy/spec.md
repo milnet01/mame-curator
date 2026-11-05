@@ -332,7 +332,7 @@ class ActivityEvent(BaseModel):
 |---|---|---|
 | `copy_started` | `run_copy` enters | `CopyStartedDetails(plan_summary: PlanSummary, conflict_strategy: ConflictStrategy)` |
 | `copy_finished` | `run_copy` returns successfully | `CopyFinishedDetails(report_summary: ReportSummary)` |
-| `copy_aborted` | `run_copy` cancelled or failed | `CopyAbortedDetails(reason: str, recycled_count: int)` |
+| `copy_aborted` | `run_copy` cancelled or failed, or an unexpected exception stopped it (`reason="ERROR"`, summary `copy stopped because of an error: <first line>`) | `CopyAbortedDetails(reason: str, recycled_count: int)` |
 | `override_set` | `filter/` Phase C applies an override (emitted by Phase 2; included here so the schema is unified) | `OverrideSetDetails(parent: str, winner: str)` |
 | `session_activated` | `filter/` Phase D activates a session | `SessionActivatedDetails(session_name: str)` |
 | `ini_refreshed` | `updates/` re-fetches an INI (Phase 7) | `IniRefreshedDetails(ini_name: str, sha256_old: str, sha256_new: str)` |
@@ -386,6 +386,7 @@ class CopyReportStatus(StrEnum):
     CANCELLED = "CANCELLED"
     CANCELLED_PLAYLIST_CONFLICT = "CANCELLED_PLAYLIST_CONFLICT"
     PARTIAL_FAILURE = "PARTIAL_FAILURE"
+    ERROR = "ERROR"                                   # an unexpected exception stopped the run part-way (§ Errors)
 
 class CopyReport(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -405,7 +406,7 @@ class CopyReport(BaseModel):
     warnings: tuple[str, ...]                         # BIOSResolutionWarnings + preflight non-fatals + override warnings
 ```
 
-**Completeness invariant** (testable per `test_copy_report_completeness`): every entry of `plan.winners | bios_set` appears in exactly one of `succeeded`, `skipped`, or `failed`. The lists are disjoint and their union covers the plan.
+**Completeness invariant** (testable per `test_copy_report_completeness`): every entry of `plan.winners | bios_set` appears in exactly one of `succeeded`, `skipped`, or `failed`. The lists are disjoint and their union covers the plan. An `ERROR` report is the exception: it lists only the files finished before the crash.
 
 **Sorting**: every tuple is sorted in canonical order (`short_name` for outcomes, `path` for recycle records) for byte-identical determinism.
 
@@ -448,6 +449,8 @@ A `CopyPlan` is constructed by the CLI from parsed config + a `FilterResult`, or
 - `CopyExecutionError` — wrapped `OSError` from `copy_one` that escaped retry (currently no retry; surfaces directly).
 - `UnsafeShortNameError` — a name that is not one plain file name (§ CopyPlan). `run_copy` turns it into a `FAILED` outcome or a warning.
 - `ActivityLogError` — `os.open` / `os.write` / parent-`mkdir` failure inside `append_activity` (FP25-B + FP26-B). Wraps the originating `OSError` via `__cause__`.
+
+**An unexpected exception** (anything that is not handled into an outcome or a warning) after `copy_started` is recorded, then propagates unchanged (mame-curator-1157). `run_copy` appends one `copy_aborted` event for the run's `session_id`, and calls its `on_crash` callback, when given, with an `ERROR` report: the outcomes so far, and a last warning `stopped because of an error: <first line>`. Neither step raises; a failure in either is logged and dropped. An exception before `copy_started` records nothing.
 
 (`PreflightError` retired in FP27 — never `raise`-d in `src/`; the
 deferred preflight-check feature will raise a fresh typed error when

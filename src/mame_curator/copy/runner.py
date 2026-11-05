@@ -6,11 +6,12 @@ import functools
 import logging
 import secrets
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from mame_curator.copy.activity import append_activity
+from mame_curator.copy.activity import append_activity, record_copy_error, short_error_message
 from mame_curator.copy.bios import resolve_bios_dependencies
 from mame_curator.copy.controller import CopyController
 from mame_curator.copy.errors import CopyError, RecycleError, UnsafeShortNameError
@@ -162,20 +163,109 @@ def _resolve_conflicts(
     return existing_items, replaced_shorts
 
 
+@dataclass
+class _RunState:
+    """What a run has done so far, kept so a crash can still be reported.
+
+    mame-curator-1157: the outcome lists are the run's own lists, filled in
+    place, so they hold every file finished before an exception.
+    """
+
+    started_at: datetime
+    session_id: str
+    plan_summary: PlanSummary | None = None
+    bios_set: frozenset[str] = frozenset()
+    started: bool = False  # `copy_started` is in the activity log
+    warnings: list[str] = field(default_factory=list)
+    succeeded: list[CopyOutcome] = field(default_factory=list)
+    skipped: list[CopyOutcome] = field(default_factory=list)
+    failed: list[CopyOutcome] = field(default_factory=list)
+    overwritten: list[OverwriteRecord] = field(default_factory=list)
+    recycled: list[RecycleRecord] = field(default_factory=list)
+
+
 def run_copy(
     plan: CopyPlan,
     *,
     controller: CopyController | None = None,
     on_progress: Callable[[str, int, int], None] | None = None,
     data_dir: Path = Path("data"),
+    on_crash: Callable[[CopyReport], None] | None = None,
 ) -> CopyReport:
-    """Execute a CopyPlan; return a CopyReport. See spec.md for the full contract."""
-    started_at = datetime.now(UTC)
-    session_id = _new_session_id()
-    ctl = controller or CopyController()
+    """Execute a CopyPlan; return a CopyReport. See spec.md for the full contract.
+
+    mame-curator-1157: an unexpected exception after `copy_started` adds a
+    `copy_aborted` event and hands an `ERROR` report of the files done so far
+    to ``on_crash``; then the exception propagates unchanged.
+    """
+    state = _RunState(started_at=datetime.now(UTC), session_id=_new_session_id())
+    try:
+        return _run_copy(
+            plan,
+            ctl=controller or CopyController(),
+            on_progress=on_progress,
+            data_dir=data_dir,
+            state=state,
+        )
+    except Exception as exc:
+        if state.started:
+            _record_crash(state, exc, data_dir=data_dir, on_crash=on_crash)
+        raise
+
+
+def _record_crash(
+    state: _RunState,
+    exc: Exception,
+    *,
+    data_dir: Path,
+    on_crash: Callable[[CopyReport], None] | None,
+) -> None:
+    """Log the crash to the activity log and build its report. Never raises."""
+    record_copy_error(
+        exc,
+        session_id=state.session_id,
+        recycled_count=len(state.recycled),
+        log_path=data_dir / "activity.jsonl",
+    )
+    if on_crash is None or state.plan_summary is None:
+        return
+    try:
+        report = CopyReport(
+            session_id=state.session_id,
+            started_at=state.started_at,
+            finished_at=datetime.now(UTC),
+            status=CopyReportStatus.ERROR,
+            plan_summary=state.plan_summary,
+            succeeded=tuple(sorted(state.succeeded, key=lambda o: o.short_name)),
+            skipped=tuple(sorted(state.skipped, key=lambda o: o.short_name)),
+            failed=tuple(sorted(state.failed, key=lambda o: o.short_name)),
+            overwritten=tuple(state.overwritten),
+            recycled=tuple(state.recycled),
+            bios_included=tuple(sorted(state.bios_set)),
+            bytes_copied=sum(o.bytes for o in state.succeeded),
+            warnings=(
+                *state.warnings,
+                f"stopped because of an error: {short_error_message(exc)}",
+            ),
+        )
+        on_crash(report)
+    except Exception:
+        logger.exception("could not hand on the report of a crashed copy")
+
+
+def _run_copy(
+    plan: CopyPlan,
+    *,
+    ctl: CopyController,
+    on_progress: Callable[[str, int, int], None] | None,
+    data_dir: Path,
+    state: _RunState,
+) -> CopyReport:
+    started_at, session_id = state.started_at, state.session_id
 
     bios_set, bios_warnings = resolve_bios_dependencies(plan.winners, plan.bios_chain)
     plan_summary = _make_plan_summary(plan, len(bios_set))
+    state.plan_summary, state.bios_set = plan_summary, bios_set
 
     # mame-curator-1152: before copy_started, so a refused playlist leaves no
     # started copy in the activity log and no file touched.
@@ -196,12 +286,14 @@ def run_copy(
         ),
         log_path=data_dir / "activity.jsonl",
     )
+    state.started = True
 
     # FP08 R1 (Cluster R): quote w.name via repr() — the BIOS short-name
     # flows from DAT data (user-controlled). Same threat model as FP08 A1
     # at runner.py:240; missed by FP08's initial `warnings.append(f"...")`
     # grep because this site uses the list-comprehension form.
-    warnings: list[str] = [f"{w.name!r}: {w.kind}" for w in bios_warnings]
+    warnings = state.warnings
+    warnings.extend(f"{w.name!r}: {w.kind}" for w in bios_warnings)
 
     # DS02 A4: CANCEL idempotency guard extracted; see helper docstring.
     if _should_cancel_for_playlist_conflict(plan, pre):
@@ -216,11 +308,8 @@ def run_copy(
             warnings=warnings,
         )
 
-    succeeded: list[CopyOutcome] = []
-    skipped: list[CopyOutcome] = []
-    failed: list[CopyOutcome] = []
-    overwritten: list[OverwriteRecord] = []
-    recycled: list[RecycleRecord] = []
+    succeeded, skipped, failed = state.succeeded, state.skipped, state.failed
+    overwritten, recycled = state.overwritten, state.recycled
     bytes_copied = 0
 
     # Build the file list: winners first (preserves "winner" role), then BIOS.
@@ -472,7 +561,7 @@ def run_copy(
         # Files have been moved out of dst; drop them from `succeeded` so
         # the report doesn't claim files that no longer exist at the
         # destination.
-        succeeded = []
+        succeeded.clear()
 
     # Write playlist (skip when dry-run or cancelled-mid-flight).
     if not plan.dry_run and not cancelled_mid:

@@ -68,6 +68,8 @@ class CopyReportStatus(StrEnum):
     CANCELLED = "CANCELLED"
     CANCELLED_PLAYLIST_CONFLICT = "CANCELLED_PLAYLIST_CONFLICT"
     PARTIAL_FAILURE = "PARTIAL_FAILURE"
+    # mame-curator-1157: an unexpected exception stopped the copy part-way.
+    ERROR = "ERROR"
 
 
 class BIOSResolutionWarning(BaseModel):

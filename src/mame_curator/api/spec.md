@@ -315,6 +315,11 @@ be used.
 - **A BIOS file missing from `source_roms` is skipped, not failed**, so the job
   can still end `OK`. `POST /api/copy/dry-run` reports the count before a copy
   as `counts.bios_missing_source`, and `job_finished` after one as `bios_missing`.
+- **A worker crash still leaves a record** (mame-curator-1157). The stream ends
+  with `job_aborted` whose `reason` is the error, repr-quoted. The `ERROR`
+  report `run_copy` hands over is persisted as for a finished job. A crash
+  before `copy_started` gets a `copy_aborted` activity entry from the
+  manager, with the job id as its `session_id`. Recording never raises.
 - Worker→loop handoff uses `loop.call_soon_threadsafe` (FP28-A1) so all
   `app.state` mutation and event emission happen on the event-loop thread,
   never the worker thread.

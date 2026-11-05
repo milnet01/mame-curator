@@ -82,7 +82,11 @@ export interface AppendDecision {
 }
 
 export type CopyReportStatus =
-  "OK" | "CANCELLED" | "CANCELLED_PLAYLIST_CONFLICT" | "PARTIAL_FAILURE";
+  | "OK"
+  | "CANCELLED"
+  | "CANCELLED_PLAYLIST_CONFLICT"
+  | "PARTIAL_FAILURE"
+  | "ERROR";
 
 // === Config (api/schemas.py) ===============================================
 export interface PathsConfig {

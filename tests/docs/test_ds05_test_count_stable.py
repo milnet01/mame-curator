@@ -358,7 +358,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # and a lock held past the stale age. 1100 → 1102.
 # Bumped 2026-11-05 (mame-curator-1164): job_finished counts the games it
 # skipped. 1102 → 1103.
-EXPECTED_PYTEST_DECLARATIONS = 1103
+# Bumped 2026-11-05 (mame-curator-1157): a crashed copy writes its Activity
+# entry and its report. 1103 → 1106.
+EXPECTED_PYTEST_DECLARATIONS = 1106
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

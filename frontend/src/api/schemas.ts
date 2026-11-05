@@ -128,6 +128,7 @@ export const CopyReportStatusSchema = z.enum([
   "CANCELLED",
   "CANCELLED_PLAYLIST_CONFLICT",
   "PARTIAL_FAILURE",
+  "ERROR",
 ]);
 
 // === Config (api/schemas.py) ===============================================

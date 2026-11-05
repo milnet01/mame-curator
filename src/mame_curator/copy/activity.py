@@ -36,13 +36,19 @@ import json
 import logging
 import os
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from mame_curator._atomic import fsync_parent_dir
 from mame_curator.copy.errors import ActivityLogError
-from mame_curator.copy.types import ActivityEvent
+from mame_curator.copy.types import (
+    ActivityEvent,
+    ActivityEventType,
+    CopyAbortedDetails,
+    CopyReportStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +104,49 @@ def append_activity(
     # Three honoured — atomic_write_text + atomic_write_bytes already
     # rely on it).
     fsync_parent_dir(log_path)
+
+
+_ERROR_MESSAGE_CAP = 200
+
+
+def short_error_message(exc: BaseException) -> str:
+    """The error's first line, capped; the exception's type name when it has no text."""
+    lines = str(exc).strip().splitlines()
+    text = lines[0].strip() if lines else ""
+    if not text:
+        return type(exc).__name__
+    if len(text) > _ERROR_MESSAGE_CAP:
+        return text[: _ERROR_MESSAGE_CAP - 1] + "…"
+    return text
+
+
+def record_copy_error(
+    exc: BaseException,
+    *,
+    session_id: str,
+    recycled_count: int = 0,
+    log_path: Path,
+) -> None:
+    """Append a `copy_aborted` event for a copy an error stopped. Never raises.
+
+    mame-curator-1157: this runs while an exception is already propagating,
+    so a failure here is logged and dropped rather than replacing that error.
+    """
+    try:
+        append_activity(
+            ActivityEvent(
+                timestamp=datetime.now(UTC),
+                event_type=ActivityEventType.COPY_ABORTED,
+                summary=f"copy stopped because of an error: {short_error_message(exc)}",
+                session_id=session_id,
+                details=CopyAbortedDetails(
+                    reason=CopyReportStatus.ERROR.value, recycled_count=recycled_count
+                ),
+            ),
+            log_path=log_path,
+        )
+    except Exception:
+        logger.exception("could not record the copy error in the activity log")
 
 
 def read_activity(

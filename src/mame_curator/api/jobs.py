@@ -45,6 +45,7 @@ from mame_curator.copy import (
     resolve_bios_dependencies,
     run_copy,
 )
+from mame_curator.copy.activity import record_copy_error
 
 if TYPE_CHECKING:
     from mame_curator.api.state import WorldState
@@ -210,6 +211,9 @@ class JobManager:
             synth = _ProgressSynthesizer(self._loop, self)
 
             def worker() -> None:
+                # mame-curator-1157: run_copy hands over the partial report of
+                # a crash here before the exception reaches us.
+                crash_reports: list[CopyReport] = []
                 try:
                     report = run_copy(
                         plan,
@@ -218,10 +222,18 @@ class JobManager:
                         # mame-curator-1105: anchor on the config's data dir,
                         # never the process cwd.
                         data_dir=world.data_dir,
+                        on_crash=crash_reports.append,
                     )
-                except Exception as exc:  # pragma: no cover - defense in depth
+                except Exception as exc:
                     logger.exception("copy worker crashed")
-                    self._loop and self._loop.call_soon_threadsafe(self._on_worker_error, str(exc))
+                    if not crash_reports:
+                        # It crashed before copy_started; nothing recorded it.
+                        record_copy_error(
+                            exc, session_id=job_id, log_path=world.data_dir / "activity.jsonl"
+                        )
+                    crashed = crash_reports[0] if crash_reports else None
+                    if self._loop is not None:
+                        self._loop.call_soon_threadsafe(self._on_worker_error, str(exc), crashed)
                     return
                 if self._loop is None:
                     return
@@ -371,11 +383,7 @@ class JobManager:
                 with contextlib.suppress(asyncio.QueueFull):
                     q.put_nowait(event)
 
-    def _on_worker_done(self, report: CopyReport) -> None:
-        job = self._current
-        if job is None:
-            return
-        # Persist report.
+    def _persist_report(self, job: Job, report: CopyReport) -> Path:
         report_dir = self._history_dir / job.id
         try:
             report_dir.mkdir(parents=True, exist_ok=True)
@@ -385,6 +393,13 @@ class JobManager:
             )
         except OSError:
             logger.exception("failed to persist copy report for job %r", job.id)
+        return report_dir
+
+    def _on_worker_done(self, report: CopyReport) -> None:
+        job = self._current
+        if job is None:
+            return
+        report_dir = self._persist_report(job, report)
 
         terminal: JobEvent
         if report.status in (CopyReportStatus.OK, CopyReportStatus.PARTIAL_FAILURE):
@@ -428,10 +443,12 @@ class JobManager:
         self._close_subscribers()
         self._last, self._current = self._current, None
 
-    def _on_worker_error(self, message: str) -> None:
+    def _on_worker_error(self, message: str, report: CopyReport | None = None) -> None:
         job = self._current
         if job is None:
             return
+        if report is not None:
+            self._persist_report(job, report)
         job.state = "aborted"
         # FP09 A1: `message` flows from `str(exc)` of the worker exception;
         # repr-quote so a control byte in the exception message can't break
