@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-05 Fixed — Safer copies: an empty request, and the recycle bin's lock (mame-curator-1182, 1192, 1193)
+
+Three ways a copy could go wrong in rare cases.
+
+- **A copy that names no games is refused.** (mame-curator-1182)
+  Before, such a request could empty your playlist. The app's own screens never sent one, but the server and the command line now refuse it too, and say "Choose at least one game to copy."
+
+- **A recycle bin that refuses a write no longer stops a copy.** (mame-curator-1192)
+  When a copy replaces a game and the old file cannot be moved to the recycle bin, the old file stays, the new game is still copied, and the report says so.
+
+- **Recycling cannot hang, and two copies cannot collide on a very large file.** (mame-curator-1193)
+  A leftover lock that cannot be removed now gives a clear message after five seconds. A long move keeps its lock, so another copy waits for it.
+
 ### 2026-11-05 Added — Change a setting step by step (mame-curator-1147)
 
 Settings now starts with a large button: "Change a setting, step by step". It asks what you would like to change, one question per screen, in large text. The full Settings page stays below it, unchanged.

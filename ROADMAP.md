@@ -3598,10 +3598,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: launchers.
 
-- 📋 [mame-curator-1182] **An empty game list with OVERWRITE empties the playlist.**
+- ✅ [mame-curator-1182] **An empty game list with OVERWRITE empties the playlist.**
   Measured: selected_names [] with OVERWRITE in normal mode answers 200 and
   empties the playlist. The frontend guards it; the API does not. Found while
   building a5417fa, outside that group.
+  2026-11-05: 9315434. Server (both copy routes) and CLI refuse an empty
+  selection; playlist bytes asserted unchanged.
   **Layman:** A copy request naming no games could wipe your playlist. The app's screens stop this; the server does not.
   Kind: fix.
   Source: close-findings-2026-11-02-1145.
@@ -3698,20 +3700,24 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1149-2026-11-02.
   Lanes: filter.
 
-- 📋 [mame-curator-1192] **A refused recycle lock can stop a copy on the REPLACE_AND_RECYCLE path.**
+- ✅ [mame-curator-1192] **A refused recycle lock can stop a copy on the REPLACE_AND_RECYCLE path.**
   runner.py's REPLACE_AND_RECYCLE path catches only CopyError, so a raw
   PermissionError from _session_lock is not caught there. The other recycle
   call read catches OSError too. Read, not run; not traced further up.
+  2026-11-05: 0d3aa18. The REPLACE_AND_RECYCLE catch takes OSError too.
   **Layman:** If the recycle folder refuses a write, a copy that replaces games could stop instead of reporting that one game.
   Kind: fix.
   Source: build-ci-fix-2026-11-02.
   Lanes: copy, tests.
 
-- 📋 [mame-curator-1193] **_session_lock can spin forever or reclaim a lock still in use.**
+- ✅ [mame-curator-1193] **_session_lock can spin forever or reclaim a lock still in use.**
   A lock older than 60 seconds that cannot be deleted loops with no sleep,
   because the unlink error is suppressed. A move holding the lock over 60
   seconds, such as a large cross-drive file, can have it reclaimed while it
   runs. Read, not run.
+  2026-11-05: 944acf8. Bounded wait on an unremovable stale lock; the
+  holder refreshes the lock's mtime. Windows not run locally; cold read
+  asked of the oneup session, a wintest run of album-builder.
   **Layman:** In rare cases, recycling a game could hang, or two recycles could collide on a very large file.
   Kind: fix.
   Source: build-ci-fix-2026-11-02.
@@ -3725,6 +3731,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   2026-11-05: Windows CI green on 3.12 and 3.13 at a04f51b (run
   41935842658). One more green run; still not a proof, since the
   original refusal was seen once.
+  2026-11-05: 944acf8 changed _session_lock again (bounded stale wait; a
+  refresher thread calls os.utime on the held lock). Watch Windows CI
+  for both. A run on wintest was asked of the album-builder session.
   **Layman:** A fix for a rare Windows failure could not be tested on Windows, so it needs watching.
   Kind: investigate.
   Source: build-ci-fix-2026-11-02.
