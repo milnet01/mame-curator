@@ -505,7 +505,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1125
 # the drive but not in the playlist. 656 → 657.
 # Bumped 2026-11-05 (mame-curator-1197): the version guide marks the version
 # the server says is in use. 657 → 658.
-EXPECTED_VITEST_DECLARATIONS = 658
+# Bumped 2026-11-05 (mame-curator-1190): error toasts stay until closed, and
+# can be closed from the keyboard. 658 → 660.
+EXPECTED_VITEST_DECLARATIONS = 660
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

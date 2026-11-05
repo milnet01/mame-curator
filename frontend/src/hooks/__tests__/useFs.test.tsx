@@ -17,6 +17,7 @@ vi.mock("sonner", () => ({
 }));
 
 import { toast } from "sonner";
+import { ERROR_TOAST } from "@/lib/apiErrorToast";
 
 // DS04 T3.1: vitest `globals: true` auto-cleanup handles RTL teardown;
 // only the mock-clear is load-bearing here.
@@ -67,6 +68,7 @@ describe("useFsGrantRoot onError → toast (FP13 § A3)", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       expect.stringContaining("not a valid directory"),
+      ERROR_TOAST,
     );
   });
 });

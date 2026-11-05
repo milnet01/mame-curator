@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 import { apiRequest } from "@/api/client";
 import {
@@ -9,6 +8,7 @@ import {
   type StatePostRequest,
   type StateView,
 } from "@/api/types";
+import { toastError } from "@/lib/apiErrorToast";
 import { strings } from "@/strings";
 import { useApiQuery } from "./useApi";
 
@@ -54,7 +54,7 @@ export function useReviewStateSet() {
     },
     onError: (_err, _body, ctx) => {
       if (ctx?.prev) qc.setQueryData(KEY, ctx.prev);
-      toast.error(strings.library.stateUpdateFailed);
+      toastError(strings.library.stateUpdateFailed);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
   });
@@ -86,7 +86,7 @@ export function useReviewStateClear() {
       },
       onError: (_err, _shortName, ctx) => {
         if (ctx?.prev) qc.setQueryData(KEY, ctx.prev);
-        toast.error(strings.library.stateUpdateFailed);
+        toastError(strings.library.stateUpdateFailed);
       },
       onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
     },

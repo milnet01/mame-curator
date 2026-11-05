@@ -15,6 +15,7 @@ import {
   makeGamesPage,
   renderLibraryPageTree,
 } from "./_libraryPageFixtures";
+import { ERROR_TOAST } from "@/lib/apiErrorToast";
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
@@ -59,7 +60,10 @@ describe("LibraryPage: saving a session", () => {
     );
     await user.click(screen.getByRole("button", { name: /^save$/i }));
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(strings.library.sessionNotSaved),
+      expect(toast.error).toHaveBeenCalledWith(
+        strings.library.sessionNotSaved,
+        ERROR_TOAST,
+      ),
     );
   });
 });

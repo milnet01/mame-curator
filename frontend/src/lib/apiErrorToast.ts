@@ -1,7 +1,23 @@
-import { toast } from "sonner";
+import { toast, type ExternalToast } from "sonner";
 
 import { ApiError } from "@/api/client";
 import { strings } from "@/strings";
+
+/**
+ * mame-curator-1190: an error stays until the user closes it. Sonner's
+ * default of four seconds is too short to read at large text, and the
+ * close button gives a keyboard user a way to dismiss it (Alt+T reaches
+ * the toasts, then Tab). Success and info toasts keep the default.
+ */
+export const ERROR_TOAST: ExternalToast = {
+  duration: Infinity,
+  closeButton: true,
+};
+
+/** Show an error toast that stays until closed. */
+export function toastError(title: string, options?: ExternalToast): void {
+  toast.error(title, { ...ERROR_TOAST, ...options });
+}
 
 /**
  * Render a thrown error from a react-query mutation as a user-visible toast.
@@ -32,6 +48,7 @@ import { strings } from "@/strings";
  * linger past its useful moment.
  */
 const DEDUP_WINDOW_MS = 1500;
+
 const lastSeen = new Map<string, number>();
 
 function shouldSkipDuplicate(key: string): boolean {
@@ -80,17 +97,17 @@ export function toastApiError(err: unknown): void {
   if (err instanceof ApiError) {
     if (err.code === "network") {
       if (shouldSkipDuplicate(`network::${err.detail}`)) return;
-      toast.error(strings.errors.networkTitle, {
+      toastError(strings.errors.networkTitle, {
         description: strings.errors.networkBody,
       });
       return;
     }
     if (shouldSkipDuplicate(`${err.code}::${err.detail}`)) return;
-    toast.error(apiErrorMessage(err));
+    toastError(apiErrorMessage(err));
     return;
   }
   // Non-ApiError: dedup on the generic key — same title for every
   // unmapped throw, so collapse the whole class to one toast per window.
   if (shouldSkipDuplicate("generic")) return;
-  toast.error(strings.errors.genericTitle);
+  toastError(strings.errors.genericTitle);
 }

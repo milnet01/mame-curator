@@ -1,6 +1,8 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ERROR_TOAST } from "@/lib/apiErrorToast";
+import { strings } from "@/strings";
 import { server, http, HttpResponse } from "@/test/handlers";
 import { renderWithClient as _renderWithClient } from "@/test/renderWithClient";
 import { useReviewStateClear, useReviewStateSet } from "../useReviewState";
@@ -60,7 +62,10 @@ describe("useReviewStateSet — optimistic update", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(qc.getQueryData(["reviewState"])).toEqual({ entries: {} });
-    expect(vi.mocked(toast.error)).toHaveBeenCalled();
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+      strings.library.stateUpdateFailed,
+      ERROR_TOAST,
+    );
   });
 });
 

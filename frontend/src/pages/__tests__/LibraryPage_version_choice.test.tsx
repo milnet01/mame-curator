@@ -34,6 +34,7 @@ import {
   renderLibraryPageTree,
 } from "./_libraryPageFixtures";
 import type { UseCartResult } from "@/hooks/useCart";
+import { ERROR_TOAST } from "@/lib/apiErrorToast";
 
 vi.mock("sonner", async (original) => ({
   ...(await original<typeof import("sonner")>()),
@@ -178,6 +179,7 @@ describe("choosing a version from a clone", () => {
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
         strings.errors.byCode.override_rejected,
+        ERROR_TOAST,
       ),
     );
     expect(toast.success).not.toHaveBeenCalled();

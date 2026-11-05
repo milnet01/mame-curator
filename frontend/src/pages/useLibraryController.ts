@@ -31,7 +31,7 @@ import { useValidateCart } from "@/hooks/useValidateCart";
 import { useConfig, useConfigPatch } from "@/hooks/useConfig";
 import { useSessions, useSessionUpsert } from "@/hooks/useSessions";
 import { useSetupCheck } from "@/hooks/useSetupCheck";
-import { toastApiError } from "@/lib/apiErrorToast";
+import { toastApiError, toastError } from "@/lib/apiErrorToast";
 import { copyOutcome } from "@/lib/copyOutcome";
 import { strings } from "@/strings";
 import { apiRequest } from "@/api/client";
@@ -256,7 +256,7 @@ export function useLibraryController(cart: UseCartResult) {
           // With no game list, every name is "missing" and none of them has
           // gone. Taking them out would empty the saved cart.
           if (setupRequired) {
-            toast.error(strings.errors.byCode.copy_setup_required);
+            toastError(strings.errors.byCode.copy_setup_required);
             return;
           }
           if (missing.length > 0) {
@@ -335,7 +335,7 @@ export function useLibraryController(cart: UseCartResult) {
 
   const handleSaveSession = (name: string) => {
     if (!config.data) {
-      toast.error(strings.library.sessionNotSaved);
+      toastError(strings.library.sessionNotSaved);
       return;
     }
     const session: Session = {

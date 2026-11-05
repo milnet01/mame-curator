@@ -5,6 +5,7 @@ import { strings } from "@/strings";
 import {
   _resetApiErrorToastDedupForTests,
   apiErrorMessage,
+  ERROR_TOAST,
   toastApiError,
 } from "../apiErrorToast";
 
@@ -72,7 +73,10 @@ describe("apiErrorMessage: a refused setting", () => {
       { loc: "paths.dest_roms", msg: "gone", type: "path_not_found" },
     ]);
     toastApiError(err);
-    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(apiErrorMessage(err));
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+      apiErrorMessage(err),
+      ERROR_TOAST,
+    );
   });
 });
 
@@ -86,6 +90,7 @@ describe("toastApiError", () => {
     );
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       expect.stringContaining("Session names must start"),
+      ERROR_TOAST,
     );
   });
 
@@ -96,7 +101,10 @@ describe("toastApiError", () => {
         500,
       ),
     );
-    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("detail-text");
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+      "detail-text",
+      ERROR_TOAST,
+    );
   });
 
   it('uses networkTitle + body for ApiError code "network"', () => {
@@ -113,6 +121,7 @@ describe("toastApiError", () => {
     toastApiError(new Error("boom"));
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       expect.stringContaining("Something went wrong"),
+      ERROR_TOAST,
     );
   });
 
