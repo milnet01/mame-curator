@@ -9,6 +9,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from mame_curator.api.errors import (
     CopyNamesUnknownError,
+    CopyNothingSelectedError,
     CopyReportCorruptError,
     CopySetupRequiredError,
     FieldError,
@@ -45,9 +46,12 @@ def _refuse_what_cannot_be_copied(body: CopyJobRequest, world: WorldState) -> No
 
     In setup mode nothing would, and a copy would rewrite the playlist with no
     entries, so that gets its own answer (`api/spec.md` § Copy job lifecycle).
+    An empty selection would do the same: OVERWRITE empties the playlist.
     """
     if world.setup_required:
         raise CopySetupRequiredError("no game list loaded yet, so nothing can be copied")
+    if not body.selected_names:
+        raise CopyNothingSelectedError("no games chosen, so nothing was copied")
     replaces = (d.replaces for d in body.append_decisions.values() if d.replaces is not None)
     unknown = sorted({n for n in (*body.selected_names, *replaces) if n not in world.machines})
     if unknown:

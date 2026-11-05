@@ -172,6 +172,7 @@ class vars). `install_handlers` registers three handlers:
 | `PlaylistUnreadableError` | `playlist_unreadable` | 409 |
 | `CopyNamesUnknownError` | `copy_names_unknown` | 422 |
 | `CopySetupRequiredError` | `copy_setup_required` | 409 |
+| `CopyNothingSelectedError` | `copy_nothing_selected` | 422 |
 | `SnapshotNotFoundError` | `snapshot_not_found` | 404 |
 | `SnapshotUnusableError` | `snapshot_unusable` | 422 |
 | `GameNotFoundError` | `game_not_found` | 404 |
@@ -281,7 +282,9 @@ be used.
   `Job` whose `id` the route returns as `JobAccepted`.
 - **Both copy routes check the request before anything else.** In setup mode
   they answer `CopySetupRequiredError` (409): there is no library to copy from,
-  and a copy would rewrite the playlist with nothing in it. Otherwise every name
+  and a copy would rewrite the playlist with nothing in it. An empty
+  `selected_names` answers `CopyNothingSelectedError` (422) for the same reason:
+  OVERWRITE would empty the playlist. Otherwise every name
   in `selected_names`, and every `append_decisions[*].replaces`, must be in
   `world.machines`. One that is not refuses the whole request with
   `CopyNamesUnknownError` (422), which names them in `fields[]` and starts no job.

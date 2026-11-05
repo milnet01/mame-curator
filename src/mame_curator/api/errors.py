@@ -148,6 +148,13 @@ class CopySetupRequiredError(ApiException):
     status_code = 409
 
 
+class CopyNothingSelectedError(ApiException):
+    """422 — a copy request names no games, which would only rewrite the playlist."""
+
+    code = "copy_nothing_selected"
+    status_code = 422
+
+
 class SnapshotUnusableError(ApiException):
     """422 — a snapshot would not load, so the files it replaced were put back."""
 

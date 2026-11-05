@@ -470,6 +470,8 @@ The CLI catches `CopyError` at the boundary and exits 1 with `error: ...` to std
 
 Exit codes (both modes): 0 on `OK`, 130 on `CANCELLED`, 3 on `CANCELLED_PLAYLIST_CONFLICT`, 1 otherwise.
 
+A filter report with no winners exits 1 before anything is written, in both modes: `--conflict overwrite` would otherwise empty `mame.lpl` (mame-curator-1182). The API refuses an empty selection the same way (`api/spec.md`).
+
 Required flags (both modes):
 
 - `--dat <path>` — the DAT (`.xml` or `.zip`).

@@ -155,3 +155,26 @@ def test_a_copy_in_setup_mode_is_refused_and_leaves_the_playlist(
     _wait_for_job(setup_client)
     assert setup_client.app.state.job.replayable is None
     assert playlist.read_bytes() == before
+
+
+# --- an empty selection (mame-curator-1182) -----------------------------------
+
+
+@pytest.mark.parametrize("route", _ROUTES)
+@pytest.mark.parametrize("strategy", ["OVERWRITE", "APPEND"])
+def test_an_empty_selection_is_refused_and_leaves_the_playlist(
+    client: Any, dest_dir: Path, route: str, strategy: str
+) -> None:
+    """Measured before the fix: OVERWRITE with no names answered 200 and
+    rewrote the playlist with nothing in it."""
+    playlist = dest_dir / "mame.lpl"
+    before = b'{"version": "1.5", "items": [{"path": "/roms/kept.zip", "label": "Kept"}]}'
+    playlist.write_bytes(before)
+
+    reply = client.post(route, json={"selected_names": [], "conflict_strategy": strategy})
+
+    assert reply.status_code == 422, reply.text
+    assert reply.json()["code"] == "copy_nothing_selected"
+    _wait_for_job(client)
+    assert client.app.state.job.replayable is None
+    assert playlist.read_bytes() == before

@@ -152,7 +152,8 @@ def _stub_inputs(tmp_path: Path) -> tuple[Path, Path, Path]:
     )
     fr = tmp_path / "filter-report.json"
     fr.write_text(
-        json.dumps({"winners": [], "dropped": [], "contested_groups": [], "warnings": []}),
+        # One winner: a report with none is refused before run_copy (mame-curator-1182).
+        json.dumps({"winners": ["x"], "dropped": [], "contested_groups": [], "warnings": []}),
         encoding="utf-8",
     )
     return dat, listxml, fr
@@ -299,3 +300,44 @@ def test_cmd_copy_purge_recycle_oserror_surfaces_clean(
     err = capsys.readouterr().err
     assert "error:" in err
     assert "Traceback" not in err
+
+
+@pytest.mark.parametrize("mode", ["--apply", "--dry-run"])
+def test_copy_cli_refuses_an_empty_winner_list_and_leaves_the_playlist(
+    tmp_path: Path, source_dir: Path, dest_dir: Path, mode: str
+) -> None:
+    """mame-curator-1182: a report with no winners must not empty mame.lpl."""
+    report_path = tmp_path / "filter-report.json"
+    _write_filter_report(report_path, ())
+    dat = tmp_path / "tiny.xml"
+    dat.write_text(
+        '<?xml version="1.0"?><mame>'
+        '<machine name="kof94"><description>KoF94</description></machine>'
+        "</mame>",
+        encoding="utf-8",
+    )
+    playlist = dest_dir / "mame.lpl"
+    before = b'{"version": "1.5", "items": [{"path": "/roms/kept.zip", "label": "Kept"}]}'
+    playlist.write_bytes(before)
+
+    args = build_parser().parse_args(
+        [
+            "copy",
+            mode,
+            "--dat",
+            str(dat),
+            "--listxml",
+            str(COPY_FIXTURES / "listxml_bios.xml"),
+            "--filter-report",
+            str(report_path),
+            "--source",
+            str(source_dir),
+            "--dest",
+            str(dest_dir),
+            "--conflict",
+            "overwrite",
+        ]
+    )
+
+    assert run(args) == 1
+    assert playlist.read_bytes() == before

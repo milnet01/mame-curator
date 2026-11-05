@@ -65,6 +65,13 @@ def _cmd_copy(args: argparse.Namespace) -> int:
         return 1
 
     winners = tuple(report_data.get("winners", ()))
+    if not winners:
+        # mame-curator-1182: with no winners, OVERWRITE would empty mame.lpl.
+        err_console.print(
+            f"[red]error:[/red] filter report {args.filter_report!r} lists no winners; "
+            "nothing to copy"
+        )
+        return 1
     plan = CopyPlan(
         winners=winners,
         machines={short: machines[short] for short in winners if short in machines},

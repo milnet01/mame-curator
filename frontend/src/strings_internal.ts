@@ -847,6 +847,7 @@ export const strings = {
         "Nothing was copied, because these are no longer in your library:",
       copy_setup_required:
         "Your game list is not loaded yet, so nothing can be copied. Finish setting up first.",
+      copy_nothing_selected: "Choose at least one game to copy.",
       snapshot_not_found: "No configuration snapshot with that ID.",
       snapshot_unusable:
         "That saved copy of your settings could not be used, so it was not restored. Your current settings are unchanged. Try a different one.",
