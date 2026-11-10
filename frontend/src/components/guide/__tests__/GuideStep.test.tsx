@@ -90,6 +90,24 @@ describe("GuideStep", () => {
     expect(screen.getByText("Step 1")).toBeInTheDocument();
   });
 
+  // mame-curator-1207: the counter sat beside the heading, so a screen reader
+  // arriving on the heading said the question but not the step.
+  it("reads the step out with the heading it focuses", () => {
+    render(<TwoSteps />);
+    expect(heading("First question")).toHaveAccessibleDescription("Step 1");
+  });
+
+  it("reads no step where there is none", () => {
+    render(
+      <MemoryRouter>
+        <GuideStep heading="Lone question">
+          <span />
+        </GuideStep>
+      </MemoryRouter>,
+    );
+    expect(heading("Lone question")).not.toHaveAttribute("aria-describedby");
+  });
+
   it("omits Back when no handler is given, and always offers the exit", () => {
     render(<TwoSteps />);
     expect(

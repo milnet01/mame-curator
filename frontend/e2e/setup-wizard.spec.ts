@@ -127,6 +127,9 @@ test("a new user reaches a Library with games, in three questions", async ({
   await expect(page).toHaveURL(/\/start$/);
   await expectFocusedHeading(page, "Where are your MAME games?");
   await expect(page.getByText("Step 1 of 3")).toBeVisible();
+  await expect(
+    heading(page, "Where are your MAME games?"),
+  ).toHaveAccessibleDescription("Step 1 of 3");
 
   // Step 1: the games are outside home, so the picker asks, then stays open.
   await page.getByRole("button", { name: "Choose a folder" }).click();

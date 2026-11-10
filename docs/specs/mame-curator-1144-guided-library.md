@@ -80,7 +80,7 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 </GuideStep>
 ```
 
-- It shows one `<h1>` heading, "Step N of M" as text, and one column of large actions no wider than `40rem`. M is 5 when "every game" skips a step and 6 otherwise. The first step shows "Step 1" alone, because M is not yet known.
+- It shows one `<h1>` heading, "Step N of M" as text, and one column of large actions no wider than `40rem`. M is 5 when "every game" skips a step and 6 otherwise. The first step shows "Step 1" alone, because M is not yet known. The heading is described by that text, so a screen reader arriving on it hears the step too (mame-curator-1207).
 - Every action is a `GuideAction`, at least `3rem` tall with a `text-xl` label.
 - On every step change, focus moves to the heading (`tabIndex={-1}`) on the next animation frame, including on Back. Source: https://ezud.com/accessible-multi-step-wizard-forms/
 - When a step's heading text changes, focus moves to a new heading element. Focusing an element that already has focus fires nothing, so a screen reader would not hear the result.

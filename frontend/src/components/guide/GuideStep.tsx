@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { GuideAction } from "./GuideAction";
 import { strings } from "@/strings";
 
@@ -36,6 +36,7 @@ export function GuideStep({
   children,
 }: GuideStepProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const counterId = useId();
 
   // INV-2: focus follows the step, so a magnifier or screen reader does too.
   // The next frame, because the new step's content has to be on screen first.
@@ -50,7 +51,7 @@ export function GuideStep({
       className="mx-auto flex w-full max-w-[40rem] flex-col gap-4 p-6"
     >
       {stepNumber !== undefined && (
-        <p className="text-lg text-muted-foreground">
+        <p id={counterId} className="text-lg text-muted-foreground">
           {strings.guide.stepOf(stepNumber, stepCount)}
         </p>
       )}
@@ -60,6 +61,8 @@ export function GuideStep({
         key={heading}
         ref={headingRef}
         tabIndex={-1}
+        // mame-curator-1207: read the step out with the question on arrival.
+        aria-describedby={stepNumber !== undefined ? counterId : undefined}
         className="text-3xl font-semibold"
       >
         {heading}
