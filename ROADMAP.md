@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1212 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1215 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3853,7 +3853,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1176-2026-11-05.
   Lanes: frontend.
 
-- 📋 [mame-curator-1205] **The focus ring cannot be seen on the green buttons and is weak elsewhere.**
+- ✅ [mame-curator-1205] **The focus ring cannot be seen on the green buttons and is weak elsewhere.**
   Magnifier, worst finding. The primary green buttons (Choose a folder,
   Yes use this folder, Use this folder, Choose a file) draw their focus
   ring in the same green as the fill; the button only grows 4px. Folder
@@ -3861,65 +3861,82 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   browser's 1px outline. Home, /, Up and Cancel get a 3px ring at 50%
   opacity. A focused step H1 shows no indicator (outline none). Want one
   strong, contrasting ring everywhere.
+  2026-11-10: fac3ab3, 64854bd. One 3px ring in the text colour, 2px
+  out, on every focused control and on a script-focused step heading.
   **Layman:** With a magnifier you cannot tell which button is selected when you press Tab.
   Kind: accessibility.
   Source: a11y-check-localwebservermanager-2026-11-05.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1206] **The folder dialog loses your place when you open a folder or cancel.**
+- ✅ [mame-curator-1206] **The folder dialog loses your place when you open a folder or cancel.**
   Opening a folder moves focus to the dialog container, so you Tab past
   Home, / and Up every time; the new path sits in a <code> with no live
   region. The dialog re-centres and jumps when its height changes.
   Cancel focuses the step H1, not the opener. At 320px the recent-path
   buttons wrap the path letter by letter.
+  2026-11-10: a6ed50a, 85cbc5d. Opening a folder focuses its first row
+  (or Up); the path is read out; the dialog stays near the top; Cancel
+  returns to the opener; paths wrap at /.
   **Layman:** Opening a folder in the picker sends you back to the top of the box, and Cancel does not return you to the button you pressed.
   Kind: accessibility.
   Source: a11y-check-localwebservermanager-2026-11-05.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1207] **The step counter is not read out with the question.**
+- ✅ [mame-curator-1207] **The step counter is not read out with the question.**
   "Step 1 of 3" sits outside the H1, so it is not read on arrival. In
   the /start guide the counter reads "Step 1", then "Step 2 of 5" or
   "of 6" depending on path.
+  2026-11-10: e645b97. The heading is described by its counter. The
+  /start guide's first step still says Step 1 with no total, as its spec
+  chose.
   **Layman:** A screen reader says the question but not "Step 1 of 3".
   Kind: accessibility.
   Source: a11y-check-localwebservermanager-2026-11-05.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1208] **Wizard step 2 opens the file picker at Home and accepts a broken game list.**
+- ✅ [mame-curator-1208] **Wizard step 2 opens the file picker at Home and accepts a broken game list.**
   The step 2 file picker should open at or near the folder chosen in
   step 1. A broken DAT is accepted at step 2 and refused only after Yes,
   finish setup on step 3, which bounces back to step 2; check it at
   step 2. The error message itself is well exposed.
+  2026-11-10: 39a8f4c. GET /api/setup/dat-check reads up to the first
+  machine; step 2 refuses a non-list at once; its picker opens in step
+  1's folder. Zip follow-up filed.
   **Layman:** The game-list picker starts far from your games folder, and a bad list is only refused at the last step.
   Kind: accessibility.
   Source: a11y-check-localwebservermanager-2026-11-05.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1209] **Look through them first leaves focus nowhere on the Library.**
+- ✅ [mame-curator-1209] **Look through them first leaves focus nowhere on the Library.**
   From /start, Look through them first opens the Library with focus on
   BODY. Focus the Library H1 instead.
+  2026-11-10: 62b8a90. Arriving from the guide focuses the Library
+  heading.
   **Layman:** After choosing to look through games first, the magnifier stays where it was and nothing is announced.
   Kind: accessibility.
   Source: a11y-check-localwebservermanager-2026-11-05.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1210] **At high zoom the page scrolls sideways and the wizard shows in a tiny box.**
+- ✅ [mame-curator-1210] **At high zoom the page scrolls sideways and the wizard shows in a tiny box.**
   At 320px (about 400% zoom) the page is 406px wide: the header search
   button (shrink-0 whitespace-nowrap) is 366px. At 640px with text size
   Largest it still overflows by 8px. At 320x400 the header is 245px tall
   and <main> is its own overflow:auto scroller, so about 155px of the
   wizard shows. Make the page scroll as a whole, or collapse the header
   when narrow.
+  2026-11-10: 165b0ea. Below 40rem wide or 30rem tall the page scrolls
+  as a whole; the search button shows its icon only. 320px: 406px wide
+  to 320px. Library leftovers filed.
   **Layman:** Zoomed right in, the right side of headings and buttons is cut off and only a small strip of the wizard is visible.
   Kind: accessibility.
   Source: a11y-check-localwebservermanager-2026-11-05.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1211] **Bring the guide's exit back while a copy is paused.**
+- ✅ [mame-curator-1211] **Bring the guide's exit back while a copy is paused.**
   User decision 2026-11-10, following mame-curator-1158: both pages now
   pick a running or paused copy back up (f298911), so the reason for
   hiding the exit while paused is gone.
+  2026-11-10: 965bf09.
   **Layman:** While a copy is paused, the guide shows its exit again, since leaving no longer loses the copy.
   Kind: ux.
   Source: user-2026-11-10.
@@ -3937,6 +3954,35 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: chore.
   Source: ci_report-2026-11-10.
   Lanes: ci.
+
+- 📋 [mame-curator-1213] **At 320px the Library's search box and cart buttons are wider than the window.**
+  Measured in headless Chrome while building mame-curator-1210: at 320px
+  the simple bar's search box and the cart bar's buttons make the page
+  358px wide.
+  **Layman:** Zoomed right in, the Library still scrolls sideways a little.
+  Kind: accessibility.
+  Source: build-mame-curator-1205-1211-2026-11-10.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1214] **The wizard's quick game-list check unpacks a zipped list in full.**
+  check_dat_start (mame-curator-1208) goes through _resolve_xml, which
+  extracts the whole .xml member to a temporary folder before reading up
+  to the first machine. Reading the member as a stream (ZipFile.open)
+  would keep the check quick for a .zip list. Same zip-slip and
+  one-member rules apply.
+  **Layman:** Checking a zipped game list at setup is slower than it needs to be.
+  Kind: perf.
+  Source: build-mame-curator-1205-1211-2026-11-10.
+  Lanes: parser.
+
+- 📋 [mame-curator-1215] **Spec 1144 still says a reload during a copy restarts the guide.**
+  docs/specs/mame-curator-1144-guided-library.md's edge case says the
+  guide restarts at the first step after a reload during a copy. Since
+  f298911 the guide takes up a running or paused copy instead.
+  **Layman:** The guide's design note describes old behaviour after a page reload.
+  Kind: doc-fix.
+  Source: build-mame-curator-1205-1211-2026-11-10.
+  Lanes: docs.
 
 ## Considered / under research (no target date)
 

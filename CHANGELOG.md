@@ -17,6 +17,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-10 Fixed — Easier to follow with a magnifier or screen reader
+
+- **Every button and link shows one strong focus ring** (mame-curator-1205)
+  A 3px ring in the text colour, set apart from the button, so the
+  selected control stands out on green buttons too.
+
+- **The folder picker keeps your place** (mame-curator-1206)
+  Opening a folder moves to its first entry and reads the new path out.
+  The box no longer jumps, and Cancel returns to the button you pressed.
+
+- **The step counter is read out with each question** (mame-curator-1207)
+
+- **Setup checks the game list on its own step** (mame-curator-1208)
+  A file that is not a game list is refused at once, and the picker
+  opens in your games folder instead of your home folder.
+
+- **Look through them first puts focus on the Library's heading** (mame-curator-1209)
+
+- **At high zoom the page no longer scrolls sideways** (mame-curator-1210)
+  On a small window the whole page scrolls, so the header no longer
+  fills the screen.
+
+- **The guide's exit shows while a copy is paused** (mame-curator-1211)
+
 ### 2026-11-05 Fixed — The keyboard keeps its place, and errors stay to be read (mame-curator-1160, 1161, 1176, 1190)
 
 Four fixes for anyone using the keyboard or large text.
