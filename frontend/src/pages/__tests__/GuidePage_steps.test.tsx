@@ -147,10 +147,13 @@ const press = async (user: UserEvent, name: string | RegExp) =>
   user.click(await screen.findByRole("button", { name }));
 /** mame-curator-1216: the button also says which answer is in use. */
 const keepCompilations = new RegExp(`^${g.compilations.no}`);
+/** mame-curator-1217: the fixture keeps every language, so this moves on. */
+const keepLanguages = new RegExp(`^${g.languages.keepAll}`);
 
 async function walkToCheck(user: UserEvent) {
   await press(user, g.which.everything);
   await press(user, keepCompilations);
+  await press(user, keepLanguages);
   await press(user, g.finds.copyThese);
   await press(user, g.where.yes);
   await heading(g.check.heading);
@@ -201,6 +204,11 @@ describe("GuidePage steps", () => {
     expectBack();
 
     await press(user, keepCompilations);
+    await heading(g.languages.heading);
+    expectExit();
+    expectBack();
+
+    await press(user, keepLanguages);
     await heading(/This finds 2 games/);
     expectExit();
     expectBack();
@@ -221,7 +229,7 @@ describe("GuidePage steps", () => {
     expect(screen.queryByRole("button", { name: g.back })).toBeNull();
   });
 
-  it("numbers the steps out of 6 for every game and out of 7 for a group", async () => {
+  it("numbers the steps out of 7 for every game and out of 8 for a group", async () => {
     useHandlers();
     const user = userEvent.setup();
     renderGuide();
@@ -230,20 +238,30 @@ describe("GuidePage steps", () => {
 
     await press(user, g.which.everything);
     await heading(g.compilations.heading);
-    expect(screen.getByText("Step 2 of 6")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 of 7")).toBeInTheDocument();
     await press(user, keepCompilations);
+    await heading(g.languages.heading);
+    expect(screen.getByText("Step 3 of 7")).toBeInTheDocument();
+    await press(user, keepLanguages);
     await heading(/This finds/);
-    expect(screen.getByText("Step 3 of 6")).toBeInTheDocument();
+    expect(screen.getByText("Step 4 of 7")).toBeInTheDocument();
 
-    // Back twice unchooses "every game", so a group counts its own step.
+    // Back to languages, then compilations, then past "every game", which
+    // unchooses it, so a group counts its own step.
     await press(user, g.back);
+    await heading(g.languages.heading);
+    await press(user, g.back);
+    await heading(g.compilations.heading);
     await press(user, g.back);
     await press(user, g.which.group);
     await heading(g.chooseGroup.heading);
-    expect(screen.getByText("Step 2 of 7")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 of 8")).toBeInTheDocument();
     await press(user, /Best of 1992/);
     await heading(g.compilations.heading);
-    expect(screen.getByText("Step 3 of 7")).toBeInTheDocument();
+    expect(screen.getByText("Step 3 of 8")).toBeInTheDocument();
+    await press(user, keepCompilations);
+    await heading(g.languages.heading);
+    expect(screen.getByText("Step 4 of 8")).toBeInTheDocument();
   });
 
   it("mame-curator-1216: hiding compilations saves the answer before counting", async () => {
@@ -256,6 +274,7 @@ describe("GuidePage steps", () => {
     expectBack();
 
     await press(user, new RegExp(`^${g.compilations.yes}`));
+    await press(user, keepLanguages);
     await heading(/This finds/);
     expect(seen.patches).toEqual([
       { filters: { ...appConfig.filters, drop_multigame: true } },
@@ -268,7 +287,9 @@ describe("GuidePage steps", () => {
     renderGuide();
     await press(user, g.which.everything);
     await press(user, keepCompilations);
+    await press(user, keepLanguages);
     await heading(/This finds 2 games/);
+    await press(user, g.back);
     await press(user, g.back);
     server.use(
       http.get("/api/games", () =>
@@ -284,7 +305,126 @@ describe("GuidePage steps", () => {
       ),
     );
     await press(user, new RegExp(`^${g.compilations.yes}`));
+    await press(user, keepLanguages);
     expect(await heading(/This finds 1 game,/)).toBeVisible();
+  });
+
+  it("mame-curator-1217: ticked languages are saved, in the list's order, before counting", async () => {
+    const seen = useHandlers();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, keepCompilations);
+    await heading(g.languages.heading);
+    expect(screen.getByText("Step 3 of 7")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: keepLanguages }),
+    ).toHaveTextContent(strings.guide.settings.inUse);
+
+    await press(user, /^Japanese/);
+    await press(user, /^English/);
+    expect(screen.getByRole("button", { name: /^English/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: /^English/ })).toHaveTextContent(
+      g.languages.chosen,
+    );
+    await press(user, g.languages.done);
+    await heading(/This finds/);
+    expect(seen.patches).toEqual([
+      {
+        filters: {
+          ...appConfig.filters,
+          keep_languages: ["English", "Japanese"],
+        },
+      },
+    ]);
+  });
+
+  it("mame-curator-1217: Keep every language saves an empty list", async () => {
+    const seen = useHandlers();
+    const kept = { ...appConfig.filters, keep_languages: ["English"] };
+    server.use(
+      http.get("/api/config", () =>
+        HttpResponse.json({ ...appConfig, filters: kept }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, keepCompilations);
+    await heading(g.languages.heading);
+    expect(
+      await screen.findByRole("button", { name: /^English/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await press(user, keepLanguages);
+    await heading(/This finds/);
+    expect(seen.patches).toEqual([
+      { filters: { ...kept, keep_languages: [] } },
+    ]);
+  });
+
+  it("mame-curator-1217: languages already in use move on without saving", async () => {
+    const seen = useHandlers();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, keepCompilations);
+    await screen.findByRole("button", { name: /^English/ });
+    await press(user, g.languages.done);
+    await heading(/This finds/);
+    expect(seen.patches).toEqual([]);
+  });
+
+  it("mame-curator-1217: saved languages count the games again", async () => {
+    useHandlers();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, keepCompilations);
+    await press(user, keepLanguages);
+    await heading(/This finds 2 games/);
+    await press(user, g.back);
+    server.use(
+      http.get("/api/games", () =>
+        HttpResponse.json({
+          items: [
+            makeGameCard({ short_name: "pacman", description: "Pac-Man" }),
+          ],
+          page: 1,
+          page_size: 500,
+          total: 1,
+          total_bytes: 1024 ** 3,
+        }),
+      ),
+    );
+    await press(user, /^English/);
+    await press(user, g.languages.done);
+    expect(await heading(/This finds 1 game,/)).toBeVisible();
+  });
+
+  it("mame-curator-1217: a failed language save stays on the step and says so", async () => {
+    useHandlers();
+    server.use(
+      http.patch("/api/config", () =>
+        HttpResponse.json(
+          { detail: "disk full", code: "boom", fields: [] },
+          { status: 500 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, keepCompilations);
+    await press(user, /^English/);
+    await press(user, g.languages.done);
+    expect(await screen.findByRole("alert")).toHaveTextContent("disk full");
+    expect(
+      screen.getByRole("heading", { name: g.languages.heading }),
+    ).toBeInTheDocument();
   });
 
   it("mame-curator-1216: an answer already in use moves on without saving", async () => {
@@ -293,6 +433,7 @@ describe("GuidePage steps", () => {
     renderGuide();
     await press(user, g.which.everything);
     await press(user, keepCompilations);
+    await press(user, keepLanguages);
     await heading(/This finds/);
     expect(seen.patches).toEqual([]);
   });
@@ -323,6 +464,7 @@ describe("GuidePage steps", () => {
     renderGuide();
     await press(user, g.which.everything);
     await press(user, keepCompilations);
+    await press(user, keepLanguages);
     expect(await heading("This finds 2 games, about 3.0 GB.")).toBeVisible();
   });
 
@@ -373,6 +515,7 @@ describe("GuidePage steps", () => {
     await press(user, g.which.group);
     await press(user, /Best of 1992/);
     await press(user, keepCompilations);
+    await press(user, keepLanguages);
     await press(user, g.finds.copyThese);
     await heading(g.where.heading);
 
@@ -403,6 +546,7 @@ describe("GuidePage steps", () => {
     await press(user, g.which.type);
     await press(user, "Maze");
     await press(user, keepCompilations);
+    await press(user, keepLanguages);
     await press(user, g.finds.lookThrough);
     const where = await screen.findByTestId("where");
     expect(where.textContent).toBe("/");
@@ -429,6 +573,7 @@ describe("GuidePage steps", () => {
     await press(user, g.which.type);
     await press(user, "Maze");
     await press(user, keepCompilations);
+    await press(user, keepLanguages);
     await heading(g.finds.heading(0, ""));
     expect(
       screen.queryByRole("button", { name: g.finds.copyThese }),
@@ -485,6 +630,7 @@ describe("GuidePage steps", () => {
       renderGuide();
       await press(user, g.which.everything);
       await press(user, keepCompilations);
+      await press(user, keepLanguages);
       await press(user, g.finds.copyThese);
       await press(user, g.where.yes);
 
@@ -504,6 +650,7 @@ describe("GuidePage steps", () => {
       renderGuide();
       await press(user, g.which.everything);
       await press(user, keepCompilations);
+      await press(user, keepLanguages);
       await heading(/This finds 2 games/);
       server.use(
         http.get("/api/games", () =>
@@ -518,7 +665,7 @@ describe("GuidePage steps", () => {
       const alert = await screen.findByRole("alert");
       expect(alert).toHaveTextContent(reason);
       await press(user, g.back);
-      await heading(g.compilations.heading);
+      await heading(g.languages.heading);
     });
 
     it.each([
@@ -546,6 +693,7 @@ describe("GuidePage steps", () => {
       renderGuide();
       await press(user, g.which.everything);
       await press(user, keepCompilations);
+      await press(user, keepLanguages);
       await press(user, g.finds.copyThese);
       await press(user, g.where.choose);
       await press(user, strings.settings.fsBrowserUseDirectory);
@@ -615,6 +763,7 @@ describe("GuidePage steps", () => {
       renderGuide();
       await press(user, g.which.everything);
       await press(user, keepCompilations);
+      await press(user, keepLanguages);
       await press(user, g.finds.copyThese);
       await press(user, g.where.yes);
 
@@ -679,6 +828,7 @@ describe("GuidePage steps", () => {
     renderGuide();
     await press(user, g.which.everything);
     await press(user, keepCompilations);
+    await press(user, keepLanguages);
     await press(user, g.finds.copyThese);
     await press(user, g.where.choose);
 

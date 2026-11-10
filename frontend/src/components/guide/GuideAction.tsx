@@ -14,6 +14,8 @@ interface GuideActionProps {
   busy?: boolean;
   /** The step's main action, drawn filled. */
   primary?: boolean;
+  /** A toggle's state, said as pressed or not (mame-curator-1217). */
+  pressed?: boolean;
 }
 
 /** The large action every guide step uses, here and in later wizards. */
@@ -25,6 +27,7 @@ export function GuideAction({
   disabled,
   busy,
   primary,
+  pressed,
 }: GuideActionProps) {
   const className = cn(
     "flex min-h-12 w-full items-center rounded-md border px-4 py-2 text-left text-xl",
@@ -33,6 +36,7 @@ export function GuideAction({
     primary
       ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
       : "bg-background hover:bg-muted",
+    pressed && "border-2 border-primary",
   );
   if (to !== undefined) {
     return (
@@ -47,6 +51,7 @@ export function GuideAction({
       onClick={busy ? undefined : onClick}
       disabled={disabled}
       aria-disabled={busy || undefined}
+      aria-pressed={pressed}
       className={className}
     >
       {children}

@@ -199,6 +199,7 @@ export interface FilterConfig {
   drop_chd_required: boolean;
   drop_mature: boolean;
   drop_multigame: boolean;
+  keep_languages: string[];
   region_priority: string[];
   preferred_genres: string[];
   preferred_publishers: string[];
@@ -304,6 +305,17 @@ export interface LibraryFacets {
   publishers: string[];
   developers: string[];
   letters: string[];
+}
+
+/** mame-curator-1217: one language languages.ini names, and its game count. */
+export interface LanguageChoice {
+  name: string;
+  games: number;
+}
+
+/** mame-curator-1217: GET /api/languages, most games first. */
+export interface LanguageChoices {
+  languages: LanguageChoice[];
 }
 
 /** FP19: outcome of POST /api/games/{name}/launch. */

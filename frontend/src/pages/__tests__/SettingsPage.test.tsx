@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { render as rtlRender, screen } from "@testing-library/react";
+import { render as rtlRender, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { SettingsPage } from "../SettingsPage";
 import type { AppConfigResponse } from "@/api/types";
@@ -69,6 +70,32 @@ describe("SettingsPage", () => {
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         filters: expect.objectContaining({ drop_multigame: true }),
+      }),
+    );
+  });
+
+  it("patches keep_languages from the Filters tab's language toggles (mame-curator-1217)", async () => {
+    const user = userEvent.setup();
+    const onPatch = vi.fn();
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    );
+    await user.click(screen.getByRole("tab", { name: /^Filters$/ }));
+    const group = screen.getByRole("group", {
+      name: strings.settings.keepLanguages.label,
+    });
+    const english = await within(group).findByRole("button", {
+      name: "English",
+    });
+    expect(english).toHaveAttribute("aria-pressed", "false");
+    await user.click(english);
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: expect.objectContaining({ keep_languages: ["English"] }),
       }),
     );
   });
@@ -387,24 +414,30 @@ describe("SettingsPage", () => {
       initialPath: string,
       onLocation: (s: string) => void = () => {},
     ) {
+      // mame-curator-1217: the Filters tab asks for the languages.
+      const qc = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
       return rtlRender(
-        <MemoryRouter initialEntries={[initialPath]}>
-          <Routes>
-            <Route
-              path="/settings"
-              element={
-                <>
-                  <LocationSpy onLocation={onLocation} />
-                  <SettingsPage
-                    config={config}
-                    onPatch={() => {}}
-                    onSnapshotRestore={() => {}}
-                  />
-                </>
-              }
-            />
-          </Routes>
-        </MemoryRouter>,
+        <QueryClientProvider client={qc}>
+          <MemoryRouter initialEntries={[initialPath]}>
+            <Routes>
+              <Route
+                path="/settings"
+                element={
+                  <>
+                    <LocationSpy onLocation={onLocation} />
+                    <SettingsPage
+                      config={config}
+                      onPatch={() => {}}
+                      onSnapshotRestore={() => {}}
+                    />
+                  </>
+                }
+              />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
       );
     }
 

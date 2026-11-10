@@ -44,6 +44,11 @@ async function keepCompilations(page: Page) {
   await page.getByRole("button", { name: /^No, keep them/ }).click();
 }
 
+/** mame-curator-1217: the step after compilations; the fixture keeps every language. */
+async function keepLanguages(page: Page) {
+  await page.getByRole("button", { name: /^Keep every language/ }).click();
+}
+
 test.describe("INV-6: a repeat copy", () => {
   test.use({ storageState: localStorageState({}) });
 
@@ -83,6 +88,7 @@ test.describe("INV-6: a repeat copy", () => {
       .getByRole("button", { name: "The best version of every game" })
       .click();
     await keepCompilations(page);
+    await keepLanguages(page);
     await page.getByRole("button", { name: "Copy these" }).click();
     await page.getByRole("button", { name: "Yes, copy here" }).click();
     await expect(
@@ -153,6 +159,7 @@ test.describe("the guide is honest and audible", () => {
       .getByRole("button", { name: "The best version of every game" })
       .click();
     await keepCompilations(page);
+    await keepLanguages(page);
     const counting = page.getByRole("heading", {
       name: "Counting the games…",
     });
@@ -173,9 +180,12 @@ test.describe("the guide is honest and audible", () => {
       .getByRole("button", { name: "The best version of every game" })
       .click();
     await keepCompilations(page);
+    await keepLanguages(page);
     await page.getByRole("button", { name: "Copy these" }).click();
     await page.getByRole("button", { name: "Back" }).click();
-    const previous = page.getByRole("heading", { name: "Hide compilations?" });
+    const previous = page.getByRole("heading", {
+      name: "Which languages can you read?",
+    });
     await expect(previous).toBeFocused();
 
     release();
@@ -228,6 +238,7 @@ test.describe("the guide is honest and audible", () => {
       .getByRole("button", { name: "The best version of every game" })
       .click();
     await keepCompilations(page);
+    await keepLanguages(page);
     await page.getByRole("button", { name: "Copy these" }).click();
     await page.getByRole("button", { name: "Yes, copy here" }).click();
     await expect(
@@ -431,18 +442,74 @@ test.describe("mame-curator-1216: Hide compilations?", () => {
     await expect(
       page.getByRole("heading", { name: "Hide compilations?" }),
     ).toBeFocused();
-    await expect(page.getByText("Step 2 of 6")).toBeVisible();
+    await expect(page.getByText("Step 2 of 7")).toBeVisible();
     await expect(
       page.getByRole("button", { name: /^No, keep them/ }),
     ).toContainText("In use now");
 
     await page.getByRole("button", { name: /^Yes, hide them/ }).click();
+    await keepLanguages(page);
 
     await expect(
       page.getByRole("heading", { name: /^This finds/ }),
     ).toBeFocused();
-    await expect(page.getByText("Step 3 of 6")).toBeVisible();
+    await expect(page.getByText("Step 4 of 7")).toBeVisible();
     const config = await (await request.get("/api/config")).json();
     expect(config.filters.drop_multigame).toBe(true);
+  });
+});
+
+test.describe("mame-curator-1217: Which languages can you read?", () => {
+  test.use({ storageState: localStorageState({ [SEEN]: "true" }) });
+
+  const fixtureConfig = path.resolve(e2eData, "../../config.yaml");
+  let original = "";
+
+  // The fixture has no languages.ini, so the list is empty; a kept language
+  // is set first, so "Keep every language" has something to save.
+  test.beforeEach(async ({ request }) => {
+    original = fs.readFileSync(fixtureConfig, "utf-8");
+    const config = await (await request.get("/api/config")).json();
+    await request.patch("/api/config", {
+      data: { filters: { ...config.filters, keep_languages: ["English"] } },
+    });
+  });
+
+  test.afterEach(async ({ request }) => {
+    const config = await (await request.get("/api/config")).json();
+    await request.patch("/api/config", {
+      data: { filters: { ...config.filters, keep_languages: [] } },
+    });
+    fs.writeFileSync(fixtureConfig, original);
+  });
+
+  test("Keep every language is saved, and the guide counts on", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/start");
+    await page
+      .getByRole("button", { name: "The best version of every game" })
+      .click();
+    await keepCompilations(page);
+    await expect(
+      page.getByRole("heading", { name: "Which languages can you read?" }),
+    ).toBeFocused();
+    await expect(page.getByText("Step 3 of 7")).toBeVisible();
+    await expect(
+      page.getByText("No languages are listed, so every language is kept."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Keep every language/ }),
+    ).not.toContainText("In use now");
+
+    await keepLanguages(page);
+
+    await expect(
+      page.getByRole("heading", { name: /^This finds/ }),
+    ).toBeFocused();
+    await expect(page.getByText("Step 4 of 7")).toBeVisible();
+    const config = await (await request.get("/api/config")).json();
+    expect(config.filters.keep_languages).toEqual([]);
   });
 });

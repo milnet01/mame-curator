@@ -157,6 +157,43 @@ describe("the Settings guide", () => {
     await heading(t.heading);
   });
 
+  it("leaves out compilations (mame-curator-1216)", async () => {
+    const patches = serve();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, t.topics.leaveOut);
+    const compilations = t.leaveOut.kinds.drop_multigame;
+    expect(await button(starting(compilations.name))).toHaveTextContent(
+      t.leaveOut.includedNow,
+    );
+    await press(user, starting(compilations.name));
+    await heading(t.leaveOut.question(compilations.inSentence));
+    await press(user, starting(t.leaveOut.yes));
+    await heading(t.leaveOut.leftOut(compilations.name));
+    expect(patches).toEqual([
+      { filters: { ...config.filters, drop_multigame: true } },
+    ]);
+  });
+
+  it("keeps only the languages ticked (mame-curator-1217)", async () => {
+    const patches = serve();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, t.topics.leaveOut);
+    const languages = t.leaveOut.languages;
+    expect(await button(starting(languages.name))).toHaveTextContent(
+      languages.everyNow,
+    );
+    await press(user, starting(languages.name));
+    await heading(strings.guide.languages.heading);
+    await press(user, starting("English"));
+    await press(user, strings.guide.languages.done);
+    await heading(languages.saved(["English"]));
+    expect(patches).toEqual([
+      { filters: { ...config.filters, keep_languages: ["English"] } },
+    ]);
+  });
+
   it("saves nothing when the choice is the setting in use", async () => {
     const patches = serve();
     const user = userEvent.setup();

@@ -267,3 +267,49 @@ def test_multigame_kept(category: str | None, cfg: FilterConfig) -> None:
     """mame-curator-1216: only the three catver shapes count, and only when on."""
     ctx = FilterContext(category={} if category is None else {"mg": category})
     assert drop_reason(m(name="mg"), ctx, cfg) is None
+
+
+@pytest.mark.parametrize(
+    ("langs", "keep"),
+    [
+        (("Spanish",), ("English",)),
+        (("German", "Italian"), ("English", "French")),
+        (("Japanese", "Chinese"), ("English",)),
+    ],
+    ids=["one_language", "none_of_several", "japanese_and_another"],
+)
+def test_keep_languages_dropped(langs: tuple[str, ...], keep: tuple[str, ...]) -> None:
+    """mame-curator-1217: a listed game with none of the chosen languages goes."""
+    ctx = FilterContext(languages={"x": langs})
+    assert drop_reason(m(name="x"), ctx, FilterConfig(keep_languages=keep)) is (
+        DroppedReason.LANGUAGE
+    )
+
+
+@pytest.mark.parametrize(
+    ("languages", "cfg"),
+    [
+        ({"x": ("Spanish",)}, FilterConfig()),
+        ({"x": ("Japanese", "English")}, FilterConfig(keep_languages=("English",))),
+        ({"x": ("French",)}, FilterConfig(keep_languages=("English", "French"))),
+        ({}, FilterConfig(keep_languages=("English",))),
+    ],
+    ids=["every_language_by_default", "one_chosen_of_several", "second_choice", "not_listed"],
+)
+def test_keep_languages_kept(languages: dict[str, tuple[str, ...]], cfg: FilterConfig) -> None:
+    """mame-curator-1217: kept when no list, a chosen language, or no languages.ini entry."""
+    ctx = FilterContext(languages=languages)
+    assert drop_reason(m(name="x"), ctx, cfg) is None
+
+
+def test_japanese_only_still_applies_beside_keep_languages() -> None:
+    """mame-curator-1217: drop_japanese_only_text still applies, and runs first."""
+    ctx = FilterContext(languages={"jp": ("Japanese",)})
+    assert (
+        drop_reason(m(name="jp"), ctx, FilterConfig(keep_languages=("Japanese",)))
+        is DroppedReason.JAPANESE_ONLY
+    )
+    assert (
+        drop_reason(m(name="jp"), ctx, FilterConfig(keep_languages=("English",)))
+        is DroppedReason.JAPANESE_ONLY
+    )

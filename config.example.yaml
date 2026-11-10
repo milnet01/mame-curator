@@ -35,6 +35,7 @@ filters:
   drop_preliminary_emulation: true
   drop_chd_required: true
   drop_multigame: false      # true leaves out boards holding several games (compilations)
+  keep_languages: []        # e.g. [English]; [] keeps every language. A game languages.ini does not list is kept
 
 picker:
   region_priority: [World, USA, Europe, Japan, Asia, Brazil]

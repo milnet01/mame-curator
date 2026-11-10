@@ -240,6 +240,7 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | PUT | `/api/games/{name}/picture` | `PictureChoiceView` | ✓ |
 | DELETE | `/api/games/{name}/picture` | `PictureChoiceView` | ✓ |
 | GET | `/api/library/facets` | `LibraryFacets` | |
+| GET | `/api/languages` (`routes/languages.py`) | `LanguageChoices` | |
 | GET | `/api/stats` | `Stats` | |
 | GET | `/api/state` | `StateView` | |
 | POST | `/api/state` | `StateView` | ✓ |
@@ -287,6 +288,12 @@ The three picture routes live in `routes/pictures.py`; their contract is
 source in `chain_for(kind)` (else 422 `media_source_unknown`) and fetches
 nothing. The choice is stored in `data/pictures.json` (`api/pictures.py`),
 loaded into `WorldState.pictures`, and carried on `GameCard.picture`.
+
+`GET /api/languages` lists each language languages.ini names, in its
+spelling, with the number of games it lists for it: most games first, ties
+by name (mame-curator-1217). It counts all of languages.ini, not the
+winners, so a language `filters.keep_languages` has left out can be chosen
+again. With no languages.ini it is empty.
 
 Route ordering note: `POST /api/sessions/_deactivate` is registered
 **before** the dynamic `POST /api/sessions/{name}/activate` so FastAPI

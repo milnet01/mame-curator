@@ -77,6 +77,16 @@ def _japanese_only(m: Machine, ctx: FilterContext, cfg: FilterConfig) -> Dropped
     return None
 
 
+def _language(m: Machine, ctx: FilterContext, cfg: FilterConfig) -> DroppedReason | None:
+    """mame-curator-1217: a game languages.ini does not list is kept."""
+    if not cfg.keep_languages:
+        return None
+    langs = ctx.languages.get(m.name)
+    if langs and not set(langs) & set(cfg.keep_languages):
+        return DroppedReason.LANGUAGE
+    return None
+
+
 def _preliminary(m: Machine, _c: FilterContext, cfg: FilterConfig) -> DroppedReason | None:
     if cfg.drop_preliminary_emulation and m.driver_status is DriverStatus.PRELIMINARY:
         return DroppedReason.PRELIMINARY_DRIVER
@@ -122,6 +132,7 @@ _PREDICATES: tuple[Callable[[Machine, FilterContext, FilterConfig], DroppedReaso
     _multigame,
     _mature,
     _japanese_only,
+    _language,
     _preliminary,
     _chd,
     _genre,

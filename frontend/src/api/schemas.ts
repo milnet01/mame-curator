@@ -270,6 +270,7 @@ export const FilterConfigSchema = z
     drop_chd_required: z.boolean(),
     drop_mature: z.boolean(),
     drop_multigame: z.boolean(),
+    keep_languages: z.array(z.string()),
     region_priority: z.array(z.string()),
     preferred_genres: z.array(z.string()),
     preferred_publishers: z.array(z.string()),
@@ -401,6 +402,14 @@ export const LibraryFacetsSchema = z
     publishers: z.array(z.string()),
     developers: z.array(z.string()),
     letters: z.array(z.string()),
+  })
+  .strict();
+
+export const LanguageChoicesSchema = z
+  .object({
+    languages: z.array(
+      z.object({ name: z.string(), games: z.number().int() }).strict(),
+    ),
   })
   .strict();
 

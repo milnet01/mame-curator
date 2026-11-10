@@ -14,6 +14,7 @@ def test_defaults_match_design_spec() -> None:
     assert cfg.drop_chd_required is True
     assert cfg.drop_mature is True
     assert cfg.drop_multigame is False
+    assert cfg.keep_languages == ()
     assert cfg.prefer_parent_over_clone is True
     assert cfg.prefer_good_driver is True
     assert cfg.region_priority == ("World", "USA", "Europe", "Japan", "Asia", "Brazil")

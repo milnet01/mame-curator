@@ -20,6 +20,7 @@ class DroppedReason(StrEnum):
     MULTIGAME = "multigame"
     MATURE = "mature"
     JAPANESE_ONLY = "japanese_only"
+    LANGUAGE = "language"
     PRELIMINARY_DRIVER = "preliminary_driver"
     CHD_REQUIRED = "chd_required"
     GENRE = "genre"

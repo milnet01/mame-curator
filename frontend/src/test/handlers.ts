@@ -23,6 +23,16 @@ export const baseHandlers: Parameters<typeof setupServer> = [
   // mame-curator-1158: every useCopySession asks on mount whether a copy is
   // still in flight; default to "none". Reconnect tests override it.
   http.get("/api/copy/current", () => HttpResponse.json(null)),
+  // mame-curator-1217: the Filters tab and the guide list the languages to
+  // keep; default to two. Tests that need others override it.
+  http.get("/api/languages", () =>
+    HttpResponse.json({
+      languages: [
+        { name: "English", games: 3 },
+        { name: "Japanese", games: 1 },
+      ],
+    }),
+  ),
 ];
 
 export const server = setupServer(...baseHandlers);

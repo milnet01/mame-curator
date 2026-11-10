@@ -1,17 +1,20 @@
 /**
  * mame-curator-1147 — which kinds of games the library leaves out: first
  * the kind, then yes or no. Only the switches whose effect is plain.
+ * mame-curator-1217: languages are a list, so they get their own screen.
  */
 import { useState } from "react";
 import { GuideAction } from "../GuideAction";
+import { LanguagePicker } from "../LanguagePicker";
 import { ChoiceLabel, SettingsStep, type TopicProps } from "./SettingsStep";
+import { sameLanguages } from "@/lib/languages";
 import { strings } from "@/strings";
 
 type Kind = keyof typeof strings.guide.settings.leaveOut.kinds;
 const KINDS = Object.keys(strings.guide.settings.leaveOut.kinds) as Kind[];
 
 export function LeaveOutTopic({ config, onChoose, onBack }: TopicProps) {
-  const [kind, setKind] = useState<Kind | null>(null);
+  const [kind, setKind] = useState<Kind | "languages" | null>(null);
   const filters = config.filters;
 
   if (kind === null) {
@@ -32,6 +35,38 @@ export function LeaveOutTopic({ config, onChoose, onBack }: TopicProps) {
             />
           </GuideAction>
         ))}
+        <GuideAction onClick={() => setKind("languages")}>
+          <ChoiceLabel
+            label={strings.guide.settings.leaveOut.languages.name}
+            mark={
+              filters.keep_languages.length === 0
+                ? strings.guide.settings.leaveOut.languages.everyNow
+                : strings.guide.settings.leaveOut.languages.onlyNow(
+                    filters.keep_languages,
+                  )
+            }
+          />
+        </GuideAction>
+      </SettingsStep>
+    );
+  }
+
+  if (kind === "languages") {
+    return (
+      <SettingsStep
+        heading={strings.guide.languages.heading}
+        onBack={() => setKind(null)}
+      >
+        <LanguagePicker
+          current={filters.keep_languages}
+          onSave={(next) =>
+            onChoose({
+              patch: { filters: { ...filters, keep_languages: next } },
+              saved: strings.guide.settings.leaveOut.languages.saved(next),
+              same: sameLanguages(next, filters.keep_languages),
+            })
+          }
+        />
       </SettingsStep>
     );
   }

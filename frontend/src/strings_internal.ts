@@ -433,6 +433,11 @@ export const strings = {
       drop_mature: "Drop mature content",
       drop_multigame: "Hide compilations (several games on one board)",
     },
+    /** mame-curator-1217: the languages to keep; none chosen keeps all. */
+    keepLanguages: {
+      label: "Languages you can read",
+      help: "Only games with text in a chosen language are kept. None chosen keeps every language. Games with no language listed are always kept.",
+    },
     /** FP12 § A — chip-list field labels (filters tab). */
     filterChipLists: {
       drop_categories: "Drop categories",

@@ -18,6 +18,10 @@ whose text is Japanese-only. Change these under **Settings → Filters**.
 **Hide compilations** leaves out boards that hold several games at once.
 It is off until you turn it on, in the guide or under **Settings → Filters**.
 
+**Languages you can read** keeps only games whose text is in a language
+you chose. A game with no language listed is kept. With none chosen,
+every language is kept. Set it in the guide or under **Settings → Filters**.
+
 If the library says "No games match your filters", try a different
 search or clear the filters. **More options** shows every filter.
 

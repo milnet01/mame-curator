@@ -127,3 +127,22 @@ class LibraryFacets(BaseModel):
     publishers: tuple[str, ...]
     developers: tuple[str, ...]
     letters: tuple[str, ...]
+
+
+class LanguageChoice(BaseModel):
+    """One language languages.ini names, and how many games it lists for it."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    name: str
+    games: int
+
+
+class LanguageChoices(BaseModel):
+    """mame-curator-1217: the languages ``filters.keep_languages`` can name.
+
+    Most games first, ties by name. Drawn from all of languages.ini, not the
+    winners, so a language the filter has left out can still be chosen again.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    languages: tuple[LanguageChoice, ...]

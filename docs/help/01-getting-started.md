@@ -38,6 +38,11 @@ After you choose which games, the guide asks **Hide compilations?**
 Compilations are boards that hold several games at once. Your answer is
 saved, and you can change it under **Settings → Filters**.
 
+Next it asks **Which languages can you read?** Choose one or more, then
+**Done**, or choose **Keep every language**. Games with text only in other
+languages are left out. Games with no language listed are kept. You can
+change this under **Settings → Filters** too.
+
 ## Text size
 
 The **Text size** box at the top of every page makes text larger or

@@ -25,6 +25,8 @@ class FilterConfig(BaseModel):
     drop_chd_required: bool = True
     drop_mature: bool = True
     drop_multigame: bool = False
+    # mame-curator-1217: empty keeps every language.
+    keep_languages: tuple[str, ...] = ()
 
     region_priority: tuple[str, ...] = ("World", "USA", "Europe", "Japan", "Asia", "Brazil")
     preferred_genres: tuple[str, ...] = ()

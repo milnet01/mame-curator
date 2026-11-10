@@ -1,7 +1,7 @@
 <!-- ants-spec-format: 1 -->
 # mame-curator-1144 — Guide a new or partially sighted user through choosing and copying games
 
-**Status:** shipped (2026-10-30); amended 2026-11-05 (mame-curator-1154: Check offers Start for games on the drive but not in the playlist; §4.4, INV-8, §6); amended 2026-11-10 (mame-curator-1156: simple view's walkthrough, view-button focus and search; text size keeps the place; §4.6, §4.7); amended 2026-11-10 (mame-curator-1216: a Compilations step after the group choice; §4.3, §4.4).
+**Status:** shipped (2026-10-30); amended 2026-11-05 (mame-curator-1154: Check offers Start for games on the drive but not in the playlist; §4.4, INV-8, §6); amended 2026-11-10 (mame-curator-1156: simple view's walkthrough, view-button focus and search; text size keeps the place; §4.6, §4.7); amended 2026-11-10 (mame-curator-1216: a Compilations step after the group choice; §4.3, §4.4); amended 2026-11-11 (mame-curator-1217: a Languages step after Compilations; §4.3, §4.4).
 **Kind:** accessibility.
 **Source:** ROADMAP mame-curator-1144 (user, 2026-10-30, on the Library page: "I am lost. I don't know where to begin.").
 
@@ -80,7 +80,7 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 </GuideStep>
 ```
 
-- It shows one `<h1>` heading, "Step N of M" as text, and one column of large actions no wider than `40rem`. M is 6 when "every game" skips a step and 7 otherwise. The first step shows "Step 1" alone, because M is not yet known. The heading is described by that text, so a screen reader arriving on it hears the step too (mame-curator-1207).
+- It shows one `<h1>` heading, "Step N of M" as text, and one column of large actions no wider than `40rem`. M is 7 when "every game" skips a step and 8 otherwise. The first step shows "Step 1" alone, because M is not yet known. The heading is described by that text, so a screen reader arriving on it hears the step too (mame-curator-1207).
 - Every action is a `GuideAction`, at least `3rem` tall with a `text-xl` label.
 - On every step change, focus moves to the heading (`tabIndex={-1}`) on the next animation frame, including on Back. Source: https://ezud.com/accessible-multi-step-wizard-forms/
 - When a step's heading text changes, focus moves to a new heading element. Focusing an element that already has focus fires nothing, so a screen reader would not hear the result.
@@ -96,6 +96,7 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 | Which games | "Which games would you like?" | "The best version of every game", "A ready-made group", "A type of game" |
 | Group or type | "Which group?" or "Which type?" | Tiles from `strings.library.featured.tiles`, or genres from `useFacets`. Skipped for "every game" |
 | Compilations | "Hide compilations?" | "Yes, hide them", "No, keep them"; the one in use is marked "In use now" |
+| Languages | "Which languages can you read?" | "Keep every language", marked "In use now" when no language is kept; one toggle per language from `GET /api/languages`, most games first; "Done" |
 | What that finds | "This finds N games, about X." | "Copy these", "Look through them first" |
 | Where | "Copy them here?" with `paths.dest_roms` as large text | "Yes, copy here", "Choose another folder" (`FsBrowser`) |
 | Check | Plain-language report from `POST /api/copy/dry-run` | "Start copying", or a reason it cannot start |
@@ -104,6 +105,8 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 N and X come from `GET /api/games` `total` and `total_bytes`. A guide query sends only the selection's own filters: a tile's year bounds where the tile's `query` names them, and no year filter otherwise. The Library's default year range never applies, so undated games are included (mame-curator-1150 is the Library's version of this).
 
 **Compilations** saves its answer as `filters.drop_multigame` through `useConfigPatch`, as Choose another folder saves its folder, because the server applies it in the filter (`filter/spec.md` Phase A). The group choice is different: it stays in the guide and is sent as `/api/games` parameters. An answer already in use moves on without saving. A save invalidates the `["games"]` queries, so the next step counts again. A save failure stays on the step and shows the reason in a `role="alert"` element. Back from this step goes to the group or type step, or, after "every game", to the first step and unchooses it (mame-curator-1216).
+
+**Languages** saves `filters.keep_languages` the same way, with the same rules: an answer already in use moves on without saving, a save invalidates the `["games"]` queries, and a failure stays on the step with a `role="alert"` element, shown above Done. Each language is a `GuideAction` toggle (`aria-pressed`) marked "Chosen" when ticked; it starts ticked when the config keeps it. Done saves the ticked languages in the list's order; "Keep every language" saves `[]`. Back goes to Compilations. The Settings guide's leave-out topic offers the same screen (mame-curator-1217).
 
 **Look through them first** navigates to `/` with the selection in router state. `useLibraryController` applies it once, as the first state of the freshly mounted page: a tile through `filtersForTile`, which `handleTileSelect` also uses, a genre by setting `filters.genre`, and everything by leaving `DEFAULT_FILTERS`. It then clears the route state, so a reload starts clean. Focus moves to the Library's heading, so a screen reader says where the user is (mame-curator-1209). Add all needs an active tile, so only the tile path offers it. The Library still applies its default year range (mame-curator-1150) and shows one page of 200, so it can list fewer than the guide's N. The guide ends there.
 

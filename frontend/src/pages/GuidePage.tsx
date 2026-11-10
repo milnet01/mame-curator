@@ -12,6 +12,7 @@ import {
   ChooseTypeStep,
 } from "@/components/guide/steps/ChooseGroupStep";
 import { CopyingStep } from "@/components/guide/steps/CopyingStep";
+import { LanguagesStep } from "@/components/guide/steps/LanguagesStep";
 import { SetupWizard } from "@/components/guide/steps/SetupWizard";
 import { WhatThatFindsStep } from "@/components/guide/steps/WhatThatFindsStep";
 import { WhereStep } from "@/components/guide/steps/WhereStep";
@@ -25,19 +26,27 @@ import { strings } from "@/strings";
 import type { CopyJobRequest } from "@/api/types";
 
 type Step =
-  "which" | "group" | "type" | "compilations" | "finds" | "where" | "check";
+  | "which"
+  | "group"
+  | "type"
+  | "compilations"
+  | "languages"
+  | "finds"
+  | "where"
+  | "check";
 
 /** "Every game" skips the group step, which moves every later step up one. */
 function stepNumbers(selection: GuideSelection | null) {
   const skipped = selection?.kind === "everything" ? 1 : 0;
   return {
-    stepCount: 7 - skipped,
+    stepCount: 8 - skipped,
     group: 2,
     compilations: 3 - skipped,
-    finds: 4 - skipped,
-    where: 5 - skipped,
-    check: 6 - skipped,
-    copying: 7 - skipped,
+    languages: 4 - skipped,
+    finds: 5 - skipped,
+    where: 6 - skipped,
+    check: 7 - skipped,
+    copying: 8 - skipped,
   };
 }
 
@@ -126,6 +135,16 @@ function GuideSteps() {
           stepNumber={numbers.compilations}
           stepCount={numbers.stepCount}
           onBack={backFromCompilations}
+          onNext={() => setStep("languages")}
+        />
+      );
+    // mame-curator-1217: after compilations, before the count.
+    case "languages":
+      return (
+        <LanguagesStep
+          stepNumber={numbers.languages}
+          stepCount={numbers.stepCount}
+          onBack={() => setStep("compilations")}
           onNext={() => setStep("finds")}
         />
       );
@@ -135,7 +154,7 @@ function GuideSteps() {
           selection={selection ?? { kind: "everything" }}
           stepNumber={numbers.finds}
           stepCount={numbers.stepCount}
-          onBack={() => setStep("compilations")}
+          onBack={() => setStep("languages")}
           onNames={(found) => {
             setNames(found);
             setStep("where");

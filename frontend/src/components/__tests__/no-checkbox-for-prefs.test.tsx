@@ -54,6 +54,7 @@ const config: AppConfigResponse = {
     drop_chd_required: true,
     drop_mature: true,
     drop_multigame: false,
+    keep_languages: [],
     region_priority: [],
     preferred_genres: [],
     preferred_publishers: [],

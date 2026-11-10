@@ -1,5 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { ChipListEditor } from "@/components/settings/ChipListEditor";
+import { LanguagesField } from "@/components/settings/LanguagesField";
 import { YearRangeEditor } from "@/components/settings/YearRangeEditor";
 import { PrefSwitch } from "@/components/settings/PrefSwitch";
 import { strings } from "@/strings";
@@ -64,6 +65,10 @@ export function FiltersTab({
         label={strings.settings.filterLabels.drop_multigame}
         checked={filters.drop_multigame}
         onChange={(v) => onChange("drop_multigame", v)}
+      />
+      <LanguagesField
+        value={filters.keep_languages}
+        onChange={(v) => onChange("keep_languages", v)}
       />
       <YearRangeEditor
         before={filters.drop_year_before}

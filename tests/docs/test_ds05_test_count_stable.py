@@ -402,7 +402,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # off, a version choice over it, and Backup carrying it. 1208 → 1212.
 # Bumped 2026-11-10 (mame-curator-1220): the four sectioned INI parsers
 # read the real progettoSnaps format. 1212 → 1220.
-EXPECTED_PYTEST_DECLARATIONS = 1220
+# Bumped 2026-11-11 (mame-curator-1217): the languages to keep, their
+# list route, a version choice over the drop, and Backup carrying it.
+# 1220 → 1227.
+EXPECTED_PYTEST_DECLARATIONS = 1227
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -583,7 +586,10 @@ EXPECTED_PYTEST_DECLARATIONS = 1220
 # copy's skipped and failed games. 740 → 743.
 # Bumped 2026-11-10 (mame-curator-1216): the guide's "Hide compilations?"
 # step and the Filters tab switch. 743 → 748.
-EXPECTED_VITEST_DECLARATIONS = 748
+# Bumped 2026-11-11 (mame-curator-1217): the guide's "Which languages can
+# you read?" step, the Filters tab toggles and the Settings guide's
+# compilations and languages. 748 → 756.
+EXPECTED_VITEST_DECLARATIONS = 756
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

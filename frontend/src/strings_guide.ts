@@ -70,6 +70,15 @@ export const guideStrings = {
     yes: "Yes, hide them",
     no: "No, keep them",
   },
+  /** mame-curator-1217: keep only games whose text is in a chosen language. */
+  languages: {
+    heading: "Which languages can you read?",
+    help: "Choose one or more, then Done. Games with text only in other languages are left out. Games with no language listed are kept.",
+    chosen: "Chosen",
+    done: "Done",
+    keepAll: "Keep every language",
+    none: "No languages are listed, so every language is kept.",
+  },
   finds: {
     heading: (n: number, size: string) =>
       n === 0

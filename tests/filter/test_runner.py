@@ -147,6 +147,22 @@ def test_override_wins_over_a_multigame_drop(
     assert "pacmanf" not in dict(chosen.dropped)
 
 
+def test_override_wins_over_a_language_drop(
+    sample: tuple[dict[str, Machine], FilterContext],
+) -> None:
+    """mame-curator-1217: a version the user chose stays, whatever its language."""
+    machines, ctx = sample
+    ctx = ctx.model_copy(update={"languages": {**ctx.languages, "pacmanf": ("Spanish",)}})
+    cfg = FilterConfig(keep_languages=("English",))
+
+    dropped = run_filter(machines, ctx, cfg, o(), Sessions())
+    assert dict(dropped.dropped)["pacmanf"] is DroppedReason.LANGUAGE
+
+    chosen = run_filter(machines, ctx, cfg, o(pacman="pacmanf"), Sessions())
+    assert "pacmanf" in chosen.winners
+    assert "pacmanf" not in dict(chosen.dropped)
+
+
 def test_override_keyed_by_a_clone_of_a_fully_dropped_family_still_warns(
     sample: tuple[dict[str, Machine], FilterContext],
 ) -> None:

@@ -56,3 +56,19 @@ def test_backup_carries_drop_multigame(client: Any) -> None:
     client.patch("/api/config", json={"filters": {**filters, "drop_multigame": False}})
     assert client.post("/api/config/import", json=bundle).status_code == 200
     assert client.get("/api/config").json()["filters"]["drop_multigame"] is True
+
+
+def test_backup_carries_keep_languages(client: Any) -> None:
+    """mame-curator-1217: the chosen languages are config, so Backup keeps them."""
+    filters = client.get("/api/config").json()["filters"]
+    assert filters["keep_languages"] == []
+    english = {**filters, "keep_languages": ["English"]}
+    saved = client.patch("/api/config", json={"filters": english})
+    assert saved.json()["filters"]["keep_languages"] == ["English"]
+
+    bundle = client.post("/api/config/export").json()
+    assert bundle["config"]["filters"]["keep_languages"] == ["English"]
+
+    client.patch("/api/config", json={"filters": {**filters, "keep_languages": []}})
+    assert client.post("/api/config/import", json=bundle).status_code == 200
+    assert client.get("/api/config").json()["filters"]["keep_languages"] == ["English"]

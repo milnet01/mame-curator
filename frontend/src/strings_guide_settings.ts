@@ -69,6 +69,21 @@ export const settingsGuideStrings = {
         inSentence: "BIOS files, devices and mechanical machines",
         help: "BIOS files and devices are parts other games use. Mechanical machines have real moving parts.",
       },
+      drop_multigame: {
+        name: "Compilations",
+        inSentence: "compilations",
+        help: "Boards that hold several games at once.",
+      },
+    },
+    /** mame-curator-1217: a list, not yes or no, so it has its own screen. */
+    languages: {
+      name: "Games in languages you cannot read",
+      everyNow: "Every language is kept now",
+      onlyNow: (names: string[]) => `Only ${names.join(", ")} now`,
+      saved: (names: string[]) =>
+        names.length === 0
+          ? "Games in every language are now in your library."
+          : `Only games in ${names.join(", ")} are now in your library.`,
     },
   },
   region: {

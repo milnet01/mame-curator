@@ -12,6 +12,7 @@ from mame_curator.api.routes import (
     curate,
     fs,
     games,
+    languages,
     media,
     pictures,
     stubs,
@@ -24,6 +25,7 @@ from mame_curator.api.routes import (
 
 router = APIRouter()
 router.include_router(games.router)
+router.include_router(languages.router)
 router.include_router(curate.router)
 router.include_router(config.router)
 router.include_router(backup.router)

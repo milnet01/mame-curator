@@ -429,6 +429,7 @@ filters:
   drop_preliminary_emulation: true
   drop_chd_required: true
   drop_multigame: false      # catver MultiGame / Multiplay / Multi-Games boards
+  keep_languages: []        # languages.ini names; [] = every language, unlisted games kept
 
 picker:
   region_priority: [World, USA, Europe, Japan, Asia, Brazil]

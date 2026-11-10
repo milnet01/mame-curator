@@ -29,13 +29,14 @@ Each rule is a small predicate `(machine, ctx, config) -> bool`. Predicates are 
 | 5 | `MULTIGAME` | `config.drop_multigame` (default `False`) and `ctx.category[name]` starts with `MultiGame` or `Multiplay`, or contains `/ Multi-Games` (mame-curator-1216). These are catver's names for a board holding several games. A game with no category is kept. |
 | 6 | `MATURE` | `name in ctx.mature` and `config.drop_mature` (default `True`). Membership is the sole signal — `mature.ini` is the authoritative list. The `Mature*` category prefix is independent and reaches Phase A rule 4 via `drop_categories` (which by default includes `"Mature*"` per `config.example.yaml`). |
 | 7 | `JAPANESE_ONLY` | `ctx.languages[name] == ("Japanese",)` and `config.drop_japanese_only_text` (note: `ctx.languages` is `dict[str, tuple[str, ...]]`, hence the tuple equality) |
-| 8 | `PRELIMINARY_DRIVER` | `machine.driver_status is DriverStatus.PRELIMINARY` and `config.drop_preliminary_emulation` |
-| 9 | `CHD_REQUIRED` | `name in ctx.chd_required` and `config.drop_chd_required` |
-| 10 | `GENRE` | derived genre matches any `config.drop_genres` pattern (genre = part after last `/` in category) |
-| 11 | `PUBLISHER` | `machine.publisher` matches any `config.drop_publishers` pattern |
-| 12 | `DEVELOPER` | `machine.developer` matches any `config.drop_developers` pattern |
-| 13 | `YEAR_BEFORE` | `machine.year is not None` and `machine.year < config.drop_year_before` |
-| 14 | `YEAR_AFTER` | `machine.year is not None` and `machine.year > config.drop_year_after` |
+| 8 | `LANGUAGE` | `config.keep_languages` is not empty, `ctx.languages[name]` lists at least one language, and none of them is in `config.keep_languages` (exact spelling, as languages.ini names it). The default `()` keeps every language. A game languages.ini does not list is kept, as many have no text to read (mame-curator-1217). Rule 7 still applies first. |
+| 9 | `PRELIMINARY_DRIVER` | `machine.driver_status is DriverStatus.PRELIMINARY` and `config.drop_preliminary_emulation` |
+| 10 | `CHD_REQUIRED` | `name in ctx.chd_required` and `config.drop_chd_required` |
+| 11 | `GENRE` | derived genre matches any `config.drop_genres` pattern (genre = part after last `/` in category) |
+| 12 | `PUBLISHER` | `machine.publisher` matches any `config.drop_publishers` pattern |
+| 13 | `DEVELOPER` | `machine.developer` matches any `config.drop_developers` pattern |
+| 14 | `YEAR_BEFORE` | `machine.year is not None` and `machine.year < config.drop_year_before` |
+| 15 | `YEAR_AFTER` | `machine.year is not None` and `machine.year > config.drop_year_after` |
 
 Patterns use `fnmatch.fnmatchcase()` (case-sensitive glob: `*` matches any sequence, `?` any single char, `[abc]` character class). `None` values for `publisher`/`developer`/`year` never match.
 
@@ -173,6 +174,7 @@ class FilterConfig(BaseModel):
     drop_chd_required: bool = True
     drop_mature: bool = True
     drop_multigame: bool = False
+    keep_languages: tuple[str, ...] = ()   # mame-curator-1217: () keeps every language
 
     # picker: section
     region_priority: tuple[str, ...] = ("World", "USA", "Europe", "Japan", "Asia", "Brazil")
