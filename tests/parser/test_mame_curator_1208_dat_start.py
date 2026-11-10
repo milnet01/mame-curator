@@ -68,3 +68,70 @@ def test_reads_no_further_than_the_first_machine(tmp_path: Path) -> None:
 
 def test_is_public() -> None:
     assert "check_dat_start" in parser.__all__
+
+
+# ---- a zipped list is read as a stream (mame-curator-1214) -------------------
+
+
+def _zip_of(tmp_path: Path, members: dict[str, bytes]) -> Path:
+    zipped = tmp_path / "mame.zip"
+    with zipfile.ZipFile(zipped, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for name, data in members.items():
+            zf.writestr(name, data)
+    return zipped
+
+
+def test_a_zipped_list_is_not_unpacked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The check reads the zip's member as it goes; it writes no copy of it."""
+
+    def _no_extract(*_args: object, **_kwargs: object) -> str:
+        raise AssertionError("check_dat_start unpacked the zip")
+
+    monkeypatch.setattr(zipfile.ZipFile, "extract", _no_extract)
+    check_dat_start(_zip_of(tmp_path, {"mame.xml": (FIXTURES / "mini.dat.xml").read_bytes()}))
+
+
+def test_a_zipped_list_whose_data_will_not_unpack_is_refused(tmp_path: Path) -> None:
+    """Corrupt compressed data surfaces as DATError, not zlib.error."""
+    zipped = _zip_of(tmp_path, {"mame.xml": (FIXTURES / "mini.dat.xml").read_bytes()})
+    with zipfile.ZipFile(zipped) as zf:
+        info = zf.infolist()[0]
+    raw = bytearray(zipped.read_bytes())
+    name_len = int.from_bytes(raw[info.header_offset + 26 : info.header_offset + 28], "little")
+    extra_len = int.from_bytes(raw[info.header_offset + 28 : info.header_offset + 30], "little")
+    data_start = info.header_offset + 30 + name_len + extra_len
+    raw[data_start : data_start + 16] = b"\xff" * 16
+    zipped.write_bytes(bytes(raw))
+
+    with pytest.raises(DATError, match="corrupt"):
+        check_dat_start(zipped)
+
+
+@pytest.mark.parametrize(
+    ("members", "message"),
+    [
+        ({"a.xml": b"<datafile/>", "b.xml": b"<datafile/>"}, "multiple"),
+        ({"readme.txt": b"hi"}, "zero"),
+        ({"../escape.xml": b"<datafile/>"}, "escape"),
+    ],
+)
+def test_a_zipped_list_keeps_the_zip_rules(
+    tmp_path: Path, members: dict[str, bytes], message: str
+) -> None:
+    with pytest.raises(DATError, match=message):
+        check_dat_start(_zip_of(tmp_path, members))
+
+
+def test_a_zipped_list_with_an_unsupported_method_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Deflate64 or an encrypted member: zipfile refuses to open it."""
+    zipped = _zip_of(tmp_path, {"mame.xml": (FIXTURES / "mini.dat.xml").read_bytes()})
+
+    def _refuse(*_args: object, **_kwargs: object) -> object:
+        raise NotImplementedError("That compression method is not supported")
+
+    monkeypatch.setattr(zipfile.ZipFile, "open", _refuse)
+    monkeypatch.setattr(zipfile.ZipFile, "extract", _refuse)
+    with pytest.raises(DATError, match="not supported"):
+        check_dat_start(zipped)

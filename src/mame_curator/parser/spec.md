@@ -84,6 +84,7 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 
 - Raises `DATError` unless the file starts as a MAME DAT: its first `<machine>` must read as `parse_dat` reads it. `.xml` or `.zip`, with the same zip defences and `HARDENED_ITERPARSE_KWARGS`.
 - Reads only up to the first machine, so it answers at once on the real DAT. A fault further on passes here and is left to `parse_dat` (mame-curator-1208, the setup wizard's list step).
+- Reads a `.zip`'s member as a stream and never unpacks it (mame-curator-1214). The member rules match `parse_dat`'s: one `.xml` member, no zip-slip name, the size cap. A corrupt member body, an unsupported compression method or an encrypted member raises `DATError`.
 
 ### `parse_catver(path: Path) -> dict[str, str]`
 

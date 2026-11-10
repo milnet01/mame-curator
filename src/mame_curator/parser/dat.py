@@ -14,7 +14,7 @@ import zlib
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 # bandit B410: lxml is used with the hardened iterparse kwargs in
 # HARDENED_ITERPARSE_KWARGS below (resolve_entities=False blocks Billion
@@ -43,6 +43,12 @@ logger = logging.getLogger(__name__)
 # central-dir-declared decompressed size. Reading file_size is
 # metadata-only; the cap fires before any payload is decompressed.
 _MAX_DAT_BYTES = 256 * 1024 * 1024
+
+
+# A zip member's body is corrupt: a stored member fails the CRC check
+# (BadZipFile); a deflated one, the usual case, fails in the decompressor
+# (zlib.error) or ends early (EOFError).
+_MEMBER_CORRUPT_ERRORS = (zipfile.BadZipFile, zlib.error, EOFError, lzma.LZMAError)
 
 
 # FP20-A: every ``etree.iterparse`` call site passes these kwargs directly.
@@ -77,37 +83,55 @@ def check_dat_start(path: Path) -> None:
     read as ``parse_dat`` reads it, so the setup wizard can refuse another
     file at once. A fault further on is left to ``parse_dat``.
     """
-    # The file is opened here, not by iterparse, so stopping early closes it
-    # before a zip's temporary folder is removed (Windows refuses an open file).
-    with _resolve_xml(path) as xml_path:
-        try:
-            with xml_path.open("rb") as stream:
-                for _event, elem in etree.iterparse(
-                    stream, events=("end",), tag="machine", **HARDENED_ITERPARSE_KWARGS
-                ):
-                    _machine_from_element(elem, set())
-                    return
-        except etree.XMLSyntaxError as exc:
-            raise DATError(f"XML parse failed: {exc}", path=xml_path) from exc
-        except ValidationError as exc:
-            raise DATError(f"first machine is not valid: {exc}", path=xml_path) from exc
-        except OSError as exc:
-            raise DATError(f"failed to read DAT XML: {exc}", path=xml_path) from exc
+    try:
+        with _open_dat_stream(path) as stream:
+            for _event, elem in etree.iterparse(
+                stream, events=("end",), tag="machine", **HARDENED_ITERPARSE_KWARGS
+            ):
+                _machine_from_element(elem, set())
+                return
+    except etree.XMLSyntaxError as exc:
+        raise DATError(f"XML parse failed: {exc}", path=path) from exc
+    except ValidationError as exc:
+        raise DATError(f"first machine is not valid: {exc}", path=path) from exc
+    except _MEMBER_CORRUPT_ERRORS as exc:
+        raise DATError(f"DAT zip member is corrupt: {exc}", path=path) from exc
+    except OSError as exc:
+        raise DATError(f"failed to read DAT XML: {exc}", path=path) from exc
     raise DATError("DAT contained no <machine> elements", path=path)
 
 
 @contextmanager
-def _resolve_xml(path: Path) -> Iterator[Path]:
-    """Yield a Path to the actual XML, extracting from .zip if needed."""
+def _open_dat_stream(path: Path) -> Iterator[IO[bytes]]:
+    """Yield the DAT's XML as a byte stream; a ``.zip``'s member is read, not unpacked.
+
+    mame-curator-1214: the quick check stops at the first machine, so unpacking
+    the whole member first would cost the time the check exists to save.
+    """
     if path.suffix.lower() != ".zip":
-        yield path
+        with path.open("rb") as file:
+            yield file
         return
-    # Open + cleanup are split so the consumer's `with _resolve_xml(...)`
-    # body can raise without that exception being captured by the open's
-    # `except` clauses. The `try/finally` after a successful open binds
-    # `zf.close()` to the next bytecode boundary, eliminating the fd-leak
-    # window the prior `zip_ctx = ZipFile(path); with zip_ctx as zf:` pattern
-    # had between assignment and `__enter__` (FP04 A2).
+    with _open_dat_zip(path) as (zf, info):
+        try:
+            stream = zf.open(info)
+        except (NotImplementedError, RuntimeError) as exc:
+            # An unsupported compression method such as Deflate64, or an
+            # encrypted member: zipfile refuses at open.
+            raise DATError(f"DAT zip member could not be read: {exc!r}", path=path) from exc
+        with stream:
+            yield stream
+
+
+@contextmanager
+def _open_dat_zip(path: Path) -> Iterator[tuple[zipfile.ZipFile, zipfile.ZipInfo]]:
+    """Open a DAT ``.zip`` and yield its one ``.xml`` member, past every zip defence."""
+    # Open + cleanup are split so the consumer's `with` body can raise without
+    # that exception being captured by the open's `except` clauses. The
+    # `try/finally` after a successful open binds `zf.close()` to the next
+    # bytecode boundary, eliminating the fd-leak window the prior
+    # `zip_ctx = ZipFile(path); with zip_ctx as zf:` pattern had between
+    # assignment and `__enter__` (FP04 A2).
     try:
         zf = zipfile.ZipFile(path)
     except zipfile.BadZipFile as exc:
@@ -148,25 +172,28 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
                 f"exceeds size cap {_MAX_DAT_BYTES} (zip-bomb defence)",
                 path=path,
             )
-        with tempfile.TemporaryDirectory() as tmp:
-            try:
-                extracted = zf.extract(member, path=tmp)
-            except (zipfile.BadZipFile, zlib.error, EOFError, lzma.LZMAError) as exc:
-                # Central directory parsed fine but the member body is
-                # corrupt. A stored member fails the CRC check
-                # (BadZipFile); a deflated one, the usual case, fails in
-                # the decompressor (zlib.error) or ends early (EOFError).
-                raise DATError(f"DAT zip member is corrupt: {exc}", path=path) from exc
-            except (NotImplementedError, RuntimeError, OSError) as exc:
-                # An unsupported compression method such as Deflate64
-                # (NotImplementedError), an encrypted member (RuntimeError),
-                # a corrupt bzip2 stream or a full disk (OSError).
-                raise DATError(
-                    f"DAT zip member could not be extracted: {exc!r}", path=path
-                ) from exc
-            yield Path(extracted)
+        yield zf, info
     finally:
         zf.close()
+
+
+@contextmanager
+def _resolve_xml(path: Path) -> Iterator[Path]:
+    """Yield a Path to the actual XML, extracting from .zip if needed."""
+    if path.suffix.lower() != ".zip":
+        yield path
+        return
+    with _open_dat_zip(path) as (zf, info), tempfile.TemporaryDirectory() as tmp:
+        try:
+            extracted = zf.extract(info, path=tmp)
+        except _MEMBER_CORRUPT_ERRORS as exc:
+            raise DATError(f"DAT zip member is corrupt: {exc}", path=path) from exc
+        except (NotImplementedError, RuntimeError, OSError) as exc:
+            # An unsupported compression method such as Deflate64
+            # (NotImplementedError), an encrypted member (RuntimeError),
+            # a corrupt bzip2 stream or a full disk (OSError).
+            raise DATError(f"DAT zip member could not be extracted: {exc!r}", path=path) from exc
+        yield Path(extracted)
 
 
 def _stream_machines(xml_path: Path) -> dict[str, Machine]:
