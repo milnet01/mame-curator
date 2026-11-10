@@ -288,7 +288,7 @@ POST   /api/setup/state                 advance / set wizard step
 # Filesystem browser (used by wizard "Browse..." buttons)
 GET    /api/fs/list?path=...            sandboxed directory listing
 GET    /api/fs/home                     user's home dir resolved
-GET    /api/fs/roots                    available drive roots (Windows: C:/D:/...; *nix: /)
+GET    /api/fs/roots                    available drive roots (Windows: C:/D:/...; Linux: mounted drives; macOS: /Volumes/*)
 
 # Updates
 GET    /api/updates/check               new app version? new INI files?

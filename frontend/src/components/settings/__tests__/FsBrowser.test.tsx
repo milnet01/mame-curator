@@ -433,7 +433,7 @@ describe("FsBrowser (FP12 § G)", () => {
       await screen.findByRole("button", { name: "Allow /etc" }),
     ).toHaveClass("text-xl", "min-h-12");
     expect(
-      screen.getByText(strings.settings.fsGrantConfirm("/etc")),
+      screen.getByText(strings.settings.fsGrantConfirm("/etc", "folder")),
     ).toHaveClass("text-xl");
   });
 
@@ -972,5 +972,46 @@ describe("FsBrowser (FP12 § G)", () => {
       // Large text grows rem padding; a narrow window keeps it small.
       expect(screen.getByRole("dialog")).toHaveClass("p-3", "sm:p-6");
     });
+  });
+});
+
+// mame-curator-1170: the picker offers each mounted drive, so allowing one
+// covers that drive, not the whole disk. The prompt says how wide, and that
+// the app remembers.
+describe("FsBrowser: allowing a drive", () => {
+  it("pressing a listed drive asks to allow that drive only, and says it is kept", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get("/api/fs/roots", () =>
+        HttpResponse.json({ roots: ["/mnt/games"] }),
+      ),
+    );
+    renderWithClient(
+      <FsBrowser open onOpenChange={() => {}} onPick={() => {}} />,
+    );
+    await user.click(await screen.findByRole("button", { name: "/mnt/games" }));
+    const prompt = await screen.findByRole("alertdialog");
+    expect(prompt).toHaveTextContent(/this drive only/);
+    expect(prompt).toHaveTextContent(/remembers/);
+    expect(
+      screen.getByText(strings.settings.fsGrantConfirm("/mnt/games", "drive")),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Allow /mnt/games" }),
+    ).toBeInTheDocument();
+  });
+
+  it("a folder that is not a drive is allowed with the folders inside it", async () => {
+    renderWithClient(
+      <FsBrowser
+        open
+        onOpenChange={() => {}}
+        onPick={() => {}}
+        initialPath="/etc"
+      />,
+    );
+    const prompt = await screen.findByRole("alertdialog");
+    expect(prompt).toHaveTextContent(/this folder and the folders inside it/);
+    expect(prompt).toHaveTextContent(/remembers/);
   });
 });

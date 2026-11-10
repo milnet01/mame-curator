@@ -683,8 +683,11 @@ export const strings = {
     /** FP13 § D4 — accessible name for the per-row Browse button. */
     fsBrowseAriaLabel: (target: string) => `Browse for ${target}`,
     fsGrantTitle: "Allow MAME Curator to look here?",
-    fsGrantConfirm: (path: string) =>
-      `MAME Curator is not yet allowed to look in ${path}. Allow it?`,
+    /** mame-curator-1170: says how wide the grant is, and that it is kept. */
+    fsGrantConfirm: (path: string, kind: "drive" | "folder") =>
+      kind === "drive"
+        ? `MAME Curator cannot look on the drive ${path} yet. If you allow it, the app can see this drive only, not the rest of your computer. The app remembers this, so it will not ask again.`
+        : `MAME Curator cannot look in ${path} yet. If you allow it, the app can see this folder and the folders inside it, and nothing else. The app remembers this, so it will not ask again.`,
     fsGrantActionLabel: (path: string) => `Allow ${path}`,
   },
 

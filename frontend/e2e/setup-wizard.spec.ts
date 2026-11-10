@@ -39,7 +39,9 @@ async function serverIsUp() {
 }
 
 test.beforeAll(async () => {
-  root = fs.mkdtempSync(path.join(os.tmpdir(), "mame-curator-wizard-"));
+  // Not named after the app: the picker shows this folder as a drive, and a
+  // check below finds no button naming the app's own folders.
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "wizard-run-"));
   const home = path.join(root, "home");
   fs.mkdirSync(path.join(home, "copied"), { recursive: true });
   // Outside the home folder, so reaching them walks the picker's grant.
@@ -101,8 +103,11 @@ test("a new user reaches a Library with games, in three questions", async ({
   page,
 }) => {
   test.setTimeout(120_000);
-  // From the filesystem's top, as the picker's drive button starts there.
-  const toRoot = root.split(path.sep).filter(Boolean);
+  // mame-curator-1170: the picker lists mounted drives, which a temporary
+  // folder is not, so this run's folder stands in for the games drive.
+  await page.route("**/api/fs/roots", (route) =>
+    route.fulfill({ json: { roots: [root] } }),
+  );
 
   // Every alert the page ever shows, however briefly: a screen reader can speak
   // one that never reaches a frame.
@@ -152,10 +157,10 @@ test("a new user reaches a Library with games, in three questions", async ({
   await expect(
     dialog.getByRole("button", { name: "copied folder" }),
   ).toBeVisible();
-  await dialog.getByRole("button", { name: "/", exact: true }).click();
-  await page.getByRole("button", { name: "Allow /" }).click();
+  await dialog.getByRole("button", { name: root, exact: true }).click();
+  await page.getByRole("button", { name: `Allow ${root}` }).click();
   await expect(dialog.getByText("Choose a folder")).toBeVisible();
-  await openFolders(page, [...toRoot, "games"]);
+  await openFolders(page, ["games"]);
   await dialog.getByRole("button", { name: "Use this folder" }).click();
   await expectFocusedHeading(page, "Use this folder for your games?");
   await expect(
@@ -193,9 +198,9 @@ test("a new user reaches a Library with games, in three questions", async ({
   );
   await page
     .getByRole("dialog")
-    .getByRole("button", { name: "/", exact: true })
+    .getByRole("button", { name: root, exact: true })
     .click();
-  await openFolders(page, [...toRoot, "lists"]);
+  await openFolders(page, ["lists"]);
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "notes.xml" })
@@ -209,9 +214,9 @@ test("a new user reaches a Library with games, in three questions", async ({
   await page.getByRole("button", { name: "Choose a file" }).click();
   await page
     .getByRole("dialog")
-    .getByRole("button", { name: "/", exact: true })
+    .getByRole("button", { name: root, exact: true })
     .click();
-  await openFolders(page, [...toRoot, "lists"]);
+  await openFolders(page, ["lists"]);
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "mini.dat.xml" })

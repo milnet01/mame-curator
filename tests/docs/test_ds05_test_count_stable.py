@@ -376,7 +376,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # GET /api/setup/dat-check. 1125 → 1136.
 # Bumped 2026-11-10 (mame-curator-1155): a saved Grouped layout loads as
 # Masonry. 1136 → 1139.
-EXPECTED_PYTEST_DECLARATIONS = 1139
+# Bumped 2026-11-10 (mame-curator-1170): the picker lists mounted drives,
+# never /. 1139 → 1143.
+EXPECTED_PYTEST_DECLARATIONS = 1143
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -534,7 +536,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1139
 # Bumped 2026-11-10 (mame-curator-1156): simple view's walkthrough, view
 # button focus and search; a session saves what is on screen; text size keeps
 # the place. 698 → 705.
-EXPECTED_VITEST_DECLARATIONS = 705
+# Bumped 2026-11-10 (mame-curator-1170): the grant prompt says how wide and
+# that it is kept. 705 → 707.
+EXPECTED_VITEST_DECLARATIONS = 707
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

@@ -106,7 +106,7 @@ for (const window of WINDOWS) {
         const dialog = page.getByRole("alertdialog");
         await fits(page, dialog, [
           dialog.getByRole("heading"),
-          dialog.getByText("is not yet allowed"),
+          dialog.getByText("cannot look in"),
           dialog.getByRole("button", { name: "Cancel" }),
           dialog.getByRole("button", { name: /^Allow / }),
         ]);

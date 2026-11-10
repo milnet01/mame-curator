@@ -120,12 +120,13 @@ def test_fs_list_sandboxed(client: Any, tmp_path: Path) -> None:
 
 
 def test_fs_roots_per_platform(client: Any) -> None:
-    """L13 — Linux returns ('/'); Windows returns drive letters."""
+    """L13 — Linux and macOS list mounted drives, never '/' (mame-curator-1170); Windows letters."""
     response = client.get("/api/fs/roots")
     assert response.status_code == 200
     roots = response.json()["roots"]
     if os.name == "posix":
-        assert "/" in roots
+        assert "/" not in roots
+        assert all(Path(r).is_dir() for r in roots)
     elif os.name == "nt":
         assert any(r.endswith(":\\") or r.endswith(":") for r in roots)
 

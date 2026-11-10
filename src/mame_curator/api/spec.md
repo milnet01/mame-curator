@@ -389,8 +389,19 @@ All FS browsing crosses `api/fs.py`:
   JSON, is left out. A file whose date the clock cannot express stays, dated
   1970. `FsEntry.hidden` is true for a name starting with a dot, Windows' hidden
   attribute or macOS's hidden flag.
+- **Drive roots** (`GET /api/fs/roots`, `os_drive_roots`) are informational:
+  access is still gated by the allowlist. Windows lists its drive letters.
+  Linux lists the mount points in `/proc/mounts` that are existing directories,
+  leaving out pseudo filesystems, loop devices, `/`, `/home` and the system's
+  own mounts (`/boot`, `/dev`, `/opt`, `/proc`, `/run` except `/run/media`,
+  `/srv`, `/sys`, `/usr`, `/var` and the like); with no `/proc/mounts`, as on
+  macOS, the folders in `/Volumes` other than the system disk. `/` is never
+  listed, so pressing a drive and allowing it grants that drive, not the whole
+  disk (mame-curator-1170).
 - **Grant** (`POST /api/fs/allowed-roots`) adds a `granted` root; a path
-  already covered by an existing root → `FsAlreadyCoveredError` (409).
+  already covered by an existing root → `FsAlreadyCoveredError` (409). The
+  picker's prompt says the grant is remembered, and whether it covers one
+  drive or one folder and the folders inside it.
 - **Revoke** (`DELETE /api/fs/allowed-roots/{root_id}`) removes a `granted`
   root; an unknown id → `FsRootNotFoundError` (404); a `config`-derived root
   is **not revocable** via the API → `FsConfigRootNotRevocableError` (400)

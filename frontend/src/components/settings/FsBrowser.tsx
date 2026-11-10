@@ -184,7 +184,10 @@ export function FsBrowser({
           if (!o && !granting.current) onOpenChange(false);
         }}
         title={strings.settings.fsGrantTitle}
-        description={strings.settings.fsGrantConfirm(sandboxBlocked)}
+        description={strings.settings.fsGrantConfirm(
+          sandboxBlocked,
+          driveRoots.data?.roots.includes(sandboxBlocked) ? "drive" : "folder",
+        )}
         actionLabel={strings.settings.fsGrantActionLabel(sandboxBlocked)}
         busy={grant.isPending}
         onConfirm={() => {

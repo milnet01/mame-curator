@@ -9,6 +9,7 @@ import contextlib
 import hashlib
 import logging
 import os
+import re
 import string
 from pathlib import Path
 
@@ -116,8 +117,77 @@ def validate_fs_path(
     return requested
 
 
+_PROC_MOUNTS = Path("/proc/mounts")
+_VOLUMES = Path("/Volumes")
+
+# Filesystems that hold no user files.
+_PSEUDO_FS = frozenset(
+    {
+        "autofs", "binfmt_misc", "bpf", "cgroup", "cgroup2", "configfs", "debugfs",
+        "devpts", "devtmpfs", "efivarfs", "fuse.gvfsd-fuse", "fuse.portal", "fusectl",
+        "hugetlbfs", "mqueue", "nsfs", "overlay", "proc", "pstore", "ramfs",
+        "rpc_pipefs", "securityfs", "selinuxfs", "squashfs", "sysfs", "tmpfs", "tracefs",
+    }
+)  # fmt: skip
+# The system's own mounts. Granting one would let the app see system files.
+_SYSTEM_PREFIXES = (
+    "/.snapshots", "/bin", "/boot", "/dev", "/etc", "/lib", "/lib64", "/opt",
+    "/proc", "/root", "/run", "/sbin", "/snap", "/srv", "/sys", "/usr", "/var",
+)  # fmt: skip
+# Each of these covers far more than one drive.
+_TOO_WIDE = frozenset({"/", "/home"})
+
+
+def _unescape_mount(field: str) -> str:
+    r"""``/proc/mounts`` writes a space as ``\040``, a tab as ``\011``, and so on."""
+    return re.sub(r"\\([0-7]{3})", lambda m: chr(int(m.group(1), 8)), field)
+
+
+def _is_system_mount(point: str) -> bool:
+    if point.startswith("/run/media/"):  # Where udisks mounts a USB drive.
+        return False
+    return point in _TOO_WIDE or any(
+        point == p or point.startswith(p + "/") for p in _SYSTEM_PREFIXES
+    )
+
+
+def mount_roots(mounts_text: str) -> tuple[str, ...]:
+    """The user's drives in a ``/proc/mounts`` text, first mention first.
+
+    mame-curator-1170: offered instead of ``/``, so a grant covers one drive.
+    """
+    roots: list[str] = []
+    for line in mounts_text.splitlines():
+        fields = line.split()
+        if len(fields) < 3:
+            continue
+        source, point, fstype = fields[0], _unescape_mount(fields[1]), fields[2]
+        if fstype in _PSEUDO_FS or source.startswith("/dev/loop"):  # A loop is a snap.
+            continue
+        if _is_system_mount(point) or point in roots:
+            continue
+        roots.append(point)
+    return tuple(roots)
+
+
+def _posix_drive_roots() -> tuple[str, ...]:
+    try:
+        candidates = mount_roots(_PROC_MOUNTS.read_text(encoding="utf-8", errors="replace"))
+    except OSError:  # No /proc: macOS mounts each drive under /Volumes.
+        try:
+            candidates = tuple(
+                str(p) for p in sorted(_VOLUMES.iterdir()) if p.resolve() != Path("/")
+            )
+        except OSError:
+            return ()
+    return tuple(p for p in candidates if Path(p).is_dir())
+
+
 def os_drive_roots() -> tuple[str, ...]:
-    """OS drive/mount roots for the Browse picker (informational only)."""
+    """OS drive/mount roots for the Browse picker (informational only).
+
+    Windows: the drive letters. Elsewhere: the mounted drives, never ``/``.
+    """
     if os.name == "nt":
         roots: list[str] = []
         # Python 3.12+ exposes os.listdrives() on Windows.
@@ -131,4 +201,4 @@ def os_drive_roots() -> tuple[str, ...]:
                 if p.exists():
                     roots.append(str(p))
         return tuple(roots)
-    return ("/",)
+    return _posix_drive_roots()
