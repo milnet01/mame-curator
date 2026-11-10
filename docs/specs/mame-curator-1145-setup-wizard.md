@@ -159,8 +159,8 @@ Its strings change for every caller, to plain words:
   *Breaks when:* the no-op return fires in setup mode.
 
 - **INV-4** — A failure elsewhere in the retry leaves the save kept and the app in setup mode, not a 500. A file that is not valid UTF-8 is such a failure. An unexpected failure still leaves the running config matching the saved file.
-  *Test:* `tests/api/test_setup_mode.py::test_setup_save_survives_other_unreadable_input`, with one PATCH naming a readable DAT and a missing `paths.catver` (a bad listxml no longer fails the retry, mame-curator-1168); `tests/api/test_setup_save.py` for undecodable files and for the running config.
-  *Breaks when:* `retry_setup` lets a `ParserError` from an INI escape, a loader lets `UnicodeDecodeError` escape, or `set_world` runs only after the retry.
+  *Test:* `tests/api/test_setup_mode.py::test_setup_save_survives_other_unreadable_input`, with a malformed `overrides.yaml` and one PATCH naming a readable DAT (a bad listxml or reference INI no longer fails the retry, mame-curator-1168 and mame-curator-1200); `tests/api/test_setup_save.py` for undecodable files and for the running config.
+  *Breaks when:* `retry_setup` lets a `FilterError` from the overrides escape, a loader lets `UnicodeDecodeError` escape, or `set_world` runs only after the retry.
 
 - **INV-5** — The retry does not run on the event loop, so other requests are answered during a long read.
   *Test:* `tests/api/test_setup_mode.py::test_setup_retry_runs_off_the_event_loop`, patching `build_world` with a recorder that compares its thread with the loop's.
@@ -219,8 +219,9 @@ Its strings change for every caller, to plain words:
 - **The user closes the page during the read:** the server finishes the save. On the next load, setup mode is already over.
 - **The user leaves the wizard during the read,** by the page's other links: the server finishes the save and the wizard's answers are gone. If the list was good, setup mode is over when they return to `/start`, and the hook has already refreshed. If it was not, they get no message, because the wizard that would say it has closed: they return to step 1 with nothing filled in and answer again. Their other answers are saved, and the wizard does not offer them.
 - **The setup check fails after a good save, or a refresh takes over 30 seconds:** the query keeps its old answer, so the wizard stays. It then shows `strings.guide.loadFailed` on step 3, and pressing the action again is safe: the server has nothing to change, so the reply says `setup_ended` false, and the wizard repeats the refresh. A check that lands after the 30 seconds still moves the user on.
-- **Another input fails during the retry:** an INI or overrides file that went bad after the server started. INV-4 keeps the save and §4.1 asks for a restart. The wizard shows §4.3's sentence, which then blames the wrong file, and the next start fails. A new user cannot reach this, because neither the starter config nor the wizard names those files. §9 keeps the repair out of scope.
+- **Another input fails during the retry:** an overrides file that went bad after the server started. INV-4 keeps the save and §4.1 asks for a restart. The wizard shows §4.3's sentence, which then blames the wrong file, and the next start fails. A new user cannot reach this, because neither the starter config nor the wizard names those files. §9 keeps the repair out of scope.
 - **The listxml is missing or will not parse:** since mame-curator-1168, `build_world` skips it with a WARNING, so the retry and the next start both succeed without its clone data (`src/mame_curator/api/spec.md`, `build_world`).
+- **A reference INI is missing or cannot be read:** since mame-curator-1200, `build_world` skips it the same way, so the retry and the next start both succeed without its data.
 - **A second tab is open:** its own queries catch up when they next refetch. Nothing else depends on it.
 - **A copy is running:** setup mode has no games, so no copy can be.
 
@@ -256,7 +257,7 @@ Each new test must be seen to fail before its code exists. `frontend/e2e` runs b
 - Making a new folder from the picker — deferred; not yet queued.
 - Asking for the optional reference files or `paths.listxml` — deferred; not yet queued. The Library's existing `ListxmlBanner` says what they add.
 - Changing the DAT outside setup mode, which still needs a restart (1095 §4.2b) — deferred; not yet queued.
-- Refusing a save whose reference INI will not parse, or starting when one is bad — deferred; not yet queued. A bad `paths.listxml` is skipped at startup since mame-curator-1168.
+- Refusing a save whose reference INI or `paths.listxml` will not read — not planned: a bad listxml is skipped at startup since mame-curator-1168, and a bad reference INI since mame-curator-1200.
 - Removing `mame-curator setup`, which `cli/spec.md` says the browser wizard replaces — it stays for scripts.
 
 ## 10. What checks this

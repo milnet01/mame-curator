@@ -86,7 +86,14 @@ readable at startup.
   `cloneof_map`, `bios_chain` and `chd_required`, as if none were set, so a
   bad listxml saved through Settings no longer stops the next start
   (mame-curator-1168). The Library's listxml banner then says the file could
-  not be read or lists no clone games.
+  not be read or lists no clone games, under the title "MAME listxml gave no
+  clone data" (mame-curator-1200).
+  A reference INI (`catver`, `languages`, `bestgames`, `mature`, `series`)
+  that raises `INIError` (missing or cannot be read) is skipped the same way:
+  `ini_context_fields(..., skip_unreadable=True)` logs a WARNING naming the
+  path and gives that INI's empty default (mame-curator-1200). The INI
+  refresh preview leaves `skip_unreadable` off, so it still reports
+  `ini_parse_failed`.
   `dat_stamp` holds the DAT's path, mtime and size, taken before the parse,
   when it parsed. `GET /api/setup/check` answers `dat_parses` from it while
   the file is unchanged, and otherwise from the last probe of the same

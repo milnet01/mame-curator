@@ -168,19 +168,17 @@ def test_setup_save_same_path_rereads_dat(
 
 
 def test_setup_save_survives_other_unreadable_input(
-    setup_mode_client: Any, mini_dat: Path, tmp_path: Path
+    setup_mode_client: Any, mini_dat: Path, config_file: Path
 ) -> None:
-    """mame-curator-1145 INV-4 — a bad reference file during the retry is not a 500.
+    """mame-curator-1145 INV-4 — a bad input file during the retry is not a 500.
 
-    A bad catver INI, since mame-curator-1168 made a bad listxml skipped
-    rather than failing the read.
+    A malformed overrides.yaml, since a bad listxml (mame-curator-1168) and a
+    bad reference INI (mame-curator-1200) are now skipped rather than failing
+    the read.
     """
-    missing_catver = tmp_path / "missing-catver.ini"
+    (config_file.parent / "overrides.yaml").write_text("overrides: [not, a, mapping]\n")
 
-    response = setup_mode_client.patch(
-        "/api/config",
-        json={"paths": {"source_dat": str(mini_dat), "catver": str(missing_catver)}},
-    )
+    response = setup_mode_client.patch("/api/config", json={"paths": {"source_dat": str(mini_dat)}})
 
     assert response.status_code == 200, response.text
     assert response.json()["restart_required"] is True

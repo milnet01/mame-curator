@@ -389,7 +389,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # emptied, and a clone key there still warns. 1182 → 1184.
 # Bumped 2026-11-10 (mame-curator-1214): check_dat_start reads a zip as a
 # stream, keeping the zip rules. 1184 → 1188.
-EXPECTED_PYTEST_DECLARATIONS = 1188
+# Bumped 2026-11-10 (mame-curator-1200): a bad reference INI is skipped at
+# startup. 1188 → 1191.
+EXPECTED_PYTEST_DECLARATIONS = 1191
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -556,7 +558,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1188
 # Bumped 2026-11-10 (mame-curator-1146): the picture guide's screens (+15);
 # a one-version game now opens at the picture question, so the version
 # guide's "only one version" test goes (-1). 713 → 727.
-EXPECTED_VITEST_DECLARATIONS = 727
+# Bumped 2026-11-10 (mame-curator-1200): the listxml banner's title when a
+# file is set but gave no clone data. 727 → 728.
+EXPECTED_VITEST_DECLARATIONS = 728
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

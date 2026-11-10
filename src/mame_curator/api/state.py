@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, get_args
 
@@ -41,7 +41,7 @@ from mame_curator.parser import (
     parse_mature,
     parse_series,
 )
-from mame_curator.parser.errors import ListxmlError
+from mame_curator.parser.errors import INIError, ListxmlError
 from mame_curator.parser.listxml import (
     BIOSChainEntry,
     ListxmlFacts,
@@ -167,22 +167,47 @@ def ini_context_fields(
     bestgames: Path | None,
     mature: Path | None,
     series: Path | None,
+    skip_unreadable: bool = False,
 ) -> dict[str, Any]:
     """Parse the reference INIs into ``FilterContext`` fields.
 
-    Each is optional; a missing one gives the empty default. Shared by
+    Each is optional; an unset one gives the empty default. Shared by
     ``build_world`` and the INI refresh preview (mame-curator-1010 §4.6).
+    ``skip_unreadable`` treats one that raises ``INIError`` as unset.
     """
-    if series:
-        # parse_series result not needed by FilterContext but call to validate file.
-        parse_series(series)
-    languages_raw = parse_languages(languages) if languages else {}
+
+    def read[T](parse: Callable[[Path], T], path: Path | None) -> T | None:
+        return _read_ini(parse, path, skip_unreadable=skip_unreadable)
+
+    # parse_series result not needed by FilterContext but call to validate file.
+    read(parse_series, series)
+    languages_raw = read(parse_languages, languages) or {}
     return {
-        "category": parse_catver(catver) if catver else {},
+        "category": read(parse_catver, catver) or {},
         "languages": {k: tuple(v) for k, v in languages_raw.items()},
-        "mature": frozenset(parse_mature(mature)) if mature else frozenset(),
-        "bestgames_tier": parse_bestgames(bestgames) if bestgames else {},
+        "mature": frozenset(read(parse_mature, mature) or ()),
+        "bestgames_tier": read(parse_bestgames, bestgames) or {},
     }
+
+
+def _read_ini[T](
+    parse: Callable[[Path], T], path: Path | None, *, skip_unreadable: bool
+) -> T | None:
+    """One reference INI's data; None when unset, or unreadable and skipped.
+
+    mame-curator-1200: at startup an INI that is missing or cannot be read is
+    skipped with a WARNING, as mame-curator-1168 does for the listxml. A
+    Settings save of a bad path used to stop the next start.
+    """
+    if not path:
+        return None
+    try:
+        return parse(path)
+    except INIError as exc:
+        if not skip_unreadable:
+            raise
+        logger.warning("reference INI unreadable (%s) — starting without it: %s", str(path), exc)
+        return None
 
 
 def _read_listxml(path: Path | None) -> ListxmlFacts | None:
@@ -230,6 +255,7 @@ def build_world(config_path: Path) -> WorldState:
         bestgames=paths.bestgames,
         mature=paths.mature,
         series=paths.series,
+        skip_unreadable=True,
     )
 
     listxml = _read_listxml(paths.listxml)

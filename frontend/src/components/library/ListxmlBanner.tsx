@@ -16,9 +16,15 @@ export function ListxmlBanner({ exists, cloneofMapSize }: ListxmlBannerProps) {
   const parsedEmpty = exists === true && cloneofMapSize === 0;
   if (!fileMissing && !parsedEmpty) return null;
 
-  const body = parsedEmpty
-    ? strings.library.listxmlMissing.emptyParseBody
-    : strings.library.listxmlMissing.body;
+  const { title, body } = parsedEmpty
+    ? {
+        title: strings.library.listxmlMissing.emptyParseTitle,
+        body: strings.library.listxmlMissing.emptyParseBody,
+      }
+    : {
+        title: strings.library.listxmlMissing.title,
+        body: strings.library.listxmlMissing.body,
+      };
 
   return (
     <div
@@ -28,9 +34,7 @@ export function ListxmlBanner({ exists, cloneofMapSize }: ListxmlBannerProps) {
       role="status"
       className="mx-4 mt-2 flex flex-wrap items-center gap-3 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
     >
-      <span className="font-medium">
-        {strings.library.listxmlMissing.title}
-      </span>
+      <span className="font-medium">{title}</span>
       <span className="text-muted-foreground">{body}</span>
       <Link
         to="/settings"

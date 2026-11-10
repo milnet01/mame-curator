@@ -48,4 +48,10 @@ describe("ListxmlBanner", () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it("does not say the file is not configured when one is set (mame-curator-1200)", () => {
+    renderBanner({ exists: true, cloneofMapSize: 0 });
+    expect(screen.queryByText(/not configured/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/gave no clone data/i)).toBeInTheDocument();
+  });
 });

@@ -90,12 +90,10 @@ async def _preview(state: Any) -> IniPreview:
     failed = list(report.failed)
     changed = tuple(sorted(n for n in report.updated if _differs(staging / n, live.get(n))))
     effective = {n: (staging / n if n in changed else live.get(n)) for n in INI_CONFIG_FIELDS}
+    # Typed as Any: ini_context_fields also takes a bool, which a Path dict is not.
+    paths: dict[str, Any] = {INI_CONFIG_FIELDS[name]: path for name, path in effective.items()}
     try:
-        fields = await asyncio.to_thread(
-            lambda: ini_context_fields(
-                **{INI_CONFIG_FIELDS[name]: path for name, path in effective.items()}
-            )
-        )
+        fields = await asyncio.to_thread(lambda: ini_context_fields(**paths))
     except ParserError as e:
         shutil.rmtree(staging, ignore_errors=True)
         raise UpdateError("ini_parse_failed", 502, f"an INI file did not parse: {e}") from e

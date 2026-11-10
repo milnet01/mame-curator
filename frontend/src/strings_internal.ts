@@ -270,6 +270,8 @@ export const strings = {
       title: "MAME listxml not configured",
       body: "Without a MAME listxml file, region and version variants of the same game appear as separate cards. Configure the listxml path in Settings to collapse them into one card per game.",
       cta: "Open Settings",
+      // mame-curator-1200: the title when a file is set but gave no clone data.
+      emptyParseTitle: "MAME listxml gave no clone data",
       // mame-curator-1168: also shown when the file could not be read,
       // because startup now skips a bad listxml instead of failing.
       emptyParseBody:
