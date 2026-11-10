@@ -62,14 +62,12 @@ const add = (page: Page, i: number) =>
   page.getByRole("button", { name: `Add Game ${i} to cart` });
 
 /** The widest solid ring in an element's box-shadow, in pixels. */
+/** The focus ring's width: index.css draws it as an outline (mame-curator-1205). */
 async function ringWidth(page: Page, name: string) {
-  const shadow = await page
-    .getByRole("button", { name, exact: true })
-    .evaluate((el) => getComputedStyle(el).boxShadow);
-  const widths = [...shadow.matchAll(/([\d.]+)px(?=,|$)/g)].map((m) =>
-    Number(m[1]),
-  );
-  return Math.max(0, ...widths);
+  return page.getByRole("button", { name, exact: true }).evaluate((el) => {
+    const style = getComputedStyle(el);
+    return style.outlineStyle === "none" ? 0 : parseFloat(style.outlineWidth);
+  });
 }
 
 test.describe("the grid by keyboard", () => {
@@ -90,7 +88,7 @@ test.describe("the grid by keyboard", () => {
     await card(page, 0).focus();
     await page.keyboard.press("ArrowRight");
     await expect(card(page, 1)).toBeFocused();
-    expect(await ringWidth(page, "Game 1")).toBeGreaterThanOrEqual(4);
+    expect(await ringWidth(page, "Game 1")).toBeGreaterThanOrEqual(3);
     expect(await ringWidth(page, "Game 0")).toBe(0);
 
     for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowDown");
