@@ -9,6 +9,7 @@ import userEvent from "@testing-library/user-event";
 
 import { LibraryGrid } from "../LibraryGrid";
 import type { GameCard, StateView } from "@/api/types";
+import { strings } from "@/strings";
 
 // The virtualizer draws no rows in a box of zero size, and jsdom has only those.
 beforeEach(() => {
@@ -269,5 +270,49 @@ describe("LibraryGrid: a focused card that leaves the list (mame-curator-1160)",
     );
     await new Promise((r) => setTimeout(r, 50));
     expect(after).toHaveFocus();
+  });
+});
+
+describe("LibraryGrid: a filter that leaves no games (mame-curator-1203)", () => {
+  const empty = (
+    <>
+      <LibraryGrid
+        cards={[]}
+        layout="covers"
+        isInCart={() => false}
+        walkthrough={false}
+        onOpen={vi.fn()}
+        onAdd={vi.fn()}
+      />
+      <button type="button">after the grid</button>
+    </>
+  );
+  const message = () => screen.getByText(strings.library.emptyTitle);
+
+  it("moves focus from the grid to the empty-grid message", async () => {
+    const { rerender } = setup();
+    card(3).focus();
+    rerender(empty);
+    await vi.waitFor(() => expect(message()).toHaveFocus());
+  });
+
+  it("leaves focus alone when it is in another control", async () => {
+    const { rerender } = setup();
+    card(3).focus();
+    const after = screen.getByRole("button", { name: "after the grid" });
+    after.focus();
+    rerender(empty);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(after).toHaveFocus();
+  });
+
+  it("leaves focus alone when it left the grid before the grid emptied", async () => {
+    const { rerender } = setup();
+    card(3).focus();
+    screen.getByRole("button", { name: "after the grid" }).focus();
+    (document.activeElement as HTMLElement).blur();
+    rerender(empty);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(document.body).toHaveFocus();
   });
 });

@@ -566,7 +566,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1201
 # name. 728 → 731.
 # Bumped 2026-11-10 (mame-curator-1202): a repeated error replaces its
 # toast. 731 → 734.
-EXPECTED_VITEST_DECLARATIONS = 734
+# Bumped 2026-11-10 (mame-curator-1203): an emptied grid hands focus to
+# its message. 734 → 737.
+EXPECTED_VITEST_DECLARATIONS = 737
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

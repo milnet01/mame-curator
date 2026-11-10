@@ -137,6 +137,18 @@ export function LibraryGrid({
     virtualizer.measure();
   }, [virtualizer, rowHeightPx, rowCount]);
 
+  // mame-curator-1203: when the list empties while focus is in the grid, the
+  // grid goes and focus would fall to the page. The empty-grid message takes
+  // it instead. Focus the user moved elsewhere, such as the search box, is
+  // left alone: leaving for another control clears `focusInside`.
+  const focusInside = useRef(false);
+  const emptyRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (cards.length !== 0 || !focusInside.current) return;
+    focusInside.current = false;
+    emptyRef.current?.focus();
+  }, [cards.length]);
+
   const rows = useMemo(() => {
     const out: GameCardType[][] = [];
     for (let i = 0; i < cards.length; i += columns) {
@@ -266,7 +278,9 @@ export function LibraryGrid({
         data-layout={layout}
         className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center"
       >
-        <p className="text-lg font-medium">{strings.library.emptyTitle}</p>
+        <p ref={emptyRef} tabIndex={-1} className="text-lg font-medium">
+          {strings.library.emptyTitle}
+        </p>
         <p className="max-w-md text-sm text-muted-foreground">
           {strings.library.emptyHint}
         </p>
@@ -286,6 +300,15 @@ export function LibraryGrid({
       aria-label={strings.library.gridLabel}
       tabIndex={-1}
       onKeyDown={onKeyDown}
+      onFocus={() => {
+        focusInside.current = true;
+      }}
+      onBlur={(e) => {
+        const to = e.relatedTarget;
+        if (to !== null && !e.currentTarget.contains(to)) {
+          focusInside.current = false;
+        }
+      }}
       className="h-full min-h-[60vh] shrink-0 overflow-auto focus:outline-none"
     >
       <div
