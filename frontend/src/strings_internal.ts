@@ -369,6 +369,21 @@ export const strings = {
     emptyTitle: "No activity yet",
     emptyHint: "Run a copy to see events here.",
     loadError: "Could not load activity.",
+    /** mame-curator-1199: which games a copy skipped or failed. */
+    copyNames: {
+      show: "Show which",
+      skipped: "Skipped",
+      failed: "Not copied",
+      bios: (name: string) => `${name} (BIOS)`,
+      unavailable: "The names are not available for this copy.",
+      reason: {
+        SUCCEEDED: "copied",
+        SKIPPED_IDEMPOTENT: "already copied",
+        SKIPPED_MISSING_SOURCE: "not in your ROM folder",
+        SKIPPED_EXISTING_VERSION: "another version is already there",
+        FAILED: "could not be copied",
+      },
+    },
     pagination: {
       next: "Next",
       prev: "Previous",

@@ -583,6 +583,28 @@ export const HistoryListingSchema = z
   .strict();
 
 // === Activity ==============================================================
+export const CopyNameSchema = z
+  .object({
+    short_name: z.string(),
+    role: z.enum(["winner", "bios"]),
+    status: z.enum([
+      "SUCCEEDED",
+      "SKIPPED_IDEMPOTENT",
+      "SKIPPED_MISSING_SOURCE",
+      "SKIPPED_EXISTING_VERSION",
+      "FAILED",
+    ]),
+    error: z.string().nullable(),
+  })
+  .strict();
+
+export const CopyNamesSchema = z
+  .object({
+    skipped: z.array(CopyNameSchema),
+    failed: z.array(CopyNameSchema),
+  })
+  .strict();
+
 export const ActivityPageSchema = z
   .object({
     items: z.array(z.record(z.string(), z.unknown())),

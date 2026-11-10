@@ -267,6 +267,7 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | POST | `/api/fs/allowed-roots` | `FsAllowedRoots` | ✓ |
 | DELETE | `/api/fs/allowed-roots/{root_id}` | `FsAllowedRoots` | ✓ |
 | GET | `/api/activity` | `ActivityPage` | |
+| GET | `/api/activity/copy/{session_id}/names` | `CopyNames` | |
 | GET | `/api/help/index` | `HelpIndex` | |
 | GET | `/api/help/{topic}` | `HelpContent` | |
 | GET | `/api/setup/check` | `SetupCheck` | |
@@ -386,6 +387,15 @@ the file against `CopyReport` on egress: missing id, or one not in the job id
 format → `404 job_not_found`;
 present-but-unreadable / corrupt → `502 copy_report_corrupt` (a distinct
 "filesystem rot" code, separate from the 404).
+
+`GET /api/activity/copy/{session_id}/names` (mame-curator-1199) names the
+games and BIOS files behind a `copy_finished` Activity entry's skipped and
+failed counts: each with its `role`, outcome `status` and the report's
+`error`. An entry's `session_id` is the report's, not the job id, so the route
+finds the report whose opening lines hold that `session_id`. It reads only
+`report.json`; `activity.jsonl` carries no names. No such report →
+`404 job_not_found`; a found report that does not parse →
+`502 copy_report_corrupt`.
 
 ## Filesystem sandbox
 

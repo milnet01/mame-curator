@@ -80,6 +80,8 @@ const DYNAMIC_ACCESS_PARENTS = new Set<string>([
   // mame-curator-1146, PictureChoiceStep.tsx: a picture's kind and place
   "guide.fix.picture.kinds",
   "guide.fix.picture.places",
+  // mame-curator-1199, ActivityCopyNames.tsx: a name's reason by its status
+  "activity.copyNames.reason",
   // CopyModal.tsx: `strings.copy.sessionState[state.state]`
   "copy.sessionState",
   // CmdKPalette.tsx: `strings.cmdK.sections[item.section]`

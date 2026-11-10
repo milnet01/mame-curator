@@ -1,6 +1,7 @@
 import { useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { strings } from "@/strings";
+import { ActivityCopyNames } from "./ActivityCopyNames";
 
 interface ActivityPageProps {
   /** Default page on first visit — the URL `?page` query param wins. */
@@ -72,6 +73,7 @@ export function ActivityPage({
                 {" · "}
                 {String(entry.event_type ?? "")}
               </span>
+              <ActivityCopyNames entry={entry} />
             </li>
           );
         })}

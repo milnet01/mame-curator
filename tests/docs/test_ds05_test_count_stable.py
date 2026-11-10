@@ -396,7 +396,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-11-10 (mame-curator-1189): the filter names each ignored
 # override; a reply names unusable choices and forgetting one ends the
 # warning. 1201 → 1205.
-EXPECTED_PYTEST_DECLARATIONS = 1205
+# Bumped 2026-11-10 (mame-curator-1199): a copy's skipped and failed
+# names, from its report or said to be unavailable. 1205 → 1208.
+EXPECTED_PYTEST_DECLARATIONS = 1208
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -573,7 +575,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1205
 # its message. 734 → 737.
 # Bumped 2026-11-10 (mame-curator-1189): forgetting a choice that cannot
 # be used, from the version guide and the Library. 737 → 740.
-EXPECTED_VITEST_DECLARATIONS = 740
+# Bumped 2026-11-10 (mame-curator-1199): Activity's "Show which" for a
+# copy's skipped and failed games. 740 → 743.
+EXPECTED_VITEST_DECLARATIONS = 743
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

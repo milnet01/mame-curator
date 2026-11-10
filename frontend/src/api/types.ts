@@ -471,6 +471,26 @@ export interface HistoryListing {
 }
 
 // === Activity ==============================================================
+export type CopyOutcomeStatus =
+  | "SUCCEEDED"
+  | "SKIPPED_IDEMPOTENT"
+  | "SKIPPED_MISSING_SOURCE"
+  | "SKIPPED_EXISTING_VERSION"
+  | "FAILED";
+
+/** mame-curator-1199: one name behind a copy's skipped or failed count. */
+export interface CopyName {
+  short_name: string;
+  role: "winner" | "bios";
+  status: CopyOutcomeStatus;
+  error: string | null;
+}
+
+export interface CopyNames {
+  skipped: CopyName[];
+  failed: CopyName[];
+}
+
 export interface ActivityPage {
   items: Record<string, unknown>[];
   page: number;

@@ -12,7 +12,12 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from mame_curator.copy.types import AppendDecision, ConflictStrategy, CopyReportStatus
+from mame_curator.copy.types import (
+    AppendDecision,
+    ConflictStrategy,
+    CopyOutcomeStatus,
+    CopyReportStatus,
+)
 
 
 class CopyJobRequest(BaseModel):
@@ -67,6 +72,24 @@ class JobEvent(BaseModel):
 class CopyAbortRequest(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     recycle_partial: bool = False
+
+
+class CopyName(BaseModel):
+    """One game or BIOS file a copy skipped or failed (mame-curator-1199)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    short_name: str
+    role: Literal["winner", "bios"]
+    status: CopyOutcomeStatus
+    error: str | None = None
+
+
+class CopyNames(BaseModel):
+    """The names behind a copy's skipped and failed counts in Activity."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    skipped: tuple[CopyName, ...] = ()
+    failed: tuple[CopyName, ...] = ()
 
 
 class HistoryItem(BaseModel):

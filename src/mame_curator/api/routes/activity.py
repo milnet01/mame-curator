@@ -1,17 +1,26 @@
-"""R28 — paginated activity log."""
+"""R28 — paginated activity log; mame-curator-1199 — a copy's skipped names."""
 
 from __future__ import annotations
 
 import json
+import re
 from collections import deque
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 
+from mame_curator.api.errors import CopyReportCorruptError, JobNotFoundError
 from mame_curator.api.routes._deps import get_world
 from mame_curator.api.schemas import ActivityPage
+from mame_curator.api.schemas_copy import CopyName, CopyNames
 from mame_curator.api.state import WorldState
+from mame_curator.copy.types import CopyOutcome, CopyReport
+
+# A report names its copy session first; reading this much finds it without
+# parsing every report in the history (each lists every file it copied).
+_REPORT_HEAD_BYTES = 4096
 
 router = APIRouter()
 
@@ -92,3 +101,43 @@ def _parse_ts(raw: Any) -> datetime | None:
         return _as_utc(datetime.fromisoformat(raw.replace("Z", "+00:00")))
     except ValueError:
         return None
+
+
+@router.get("/api/activity/copy/{session_id}/names", response_model=CopyNames)
+def get_copy_names(session_id: str, world: WorldState = Depends(get_world)) -> CopyNames:
+    """The games a copy skipped or failed, from its ``report.json``.
+
+    An Activity entry carries the copy's ``session_id``; its report sits under
+    the job's id, so the report is found by the session id it holds.
+    """
+    path = _find_report(world.data_dir / "copy-history", session_id)
+    if path is None:
+        raise JobNotFoundError(f"no copy report for session {session_id!r}")
+    try:
+        report = CopyReport.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise CopyReportCorruptError(f"copy report unreadable: {session_id!r}: {exc!r}") from exc
+    return CopyNames(skipped=_names(report.skipped), failed=_names(report.failed))
+
+
+def _find_report(history: Path, session_id: str) -> Path | None:
+    pattern = re.compile(rf'"session_id"\s*:\s*"{re.escape(session_id)}"')
+    if not history.is_dir():
+        return None
+    for child in sorted(history.iterdir(), reverse=True):
+        path = child / "report.json"
+        try:
+            with path.open("r", encoding="utf-8", errors="replace") as fh:
+                head = fh.read(_REPORT_HEAD_BYTES)
+        except OSError:
+            continue
+        if pattern.search(head):
+            return path
+    return None
+
+
+def _names(outcomes: tuple[CopyOutcome, ...]) -> tuple[CopyName, ...]:
+    return tuple(
+        CopyName(short_name=o.short_name, role=o.role, status=o.status, error=o.error)
+        for o in outcomes
+    )
