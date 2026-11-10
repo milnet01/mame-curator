@@ -89,10 +89,7 @@ async def post_override(
             )
         _persist_overrides(world, new_world.overrides)
         set_world(request, new_world)
-        return OverridesView(
-            entries=dict(new_world.overrides.entries),
-            warnings=new_world.filter_result.warnings,
-        )
+        return _overrides_view(new_world)
 
 
 @router.delete("/api/overrides/{parent}", response_model=OverridesView)
@@ -111,7 +108,16 @@ async def delete_override(
         _persist_overrides(world, new_overrides)
         new_world = replace_world(base=world, overrides=new_overrides)
         set_world(request, new_world)
-        return OverridesView(entries=dict(new_overrides.entries))
+        return _overrides_view(new_world)
+
+
+def _overrides_view(world: WorldState) -> OverridesView:
+    """The saved choices, and those the filter cannot use (mame-curator-1189)."""
+    return OverridesView(
+        entries=dict(world.overrides.entries),
+        warnings=world.filter_result.warnings,
+        unusable=world.filter_result.ignored_overrides,
+    )
 
 
 def _listing(sessions: Sessions) -> SessionsListing:

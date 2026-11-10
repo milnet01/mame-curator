@@ -256,6 +256,11 @@ export const strings = {
       count === 1
         ? "Your choice is saved, but 1 older choice could not be used, because it does not match your current game list."
         : `Your choice is saved, but ${count} older choices could not be used, because they do not match your current game list.`,
+    /** mame-curator-1189: the way out of that warning. */
+    overrideForgetOld: (count: number) =>
+      count === 1 ? "Forget this choice" : "Forget these choices",
+    overrideForgotten: (count: number) =>
+      count === 1 ? "The old choice is gone." : "The old choices are gone.",
     /** FP15 § B header pill copy (active + idle states). */
     activeSessionPill: (name: string) => `Session: ${name}`,
     activeSessionTitle: (name: string) =>

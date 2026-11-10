@@ -8,6 +8,7 @@ Given parsed Phase-1 data (`dict[str, Machine]`), an INI-augmented context (catv
 - `dropped: tuple[tuple[str, DroppedReason], ...]` — one entry per dropped machine, with the typed reason it was dropped; **sort key is the short name** (first element of each pair), enforced by `tuple(sorted(dropped.items()))` at construction in `runner.py` for deterministic byte-identical output across runs. Immutable: tuple-of-tuples on a `frozen=True` model (DS01 C2 closed the prior `dict[str, DroppedReason]` shape that was mutable in-place despite the model's `frozen=True`). Read sites use `dict(result.dropped)["short"]` for O(1) lookup or `len(result.dropped)` for the count.
 - `contested_groups: tuple[ContestedGroup, ...]` — one entry per parent/clone group where Phase B had to choose between ≥2 candidates; records the winner, the candidates, and the tiebreaker chain that produced the result. Used by `/api/games/{name}/explanation` (Phase 4).
 - `warnings: tuple[str, ...]` — non-fatal advisories from Phase C overrides (unknown parent, target outside its parent's group, target machine not in the parsed DAT). May be empty when no override produced an advisory; populated entries are sorted in canonical order.
+- `ignored_overrides: tuple[str, ...]` — the override key behind each Phase C warning, in the order of the warnings (mame-curator-1189). A client uses it to offer to forget that saved choice.
 
 Re-running the filter on the same input produces byte-identical output (verified by `test_idempotency` and a hypothesis property test).
 

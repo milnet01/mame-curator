@@ -11,7 +11,7 @@ import { useParams } from "react-router";
 import { GuideAction } from "@/components/guide/GuideAction";
 import { GuideStep } from "@/components/guide/GuideStep";
 import { FixWhatStep } from "@/components/guide/steps/FixWhatStep";
-import { useAlternatives } from "@/hooks/useAlternatives";
+import { useAlternatives, useForgetChoices } from "@/hooks/useAlternatives";
 import type { UseCartResult } from "@/hooks/useCart";
 import { apiErrorMessage } from "@/lib/apiErrorToast";
 import { strings } from "@/strings";
@@ -25,7 +25,7 @@ type Topic = "what" | "version" | "picture";
 type Screen =
   | { kind: "choose" }
   | { kind: "saving" }
-  | { kind: "saved"; name: string; warnings: number }
+  | { kind: "saved"; name: string; unusable: string[] }
   | { kind: "unchanged"; name: string }
   | { kind: "failed"; error: unknown; game: GameCard };
 
@@ -51,6 +51,37 @@ function VersionLabel({ game, inUse }: { game: GameCard; inUse: boolean }) {
         <span className="text-lg font-semibold">{strings.guide.fix.inUse}</span>
       )}
     </span>
+  );
+}
+
+/** mame-curator-1189: saved choices that cannot be used, and the way to
+ *  forget them, so the warning does not come back on every choice. */
+function OldChoices({ unusable }: { unusable: string[] }) {
+  const forget = useForgetChoices();
+  if (forget.isSuccess) {
+    return (
+      <p role="status" className="text-xl">
+        {strings.library.overrideForgotten(unusable.length)}
+      </p>
+    );
+  }
+  return (
+    <>
+      <p className="text-xl">
+        {strings.library.overrideOldChoicesUnusable(unusable.length)}
+      </p>
+      {forget.isError && (
+        <p role="alert" className="text-xl text-destructive">
+          {apiErrorMessage(forget.error)}
+        </p>
+      )}
+      <GuideAction
+        busy={forget.isPending}
+        onClick={() => forget.mutate(unusable)}
+      >
+        {strings.library.overrideForgetOld(unusable.length)}
+      </GuideAction>
+    </>
   );
 }
 
@@ -85,10 +116,8 @@ function OutcomeStep({
           exitLabel={strings.guide.fix.toLibrary}
           exitState={back}
         >
-          {screen.warnings > 0 && (
-            <p className="text-xl">
-              {strings.library.overrideOldChoicesUnusable(screen.warnings)}
-            </p>
+          {screen.unusable.length > 0 && (
+            <OldChoices unusable={screen.unusable} />
           )}
         </GuideStep>
       );
@@ -181,12 +210,8 @@ function FixVersionGuide({
       { parent: versions.parent, winner: game.short_name },
       versions,
       {
-        onSaved: (warnings) => {
-          setScreen({
-            kind: "saved",
-            name: game.description,
-            warnings: warnings.length,
-          });
+        onSaved: (_warnings, unusable) => {
+          setScreen({ kind: "saved", name: game.description, unusable });
         },
         onFailed: (error) => setScreen({ kind: "failed", error, game }),
       },

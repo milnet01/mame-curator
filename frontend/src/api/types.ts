@@ -339,6 +339,8 @@ export interface Stats {
 export interface OverridesView {
   entries: Record<string, string>;
   warnings: string[];
+  /** mame-curator-1189: the saved choices the warnings are about, by key. */
+  unusable: string[];
 }
 
 export interface OverridePostRequest {

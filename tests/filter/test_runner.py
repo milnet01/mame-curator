@@ -241,3 +241,18 @@ def test_session_publisher_developer_year_filter() -> None:
     sessions = Sessions(active="capcom", sessions={"capcom": capcom_only})
     result = run_filter(machines, FilterContext(), FilterConfig(), Overrides(), sessions)
     assert result.winners == ("match_all",)
+
+
+def test_ignored_overrides_names_each_key_phase_c_ignored(
+    sample: tuple[dict[str, Machine], FilterContext],
+) -> None:
+    """mame-curator-1189: a client can name the choice behind each warning."""
+    machines, ctx = sample
+    overrides = o(pacman="pacmanf", ghost="pacman", kinst="nothing", neogeo="pacman")
+
+    result = run_filter(machines, ctx, FilterConfig(), overrides, Sessions())
+
+    # Unknown parent, target not in the DAT, target in another family.
+    assert result.ignored_overrides == ("ghost", "kinst", "neogeo")
+    assert len(result.warnings) == len(result.ignored_overrides)
+    assert "pacmanf" in result.winners

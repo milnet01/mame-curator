@@ -49,8 +49,8 @@ function serve(
   return posted;
 }
 
-const accepted = (warnings: string[] = []) =>
-  HttpResponse.json({ entries: { puck: "puckj" }, warnings });
+const accepted = (warnings: string[] = [], unusable: string[] = []) =>
+  HttpResponse.json({ entries: { puck: "puckj" }, warnings, unusable });
 const refused = () =>
   HttpResponse.json(
     { code: "override_rejected", detail: "no", fields: [] },
@@ -142,11 +142,69 @@ describe("the version guide", () => {
   });
 
   it("says when the choice took but older choices could not be used", async () => {
-    serve(() => accepted(["override key 'ghost' is not a known parent"]));
+    serve(() =>
+      accepted(["override key 'ghost' is not a known parent"], ["ghost"]),
+    );
     await renderFix();
     await userEvent.click(await versionButton("Puck Junior"));
     expect(
       await screen.findByText(strings.library.overrideOldChoicesUnusable(1)),
+    ).toBeInTheDocument();
+  });
+
+  it("forgets an older choice that cannot be used, when asked", async () => {
+    serve(() =>
+      accepted(["override key 'ghost' is not a known parent"], ["ghost"]),
+    );
+    const forgotten: string[] = [];
+    server.use(
+      http.delete("/api/overrides/:parent", ({ params }) => {
+        forgotten.push(String(params.parent));
+        return HttpResponse.json({
+          entries: { puck: "puckj" },
+          warnings: [],
+          unusable: [],
+        });
+      }),
+    );
+    await renderFix();
+    await userEvent.click(await versionButton("Puck Junior"));
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: strings.library.overrideForgetOld(1),
+      }),
+    );
+    expect(
+      await screen.findByText(strings.library.overrideForgotten(1)),
+    ).toBeInTheDocument();
+    expect(forgotten).toEqual(["ghost"]);
+    expect(
+      screen.queryByText(strings.library.overrideOldChoicesUnusable(1)),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says so when an older choice cannot be forgotten", async () => {
+    serve(() =>
+      accepted(["override key 'ghost' is not a known parent"], ["ghost"]),
+    );
+    server.use(
+      http.delete("/api/overrides/:parent", () =>
+        HttpResponse.json(
+          { code: "override_not_found", detail: "no", fields: [] },
+          { status: 404 },
+        ),
+      ),
+    );
+    await renderFix();
+    await userEvent.click(await versionButton("Puck Junior"));
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: strings.library.overrideForgetOld(1),
+      }),
+    );
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(
+      screen.getByText(strings.library.overrideOldChoicesUnusable(1)),
     ).toBeInTheDocument();
   });
 

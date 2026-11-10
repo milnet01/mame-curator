@@ -62,6 +62,9 @@ def run_filter(
             )
 
     warnings: list[str] = []
+    # mame-curator-1189: the key behind each warning, so a client can offer
+    # to forget that one choice.
+    ignored: list[str] = []
     # FP28 B4: dual-channel contract per filter/spec.md § Phase C — each
     # override-rejection both logs at WARNING and appends to FilterResult.
     # warnings. Prior to FP28 only the latter half was wired despite the
@@ -74,11 +77,13 @@ def run_filter(
             msg = f"override key '{parent}' is not a known parent; ignored"
             logger.warning(msg)
             warnings.append(msg)
+            ignored.append(parent)
             continue
         if override_name not in machines:
             msg = f"override target '{override_name}' is not in the DAT; ignored"
             logger.warning(msg)
             warnings.append(msg)
+            ignored.append(parent)
             continue
         target_parent = ctx.cloneof_map.get(override_name, override_name)
         if target_parent != parent:
@@ -88,6 +93,7 @@ def run_filter(
             )
             logger.warning(msg)
             warnings.append(msg)
+            ignored.append(parent)
             continue
         winners[parent] = override_name
         dropped.pop(override_name, None)
@@ -98,6 +104,7 @@ def run_filter(
         winners=tuple(sorted(visible)),
         dropped=tuple(sorted(dropped.items())),
         contested_groups=tuple(contested),
+        ignored_overrides=tuple(ignored),
         warnings=tuple(warnings),
     )
 

@@ -116,8 +116,8 @@ function serve(
   return posted;
 }
 
-const accepted = (warnings: string[] = []) =>
-  HttpResponse.json({ entries: { puck: "puckj" }, warnings });
+const accepted = (warnings: string[] = [], unusable: string[] = []) =>
+  HttpResponse.json({ entries: { puck: "puckj" }, warnings, unusable });
 
 async function chooseJunior(cart: UseCartResult = makeFakeCart()) {
   const user = userEvent.setup();
@@ -157,7 +157,9 @@ describe("choosing a version from a clone", () => {
   });
 
   it("says so, and not success, when the reply carries warnings", async () => {
-    serve(() => accepted(["override key 'ghost' is not a known parent"]));
+    serve(() =>
+      accepted(["override key 'ghost' is not a known parent"], ["ghost"]),
+    );
     await chooseJunior();
     await waitFor(() =>
       expect(toast.warning).toHaveBeenCalledWith(
@@ -166,6 +168,36 @@ describe("choosing a version from a clone", () => {
       ),
     );
     expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("offers to forget an older choice that cannot be used", async () => {
+    serve(() =>
+      accepted(["override key 'ghost' is not a known parent"], ["ghost"]),
+    );
+    const forgotten: string[] = [];
+    server.use(
+      http.delete("/api/overrides/:parent", ({ params }) => {
+        forgotten.push(String(params.parent));
+        return HttpResponse.json({
+          entries: { puck: "puckj" },
+          warnings: [],
+          unusable: [],
+        });
+      }),
+    );
+    await chooseJunior();
+    await waitFor(() => expect(toast.warning).toHaveBeenCalled());
+    const options = vi.mocked(toast.warning).mock.calls[0][1] as {
+      action: { label: string; onClick: () => void };
+    };
+    expect(options.action.label).toBe(strings.library.overrideForgetOld(1));
+    options.action.onClick();
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        strings.library.overrideForgotten(1),
+      ),
+    );
+    expect(forgotten).toEqual(["ghost"]);
   });
 
   it("says so, and not success, when the server refuses", async () => {

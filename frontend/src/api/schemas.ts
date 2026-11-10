@@ -441,6 +441,7 @@ export const OverridesViewSchema = z
   .object({
     entries: z.record(z.string(), z.string()),
     warnings: z.array(z.string()),
+    unusable: z.array(z.string()),
   })
   .strict();
 

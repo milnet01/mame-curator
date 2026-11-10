@@ -57,6 +57,7 @@ class FilterResult(BaseModel):
     dropped: tuple[tuple[str, DroppedReason], ...]
     contested_groups: tuple[ContestedGroup, ...]
     warnings: tuple[str, ...] = ()
+    ignored_overrides: tuple[str, ...] = ()
 
 
 class FilterContext(BaseModel):

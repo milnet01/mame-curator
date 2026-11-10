@@ -56,6 +56,30 @@ export function useOverride() {
 }
 
 /**
+ * mame-curator-1189: forget saved choices the server cannot use, one
+ * `DELETE /api/overrides/{parent}` each, then reload what shows them.
+ */
+export function useForgetChoices() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (parents: string[]) => {
+      for (const parent of parents) {
+        await apiRequest<OverridesView>(
+          `/api/overrides/${encodeURIComponent(parent)}`,
+          OverridesViewSchema,
+          { method: "DELETE" },
+        );
+      }
+    },
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ["games"] }),
+        qc.invalidateQueries({ queryKey: ["alternatives"] }),
+      ]),
+  });
+}
+
+/**
  * FP19: spawn RetroArch with the given game's ROM. Returns the spawned
  * pid + argv on success; the API surfaces 422 if RetroArch isn't
  * configured or 404 if the ROM file doesn't exist on disk. FP21-R:

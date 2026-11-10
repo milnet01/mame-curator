@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import type { Alternatives, OverridePostRequest } from "@/api/types";
-import { useOverride } from "@/hooks/useAlternatives";
+import { useForgetChoices, useOverride } from "@/hooks/useAlternatives";
 import type { UseCartResult } from "@/hooks/useCart";
 import { toastApiError } from "@/lib/apiErrorToast";
 import { strings } from "@/strings";
@@ -13,7 +13,8 @@ const WARNING_MS = 15_000;
 /** mame-curator-1146: a caller that says the outcome on screen, not in a
  *  pop-up message, as the version guide does. */
 export interface VersionChoiceReport {
-  onSaved: (warnings: string[]) => void;
+  /** `unusable` names the saved choices the warnings are about. */
+  onSaved: (warnings: string[], unusable: string[]) => void;
   onFailed: (error: unknown) => void;
 }
 
@@ -28,6 +29,14 @@ export function useVersionChoice(
   initialFocus: string | null = null,
 ) {
   const override = useOverride();
+  const forget = useForgetChoices();
+  // mame-curator-1189: the warning's way out, so it stops coming back.
+  const forgetOld = (unusable: string[]) =>
+    forget.mutate(unusable, {
+      onSuccess: () =>
+        toast.success(strings.library.overrideForgotten(unusable.length)),
+      onError: toastApiError,
+    });
   // The chosen version's card, which replaces the one that had focus; or the
   // card the version guide sent back (mame-curator-1196).
   const [focusCard, setFocusCard] = useState<string | null>(initialFocus);
@@ -38,7 +47,7 @@ export function useVersionChoice(
     report?: VersionChoiceReport,
   ) => {
     override.mutate(req, {
-      onSuccess: ({ warnings }) => {
+      onSuccess: ({ warnings, unusable }) => {
         // A cart entry is saved under whichever version was on show when added.
         const names = new Set(family.items.map((game) => game.short_name));
         for (const { shortName } of cart.items) {
@@ -46,13 +55,19 @@ export function useVersionChoice(
         }
         setFocusCard(req.winner);
         if (report) {
-          report.onSaved(warnings);
+          report.onSaved(warnings, unusable);
           return;
         }
         if (warnings.length > 0) {
           toast.warning(
             strings.library.overrideOldChoicesUnusable(warnings.length),
-            { duration: WARNING_MS },
+            {
+              duration: WARNING_MS,
+              action: {
+                label: strings.library.overrideForgetOld(unusable.length),
+                onClick: () => forgetOld(unusable),
+              },
+            },
           );
           return;
         }

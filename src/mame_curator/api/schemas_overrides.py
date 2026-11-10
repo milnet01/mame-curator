@@ -28,6 +28,8 @@ class OverridesView(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     entries: dict[str, str]
     warnings: tuple[str, ...] = ()
+    # mame-curator-1189: the saved choices those warnings are about, by key.
+    unusable: tuple[str, ...] = ()
 
 
 # P14 — per-game review state ----------------------------------------------

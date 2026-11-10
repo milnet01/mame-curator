@@ -393,7 +393,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # startup. 1188 → 1191.
 # Bumped 2026-11-10 (mame-curator-1201): the recycle lock's five cold-read
 # findings. 1191 → 1201.
-EXPECTED_PYTEST_DECLARATIONS = 1201
+# Bumped 2026-11-10 (mame-curator-1189): the filter names each ignored
+# override; a reply names unusable choices and forgetting one ends the
+# warning. 1201 → 1205.
+EXPECTED_PYTEST_DECLARATIONS = 1205
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -568,7 +571,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1201
 # toast. 731 → 734.
 # Bumped 2026-11-10 (mame-curator-1203): an emptied grid hands focus to
 # its message. 734 → 737.
-EXPECTED_VITEST_DECLARATIONS = 737
+# Bumped 2026-11-10 (mame-curator-1189): forgetting a choice that cannot
+# be used, from the version guide and the Library. 737 → 740.
+EXPECTED_VITEST_DECLARATIONS = 740
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

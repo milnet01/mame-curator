@@ -306,6 +306,13 @@ warning for it. So a 200 means the choice took. Its `warnings` are the world's
 (`filter/spec.md` § Phase C), so they concern other saved choices that cannot
 be used.
 
+`OverridesView.unusable` names those saved choices by key, from
+`FilterResult.ignored_overrides` (mame-curator-1189). `POST` and
+`DELETE /api/overrides` both reply with the world's `warnings` and
+`unusable`. `DELETE /api/overrides/{parent}` forgets one saved choice, so a
+client can offer to forget each choice in `unusable`; once none is left, a
+later choice replies with no warnings.
+
 ## Copy job lifecycle
 
 `JobManager` owns `app.state.job` and enforces the single-job invariant:
