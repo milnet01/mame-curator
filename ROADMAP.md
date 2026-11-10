@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1218 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1219 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2745,6 +2745,18 @@ P14 (per-game review state).
   only Compilation.
   Placement: a step in the /start guide after the group choice ("Hide
   compilations?"), and in Settings for changing later.
+  2026-11-10, write-spec: no spec. spec-format section 1: the new key
+  mirrors drop_japanese_only_text (a bool under filters), the rule is a
+  new case in Phase A's drop rules, and the guide step mirrors the
+  existing guide steps; cheap to redo. Contract for the build:
+  filters.drop_multigame: bool, default false, so nothing changes until
+  chosen. Drops a game whose catver category starts with "MultiGame" or
+  "Multiplay", or contains "/ Multi-Games"; the drop reason is named
+  like the other Phase A reasons. A version choice still wins (filter
+  spec Phase C). Settings switch plus the guide step "Hide
+  compilations?" after the group choice; the guide stores it as the
+  group choice stores its filters. Backup carries the key as part of
+  config.
   **Layman:** One switch hides games that are bundles of several older games on one board.
   Kind: feature.
   Source: user-2026-11-10.
@@ -2762,6 +2774,15 @@ P14 (per-game review state).
   after the group choice ("Which languages can you read?"), and in
   Settings for changing later. Still to settle in the build: how it sits
   beside drop_japanese_only_text.
+  2026-11-10, write-spec: no spec, same reasons as 1216 (a list key like
+  drop_genres). Contract for the build: filters.keep_languages: list of
+  language names, default [] meaning every language. With a list, a game
+  is dropped when languages.ini lists languages for it and none is in
+  the list; a game it does not list is kept (user, 2026-11-10).
+  drop_japanese_only_text stays as it is and applies too. The choices
+  are the languages languages.ini names, in its spelling. Settings
+  multi-select plus the guide step "Which languages can you read?" (tick
+  one or more, or skip to keep every language) after the group choice.
   **Layman:** Pick a language, and only games whose text is in that language are kept.
   Kind: feature.
   Source: user-2026-11-10.
@@ -3762,9 +3783,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1149-2026-11-02.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1189] **An old choice that cannot be used keeps warning, with no way to remove it.**
+- ✅ [mame-curator-1189] **An old choice that cannot be used keeps warning, with no way to remove it.**
   Every later choice shows the warning in place of success. No screen was
   found for removing one, though the search was not full.
+  2026-11-10: 7066264. The existing DELETE /api/overrides/{parent} had
+  no caller. The warning now offers Forget this choice in the version
+  guide and the Library pop-up; the filter records ignored_overrides and
+  both override replies carry unusable.
   **Layman:** A version choice from an old game list can keep showing a warning, and no screen was found to remove it.
   Kind: ux.
   Source: build-mame-curator-1149-2026-11-02.
@@ -3870,8 +3895,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1164-2026-11-05.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1199] **Activity says how many games a copy skipped, but not which.**
+- ✅ [mame-curator-1199] **Activity says how many games a copy skipped, but not which.**
   Activity shows counts only (copy ok: N ok, N skipped, N failed). The names are only in the job's report.json. The guide and the copy window now point users to Activity to see what happened.
+  2026-11-10: 0092357. GET /api/activity/copy/{session_id}/names reads
+  the copy's report.json; Activity shows Show which with each name and
+  reason, or says the names are not available.
   **Layman:** Activity tells you some games were skipped, but not their names.
   Kind: ux.
   Source: build-mame-curator-1164-2026-11-05.
@@ -4072,6 +4100,16 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   **Layman:** Zoomed right in on the full view, the top bar still runs off the right side.
   Kind: accessibility.
   Source: build-mame-curator-1213-2026-11-10.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1219] **Forgetting several old choices again after a partial failure shows an error.**
+  useForgetChoices sends one DELETE per choice. If one fails partway, a
+  second press gets 404 for a choice already removed, and the guide shows an
+  error. Needs two or more unusable choices and a failure partway. Likely
+  fix: treat 404 as already forgotten.
+  **Layman:** In a rare case, pressing Forget a second time says it failed although the choice is already gone.
+  Kind: fix.
+  Source: build-mame-curator-1189-2026-11-10.
   Lanes: frontend.
 
 ## Considered / under research (no target date)

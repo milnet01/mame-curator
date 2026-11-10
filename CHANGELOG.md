@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-10 Added — Forget an old choice; see which games a copy skipped
+
+- **A version choice that can no longer be used can be forgotten** (mame-curator-1189)
+  Its warning now has a Forget this choice button, so later choices
+  show success again.
+
+- **Activity can show which games a copy skipped or failed, and why** (mame-curator-1199)
+
 ### 2026-11-10 Fixed — Library and cart small fixes
 
 - **After choosing another version, the cart no longer takes the same game twice** (mame-curator-1188)
