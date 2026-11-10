@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1215 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1217 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2732,6 +2732,41 @@ P14 (per-game review state).
   Source: user-2026-10-30.
   Lanes: frontend, tests.
 
+- 📋 [mame-curator-1216] **An option to leave out compilations.**
+  User request 2026-11-10. catver.ini already marks them: data/ini/catver.ini
+  has categories such as "MultiGame / Compilation", "Multiplay /
+  Compilation" and "MultiGame / Mini-Games" (checked 2026-11-10).
+  drop_categories can already do this with a pattern, but that is buried;
+  the user wants a plain option. To decide: which MultiGame categories
+  count (compilations only, or all multi-game boards), and where the
+  switch lives (guided path or More options).
+  Decided by user 2026-11-10 (the recommendation): hide all multi-game
+  boards: every MultiGame, Multiplay and Multi-Games category in catver, not
+  only Compilation.
+  Placement: a step in the /start guide after the group choice ("Hide
+  compilations?"), and in Settings for changing later.
+  **Layman:** One switch hides games that are bundles of several older games on one board.
+  Kind: feature.
+  Source: user-2026-11-10.
+  Lanes: filter, api, frontend.
+
+- 📋 [mame-curator-1217] **An option to copy only games in a chosen language.**
+  User request 2026-11-10. languages.ini already gives each game's
+  languages (parse_languages; the games reply carries languages), and
+  filters.drop_japanese_only_text is the one language rule today. To
+  decide: what to do with a game languages.ini does not list (many have
+  no text to read), whether several languages may be chosen, and how
+  this sits beside drop_japanese_only_text.
+  Decided by user 2026-11-10: a game languages.ini does not list is
+  kept; one or more languages may be chosen; a step in the /start guide
+  after the group choice ("Which languages can you read?"), and in
+  Settings for changing later. Still to settle in the build: how it sits
+  beside drop_japanese_only_text.
+  **Layman:** Pick a language, and only games whose text is in that language are kept.
+  Kind: feature.
+  Source: user-2026-11-10.
+  Lanes: filter, api, frontend.
+
 ### 📚 Documentation
 
 - ✅ [mame-curator-1029] **README hero shot + 4 screenshots (closed 2026-05-16).**
@@ -3743,9 +3778,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1149-2026-11-02.
   Lanes: frontend.
 
-- 📋 [mame-curator-1191] **A family whose versions are all dropped by filters ignores a version choice.**
+- ✅ [mame-curator-1191] **A family whose versions are all dropped by filters ignores a version choice.**
   The spec allows dropped targets. No way to reach this from the panel was
   seen. Read, not run.
+  2026-11-10: 36a3bb3. Phase C's known parents come from every machine
+  in the DAT, so a fully dropped family takes its choice; a clone key
+  still warns.
   **Layman:** In one unusual case a version choice still has no effect.
   Kind: fix.
   Source: build-mame-curator-1149-2026-11-02.
@@ -3837,15 +3875,25 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1164-2026-11-05.
   Lanes: frontend, api.
 
-- 📋 [mame-curator-1200] **A missing or bad reference INI named in Settings stops the next start.**
+- ✅ [mame-curator-1200] **A missing or bad reference INI named in Settings stops the next start.**
   Same shape as mame-curator-1168, fixed there for listxml only. The 1145 spec's §9 lists it as deferred. Also: the listxml banner's title, "MAME listxml not configured", shows when a file is set but gave no clone data. Reported by the 1168 helper; not run.
+  2026-11-10: 3d7248e. build_world skips a missing or unreadable
+  reference INI with a WARNING, as 1168 did for listxml; the INI refresh
+  preview still refuses. The banner says "MAME listxml gave no clone
+  data" when a set file gave none.
   **Layman:** A bad catver or other list file chosen in Settings can stop the app from starting next time, as the listxml file did before.
   Kind: fix.
   Source: build-mame-curator-1168-2026-11-05.
   Lanes: api, tests.
 
-- 📋 [mame-curator-1201] **The recycle lock can admit two holders or spin, against its own spec.**
+- ✅ [mame-curator-1201] **The recycle lock can admit two holders or spin, against its own spec.**
   Cold read of 944acf8 and 0d3aa18 by the oneup session; reasoning, not reproduced. Latent today: the lock is per session and each run_copy mints its own id, so it is never contended. F1: two waiters both reclaim a stale lock (unlink by path). F2: release and the refresher act on a lock they no longer own; fix F1+F2 with a token in the lock or an st_ino check. F3: staleness is wall clock, the refresher monotonic (suspend, or NFS clock skew). F4: the stat-OSError branch spins with no sleep or deadline (a dangling symlink); use lstat. F5: no overall deadline while a move blocks on a dead share. Full text: session_message id 1391 to mame-curator.
+  2026-11-10: 7bd52c8. F1 to F5 all fixed: a reclaim guard and a
+  re-check, a token in the lock, staleness watched by this caller's own
+  capped clock, lstat with a sleep per retry, a 600 s overall wait.
+  Left: a crash inside the reclaim guard's brief window leaves a
+  .reclaim file that makes a later stale reclaim refuse, naming the
+  file; nothing is lost.
   **Layman:** Rare cases in how the recycle bin takes turns. They cannot happen with today's copies, but the code promises more than it does.
   Kind: fix.
   Source: cold-read-oneup-2026-11-05.
@@ -3983,12 +4031,14 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1205-1211-2026-11-10.
   Lanes: frontend.
 
-- 📋 [mame-curator-1214] **The wizard's quick game-list check unpacks a zipped list in full.**
+- ✅ [mame-curator-1214] **The wizard's quick game-list check unpacks a zipped list in full.**
   check_dat_start (mame-curator-1208) goes through _resolve_xml, which
   extracts the whole .xml member to a temporary folder before reading up
   to the first machine. Reading the member as a stream (ZipFile.open)
   would keep the check quick for a .zip list. Same zip-slip and
   one-member rules apply.
+  2026-11-10: b18df31. check_dat_start streams a zipped list's member;
+  the zip rules are shared through _open_dat_zip.
   **Layman:** Checking a zipped game list at setup is slower than it needs to be.
   Kind: perf.
   Source: build-mame-curator-1205-1211-2026-11-10.

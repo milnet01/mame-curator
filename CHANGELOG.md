@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-10 Fixed — Sturdier starts, filters and recycling
+
+- **A missing or broken list file chosen in Settings no longer stops the app from starting** (mame-curator-1200)
+  The app starts without it and says which file it skipped.
+
+- **A version you choose counts even when the filters drop every version of that game** (mame-curator-1191)
+
+- **Setup checks a zipped game list without unpacking all of it** (mame-curator-1214)
+
+- **The recycle bin's turn-taking can no longer let two copies in at once or spin** (mame-curator-1201)
+  A lock left by a crashed copy is cleared only after a minute of watching.
+
 ### 2026-11-10 Added — Choose a different picture for a game, step by step
 
 - **Fix this game's picture or version, step by step** (mame-curator-1146)
