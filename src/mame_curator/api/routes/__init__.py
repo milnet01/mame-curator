@@ -12,6 +12,7 @@ from mame_curator.api.routes import (
     fs,
     games,
     media,
+    pictures,
     stubs,
     updates,
     updates_ini,
@@ -32,5 +33,6 @@ router.include_router(updates.router)
 router.include_router(updates_ini.router)
 router.include_router(help_.router)
 router.include_router(media.router)
+router.include_router(pictures.router)
 
 __all__ = ["router"]

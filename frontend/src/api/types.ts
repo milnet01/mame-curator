@@ -219,6 +219,32 @@ export interface AppConfigResponse {
 }
 
 // === Games + metadata ======================================================
+/** mame-curator-1146: the picture a game shows, as a (source, kind) pair. */
+export interface PictureChoice {
+  source: string;
+  kind: MediaKind;
+}
+
+export interface PictureCandidate {
+  source: string;
+  kind: MediaKind;
+  in_use: boolean;
+}
+
+export interface PictureCandidates {
+  short_name: string;
+  chosen: PictureChoice | null;
+  chosen_found: boolean;
+  candidates: PictureCandidate[];
+  not_asked: string[];
+  not_answered: string[];
+}
+
+export interface PictureChoiceView {
+  short_name: string;
+  chosen: PictureChoice | null;
+}
+
 export type Badge =
   "contested" | "overridden" | "chd_missing" | "bios_missing" | "has_notes";
 
@@ -230,6 +256,7 @@ export interface GameCard {
   publisher: string | null;
   developer: string | null;
   badges: Badge[];
+  picture: PictureChoice | null;
 }
 
 export interface GamesPage {

@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from mame_curator.api.errors import ConfigError
 from mame_curator.api.fs import compose_allowlist
+from mame_curator.api.pictures import PictureChoices, load_pictures, pictures_path
 from mame_curator.api.schemas import AppConfig, FsAllowedRoot, merge_picker_into_filters
 from mame_curator.filter import (
     FilterContext,
@@ -68,6 +69,8 @@ class WorldState(BaseModel):
     review_state: ReviewState
     filter_result: FilterResult
     notes: dict[str, str]
+    # mame-curator-1146: the picture each game shows, from data/pictures.json.
+    pictures: PictureChoices = PictureChoices()
     allowed_roots: tuple[FsAllowedRoot, ...]
     data_dir: Path
     # DS02 G2: precomputed `name -> sum(rom.size)` so `GET /api/games`
@@ -250,6 +253,7 @@ def build_world(config_path: Path) -> WorldState:
 
     data_dir = config_path.parent / "data"
     notes = _load_notes(data_dir / "notes.json")
+    pictures = load_pictures(pictures_path(data_dir))
     review_state = load_review_state(data_dir / "state.yaml")
 
     filter_result = run_filter(machines, ctx, config.filters, overrides, sessions)
@@ -269,6 +273,7 @@ def build_world(config_path: Path) -> WorldState:
         review_state=review_state,
         filter_result=filter_result,
         notes=notes,
+        pictures=pictures,
         allowed_roots=allowed_roots,
         data_dir=data_dir,
         bytes_by_machine=_compute_bytes_by_machine(machines),
@@ -324,6 +329,7 @@ def replace_world(
     overrides: Overrides | None = None,
     sessions: Sessions | None = None,
     notes: Mapping[str, str] | None = None,
+    pictures: PictureChoices | None = None,
     review_state: ReviewState | None = None,
     ctx: FilterContext | None = None,
     rerun_filter: bool = False,
@@ -393,6 +399,7 @@ def replace_world(
         review_state=new_review_state,
         filter_result=filter_result,
         notes=new_notes,
+        pictures=pictures if pictures is not None else base.pictures,
         allowed_roots=allowed_roots,
         data_dir=base.data_dir,
         # DS02 G2: machines are immutable post-parse, so the precomputed

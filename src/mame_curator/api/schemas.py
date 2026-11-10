@@ -311,6 +311,7 @@ class EmptyBody(BaseModel):
 # Extracted by FP24-EE; further sibling-modules added in DS02 A5.
 # ---------------------------------------------------------------------------
 
+from mame_curator.api.pictures import PictureChoice  # noqa: E402
 from mame_curator.api.schemas_copy import (  # noqa: E402
     ActivityPage,
     CopyAbortRequest,
@@ -351,6 +352,11 @@ from mame_curator.api.schemas_overrides import (  # noqa: E402
     SessionUpsertRequest,
     StatePostRequest,
     StateView,
+)
+from mame_curator.api.schemas_pictures import (  # noqa: E402
+    PictureCandidate,
+    PictureCandidates,
+    PictureChoiceView,
 )
 from mame_curator.api.schemas_setup import (  # noqa: E402
     AppUpdateInfo,
@@ -416,6 +422,10 @@ __all__ = (
     "OverridesEntry",
     "OverridesView",
     "PathsConfig",
+    "PictureCandidate",
+    "PictureCandidates",
+    "PictureChoice",
+    "PictureChoiceView",
     "ServerConfig",
     "SessionUpsertRequest",
     "SessionsListing",

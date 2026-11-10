@@ -92,6 +92,7 @@ function fakeCards(n: number): GameCardType[] {
     publisher: "Pub",
     developer: "Dev",
     badges: [],
+    picture: null,
   }));
 }
 

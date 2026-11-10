@@ -45,6 +45,9 @@ PYTHON_SOURCES = (
     "src/mame_curator/api/schemas_copy.py",
     "src/mame_curator/api/schemas_games.py",
     "src/mame_curator/api/schemas_overrides.py",
+    # mame-curator-1146: the picture choice and its routes' wire models.
+    "src/mame_curator/api/pictures.py",
+    "src/mame_curator/api/schemas_pictures.py",
     "src/mame_curator/api/errors.py",
     "src/mame_curator/copy/types.py",
     "src/mame_curator/parser/models.py",

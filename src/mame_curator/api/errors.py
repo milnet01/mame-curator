@@ -226,10 +226,12 @@ class MediaUpstreamNotFoundError(ApiException):
 
 
 class MediaSourceUnknownError(ApiException):
-    """422 — PUT /api/media/sources/{name}/secret with an unknown source name.
+    """422 — a media source name the route cannot use.
 
     P10 chunk 9: the secret-write route only supports config-bearing sources
     (currently ``mobyGames``); any other name is unprocessable input.
+    mame-curator-1146: ``/media/{name}/{kind}?source=`` and the picture save
+    refuse a source outside ``registry.chain_for(kind)``.
     """
 
     code = "media_source_unknown"

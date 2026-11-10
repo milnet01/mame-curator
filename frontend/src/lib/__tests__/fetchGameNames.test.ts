@@ -23,6 +23,7 @@ function pagedGames(total: number, seen: URL[] = []) {
       publisher: "Namco",
       developer: "Namco",
       badges: [],
+      picture: null,
     }));
     return HttpResponse.json({
       items,
@@ -52,6 +53,7 @@ function twoPages(first: Page, second: Page) {
         publisher: "Namco",
         developer: "Namco",
         badges: [],
+        picture: null,
       })),
       page,
       page_size: 500,

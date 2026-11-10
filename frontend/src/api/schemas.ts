@@ -301,6 +301,40 @@ export const BadgeSchema = z.enum([
   "has_notes",
 ]);
 
+// mame-curator-1146: the stored picture choice and the picture guide's list.
+export const PictureChoiceSchema = z
+  .object({
+    source: z.string(),
+    kind: MediaKindSchema,
+  })
+  .strict();
+
+export const PictureCandidateSchema = z
+  .object({
+    source: z.string(),
+    kind: MediaKindSchema,
+    in_use: z.boolean(),
+  })
+  .strict();
+
+export const PictureCandidatesSchema = z
+  .object({
+    short_name: z.string(),
+    chosen: PictureChoiceSchema.nullable(),
+    chosen_found: z.boolean(),
+    candidates: z.array(PictureCandidateSchema),
+    not_asked: z.array(z.string()),
+    not_answered: z.array(z.string()),
+  })
+  .strict();
+
+export const PictureChoiceViewSchema = z
+  .object({
+    short_name: z.string(),
+    chosen: PictureChoiceSchema.nullable(),
+  })
+  .strict();
+
 export const GameCardSchema = z
   .object({
     short_name: z.string(),
@@ -310,6 +344,7 @@ export const GameCardSchema = z
     publisher: z.string().nullable(),
     developer: z.string().nullable(),
     badges: z.array(BadgeSchema),
+    picture: PictureChoiceSchema.nullable(),
   })
   .strict();
 

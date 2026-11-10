@@ -15,6 +15,7 @@ function mockCards(n: number): GameCard[] {
     publisher: null,
     developer: null,
     badges: [],
+    picture: null,
     bytes: 0,
     parent: `game${i}`,
   })) as GameCard[];

@@ -229,6 +229,9 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | GET | `/api/games/{name}/explanation` | `Explanation` | |
 | GET | `/api/games/{name}/notes` | `Notes` | |
 | PUT | `/api/games/{name}/notes` | `Notes` | ✓ |
+| GET | `/api/games/{name}/picture/candidates?further=false` | `PictureCandidates` | |
+| PUT | `/api/games/{name}/picture` | `PictureChoiceView` | ✓ |
+| DELETE | `/api/games/{name}/picture` | `PictureChoiceView` | ✓ |
 | GET | `/api/library/facets` | `LibraryFacets` | |
 | GET | `/api/stats` | `Stats` | |
 | GET | `/api/state` | `StateView` | |
@@ -270,6 +273,12 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | GET | `/media/{name}/wiki` | `WikipediaExtract \| null` | |
 | GET | `/api/media/sources` | `SourceReadiness` | |
 | PUT | `/api/media/sources/{name}/secret` | `204 No Content` | |
+
+The three picture routes live in `routes/pictures.py`; their contract is
+`docs/specs/mame-curator-1146-picture-choice.md` §4.4. A save takes only a
+source in `chain_for(kind)` (else 422 `media_source_unknown`) and fetches
+nothing. The choice is stored in `data/pictures.json` (`api/pictures.py`),
+loaded into `WorldState.pictures`, and carried on `GameCard.picture`.
 
 Route ordering note: `POST /api/sessions/_deactivate` is registered
 **before** the dynamic `POST /api/sessions/{name}/activate` so FastAPI
@@ -485,7 +494,19 @@ does unless its caller asks otherwise:
   no candidate), the route raises `MediaUpstreamNotFoundError` (404). See
   `docs/specs/P10-media-coverage.md` § "Route contract".
 - A cache hit returns a `FileResponse` (content-type sniffed from the
-  cached file's suffix) with a 30-day `immutable` `Cache-Control`.
+  cached file's suffix) with a 30-day `immutable` `Cache-Control`, except
+  as the table below says.
+- **A stored picture choice and `?source=` (mame-curator-1146 §4.3):**
+
+  | Request | Serves | On a miss | `Cache-Control` |
+  |---|---|---|---|
+  | `?source=S` | only the pair `(S, kind)` | 404 `media_upstream_not_found`, also when S is rate-limited or fails | immutable |
+  | `boxart`, no `source`, a choice stored | the chosen pair | the chain's `boxart` | immutable only when the chosen pair served and `v` is `<source>.<kind>`; else `no-store` |
+  | `boxart`, no `source`, no choice, `v` present | the chain | 404 | `no-store` |
+  | anything else | the chain | 404 | immutable |
+
+  `S` outside `registry.chain_for(kind)` is 422 `media_source_unknown`.
+  `v` only chooses the header.
 - This proxy path (libretro-thumbnails) is **not** rate-limited. The
   `arcadedb_limiter` / `wikipedia_limiter` token buckets on `app.state` gate
   the P10 media-metadata sources (ArcadeDB / Wikipedia), which are not yet

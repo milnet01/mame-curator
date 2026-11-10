@@ -25,6 +25,7 @@ const cards: GameCard[] = Array.from({ length: 12 }, (_, i) => ({
   publisher: "Pub",
   developer: "Dev",
   badges: [],
+  picture: null,
 }));
 
 function setup(reviewState?: StateView) {

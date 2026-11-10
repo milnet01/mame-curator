@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import logging
 import mimetypes
-from typing import cast
+from pathlib import Path
+from typing import Any, cast
 
 import httpx
 from fastapi import APIRouter, Depends, Request
@@ -23,6 +24,7 @@ from mame_curator.api.errors import (
     MediaSourceUnknownError,
     MediaUpstreamNotFoundError,
 )
+from mame_curator.api.pictures import PictureChoice
 from mame_curator.api.routes._deps import get_world
 from mame_curator.api.schemas import SourceReadiness, SourceReadinessRow, SourceSecret
 from mame_curator.api.state import WorldState
@@ -30,19 +32,23 @@ from mame_curator.media import (
     Kind,
     MediaError,
     MediaSource,
+    MediaSourceRegistry,
     WikipediaExtract,
     build_all_sources,
     build_registry,
     mobygames_key_path,
     resolve_image,
+    resolve_pair,
     resolve_wikipedia_extract,
 )
+from mame_curator.parser.models import Machine
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 _VALID_KINDS = {"boxart", "title", "snap", "video"}
+_IMMUTABLE = "public, max-age=2592000, immutable"
 # P10 chunk 9 — sources that accept a pasted secret (value-paste config).
 _SECRET_SOURCES = frozenset({"mobyGames"})
 # Sources the readiness surface marks as "needs a pasted value" (Configure-key
@@ -78,33 +84,17 @@ async def media_wiki(
         return None
 
 
-@router.get("/media/{name}/{kind}")
-async def media_proxy(
-    name: str, kind: str, request: Request, world: WorldState = Depends(get_world)
-) -> Response:
-    if kind not in _VALID_KINDS:
-        raise MediaKindInvalidError(f"unknown media kind: {kind!r}")
-    machine = world.machines.get(name)
-    if machine is None:
-        raise GameNotFoundError(f"game not found: {name!r}")
-    if kind == "video":
-        # Load-bearing short-circuit: `video` is not a source-chain `Kind`
-        # (no source covers it — MediaUrls has no `video` field). Also
-        # reflects design §6.3 — video thumbnails route through progettoSnaps
-        # (P06+), not libretro-thumbnails.
-        raise MediaUpstreamNotFoundError(f"video upstream not configured for {name!r}")
-    cache_dir = world.config.media.cache_dir
-    client: httpx.AsyncClient = request.app.state.media_client
-    # P10 chunk 7: the fallback chain replaces the single-source URL build.
-    # Per-source token buckets + the MobyGames disabled flag live on
-    # app.state (process-wide); build_registry injects them into the
-    # per-request source instances. resolve_image swallows per-source
-    # MediaFetchError / MediaRateLimited and falls through, so an upstream
-    # 5xx no longer surfaces as 502 — a chain that misses everywhere yields
-    # None → 404 (see P10 spec § "Route contract").
-    registry = build_registry(
+def request_registry(request: Request, world: WorldState) -> MediaSourceRegistry:
+    """The configured sources for one request, sharing the app's rate limits.
+
+    P10 chunk 7: per-source token buckets + the MobyGames disabled flag live
+    on app.state (process-wide); build_registry injects them into the
+    per-request source instances. The media proxy and the picture routes
+    (mame-curator-1146) both build their chain here.
+    """
+    return build_registry(
         configured=world.config.media.sources,
-        cache_dir=cache_dir,
+        cache_dir=world.config.media.cache_dir,
         arcadedb_limiter=request.app.state.arcadedb_limiter,
         wikipedia_limiter=request.app.state.wikipedia_limiter,
         mobygames_limiter=request.app.state.mobygames_limiter,
@@ -119,26 +109,106 @@ async def media_proxy(
         esde_media_dir=world.config.media.esde_media_dir,
         retroarch_thumbnails_dir=world.config.media.retroarch_thumbnails_dir,
     )
+
+
+def require_in_chain(registry: MediaSourceRegistry, source: str, kind: Kind) -> None:
+    """422 unless ``source`` is ready, configured and covers ``kind`` (1146 §4.3)."""
+    if source not in {s.name for s in registry.chain_for(kind)}:
+        raise MediaSourceUnknownError(f"media source {source!r} cannot serve {kind!r}")
+
+
+async def _pair_or_none(
+    machine: Machine, choice: PictureChoice, registry: MediaSourceRegistry, **fetch: Any
+) -> Path | None:
+    """A stored choice's picture; ``None`` when it misses or its source fails."""
+    try:
+        return await resolve_pair(machine, choice.source, choice.kind, registry=registry, **fetch)
+    except MediaError as exc:  # MediaRateLimited + MediaFetchError: fall back.
+        logger.info(
+            "media: chosen picture %s.%s did not answer: %s", choice.source, choice.kind, exc
+        )
+        return None
+
+
+async def _serve_boxart(
+    machine: Machine, world: WorldState, registry: MediaSourceRegistry, v: str | None, **fetch: Any
+) -> tuple[Path | None, bool]:
+    """The game's picture and whether its address may be cached for good.
+
+    mame-curator-1146 §4.3: a stored choice serves first; the address is
+    immutable only when it names what it served. A fallback is ``no-store``,
+    so the card shows the chosen picture again once it resolves.
+    """
+    choice = world.pictures.pictures.get(machine.name)
+    if choice is not None:
+        path = await _pair_or_none(machine, choice, registry, **fetch)
+        if path is not None:
+            return path, v == f"{choice.source}.{choice.kind}"
+    elif v is None:
+        return await resolve_image(machine, "boxart", registry=registry, **fetch), True
+    return await resolve_image(machine, "boxart", registry=registry, **fetch), False
+
+
+@router.get("/media/{name}/{kind}")
+async def media_proxy(
+    name: str,
+    kind: str,
+    request: Request,
+    source: str | None = None,
+    v: str | None = None,
+    world: WorldState = Depends(get_world),
+) -> Response:
+    """One game's picture of one kind; ``source`` asks one source only.
+
+    ``v`` is the card's address part naming a stored choice (mame-curator-1146
+    §4.5); it only chooses ``Cache-Control``.
+    """
+    if kind not in _VALID_KINDS:
+        raise MediaKindInvalidError(f"unknown media kind: {kind!r}")
+    machine = world.machines.get(name)
+    if machine is None:
+        raise GameNotFoundError(f"game not found: {name!r}")
+    if kind == "video":
+        # Load-bearing short-circuit: `video` is not a source-chain `Kind`
+        # (no source covers it — MediaUrls has no `video` field). Also
+        # reflects design §6.3 — video thumbnails route through progettoSnaps
+        # (P06+), not libretro-thumbnails.
+        raise MediaUpstreamNotFoundError(f"video upstream not configured for {name!r}")
     # `kind` is one of boxart/title/snap here (video short-circuited above,
     # invalid kinds rejected above) — narrow the untyped route param to Kind.
-    path = await resolve_image(
-        machine, cast(Kind, kind), registry=registry, cache_dir=cache_dir, client=client
-    )
+    chain_kind = cast(Kind, kind)
+    registry = request_registry(request, world)
+    fetch: dict[str, Any] = {
+        "cache_dir": world.config.media.cache_dir,
+        "client": request.app.state.media_client,
+    }
+    cacheable = True
+    if source is not None:
+        # mame-curator-1146 INV-5: one pair only — a miss is 404, never the chain.
+        require_in_chain(registry, source, chain_kind)
+        path = await _pair_or_none(
+            machine, PictureChoice(source=source, kind=chain_kind), registry, **fetch
+        )
+    elif chain_kind == "boxart":
+        path, cacheable = await _serve_boxart(machine, world, registry, v, **fetch)
+    else:
+        # resolve_image swallows per-source MediaFetchError / MediaRateLimited
+        # and falls through, so an upstream 5xx no longer surfaces as 502 — a
+        # chain that misses everywhere yields None → 404 (P10 spec § "Route
+        # contract").
+        path = await resolve_image(machine, chain_kind, registry=registry, **fetch)
     if path is None:
         raise MediaUpstreamNotFoundError(f"no media source resolved {kind!r} for {name!r}")
     # FP21-H: ``FileResponse`` streams the bytes via ``anyio.to_thread``
     # instead of doing a synchronous ``path.read_bytes()`` inside the
-    # async handler. Under fan-out (50 thumbnails on a Library view) the
-    # sync read serialised against the event loop; streaming lets the
-    # asyncio scheduler interleave the I/O. Same wire-bytes contract.
-    # FP28 C2: sniff content-type from the cached file's suffix so JPGs
-    # don't get served as image/png. 30-day immutable Cache-Control per
-    # design § 6.3 ("Cache is permanent by default") — without this header
-    # browsers re-fetched every page-load.
+    # async handler. FP28 C2: sniff content-type from the cached file's
+    # suffix so JPGs don't get served as image/png. 30-day immutable
+    # Cache-Control per design § 6.3 ("Cache is permanent by default") —
+    # without this header browsers re-fetched every page-load.
     return FileResponse(
         path,
         media_type=mimetypes.guess_type(str(path))[0] or "image/png",
-        headers={"Cache-Control": "public, max-age=2592000, immutable"},
+        headers={"Cache-Control": _IMMUTABLE if cacheable else "no-store"},
     )
 
 

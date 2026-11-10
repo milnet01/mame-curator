@@ -97,6 +97,7 @@ def _card(
         publisher=machine.publisher,
         developer=machine.developer,
         badges=_badges(machine.name, world, contested_parents),
+        picture=world.pictures.pictures.get(machine.name),
     )
 
 

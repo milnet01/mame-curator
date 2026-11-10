@@ -33,6 +33,7 @@ function makeGameCard(
     publisher: "Midway",
     developer: "Namco",
     badges: [],
+    picture: null,
     ...overrides,
   };
 }

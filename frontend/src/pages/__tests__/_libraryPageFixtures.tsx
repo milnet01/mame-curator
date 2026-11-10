@@ -128,6 +128,7 @@ export function makeGameCard(overrides: {
     publisher: "Midway",
     developer: "Namco",
     badges: [],
+    picture: null,
     ...overrides,
   };
 }

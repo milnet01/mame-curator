@@ -15,6 +15,7 @@ const cards = Array.from({ length: 100 }, (_, i) => ({
   publisher: "Namco",
   developer: "Namco",
   badges: [],
+  picture: null,
 }));
 
 function spacerHeight() {

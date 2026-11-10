@@ -14,6 +14,7 @@ const baseCard: GameCardType = {
   publisher: "Midway",
   developer: "Namco",
   badges: [],
+  picture: null,
 };
 
 describe("GameCard", () => {

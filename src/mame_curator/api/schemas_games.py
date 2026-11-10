@@ -12,6 +12,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from mame_curator.api.pictures import PictureChoice
 from mame_curator.filter.types import TiebreakerHit
 from mame_curator.parser.models import Machine
 
@@ -33,6 +34,9 @@ class GameCard(BaseModel):
     publisher: str | None
     developer: str | None
     badges: tuple[Badge, ...]
+    # mame-curator-1146: the stored picture choice; the card's image address
+    # names it, so a new choice is a new address the browser fetches.
+    picture: PictureChoice | None
 
 
 class GamesPage(BaseModel):

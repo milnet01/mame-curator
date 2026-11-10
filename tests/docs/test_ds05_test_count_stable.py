@@ -380,7 +380,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # never /. 1139 → 1143.
 # Bumped 2026-11-10 (mame-curator-1146): the picture listing and one
 # source's picture. 1143 → 1153.
-EXPECTED_PYTEST_DECLARATIONS = 1153
+# Bumped 2026-11-10 (mame-curator-1146): the stored picture choice, its
+# address and its routes. 1153 → 1175.
+EXPECTED_PYTEST_DECLARATIONS = 1175
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
