@@ -171,7 +171,8 @@ def test_a_bad_pictures_file_loads_as_no_choices_and_is_left_alone(
         assert _card(client)["picture"] is None
     warnings = [r for r in caplog.records if r.name == "mame_curator.api.pictures"]
     assert len(warnings) == 1
-    assert str(path) in warnings[0].getMessage()
+    # The warning logs the path with %r, which doubles a Windows backslash.
+    assert repr(str(path)) in warnings[0].getMessage()
     if content is not None:
         assert path.read_bytes() == content
 
