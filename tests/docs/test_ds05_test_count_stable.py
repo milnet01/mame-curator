@@ -391,7 +391,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # stream, keeping the zip rules. 1184 → 1188.
 # Bumped 2026-11-10 (mame-curator-1200): a bad reference INI is skipped at
 # startup. 1188 → 1191.
-EXPECTED_PYTEST_DECLARATIONS = 1191
+# Bumped 2026-11-10 (mame-curator-1201): the recycle lock's five cold-read
+# findings. 1191 → 1201.
+EXPECTED_PYTEST_DECLARATIONS = 1201
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

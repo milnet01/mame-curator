@@ -10,6 +10,7 @@ import contextlib
 import json
 import logging
 import os
+import secrets
 import shutil
 import sys
 import threading
@@ -30,24 +31,36 @@ from mame_curator.copy.types import (
 
 logger = logging.getLogger(__name__)
 
-# FP28-A2 lockfile staleness threshold: ~1200x the targeted same-fs p99
-# (50 ms per § Scope A2 perf budget). A lockfile older than this is
-# assumed to be from a crashed process and is reclaimed.
+# FP28-A2 lockfile staleness threshold: a lock this caller has watched stay
+# unchanged for this long is taken to belong to a crashed process and is
+# reclaimed. mame-curator-1201: watched, not aged by its mtime, so a share
+# whose clock differs from ours cannot make a live lock look stale.
 _LOCK_STALE_SECONDS = 60.0
-# mame-curator-1193: a holder touches its lock this often, so a long move
+# mame-curator-1193: a holder writes to its lock this often, so a long move
 # (a large cross-drive file) never lets the lock reach the stale age above.
 _LOCK_REFRESH_SECONDS = 10.0
 # mame-curator-1193: how long a stale lock may refuse to be deleted before the
 # wait gives up with a RecycleError naming it.
 _LOCK_UNREMOVABLE_SECONDS = 5.0
+# mame-curator-1201: the longest a caller waits for the lock, whatever holds
+# it: a holder stuck on a dead share keeps its lock fresh for ever. Counted
+# in steps capped as below.
+_LOCK_WAIT_SECONDS = 600.0
+# mame-curator-1201: the most one look at the lock adds to its watched age or
+# to the wait, so a jump in this caller's clock (a suspend) counts as little.
+_LOCK_WATCH_STEP_CAP = 1.0
 # Same-process contention sleep between O_EXCL retry attempts. Short
 # enough that the test's ThreadPoolExecutor barrier converges fast
 # (~ms), long enough not to busy-loop the CPU.
 _LOCK_RETRY_SLEEP = 0.01
 # Windows only: how long an unbroken run of PermissionError on the lock may last
-# before it counts as a real refusal. See _session_lock.
+# before it counts as a real refusal. See _acquire_lock.
 _LOCK_DENIED_RETRY_SECONDS = 5.0
 _WINDOWS = sys.platform == "win32"
+# Windows opens files in text mode unless told otherwise; the lock holds bytes.
+_O_BINARY: int = getattr(os, "O_BINARY", 0)
+
+type _LockSignature = tuple[int, int, int]
 
 
 @contextlib.contextmanager
@@ -58,22 +71,32 @@ def _session_lock(recycle_root: Path, session_id: str) -> Iterator[None]:
     so two parallel ``recycle_file`` calls with the same ``session_id``
     cannot both pass ``target_dir.exists()`` at the same counter value.
     Avoids a ``filelock`` dependency (which pulls ``portalocker`` on
-    Windows) by using stdlib ``os.O_EXCL``.
-
-    Orphan recovery: a lockfile older than ``_LOCK_STALE_SECONDS`` is
-    assumed crash-orphaned and reclaimed; a live holder keeps its lock
-    fresh (``_keep_lock_fresh``). A stale lock that cannot be deleted
-    raises ``RecycleError`` after ``_LOCK_UNREMOVABLE_SECONDS``.
-    Same-process contention falls through to a short sleep + retry.
+    Windows) by using stdlib ``os.O_EXCL``. mame-curator-1201: the lock holds
+    a token, so the holder removes it only while it is still its own.
     """
     recycle_root.mkdir(parents=True, exist_ok=True)
     lock_path = recycle_root / f"{session_id}.lock"
-    fd: int | None = None
+    token = secrets.token_hex(16).encode()
+    fd = _acquire_lock(lock_path, token)
+    try:
+        with _keep_lock_fresh(fd):
+            yield
+    finally:
+        # Closed first: Windows will not delete a file that is open.
+        with contextlib.suppress(OSError):
+            os.close(fd)
+        _release_lock(lock_path, token)
+
+
+def _acquire_lock(lock_path: Path, token: bytes) -> int:
+    """Create the lock holding ``token``; wait, reclaim a stale one, or raise."""
+    waited, last_look = 0.0, time.monotonic()
     denied_since: float | None = None
     stuck_since: float | None = None
-    while fd is None:
+    watch = _LockWatch()
+    while True:
         try:
-            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | _O_BINARY)
         except PermissionError:
             # Windows is expected to refuse a file whose delete is still pending,
             # so a holder letting go can look like this for a moment. Elsewhere,
@@ -83,64 +106,126 @@ def _session_lock(recycle_root: Path, session_id: str) -> Iterator[None]:
             denied_since = now if denied_since is None else denied_since
             if not _WINDOWS or now - denied_since >= _LOCK_DENIED_RETRY_SECONDS:
                 raise
-            time.sleep(_LOCK_RETRY_SLEEP)
         except FileExistsError:
             denied_since = None  # The lock is held and working; the refusals have ended.
-            try:
-                age = time.time() - lock_path.stat().st_mtime
-            except OSError:
-                # The holder released the lock between the failed open and
-                # our stat. Retry immediately.
-                continue
-            if age <= _LOCK_STALE_SECONDS:
+            blocker = None
+            if watch.is_stale(_lock_signature(lock_path), time.monotonic()):
+                blocker = _reclaim_lock(lock_path, watch.signature)
+            if blocker is None:
                 stuck_since = None
-                time.sleep(_LOCK_RETRY_SLEEP)
-            elif not _remove_stale_lock(lock_path):
+            else:
                 now = time.monotonic()
                 stuck_since = now if stuck_since is None else stuck_since
                 if now - stuck_since >= _LOCK_UNREMOVABLE_SECONDS:
                     raise RecycleError(
                         "recycle lock is stale and cannot be removed; delete it by hand",
-                        path=lock_path,
+                        path=blocker,
                     ) from None
-                time.sleep(_LOCK_RETRY_SLEEP)
+        else:
+            return _write_token(fd, lock_path, token)
+        # Counted in capped steps, as _LockWatch counts, so a suspend cannot use it up.
+        now = time.monotonic()
+        waited, last_look = waited + min(now - last_look, _LOCK_WATCH_STEP_CAP), now
+        if waited >= _LOCK_WAIT_SECONDS:
+            raise RecycleError("recycle lock stayed in use too long; try again", path=lock_path)
+        time.sleep(_LOCK_RETRY_SLEEP)
+
+
+def _write_token(fd: int, lock_path: Path, token: bytes) -> int:
     try:
-        with _keep_lock_fresh(lock_path):
-            yield
+        os.write(fd, token)
+    except OSError as exc:
+        os.close(fd)
+        with contextlib.suppress(OSError):
+            lock_path.unlink()  # Just made by this caller, so its own.
+        raise RecycleError(f"cannot write the recycle lock: {exc}", path=lock_path) from exc
+    return fd
+
+
+def _lock_signature(lock_path: Path) -> _LockSignature | None:
+    """What the lock looks like now; None when it is gone or cannot be looked at.
+
+    ``lstat``, so a lock that is a dangling symlink is seen, not followed.
+    """
+    try:
+        st = os.lstat(lock_path)
+    except OSError:
+        return None
+    return (st.st_ino, st.st_size, st.st_mtime_ns)
+
+
+class _LockWatch:
+    """How long this caller has seen the lock stay the same, by its own clock."""
+
+    def __init__(self) -> None:
+        self.signature: _LockSignature | None = None
+        self._age = 0.0
+        self._last_look: float | None = None
+
+    def is_stale(self, signature: _LockSignature | None, now: float) -> bool:
+        if signature is None or signature != self.signature:
+            self.signature, self._age = signature, 0.0
+        elif self._last_look is not None:
+            self._age += min(now - self._last_look, _LOCK_WATCH_STEP_CAP)
+        self._last_look = now
+        return signature is not None and self._age > _LOCK_STALE_SECONDS
+
+
+def _reclaim_lock(lock_path: Path, stale: _LockSignature | None) -> Path | None:
+    """Delete the lock if it is still the stale one; return a file that would not go.
+
+    mame-curator-1201: the ``.reclaim`` guard lets one waiter at a time check and
+    delete, so two waiters cannot both reclaim and one delete the other's new lock.
+    A lock that changed since it was judged stale is left; None, so look again.
+    """
+    guard = lock_path.with_name(f"{lock_path.name}.reclaim")
+    try:
+        os.close(os.open(guard, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+    except OSError:
+        return guard  # Another waiter is reclaiming, or its guard was orphaned.
+    try:
+        if _lock_signature(lock_path) != stale:
+            return None
+        lock_path.unlink()
+    except FileNotFoundError:
+        return None
+    except OSError:
+        return lock_path
     finally:
         with contextlib.suppress(OSError):
-            os.close(fd)
+            os.unlink(guard)
+    return None
+
+
+def _release_lock(lock_path: Path, token: bytes) -> None:
+    """Delete the lock only while it still holds this holder's token (mame-curator-1201)."""
+    try:
+        owned = lock_path.read_bytes().startswith(token)
+    except OSError:
+        return  # Gone, or unreadable: not provably ours, so it is left to age out.
+    if owned:
         with contextlib.suppress(OSError):
             lock_path.unlink()
 
 
-def _remove_stale_lock(lock_path: Path) -> bool:
-    """Delete a crash-orphaned lock; False when it is still there."""
-    try:
-        lock_path.unlink()
-    except FileNotFoundError:
-        return True  # Someone else removed it first.
-    except OSError:
-        return False
-    return True
-
-
 @contextlib.contextmanager
-def _keep_lock_fresh(lock_path: Path) -> Iterator[None]:
-    """Touch the held lock every ``_LOCK_REFRESH_SECONDS`` so it never looks stale.
+def _keep_lock_fresh(fd: int) -> Iterator[None]:
+    """Write a byte to the held lock every ``_LOCK_REFRESH_SECONDS`` so it keeps changing.
 
-    mame-curator-1193. A crashed holder stops touching it, so its lock still
-    ages out and is reclaimed. Chosen over recording the holder's pid: telling
-    whether a pid is alive differs per OS (``os.kill(pid, 0)`` terminates the
-    process on Windows), and a reused pid would keep a dead lock for ever.
-    ``Event.wait`` paces the thread, so release does not wait out an interval.
+    mame-curator-1193. A crashed holder stops writing, so its lock stays the same
+    and is reclaimed. mame-curator-1201: written through the holder's own open
+    file, so it can only ever change the lock it made. Chosen over recording the
+    holder's pid: telling whether a pid is alive differs per OS
+    (``os.kill(pid, 0)`` terminates the process on Windows), and a reused pid
+    would keep a dead lock for ever. ``Event.wait`` paces the thread, so release
+    does not wait out an interval.
     """
     stop = threading.Event()
 
     def _refresh() -> None:
         while not stop.wait(_LOCK_REFRESH_SECONDS):
             with contextlib.suppress(OSError):
-                os.utime(lock_path)
+                os.write(fd, b".")
 
     refresher = threading.Thread(target=_refresh, name="recycle-lock-refresh", daemon=True)
     refresher.start()

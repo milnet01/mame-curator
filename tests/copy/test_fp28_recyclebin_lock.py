@@ -312,8 +312,10 @@ def test_a_stale_lock_that_cannot_be_removed_gives_a_clear_error_in_bounded_time
 
     assert stuck.value.path == lock
     assert "stale" in str(stuck.value)
+    # mame-curator-1201: watched stale first, then refused for the 5 seconds.
     waited = clock.now - started
-    assert recyclebin._LOCK_UNREMOVABLE_SECONDS <= waited < recyclebin._LOCK_UNREMOVABLE_SECONDS * 2
+    floor = recyclebin._LOCK_STALE_SECONDS + recyclebin._LOCK_UNREMOVABLE_SECONDS
+    assert floor <= waited < floor + recyclebin._LOCK_UNREMOVABLE_SECONDS
     assert lock.exists()
 
 
