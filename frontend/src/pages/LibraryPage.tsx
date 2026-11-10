@@ -112,7 +112,9 @@ export function LibraryPage({
   return (
     <div
       className={cn(
-        "grid h-full",
+        // mame-curator-1210: where the page scrolls as a whole, <main> has no
+        // height to fill, so the Library takes one window's.
+        "grid h-screen roomy:h-full",
         simple ? "grid-cols-1" : "grid-cols-[16rem_1fr]",
         // An open cart must not squeeze the games to nothing; #main scrolls.
         cartExpanded

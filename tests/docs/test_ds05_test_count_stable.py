@@ -525,7 +525,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1136
 # file and opens in the games folder. 690 → 692.
 # Bumped 2026-11-10 (mame-curator-1209): Look through focuses the Library
 # heading. 692 → 693.
-EXPECTED_VITEST_DECLARATIONS = 693
+# Bumped 2026-11-10 (mame-curator-1210): at high zoom the page scrolls as a
+# whole and the search button shrinks. 693 → 697.
+EXPECTED_VITEST_DECLARATIONS = 697
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

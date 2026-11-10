@@ -274,6 +274,18 @@ describe("LibraryPage views", () => {
     );
   });
 
+  // mame-curator-1210: where the page scrolls as a whole, the Library still
+  // needs a height of its own, or its game list would have none to fill.
+  it("is one window tall where the page scrolls, and fills <main> where it does not", () => {
+    serveGames();
+    renderPage("simple");
+    const wrapper = screen.getByRole("heading", {
+      name: strings.nav.library,
+    }).parentElement;
+    expect(wrapper).toHaveClass("h-screen", "roomy:h-full");
+    expect(wrapper).not.toHaveClass("h-full");
+  });
+
   it("leaves focus alone when the Library is opened any other way", async () => {
     serveGames(5000);
     renderPage("simple");

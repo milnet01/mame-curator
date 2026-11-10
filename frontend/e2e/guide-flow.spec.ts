@@ -336,3 +336,37 @@ test.describe("INV-10: the guide at the largest size", () => {
     await expectNoSidewaysScroll(page, "#main");
   });
 });
+
+test.describe("mame-curator-1210: at 320px, about 400% zoom", () => {
+  test.use({
+    viewport: { width: 320, height: 400 },
+    storageState: localStorageState({ [SEEN]: "true", [VIEW]: "simple" }),
+  });
+
+  test("the page scrolls down as a whole, never sideways", async ({ page }) => {
+    for (const route of ["/start", "/"]) {
+      await page.goto(route);
+      await expect(page.locator("#main")).not.toBeEmpty();
+      const mainScrolls = await page
+        .locator("#main")
+        .evaluate((el) => getComputedStyle(el).overflowY);
+      expect(mainScrolls, `${route}: <main> scrolls on its own`).toBe(
+        "visible",
+      );
+    }
+    // Only the guide: the Library's own bars are still wider than 320px.
+    await page.goto("/start");
+    await expect(page.getByTestId("guide-step")).toBeVisible();
+    await expectNoSidewaysScroll(page, "html");
+    await expect(
+      page.getByRole("button", { name: "Search games, settings, and actions" }),
+    ).toBeVisible();
+
+    // The Library is one window tall, so its game list has room to fill.
+    await page.goto("/");
+    const grid = page.getByTestId("library-grid");
+    await expect(grid).toBeVisible();
+    const height = await grid.evaluate((el) => el.clientHeight);
+    expect(height).toBeGreaterThanOrEqual(400 * 0.6 - 1);
+  });
+});

@@ -67,7 +67,10 @@ export function AppShell({
 }: AppShellProps) {
   const [textSize, setTextSizeState] = useState<TextSize>(readTextSize);
   return (
-    <div className="grid h-screen grid-rows-[auto_1fr] bg-background text-foreground">
+    // mame-curator-1210: on a small window (high zoom) the page scrolls as a
+    // whole, so the header scrolls away; only a roomy one holds the header
+    // still and scrolls <main>. `roomy` is defined in index.css.
+    <div className="grid min-h-screen grid-rows-[auto_1fr] bg-background text-foreground roomy:h-screen">
       {/* DS02 C1 — WCAG skip-link. Visually hidden by default; revealed
           on keyboard focus via the sr-only / focus:not-sr-only pair so
           Tab-key users hit it first and can jump past the nav. */}
@@ -156,17 +159,21 @@ export function AppShell({
               ))}
             </select>
           </label>
+          {/* mame-curator-1210: it could not shrink, and made a narrow page
+              scroll sideways. Narrow, it is an icon with the same name;
+              wider, its words wrap. */}
           <Button
             variant="outline"
             size="sm"
             onClick={onCmdK}
-            className="gap-2"
+            aria-label={strings.nav.commandPalette}
+            className="h-auto min-h-8 min-w-0 shrink gap-2 whitespace-normal text-left"
           >
             <Search className="h-4 w-4" aria-hidden="true" />
-            <span className="text-xs text-muted-foreground">
+            <span className="hidden text-xs text-muted-foreground sm:inline">
               {strings.nav.commandPalette}
             </span>
-            <kbd className="ml-auto rounded border bg-muted px-1 py-0.5 text-[0.625rem] font-mono">
+            <kbd className="ml-auto hidden rounded border bg-muted px-1 py-0.5 text-[0.625rem] font-mono sm:inline">
               {/* FP24-II: useKeyboard's `meta:true` matches Cmd on macOS,
                   Ctrl on Windows, Super on Linux. The kbd label adapts so
                   Linux/Windows users see "Ctrl+K" instead of the macOS
@@ -184,7 +191,7 @@ export function AppShell({
         id="main"
         tabIndex={-1}
         aria-label={strings.a11y.mainLandmark}
-        className="overflow-auto"
+        className="roomy:overflow-auto"
       >
         {children}
       </main>

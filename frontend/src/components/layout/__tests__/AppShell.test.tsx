@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { DEFAULT_TEXT_SIZE, TEXT_SIZE_KEY } from "@/lib/textSize";
 import { strings } from "@/strings";
+import css from "@/index.css?raw";
 
 function renderShell(
   props: Partial<React.ComponentProps<typeof AppShell>> = {},
@@ -91,5 +92,38 @@ describe("AppShell", () => {
     renderShell();
     const main = screen.getByRole("main");
     expect(main.getAttribute("aria-label")).toMatch(/main content/i);
+  });
+
+  // mame-curator-1210: at 320px (about 400% zoom) the search button, which
+  // could not shrink, made the page 406px wide, and the header took most of
+  // a short window while <main> scrolled on its own below it.
+  describe("at high zoom (mame-curator-1210)", () => {
+    const search = () =>
+      screen.getByRole("button", { name: strings.nav.commandPalette });
+
+    it("the search button keeps its name and shows only its icon on a narrow window", () => {
+      renderShell();
+      const label = screen.getByText(strings.nav.commandPalette);
+      expect(label).toHaveClass("hidden", "sm:inline");
+      expect(search().querySelector("kbd")).toHaveClass("hidden", "sm:inline");
+    });
+
+    it("the search button can shrink and wrap where its words show", () => {
+      renderShell();
+      expect(search()).toHaveClass("min-w-0", "shrink", "whitespace-normal");
+      expect(search()).not.toHaveClass("shrink-0", "whitespace-nowrap");
+    });
+
+    it("the page scrolls as a whole on a small window, and <main> only on a roomy one", () => {
+      renderShell();
+      const main = screen.getByRole("main");
+      expect(main).toHaveClass("roomy:overflow-auto");
+      expect(main).not.toHaveClass("overflow-auto");
+      expect(main.parentElement).toHaveClass("min-h-screen", "roomy:h-screen");
+      expect(main.parentElement).not.toHaveClass("h-screen");
+      expect(css).toMatch(
+        /@custom-variant roomy \(@media \(min-width: 40rem\) and \(min-height: 30rem\)\);/,
+      );
+    });
   });
 });

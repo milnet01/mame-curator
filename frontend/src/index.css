@@ -3,6 +3,11 @@
    and each build's CSS (and every chunk hash) depended on the last one. */
 @source not "../dist";
 
+/* mame-curator-1210: a window big enough to hold the header still and scroll
+   <main> on its own. Below it (a narrow or short window, as at high zoom) the
+   page scrolls as a whole, so the header does not take most of the screen. */
+@custom-variant roomy (@media (min-width: 40rem) and (min-height: 30rem));
+
 /* shadcn/Tailwind v4 token bridge.
  * Six themes per design §8.5; each is a CSS variable swap, no per-theme assets.
  * Variables follow shadcn naming so generated primitives consume them as-is. */
