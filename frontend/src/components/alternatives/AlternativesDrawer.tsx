@@ -11,6 +11,7 @@ import { AboutSection } from "@/components/alternatives/AboutSection";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useKeyboard } from "@/hooks/useKeyboard";
+import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
 import type {
@@ -179,7 +180,7 @@ export function AlternativesDrawer({
   const rowsRef = useRef<HTMLUListElement>(null);
   // Radix returns focus only to a trigger, and this panel has none, so a
   // keyboard user would be left at the top of the page when it closes.
-  const [opener] = useState(() => document.activeElement);
+  const focusOpener = useReturnFocus(open);
   const moveFocus = (delta: number) => {
     // From outside the rows, either arrow lands on `lastRow` itself.
     const from = focusedRow ?? lastRow - delta;
@@ -242,7 +243,7 @@ export function AlternativesDrawer({
         className="flex w-full max-w-md flex-col gap-4 overflow-y-auto"
         onCloseAutoFocus={(e) => {
           e.preventDefault();
-          if (opener instanceof HTMLElement) opener.focus();
+          focusOpener();
         }}
       >
         <SheetHeader>

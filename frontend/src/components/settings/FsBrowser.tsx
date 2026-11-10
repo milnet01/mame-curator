@@ -17,6 +17,7 @@ import {
   useFsHome,
   useFsListing,
 } from "@/hooks/useFs";
+import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
 import type { FsEntry } from "@/api/types";
@@ -94,24 +95,14 @@ export function FsBrowser({
   // when it opened and give focus back to it, unless the caller has already
   // put focus somewhere. (A guide step moves focus to its heading a frame
   // later, so the heading still wins there.)
-  const [wasOpen, setWasOpen] = useState(open);
-  const [opener, setOpener] = useState<Element | null>(() =>
-    open ? document.activeElement : null,
-  );
-  if (open !== wasOpen) {
-    setWasOpen(open);
-    if (open) setOpener(document.activeElement);
-  }
+  const focusOpener = useReturnFocus(open);
   useEffect(() => {
     if (!open) return;
     return () => {
       const now = document.activeElement;
-      const lost = now === null || now === document.body;
-      if (lost && opener instanceof HTMLElement && opener.isConnected) {
-        opener.focus();
-      }
+      if (now === null || now === document.body) focusOpener();
     };
-  }, [open, opener]);
+  }, [open, focusOpener]);
 
   // mame-curator-1206: opening a folder from its row unmounts that row, and
   // focus fell back to the dialog itself, above Home, / and Up. Put it on the

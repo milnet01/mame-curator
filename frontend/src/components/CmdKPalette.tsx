@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -7,6 +7,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { strings } from "@/strings";
 
 // FP27 A5: dropped 'games' and 'settings'. Zero production producers
@@ -60,19 +61,10 @@ export function CmdKPalette({
   // Radix trigger, so Radix had nowhere to send focus back to. Remember what
   // had focus when it opened. If that control has gone (a chosen page
   // replaced it), the page's main area takes focus instead.
-  const [wasOpen, setWasOpen] = useState(open);
-  const [opener, setOpener] = useState<Element | null>(null);
-  if (open !== wasOpen) {
-    setWasOpen(open);
-    if (open) setOpener(document.activeElement);
-  }
+  const focusOpener = useReturnFocus(open);
   const returnFocus = (e: Event) => {
     e.preventDefault();
-    const target =
-      opener instanceof HTMLElement && opener.isConnected
-        ? opener
-        : document.getElementById("main");
-    target?.focus();
+    focusOpener(document.getElementById("main"));
   };
 
   const handleSelect = (id: string) => {
