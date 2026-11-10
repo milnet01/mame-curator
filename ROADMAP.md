@@ -2711,6 +2711,11 @@ P14 (per-game review state).
   2026-11-05: the picture spec (draft) assumes the address's game is the
   version in use. Since 5ed8924 the alternatives reply's in_use says it;
   amend the spec to use in_use before building.
+  2026-11-10: spec amended in 7b5fa84: in_use for the version in use,
+  the user's section 15 answers recorded, Status accepted. Picture half
+  build started.
+  2026-11-10: picture half built in 47d991e, 2f29568, 3c54f5b, 7b045d4, 3e54a8e; no fold-backs. Every INV has a test; pytest 1501 and vitest 809 passed; version-choice and guide-flow e2e 15 passed. Not yet done: spec section 10's manual checks on the running app (a real browser shows the new picture, the labels and large images read well, a real Look in more places), then check-code and review-code.
+  Waiting-on: user (try Fix this game's picture on the running app: do the pictures and wording suit you?, 2026-11-10)
   **Layman:** Step-by-step help to pick a different version of a game, or a different picture for it.
   Kind: accessibility.
   Source: user-2026-10-30.

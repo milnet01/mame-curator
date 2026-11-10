@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-10 Added — Choose a different picture for a game, step by step
+
+- **Fix this game's picture or version, step by step** (mame-curator-1146)
+  From a game's panel, the guide shows every picture the app can find,
+  in large images, and you pick one. "Look in more places" also asks
+  the online sources. A choice is for that version of the game, and
+  Backup keeps it.
+
 ### 2026-11-10 Changed — Your 2026-11-10 decisions
 
 - **The folder picker lists your drives, and allowing one covers only that drive** (mame-curator-1170)
