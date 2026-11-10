@@ -303,7 +303,7 @@ test.describe("the guide's Where step", () => {
   }
   const heading = (page: Page) => page.getByRole("heading", { level: 1 });
 
-  test("returns focus to the heading however the picker closes", async ({
+  test("Cancel and Esc return focus to the opener, a choice to the heading", async ({
     page,
   }) => {
     await folders(page, { entries: [entry("roms", true)] });
@@ -325,12 +325,13 @@ test.describe("the guide's Where step", () => {
       .getByRole("button", { name: "Cancel" })
       .click();
     await expect(page.getByRole("dialog")).toBeHidden();
-    await expect(heading(page)).toBeFocused();
+    // mame-curator-1206: back to the button that opened the picker.
+    await expect(choose).toBeFocused();
 
     await choose.click();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toBeHidden();
-    await expect(heading(page)).toBeFocused();
+    await expect(choose).toBeFocused();
 
     await choose.click();
     await page

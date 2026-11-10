@@ -22,7 +22,8 @@ import { strings } from "@/strings";
 import type { FsEntry } from "@/api/types";
 
 /** A path with a line break allowed after each separator, so it wraps at a
-    folder's end rather than in the middle of a name. */
+    folder's end rather than in the middle of a name. Chrome reads each break
+    as a space, so the button carries the path as its `aria-label`. */
 function breakableAtFolders(path: string) {
   return path.split(/(?<=[\\/])/).map((part, i) => (
     <Fragment key={i}>
@@ -264,6 +265,7 @@ export function FsBrowser({
               className={pathButton}
               variant="outline"
               onClick={() => setUserPath(r.path)}
+              aria-label={r.path}
             >
               {breakableAtFolders(r.path)}
             </Button>
@@ -279,6 +281,7 @@ export function FsBrowser({
                 className={pathButton}
                 variant="outline"
                 onClick={() => setUserPath(r)}
+                aria-label={r}
               >
                 {breakableAtFolders(r)}
               </Button>

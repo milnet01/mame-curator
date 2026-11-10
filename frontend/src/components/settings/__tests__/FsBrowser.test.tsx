@@ -965,6 +965,8 @@ describe("FsBrowser (FP12 § G)", () => {
       const button = await screen.findByRole("button", { name: LONG });
       // A break after each separator, so a line ends at a folder's end.
       expect(button.querySelectorAll("wbr")).toHaveLength(6);
+      // Chrome reads a break as a space; the name stays the path itself.
+      expect(button).toHaveAttribute("aria-label", LONG);
       expect(button.className).not.toContain("[overflow-wrap:anywhere]");
       expect(button).toHaveClass("break-words");
       // Large text grows rem padding; a narrow window keeps it small.
