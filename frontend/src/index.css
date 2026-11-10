@@ -209,3 +209,18 @@
     min-height: 100vh;
   }
 }
+
+/* mame-curator-1205: one strong focus ring for every control, so a user with a
+   magnifier can always find focus. It is in the text colour, which contrasts
+   with the page, and sits 2px out, so the page shows between it and a filled
+   button. Outside every layer on purpose: it beats each component's
+   `outline-none`, and clears their own rings, which drew in the button's fill
+   colour or at half strength and filled that gap. A heading the guide focuses
+   by script shows it too, whatever moved focus there. */
+:focus-visible,
+h1[tabindex="-1"]:focus {
+  outline: 3px solid var(--foreground);
+  outline-offset: 2px;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-ring-offset-shadow: 0 0 #0000;
+}

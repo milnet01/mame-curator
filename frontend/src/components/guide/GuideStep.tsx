@@ -60,7 +60,7 @@ export function GuideStep({
         key={heading}
         ref={headingRef}
         tabIndex={-1}
-        className="text-3xl font-semibold focus:outline-none"
+        className="text-3xl font-semibold"
       >
         {heading}
       </h1>

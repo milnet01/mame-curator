@@ -28,7 +28,6 @@ export function GuideAction({
 }: GuideActionProps) {
   const className = cn(
     "flex min-h-12 w-full items-center rounded-md border px-4 py-2 text-left text-xl",
-    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring",
     "disabled:cursor-not-allowed disabled:opacity-50",
     "aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
     primary

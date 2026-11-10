@@ -513,7 +513,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1125
 # the arrows move focus and the highlight follows it. 667 → 672.
 # Bumped 2026-11-05 (mame-curator-1176): Settings folder pickers give focus
 # back to Browse, and do not open with focus on Cancel. 672 → 678.
-EXPECTED_VITEST_DECLARATIONS = 678
+# Bumped 2026-11-10 (mame-curator-1205): one strong focus ring for every
+# control. 678 → 681.
+EXPECTED_VITEST_DECLARATIONS = 681
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
