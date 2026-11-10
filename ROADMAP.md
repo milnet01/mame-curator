@@ -2769,7 +2769,7 @@ P14 (per-game review state).
   Source: user-2026-11-10.
   Lanes: filter, api, frontend.
 
-- 📋 [mame-curator-1217] **An option to copy only games in a chosen language.**
+- ✅ [mame-curator-1217] **An option to copy only games in a chosen language.**
   User request 2026-11-10. languages.ini already gives each game's
   languages (parse_languages; the games reply carries languages), and
   filters.drop_japanese_only_text is the one language rule today. To
@@ -2790,6 +2790,14 @@ P14 (per-game review state).
   are the languages languages.ini names, in its spelling. Settings
   multi-select plus the guide step "Which languages can you read?" (tick
   one or more, or skip to keep every language) after the group choice.
+  2026-11-11: 265f01d. filters.keep_languages (default [] = every
+  language), Phase A rule 8 after Japanese-only; a version choice still
+  wins. GET /api/languages lists the 23 languages languages.ini names,
+  most games first. Settings toggles on the Filters tab; the /start
+  guide asks \"Which languages can you read?\" after \"Hide
+  compilations?\"; the Settings guide's leave-out topic now offers
+  compilations and languages. Measured on the repo's config.yaml:
+  [English] takes winners from 5609 to 5491.
   **Layman:** Pick a language, and only games whose text is in that language are kept.
   Kind: feature.
   Source: user-2026-11-10.

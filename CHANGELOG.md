@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-11 Added — Keep only games in languages you can read
+
+- **Choose the languages you can read, and games in other languages are left out** (mame-curator-1217)
+  In Settings, or in the guide's new "Which languages can you read?"
+  step. Tick one or more; a game with no listed language is kept, and
+  "Keep every language" turns it off.
+
 ### 2026-11-10 Fixed — Four game-list files were read as empty
 
 - **The languages, best games, series and mature lists now load** (mame-curator-1220)
