@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1220 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1221 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -4119,7 +4119,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1189-2026-11-10.
   Lanes: frontend.
 
-- 📋 [mame-curator-1220] **languages, bestgames, series and mature INIs read as empty from real progettoSnaps files.**
+- ✅ [mame-curator-1220] **languages, bestgames, series and mature INIs read as empty from real progettoSnaps files.**
   Measured 2026-11-10 on data/ini/: parse_languages, parse_bestgames,
   parse_series and parse_mature each return 0 entries; parse_catver
   returns 49860. The real files are sectioned: a [Section] per language,
@@ -4128,10 +4128,31 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   the test fixtures in tests/parser/fixtures/ are written, so they skip
   every line. Live effect: drop_japanese_only_text, ratings and series do
   nothing on real data. Blocks mame-curator-1217.
+  2026-11-10: 4794c24. The four parsers read the real sectioned format;
+  fixtures now copy it (CRLF kept by .gitattributes). Real files:
+  languages 36707 games (2012 Japanese-only), bestgames 3531, series
+  12383 in 720 series (18 names in two series warn at startup), mature
+  809. Effect measured on the repo's config.yaml (0.284 DAT): winners
+  6262 to 5609; 1332 machines newly dropped as Japanese-only, 682 as
+  mature. A bestgames band is now the real section name, e.g. "90 to 100
+  (Best Games)".
   **Layman:** Four of the five game-list files the app reads give it nothing, so Japanese-only text, best-games ratings and series quietly do nothing.
   Kind: fix.
   Source: build-mame-curator-1217-2026-11-10.
   Lanes: parser, tests.
+
+- 📋 [mame-curator-1221] **The picker's best-games tiebreak knows none of the real rating bands.**
+  _TIER_RANK in src/mame_curator/filter/picker.py knows Best, Great,
+  Good, Average, Bad and Awful. Since mame-curator-1220 the bands are the
+  real section names, such as "90 to 100 (Best Games)" and "0 to 10
+  (Worst)", so none match; removing the bestgames data changes zero
+  winners (measured 2026-11-10). docs/design.md Phase B rule 1 still
+  describes the six tiers. Fixing it will move winners again; say by how
+  much before it ships.
+  **Layman:** The best-games ratings now load, but the app still ignores them when choosing which version of a game to keep.
+  Kind: fix.
+  Source: build-mame-curator-1220-2026-11-10.
+  Lanes: filter, docs.
 
 ## Considered / under research (no target date)
 

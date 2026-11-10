@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-10 Fixed — Four game-list files were read as empty
+
+- **The languages, best games, series and mature lists now load** (mame-curator-1220)
+  They had been read as empty, so Drop Japanese-only text and the
+  mature list did nothing. With them on, expect fewer games: on the test
+  library, 6262 games became 5609.
+
 ### 2026-11-10 Added — Hide compilations
 
 - **A switch to hide compilations and other multi-game boards** (mame-curator-1216)
