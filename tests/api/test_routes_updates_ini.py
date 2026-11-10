@@ -69,7 +69,7 @@ def winner(client: Any) -> str:
 def upstream(client: Any, winner: str) -> dict[str, bytes]:
     """Serves the live files unchanged, except a mature.ini flagging ``winner``."""
     files = {name: (PARSER_FIXTURES / name).read_bytes() for name in INIS}
-    files["mature.ini"] += f"{winner}=\n".encode()
+    files["mature.ini"] += f"{winner}\r\n".encode()
     client.app.state.ini_sources = {name: f"https://ini.test/{name}" for name in INIS}
     client.app.state.updates_client = httpx.AsyncClient(
         transport=httpx.MockTransport(

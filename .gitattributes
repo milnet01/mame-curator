@@ -2,3 +2,7 @@
 # give run.bat bare LF. cmd.exe's goto is reported to miss labels in such files; an
 # LF copy did not show that on Windows 10 (2026-11-02), so this is a precaution.
 run.bat text eol=crlf
+
+# progettoSnaps-format test INIs are CRLF, as the real files are. Keep the bytes as
+# written so the parser tests read CRLF on every platform.
+tests/parser/fixtures/*.ini -text

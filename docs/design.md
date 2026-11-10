@@ -98,9 +98,11 @@ Also parses these reference files (downloaded once during setup, cached in `data
 
 - **`catver.ini`** (progettoSnaps) — category per machine (`Casino / Slot Machine`, `Mahjong / Reels`, `Quiz / Japanese`, `Mature *`, etc.)
 - **`languages.ini`** (progettoSnaps) — languages required to play
-- **`bestgames.ini`** (progettoSnaps) — community rating tier (Best, Great, Good, Average, Bad, Awful)
+- **`bestgames.ini`** (progettoSnaps) — community rating band, in ten-point sections from `0 to 10 (Worst)` to `90 to 100 (Best Games)`
 - **`series.ini`** (progettoSnaps) — sequel/series grouping
 - **`mature.ini`** (progettoSnaps) — adult-content flag
+
+`catver.ini` lists `shortname=category` lines. The other four are MAME folder files: one section per language, band or series, with bare shortnames under it; `mature.ini` lists its names under `[ROOT_FOLDER]`. `parser/spec.md` § INI file formats has the detail.
 - **Official MAME `-listxml` for 0.284** — for CHD detection (`<disk>` elements) and parent/clone relationships. Pleasuredome's ROM-set DAT doesn't include either piece of information; the official XML does.
 
 All five `.ini` files load into hash-map lookups keyed by short name. Missing entries are tolerated (the rule chain treats absence as "no signal"). Update-checking against newer published reference data is the responsibility of `updates/` (§6.7), not the parser.

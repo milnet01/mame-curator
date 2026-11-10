@@ -93,22 +93,34 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 - Excludes progettoSnaps configuration-metadata sections (see "Metadata-section handling" below).
 - Skips the `[VerAdded]` section. Its keys are shortnames, but its values are MAME versions, not categories.
 
+### INI file formats
+
+All five files open with a `[FOLDER_SETTINGS]` section (tool settings such as `RootFolderIcon mame`), a `;;` comment line naming the file's MAME version, and a `[ROOT_FOLDER]` header. progettoSnaps ships them with CRLF line endings; LF reads the same.
+
+- `catver.ini` lists `shortname=category` lines under `[Category]`, then `[VerAdded]`.
+- `languages.ini`, `bestgames.ini` and `series.ini` are MAME folder files: one `[Section]` per language, rating band or series, with one bare shortname per line under it.
+- `mature.ini` lists bare shortnames directly under `[ROOT_FOLDER]`.
+
+Before mame-curator-1220 the four folder-file parsers read `key=value` lines, so each returned nothing on the real files.
+
 ### `parse_languages(path: Path) -> dict[str, list[str]]`
 
-- Returns `{shortname: [lang, ...]}` (multiple languages possible per machine).
-- Comma-separated language values are split + stripped.
+- Returns `{shortname: [lang, ...]}`; each language is the name of a section listing the machine.
+- A machine listed under several language sections gets every one, in file order. That is data, not a conflict, and does not warn.
 
 ### `parse_bestgames(path: Path) -> dict[str, str]`
 
-- Returns `{shortname: tier}` where `tier ∈ {"Best", "Great", "Good", "Average", "Bad", "Awful"}`.
+- Returns `{shortname: band}`, where `band` is the name of the section listing the machine, e.g. `"90 to 100 (Best Games)"`.
+- A machine listed under two bands → the last wins; warn via `logger.warning`.
 
 ### `parse_mature(path: Path) -> set[str]`
 
-- Returns the set of shortnames listed as adult content.
+- Returns the set of shortnames listed as adult content: every bare line under any section except `[FOLDER_SETTINGS]`, `[ROOT_FOLDER]` included.
 
 ### `parse_series(path: Path) -> dict[str, str]`
 
-- Returns `{shortname: series_name}`.
+- Returns `{shortname: series_name}`, where `series_name` is the name of the section listing the machine.
+- A machine listed under two series → the last wins; warn via `logger.warning`.
 
 ### `parse_listxml(path: Path) -> ListxmlFacts`
 
@@ -153,11 +165,11 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 
 ## Metadata-section handling (all five INI parsers)
 
-progettoSnaps INI files ship under section headers `[FOLDER_SETTINGS]` and `[ROOT_FOLDER]` containing tool configuration (icons, sort orders, UI hints). These keys are not machine shortnames and must not pollute the parsed output. **All five INI parsers** filter these section names from their input via the shared `_META_SECTIONS = frozenset({"FOLDER_SETTINGS", "ROOT_FOLDER"})` deny-list. New metadata sections introduced by future progettoSnaps versions should be added to `_META_SECTIONS`, not handled per-parser.
+progettoSnaps INI files ship under section headers `[FOLDER_SETTINGS]` and `[ROOT_FOLDER]` containing tool configuration (icons, sort orders, UI hints). These keys are not machine shortnames and must not pollute the parsed output. The INI parsers filter these section names from their input via the shared `_META_SECTIONS = frozenset({"FOLDER_SETTINGS", "ROOT_FOLDER"})` deny-list. The exception is `parse_mature`: the real `mature.ini` lists its names under `[ROOT_FOLDER]`, so it skips only `[FOLDER_SETTINGS]`. New metadata sections introduced by future progettoSnaps versions should be added to `_META_SECTIONS`, not handled per-parser.
 
 ## Encoding policy (all five INI parsers)
 
-INI files are read as UTF-8. Files containing bytes that aren't valid UTF-8 trigger a `logger.warning("invalid UTF-8 in <path>; falling back to latin-1")` and are then re-decoded with `errors="replace"`. The parser never silently substitutes U+FFFD without surfacing the warning, and never refuses to load a real-world progettoSnaps file just because some character was mojibake.
+INI files are read as UTF-8. Files containing bytes that aren't valid UTF-8 trigger a `logger.warning("invalid UTF-8 in <path>; falling back to latin-1")` and are then re-decoded as latin-1, which accepts every byte. The parser never silently substitutes U+FFFD without surfacing the warning, and never refuses to load a real-world progettoSnaps file just because some character was mojibake.
 
 ## Errors
 
@@ -173,9 +185,9 @@ INI files are read as UTF-8. Files containing bytes that aren't valid UTF-8 trig
 - DAT `<year>` outside `[1970, 2100]` → `Machine.year = None`. MAME's earliest video output (Computer Space) is 1971; values like `<year>1</year>` or `<year>9999</year>` are typos in the DAT, not legitimate dates. Bound is conservative on both ends to leave room for re-released or compilation entries.
 - DAT attribute combinations: `isbios + isdevice` is allowed (some entries have both); we record both.
 - **Pleasuredome DATs strip `cloneof` and `romof`.** Verified empirically: both the merged and non-merged Pleasuredome 0.284 DATs contain zero `cloneof=` / `romof=` attributes. As a consequence, parsing the Pleasuredome DAT alone yields `cloneof=None` for every machine. Parent/clone relationships come from the official MAME `-listxml` (acquired separately — see design §6.1 "Where `-listxml` comes from" for the tiered acquisition flow, and ADR-0003 for the rationale) and are joined onto Pleasuredome machines by short name in Phase 2's filter. The parser itself is faithful to the DAT and does not synthesize relationships.
-- INI shortname appearing twice → last write wins; warn via `logger.warning`.
-- INI line with no `=` separator → skipped silently (matches progettoSnaps' own tolerance).
-- INI keys before the first `[Section]` header → skipped (their section name is `""`, not in any parser's allow-list).
+- `catver.ini` shortname appearing twice → last write wins; warn via `logger.warning`. For the folder files, see each parser above.
+- `catver.ini` line with no `=` separator → skipped silently (matches progettoSnaps' own tolerance).
+- INI lines before the first `[Section]` header → skipped by all five parsers (their section name is `""`).
 - INI section header with an inline trailing comment (`[Mature] ; old format`, `[Best]# tier`) → recognized as `Mature` / `Best`. The walker truncates at the first `]` rather than requiring it as the last character. Without this tolerance, an inline-commented `[FOLDER_SETTINGS]` header silently fails to filter and its keys leak into the parsed output. A `[…` line with no closing bracket is malformed and skipped.
 - INI file with non-UTF-8 bytes → see "Encoding policy" above (warn + fall back to latin-1, never silent).
 - DAT zip member with absolute path or `..` component → `DATError` ("zip-slip"). The threat model nominally trusts the source, but Phase 4 will expose `parse_dat` to network-controlled paths; defense in depth.

@@ -1,8 +1,9 @@
 """Parsers for the five progettoSnaps reference INI files.
 
-All five share section + key=value structure with `;` or `#` comments.
-A shared `_parse_simple_ini` walker emits (section, key, value) triples;
-each public parser interprets them differently.
+All five use `[Section]` headers and `;` or `#` comments, behind a
+[FOLDER_SETTINGS] / [ROOT_FOLDER] preamble. catver.ini lists `name=category`
+lines (`_parse_simple_ini`); the other four are MAME folder files listing bare
+shortnames under each section (`_parse_sectioned_ini`).
 """
 
 from __future__ import annotations
@@ -45,64 +46,63 @@ def parse_catver(path: Path) -> dict[str, str]:
 def parse_languages(path: Path) -> dict[str, list[str]]:
     """Return {shortname: [lang, ...]} from languages.ini.
 
-    Comma-separated values are split and stripped. Duplicate shortnames overwrite
-    (last write wins) and emit a warning. Excludes progettoSnaps metadata sections.
+    Each section is a language and lists bare shortnames. A game listed under
+    several sections gets every one, in file order; that is data, not a
+    conflict, so it does not warn. Excludes progettoSnaps metadata sections.
     """
     out: dict[str, list[str]] = {}
-    for section, key, value in _parse_simple_ini(path):
-        if section in _META_SECTIONS:
+    for section, name in _parse_sectioned_ini(path):
+        if section in _META_SECTIONS or not section:
             continue
-        if key in out:
-            logger.warning("duplicate languages key %r in %s; overwriting", key, path)
-        out[key] = [part.strip() for part in value.split(",") if part.strip()]
+        out.setdefault(name, []).append(section)
     return out
 
 
 def parse_bestgames(path: Path) -> dict[str, str]:
-    """Return {shortname: tier} from bestgames.ini.
+    """Return {shortname: band} from bestgames.ini.
 
-    The bestgames format uses tier *sections* (`[Best]`, `[Great]`, ...) with
-    shortname keys whose values are empty. We map each shortname to its section.
+    Each section is a rating band (`[90 to 100 (Best Games)]`, ...) listing bare
+    shortnames; each name maps to its band's section name. A name in two bands
+    warns and the last wins.
     """
-    valid_tiers = {"Best", "Great", "Good", "Average", "Bad", "Awful"}
-    out: dict[str, str] = {}
-    for section, key, _value in _parse_simple_ini(path):
-        if section in _META_SECTIONS:
-            continue
-        if section in valid_tiers:
-            if key in out:
-                logger.warning("duplicate bestgames key %r in %s; overwriting", key, path)
-            out[key] = section
-    return out
+    return _section_per_name(path, "bestgames")
 
 
 def parse_mature(path: Path) -> set[str]:
-    """Return the set of shortnames listed under [Mature].
+    """Return the set of shortnames mature.ini lists.
 
-    Metadata sections are excluded by virtue of the explicit "Mature" filter,
-    but the `_META_SECTIONS` check is added for consistency with the other
-    INI parsers — should progettoSnaps ever rename the [Mature] section, the
-    filter still defends against metadata leaking through.
+    The real file lists them directly under [ROOT_FOLDER], so unlike the other
+    parsers this one reads that section; only [FOLDER_SETTINGS] (tool config)
+    and lines before any header are excluded.
     """
     return {
-        key
-        for section, key, _v in _parse_simple_ini(path)
-        if section == "Mature" and section not in _META_SECTIONS
+        name
+        for section, name in _parse_sectioned_ini(path)
+        if section and section != "FOLDER_SETTINGS"
     }
 
 
 def parse_series(path: Path) -> dict[str, str]:
     """Return {shortname: series_name} from series.ini.
 
-    Each section header is the series name; the keys are member shortnames.
-    Excludes progettoSnaps configuration-metadata sections.
+    Each section header is the series name; the bare lines under it are member
+    shortnames. A name in two series warns and the last wins. Excludes
+    progettoSnaps configuration-metadata sections.
     """
+    return _section_per_name(path, "series")
+
+
+def _section_per_name(path: Path, kind: str) -> dict[str, str]:
+    """Map each listed shortname to the one non-metadata section listing it."""
     out: dict[str, str] = {}
-    for section, key, _v in _parse_simple_ini(path):
-        if section and section not in _META_SECTIONS:
-            if key in out:
-                logger.warning("duplicate series key %r in %s; overwriting", key, path)
-            out[key] = section
+    for section, name in _parse_sectioned_ini(path):
+        if section in _META_SECTIONS or not section:
+            continue
+        if name in out and out[name] != section:
+            logger.warning(
+                "%s name %r listed under two sections in %s; keeping the last", kind, name, path
+            )
+        out[name] = section
     return out
 
 
@@ -125,11 +125,14 @@ def _read_ini_text(path: Path) -> str:
         return raw.decode("latin-1")
 
 
-def _parse_simple_ini(path: Path) -> Iterator[tuple[str, str, str]]:
-    """Yield (section, key, value) for every `key=value` line.
+def _parse_sectioned_ini(path: Path) -> Iterator[tuple[str, str]]:
+    """Yield (section, line) for every content line, stripped.
 
-    Section is "" when no header has been seen. Comments (`;`, `#`) and
-    blank lines are skipped. Lines without `=` are skipped silently.
+    In the MAME folder format each line is a bare shortname; catver's
+    `_parse_simple_ini` splits the same lines on `=`.
+
+    Section is "" when no header has been seen. Comments (`;`, `#`) and blank
+    lines are skipped; header lines set the section and are not yielded.
     """
     if not path.exists():
         raise INIError("INI path does not exist", path=path)
@@ -151,11 +154,19 @@ def _parse_simple_ini(path: Path) -> Iterator[tuple[str, str, str]]:
                 continue  # malformed `[…` with no closing bracket — skip
             section = line[1:end].strip()
             continue
+        yield (section, line)
+
+
+def _parse_simple_ini(path: Path) -> Iterator[tuple[str, str, str]]:
+    """Yield (section, key, value) for every `key=value` line (catver.ini).
+
+    Lines without `=`, or with an empty key, are skipped silently.
+    """
+    for section, line in _parse_sectioned_ini(path):
         if "=" not in line:
             continue
         key, _, value = line.partition("=")
         key = key.strip()
-        value = value.strip()
         if not key:
             continue
-        yield (section, key, value)
+        yield (section, key, value.strip())

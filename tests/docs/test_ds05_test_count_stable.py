@@ -400,7 +400,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # names, from its report or said to be unavailable. 1205 → 1208.
 # Bumped 2026-11-10 (mame-curator-1216): the multi-game drop, its switch
 # off, a version choice over it, and Backup carrying it. 1208 → 1212.
-EXPECTED_PYTEST_DECLARATIONS = 1212
+# Bumped 2026-11-10 (mame-curator-1220): the four sectioned INI parsers
+# read the real progettoSnaps format. 1212 → 1220.
+EXPECTED_PYTEST_DECLARATIONS = 1220
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
