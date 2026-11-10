@@ -63,6 +63,21 @@ describe("GameCard", () => {
     expect(img).toHaveAttribute("src", "/media/pacman/boxart");
   });
 
+  it("mame-curator-1146: names a chosen picture in the image address", () => {
+    render(
+      <GameCard
+        card={{ ...baseCard, picture: { source: "esde", kind: "title" } }}
+        inCart={false}
+        onOpen={() => {}}
+        onAdd={() => {}}
+      />,
+    );
+    expect(screen.getByTestId("gamecard-img-pacman")).toHaveAttribute(
+      "src",
+      "/media/pacman/boxart?v=esde.title",
+    );
+  });
+
   it("shows the description in the art area when the image fails (so the game is still identifiable)", () => {
     render(
       <GameCard

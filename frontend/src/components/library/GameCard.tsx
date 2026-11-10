@@ -19,6 +19,7 @@ import type {
   ReviewBadgeKind,
   ReviewStateValue,
 } from "@/api/types";
+import { pictureSrc } from "@/lib/pictureSrc";
 
 interface GameCardProps {
   card: GameCardType;
@@ -90,7 +91,7 @@ export function GameCard({
   row = false,
 }: GameCardProps) {
   const [imgFailed, setImgFailed] = useState(false);
-  const flyerSrc = `/media/${encodeURIComponent(card.short_name)}/boxart`;
+  const flyerSrc = pictureSrc(card);
   // FP20-H: stable id wires aria-labelledby on the outer card to the
   // inner heading, so the button's accessible name is exactly the
   // game description — not the screen-reader-clobbering aria-label

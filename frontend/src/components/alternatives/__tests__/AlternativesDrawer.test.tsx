@@ -163,6 +163,26 @@ describe("AlternativesDrawer", () => {
     ).toBeNull();
   });
 
+  it("mame-curator-1146: names each version's chosen picture in its image address", () => {
+    const chosen = {
+      ...winner,
+      picture: { source: "arcadeDB", kind: "snap" as const },
+    };
+    const { container } = renderWithRouter(
+      <AlternativesDrawer
+        open
+        onOpenChange={() => {}}
+        winner={chosen}
+        alternatives={[chosen, ...clones]}
+        onOverride={() => {}}
+      />,
+    );
+    const sources = Array.from(
+      container.ownerDocument.querySelectorAll("img"),
+    ).map((img) => img.getAttribute("src"));
+    expect(sources).toContain("/media/pacman/boxart?v=arcadeDB.snap");
+  });
+
   it('shows "only version" hint and no rows when alternatives.length === 1 (FP11 § B5)', () => {
     renderWithRouter(
       <AlternativesDrawer

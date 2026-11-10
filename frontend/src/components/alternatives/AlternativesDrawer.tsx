@@ -19,6 +19,7 @@ import type {
   ReviewStateValue,
   StateView,
 } from "@/api/types";
+import { pictureSrc } from "@/lib/pictureSrc";
 
 interface AlternativesDrawerProps {
   open: boolean;
@@ -103,7 +104,7 @@ function AlternativeRow({
             </div>
           ) : (
             <img
-              src={`/media/${encodeURIComponent(alt.short_name)}/boxart`}
+              src={pictureSrc(alt)}
               alt={strings.alternatives.flyerAlt(alt.description)}
               loading="lazy"
               onError={() => setImgFailed(true)}

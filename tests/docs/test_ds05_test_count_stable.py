@@ -547,7 +547,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1182
 # that it is kept. 705 → 707.
 # Bumped 2026-11-10 (mame-curator-1146): a backup holding picture choices
 # imports. 707 → 708.
-EXPECTED_VITEST_DECLARATIONS = 708
+# Bumped 2026-11-10 (mame-curator-1146): a card's image address names its
+# chosen picture. 708 → 713.
+EXPECTED_VITEST_DECLARATIONS = 713
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
