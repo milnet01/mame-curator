@@ -129,6 +129,24 @@ def test_override_takes_when_phase_a_dropped_every_version(
     assert result.warnings == ()
 
 
+def test_override_wins_over_a_multigame_drop(
+    sample: tuple[dict[str, Machine], FilterContext],
+) -> None:
+    """mame-curator-1216: a version the user chose stays, compilation or not."""
+    machines, ctx = sample
+    ctx = ctx.model_copy(
+        update={"category": {**ctx.category, "pacmanf": "MultiGame / Compilation"}}
+    )
+    cfg = FilterConfig(drop_multigame=True)
+
+    dropped = run_filter(machines, ctx, cfg, o(), Sessions())
+    assert dict(dropped.dropped)["pacmanf"] is DroppedReason.MULTIGAME
+
+    chosen = run_filter(machines, ctx, cfg, o(pacman="pacmanf"), Sessions())
+    assert "pacmanf" in chosen.winners
+    assert "pacmanf" not in dict(chosen.dropped)
+
+
 def test_override_keyed_by_a_clone_of_a_fully_dropped_family_still_warns(
     sample: tuple[dict[str, Machine], FilterContext],
 ) -> None:

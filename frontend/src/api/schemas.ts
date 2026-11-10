@@ -269,6 +269,7 @@ export const FilterConfigSchema = z
     drop_preliminary_emulation: z.boolean(),
     drop_chd_required: z.boolean(),
     drop_mature: z.boolean(),
+    drop_multigame: z.boolean(),
     region_priority: z.array(z.string()),
     preferred_genres: z.array(z.string()),
     preferred_publishers: z.array(z.string()),

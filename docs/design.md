@@ -426,6 +426,7 @@ filters:
   drop_japanese_only_text: true
   drop_preliminary_emulation: true
   drop_chd_required: true
+  drop_multigame: false      # catver MultiGame / Multiplay / Multi-Games boards
 
 picker:
   region_priority: [World, USA, Europe, Japan, Asia, Brazil]

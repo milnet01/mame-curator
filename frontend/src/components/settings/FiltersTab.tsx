@@ -59,6 +59,12 @@ export function FiltersTab({
         checked={filters.drop_mature}
         onChange={(v) => onChange("drop_mature", v)}
       />
+      <PrefSwitch
+        id="filters-drop-multigame"
+        label={strings.settings.filterLabels.drop_multigame}
+        checked={filters.drop_multigame}
+        onChange={(v) => onChange("drop_multigame", v)}
+      />
       <YearRangeEditor
         before={filters.drop_year_before}
         after={filters.drop_year_after}

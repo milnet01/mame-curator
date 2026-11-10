@@ -50,6 +50,29 @@ describe("SettingsPage", () => {
     );
   });
 
+  it("patches drop_multigame from the Filters tab (mame-curator-1216)", async () => {
+    const user = userEvent.setup();
+    const onPatch = vi.fn();
+    render(
+      <SettingsPage
+        config={config}
+        onPatch={onPatch}
+        onSnapshotRestore={() => {}}
+      />,
+    );
+    await user.click(screen.getByRole("tab", { name: /^Filters$/ }));
+    await user.click(
+      screen.getByRole("switch", {
+        name: strings.settings.filterLabels.drop_multigame,
+      }),
+    );
+    expect(onPatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: expect.objectContaining({ drop_multigame: true }),
+      }),
+    );
+  });
+
   it("patches region_priority when reordered on the Picker tab (FP12 § B)", async () => {
     const user = userEvent.setup();
     const onPatch = vi.fn();

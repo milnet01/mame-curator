@@ -198,6 +198,7 @@ export interface FilterConfig {
   drop_preliminary_emulation: boolean;
   drop_chd_required: boolean;
   drop_mature: boolean;
+  drop_multigame: boolean;
   region_priority: string[];
   preferred_genres: string[];
   preferred_publishers: string[];

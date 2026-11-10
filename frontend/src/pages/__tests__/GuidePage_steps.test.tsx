@@ -145,9 +145,12 @@ const heading = (name: string | RegExp) =>
   screen.findByRole("heading", { name });
 const press = async (user: UserEvent, name: string | RegExp) =>
   user.click(await screen.findByRole("button", { name }));
+/** mame-curator-1216: the button also says which answer is in use. */
+const keepCompilations = new RegExp(`^${g.compilations.no}`);
 
 async function walkToCheck(user: UserEvent) {
   await press(user, g.which.everything);
+  await press(user, keepCompilations);
   await press(user, g.finds.copyThese);
   await press(user, g.where.yes);
   await heading(g.check.heading);
@@ -193,6 +196,11 @@ describe("GuidePage steps", () => {
     expectBack();
 
     await press(user, "Maze");
+    await heading(g.compilations.heading);
+    expectExit();
+    expectBack();
+
+    await press(user, keepCompilations);
     await heading(/This finds 2 games/);
     expectExit();
     expectBack();
@@ -213,7 +221,7 @@ describe("GuidePage steps", () => {
     expect(screen.queryByRole("button", { name: g.back })).toBeNull();
   });
 
-  it("numbers the steps out of 5 for every game and out of 6 for a group", async () => {
+  it("numbers the steps out of 6 for every game and out of 7 for a group", async () => {
     useHandlers();
     const user = userEvent.setup();
     renderGuide();
@@ -221,13 +229,92 @@ describe("GuidePage steps", () => {
     expect(screen.getByText("Step 1")).toBeInTheDocument();
 
     await press(user, g.which.everything);
+    await heading(g.compilations.heading);
+    expect(screen.getByText("Step 2 of 6")).toBeInTheDocument();
+    await press(user, keepCompilations);
     await heading(/This finds/);
-    expect(screen.getByText("Step 2 of 5")).toBeInTheDocument();
+    expect(screen.getByText("Step 3 of 6")).toBeInTheDocument();
 
+    // Back twice unchooses "every game", so a group counts its own step.
+    await press(user, g.back);
     await press(user, g.back);
     await press(user, g.which.group);
     await heading(g.chooseGroup.heading);
-    expect(screen.getByText("Step 2 of 6")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 of 7")).toBeInTheDocument();
+    await press(user, /Best of 1992/);
+    await heading(g.compilations.heading);
+    expect(screen.getByText("Step 3 of 7")).toBeInTheDocument();
+  });
+
+  it("mame-curator-1216: hiding compilations saves the answer before counting", async () => {
+    const seen = useHandlers();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await heading(g.compilations.heading);
+    expectExit();
+    expectBack();
+
+    await press(user, new RegExp(`^${g.compilations.yes}`));
+    await heading(/This finds/);
+    expect(seen.patches).toEqual([
+      { filters: { ...appConfig.filters, drop_multigame: true } },
+    ]);
+  });
+
+  it("mame-curator-1216: a saved answer counts the games again", async () => {
+    useHandlers();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, keepCompilations);
+    await heading(/This finds 2 games/);
+    await press(user, g.back);
+    server.use(
+      http.get("/api/games", () =>
+        HttpResponse.json({
+          items: [
+            makeGameCard({ short_name: "pacman", description: "Pac-Man" }),
+          ],
+          page: 1,
+          page_size: 500,
+          total: 1,
+          total_bytes: 1024 ** 3,
+        }),
+      ),
+    );
+    await press(user, new RegExp(`^${g.compilations.yes}`));
+    expect(await heading(/This finds 1 game,/)).toBeVisible();
+  });
+
+  it("mame-curator-1216: an answer already in use moves on without saving", async () => {
+    const seen = useHandlers();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, keepCompilations);
+    await heading(/This finds/);
+    expect(seen.patches).toEqual([]);
+  });
+
+  it("mame-curator-1216: a failed save stays on the step and says so", async () => {
+    useHandlers();
+    server.use(
+      http.patch("/api/config", () =>
+        HttpResponse.json(
+          { detail: "disk full", code: "boom", fields: [] },
+          { status: 500 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, new RegExp(`^${g.compilations.yes}`));
+    expect(await screen.findByRole("alert")).toHaveTextContent("disk full");
+    expect(
+      screen.getByRole("heading", { name: g.compilations.heading }),
+    ).toBeInTheDocument();
   });
 
   it("states the number of games and their size", async () => {
@@ -235,6 +322,7 @@ describe("GuidePage steps", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     expect(await heading("This finds 2 games, about 3.0 GB.")).toBeVisible();
   });
 
@@ -284,6 +372,7 @@ describe("GuidePage steps", () => {
     renderGuide();
     await press(user, g.which.group);
     await press(user, /Best of 1992/);
+    await press(user, keepCompilations);
     await press(user, g.finds.copyThese);
     await heading(g.where.heading);
 
@@ -313,6 +402,7 @@ describe("GuidePage steps", () => {
     renderGuide();
     await press(user, g.which.type);
     await press(user, "Maze");
+    await press(user, keepCompilations);
     await press(user, g.finds.lookThrough);
     const where = await screen.findByTestId("where");
     expect(where.textContent).toBe("/");
@@ -338,6 +428,7 @@ describe("GuidePage steps", () => {
     renderGuide();
     await press(user, g.which.type);
     await press(user, "Maze");
+    await press(user, keepCompilations);
     await heading(g.finds.heading(0, ""));
     expect(
       screen.queryByRole("button", { name: g.finds.copyThese }),
@@ -393,6 +484,7 @@ describe("GuidePage steps", () => {
       const user = userEvent.setup();
       renderGuide();
       await press(user, g.which.everything);
+      await press(user, keepCompilations);
       await press(user, g.finds.copyThese);
       await press(user, g.where.yes);
 
@@ -411,6 +503,7 @@ describe("GuidePage steps", () => {
       const user = userEvent.setup();
       renderGuide();
       await press(user, g.which.everything);
+      await press(user, keepCompilations);
       await heading(/This finds 2 games/);
       server.use(
         http.get("/api/games", () =>
@@ -425,7 +518,7 @@ describe("GuidePage steps", () => {
       const alert = await screen.findByRole("alert");
       expect(alert).toHaveTextContent(reason);
       await press(user, g.back);
-      await heading(g.which.heading);
+      await heading(g.compilations.heading);
     });
 
     it.each([
@@ -452,6 +545,7 @@ describe("GuidePage steps", () => {
       const user = userEvent.setup();
       renderGuide();
       await press(user, g.which.everything);
+      await press(user, keepCompilations);
       await press(user, g.finds.copyThese);
       await press(user, g.where.choose);
       await press(user, strings.settings.fsBrowserUseDirectory);
@@ -520,6 +614,7 @@ describe("GuidePage steps", () => {
       const user = userEvent.setup();
       renderGuide();
       await press(user, g.which.everything);
+      await press(user, keepCompilations);
       await press(user, g.finds.copyThese);
       await press(user, g.where.yes);
 
@@ -583,6 +678,7 @@ describe("GuidePage steps", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     await press(user, g.finds.copyThese);
     await press(user, g.where.choose);
 

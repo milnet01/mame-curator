@@ -228,3 +228,42 @@ def test_clean_machine_not_dropped() -> None:
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "category",
+    [
+        "MultiGame / Compilation",
+        "MultiGame / Mini-Games",
+        "Multiplay / Mini-Games * Mature *",
+        "Game Console / Multi-Games",
+        "Board Game / Multi-Games Machine",
+    ],
+)
+def test_multigame_dropped(category: str) -> None:
+    """mame-curator-1216: a multi-game board goes when drop_multigame is on."""
+    assert (
+        drop_reason(
+            m(name="mg"),
+            FilterContext(category={"mg": category}),
+            FilterConfig(drop_multigame=True),
+        )
+        is DroppedReason.MULTIGAME
+    )
+
+
+@pytest.mark.parametrize(
+    ("category", "cfg"),
+    [
+        ("MultiGame / Compilation", FilterConfig()),
+        ("Misc. / Multiplay", FilterConfig(drop_multigame=True)),
+        ("Handheld / Plug n' Play TV Game / Multi-Sport", FilterConfig(drop_multigame=True)),
+        ("Shooter / Flying Vertical", FilterConfig(drop_multigame=True)),
+        (None, FilterConfig(drop_multigame=True)),
+    ],
+    ids=["switch_off_by_default", "multiplay_not_first", "multi_sport", "plain", "no_category"],
+)
+def test_multigame_kept(category: str | None, cfg: FilterConfig) -> None:
+    """mame-curator-1216: only the three catver shapes count, and only when on."""
+    ctx = FilterContext(category={} if category is None else {"mg": category})
+    assert drop_reason(m(name="mg"), ctx, cfg) is None

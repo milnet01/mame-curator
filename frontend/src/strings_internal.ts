@@ -431,6 +431,7 @@ export const strings = {
       drop_preliminary_emulation: "Drop preliminary emulation",
       drop_chd_required: "Drop CHD-required games",
       drop_mature: "Drop mature content",
+      drop_multigame: "Hide compilations (several games on one board)",
     },
     /** FP12 § A — chip-list field labels (filters tab). */
     filterChipLists: {

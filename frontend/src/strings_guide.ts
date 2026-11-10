@@ -63,6 +63,13 @@ export const guideStrings = {
     heading: "Which type?",
     none: "No game types are available.",
   },
+  /** mame-curator-1216: leave out boards that hold several games. */
+  compilations: {
+    heading: "Hide compilations?",
+    help: "Some boards hold several games at once. Hiding them leaves those boards out of your games.",
+    yes: "Yes, hide them",
+    no: "No, keep them",
+  },
   finds: {
     heading: (n: number, size: string) =>
       n === 0

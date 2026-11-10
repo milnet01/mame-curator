@@ -53,6 +53,7 @@ const config: AppConfigResponse = {
     drop_preliminary_emulation: true,
     drop_chd_required: true,
     drop_mature: true,
+    drop_multigame: false,
     region_priority: [],
     preferred_genres: [],
     preferred_publishers: [],

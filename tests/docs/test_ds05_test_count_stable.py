@@ -398,7 +398,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # warning. 1201 → 1205.
 # Bumped 2026-11-10 (mame-curator-1199): a copy's skipped and failed
 # names, from its report or said to be unavailable. 1205 → 1208.
-EXPECTED_PYTEST_DECLARATIONS = 1208
+# Bumped 2026-11-10 (mame-curator-1216): the multi-game drop, its switch
+# off, a version choice over it, and Backup carrying it. 1208 → 1212.
+EXPECTED_PYTEST_DECLARATIONS = 1212
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -577,7 +579,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1208
 # be used, from the version guide and the Library. 737 → 740.
 # Bumped 2026-11-10 (mame-curator-1199): Activity's "Show which" for a
 # copy's skipped and failed games. 740 → 743.
-EXPECTED_VITEST_DECLARATIONS = 743
+# Bumped 2026-11-10 (mame-curator-1216): the guide's "Hide compilations?"
+# step and the Filters tab switch. 743 → 748.
+EXPECTED_VITEST_DECLARATIONS = 748
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

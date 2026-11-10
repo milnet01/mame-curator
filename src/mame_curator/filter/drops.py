@@ -52,6 +52,18 @@ def _category(m: Machine, ctx: FilterContext, cfg: FilterConfig) -> DroppedReaso
     return DroppedReason.CATEGORY if _matches_any(cat, cfg.drop_categories) else None
 
 
+def _is_multigame(category: str) -> bool:
+    """mame-curator-1216: catver's three ways of naming a multi-game board."""
+    return category.startswith(("MultiGame", "Multiplay")) or "/ Multi-Games" in category
+
+
+def _multigame(m: Machine, ctx: FilterContext, cfg: FilterConfig) -> DroppedReason | None:
+    if not cfg.drop_multigame:
+        return None
+    cat = ctx.category.get(m.name)
+    return DroppedReason.MULTIGAME if cat is not None and _is_multigame(cat) else None
+
+
 def _mature(m: Machine, ctx: FilterContext, cfg: FilterConfig) -> DroppedReason | None:
     return DroppedReason.MATURE if (cfg.drop_mature and m.name in ctx.mature) else None
 
@@ -107,6 +119,7 @@ _PREDICATES: tuple[Callable[[Machine, FilterContext, FilterConfig], DroppedReaso
     _device,
     _mechanical,
     _category,
+    _multigame,
     _mature,
     _japanese_only,
     _preliminary,

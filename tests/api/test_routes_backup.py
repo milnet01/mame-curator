@@ -41,3 +41,18 @@ def test_config_export_import_round_trip(client: Any) -> None:
     assert [g["short_name"] for g in games_post["items"]] == [
         g["short_name"] for g in games_pre["items"]
     ]
+
+
+def test_backup_carries_drop_multigame(client: Any) -> None:
+    """mame-curator-1216: the switch is config, so Backup keeps and restores it."""
+    filters = client.get("/api/config").json()["filters"]
+    assert filters["drop_multigame"] is False
+    saved = client.patch("/api/config", json={"filters": {**filters, "drop_multigame": True}})
+    assert saved.json()["filters"]["drop_multigame"] is True
+
+    bundle = client.post("/api/config/export").json()
+    assert bundle["config"]["filters"]["drop_multigame"] is True
+
+    client.patch("/api/config", json={"filters": {**filters, "drop_multigame": False}})
+    assert client.post("/api/config/import", json=bundle).status_code == 200
+    assert client.get("/api/config").json()["filters"]["drop_multigame"] is True

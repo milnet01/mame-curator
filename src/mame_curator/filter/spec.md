@@ -26,15 +26,16 @@ Each rule is a small predicate `(machine, ctx, config) -> bool`. Predicates are 
 | 2 | `DEVICE` | (`machine.is_device` or `machine.runnable is False`) and `config.drop_bios_devices_mechanical` |
 | 3 | `MECHANICAL` | `machine.is_mechanical` and `config.drop_bios_devices_mechanical` |
 | 4 | `CATEGORY` | `ctx.category[name]` matches any pattern in `config.drop_categories` (fnmatch, case-sensitive) |
-| 5 | `MATURE` | `name in ctx.mature` and `config.drop_mature` (default `True`). Membership is the sole signal — `mature.ini` is the authoritative list. The `Mature*` category prefix is independent and reaches Phase A rule 4 via `drop_categories` (which by default includes `"Mature*"` per `config.example.yaml`). |
-| 6 | `JAPANESE_ONLY` | `ctx.languages[name] == ("Japanese",)` and `config.drop_japanese_only_text` (note: `ctx.languages` is `dict[str, tuple[str, ...]]`, hence the tuple equality) |
-| 7 | `PRELIMINARY_DRIVER` | `machine.driver_status is DriverStatus.PRELIMINARY` and `config.drop_preliminary_emulation` |
-| 8 | `CHD_REQUIRED` | `name in ctx.chd_required` and `config.drop_chd_required` |
-| 9 | `GENRE` | derived genre matches any `config.drop_genres` pattern (genre = part after last `/` in category) |
-| 10 | `PUBLISHER` | `machine.publisher` matches any `config.drop_publishers` pattern |
-| 11 | `DEVELOPER` | `machine.developer` matches any `config.drop_developers` pattern |
-| 12 | `YEAR_BEFORE` | `machine.year is not None` and `machine.year < config.drop_year_before` |
-| 13 | `YEAR_AFTER` | `machine.year is not None` and `machine.year > config.drop_year_after` |
+| 5 | `MULTIGAME` | `config.drop_multigame` (default `False`) and `ctx.category[name]` starts with `MultiGame` or `Multiplay`, or contains `/ Multi-Games` (mame-curator-1216). These are catver's names for a board holding several games. A game with no category is kept. |
+| 6 | `MATURE` | `name in ctx.mature` and `config.drop_mature` (default `True`). Membership is the sole signal — `mature.ini` is the authoritative list. The `Mature*` category prefix is independent and reaches Phase A rule 4 via `drop_categories` (which by default includes `"Mature*"` per `config.example.yaml`). |
+| 7 | `JAPANESE_ONLY` | `ctx.languages[name] == ("Japanese",)` and `config.drop_japanese_only_text` (note: `ctx.languages` is `dict[str, tuple[str, ...]]`, hence the tuple equality) |
+| 8 | `PRELIMINARY_DRIVER` | `machine.driver_status is DriverStatus.PRELIMINARY` and `config.drop_preliminary_emulation` |
+| 9 | `CHD_REQUIRED` | `name in ctx.chd_required` and `config.drop_chd_required` |
+| 10 | `GENRE` | derived genre matches any `config.drop_genres` pattern (genre = part after last `/` in category) |
+| 11 | `PUBLISHER` | `machine.publisher` matches any `config.drop_publishers` pattern |
+| 12 | `DEVELOPER` | `machine.developer` matches any `config.drop_developers` pattern |
+| 13 | `YEAR_BEFORE` | `machine.year is not None` and `machine.year < config.drop_year_before` |
+| 14 | `YEAR_AFTER` | `machine.year is not None` and `machine.year > config.drop_year_after` |
 
 Patterns use `fnmatch.fnmatchcase()` (case-sensitive glob: `*` matches any sequence, `?` any single char, `[abc]` character class). `None` values for `publisher`/`developer`/`year` never match.
 
@@ -171,6 +172,7 @@ class FilterConfig(BaseModel):
     drop_preliminary_emulation: bool = True
     drop_chd_required: bool = True
     drop_mature: bool = True
+    drop_multigame: bool = False
 
     # picker: section
     region_priority: tuple[str, ...] = ("World", "USA", "Europe", "Japan", "Asia", "Brazil")

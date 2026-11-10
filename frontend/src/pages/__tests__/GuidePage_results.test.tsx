@@ -105,10 +105,13 @@ const heading = (name: string | RegExp) =>
   screen.findByRole("heading", { name });
 const press = async (user: UserEvent, name: string | RegExp) =>
   user.click(await screen.findByRole("button", { name }));
+/** mame-curator-1216: the button also says which answer is in use. */
+const keepCompilations = new RegExp(`^${g.compilations.no}`);
 const button = (name: string) => screen.queryByRole("button", { name });
 
 async function walkToCheck(user: UserEvent) {
   await press(user, g.which.everything);
+  await press(user, keepCompilations);
   await press(user, g.finds.copyThese);
   await press(user, g.where.yes);
 }
@@ -146,10 +149,13 @@ describe("INV-5: backing out of the name fetch sticks", () => {
     renderGuide();
 
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     await press(user, g.finds.copyThese);
+    await press(user, g.back);
     await press(user, g.back);
     await press(user, g.which.group);
     await press(user, strings.library.featured.tiles[0].title);
+    await press(user, keepCompilations);
     await heading(/This finds 1 game/);
 
     release();
@@ -180,6 +186,7 @@ describe("a heading says how the step came out", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     await heading(g.loadFailed);
     expect(screen.getByRole("alert")).toHaveTextContent("it broke");
   });
@@ -363,6 +370,7 @@ describe("a chosen folder", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     await press(user, g.finds.copyThese);
     await press(user, g.where.choose);
     await press(user, strings.settings.fsBrowserUseDirectory);
@@ -396,6 +404,7 @@ describe("a chosen folder", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     await press(user, g.finds.copyThese);
     await press(user, g.where.choose);
     await press(user, strings.settings.fsBrowserUseDirectory);
@@ -421,6 +430,7 @@ describe("a chosen folder", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     await press(user, g.finds.copyThese);
     await press(user, g.where.choose);
     await press(user, strings.settings.fsBrowserUseDirectory);
@@ -436,6 +446,7 @@ describe("a chosen folder", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     await press(user, g.finds.copyThese);
     await press(user, g.where.choose);
     await press(user, strings.settings.fsBrowserUseDirectory);
@@ -451,6 +462,7 @@ describe("a chosen folder", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     await press(user, g.finds.copyThese);
     await press(user, g.where.choose);
 
@@ -477,6 +489,7 @@ describe("a chosen folder", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     await press(user, g.finds.copyThese);
     await heading(g.where.heading);
     const region = await screen.findByRole("status");
@@ -495,6 +508,7 @@ describe("the Where step's picker (mame-curator-1206)", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     await press(user, g.finds.copyThese);
     await heading(g.where.heading);
     await press(user, g.where.choose);
@@ -515,6 +529,7 @@ describe("Copy these while it fetches (mame-curator-1165)", () => {
     const user = userEvent.setup();
     renderGuide();
     await press(user, g.which.everything);
+    await press(user, keepCompilations);
     const copy = await screen.findByRole("button", { name: g.finds.copyThese });
     let fetches = 0;
     server.use(

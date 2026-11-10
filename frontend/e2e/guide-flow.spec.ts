@@ -39,6 +39,11 @@ function localStorageState(items: Record<string, string>) {
   };
 }
 
+/** mame-curator-1216: the step after the group choice; the fixture's answer is "keep". */
+async function keepCompilations(page: Page) {
+  await page.getByRole("button", { name: /^No, keep them/ }).click();
+}
+
 test.describe("INV-6: a repeat copy", () => {
   test.use({ storageState: localStorageState({}) });
 
@@ -77,6 +82,7 @@ test.describe("INV-6: a repeat copy", () => {
     await page
       .getByRole("button", { name: "The best version of every game" })
       .click();
+    await keepCompilations(page);
     await page.getByRole("button", { name: "Copy these" }).click();
     await page.getByRole("button", { name: "Yes, copy here" }).click();
     await expect(
@@ -146,6 +152,7 @@ test.describe("the guide is honest and audible", () => {
     await page
       .getByRole("button", { name: "The best version of every game" })
       .click();
+    await keepCompilations(page);
     const counting = page.getByRole("heading", {
       name: "Counting the games…",
     });
@@ -165,17 +172,16 @@ test.describe("the guide is honest and audible", () => {
     await page
       .getByRole("button", { name: "The best version of every game" })
       .click();
+    await keepCompilations(page);
     await page.getByRole("button", { name: "Copy these" }).click();
     await page.getByRole("button", { name: "Back" }).click();
-    const which = page.getByRole("heading", {
-      name: "Which games would you like?",
-    });
-    await expect(which).toBeFocused();
+    const previous = page.getByRole("heading", { name: "Hide compilations?" });
+    await expect(previous).toBeFocused();
 
     release();
     await page.waitForTimeout(300);
 
-    await expect(which).toBeFocused();
+    await expect(previous).toBeFocused();
   });
 
   test("the Check report is heard, and a failed start keeps its place", async ({
@@ -221,6 +227,7 @@ test.describe("the guide is honest and audible", () => {
     await page
       .getByRole("button", { name: "The best version of every game" })
       .click();
+    await keepCompilations(page);
     await page.getByRole("button", { name: "Copy these" }).click();
     await page.getByRole("button", { name: "Yes, copy here" }).click();
     await expect(
@@ -390,5 +397,52 @@ test.describe("mame-curator-1213: the Library at 320px", () => {
       page.getByRole("button", { name: "Copy", exact: true }),
     ).toBeVisible();
     await expectNoSidewaysScroll(page, "html");
+  });
+});
+
+test.describe("mame-curator-1216: Hide compilations?", () => {
+  test.use({ storageState: localStorageState({ [SEEN]: "true" }) });
+
+  const fixtureConfig = path.resolve(e2eData, "../../config.yaml");
+  let original = "";
+
+  test.beforeEach(() => {
+    original = fs.readFileSync(fixtureConfig, "utf-8");
+  });
+
+  // The answer is saved to the fixture config, so put the server and the
+  // file back as they were.
+  test.afterEach(async ({ request }) => {
+    const config = await (await request.get("/api/config")).json();
+    await request.patch("/api/config", {
+      data: { filters: { ...config.filters, drop_multigame: false } },
+    });
+    fs.writeFileSync(fixtureConfig, original);
+  });
+
+  test("the answer is saved, and the guide counts on", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/start");
+    await page
+      .getByRole("button", { name: "The best version of every game" })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Hide compilations?" }),
+    ).toBeFocused();
+    await expect(page.getByText("Step 2 of 6")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^No, keep them/ }),
+    ).toContainText("In use now");
+
+    await page.getByRole("button", { name: /^Yes, hide them/ }).click();
+
+    await expect(
+      page.getByRole("heading", { name: /^This finds/ }),
+    ).toBeFocused();
+    await expect(page.getByText("Step 3 of 6")).toBeVisible();
+    const config = await (await request.get("/api/config")).json();
+    expect(config.filters.drop_multigame).toBe(true);
   });
 });

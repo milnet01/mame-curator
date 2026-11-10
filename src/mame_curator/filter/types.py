@@ -17,6 +17,7 @@ class DroppedReason(StrEnum):
     DEVICE = "device"
     MECHANICAL = "mechanical"
     CATEGORY = "category"
+    MULTIGAME = "multigame"
     MATURE = "mature"
     JAPANESE_ONLY = "japanese_only"
     PRELIMINARY_DRIVER = "preliminary_driver"

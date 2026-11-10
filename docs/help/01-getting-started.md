@@ -34,6 +34,10 @@ the top menu to come back to it. If you leave during a copy, the guide and
 the Library both show that copy again when you open them. A copy from the guide
 adds to your existing game list. It never changes your cart.
 
+After you choose which games, the guide asks **Hide compilations?**
+Compilations are boards that hold several games at once. Your answer is
+saved, and you can change it under **Settings → Filters**.
+
 ## Text size
 
 The **Text size** box at the top of every page makes text larger or

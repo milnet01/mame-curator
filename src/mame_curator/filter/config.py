@@ -24,6 +24,7 @@ class FilterConfig(BaseModel):
     drop_preliminary_emulation: bool = True
     drop_chd_required: bool = True
     drop_mature: bool = True
+    drop_multigame: bool = False
 
     region_priority: tuple[str, ...] = ("World", "USA", "Europe", "Japan", "Asia", "Brazil")
     preferred_genres: tuple[str, ...] = ()

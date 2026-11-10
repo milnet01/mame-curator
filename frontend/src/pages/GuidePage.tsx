@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { GuideStep } from "@/components/guide/GuideStep";
 import { CheckStep } from "@/components/guide/steps/CheckStep";
+import { CompilationsStep } from "@/components/guide/steps/CompilationsStep";
 import {
   ChooseGroupStep,
   ChooseTypeStep,
@@ -23,18 +24,20 @@ import { markGuideSeen } from "@/lib/guideState";
 import { strings } from "@/strings";
 import type { CopyJobRequest } from "@/api/types";
 
-type Step = "which" | "group" | "type" | "finds" | "where" | "check";
+type Step =
+  "which" | "group" | "type" | "compilations" | "finds" | "where" | "check";
 
 /** "Every game" skips the group step, which moves every later step up one. */
 function stepNumbers(selection: GuideSelection | null) {
   const skipped = selection?.kind === "everything" ? 1 : 0;
   return {
-    stepCount: 6 - skipped,
+    stepCount: 7 - skipped,
     group: 2,
-    finds: 3 - skipped,
-    where: 4 - skipped,
-    check: 5 - skipped,
-    copying: 6 - skipped,
+    compilations: 3 - skipped,
+    finds: 4 - skipped,
+    where: 5 - skipped,
+    check: 6 - skipped,
+    copying: 7 - skipped,
   };
 }
 
@@ -55,7 +58,7 @@ function GuideSteps() {
   );
 
   const numbers = stepNumbers(selection);
-  const backFromFinds = () => {
+  const backFromCompilations = () => {
     if (selection?.kind === "tile") setStep("group");
     else if (selection?.kind === "genre") setStep("type");
     else {
@@ -70,9 +73,10 @@ function GuideSteps() {
     setNames([]);
     setStep("which");
   };
+  // mame-curator-1216: every selection is asked about compilations next.
   const choose = (next: GuideSelection) => {
     setSelection(next);
-    setStep("finds");
+    setStep("compilations");
   };
 
   if (copySession.state) {
@@ -116,13 +120,22 @@ function GuideSteps() {
           onChoose={(genre) => choose({ kind: "genre", genre })}
         />
       );
+    case "compilations":
+      return (
+        <CompilationsStep
+          stepNumber={numbers.compilations}
+          stepCount={numbers.stepCount}
+          onBack={backFromCompilations}
+          onNext={() => setStep("finds")}
+        />
+      );
     case "finds":
       return (
         <WhatThatFindsStep
           selection={selection ?? { kind: "everything" }}
           stepNumber={numbers.finds}
           stepCount={numbers.stepCount}
-          onBack={backFromFinds}
+          onBack={() => setStep("compilations")}
           onNames={(found) => {
             setNames(found);
             setStep("where");
