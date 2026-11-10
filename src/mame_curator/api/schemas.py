@@ -264,6 +264,9 @@ class ConfigExportBundle(BaseModel):
     overrides: dict[str, Any]
     sessions: dict[str, Any]
     notes: dict[str, str]
+    # mame-curator-1146 §4.7: the whole pictures.json object; absent when the
+    # user has made no choice, so such a backup still opens in older releases.
+    pictures: dict[str, Any] | None = None
 
 
 class AppConfigResponse(BaseModel):

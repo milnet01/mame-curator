@@ -493,6 +493,8 @@ export const ConfigExportBundleSchema = z
     overrides: z.record(z.string(), z.unknown()),
     sessions: z.record(z.string(), z.unknown()),
     notes: z.record(z.string(), z.string()),
+    // mame-curator-1146: absent when the user has chosen no picture.
+    pictures: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 

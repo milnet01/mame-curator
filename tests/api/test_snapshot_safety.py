@@ -13,7 +13,7 @@ import yaml
 from mame_curator.api.persist import MAX_SNAPSHOTS, restore_snapshot, write_json_atomic
 
 _SNAP_ID = "20200101T000000_000000Z"
-WRITE_JSON = "mame_curator.api.routes.config.write_json_atomic"
+WRITE_JSON = "mame_curator.api.routes.backup.write_json_atomic"
 
 
 def _snapshot(config_file: Path, name: str = _SNAP_ID) -> Path:

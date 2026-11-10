@@ -1,4 +1,7 @@
-"""R14–R19 shape tests + L07 / L08 / L09 behavioral + P01 property test.
+"""R14–R17 shape tests + L07 / L08 behavioral + P01 property test.
+
+R18 / R19 (export, import) and L09 moved to ``test_routes_backup.py`` with
+their routes (mame-curator-1146).
 
 Per ``docs/specs/P04-http-api.md`` § Routes (Config) and § Tests.
 """
@@ -49,20 +52,6 @@ def test_route_r17_shape_snapshot_restore(client: Any) -> None:
     assert not_found.status_code == 404
 
 
-def test_route_r18_shape_config_export(client: Any) -> None:
-    response = client.post("/api/config/export")
-    assert response.status_code == 200
-    body = response.json()
-    for key in ("config", "overrides", "sessions", "notes"):
-        assert key in body
-
-
-def test_route_r19_shape_config_import(client: Any) -> None:
-    bundle = client.post("/api/config/export").json()
-    response = client.post("/api/config/import", json=bundle)
-    assert response.status_code == 200
-
-
 # ---- Behavioral tests -------------------------------------------------------
 
 
@@ -103,25 +92,6 @@ def test_config_snapshots_round_trip(client: Any) -> None:
     assert restore.status_code == 200
     post = client.get("/api/config").json()
     assert post["ui"]["theme"] == pre_theme
-
-
-def test_config_export_import_round_trip(client: Any) -> None:
-    """L09 — export → reset → import reproduces winners byte-equal."""
-    games_pre = client.get("/api/games").json()
-    bundle = client.post("/api/config/export").json()
-
-    # Mutate the live state.
-    client.patch("/api/config", json={"ui": {"theme": "light"}})
-
-    # Import bundle; state should round-trip.
-    imported = client.post("/api/config/import", json=bundle)
-    assert imported.status_code == 200
-
-    games_post = client.get("/api/games").json()
-    assert games_post["total"] == games_pre["total"]
-    assert [g["short_name"] for g in games_post["items"]] == [
-        g["short_name"] for g in games_pre["items"]
-    ]
 
 
 # ---- No-op PATCH idempotence ------------------------------------------------

@@ -219,8 +219,8 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | PATCH | `/api/config` | `AppConfigResponse` | ✓ |
 | GET | `/api/config/snapshots` | `SnapshotsListing` | |
 | POST | `/api/config/snapshots/{snap_id}/restore` | `AppConfigResponse` | ✓ |
-| POST | `/api/config/export` | `ConfigExportBundle` | |
-| POST | `/api/config/import` | `AppConfigResponse` | ✓ |
+| POST | `/api/config/export` (`routes/backup.py`) | `ConfigExportBundle` | |
+| POST | `/api/config/import` (`routes/backup.py`) | `AppConfigResponse` | ✓ |
 | GET | `/api/games` | `GamesPage` | |
 | GET | `/api/games/{name}` | `GameDetail` | |
 | POST | `/api/games/validate` | `ValidateResponse` | |
@@ -454,8 +454,10 @@ does unless its caller asks otherwise:
   in the snapshot id format → `SnapshotNotFoundError` 404). Old snapshots are
   pruned, oldest first, except the one a restore is about to read.
 - The restore route's targets are `config.yaml`, `overrides.yaml`,
-  `sessions.yaml`, `data/notes.json` and `data/state.yaml`, keyed by bare
-  name. It first snapshots the current state of all five, so a restore can
+  `sessions.yaml`, `data/notes.json`, `data/state.yaml` and
+  `data/pictures.json` (mame-curator-1146), keyed by bare name. A snapshot
+  taken before 1146 does not cover `pictures.json`, so it is left alone. The
+  route first snapshots the current state of all six, so a restore can
   be undone. It then reloads each into the world, review state included,
   so an update snapshot restores whole and the next review write cannot
   save stale state over the restored file (mame-curator-1010 §4.3 step 2).
@@ -464,8 +466,12 @@ does unless its caller asks otherwise:
   a snapshot from an older schema is handled: `load_app_config` drops keys it no
   longer knows and folds `picker:`; anything else that does not fit is refused
   whole, with the current settings untouched (mame-curator-1132).
-- `export` returns a `ConfigExportBundle`; `import` validates + applies a
-  bundle (invalid → `ConfigError` 422). `picker:` in a bundle's config folds
+- `export` and `import` live in `routes/backup.py`. `export` returns a
+  `ConfigExportBundle`; `import` validates + applies a
+  bundle (invalid → `ConfigError` 422). The bundle holds `pictures`, the whole
+  `pictures.json` object, only when a choice exists; an import without it
+  clears the choices, and `pictures.json` is among the snapshotted targets
+  (mame-curator-1146 §4.7). `picker:` in a bundle's config folds
   into `filters:` as `load_app_config` does. A NUL path is `path_invalid` and a
   bundle newly naming one folder for games and destination is `same_folder`
   (mame-curator-1177). A path that does not exist is not refused: a kept backup

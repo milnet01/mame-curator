@@ -1,4 +1,4 @@
-"""R14-R19 — config GET/PATCH, snapshots, export/import."""
+"""R14-R17 — config GET/PATCH and snapshots; export/import are in ``backup.py``."""
 
 from __future__ import annotations
 
@@ -24,18 +24,16 @@ from mame_curator.api.persist import (
     list_snapshots,
     restore_snapshot,
     snapshot_files,
-    write_json_atomic,
     write_yaml_atomic,
 )
+from mame_curator.api.pictures import load_pictures
 from mame_curator.api.routes._deps import get_world, set_world
 from mame_curator.api.schemas import (
     AppConfig,
     AppConfigPatch,
     AppConfigResponse,
-    ConfigExportBundle,
     Snapshot,
     SnapshotsListing,
-    merge_picker_into_filters,
 )
 from mame_curator.api.state import (
     WorldState,
@@ -47,8 +45,6 @@ from mame_curator.api.state import (
 )
 from mame_curator.filter import (
     FilterError,
-    Overrides,
-    Sessions,
     load_overrides,
     load_review_state,
     load_sessions,
@@ -317,6 +313,9 @@ async def restore_config_snapshot(
             "sessions.yaml": world.config_path.parent / "sessions.yaml",
             "notes.json": world.data_dir / "notes.json",
             "state.yaml": world.data_dir / "state.yaml",
+            # mame-curator-1146: a snapshot from before choices does not
+            # cover this name, so restore_snapshot leaves the file alone.
+            "pictures.json": world.data_dir / "pictures.json",
         }
         # The restore is itself undoable: keep what it is about to replace.
         undo_id = snapshot_files(snapshots_dir, targets, keep=snap_id)
@@ -328,6 +327,7 @@ async def restore_config_snapshot(
             new_sessions = load_sessions(targets["sessions.yaml"])
             new_notes = _read_json_dict(targets["notes.json"])
             new_review_state = load_review_state(targets["state.yaml"])
+            new_pictures = load_pictures(targets["pictures.json"])
         except (ConfigError, FilterError, OSError, ValueError) as exc:
             # Otherwise the next save would write the old config over the
             # restored files around it (mame-curator-1145 INV-16). This is also
@@ -341,124 +341,7 @@ async def restore_config_snapshot(
             sessions=new_sessions,
             notes=new_notes,
             review_state=new_review_state,
-            rerun_filter=True,
-        )
-        return await _swap_in_and_reply(request, new_world)
-
-
-@router.post("/api/config/export", response_model=ConfigExportBundle)
-def export_config(world: WorldState = Depends(get_world)) -> ConfigExportBundle:
-    return ConfigExportBundle(
-        config=world.config.model_dump(mode="json"),
-        overrides={"overrides": dict(world.overrides.entries)},
-        sessions={
-            "active": world.sessions.active,
-            "sessions": {
-                k: v.model_dump(mode="json", exclude_defaults=True)
-                for k, v in world.sessions.sessions.items()
-            },
-        },
-        notes=dict(world.notes),
-    )
-
-
-@router.post("/api/config/import", response_model=AppConfigResponse)
-async def import_config(
-    bundle: ConfigExportBundle,
-    request: Request,
-) -> AppConfigResponse:
-    """FP20-C: async + world_lock-guarded read-merge-write-set_world."""
-    async with request.app.state.world_lock:
-        world: WorldState = request.app.state.world
-        # versioning-overrides item 1: the same old forms load_app_config reads.
-        try:
-            raw_config = merge_picker_into_filters(dict(bundle.config))
-        except ValueError as exc:
-            raise ConfigError(f"config import: {exc}") from exc
-        try:
-            new_config = AppConfig.model_validate(raw_config)
-        except ValidationError as exc:
-            from mame_curator.api.errors import field_errors_from_pydantic
-
-            raise ConfigError(
-                "config import: invalid config",
-                fields=field_errors_from_pydantic(exc.errors()),
-            ) from exc
-
-        try:
-            new_overrides = Overrides.model_validate(bundle.overrides)
-        except ValidationError as exc:
-            from mame_curator.api.errors import field_errors_from_pydantic
-
-            raise ConfigError(
-                "config import: invalid overrides",
-                fields=field_errors_from_pydantic(exc.errors()),
-            ) from exc
-
-        try:
-            new_sessions = Sessions.model_validate(bundle.sessions)
-        except ValidationError as exc:
-            from mame_curator.api.errors import field_errors_from_pydantic
-
-            raise ConfigError(
-                "config import: invalid sessions",
-                fields=field_errors_from_pydantic(exc.errors()),
-            ) from exc
-
-        # FP09 A3: R11 (POST /api/sessions) enforces `_SESSION_NAME_RE`; R19's
-        # import path was bypassing it, so a malicious bundle could write a
-        # session named `_deactivate` (or any reserved control name) into
-        # sessions.yaml. Re-apply the regex per session-name on import.
-        from mame_curator.api.errors import SessionNameInvalidError
-        from mame_curator.api.routes.curate import _SESSION_NAME_RE
-
-        for name in new_sessions.sessions:
-            if not _SESSION_NAME_RE.match(name):
-                raise SessionNameInvalidError(f"session name invalid in import: {name!r}")
-
-        path_errs = _import_path_errors(new_config, world.config)
-        if path_errs:
-            raise ConfigError("config import: invalid paths", fields=path_errs)
-
-        snapshots_dir = world.data_dir / "snapshots"
-        targets = {
-            "config.yaml": world.config_path,
-            "overrides.yaml": world.config_path.parent / "overrides.yaml",
-            "sessions.yaml": world.config_path.parent / "sessions.yaml",
-            "notes.json": world.data_dir / "notes.json",
-        }
-        undo_id = snapshot_files(snapshots_dir, targets)
-
-        # Each write is atomic but the four together are not. A failure puts back
-        # what was written. A crash between writes leaves a mixed set, and that
-        # snapshot, listed in Settings, is the way back.
-        try:
-            write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
-            write_yaml_atomic(
-                world.config_path.parent / "overrides.yaml",
-                {"overrides": dict(new_overrides.entries)},
-            )
-            write_yaml_atomic(
-                world.config_path.parent / "sessions.yaml",
-                {
-                    "active": new_sessions.active,
-                    "sessions": {
-                        k: v.model_dump(mode="json", exclude_defaults=True)
-                        for k, v in new_sessions.sessions.items()
-                    },
-                },
-            )
-            write_json_atomic(world.data_dir / "notes.json", bundle.notes)
-        except OSError:
-            restore_snapshot(snapshots_dir, undo_id, targets)
-            raise
-
-        new_world = replace_world(
-            base=world,
-            config=new_config,
-            overrides=new_overrides,
-            sessions=new_sessions,
-            notes=bundle.notes,
+            pictures=new_pictures,
             rerun_filter=True,
         )
         return await _swap_in_and_reply(request, new_world)

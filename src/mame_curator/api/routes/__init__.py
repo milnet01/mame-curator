@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from mame_curator.api.routes import (
     activity,
+    backup,
     config,
     copy,
     curate,
@@ -25,6 +26,7 @@ router = APIRouter()
 router.include_router(games.router)
 router.include_router(curate.router)
 router.include_router(config.router)
+router.include_router(backup.router)
 router.include_router(copy.router)
 router.include_router(activity.router)
 router.include_router(fs.router)

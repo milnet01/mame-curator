@@ -382,7 +382,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # source's picture. 1143 → 1153.
 # Bumped 2026-11-10 (mame-curator-1146): the stored picture choice, its
 # address and its routes. 1153 → 1175.
-EXPECTED_PYTEST_DECLARATIONS = 1175
+# Bumped 2026-11-10 (mame-curator-1146): picture choices in Backup export,
+# import and restore; export/import tests move to test_routes_backup.py (+0).
+# 1175 → 1182.
+EXPECTED_PYTEST_DECLARATIONS = 1182
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -542,7 +545,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1175
 # the place. 698 → 705.
 # Bumped 2026-11-10 (mame-curator-1170): the grant prompt says how wide and
 # that it is kept. 705 → 707.
-EXPECTED_VITEST_DECLARATIONS = 707
+# Bumped 2026-11-10 (mame-curator-1146): a backup holding picture choices
+# imports. 707 → 708.
+EXPECTED_VITEST_DECLARATIONS = 708
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

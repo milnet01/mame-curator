@@ -75,6 +75,30 @@ describe("BackupTab (FP12 § J + FP13 § B1/B3)", () => {
     });
   });
 
+  it("accepts a backup holding picture choices (mame-curator-1146)", async () => {
+    const user = userEvent.setup();
+    const onImport = vi.fn();
+    const pictures = {
+      pictures: { pacman: { source: "esde", kind: "title" } },
+    };
+    const json = JSON.stringify({
+      config: {},
+      overrides: {},
+      sessions: {},
+      notes: {},
+      pictures,
+    });
+    render(<BackupTab onExport={() => {}} onImport={onImport} />);
+    const input = screen.getByLabelText(/^Import/) as HTMLInputElement;
+    await user.upload(input, new File([json], "backup.json"));
+    await user.click(
+      screen.getByRole("button", { name: "Replace settings from backup.json" }),
+    );
+    expect(onImport).toHaveBeenCalledWith(
+      expect.objectContaining({ pictures }),
+    );
+  });
+
   it("does not call onImport when the dialog is cancelled", async () => {
     const user = userEvent.setup();
     const onImport = vi.fn();

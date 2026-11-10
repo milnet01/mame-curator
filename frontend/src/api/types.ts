@@ -398,6 +398,7 @@ export interface ConfigExportBundle {
   overrides: Record<string, unknown>;
   sessions: Record<string, unknown>;
   notes: Record<string, string>;
+  pictures?: Record<string, unknown>;
 }
 
 // === Copy job ==============================================================
