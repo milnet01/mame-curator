@@ -61,7 +61,10 @@ export function SimpleLibraryBar({
       className="flex flex-col gap-3 border-b p-4"
     >
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex min-w-[16rem] flex-1 flex-col gap-1">
+        {/* mame-curator-1213: 16rem is where the box would like to start,
+            not a floor; a narrower window shrinks it rather than widening
+            the page. */}
+        <div className="flex min-w-0 flex-1 basis-[16rem] flex-col gap-1">
           <Label htmlFor="filters-search">
             {strings.library.filters.searchLabel}
           </Label>

@@ -34,7 +34,9 @@ export function CartBar({
   const ChevronIcon = expanded ? ChevronDown : ChevronUp;
 
   return (
-    <footer className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t bg-background/95 px-4 py-2 backdrop-blur">
+    // mame-curator-1213: the buttons wrap below the summary, so a narrow
+    // window (320px, about 400% zoom) does not widen the page.
+    <footer className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t bg-background/95 px-4 py-2 backdrop-blur">
       <div className="flex items-center gap-2 text-sm tabular-nums">
         <ShoppingCart className="h-4 w-4" aria-hidden="true" />
         <span className={empty ? "text-muted-foreground" : "font-medium"}>

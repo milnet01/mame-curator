@@ -160,7 +160,7 @@ export function applyTextSize(): void; // sets document.documentElement.style.fo
 - `AppShell` gains a labelled "Text size" control, reachable on every page. An unknown stored value falls back to the default.
 - `LibraryGrid` multiplies `rowHeightPx` by the root size over 16, and the virtualizer re-measures when the size changes. The scroll offset scales with the rows, so the same game stays at the top (mame-curator-1156).
 - The grid keeps a minimum height of `60vh`, and the area holding it scrolls. Without this, at the largest size the bars above it crush it to nothing.
-- On a window narrower than `40rem` or shorter than `30rem`, as at high zoom, the page scrolls as a whole and `<main>` does not scroll on its own, so the header scrolls away; the Library is then one window tall. The header's search button shows only its icon below `40rem`, with the same name, and wraps above it (mame-curator-1210).
+- On a window narrower than `40rem` or shorter than `30rem`, as at high zoom, the page scrolls as a whole and `<main>` does not scroll on its own, so the header scrolls away; the Library is then one window tall. The header's search button shows only its icon below `40rem`, with the same name, and wraps above it (mame-curator-1210). In simple view the Library's search box starts at `16rem` but may shrink, and the `CartBar` buttons wrap below its summary, so at 320px wide the Library is no wider than the window (mame-curator-1213).
 - The `text-[10px]` uses in `AppShell` and the drawer placeholder become rem values. `h-[300px]` stays unless the review of this page shows it clips.
 
 ### 4.7 The simple Library

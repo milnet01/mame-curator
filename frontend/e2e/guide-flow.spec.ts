@@ -354,7 +354,7 @@ test.describe("mame-curator-1210: at 320px, about 400% zoom", () => {
         "visible",
       );
     }
-    // Only the guide: the Library's own bars are still wider than 320px.
+    // The Library's own check is mame-curator-1213's, below.
     await page.goto("/start");
     await expect(page.getByTestId("guide-step")).toBeVisible();
     await expectNoSidewaysScroll(page, "html");
@@ -368,5 +368,27 @@ test.describe("mame-curator-1210: at 320px, about 400% zoom", () => {
     await expect(grid).toBeVisible();
     const height = await grid.evaluate((el) => el.clientHeight);
     expect(height).toBeGreaterThanOrEqual(400 * 0.6 - 1);
+  });
+});
+
+test.describe("mame-curator-1213: the Library at 320px", () => {
+  test.use({
+    viewport: { width: 320, height: 400 },
+    storageState: localStorageState({
+      [SEEN]: "true",
+      [VIEW]: "simple",
+      // A game in the cart, so the cart bar shows its longest words.
+      "mame-curator:cart:v1": JSON.stringify([{ shortName: "pacman" }]),
+    }),
+  });
+
+  test("the search box and the cart bar fit the window", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("simple-library-bar")).toBeVisible();
+    await expect(page.getByTestId("library-grid")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Copy", exact: true }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page, "html");
   });
 });
