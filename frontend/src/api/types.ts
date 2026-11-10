@@ -515,6 +515,12 @@ export interface SetupReferenceFiles {
   listxml: SetupReferenceStatus;
 }
 
+/** mame-curator-1208: does a file start as a game list? */
+export interface DatCheck {
+  path: string;
+  parses: boolean;
+}
+
 export interface SetupCheck {
   config_present: boolean;
   paths: SetupPaths;

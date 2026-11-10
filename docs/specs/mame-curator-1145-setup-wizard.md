@@ -79,7 +79,8 @@ frontend/src/lib/playlistPath.ts                      playlistIn(dest)
 - Before a choice the one action is "Choose a folder" or "Choose a file", which opens `FsBrowser` (`mode="file"` on step 2).
 - After a choice the path shows as large text in a `role="status"` element, which is on the page, empty, before the choice, so a screen reader hears the first choice too. Focus moves to the heading. `GuideStep` gains `focusKey?: number`, added to its focus effect's dependencies. The wizard changes it on each choice, so focus moves although the heading stays the same. Cancel leaves focus to the picker, which gives it back to the button that opened it (mame-curator-1206).
 - Every step has the exit "Look around on my own". Steps 2 and 3 have Back, which keeps the answers given.
-- `FsBrowser` opens at the current answer on steps 1 and 3 and at the home folder if there is none. Step 2 opens at the home folder too, because step 1's folder can hold tens of thousands of game files and `mode="file"` draws a row for each.
+- `FsBrowser` opens at the current answer on steps 1 and 3 and at the home folder if there is none. Step 2 opens at the folder of its current answer, else at step 1's folder, where many users keep the list; the picker draws only the rows near the window, so a big folder is no cost (mame-curator-1208).
+- Step 2 asks `GET /api/setup/dat-check` about each chosen file before taking it. The server reads up to the first machine, so it answers at once. A file that does not start as a game list is not taken: the step says §4.3's sentence in a `role="alert"` element and stays unanswered. A file broken further on still passes here and is caught by the save (mame-curator-1208).
 
 ### 4.3 The save
 
@@ -177,8 +178,8 @@ Its strings change for every caller, to plain words:
   *Test:* `GuidePage_setup.test.tsx`, whose setup-check handler flips after the PATCH, `frontend/e2e/setup-wizard.spec.ts`, and `frontend/src/hooks/__tests__/useConfig.test.tsx` for the hook.
   *Breaks when:* only the setup check is invalidated, which leaves the empty games list cached for its `staleTime`; the invalidation lives in the wizard alone; or the trigger reads a cached answer.
 
-- **INV-9** — A DAT that cannot be read returns the user to step 2 with §4.3's sentence, their other answers kept. A refused save stays on step 3 and says why in a `role="alert"` element, and Back works again.
-  *Test:* `GuidePage_setup.test.tsx`, with a reply of `restart_required: true`, a 422 naming `paths.source_roms`, and a 500.
+- **INV-9** — Step 2 refuses a file that does not start as a game list, with §4.3's sentence. A DAT the save cannot read returns the user to step 2 with the same sentence, their other answers kept. A refused save stays on step 3 and says why in a `role="alert"` element, and Back works again.
+  *Test:* `GuidePage_setup.test.tsx`, with a refusing `dat-check`, a reply of `restart_required: true`, a 422 naming `paths.source_roms`, and a 500; `tests/api/test_mame_curator_1208_dat_check.py` and `tests/parser/test_mame_curator_1208_dat_start.py` for the server's answer.
   *Breaks when:* a kept-but-unreadable save is treated as success, or a refused save leaves the step busy.
 
 - **INV-10** — Every step has the exit, steps 2 and 3 have Back, and neither shows during the save. Focus moves to the heading on each step change and on each choice. Cancel returns focus to the button that opened the picker. The guide's Where step returns focus the same way.

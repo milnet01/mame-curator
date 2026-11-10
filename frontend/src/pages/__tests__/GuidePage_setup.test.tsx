@@ -40,13 +40,15 @@ const entry = (name: string, is_dir: boolean) => ({
 interface Seen {
   patches: { paths: Record<string, string> }[];
   gamesFetched: number;
+  /** Every folder the picker asked to list, in order. */
+  listed: string[];
 }
 
 type PatchReply = (body: { paths: Record<string, string> }) => Response;
 
 /** A server in setup mode, until a PATCH reply says the games loaded. */
 function useSetupServer(reply?: PatchReply): Seen {
-  const seen: Seen = { patches: [], gamesFetched: 0 };
+  const seen: Seen = { patches: [], gamesFetched: 0, listed: [] };
   let setupRequired = true;
   server.use(
     http.get("/api/setup/check", () =>
@@ -70,18 +72,25 @@ function useSetupServer(reply?: PatchReply): Seen {
     http.get("/api/fs/allowed-roots", () => HttpResponse.json({ roots: [] })),
     http.get("/api/fs/list", ({ request }) => {
       const path = new URL(request.url).searchParams.get("path");
+      if (path) seen.listed.push(path);
       return HttpResponse.json({
         path,
-        parent: null,
+        parent: path === HOME ? null : HOME,
+        // The games folder holds the list too, as many users keep it.
         entries:
-          path === HOME
+          path === HOME || path === `${HOME}/roms`
             ? [
                 entry("roms", true),
                 entry("copied", true),
                 entry("mame.xml", false),
+                entry("notes.xml", false),
               ]
             : [],
       });
+    }),
+    http.get("/api/setup/dat-check", ({ request }) => {
+      const path = new URL(request.url).searchParams.get("path") ?? "";
+      return HttpResponse.json({ path, parses: path.endsWith("mame.xml") });
     }),
     http.get("/api/library/facets", () =>
       HttpResponse.json({
@@ -388,6 +397,40 @@ describe("the setup wizard", () => {
       source_roms: `${HOME}/roms`,
       dest_roms: `${HOME}/copied`,
     });
+  });
+
+  it("INV-9: the list step refuses a file that is not a game list at once (mame-curator-1208)", async () => {
+    const seen = useSetupServer();
+    const user = userEvent.setup();
+    renderGuide();
+    await heading(s.games.heading);
+    await pickFolder(user, s.games.choose, "roms");
+    await press(user, s.games.yes);
+    await heading(s.list.heading);
+
+    await pickFile(user, s.list.choose, "notes.xml");
+    expect(await screen.findByRole("alert")).toHaveTextContent(s.notAGameList);
+    expect(screen.getByRole("heading", { name: s.list.heading })).toBeVisible();
+    expect(screen.queryByRole("button", { name: s.list.yes })).toBeNull();
+
+    await pickFile(user, s.list.choose, "mame.xml");
+    await heading(s.list.chosenHeading);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(seen.patches).toHaveLength(0);
+  });
+
+  it("the list step's picker opens in the games folder (mame-curator-1208)", async () => {
+    const seen = useSetupServer();
+    const user = userEvent.setup();
+    renderGuide();
+    await heading(s.games.heading);
+    await pickFolder(user, s.games.choose, "roms");
+    await press(user, s.games.yes);
+    await heading(s.list.heading);
+    seen.listed.length = 0;
+    await press(user, s.list.choose);
+    await screen.findByRole("dialog");
+    await waitFor(() => expect(seen.listed[0]).toBe(`${HOME}/roms`));
   });
 
   it("INV-9: a refused save stays on the last step and says why", async () => {

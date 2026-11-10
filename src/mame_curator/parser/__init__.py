@@ -3,7 +3,7 @@
 Public API surface — see spec.md for the full contract.
 """
 
-from mame_curator.parser.dat import parse_dat
+from mame_curator.parser.dat import check_dat_start, parse_dat
 from mame_curator.parser.errors import DATError, INIError, ListxmlError, ParserError
 from mame_curator.parser.ini import (
     parse_bestgames,
@@ -37,6 +37,7 @@ __all__ = [
     "ParserError",
     "Rom",
     "apply_driver_status",
+    "check_dat_start",
     "parse_bestgames",
     "parse_catver",
     "parse_dat",

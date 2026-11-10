@@ -7,8 +7,10 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends
 
+from mame_curator.api.fs import validate_fs_path
 from mame_curator.api.routes._deps import get_world
 from mame_curator.api.schemas import (
+    DatCheck,
     SetupCheck,
     SetupPaths,
     SetupPathStatus,
@@ -16,7 +18,7 @@ from mame_curator.api.schemas import (
     SetupReferenceStatus,
 )
 from mame_curator.api.state import WorldState, file_stamp
-from mame_curator.parser import ParserError, parse_dat
+from mame_curator.parser import ParserError, check_dat_start, parse_dat
 
 router = APIRouter()
 
@@ -108,3 +110,18 @@ def setup_check(world: WorldState = Depends(get_world)) -> SetupCheck:
         retroarch_configured=retroarch_configured,
         setup_required=world.setup_required,
     )
+
+
+@router.get("/api/setup/dat-check", response_model=DatCheck)
+def dat_check(path: str, world: WorldState = Depends(get_world)) -> DatCheck:
+    """mame-curator-1208: the wizard's list step refuses another file at once.
+
+    Only where the picker may look. Reads up to the first machine, so it is
+    quick; a file broken further on is still found by the save.
+    """
+    requested = validate_fs_path(path, world.allowed_roots)
+    try:
+        check_dat_start(requested)
+    except ParserError:
+        return DatCheck(path=str(requested), parses=False)
+    return DatCheck(path=str(requested), parses=True)

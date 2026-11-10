@@ -183,10 +183,14 @@ test("a new user reaches a Library with games, in three questions", async ({
     page.getByRole("button", { name: "Choose another folder" }),
   ).toBeFocused();
 
-  // Step 2: first a file that is not a game list.
+  // Step 2: first a file that is not a game list, refused on this step
+  // (mame-curator-1208). The picker opens in the games folder.
   await page.getByRole("button", { name: "Yes, use this folder" }).click();
   await expectFocusedHeading(page, "Where is your game list?");
   await page.getByRole("button", { name: "Choose a file" }).click();
+  await expect(page.getByRole("dialog").getByRole("status")).toHaveText(
+    path.join(root, "games"),
+  );
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "/", exact: true })
@@ -196,25 +200,12 @@ test("a new user reaches a Library with games, in three questions", async ({
     .getByRole("dialog")
     .getByRole("button", { name: "notes.xml" })
     .click();
-  await expectFocusedHeading(page, "Use this game list?");
-  await page.getByRole("button", { name: "Yes, use this file" }).click();
-
-  // Step 3: the save finds the file is bad, and returns to step 2.
-  await expectFocusedHeading(page, "Where should copied games go?");
-  await page.getByRole("button", { name: "Choose a folder" }).click();
-  await openFolders(page, ["copied"]);
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Use this folder" })
-    .click();
-  await expectFocusedHeading(page, "Copy games to this folder?");
-  await page.getByRole("button", { name: "Yes, finish setup" }).click();
   await expectFocusedHeading(page, "Where is your game list?");
   await expect(page.getByRole("alert")).toHaveText(
     "That file could not be read as a game list. Please choose another.",
   );
 
-  // The right file: the games load with no restart, and the guide begins.
+  // Nothing was taken, so the picker opens in the games folder again.
   await page.getByRole("button", { name: "Choose a file" }).click();
   await page
     .getByRole("dialog")
@@ -225,7 +216,17 @@ test("a new user reaches a Library with games, in three questions", async ({
     .getByRole("dialog")
     .getByRole("button", { name: "mini.dat.xml" })
     .click();
+  await expectFocusedHeading(page, "Use this game list?");
   await page.getByRole("button", { name: "Yes, use this file" }).click();
+
+  // Step 3: the games load with no restart, and the guide begins.
+  await expectFocusedHeading(page, "Where should copied games go?");
+  await page.getByRole("button", { name: "Choose a folder" }).click();
+  await openFolders(page, ["copied"]);
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Use this folder" })
+    .click();
   await expectFocusedHeading(page, "Copy games to this folder?");
   await page.getByRole("button", { name: "Yes, finish setup" }).click();
   await expectFocusedHeading(page, "Which games would you like?");

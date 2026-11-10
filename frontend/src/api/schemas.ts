@@ -633,6 +633,10 @@ export const SetupReferenceFilesSchema = z
   })
   .strict();
 
+export const DatCheckSchema = z
+  .object({ path: z.string(), parses: z.boolean() })
+  .strict();
+
 export const SetupCheckSchema = z
   .object({
     config_present: z.boolean(),

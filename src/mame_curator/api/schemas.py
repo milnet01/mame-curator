@@ -347,6 +347,7 @@ from mame_curator.api.schemas_overrides import (  # noqa: E402
 )
 from mame_curator.api.schemas_setup import (  # noqa: E402
     AppUpdateInfo,
+    DatCheck,
     HelpContent,
     HelpIndex,
     HelpTopic,
@@ -375,6 +376,7 @@ __all__ = (
     "ConfigExportBundle",
     "CopyAbortRequest",
     "CopyJobRequest",
+    "DatCheck",
     "DryRunReport",
     "EmptyBody",
     "Explanation",

@@ -1,0 +1,1 @@
+function e(e){let t=e.includes(`/`)?`/`:`\\`,n=e.lastIndexOf(t);if(n<0)return;let r=e.slice(0,n);return r===``||r.endsWith(`:`)?`${r}${t}`:r}export{e as t};

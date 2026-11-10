@@ -51,6 +51,14 @@ class SetupReferenceFiles(BaseModel):
     listxml: SetupReferenceStatus
 
 
+class DatCheck(BaseModel):
+    """mame-curator-1208: does a file start as a game list? For the wizard's list step."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    path: str
+    parses: bool
+
+
 class SetupCheck(BaseModel):
     """Setup-check response model.
 

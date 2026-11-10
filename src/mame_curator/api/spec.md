@@ -257,6 +257,7 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | GET | `/api/help/index` | `HelpIndex` | |
 | GET | `/api/help/{topic}` | `HelpContent` | |
 | GET | `/api/setup/check` | `SetupCheck` | |
+| GET | `/api/setup/dat-check?path=` | `DatCheck` | |
 | GET | `/api/updates/check` | `UpdatesCheck` | |
 | POST | `/api/updates/apply` | `UpdateApplyResult` | |
 | POST | `/api/updates/rollback` | `UpdateApplyResult` | |

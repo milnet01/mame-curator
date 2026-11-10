@@ -80,6 +80,11 @@ Per-machine view of the BIOS-chain join produced by `parse_listxml_bios_chain`.
 - Returns a dict keyed by `Machine.name`. Two machines with the same name is a `ParserError`.
 - Raises `ParserError` on malformed XML, missing root element, missing required attributes, or duplicate `name`.
 
+### `check_dat_start(path: Path) -> None`
+
+- Raises `DATError` unless the file starts as a MAME DAT: its first `<machine>` must read as `parse_dat` reads it. `.xml` or `.zip`, with the same zip defences and `HARDENED_ITERPARSE_KWARGS`.
+- Reads only up to the first machine, so it answers at once on the real DAT. A fault further on passes here and is left to `parse_dat` (mame-curator-1208, the setup wizard's list step).
+
 ### `parse_catver(path: Path) -> dict[str, str]`
 
 - Returns `{shortname: category}`.

@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { GuideAction } from "../GuideAction";
 import { GuideStep } from "../GuideStep";
 import { FsBrowser } from "@/components/settings/FsBrowser";
+import { apiRequest } from "@/api/client";
+import { DatCheckSchema } from "@/api/schemas";
 import type { SetupCheck } from "@/api/types";
 import {
   refreshEverything,
@@ -10,6 +12,7 @@ import {
   useConfigPatch,
 } from "@/hooks/useConfig";
 import { apiErrorMessage } from "@/lib/apiErrorToast";
+import { folderOf } from "@/lib/folderOf";
 import { playlistIn } from "@/lib/playlistPath";
 import { strings } from "@/strings";
 
@@ -40,20 +43,42 @@ export function SetupWizard() {
   const [focusKey, setFocusKey] = useState(0);
   const [browseOpen, setBrowseOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // mame-curator-1208: the list step asks the server whether a file starts as
+  // a game list, so a wrong one is refused here, not after the last step.
+  const datCheck = useMutation({
+    mutationFn: (path: string) =>
+      apiRequest(
+        `/api/setup/dat-check?path=${encodeURIComponent(path)}`,
+        DatCheckSchema,
+      ),
+  });
 
   const step = STEPS[stepIndex]!;
   const words = step.words;
   const chosen = answers[step.answer];
   const saving = patch.isPending;
+  const checking = datCheck.isPending;
   const paths = config.data?.paths;
 
   // A choice moves focus to the heading, which says what was chosen. Cancel
   // leaves it to the picker, which gives it back to the button that opened it
   // (mame-curator-1206).
   const choose = (path: string) => {
+    const answer = step.answer;
     setError(null);
-    setAnswers((prev) => ({ ...prev, [step.answer]: path }));
-    setFocusKey((key) => key + 1);
+    if (answer !== "source_dat") {
+      setAnswers((prev) => ({ ...prev, [answer]: path }));
+      setFocusKey((key) => key + 1);
+      return;
+    }
+    datCheck.mutate(path, {
+      onSuccess: ({ parses }) => {
+        if (parses) setAnswers((prev) => ({ ...prev, [answer]: path }));
+        else setError(strings.guide.setup.notAGameList);
+      },
+      onError: (err) => setError(apiErrorMessage(err)),
+      onSettled: () => setFocusKey((key) => key + 1),
+    });
   };
 
   const goTo = (index: number) => {
@@ -133,12 +158,16 @@ export function SetupWizard() {
       )}
       {/* On the page before the save, so a screen reader hears it. */}
       <p role="status" className="text-xl">
-        {saving ? strings.guide.setup.reading : ""}
+        {saving
+          ? strings.guide.setup.reading
+          : checking
+            ? strings.guide.setup.checking
+            : ""}
       </p>
       {chosen !== undefined && (
         <GuideAction
           primary
-          busy={saving}
+          busy={saving || checking}
           disabled={stepIndex === LAST_STEP && !paths}
           onClick={stepIndex === LAST_STEP ? finish : () => goTo(stepIndex + 1)}
         >
@@ -147,7 +176,7 @@ export function SetupWizard() {
       )}
       <GuideAction
         primary={chosen === undefined}
-        busy={saving}
+        busy={saving || checking}
         onClick={() => setBrowseOpen(true)}
       >
         {chosen === undefined ? words.choose : words.chooseAnother}
@@ -160,9 +189,14 @@ export function SetupWizard() {
           onOpenChange={setBrowseOpen}
           onPick={choose}
           mode={step.answer === "source_dat" ? "file" : "directory"}
-          // The games folder can hold tens of thousands of files, and file
-          // mode draws a row for each, so the list step starts at home.
-          initialPath={step.answer === "source_dat" ? undefined : chosen}
+          // mame-curator-1208: the list step starts beside the list already
+          // chosen, else in the games folder, where many keep it. The picker
+          // draws only the rows near the window, so a big folder is fine.
+          initialPath={
+            step.answer === "source_dat"
+              ? ((chosen && folderOf(chosen)) ?? answers.source_roms)
+              : chosen
+          }
         />
       )}
     </GuideStep>

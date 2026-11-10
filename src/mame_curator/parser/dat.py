@@ -70,6 +70,32 @@ def parse_dat(path: Path) -> dict[str, Machine]:
         return _stream_machines(xml_path)
 
 
+def check_dat_start(path: Path) -> None:
+    """Raise ``DATError`` unless ``path`` starts as a MAME DAT.
+
+    mame-curator-1208: reads only up to the first ``<machine>``, which must
+    read as ``parse_dat`` reads it, so the setup wizard can refuse another
+    file at once. A fault further on is left to ``parse_dat``.
+    """
+    # The file is opened here, not by iterparse, so stopping early closes it
+    # before a zip's temporary folder is removed (Windows refuses an open file).
+    with _resolve_xml(path) as xml_path:
+        try:
+            with xml_path.open("rb") as stream:
+                for _event, elem in etree.iterparse(
+                    stream, events=("end",), tag="machine", **HARDENED_ITERPARSE_KWARGS
+                ):
+                    _machine_from_element(elem, set())
+                    return
+        except etree.XMLSyntaxError as exc:
+            raise DATError(f"XML parse failed: {exc}", path=xml_path) from exc
+        except ValidationError as exc:
+            raise DATError(f"first machine is not valid: {exc}", path=xml_path) from exc
+        except OSError as exc:
+            raise DATError(f"failed to read DAT XML: {exc}", path=xml_path) from exc
+    raise DATError("DAT contained no <machine> elements", path=path)
+
+
 @contextmanager
 def _resolve_xml(path: Path) -> Iterator[Path]:
     """Yield a Path to the actual XML, extracting from .zip if needed."""

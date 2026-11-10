@@ -372,7 +372,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # startup. 1119 → 1121.
 # Bumped 2026-11-05 (mame-curator-1172): the setup check does not re-read
 # an unchanged game list. 1121 → 1125.
-EXPECTED_PYTEST_DECLARATIONS = 1125
+# Bumped 2026-11-10 (mame-curator-1208): check_dat_start and
+# GET /api/setup/dat-check. 1125 → 1136.
+EXPECTED_PYTEST_DECLARATIONS = 1136
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -519,7 +521,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1125
 # 681 → 688.
 # Bumped 2026-11-10 (mame-curator-1207): the step is read out with its
 # heading. 688 → 690.
-EXPECTED_VITEST_DECLARATIONS = 690
+# Bumped 2026-11-10 (mame-curator-1208): the wizard's list step checks the
+# file and opens in the games folder. 690 → 692.
+EXPECTED_VITEST_DECLARATIONS = 692
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

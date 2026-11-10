@@ -44,6 +44,7 @@ export const guideStrings = {
       yes: "Yes, finish setup",
     },
     reading: "Reading your game list. This can take a minute.",
+    checking: "Checking that this is a game list…",
     notAGameList:
       "That file could not be read as a game list. Please choose another.",
     sameFolder:
