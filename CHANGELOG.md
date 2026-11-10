@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-10 Fixed — Library and cart small fixes
+
+- **After choosing another version, the cart no longer takes the same game twice** (mame-curator-1188)
+
+- **The same error again replaces its message instead of stacking a second copy** (mame-curator-1202)
+
+- **When a filter leaves no games, the keyboard's place moves to the message saying so** (mame-curator-1203)
+
+- **At high zoom the Library's search box and cart bar fit the window** (mame-curator-1213)
+
 ### 2026-11-10 Fixed — Sturdier starts, filters and recycling
 
 - **A missing or broken list file chosen in Settings no longer stops the app from starting** (mame-curator-1200)

@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1217 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1218 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3753,8 +3753,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: measured-2026-11-02.
   Lanes: data.
 
-- 📋 [mame-curator-1188] **After choosing a version, the new card may offer Add for a game already in the cart.**
+- ✅ [mame-curator-1188] **After choosing a version, the new card may offer Add for a game already in the cart.**
   isInCart checks shortName alone. Read, not run.
+  2026-11-10: a4ca70b. Confirmed real: has, add and addAll in useCart.ts
+  now also match an entry's chosenVariant.
   **Layman:** After you pick another version of a game, the cart could end up with that game twice.
   Kind: fix.
   Source: build-mame-curator-1149-2026-11-02.
@@ -3899,22 +3901,29 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: cold-read-oneup-2026-11-05.
   Lanes: copy, tests.
 
-- 📋 [mame-curator-1202] **Error toasts that no longer expire can stack the same message.**
+- ✅ [mame-curator-1202] **Error toasts that no longer expire can stack the same message.**
   Since 867e26b errors stay until closed; repeats more than 1.5 s apart stack (sonner caps 3 visible). A toast id per error code would merge them; revisit FP26-K's comment in apiErrorToast.ts, which rejected ids.
+  2026-11-10: ec9ff2e. toastError gives each toast an id of its words,
+  so a repeat replaces the shown toast; FP26-K's comment rewritten.
   **Layman:** The same error happening again a few seconds later shows a second copy that stays.
   Kind: fix.
   Source: build-mame-curator-1190-2026-11-05.
   Lanes: frontend.
 
-- 📋 [mame-curator-1203] **Focus falls to the page when a filter empties the grid.**
+- ✅ [mame-curator-1203] **Focus falls to the page when a filter empties the grid.**
   The empty-grid message has nothing to focus. Found while fixing 1160.
+  2026-11-10: 557728d. When focus was in the grid and a filter empties
+  it, the empty-grid message takes focus; the search box is never
+  interrupted.
   **Layman:** If a filter leaves no games, the keyboard's place is lost.
   Kind: accessibility.
   Source: build-mame-curator-1160-2026-11-05.
   Lanes: frontend.
 
-- 📋 [mame-curator-1204] **Return-focus-to-opener is written three times.**
+- ✅ [mame-curator-1204] **Return-focus-to-opener is written three times.**
   AlternativesDrawer, CmdKPalette and FsBrowser each remember what had focus when they opened. A shared hook could replace them.
+  2026-11-10: c00c9c3. hooks/useReturnFocus.ts replaces the three
+  copies; tests unchanged and green.
   **Layman:** Tidy-up only: one piece of code would replace three copies.
   Kind: refactor.
   Source: build-mame-curator-1176-2026-11-05.
@@ -4022,10 +4031,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: ci_report-2026-11-10.
   Lanes: ci.
 
-- 📋 [mame-curator-1213] **At 320px the Library's search box and cart buttons are wider than the window.**
+- ✅ [mame-curator-1213] **At 320px the Library's search box and cart buttons are wider than the window.**
   Measured in headless Chrome while building mame-curator-1210: at 320px
   the simple bar's search box and the cart bar's buttons make the page
   358px wide.
+  2026-11-10: 7d79edf. The search box may shrink and the cart bar wraps;
+  Library at 320px is 320px wide (was 353px), with an e2e check.
   **Layman:** Zoomed right in, the Library still scrolls sideways a little.
   Kind: accessibility.
   Source: build-mame-curator-1205-1211-2026-11-10.
@@ -4044,14 +4055,24 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1205-1211-2026-11-10.
   Lanes: parser.
 
-- 📋 [mame-curator-1215] **Spec 1144 still says a reload during a copy restarts the guide.**
+- ✅ [mame-curator-1215] **Spec 1144 still says a reload during a copy restarts the guide.**
   docs/specs/mame-curator-1144-guided-library.md's edge case says the
   guide restarts at the first step after a reload during a copy. Since
   f298911 the guide takes up a running or paused copy instead.
+  2026-11-10: 2180d48.
   **Layman:** The guide's design note describes old behaviour after a page reload.
   Kind: doc-fix.
   Source: build-mame-curator-1205-1211-2026-11-10.
   Lanes: docs.
+
+- 📋 [mame-curator-1218] **In the full view at 320px the page header is wider than the window.**
+  Measured in headless Chrome while building mame-curator-1213: in the
+  Library's full view at 320px the page header is 511px wide. The simple
+  view and the guide fit since 1210 and 1213.
+  **Layman:** Zoomed right in on the full view, the top bar still runs off the right side.
+  Kind: accessibility.
+  Source: build-mame-curator-1213-2026-11-10.
+  Lanes: frontend.
 
 ## Considered / under research (no target date)
 
