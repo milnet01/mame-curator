@@ -30,16 +30,11 @@ export function WhereStep({
 
   const paths = config.data?.paths;
 
-  // As in the wizard: with no trigger to return to, the dialog would otherwise
-  // drop focus on the page, and this user with it.
-  const closePicker = (open: boolean) => {
-    setBrowseOpen(open);
-    if (!open) setFocusKey((key) => key + 1);
-  };
-
   // Through PATCH /api/config, as Settings saves it, so the server applies
-  // the same path validation (INV-13).
+  // the same path validation (INV-13). As in the wizard, a choice moves focus
+  // to the heading, and Cancel leaves it to the picker (mame-curator-1206).
   const saveFolder = (dest_roms: string) => {
+    setFocusKey((key) => key + 1);
     if (!paths) return;
     // mame-curator-1145 INV-11: the server also refuses it, by resolved path.
     if (dest_roms === paths.source_roms) {
@@ -94,7 +89,7 @@ export function WhereStep({
             <FsBrowser
               open
               large
-              onOpenChange={closePicker}
+              onOpenChange={setBrowseOpen}
               onPick={saveFolder}
               initialPath={paths.dest_roms}
             />

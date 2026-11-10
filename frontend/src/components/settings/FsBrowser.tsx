@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,17 @@ import {
 import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
 import type { FsEntry } from "@/api/types";
+
+/** A path with a line break allowed after each separator, so it wraps at a
+    folder's end rather than in the middle of a name. */
+function breakableAtFolders(path: string) {
+  return path.split(/(?<=[\\/])/).map((part, i) => (
+    <Fragment key={i}>
+      {part}
+      {/[\\/]$/.test(part) && <wbr />}
+    </Fragment>
+  ));
+}
 
 interface FsBrowserProps {
   open: boolean;
@@ -101,6 +112,25 @@ export function FsBrowser({
     };
   }, [open, opener]);
 
+  // mame-curator-1206: opening a folder from its row unmounts that row, and
+  // focus fell back to the dialog itself, above Home, / and Up. Put it on the
+  // new folder's first row instead, or on Up when the folder is empty.
+  const contentRef = useRef<HTMLDivElement>(null);
+  const upRef = useRef<HTMLButtonElement>(null);
+  const openedFromRow = useRef(false);
+  const shownPath = listing.data?.path;
+  useEffect(() => {
+    if (!openedFromRow.current || shownPath === undefined) return;
+    openedFromRow.current = false;
+    const id = requestAnimationFrame(() => {
+      const row = contentRef.current?.querySelector<HTMLElement>(
+        '[data-testid="fs-entries"] button',
+      );
+      (row ?? upRef.current)?.focus();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [shownPath]);
+
   if (!open) return null;
 
   const goUp = () => {
@@ -109,6 +139,7 @@ export function FsBrowser({
 
   const handleEntryClick = ({ path: entryPath, is_dir }: FsEntry) => {
     if (is_dir) {
+      openedFromRow.current = true;
       setUserPath(entryPath);
     } else if (mode === "file") {
       onPick(entryPath);
@@ -178,7 +209,7 @@ export function FsBrowser({
   // A long path wraps, because nowrap would push the buttons off the window.
   const pathButton = cn(
     large ? quickJump.className : undefined,
-    "h-auto max-w-full whitespace-normal [overflow-wrap:anywhere]",
+    "h-auto max-w-full whitespace-normal break-words text-left",
   );
   const shownRoots = (allowed.data?.roots ?? []).filter(
     (r) => !simple || r.source !== "config",
@@ -187,8 +218,15 @@ export function FsBrowser({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        ref={contentRef}
         showCloseButton={!large}
-        className="max-h-[90dvh] grid-cols-1 overflow-y-auto sm:max-w-2xl"
+        // mame-curator-1206: held at the top, not centred, so a folder with
+        // more or fewer rows does not move the whole dialog. In large, a
+        // narrow window keeps the edges small: the text size grows rem.
+        className={cn(
+          "top-[5dvh] max-h-[90dvh] translate-y-0 grid-cols-1 overflow-y-auto sm:max-w-2xl",
+          large && "max-w-[calc(100%-1rem)] p-3 sm:p-6",
+        )}
         // mame-curator-1176: until the folders load, Cancel is the first
         // control, and Radix put focus there, so Enter closed the picker.
         // Focus starts on the dialog itself; Tab reaches its controls.
@@ -227,7 +265,7 @@ export function FsBrowser({
               variant="outline"
               onClick={() => setUserPath(r.path)}
             >
-              {r.path}
+              {breakableAtFolders(r.path)}
             </Button>
           ))}
           {/* FP13 § C4: drive roots that are already covered by an allowed
@@ -242,13 +280,14 @@ export function FsBrowser({
                 variant="outline"
                 onClick={() => setUserPath(r)}
               >
-                {r}
+                {breakableAtFolders(r)}
               </Button>
             ))}
         </div>
 
         <div className={cn("flex items-center gap-2", words)}>
           <Button
+            ref={upRef}
             {...quickJump}
             variant="outline"
             onClick={goUp}
@@ -261,7 +300,9 @@ export function FsBrowser({
           >
             {strings.settings.fsBrowserUp}
           </Button>
+          {/* mame-curator-1206: read out each time the folder changes. */}
           <code
+            role="status"
             title={path ?? undefined}
             className={cn(
               "min-w-0 flex-1",

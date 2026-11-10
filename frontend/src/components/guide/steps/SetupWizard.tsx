@@ -47,16 +47,13 @@ export function SetupWizard() {
   const saving = patch.isPending;
   const paths = config.data?.paths;
 
+  // A choice moves focus to the heading, which says what was chosen. Cancel
+  // leaves it to the picker, which gives it back to the button that opened it
+  // (mame-curator-1206).
   const choose = (path: string) => {
     setError(null);
     setAnswers((prev) => ({ ...prev, [step.answer]: path }));
-  };
-
-  // Every way out of the picker, Cancel too. With no trigger to return to, the
-  // dialog would otherwise drop focus on the page, and this user with it.
-  const closePicker = (open: boolean) => {
-    setBrowseOpen(open);
-    if (!open) setFocusKey((key) => key + 1);
+    setFocusKey((key) => key + 1);
   };
 
   const goTo = (index: number) => {
@@ -160,7 +157,7 @@ export function SetupWizard() {
           open
           large
           simple
-          onOpenChange={closePicker}
+          onOpenChange={setBrowseOpen}
           onPick={choose}
           mode={step.answer === "source_dat" ? "file" : "directory"}
           // The games folder can hold tens of thousands of files, and file

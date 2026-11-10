@@ -515,7 +515,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1125
 # back to Browse, and do not open with focus on Cancel. 672 → 678.
 # Bumped 2026-11-10 (mame-curator-1205): one strong focus ring for every
 # control. 678 → 681.
-EXPECTED_VITEST_DECLARATIONS = 681
+# Bumped 2026-11-10 (mame-curator-1206): the folder picker keeps your place.
+# 681 → 688.
+EXPECTED_VITEST_DECLARATIONS = 688
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

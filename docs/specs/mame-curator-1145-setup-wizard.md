@@ -77,7 +77,7 @@ frontend/src/lib/playlistPath.ts                      playlistIn(dest)
 | 3 | "Where should copied games go?" | "Choose the folder your chosen games will be copied to. Your original games are not changed." | "Copy games to this folder?" | "Yes, finish setup", "Choose another folder" |
 
 - Before a choice the one action is "Choose a folder" or "Choose a file", which opens `FsBrowser` (`mode="file"` on step 2).
-- After a choice the path shows as large text in a `role="status"` element, which is on the page, empty, before the choice, so a screen reader hears the first choice too. Focus moves to the heading. `GuideStep` gains `focusKey?: number`, added to its focus effect's dependencies. The wizard changes it each time the picker closes, Cancel included, so focus moves although the heading stays the same. Without that, the dialog drops focus on the page, because it has no trigger to return it to.
+- After a choice the path shows as large text in a `role="status"` element, which is on the page, empty, before the choice, so a screen reader hears the first choice too. Focus moves to the heading. `GuideStep` gains `focusKey?: number`, added to its focus effect's dependencies. The wizard changes it on each choice, so focus moves although the heading stays the same. Cancel leaves focus to the picker, which gives it back to the button that opened it (mame-curator-1206).
 - Every step has the exit "Look around on my own". Steps 2 and 3 have Back, which keeps the answers given.
 - `FsBrowser` opens at the current answer on steps 1 and 3 and at the home folder if there is none. Step 2 opens at the home folder too, because step 1's folder can hold tens of thousands of game files and `mode="file"` draws a row for each.
 
@@ -111,11 +111,11 @@ The Settings banner for `restart_required` names no false cause. While setup mod
 
 ### 4.4 The picker
 
-`FsBrowser` gains `large?: boolean`. When set, all its text is `text-xl`, messages and buttons included, and its rows and buttons are at least `3rem` tall, and it has no small close button. `ConfirmationDialog`, which draws the grant prompt, gains the same prop. The picker and the prompt scroll rather than run off the window, and a long path wraps rather than push a button out of it, for every caller. `FsBrowser` gains `simple?: boolean` too, which leaves out hidden folders and allowed folders whose `source` is `config`, such as the starter config's own. A drive that is also such a folder stays, as a drive. `SetupWizard` sets both. The guide's Where step sets `large`. The title follows `mode`: "Choose a folder" or "Choose a file".
+`FsBrowser` gains `large?: boolean`. When set, all its text is `text-xl`, messages and buttons included, and its rows and buttons are at least `3rem` tall, and it has no small close button. `ConfirmationDialog`, which draws the grant prompt, gains the same prop. The picker and the prompt scroll rather than run off the window, and a long path wraps rather than push a button out of it, for every caller. A path button wraps after a separator where it can. The picker is held near the top of the window, not centred, so a folder's height does not move it. In large, a narrow window keeps its edges small. `FsBrowser` gains `simple?: boolean` too, which leaves out hidden folders and allowed folders whose `source` is `config`, such as the starter config's own. A drive that is also such a folder stays, as a drive. `SetupWizard` sets both. The guide's Where step sets `large`. The title follows `mode`: "Choose a folder" or "Choose a file".
 
 Hidden is the server's word, in `FsEntry.hidden`: a name starting with a dot, Windows' hidden attribute, or macOS's hidden flag. `simple` hides folders only, so a dot-file stays in file mode.
 
-A listing failure is said by the picker alone, with no toast, and a folder that failed or is still loading cannot be chosen. Listings are never treated as fresh, so a folder made elsewhere shows on return. A folder with very many rows draws only those near the window; every row can still be reached by keyboard and by scrolling. While a grant is under way the prompt ignores its buttons and Esc, and keeps focus.
+A listing failure is said by the picker alone, with no toast, and a folder that failed or is still loading cannot be chosen. Listings are never treated as fresh, so a folder made elsewhere shows on return. A folder with very many rows draws only those near the window; every row can still be reached by keyboard and by scrolling. While a grant is under way the prompt ignores its buttons and Esc, and keeps focus. Opening a folder from its row puts focus on the new folder's first row, or on Up when it has none, and the current path is read out as it changes (mame-curator-1206).
 
 `PathRow` opens a file row's picker at the folder that holds the file, which need not exist yet. A field holds typed text only while typing, then shows what is saved, so a path the server refused does not stay in it.
 
@@ -181,8 +181,8 @@ Its strings change for every caller, to plain words:
   *Test:* `GuidePage_setup.test.tsx`, with a reply of `restart_required: true`, a 422 naming `paths.source_roms`, and a 500.
   *Breaks when:* a kept-but-unreadable save is treated as success, or a refused save leaves the step busy.
 
-- **INV-10** — Every step has the exit, steps 2 and 3 have Back, and neither shows during the save. Focus moves to the heading on each step change and on each choice, including after the picker closes. The guide's Where step returns focus the same way.
-  *Test:* `GuidePage_setup.test.tsx` for the actions, and `frontend/e2e/setup-wizard.spec.ts` and `folder-picker.spec.ts` for focus, walking a second choice too, because jsdom does not run the dialog's focus return against the frame `GuideStep` waits for.
+- **INV-10** — Every step has the exit, steps 2 and 3 have Back, and neither shows during the save. Focus moves to the heading on each step change and on each choice. Cancel returns focus to the button that opened the picker. The guide's Where step returns focus the same way.
+  *Test:* `GuidePage_setup.test.tsx` for the actions and for Cancel, `GuidePage_results.test.tsx` for the Where step's Cancel, and `frontend/e2e/setup-wizard.spec.ts` and `folder-picker.spec.ts` for focus, walking a second choice too, because jsdom does not run the dialog's focus return against the frame `GuideStep` waits for.
   *Breaks when:* the dialog's returning focus lands after the heading's, or a second choice does not change `focusKey`.
 
 - **INV-11** — Choosing the games folder as the destination is refused before any save, in the wizard and the Where step. The server refuses a save that changes either path so that both resolve to one folder, a symlink included, and refuses no other save.

@@ -491,6 +491,27 @@ describe("the setup wizard", () => {
     await heading(s.list.heading);
   });
 
+  it("INV-10: Cancel gives focus back to the button that opened the picker (mame-curator-1206)", async () => {
+    useSetupServer();
+    const user = userEvent.setup();
+    renderGuide();
+    await heading(s.games.heading);
+    const opener = await screen.findByRole("button", { name: s.games.choose });
+    await user.click(opener);
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByRole("button", { name: /^roms/ });
+    await user.click(
+      within(dialog).getByRole("button", { name: strings.common.cancel }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    // Past the frame on which the step would focus its heading.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(screen.getByRole("button", { name: s.games.choose })).toHaveFocus();
+  });
+
   it("INV-11: the games folder cannot also be the destination", async () => {
     const seen = useSetupServer();
     const user = userEvent.setup();

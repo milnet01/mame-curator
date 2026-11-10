@@ -489,6 +489,26 @@ describe("a chosen folder", () => {
   });
 });
 
+describe("the Where step's picker (mame-curator-1206)", () => {
+  it("Cancel gives focus back to the button that opened it", async () => {
+    useHandlers();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, g.finds.copyThese);
+    await heading(g.where.heading);
+    await press(user, g.where.choose);
+    await press(user, strings.common.cancel);
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    // Past the frame on which the step would focus its heading.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(screen.getByRole("button", { name: g.where.choose })).toHaveFocus();
+  });
+});
+
 describe("Copy these while it fetches (mame-curator-1165)", () => {
   it("stays in the focus order, and ignores another press", async () => {
     useHandlers();

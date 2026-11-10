@@ -885,4 +885,90 @@ describe("FsBrowser (FP12 § G)", () => {
       height.mockRestore();
     });
   });
+
+  describe("mame-curator-1206: the picker keeps your place", () => {
+    const MAME = "/home/test/projects/mame";
+    beforeEach(() => {
+      server.use(
+        http.get("/api/fs/list", ({ request }) => {
+          const path = new URL(request.url).searchParams.get("path");
+          if (path === HOME) return HttpResponse.json(homeListing);
+          if (path === SUB) return HttpResponse.json(subListing);
+          return HttpResponse.json({ path: MAME, parent: SUB, entries: [] });
+        }),
+      );
+    });
+
+    it("opening a folder puts focus on its first row, not back at the top", async () => {
+      const user = userEvent.setup();
+      renderWithClient(
+        <FsBrowser open onOpenChange={() => {}} onPick={() => {}} large />,
+      );
+      await user.click(
+        await screen.findByRole("button", { name: /^projects/ }),
+      );
+      const first = await screen.findByRole("button", { name: /^mame/ });
+      await waitFor(() => expect(first).toHaveFocus());
+    });
+
+    it("opening an empty folder puts focus on Up", async () => {
+      const user = userEvent.setup();
+      renderWithClient(
+        <FsBrowser open onOpenChange={() => {}} onPick={() => {}} large />,
+      );
+      await user.click(
+        await screen.findByRole("button", { name: /^projects/ }),
+      );
+      await user.click(await screen.findByRole("button", { name: /^mame/ }));
+      await screen.findByText(MAME, { selector: "code" });
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: strings.settings.fsBrowserUp }),
+        ).toHaveFocus(),
+      );
+    });
+
+    it("reads out the folder it is in, each time it changes", async () => {
+      const user = userEvent.setup();
+      renderWithClient(
+        <FsBrowser open onOpenChange={() => {}} onPick={() => {}} large />,
+      );
+      await user.click(
+        await screen.findByRole("button", { name: /^projects/ }),
+      );
+      await waitFor(() =>
+        expect(screen.getByRole("status")).toHaveTextContent(SUB),
+      );
+    });
+
+    it("stays at the top of the window, so a new folder's height cannot move it", async () => {
+      renderWithClient(
+        <FsBrowser open onOpenChange={() => {}} onPick={() => {}} large />,
+      );
+      const dialog = await screen.findByRole("dialog");
+      expect(dialog).toHaveClass("top-[5dvh]", "translate-y-0");
+      expect(dialog).not.toHaveClass("top-[50%]");
+    });
+
+    it("wraps a long path at its folders, and gives it the room on a narrow window", async () => {
+      const LONG = "/data/games/arcade/mame/romsets/merged";
+      server.use(
+        http.get("/api/fs/allowed-roots", () =>
+          HttpResponse.json({
+            roots: [{ id: "r2", path: LONG, source: "granted" }],
+          }),
+        ),
+      );
+      renderWithClient(
+        <FsBrowser open onOpenChange={() => {}} onPick={() => {}} large />,
+      );
+      const button = await screen.findByRole("button", { name: LONG });
+      // A break after each separator, so a line ends at a folder's end.
+      expect(button.querySelectorAll("wbr")).toHaveLength(6);
+      expect(button.className).not.toContain("[overflow-wrap:anywhere]");
+      expect(button).toHaveClass("break-words");
+      // Large text grows rem padding; a narrow window keeps it small.
+      expect(screen.getByRole("dialog")).toHaveClass("p-3", "sm:p-6");
+    });
+  });
 });

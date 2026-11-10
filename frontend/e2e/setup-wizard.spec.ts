@@ -168,14 +168,17 @@ test("a new user reaches a Library with games, in three questions", async ({
   await expect(page.getByRole("dialog")).toBeHidden();
   await expectFocusedHeading(page, "Use this folder for your games?");
 
-  // Cancelling keeps the choice, and focus does not fall off the page.
+  // Cancelling keeps the choice, and focus goes back to the button that
+  // opened the picker (mame-curator-1206).
   await page.getByRole("button", { name: "Choose another folder" }).click();
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Cancel" })
     .click();
   await expect(page.getByRole("dialog")).toBeHidden();
-  await expectFocusedHeading(page, "Use this folder for your games?");
+  await expect(
+    page.getByRole("button", { name: "Choose another folder" }),
+  ).toBeFocused();
 
   // Step 2: first a file that is not a game list.
   await page.getByRole("button", { name: "Yes, use this folder" }).click();
