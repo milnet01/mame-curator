@@ -102,6 +102,9 @@ readable at startup.
   does any save in setup mode, a same-value one included. A bad
   value for a known key still raises `ConfigError`. `PATCH /api/config` and
   import still refuse unknown keys.
+- **`ui.layout: grouped`** is read as `masonry`, by `load_app_config`, import
+  and `PATCH /api/config` alike, because `UiConfig` maps it before validating.
+  Grouped drew the same grid as Masonry and was removed (mame-curator-1155).
 - **`replace_world(*, base, ...)`** — builds a *new* world from `base` with
   selected fields swapped. It is the only mutation path. Recompute triggers:
   - `filter_result` is re-run **only** when `config`, `overrides`,

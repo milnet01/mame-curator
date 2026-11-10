@@ -53,7 +53,7 @@ media:
 
 ui:
   theme: dark                 # dark | light | double_dragon | pacman | sf2 | neogeo
-  layout: masonry             # masonry | list | covers | grouped
+  layout: masonry             # masonry | list | covers
   default_sort: name          # name | year | manufacturer | rating
   show_alternatives_indicator: true
   cards_per_row_hint: auto    # auto | 4 | 5 | 6 | 8

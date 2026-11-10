@@ -165,7 +165,7 @@ export interface SourceSecret {
 export type ThemeName =
   "dark" | "light" | "double_dragon" | "pacman" | "sf2" | "neogeo";
 
-export type LayoutName = "masonry" | "list" | "covers" | "grouped";
+export type LayoutName = "masonry" | "list" | "covers";
 
 export type SortKey = "name" | "year" | "manufacturer" | "rating";
 

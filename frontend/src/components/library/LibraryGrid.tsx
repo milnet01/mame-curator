@@ -23,7 +23,6 @@ import type {
 interface LibraryGridProps {
   cards: GameCardType[];
   layout: LayoutName;
-  groupKey?: "genre" | "year" | "publisher";
   /** UiConfig.cards_per_row_hint — `'auto'` falls back to the layout default. */
   cardsPerRowHint?: CardsPerRowHint;
   onOpen: (card: GameCardType) => void;
@@ -68,7 +67,6 @@ const LAYOUT_DEFAULTS: Record<
   masonry: { columns: 5, rowHeightPx: 340 },
   covers: { columns: 3, rowHeightPx: 360 },
   list: { columns: 1, rowHeightPx: 96 },
-  grouped: { columns: 5, rowHeightPx: 340 },
 };
 
 function resolveColumns(

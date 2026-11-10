@@ -223,12 +223,7 @@ export const ThemeNameSchema = z.enum([
   "neogeo",
 ]);
 
-export const LayoutNameSchema = z.enum([
-  "masonry",
-  "list",
-  "covers",
-  "grouped",
-]);
+export const LayoutNameSchema = z.enum(["masonry", "list", "covers"]);
 
 export const SortKeySchema = z.enum(["name", "year", "manufacturer", "rating"]);
 

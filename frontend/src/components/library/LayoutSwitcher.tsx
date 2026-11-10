@@ -1,4 +1,4 @@
-import { Layout, LayoutGrid, Rows, ListIcon } from "lucide-react";
+import { Layout, LayoutGrid, ListIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,13 +15,12 @@ interface LayoutSwitcherProps {
   onChange: (layout: LayoutName) => void;
 }
 
-const LAYOUT_ORDER: LayoutName[] = ["masonry", "list", "covers", "grouped"];
+const LAYOUT_ORDER: LayoutName[] = ["masonry", "list", "covers"];
 
 const LAYOUT_ICONS: Record<LayoutName, typeof Layout> = {
   masonry: LayoutGrid,
   list: ListIcon,
   covers: Layout,
-  grouped: Rows,
 };
 
 export function LayoutSwitcher({ value, onChange }: LayoutSwitcherProps) {

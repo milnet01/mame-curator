@@ -441,7 +441,7 @@ media:
 
 ui:
   theme: dark                 # dark | light | double_dragon | pacman | sf2 | neogeo
-  layout: masonry             # masonry | list | covers | grouped
+  layout: masonry             # masonry | list | covers
   default_sort: name          # name | year | manufacturer | rating
   show_alternatives_indicator: true
   cards_per_row_hint: auto    # auto | 4 | 5 | 6 | 8
@@ -509,7 +509,6 @@ The library has **multiple selectable layouts** (chosen in Settings or via a lay
 1. **Masonry** (default) — Pinterest-style; cards size to flyer aspect; visually rich and the easiest to skim.
 2. **List** — dense table-style row per game with sortable columns (description, year, publisher, genre, status badges); fast for quick filtering and large libraries.
 3. **Covers** — large cover-flow row of fewer-but-bigger flyers per scroll; for browsing in a "what jumps out" mode.
-4. **Grouped** — sectioned by genre (or year, or publisher — user-selectable group key); each section a horizontal scroller of compact cards.
 
 Cards in any layout share the same metadata + corner badges:
 - 🔀 has alternatives — click to open drawer

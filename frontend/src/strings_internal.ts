@@ -41,7 +41,6 @@ export const strings = {
     masonry: "Masonry",
     list: "List",
     covers: "Covers",
-    grouped: "Grouped",
   },
 
   /** Theme palette labels (ThemeSwitcher dropdown). Keys mirror `ThemeName`. */

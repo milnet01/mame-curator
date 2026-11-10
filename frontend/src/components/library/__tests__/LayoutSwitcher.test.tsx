@@ -17,11 +17,22 @@ describe("LayoutSwitcher", () => {
     const user = userEvent.setup();
     render(<LayoutSwitcher value="masonry" onChange={() => {}} />);
     await user.click(screen.getByRole("button", { name: /masonry/i }));
-    for (const layout of ["Masonry", "List", "Covers", "Grouped"]) {
+    for (const layout of ["Masonry", "List", "Covers"]) {
       expect(
         await screen.findByRole("menuitemradio", { name: layout }),
       ).toBeInTheDocument();
     }
+  });
+
+  // mame-curator-1155: Grouped drew the same grid as Masonry.
+  it("does not offer Grouped", async () => {
+    const user = userEvent.setup();
+    render(<LayoutSwitcher value="masonry" onChange={() => {}} />);
+    await user.click(screen.getByRole("button", { name: /masonry/i }));
+    expect(await screen.findAllByRole("menuitemradio")).toHaveLength(3);
+    expect(
+      screen.queryByRole("menuitemradio", { name: "Grouped" }),
+    ).not.toBeInTheDocument();
   });
 
   it("calls onChange with the picked layout", async () => {

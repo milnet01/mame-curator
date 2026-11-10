@@ -158,11 +158,18 @@ class SourceSecret(BaseModel):
 class UiConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     theme: Literal["dark", "light", "double_dragon", "pacman", "sf2", "neogeo"] = "dark"
-    layout: Literal["masonry", "list", "covers", "grouped"] = "masonry"
+    layout: Literal["masonry", "list", "covers"] = "masonry"
     default_sort: Literal["name", "year", "manufacturer", "rating"] = "name"
     show_alternatives_indicator: bool = True
     cards_per_row_hint: Literal["auto", 4, 5, 6, 8] = "auto"
     cart_clear_on_copy: Literal["always", "on_success", "never"] = "on_success"
+
+    @field_validator("layout", mode="before")
+    @classmethod
+    def _grouped_is_masonry(cls, v: object) -> object:
+        # mame-curator-1155: "grouped" drew the same grid as masonry and was
+        # removed. A config.yaml or Backup file saved before then still loads.
+        return "masonry" if v == "grouped" else v
 
 
 class UpdatesConfig(BaseModel):
