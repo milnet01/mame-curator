@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-10 Added — Hide compilations
+
+- **A switch to hide compilations and other multi-game boards** (mame-curator-1216)
+  Off unless you turn it on, in Settings or in the guide's new
+  "Hide compilations?" step. A version you chose yourself still shows.
+
 ### 2026-11-10 Added — Forget an old choice; see which games a copy skipped
 
 - **A version choice that can no longer be used can be forgotten** (mame-curator-1189)

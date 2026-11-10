@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1219 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1220 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2732,7 +2732,7 @@ P14 (per-game review state).
   Source: user-2026-10-30.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1216] **An option to leave out compilations.**
+- ✅ [mame-curator-1216] **An option to leave out compilations.**
   User request 2026-11-10. catver.ini already marks them: data/ini/catver.ini
   has categories such as "MultiGame / Compilation", "Multiplay /
   Compilation" and "MultiGame / Mini-Games" (checked 2026-11-10).
@@ -2757,6 +2757,13 @@ P14 (per-game review state).
   compilations?" after the group choice; the guide stores it as the
   group choice stores its filters. Backup carries the key as part of
   config.
+  2026-11-10: 57b5b92. filters.drop_multigame (off by default) drops
+  MultiGame, Multiplay and \"/ Multi-Games\" categories as Phase A rule
+  5; a version choice still wins. Settings switch on the Filters tab;
+  the /start guide asks \"Hide compilations?\" after the group choice
+  and saves through PATCH /api/config (the group choice itself stays
+  query state). Left: the Settings guide's leave-out topic does not list
+  the new switch yet.
   **Layman:** One switch hides games that are bundles of several older games on one board.
   Kind: feature.
   Source: user-2026-11-10.
@@ -4111,6 +4118,20 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: build-mame-curator-1189-2026-11-10.
   Lanes: frontend.
+
+- 📋 [mame-curator-1220] **languages, bestgames, series and mature INIs read as empty from real progettoSnaps files.**
+  Measured 2026-11-10 on data/ini/: parse_languages, parse_bestgames,
+  parse_series and parse_mature each return 0 entries; parse_catver
+  returns 49860. The real files are sectioned: a [Section] per language,
+  rating band or series, with bare short names under it (mature.ini has
+  bare names under [ROOT_FOLDER]). The parsers expect key=value lines, as
+  the test fixtures in tests/parser/fixtures/ are written, so they skip
+  every line. Live effect: drop_japanese_only_text, ratings and series do
+  nothing on real data. Blocks mame-curator-1217.
+  **Layman:** Four of the five game-list files the app reads give it nothing, so Japanese-only text, best-games ratings and series quietly do nothing.
+  Kind: fix.
+  Source: build-mame-curator-1217-2026-11-10.
+  Lanes: parser, tests.
 
 ## Considered / under research (no target date)
 
