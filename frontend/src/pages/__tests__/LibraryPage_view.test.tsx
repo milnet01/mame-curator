@@ -265,6 +265,23 @@ describe("LibraryPage views", () => {
     await waitFor(() =>
       expect(screen.getByTestId("route-state").textContent).toBe("null"),
     );
+    // mame-curator-1209: focus was left on the page, so nothing was read out
+    // and a magnifier stayed where it was.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: strings.nav.library }),
+      ).toHaveFocus(),
+    );
+  });
+
+  it("leaves focus alone when the Library is opened any other way", async () => {
+    serveGames(5000);
+    renderPage("simple");
+    await screen.findByText(s.showingFirst(1, 5000));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(
+      screen.getByRole("heading", { name: strings.nav.library }),
+    ).not.toHaveFocus();
   });
 });
 

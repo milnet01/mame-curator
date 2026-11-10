@@ -83,7 +83,16 @@ export function LibraryPage({
     handleDryRun,
     handleCopy,
     handleSaveSession,
+    fromGuide,
   } = useLibraryController(cart);
+
+  // mame-curator-1209: arriving from the guide, focus the heading, so a screen
+  // reader says where the user is and a magnifier moves to the top. Otherwise
+  // focus was left on the page.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (fromGuide) headingRef.current?.focus();
+  }, [fromGuide]);
 
   // mame-curator-1144: the simple view shows search, games and the copy bar.
   const [view, setView] = useState<LibraryView>(readLibraryView);
@@ -111,7 +120,9 @@ export function LibraryPage({
           : "grid-rows-[auto_1fr_auto]",
       )}
     >
-      <h1 className="sr-only">{strings.nav.library}</h1>
+      <h1 ref={headingRef} tabIndex={-1} className="sr-only">
+        {strings.nav.library}
+      </h1>
       {simple ? (
         <SimpleLibraryBar
           search={filters.search}

@@ -354,6 +354,8 @@ export function useLibraryController(cart: UseCartResult) {
   };
 
   return {
+    /** mame-curator-1209: the page was opened by the guide's "Look through". */
+    fromGuide: guideSelection !== null,
     filters,
     setFilters,
     openedShortName,

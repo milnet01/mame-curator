@@ -523,7 +523,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1136
 # heading. 688 → 690.
 # Bumped 2026-11-10 (mame-curator-1208): the wizard's list step checks the
 # file and opens in the games folder. 690 → 692.
-EXPECTED_VITEST_DECLARATIONS = 692
+# Bumped 2026-11-10 (mame-curator-1209): Look through focuses the Library
+# heading. 692 → 693.
+EXPECTED_VITEST_DECLARATIONS = 693
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
