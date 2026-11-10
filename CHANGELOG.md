@@ -17,6 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-10 Changed — Your 2026-11-10 decisions
+
+- **The folder picker lists your drives, and allowing one covers only that drive** (mame-curator-1170)
+  Before, reaching another drive meant allowing the whole disk. The
+  prompt now says the choice is remembered, and how much it covers.
+
+- **The Grouped layout is gone** (mame-curator-1155)
+  It looked the same as Masonry. A saved Grouped setting opens as Masonry.
+
+- **Simple view settles five small behaviours** (mame-curator-1156)
+  The walkthrough is off in simple view; More and Fewer options keep
+  your place; Save session saves what is on screen; changing text size
+  keeps the same game at the top.
+
 ### 2026-11-10 Fixed — Easier to follow with a magnifier or screen reader
 
 - **Every button and link shows one strong focus ring** (mame-curator-1205)

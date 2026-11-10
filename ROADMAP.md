@@ -3373,17 +3373,24 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-code-2026-10-30-1144.
   Lanes: frontend, api, tests.
 
-- 📋 [mame-curator-1155] **Grouped layout renders the same as masonry.**
+- ✅ [mame-curator-1155] **Grouped layout renders the same as masonry.**
   Finding: LibraryGrid.tsx groupKey is never read; docs/design.md promises sections by genre. Needs a decision: build it, or remove the option and correct the document. Not fixed now because it needs that decision.
   Decided by user 2026-11-10: remove the Grouped choice and correct docs/design.md.
+  2026-11-10: a1c5b78. Grouped removed from the menu, types and
+  docs/design.md; a saved ui.layout: grouped loads as masonry
+  (api/spec.md clause).
   **Layman:** The Grouped layout choice does nothing different from the normal grid.
   Kind: review-fix.
   Source: review-code-2026-10-30-1144.
   Lanes: frontend.
 
-- 📋 [mame-curator-1156] **Walkthrough stays on in simple view with its switch hidden, and other small simple-view questions.**
+- ✅ [mame-curator-1156] **Walkthrough stays on in simple view with its switch hidden, and other small simple-view questions.**
   From lane 2's open questions in docs/reviews/review-code-2026-10-30-1144/lane-02-library-page.md: walkthrough active in simple view with its toggle hidden; More/Fewer options dropping focus to the page body; typing a search showing Some filters are on (spec §4.7 requires it); handleSaveSession saving config genres against the help's your current focus. Lane 3: changing text size keeps the pixel scroll offset, so the user loses their place. No contract addresses these; not fixed now because each needs a decision.
   Decided by user 2026-11-10, all five as recommended: walkthrough off in simple view while its switch is hidden; More/Fewer options keeps focus on the button; keep Some filters are on for a search, as spec 4.7 says; Save session saves what is on screen now; changing text size keeps the reader's place.
+  2026-11-10: d23e6af. All five as decided. Some filters are on during a
+  search already worked; a test now locks it. A session saves years plus
+  the chosen genre, publisher or developer; the help page says what it
+  keeps.
   **Layman:** A few small behaviours in simple view have no agreed answer yet.
   Kind: review-fix.
   Source: review-code-2026-10-30-1144.
@@ -3506,11 +3513,15 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1145-2026-10-30.
   Lanes: frontend, api, tests.
 
-- 📋 [mame-curator-1170] **Reaching a game drive on Linux means allowing the whole disk.**
+- ✅ [mame-curator-1170] **Reaching a game drive on Linux means allowing the whole disk.**
   It works, and the app listens locally only. Needs the user's decision: keep it, or offer mounted drives directly. Reported by the mame-curator-1145 build agent.
   2026-11-02: also waiting on this decision: the grant prompt's wording
   (says it is saved, and how wide). The revoke control is 1175.
   Decided by user 2026-11-10: list mounted drives directly, and grant one drive, not /. The grant wording and 1175's revoke control follow from this.
+  2026-11-10: 8199e5a. Linux lists real mounted drives from /proc/mounts
+  (never /, /home or system mounts; /run/media kept); macOS lists
+  /Volumes. The grant prompt says it is remembered and how wide. Sandbox
+  and grant route unchanged.
   **Layman:** To pick a folder on another drive you press / and then Allow /, which gives the app access to the whole disk.
   Kind: ux.
   Source: build-mame-curator-1145-2026-10-30.
@@ -3559,6 +3570,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   The server has a DELETE for allowed roots, but a search of frontend/src
   found no caller and strings.destructive.revokeRoot has none. Queued, not
   fixed: it wants a design beside mame-curator-1170, which is the user's.
+  2026-11-10: unblocked by mame-curator-1170 (8199e5a). Grants are now
+  per drive or per folder, so a revoke list has small, clearly named
+  entries.
   **Layman:** Once you allow a folder for the app, there is no button to undo that.
   Kind: review-fix.
   Source: close-findings-2026-11-02-1145.
