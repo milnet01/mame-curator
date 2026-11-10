@@ -3688,7 +3688,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   on the user.
   2026-11-02: the user said what is no longer needed can be deleted. The
   permission check refused rm from the session, so the user runs
-  ~/.local/share/claude-scratch/mame-cleanup.py with the ! prefix.
+  /mnt/Emulators/.claude/Scratchpad/MAME_Curator/mame-cleanup.py with the ! prefix.
   Checked: no recycle file is a real zip. It keeps the real 2026-10-30
   copy's lines and the purge lines, copy-history, snapshots and
   media-cache. It also removes

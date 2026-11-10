@@ -1,6 +1,6 @@
 # close-findings: review-code on mame-curator-1145
 
-Dated record, 2026-11-02. Source: `review-code --since 63690e3`, run to a084596. Each finding's text is in its lane file, kept on this machine at `~/.local/share/claude-scratch/reviews/MAME_Curator/review-code-2026-11-02/`, because the repository is public. Locations are as the review cited them at a084596. An empty disposition means not yet closed.
+Dated record, 2026-11-02. Source: `review-code --since 63690e3`, run to a084596. Each finding's text is in its lane file, kept on this machine at `/mnt/Emulators/.claude/Scratchpad/MAME_Curator/reviews/MAME_Curator/review-code-2026-11-02/`, because the repository is public. Locations are as the review cited them at a084596. An empty disposition means not yet closed.
 
 Decisions taken by this run on the review's questions, 2026-11-02. None changes a user ruling:
 
