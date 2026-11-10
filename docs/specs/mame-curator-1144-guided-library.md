@@ -1,7 +1,7 @@
 <!-- ants-spec-format: 1 -->
 # mame-curator-1144 — Guide a new or partially sighted user through choosing and copying games
 
-**Status:** shipped (2026-10-30); amended 2026-11-05 (mame-curator-1154: Check offers Start for games on the drive but not in the playlist; §4.4, INV-8, §6).
+**Status:** shipped (2026-10-30); amended 2026-11-05 (mame-curator-1154: Check offers Start for games on the drive but not in the playlist; §4.4, INV-8, §6); amended 2026-11-10 (mame-curator-1156: simple view's walkthrough, view-button focus and search; text size keeps the place; §4.6, §4.7).
 **Kind:** accessibility.
 **Source:** ROADMAP mame-curator-1144 (user, 2026-10-30, on the Library page: "I am lost. I don't know where to begin.").
 
@@ -158,7 +158,7 @@ export function applyTextSize(): void; // sets document.documentElement.style.fo
 - `main.tsx` calls `applyTextSize()` before `createRoot`, so the first paint is at the right size.
 - The size lives in `localStorage`, not `UiConfig`, because `config` loads after first paint.
 - `AppShell` gains a labelled "Text size" control, reachable on every page. An unknown stored value falls back to the default.
-- `LibraryGrid` multiplies `rowHeightPx` by the root size over 16, and the virtualizer re-measures when the size changes.
+- `LibraryGrid` multiplies `rowHeightPx` by the root size over 16, and the virtualizer re-measures when the size changes. The scroll offset scales with the rows, so the same game stays at the top (mame-curator-1156).
 - The grid keeps a minimum height of `60vh`, and the area holding it scrolls. Without this, at the largest size the bars above it crush it to nothing.
 - On a window narrower than `40rem` or shorter than `30rem`, as at high zoom, the page scrolls as a whole and `<main>` does not scroll on its own, so the header scrolls away; the Library is then one window tall. The header's search button shows only its icon below `40rem`, with the same name, and wraps above it (mame-curator-1210).
 - The `text-[10px]` uses in `AppShell` and the drawer placeholder become rem values. `h-[300px]` stays unless the review of this page shows it clips.
@@ -176,7 +176,7 @@ export const LIBRARY_VIEW_KEY = "mame-curator:library-view:v1"; // "simple" | "f
 | `FiltersSidebar`, session pill, progress chip, walkthrough toggle, `LayoutSwitcher`, `ThemeSwitcher`, `FeaturedTilesRow`, `OnboardingBanner` | hidden | shown |
 | Layout | `covers` for this page only; config unchanged | `ui.layout` |
 
-The search box sits inside `FiltersSidebar` today, so simple view renders it on its own, bound to `filters.search`, with the sidebar's debounce and the id `filters-search`, which the `/` shortcut in `App.tsx` focuses. A "More options" button at the top of the page switches to full, and "Fewer options" switches back. The choice is remembered. Filters set in full view stay applied in simple view. When `filters` differs from `DEFAULT_FILTERS`, simple view says "Some filters are on" and offers "Clear filters", so hidden filters cannot silently shrink the list. "Clear filters" resets `filters` to `DEFAULT_FILTERS` and clears `activeTileId`. It also empties the search box, so the box follows `filters.search`, which the sidebar's local draft does not. When `total` exceeds the cards shown, simple view says "Showing the first X of N." `ListxmlBanner` and error panels show in both views.
+The search box sits inside `FiltersSidebar` today, so simple view renders it on its own, bound to `filters.search`, with the sidebar's debounce and the id `filters-search`, which the `/` shortcut in `App.tsx` focuses. A "More options" button at the top of the page switches to full, and "Fewer options" switches back. The choice is remembered. Each switch puts focus on the other view's button, since the one pressed is gone (mame-curator-1156). Simple view hides the walkthrough toggle, so walkthrough is off there whatever the toggle says: R, S and ? mark a game and leave focus on it. Filters set in full view stay applied in simple view. When `filters` differs from `DEFAULT_FILTERS`, simple view says "Some filters are on" and offers "Clear filters", so hidden filters cannot silently shrink the list. A search alone counts, by the user's decision of 2026-11-10. "Clear filters" resets `filters` to `DEFAULT_FILTERS` and clears `activeTileId`. It also empties the search box, so the box follows `filters.search`, which the sidebar's local draft does not. When `total` exceeds the cards shown, simple view says "Showing the first X of N." `ListxmlBanner` and error panels show in both views.
 
 ### 4.8 Setup mode
 

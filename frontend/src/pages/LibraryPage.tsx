@@ -96,10 +96,20 @@ export function LibraryPage({
 
   // mame-curator-1144: the simple view shows search, games and the copy bar.
   const [view, setView] = useState<LibraryView>(readLibraryView);
+  // mame-curator-1156: More options and Fewer options each remove the button
+  // just pressed, so focus fell to the page. It moves to the other one.
+  const viewButtonRef = useRef<HTMLButtonElement>(null);
+  const viewChanged = useRef(false);
   const changeView = (next: LibraryView) => {
+    viewChanged.current = true;
     setView(next);
     writeLibraryView(next);
   };
+  useEffect(() => {
+    if (!viewChanged.current) return;
+    viewChanged.current = false;
+    viewButtonRef.current?.focus();
+  }, [view]);
   const simple = view === "simple";
 
   // Opening the cart can push the bar below the fold, because the games keep
@@ -136,6 +146,7 @@ export function LibraryPage({
           shown={cards.length}
           total={total}
           onMoreOptions={() => changeView("full")}
+          viewButtonRef={viewButtonRef}
         />
       ) : (
         <aside
@@ -163,6 +174,7 @@ export function LibraryPage({
           theme={theme}
           onThemeChange={handleTheme}
           onFewerOptions={() => changeView("simple")}
+          viewButtonRef={viewButtonRef}
         />
       )}
 
@@ -233,7 +245,9 @@ export function LibraryPage({
                 focusCard={versionChoice.focusCard}
                 onFocusCardTaken={versionChoice.clearFocusCard}
                 reviewState={reviewState.data}
-                walkthrough={walkthrough}
+                // mame-curator-1156: simple view hides the walkthrough
+                // switch, so it does not leave walkthrough on behind it.
+                walkthrough={walkthrough && !simple}
                 onSetReviewState={(shortName, state) =>
                   setReviewState.mutate({ short_name: shortName, state })
                 }

@@ -248,9 +248,6 @@ export const strings = {
     },
     /** FP15 § A toast on successful session save. */
     sessionSaved: (name: string) => `Saved session "${name}".`,
-    /** Saving needs the settings, and they have not loaded. */
-    sessionNotSaved:
-      "The session was not saved, because your settings have not loaded.",
     /** FP16 § B toast on successful manual override. */
     overrideApplied: (game: string) => `Now using ${game}.`,
     /** mame-curator-1149: the choice took, but the reply carried warnings,

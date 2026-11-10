@@ -15,6 +15,8 @@ interface SimpleLibraryBarProps {
   shown: number;
   total: number;
   onMoreOptions: () => void;
+  /** Takes focus when the page switches to this view. */
+  viewButtonRef?: React.Ref<HTMLButtonElement>;
 }
 
 /**
@@ -29,6 +31,7 @@ export function SimpleLibraryBar({
   shown,
   total,
   onMoreOptions,
+  viewButtonRef,
 }: SimpleLibraryBarProps) {
   const [draft, setDraft] = useState(search);
   // The box follows filters.search, so Clear filters empties it.
@@ -80,7 +83,7 @@ export function SimpleLibraryBar({
         <Button asChild>
           <Link to="/start">{strings.guide.simpleLibrary.startHere}</Link>
         </Button>
-        <Button variant="outline" onClick={onMoreOptions}>
+        <Button ref={viewButtonRef} variant="outline" onClick={onMoreOptions}>
           {strings.guide.simpleLibrary.moreOptions}
         </Button>
       </div>

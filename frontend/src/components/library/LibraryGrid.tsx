@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useSyncExternalStore,
@@ -119,9 +120,22 @@ export function LibraryGrid({
     },
   });
 
-  useEffect(() => {
+  // mame-curator-1156: rows grow with the text, so a scroll offset kept in
+  // pixels would show other games. Scale it with the rows. The spacer gets its
+  // new height first, or the browser would cut the offset to the old height.
+  const spacerRef = useRef<HTMLDivElement>(null);
+  const lastRowHeight = useRef(rowHeightPx);
+  useLayoutEffect(() => {
+    const before = lastRowHeight.current;
+    lastRowHeight.current = rowHeightPx;
+    const el = scrollRef.current;
+    if (el && spacerRef.current && before !== rowHeightPx) {
+      const top = el.scrollTop;
+      spacerRef.current.style.height = `${rowCount * rowHeightPx}px`;
+      el.scrollTop = (top * rowHeightPx) / before;
+    }
     virtualizer.measure();
-  }, [virtualizer, rowHeightPx]);
+  }, [virtualizer, rowHeightPx, rowCount]);
 
   const rows = useMemo(() => {
     const out: GameCardType[][] = [];
@@ -275,6 +289,7 @@ export function LibraryGrid({
       className="h-full min-h-[60vh] shrink-0 overflow-auto focus:outline-none"
     >
       <div
+        ref={spacerRef}
         style={{
           height: `${virtualizer.getTotalSize()}px`,
           position: "relative",

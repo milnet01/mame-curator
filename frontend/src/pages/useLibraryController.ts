@@ -333,16 +333,15 @@ export function useLibraryController(cart: UseCartResult) {
     }
   }, [cart.isStorageBroken]);
 
+  // mame-curator-1156: a session saves what is on screen now. A session holds
+  // years, genres, publishers and developers only, so a search, a letter and
+  // the "only" switches are not saved.
   const handleSaveSession = (name: string) => {
-    if (!config.data) {
-      toastError(strings.library.sessionNotSaved);
-      return;
-    }
     const session: Session = {
       include_year_range: filters.yearRange,
-      include_genres: config.data.filters.preferred_genres,
-      include_publishers: config.data.filters.preferred_publishers,
-      include_developers: config.data.filters.preferred_developers,
+      include_genres: filters.genre ? [filters.genre] : [],
+      include_publishers: filters.publisher ? [filters.publisher] : [],
+      include_developers: filters.developer ? [filters.developer] : [],
     };
     upsertSession.mutate(
       { name, session },

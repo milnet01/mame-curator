@@ -34,7 +34,8 @@ versions shows **Has alternative versions**.
 
 ## Sessions
 
-A session saves your current focus, such as a year range and the
-genres or publishers you prefer, under a name like `80s shooters`.
+A session saves what the Library is showing: its year range, and the
+genre, publisher or developer chosen, under a name like `80s shooters`.
+A search and the other filters are not saved.
 Switch between sessions on the **Sessions** page without losing your
 place.

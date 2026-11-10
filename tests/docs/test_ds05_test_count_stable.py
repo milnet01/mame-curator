@@ -531,7 +531,10 @@ EXPECTED_PYTEST_DECLARATIONS = 1139
 # whole and the search button shrinks. 693 → 697.
 # Bumped 2026-11-10 (mame-curator-1155): the layout menu does not offer
 # Grouped. 697 → 698.
-EXPECTED_VITEST_DECLARATIONS = 698
+# Bumped 2026-11-10 (mame-curator-1156): simple view's walkthrough, view
+# button focus and search; a session saves what is on screen; text size keeps
+# the place. 698 → 705.
+EXPECTED_VITEST_DECLARATIONS = 705
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

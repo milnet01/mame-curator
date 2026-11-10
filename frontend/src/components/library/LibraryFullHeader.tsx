@@ -17,6 +17,8 @@ interface LibraryFullHeaderProps {
   theme: ThemeName;
   onThemeChange: (next: ThemeName) => void;
   onFewerOptions: () => void;
+  /** Takes focus when the page switches to this view. */
+  viewButtonRef?: React.Ref<HTMLButtonElement>;
 }
 
 /** The full Library's top bar; the simple view has SimpleLibraryBar instead. */
@@ -31,10 +33,12 @@ export function LibraryFullHeader({
   theme,
   onThemeChange,
   onFewerOptions,
+  viewButtonRef,
 }: LibraryFullHeaderProps) {
   return (
     <header className="flex flex-wrap items-center justify-end gap-2 border-b px-4 py-2">
       <button
+        ref={viewButtonRef}
         type="button"
         onClick={onFewerOptions}
         className="rounded border bg-muted/50 px-2 py-1 text-xs hover:bg-muted"
