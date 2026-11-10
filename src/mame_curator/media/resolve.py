@@ -22,10 +22,10 @@ from urllib.request import url2pathname
 
 import httpx
 
-from mame_curator.media.cache import MediaFetchError, fetch_with_cache
+from mame_curator.media.cache import fetch_with_cache
 from mame_curator.media.local_folders import EsdeSource, RetroArchThumbnailsSource
 from mame_curator.media.mobygames import MobyGamesSource, SourceDisabledFlag
-from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
+from mame_curator.media.rate_limit import TokenBucket
 from mame_curator.media.sources import (
     ArcadeDBSource,
     Kind,
@@ -72,57 +72,54 @@ async def resolve_image(
     chain advances. A ``file://`` candidate (ProgettoSnaps local pack) is
     served directly, short-circuiting ``fetch_with_cache`` (whose scheme guard
     rejects ``file://`` by design). Every source missing → ``None``.
+
+    mame-curator-1146: the walk is ``resolve_image_found``, which also says
+    which source answered. Imported here, not at the top: ``candidates``
+    imports this module for ``answer_from``.
     """
-    for source in registry.chain_for(kind):
-        try:
-            await source.prepare(machine, client=client)
-        except MediaRateLimited:
-            logger.info("media: %s rate-limited during prepare; falling through", source.name)
-            continue
-        except MediaFetchError:
+    from mame_curator.media.candidates import resolve_image_found
+
+    found = await resolve_image_found(
+        machine, kind, registry=registry, cache_dir=cache_dir, client=client
+    )
+    return found.path if found is not None else None
+
+
+async def answer_from(
+    source: MediaSource,
+    machine: Machine,
+    kind: Kind,
+    *,
+    cache_dir: Path,
+    client: httpx.AsyncClient,
+) -> Path | None:
+    """One prepared source's image for ``kind``: its file, or ``None`` on a miss.
+
+    ``None`` when the source has no candidate, the upstream 404s, or a local
+    file vanished. Raises ``MediaFetchError`` when the fetch fails. Only the
+    local sources may answer with ``file://`` (FP33 H1).
+    """
+    url = source.url_for(machine, kind)
+    if url is None:
+        return None  # source has no candidate for this (machine, kind)
+    if url.startswith("file://"):
+        # Only the local sources are trusted to emit a file:// URL. A NETWORK
+        # source returning file:// is a poisoned / hostile upstream value (e.g.
+        # a MITM on ArcadeDB's plaintext hop injecting file:///etc/passwd) —
+        # serving it would be an arbitrary local-file read that bypasses
+        # fetch_with_cache's _ALLOWED_URL_SCHEMES guard. Drop it. (FP33 H1)
+        if source.name not in _LOCAL_SOURCES:
             logger.warning(
-                "media: %s prepare failed for %s; falling through", source.name, machine.name
-            )
-            continue
-        url = source.url_for(machine, kind)
-        if url is None:
-            continue  # source has no candidate for this (machine, kind)
-        if url.startswith("file://"):
-            # Only the local snap-pack source (ProgettoSnaps) is trusted to emit
-            # a file:// URL. A NETWORK source returning file:// is a poisoned /
-            # hostile upstream value (e.g. a MITM on ArcadeDB's plaintext hop
-            # injecting file:///etc/passwd) — serving it would be an arbitrary
-            # local-file read that bypasses fetch_with_cache's
-            # _ALLOWED_URL_SCHEMES guard (which runs only in the else branch).
-            # Drop it. (FP33 H1)
-            if source.name not in _LOCAL_SOURCES:
-                logger.warning(
-                    "media: %s returned a file:// URL but is not a local source; dropping",
-                    source.name,
-                )
-                continue
-            # Local-pack source. fetch_with_cache's _ALLOWED_URL_SCHEMES rejects
-            # file:// (P05 FP27 B4 guard), so serve the path directly.
-            # url2pathname handles the Windows ``/C:/…`` → ``C:\`` conversion a
-            # naive ``urlparse().path`` won't.
-            local = Path(url2pathname(urlparse(url).path))
-            if local.is_file():
-                return local
-            continue  # pack file vanished between url_for and here; fall through
-        try:
-            path = await fetch_with_cache(url, cache_dir, client=client)
-        except MediaFetchError:
-            logger.warning(
-                "media: %s fetch failed for %s/%s; falling through",
+                "media: %s returned a file:// URL but is not a local source; dropping",
                 source.name,
-                machine.name,
-                kind,
             )
-            continue
-        if path is not None:
-            return path
-        # path is None → upstream 404 → try the next source
-    return None
+            return None
+        # fetch_with_cache's _ALLOWED_URL_SCHEMES rejects file:// (P05 FP27 B4
+        # guard), so serve the path directly. url2pathname handles the Windows
+        # ``/C:/…`` → ``C:\`` conversion a naive ``urlparse().path`` won't.
+        local = Path(url2pathname(urlparse(url).path))
+        return local if local.is_file() else None  # vanished → a miss
+    return await fetch_with_cache(url, cache_dir, client=client)
 
 
 def _source_factories(

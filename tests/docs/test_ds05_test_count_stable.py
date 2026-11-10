@@ -378,7 +378,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Masonry. 1136 → 1139.
 # Bumped 2026-11-10 (mame-curator-1170): the picker lists mounted drives,
 # never /. 1139 → 1143.
-EXPECTED_PYTEST_DECLARATIONS = 1143
+# Bumped 2026-11-10 (mame-curator-1146): the picture listing and one
+# source's picture. 1143 → 1153.
+EXPECTED_PYTEST_DECLARATIONS = 1153
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

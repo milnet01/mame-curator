@@ -72,6 +72,14 @@ P10 chunk 8 (Wikipedia flavor-text endpoint):
 - ``resolve_wikipedia_extract`` — fetches + parses the Wikipedia REST summary
   (shared cache slot + rate-limit bucket with ``WikipediaImageSource``).
   Both live in ``wikipedia.py``.
+
+mame-curator-1146 (the picture choice — lives in ``candidates.py``):
+
+- ``resolve_pair`` — one source's picture for one kind.
+- ``resolve_image_found`` — ``resolve_image`` naming the source that answered.
+- ``list_candidates`` — every picture the chain holds, for the picture guide.
+- ``LIMITED_SOURCES`` — the sources with a rate limit.
+- ``Found`` / ``CandidateList`` — what those return.
 """
 
 from __future__ import annotations
@@ -85,6 +93,15 @@ from mame_curator.media.cache import (
 from mame_curator.media.cache_text import (
     DEFAULT_TEXT_MAX_BYTES,
     fetch_text_with_cache,
+)
+from mame_curator.media.candidates import (
+    LIMITED_SOURCES,
+    CandidateList,
+    Found,
+    file_digest,
+    list_candidates,
+    resolve_image_found,
+    resolve_pair,
 )
 from mame_curator.media.local_folders import EsdeSource, RetroArchThumbnailsSource
 from mame_curator.media.mobygames import (
@@ -121,8 +138,11 @@ def _build_user_agent() -> str:
 
 __all__ = [
     "DEFAULT_TEXT_MAX_BYTES",
+    "LIMITED_SOURCES",
     "ArcadeDBSource",
+    "CandidateList",
     "EsdeSource",
+    "Found",
     "Kind",
     "LibretroSource",
     "MediaError",
@@ -145,8 +165,12 @@ __all__ = [
     "escape_libretro",
     "fetch_text_with_cache",
     "fetch_with_cache",
+    "file_digest",
+    "list_candidates",
     "mobygames_key_path",
     "resolve_image",
+    "resolve_image_found",
+    "resolve_pair",
     "resolve_wikipedia_extract",
     "urls_for",
 ]

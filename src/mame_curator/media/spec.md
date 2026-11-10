@@ -61,7 +61,8 @@ Source files under `src/mame_curator/media/`:
 | `mobygames.py` | `MobyGamesSource`, `SourceDisabledFlag`, `mobygames_key_path`. Split out so `sources.py` stays under the 500-line hard cap. |
 | `local_folders.py` | `EsdeSource`, `RetroArchThumbnailsSource` (mame-curator-1126): artwork another tool already scraped, read from a folder the user chose. Own file for the same size cap. |
 | `wikipedia.py` | `WikipediaExtract` (frozen), `resolve_wikipedia_extract`. |
-| `resolve.py` | `resolve_image` (orchestrator), `build_registry`, `build_all_sources`. The composition root — constructs concrete sources with injected deps. |
+| `resolve.py` | `resolve_image` (orchestrator), `answer_from` (one prepared source's answer), `build_registry`, `build_all_sources`. The composition root — constructs concrete sources with injected deps. |
+| `candidates.py` | `resolve_pair`, `resolve_image_found`, `list_candidates`, `LIMITED_SOURCES`, `Found`, `CandidateList`, `file_digest` (mame-curator-1146). |
 | `__init__.py` | Re-exports the public surface; defines `_build_user_agent`. |
 
 ## Public surface
@@ -81,6 +82,12 @@ Re-exported from `mame_curator.media.__init__` (`__all__`):
 | `SourceDisabledFlag` | class | `mobygames.py` |
 | `mobygames_key_path` | function | `mobygames.py` |
 | `resolve_image` | async function | `resolve.py` |
+| `resolve_pair` | async function | `candidates.py` |
+| `resolve_image_found` | async function | `candidates.py` |
+| `list_candidates` | async function | `candidates.py` |
+| `LIMITED_SOURCES` | `frozenset[str]` | `candidates.py` |
+| `Found` / `CandidateList` | frozen dataclasses | `candidates.py` |
+| `file_digest` | function | `candidates.py` |
 | `build_registry` | function | `resolve.py` |
 | `build_all_sources` | function | `resolve.py` |
 | `resolve_wikipedia_extract` | async function | `wikipedia.py` |
@@ -294,6 +301,16 @@ the Windows `/C:/…` form). Hardened (FP33 H1): **only the local sources
 trusted** to emit `file://`. A *network* source returning `file://` (e.g. a
 MITM injecting `file:///etc/passwd` on ArcadeDB's plaintext hop) is logged and
 dropped — never served.
+
+### The picture choice: `resolve_pair`, `resolve_image_found`, `list_candidates` (mame-curator-1146)
+
+The contract is `docs/specs/mame-curator-1146-picture-choice.md` §4.3. In short:
+
+- `resolve_pair(machine, source, kind, *, registry, cache_dir, client) -> Path | None` asks one source for one kind. `None` when the source is not in `registry.chain_for(kind)`, has no candidate, or the upstream 404s. Raises `MediaRateLimited` and `MediaFetchError`. Keeps the `file://` rule above.
+- `resolve_image_found(...) -> Found | None` is `resolve_image` naming the source that answered. `resolve_image` returns its `path`.
+- `list_candidates(machine, *, registry, ask_limited, cache_dir, client) -> CandidateList` walks `boxart`, `title`, `snap`, every source in each chain, skipping `LIMITED_SOURCES` (`arcadeDB`, `wikipediaImage`, `mobyGames`) unless `ask_limited`. Each `prepare` runs at most once; a source whose `prepare` raised is not asked again. A picture whose bytes equal an earlier one's is dropped. Sources held back are in `not_asked`; sources that raised are in `not_answered`.
+
+The per-source step all three share is `resolve.answer_from`.
 
 ### `async resolve_wikipedia_extract(machine, *, cache_dir, client, limiter) -> WikipediaExtract | None`
 
