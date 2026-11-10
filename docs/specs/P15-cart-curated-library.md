@@ -110,10 +110,10 @@ type Cart = { items: CartItem[]; addedAt: Record<string, number> }
 
 export function useCart(): {
   items: CartItem[]
-  has(shortName: string): boolean
-  add(shortName: string, variant?: string): void
+  has(shortName: string): boolean             // matches shortName or chosenVariant
+  add(shortName: string, variant?: string): void   // no-op if has(shortName)
   remove(shortName: string): void
-  addAll(shortNames: string[]): void          // merge, no duplicates
+  addAll(shortNames: string[]): void          // merge, no duplicates (as has)
   setVariant(shortName: string, variant: string | undefined): void
   clear(): void
   totalBytes: number                           // memoised sum

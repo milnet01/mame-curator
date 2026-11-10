@@ -562,7 +562,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1201
 # guide's "only one version" test goes (-1). 713 → 727.
 # Bumped 2026-11-10 (mame-curator-1200): the listxml banner's title when a
 # file is set but gave no clone data. 727 → 728.
-EXPECTED_VITEST_DECLARATIONS = 728
+# Bumped 2026-11-10 (mame-curator-1188): the cart knows a chosen version's
+# name. 728 → 731.
+EXPECTED_VITEST_DECLARATIONS = 731
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

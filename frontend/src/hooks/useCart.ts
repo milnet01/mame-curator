@@ -30,6 +30,12 @@ export interface UseCartResult {
 }
 
 export const MAX_CART_SIZE = 10000;
+
+/** mame-curator-1188: an entry stands for the game by the name it was added
+ *  under and by the version chosen for it, which is the card then on show. */
+function holds(item: CartItem, name: string): boolean {
+  return item.shortName === name || item.chosenVariant === name;
+}
 export const CART_STORAGE_KEY = "mame-curator:cart:v1";
 
 function readInitial(): CartItem[] {
@@ -87,14 +93,14 @@ export function useCart(): UseCartResult {
   }, []);
 
   const has = useCallback(
-    (shortName: string) => items.some((i) => i.shortName === shortName),
+    (shortName: string) => items.some((i) => holds(i, shortName)),
     [items],
   );
 
   const add = useCallback(
     (shortName: string, variant?: string) => {
       setItems((prev) => {
-        if (prev.some((i) => i.shortName === shortName)) return prev;
+        if (prev.some((i) => holds(i, shortName))) return prev;
         if (prev.length >= MAX_CART_SIZE) return prev;
         const item: CartItem = { shortName };
         if (variant !== undefined) item.chosenVariant = variant;
@@ -127,7 +133,11 @@ export function useCart(): UseCartResult {
       let added = 0;
       let truncated = 0;
       setItems((prev) => {
-        const seen = new Set(prev.map((i) => i.shortName));
+        const seen = new Set(
+          prev.flatMap((i) =>
+            i.chosenVariant ? [i.shortName, i.chosenVariant] : [i.shortName],
+          ),
+        );
         const merged = [...prev];
         for (const name of shortNames) {
           if (merged.length >= MAX_CART_SIZE) {

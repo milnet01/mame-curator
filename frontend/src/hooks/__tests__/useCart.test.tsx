@@ -155,3 +155,41 @@ describe("useCart", () => {
     expect(result.current.isStorageBroken).toBe(false);
   });
 });
+
+// mame-curator-1188: choosing a version keeps the entry under the name it was
+// added by and records the choice as chosenVariant. The grid then shows the
+// chosen version's card, so the cart must know that name too.
+describe("useCart after a version is chosen", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  function chosen() {
+    const hook = renderHook(() => useCart());
+    act(() => hook.result.current.add("puckf"));
+    act(() => hook.result.current.setVariant("puckf", "puckj"));
+    return hook.result;
+  }
+
+  it("has() counts the chosen version as in the cart", () => {
+    expect(chosen().current.has("puckj")).toBe(true);
+  });
+
+  it("add() of the chosen version adds no second entry", () => {
+    const result = chosen();
+    act(() => result.current.add("puckj"));
+    expect(result.current.items).toEqual([
+      { shortName: "puckf", chosenVariant: "puckj" },
+    ]);
+  });
+
+  it("addAll() of the chosen version adds no second entry", () => {
+    const result = chosen();
+    let report = { added: -1, truncated: -1 };
+    act(() => {
+      report = result.current.addAll(["puckj"]);
+    });
+    expect(report).toEqual({ added: 0, truncated: 0 });
+    expect(result.current.items).toHaveLength(1);
+  });
+});
