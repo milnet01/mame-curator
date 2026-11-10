@@ -1,13 +1,13 @@
 <!-- ants-spec-format: 1 -->
 # mame-curator-1146 — Let the user choose a game's picture, step by step
 
-**Status:** spec draft (2026-11-05).
+**Status:** accepted (2026-11-10).
 **Kind:** accessibility.
 **Source:** ROADMAP mame-curator-1146 (user, 2026-10-30: wizards for "fix a game's picture or version").
 
 **Pairs with:** the version half of mame-curator-1146, built without a spec on the `/fix/:shortName` route. **Builds on:** mame-curator-1144 (`GuideStep`, `GuideAction`).
 
-**Layman:** A game sometimes shows the wrong picture, or none. A short guide shows every picture the app can find for that game, in large images, and the user picks one. The game keeps that picture until the user changes it back.
+**Layman:** A game sometimes shows the wrong picture, or none. A short guide shows every picture the app can find for that game, in large images, and the user picks one. That version of the game keeps that picture until the user changes it back.
 
 ## 1. Goal
 
@@ -161,10 +161,11 @@ export function pictureSrc(card: { short_name: string; picture: PictureChoice | 
 
 ### 4.6 The guide
 
-The version half's route, `/fix/:shortName`, where `shortName` is the version in use, gains these screens. They act on the version in use when they open: `shortName`, or the version this guide has just saved. Each renders through `GuideStep`, with every action a `GuideAction`, so mame-curator-1144 INV-2 (focus) and INV-3's exit rule hold here unchanged.
+The version half's route, `/fix/:shortName`, gains these screens. They act on the version in use when they open: the `in_use` of `GET /api/games/{shortName}/alternatives`, as `FixVersionPage` reads it, or `shortName` when `in_use` is null. After a version save that reply is reloaded, so they act on the saved version. Each renders through `GuideStep`, with every action a `GuideAction`, so mame-curator-1144 INV-2 (focus) and INV-3's exit rule hold here unchanged.
 
 1. **What would you like to fix?** Two actions: "A different version" (the version half's screens) and "A different picture". Shown only when the game has more than one version; otherwise the guide opens at step 2.
 2. **Which picture would you like?** While the list loads: "Looking for pictures…" in a `role="status"` element. Then one column of candidates, each one `GuideAction` holding the image, loaded from `/media/<name>/<kind>?source=<source>`, at the column's width and, under it, its label and place, for example "Title screen, from your ES-DE pictures". The in-use one also says "In use now" in text. The image's `alt` is empty, because the text beside it says the same.
+   - Under the heading: "Your choice is for this version only."
    - "Look in more places" when `not_asked` or `not_answered` is not empty; it reloads with `further=true`.
    - When `not_answered` is not empty: "Some places did not answer. Try again in a minute."
    - When `chosen_found` is false: "The picture you chose cannot be found now."
@@ -338,9 +339,9 @@ Rows live in `../reviews/mame-curator-1146-picture-choice-loop-log.md`.
 
 ## 15. Open questions
 
-For the user, each with the author's recommendation:
+None. The user answered the draft's four on 2026-11-10, each as recommended:
 
-1. **Should importing an older backup clear picture choices?** Recommended: yes. A backup restores what it held, and the snapshot taken first keeps the choices.
-2. **Should "Look in more places" ask the online sources with limits?** Recommended: yes, one press away. Without it, many games offer only one or two pictures.
-3. **The entry link's wording**, now that it covers both halves: "Fix this game's picture or version, step by step".
-4. **Should a picture choice follow the game when the user picks another version?** As drafted it does not: a choice belongs to one version's short name, so the Layman line's "keeps that picture until the user changes it back" fails after a version change. Recommended: keep it per version, and say so in the guide, because each version can have its own pictures. The other way keys the choice by the parent name.
+1. Importing an older backup clears picture choices; the snapshot taken first keeps them.
+2. "Look in more places" asks the online sources with limits, one press away.
+3. The entry link reads "Fix this game's picture or version, step by step".
+4. A picture choice belongs to one version's short name and does not follow a version change. The guide says so (§4.6 step 2).
