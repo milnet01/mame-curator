@@ -57,11 +57,16 @@ const refused = () =>
     { status: 422 },
   );
 
-function renderFix(cart: UseCartResult = makeFakeCart()) {
+/** Renders the guide; `toVersions` answers its first question for the
+ *  version half (mame-curator-1146, picture half). */
+async function renderFix(
+  cart: UseCartResult = makeFakeCart(),
+  toVersions = true,
+) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={["/fix/puckf"]}>
         <Routes>
@@ -74,6 +79,11 @@ function renderFix(cart: UseCartResult = makeFakeCart()) {
       </MemoryRouter>
     </QueryClientProvider>,
   );
+  if (toVersions) {
+    await userEvent.click(
+      await screen.findByRole("button", { name: fix.picture.whatVersion }),
+    );
+  }
 }
 
 const versionButton = (name: string) =>
@@ -84,7 +94,7 @@ beforeEach(() => vi.clearAllMocks());
 describe("the version guide", () => {
   it("offers every version with its year and maker, and marks the one in use", async () => {
     serve(accepted);
-    renderFix();
+    await renderFix();
     await screen.findByRole("heading", { name: fix.heading });
     const juniorButton = await versionButton("Puck Junior");
     expect(juniorButton).toHaveTextContent("1982");
@@ -98,7 +108,7 @@ describe("the version guide", () => {
     // mame-curator-1197: a hand-typed /fix/puckf while Puck World is in use.
     const posted = serve(accepted, [parent, fast, junior], "puck");
     const user = userEvent.setup();
-    renderFix();
+    await renderFix();
 
     expect(await versionButton("Puck World")).toHaveTextContent(fix.inUse);
     expect(await versionButton("Puck Fast")).not.toHaveTextContent(fix.inUse);
@@ -114,7 +124,7 @@ describe("the version guide", () => {
   it("saves a choice under the family's parent and says what is in use now", async () => {
     const posted = serve(accepted);
     const setVariant = vi.fn();
-    renderFix({
+    await renderFix({
       ...makeFakeCart(),
       items: [{ shortName: "puckf" }],
       setVariant,
@@ -133,7 +143,7 @@ describe("the version guide", () => {
 
   it("says when the choice took but older choices could not be used", async () => {
     serve(() => accepted(["override key 'ghost' is not a known parent"]));
-    renderFix();
+    await renderFix();
     await userEvent.click(await versionButton("Puck Junior"));
     expect(
       await screen.findByText(strings.library.overrideOldChoicesUnusable(1)),
@@ -142,7 +152,7 @@ describe("the version guide", () => {
 
   it("changes nothing when the version in use is chosen", async () => {
     const posted = serve(accepted);
-    renderFix();
+    await renderFix();
     await userEvent.click(await versionButton("Puck Fast"));
     await screen.findByRole("heading", { name: fix.unchanged("Puck Fast") });
     expect(posted).toEqual([]);
@@ -151,7 +161,7 @@ describe("the version guide", () => {
   it("says what went wrong when the save fails, and can try again", async () => {
     let fail = true;
     const posted = serve(() => (fail ? refused() : accepted()));
-    renderFix();
+    await renderFix();
     await userEvent.click(await versionButton("Puck Junior"));
     await screen.findByRole("heading", { name: fix.failedHeading });
     expect(screen.getByRole("alert")).toHaveTextContent(
@@ -170,7 +180,7 @@ describe("the version guide", () => {
 
   it("goes back from a failed save to the choice", async () => {
     serve(refused);
-    renderFix();
+    await renderFix();
     await userEvent.click(await versionButton("Puck Junior"));
     await screen.findByRole("heading", { name: fix.failedHeading });
     await userEvent.click(
@@ -178,16 +188,6 @@ describe("the version guide", () => {
     );
     expect(
       await screen.findByRole("heading", { name: fix.heading }),
-    ).toBeInTheDocument();
-  });
-
-  it("says so plainly when the game has only one version", async () => {
-    serve(accepted, [fast]);
-    renderFix();
-    await screen.findByRole("heading", { name: fix.onlyOneHeading });
-    expect(screen.queryByRole("button", { name: /Puck Fast/ })).toBeNull();
-    expect(
-      screen.getByRole("link", { name: fix.toLibrary }),
     ).toBeInTheDocument();
   });
 
@@ -207,7 +207,7 @@ describe("the version guide", () => {
             }),
       ),
     );
-    renderFix();
+    await renderFix(makeFakeCart(), false);
     await screen.findByRole("heading", { name: strings.guide.loadFailed });
     expect(
       screen.getByRole("link", { name: fix.toLibrary }),
@@ -215,13 +215,13 @@ describe("the version guide", () => {
     fail = false;
     await userEvent.click(screen.getByRole("button", { name: fix.tryAgain }));
     expect(
-      await screen.findByRole("heading", { name: fix.heading }),
+      await screen.findByRole("heading", { name: fix.picture.whatHeading }),
     ).toBeInTheDocument();
   });
 
   it("offers the way back to the Library on the choosing screen", async () => {
     serve(accepted);
-    renderFix();
+    await renderFix();
     await screen.findByRole("heading", { name: fix.heading });
     await userEvent.click(screen.getByRole("link", { name: fix.toLibrary }));
     expect(await screen.findByText("the library")).toBeInTheDocument();

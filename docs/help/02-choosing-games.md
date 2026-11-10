@@ -32,6 +32,19 @@ the app picked, and lets you choose another with one click. A game you
 have changed shows a **Manually overridden** badge. A game with other
 versions shows **Has alternative versions**.
 
+## Choosing a game's picture
+
+A game sometimes shows the wrong picture, or none. Open its drawer and
+choose **Fix this game's picture or version, step by step**, then
+**A different picture**. A game with one version goes straight to its
+pictures.
+
+The guide shows every picture it finds, large, with what it shows and
+where it came from. Choose one, and the Library shows it at once. Your
+choice is for that version only. **Look in more places** also asks the
+online sources that limit how often they may be asked. **Use the usual
+picture** undoes your choice. Choices are saved in a Backup.
+
 ## Sessions
 
 A session saves what the Library is showing: its year range, and the

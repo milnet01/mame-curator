@@ -1,6 +1,7 @@
 /**
- * mame-curator-1146, version half — choose a game's version one question at
- * a time, at /fix/:shortName. Saving goes through mame-curator-1149's
+ * mame-curator-1146 — fix a game's version or picture one question at a
+ * time, at /fix/:shortName. A game with several versions is first asked
+ * which; one with a single version opens at the picture question. Saving goes through mame-curator-1149's
  * `useVersionChoice`, so the cart follows the choice as it does from the
  * Library. The version in use is the server's `in_use`, not `shortName`: a
  * typed address can name any version (mame-curator-1197).
@@ -9,13 +10,17 @@ import { useState } from "react";
 import { useParams } from "react-router";
 import { GuideAction } from "@/components/guide/GuideAction";
 import { GuideStep } from "@/components/guide/GuideStep";
+import { FixWhatStep } from "@/components/guide/steps/FixWhatStep";
 import { useAlternatives } from "@/hooks/useAlternatives";
 import type { UseCartResult } from "@/hooks/useCart";
 import { apiErrorMessage } from "@/lib/apiErrorToast";
 import { strings } from "@/strings";
 import type { Alternatives, GameCard } from "@/api/types";
+import { FixPictureGuide } from "./FixPictureGuide";
 import { useVersionChoice } from "./useVersionChoice";
 import type { ReturnToLibrary } from "./libraryPageHelpers";
+
+type Topic = "what" | "version" | "picture";
 
 type Screen =
   | { kind: "choose" }
@@ -161,6 +166,7 @@ function FixVersionGuide({
   // useOverride reloads the family before onSaved, so this follows a save.
   const inUse = family.data?.in_use ?? null;
   const [screen, setScreen] = useState<Screen>({ kind: "choose" });
+  const [topic, setTopic] = useState<Topic | null>(null);
   const toChoice = () => setScreen({ kind: "choose" });
   // The Library shows the version in use; without one, the address's game.
   const back: ReturnToLibrary = { focusCard: inUse ?? shortName };
@@ -190,6 +196,29 @@ function FixVersionGuide({
   if (!family.data) return <LoadingStep family={family} back={back} />;
   const versions = family.data;
 
+  const several = versions.items.length > 1;
+  const shown = topic ?? (several ? "what" : "picture");
+  if (shown === "what") {
+    return (
+      <FixWhatStep
+        onVersion={() => setTopic("version")}
+        onPicture={() => setTopic("picture")}
+        back={back}
+      />
+    );
+  }
+  if (shown === "picture") {
+    // The version in use: after a version save, the reloaded `in_use`.
+    const name = inUse ?? shortName;
+    return (
+      <FixPictureGuide
+        key={name}
+        name={name}
+        onBack={several ? () => setTopic("what") : undefined}
+        back={back}
+      />
+    );
+  }
   if (screen.kind !== "choose") {
     return (
       <OutcomeStep
@@ -200,20 +229,10 @@ function FixVersionGuide({
       />
     );
   }
-  if (versions.items.length <= 1) {
-    return (
-      <GuideStep
-        heading={strings.guide.fix.onlyOneHeading}
-        exitLabel={strings.guide.fix.toLibrary}
-        exitState={back}
-      >
-        <p className="text-xl">{strings.guide.fix.onlyOne}</p>
-      </GuideStep>
-    );
-  }
   return (
     <GuideStep
       heading={strings.guide.fix.heading}
+      onBack={() => setTopic("what")}
       exitLabel={strings.guide.fix.toLibrary}
       exitState={back}
     >

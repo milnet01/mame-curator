@@ -77,6 +77,9 @@ const DYNAMIC_ACCESS_PARENTS = new Set<string>([
   "guide.settings.leaveOut.kinds",
   "guide.settings.cart.options",
   "guide.settings.cart.saved",
+  // mame-curator-1146, PictureChoiceStep.tsx: a picture's kind and place
+  "guide.fix.picture.kinds",
+  "guide.fix.picture.places",
   // CopyModal.tsx: `strings.copy.sessionState[state.state]`
   "copy.sessionState",
   // CmdKPalette.tsx: `strings.cmdK.sections[item.section]`

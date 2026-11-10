@@ -220,8 +220,11 @@ test("mame-curator-1146: the step-by-step guide changes the version", async ({
   await page.goto(BASE);
   await card(page, FAST).click();
   await page
-    .getByRole("link", { name: "Choose a different version, step by step" })
+    .getByRole("link", {
+      name: "Fix this game's picture or version, step by step",
+    })
     .click();
+  await page.getByRole("button", { name: "A different version" }).click();
   await expect(
     page.getByRole("heading", { name: "Which version would you like?" }),
   ).toBeFocused();

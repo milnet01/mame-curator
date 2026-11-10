@@ -261,19 +261,18 @@ export function AlternativesDrawer({
         </SheetHeader>
 
         {/* mame-curator-1146: the guided way to choose, for a reader who
-            finds the rows below small. Left out where there is no choice. */}
-        {!onlyOne && (
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="h-auto min-h-11 whitespace-normal py-2 text-base"
-          >
-            <Link to={`/fix/${encodeURIComponent(winner.short_name)}`}>
-              {strings.guide.fix.entry}
-            </Link>
-          </Button>
-        )}
+            finds the rows below small. Every game has a picture to choose,
+            so it shows with one version too. */}
+        <Button
+          asChild
+          size="lg"
+          variant="outline"
+          className="h-auto min-h-11 whitespace-normal py-2 text-base"
+        >
+          <Link to={`/fix/${encodeURIComponent(winner.short_name)}`}>
+            {strings.guide.fix.entry}
+          </Link>
+        </Button>
 
         {loadFailed && onRetry && (
           <div>

@@ -148,7 +148,7 @@ describe("AlternativesDrawer", () => {
     ).toHaveAttribute("href", "/fix/pacman");
   });
 
-  it("mame-curator-1146: leaves the version guide out when there is only one version", () => {
+  it("mame-curator-1146: offers the guide when there is only one version too", () => {
     renderWithRouter(
       <AlternativesDrawer
         open
@@ -158,9 +158,11 @@ describe("AlternativesDrawer", () => {
         onOverride={() => {}}
       />,
     );
-    expect(
-      screen.queryByRole("link", { name: strings.guide.fix.entry }),
-    ).toBeNull();
+    const link = screen.getByRole("link", { name: strings.guide.fix.entry });
+    expect(link).toHaveAttribute("href", "/fix/pacman");
+    expect(link).toHaveTextContent(
+      "Fix this game's picture or version, step by step",
+    );
   });
 
   it("mame-curator-1146: names each version's chosen picture in its image address", () => {

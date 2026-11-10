@@ -208,7 +208,7 @@ describe("coming back from the version guide (mame-curator-1196)", () => {
   beforeEach(() => vi.clearAllMocks());
 
   /** The guide at /fix/puckf, with the Library one link away. */
-  function openGuide() {
+  async function openGuide() {
     const cart = makeFakeCart();
     renderLibraryPageTree(
       <Routes>
@@ -229,7 +229,14 @@ describe("coming back from the version guide (mame-curator-1196)", () => {
       </Routes>,
       { initialPath: "/fix/puckf" },
     );
-    return userEvent.setup();
+    const user = userEvent.setup();
+    // mame-curator-1146: the guide first asks what to fix.
+    await user.click(
+      await screen.findByRole("button", {
+        name: strings.guide.fix.picture.whatVersion,
+      }),
+    );
+    return user;
   }
   // The card is drawn again as the list settles, so look it up each time.
   const cardHasFocus = (name: string) =>
@@ -242,7 +249,7 @@ describe("coming back from the version guide (mame-curator-1196)", () => {
     serve(accepted, [
       makeGameCard({ short_name: "solo", description: "Solo" }),
     ]);
-    const user = openGuide();
+    const user = await openGuide();
     await user.click(
       await screen.findByRole("button", { name: /Puck Junior/ }),
     );
@@ -255,7 +262,7 @@ describe("coming back from the version guide (mame-curator-1196)", () => {
 
   it("puts focus on the game's own card when nothing was chosen", async () => {
     serve(() => accepted());
-    const user = openGuide();
+    const user = await openGuide();
     await screen.findByRole("heading", { name: strings.guide.fix.heading });
     await user.click(await backToLibrary());
     await cardHasFocus("Puck Fast");
@@ -263,7 +270,7 @@ describe("coming back from the version guide (mame-curator-1196)", () => {
 
   it("puts focus on the game's own card when the version in use was chosen", async () => {
     serve(() => accepted());
-    const user = openGuide();
+    const user = await openGuide();
     await user.click(await screen.findByRole("button", { name: /Puck Fast/ }));
     await screen.findByRole("heading", {
       name: strings.guide.fix.unchanged("Puck Fast"),

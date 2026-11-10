@@ -95,10 +95,21 @@ describe("the guide's first opening", () => {
       http.get("/api/games/:name/alternatives", () =>
         HttpResponse.json({ parent: "puck", items: [], in_use: "puck" }),
       ),
+      http.get("/api/games/:name/picture/candidates", () =>
+        HttpResponse.json({
+          short_name: "puck",
+          chosen: null,
+          chosen_found: true,
+          candidates: [],
+          not_asked: [],
+          not_answered: [],
+        }),
+      ),
     );
     renderApp("/fix/puck");
+    // One version: the guide opens at the picture question.
     await screen.findByRole("heading", {
-      name: strings.guide.fix.onlyOneHeading,
+      name: strings.guide.fix.picture.heading,
     });
     expect(at()).toBe("/fix/puck");
   });

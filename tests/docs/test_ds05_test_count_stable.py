@@ -549,7 +549,10 @@ EXPECTED_PYTEST_DECLARATIONS = 1182
 # imports. 707 → 708.
 # Bumped 2026-11-10 (mame-curator-1146): a card's image address names its
 # chosen picture. 708 → 713.
-EXPECTED_VITEST_DECLARATIONS = 713
+# Bumped 2026-11-10 (mame-curator-1146): the picture guide's screens (+15);
+# a one-version game now opens at the picture question, so the version
+# guide's "only one version" test goes (-1). 713 → 727.
+EXPECTED_VITEST_DECLARATIONS = 727
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
