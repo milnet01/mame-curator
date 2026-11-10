@@ -70,6 +70,7 @@ Phase C is an internal phase of `run_filter`, not a standalone callable. It iter
 
 - The override value must exist in the parsed DAT and must belong to the same parent/clone group (i.e. either is the parent or has `cloneof_map[value] == parent`). If not: log a warning, skip the override, and append the message to `FilterResult.warnings`. **Never crash.**
 - Override-target machines that were dropped in Phase A are still allowed as winners (per design — user choice trumps community filters). The dropped reason is removed from `dropped` for that machine.
+- This holds when Phase A dropped every version of the family, so Phase B produced no winner: the override still sets one (mame-curator-1191). A family is any parent named by a machine in the DAT, through `cloneof_map` or by being its own parent.
 
 A key that is a clone's name is not a group, so Phase C ignores it with a warning. Callers that hold old saved data run `migrate_clone_keys` first (§ `overrides.yaml`).
 

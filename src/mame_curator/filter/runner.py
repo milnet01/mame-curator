@@ -66,8 +66,11 @@ def run_filter(
     # override-rejection both logs at WARNING and appends to FilterResult.
     # warnings. Prior to FP28 only the latter half was wired despite the
     # logger being declared at module top.
+    # mame-curator-1191: a family Phase A emptied has no group, yet still takes
+    # its override, so the known parents come from every machine.
+    families = {ctx.cloneof_map.get(name, name) for name in machines}
     for parent, override_name in overrides.entries.items():
-        if parent not in groups:
+        if parent not in families:
             msg = f"override key '{parent}' is not a known parent; ignored"
             logger.warning(msg)
             warnings.append(msg)

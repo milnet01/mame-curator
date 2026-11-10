@@ -100,6 +100,49 @@ def test_overrides_replace_pick(sample: tuple[dict[str, Machine], FilterContext]
     assert result.winners == ("pacmanf",)
 
 
+def test_override_takes_when_phase_a_dropped_every_version(
+    sample: tuple[dict[str, Machine], FilterContext],
+) -> None:
+    """mame-curator-1191: a family with no Phase B winner still takes its choice.
+
+    kinst needs a CHD and kinst2 is preliminary, so Phase A drops both and
+    Phase B has no winner. The user's choice trumps the filters, as it does
+    when only the chosen version was dropped.
+    """
+    machines, ctx = sample
+    machines = {
+        **machines,
+        "kinst2": m(
+            name="kinst2",
+            description="Killer Instinct (v1.4)",
+            cloneof="kinst",
+            driver_status=DriverStatus.PRELIMINARY,
+        ),
+    }
+    ctx = ctx.model_copy(update={"cloneof_map": {**ctx.cloneof_map, "kinst2": "kinst"}})
+
+    result = run_filter(machines, ctx, FilterConfig(), o(kinst="kinst2"), Sessions())
+
+    assert result.winners == ("kinst2", "pacman")
+    assert "kinst2" not in dict(result.dropped)
+    assert dict(result.dropped)["kinst"] is DroppedReason.CHD_REQUIRED
+    assert result.warnings == ()
+
+
+def test_override_keyed_by_a_clone_of_a_fully_dropped_family_still_warns(
+    sample: tuple[dict[str, Machine], FilterContext],
+) -> None:
+    """mame-curator-1191 keeps the rule that a clone's name is not a group."""
+    machines, ctx = sample
+    ctx = ctx.model_copy(update={"cloneof_map": {**ctx.cloneof_map, "kinst2": "kinst"}})
+    machines = {**machines, "kinst2": m(name="kinst2", cloneof="kinst", is_mechanical=True)}
+
+    result = run_filter(machines, ctx, FilterConfig(), o(kinst2="kinst"), Sessions())
+
+    assert any("'kinst2' is not a known parent" in w for w in result.warnings)
+    assert "kinst" not in result.winners
+
+
 def test_unknown_override_warns_doesnt_crash(
     sample: tuple[dict[str, Machine], FilterContext],
 ) -> None:

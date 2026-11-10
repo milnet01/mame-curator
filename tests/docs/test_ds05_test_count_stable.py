@@ -385,7 +385,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-11-10 (mame-curator-1146): picture choices in Backup export,
 # import and restore; export/import tests move to test_routes_backup.py (+0).
 # 1175 → 1182.
-EXPECTED_PYTEST_DECLARATIONS = 1182
+# Bumped 2026-11-10 (mame-curator-1191): an override for a family Phase A
+# emptied, and a clone key there still warns. 1182 → 1184.
+EXPECTED_PYTEST_DECLARATIONS = 1184
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
