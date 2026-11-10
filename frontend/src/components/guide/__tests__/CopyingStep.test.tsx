@@ -181,9 +181,12 @@ describe("CopyingStep outcome", () => {
 });
 
 describe("CopyingStep while paused", () => {
-  it("offers only Resume and Stop: the exit is hidden", () => {
+  // mame-curator-1211, user decision 2026-11-10: the guide and the Library
+  // now come back to a paused copy (mame-curator-1158), so leaving loses
+  // nothing, and the exit shows while paused too.
+  it("offers Resume, Stop and the exit", () => {
     renderStep({ state: "paused" });
-    expect(link(g.exit)).toBeNull();
+    expect(link(g.exit)).toBeVisible();
     expect(button(strings.copy.resume)).toBeVisible();
     expect(button(g.copying.stop)).toBeVisible();
   });

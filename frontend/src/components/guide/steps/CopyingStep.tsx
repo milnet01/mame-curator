@@ -56,10 +56,10 @@ export function CopyingStep({
       heading={heading}
       stepNumber={stepNumber}
       stepCount={stepCount}
-      // User ruling, 2026-10-30: Resume and Stop are the only ways on while
-      // paused. Its reason, that nothing could come back to a paused copy,
-      // went with mame-curator-1158; the ruling stands until the user says.
-      exitLabel={paused ? undefined : strings.guide.exit}
+      // mame-curator-1211, user decision 2026-11-10: the exit shows while
+      // paused too, since the guide and the Library now come back to a
+      // paused copy (mame-curator-1158).
+      exitLabel={strings.guide.exit}
     >
       {/* A lost stream knows nothing current, so it shows no progress. */}
       {outcome !== "lost" && (

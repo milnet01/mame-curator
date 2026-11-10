@@ -84,7 +84,7 @@ export const GUIDE_SEEN_KEY = "mame-curator:guide-seen:v1";
 - Every action is a `GuideAction`, at least `3rem` tall with a `text-xl` label.
 - On every step change, focus moves to the heading (`tabIndex={-1}`) on the next animation frame, including on Back. Source: https://ezud.com/accessible-multi-step-wizard-forms/
 - When a step's heading text changes, focus moves to a new heading element. Focusing an element that already has focus fires nothing, so a screen reader would not hear the result.
-- Every step has a Back action, except the first and Copying, and an exit labelled "Look around on my own", which goes to `/`. The exit is hidden while a copy is paused, because nothing can come back to a paused copy: only Resume and Stop are offered (user ruling, 2026-10-30). Back and the exit are also hidden while a start waits for its answer, so a failed start is never lost.
+- Every step has a Back action, except the first and Copying, and an exit labelled "Look around on my own", which goes to `/`. The exit shows while a copy is paused too, because the guide and the Library come back to a paused copy (mame-curator-1158; user decision 2026-11-10, mame-curator-1211). Back and the exit are hidden while a start waits for its answer, so a failed start is never lost.
 - Colour is never the only signal. A failure is announced with `role="alert"` and worded text.
 
 ### 4.4 The steps
@@ -192,7 +192,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
   *Test:* `frontend/src/components/guide/__tests__/GuideStep.test.tsx`, which fails if focus stays on `document.body` or the old button, and `frontend/e2e/guide-flow.spec.ts` in a real browser.
   *Breaks when:* a step renders without focusing its heading, or the heading element survives a change of text.
 
-- **INV-3** — Every step has a working exit to `/`, except Copying while the copy is paused, and every step but the first and Copying has Back. Check hides both while a start waits for its answer.
+- **INV-3** — Every step has a working exit to `/`, Copying while paused included, and every step but the first and Copying has Back. Check hides both while a start waits for its answer.
   *Test:* `frontend/src/pages/__tests__/GuidePage_steps.test.tsx`, walking each step.
   *Breaks when:* a step omits an action.
 
@@ -248,7 +248,7 @@ When `useSetupCheck` reports `setup_required`, the first step says "MAME Curator
 - **The status stream drops:** the step says so in a `role="alert"` element while the browser reconnects. If the stream closes for good, it says the connection is lost and the copy may still be running, and offers no controls.
 - **A pause, resume or stop fails:** the step says so in a `role="alert"` element and keeps its controls.
 - **A copy is already running:** the start's error is shown (INV-7). The guide does not attach to the other job, because `useCopySession` has no resume.
-- **The page is reloaded or closed during a copy:** the copy carries on at the server, and the guide restarts at the first step. This matches the Library's `CopyModal` today, and the guide says so on the Copying step: "You can close this page. The copy will carry on." While paused it says instead: "Resume before you close this page. This guide cannot come back to a paused copy."
+- **The page is reloaded or closed during a copy:** the copy carries on at the server, and the guide restarts at the first step. This matches the Library's `CopyModal` today, and the guide says so on the Copying step: "You can close this page. The copy will carry on." While paused it says instead: "The copy is paused. If you leave, open the guide or the Library to come back to it."
 - **A playlist the server cannot read (legacy format or damaged):** `POST /api/copy/start` refuses with a 409 `playlist_unreadable` and the playlist stays as it was (mame-curator-1152). The dry run refuses the same way, so Check shows the reason before Start (mame-curator-1154). The guide shows either error like any other (INV-7) and adds no handling of its own.
 - **A game whose chosen version changed since the last copy:** the new version is added beside the old in the playlist, and both zips stay. The guide builds no `append_decisions`, and no frontend code does today. The user accepted this for now on 2026-10-30.
 - **The destination is removed after the Where step:** the copy recreates it when a parent folder exists. Otherwise Check reports `dest_writable` false.

@@ -635,8 +635,9 @@ describe("GuidePage steps", () => {
     expect(
       screen.getByRole("button", { name: strings.copy.resume }),
     ).toBeVisible();
-    // User ruling, 2026-10-30: only Resume and Stop while paused.
-    expect(screen.queryByRole("link", { name: g.exit })).toBeNull();
+    // mame-curator-1211, user decision 2026-11-10: the exit shows while
+    // paused, as the guide now comes back to a paused copy.
+    expect(screen.getByRole("link", { name: g.exit })).toBeVisible();
 
     act(() =>
       MockEventSource.instances[0].emit("file_finished", { files_done: 1 }),
