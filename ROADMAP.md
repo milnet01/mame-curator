@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1204 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1211 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2691,9 +2691,8 @@ P14 (per-game review state).
   Only the user's judgement of the wording on the running app is still
   owed before this flips to shipped.
   Waiting-on: user (do the wizard's wording and large text suit you?, 2026-11-05)
-  Recommend: try it on a fresh setup with an empty home folder. 1145 stays in progress until then.
-  Waiting-on: user (setup with no --out now writes the per-user config, a break by the letter of versioning-overrides: accept as a fix, or make the next release MAJOR?, 2026-11-05)
-  Recommend: accept as a fix. The old behaviour was the defect, --out config.yaml restores it, and the launchers do not call setup.
+  2026-11-10: the user will try it once the magnifier findings from the LocalWebServerManager screen check are fixed. 1145 stays in progress until then.
+  Decided by user 2026-11-10: setup with no --out writing the per-user config is a fix, not a MAJOR break.
   **Layman:** A new user picks their ROM folder, game list file and destination one screen at a time in the browser, instead of answering questions in a terminal or finding Settings.
   Kind: accessibility.
   Source: user-2026-10-30.
@@ -2708,8 +2707,7 @@ P14 (per-game review state).
   /fix/<game>, a guide screen per 1144. Picture half: spec
   docs/specs/mame-curator-1146-picture-choice.md, in review.
   2026-11-05: picture-half spec docs/specs/mame-curator-1146-picture-choice.md: review-contract, 2 loops (cap), 12 findings fixed, calm cap; loop log in docs/reviews/. Status: draft.
-  Waiting-on: user (the spec's section 15 questions 1 to 4, 2026-11-05)
-  Recommend: 1 yes, an older backup clears picture choices (the snapshot keeps them); 2 yes, Look in more places asks the limited online sources; 3 yes, the entry reads "Fix this game's picture or version, step by step"; 4 no, a choice stays with its version, and the guide says so. Then Status becomes accepted and the build starts.
+  Decided by user 2026-11-10, spec section 15: 1 yes, an older backup clears picture choices (the snapshot keeps them); 2 yes, Look in more places asks the limited online sources; 3 yes, the entry reads "Fix this game's picture or version, step by step"; 4 no, a choice stays with its version, and the guide says so. Next: amend the spec to use in_use, set Status accepted, build.
   2026-11-05: the picture spec (draft) assumes the address's game is the
   version in use. Since 5ed8924 the alternatives reply's in_use says it;
   amend the spec to use in_use before building.
@@ -3377,8 +3375,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 
 - 📋 [mame-curator-1155] **Grouped layout renders the same as masonry.**
   Finding: LibraryGrid.tsx groupKey is never read; docs/design.md promises sections by genre. Needs a decision: build it, or remove the option and correct the document. Not fixed now because it needs that decision.
-  Waiting-on: user (build the Grouped layout as sections by genre, or remove the choice and correct docs/design.md?, 2026-11-05)
-  Recommend: remove it. It does nothing today, and the user wants fewer extras, not more.
+  Decided by user 2026-11-10: remove the Grouped choice and correct docs/design.md.
   **Layman:** The Grouped layout choice does nothing different from the normal grid.
   Kind: review-fix.
   Source: review-code-2026-10-30-1144.
@@ -3386,8 +3383,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 
 - 📋 [mame-curator-1156] **Walkthrough stays on in simple view with its switch hidden, and other small simple-view questions.**
   From lane 2's open questions in docs/reviews/review-code-2026-10-30-1144/lane-02-library-page.md: walkthrough active in simple view with its toggle hidden; More/Fewer options dropping focus to the page body; typing a search showing Some filters are on (spec §4.7 requires it); handleSaveSession saving config genres against the help's your current focus. Lane 3: changing text size keeps the pixel scroll offset, so the user loses their place. No contract addresses these; not fixed now because each needs a decision.
-  Waiting-on: user (the five simple-view behaviours, 2026-11-05)
-  Recommend: walkthrough off in simple view while its switch is hidden; More/Fewer options keeps focus on the button; keep Some filters are on for a search, as spec 4.7 says; Save session saves what is on screen now; changing text size keeps the reader's place.
+  Decided by user 2026-11-10, all five as recommended: walkthrough off in simple view while its switch is hidden; More/Fewer options keeps focus on the button; keep Some filters are on for a search, as spec 4.7 says; Save session saves what is on screen now; changing text size keeps the reader's place.
   **Layman:** A few small behaviours in simple view have no agreed answer yet.
   Kind: review-fix.
   Source: review-code-2026-10-30-1144.
@@ -3406,8 +3402,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 - ✅ [mame-curator-1158] **Leaving a running or paused copy by the top menu or browser Back loses control of it.**
   Found while closing the review of mame-curator-1144. Hiding the guide's exit while paused does not cover the top menu or browser Back, and the Library has the same gap. The likely fix is to reconnect to a running job when the page opens; not fixed now because that is a design change of its own. The refusal when a copy is left paused is the user-visible harm.
   2026-11-05: f298911. GET /api/copy/current; useCopySession takes up a running or paused copy when the Library or the guide opens.
-  Waiting-on: user (the guide hides its exit while a copy is paused, by your 2026-10-30 choice, because nothing could come back to a paused copy. Now both pages can. Bring the exit back while paused?, 2026-11-05)
-  Recommend: yes. Leaving no longer loses the copy, and a hidden exit can feel like being trapped.
+  Decided by user 2026-11-10: bring the guide's exit back while a copy is paused; filed as its own fix.
   **Layman:** If you leave the page during a copy using the menu or Back, you can't pause or stop that copy when you return.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
@@ -3515,8 +3510,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   It works, and the app listens locally only. Needs the user's decision: keep it, or offer mounted drives directly. Reported by the mame-curator-1145 build agent.
   2026-11-02: also waiting on this decision: the grant prompt's wording
   (says it is saved, and how wide). The revoke control is 1175.
-  Waiting-on: user (keep Allow / for another drive, or list mounted drives directly?, 2026-11-05)
-  Recommend: list drives directly. Allow / grants the whole disk. The grant wording and 1175's revoke control follow from this answer.
+  Decided by user 2026-11-10: list mounted drives directly, and grant one drive, not /. The grant wording and 1175's revoke control follow from this.
   **Layman:** To pick a folder on another drive you press / and then Allow /, which gives the app access to the whole disk.
   Kind: ux.
   Source: build-mame-curator-1145-2026-10-30.
@@ -3858,6 +3852,78 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: refactor.
   Source: build-mame-curator-1176-2026-11-05.
   Lanes: frontend.
+
+- 📋 [mame-curator-1205] **The focus ring cannot be seen on the green buttons and is weak elsewhere.**
+  Magnifier, worst finding. The primary green buttons (Choose a folder,
+  Yes use this folder, Use this folder, Choose a file) draw their focus
+  ring in the same green as the fill; the button only grows 4px. Folder
+  rows in the folder dialog and the header nav links show only the
+  browser's 1px outline. Home, /, Up and Cancel get a 3px ring at 50%
+  opacity. A focused step H1 shows no indicator (outline none). Want one
+  strong, contrasting ring everywhere.
+  **Layman:** With a magnifier you cannot tell which button is selected when you press Tab.
+  Kind: accessibility.
+  Source: a11y-check-localwebservermanager-2026-11-05.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1206] **The folder dialog loses your place when you open a folder or cancel.**
+  Opening a folder moves focus to the dialog container, so you Tab past
+  Home, / and Up every time; the new path sits in a <code> with no live
+  region. The dialog re-centres and jumps when its height changes.
+  Cancel focuses the step H1, not the opener. At 320px the recent-path
+  buttons wrap the path letter by letter.
+  **Layman:** Opening a folder in the picker sends you back to the top of the box, and Cancel does not return you to the button you pressed.
+  Kind: accessibility.
+  Source: a11y-check-localwebservermanager-2026-11-05.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1207] **The step counter is not read out with the question.**
+  "Step 1 of 3" sits outside the H1, so it is not read on arrival. In
+  the /start guide the counter reads "Step 1", then "Step 2 of 5" or
+  "of 6" depending on path.
+  **Layman:** A screen reader says the question but not "Step 1 of 3".
+  Kind: accessibility.
+  Source: a11y-check-localwebservermanager-2026-11-05.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1208] **Wizard step 2 opens the file picker at Home and accepts a broken game list.**
+  The step 2 file picker should open at or near the folder chosen in
+  step 1. A broken DAT is accepted at step 2 and refused only after Yes,
+  finish setup on step 3, which bounces back to step 2; check it at
+  step 2. The error message itself is well exposed.
+  **Layman:** The game-list picker starts far from your games folder, and a bad list is only refused at the last step.
+  Kind: accessibility.
+  Source: a11y-check-localwebservermanager-2026-11-05.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1209] **Look through them first leaves focus nowhere on the Library.**
+  From /start, Look through them first opens the Library with focus on
+  BODY. Focus the Library H1 instead.
+  **Layman:** After choosing to look through games first, the magnifier stays where it was and nothing is announced.
+  Kind: accessibility.
+  Source: a11y-check-localwebservermanager-2026-11-05.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1210] **At high zoom the page scrolls sideways and the wizard shows in a tiny box.**
+  At 320px (about 400% zoom) the page is 406px wide: the header search
+  button (shrink-0 whitespace-nowrap) is 366px. At 640px with text size
+  Largest it still overflows by 8px. At 320x400 the header is 245px tall
+  and <main> is its own overflow:auto scroller, so about 155px of the
+  wizard shows. Make the page scroll as a whole, or collapse the header
+  when narrow.
+  **Layman:** Zoomed right in, the right side of headings and buttons is cut off and only a small strip of the wizard is visible.
+  Kind: accessibility.
+  Source: a11y-check-localwebservermanager-2026-11-05.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1211] **Bring the guide's exit back while a copy is paused.**
+  User decision 2026-11-10, following mame-curator-1158: both pages now
+  pick a running or paused copy back up (f298911), so the reason for
+  hiding the exit while paused is gone.
+  **Layman:** While a copy is paused, the guide shows its exit again, since leaving no longer loses the copy.
+  Kind: ux.
+  Source: user-2026-11-10.
+  Lanes: frontend, tests.
 
 ## Considered / under research (no target date)
 
