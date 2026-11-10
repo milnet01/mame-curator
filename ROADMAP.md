@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1211 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1212 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3924,6 +3924,19 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: ux.
   Source: user-2026-11-10.
   Lanes: frontend, tests.
+
+- 📋 [mame-curator-1212] **A macOS CI job hit its 15-minute limit, and frontend install got slower.**
+  ci_report 2026-11-10: both macOS test legs ran 15m01s against the 15m
+  timeout in run 41489441651 (b84793f). Find whether it hung or was slow,
+  then fix the cause or raise the budget. The frontend job's Install
+  dependencies step rose from 0m08s to 0m47s from 3596487 (the reply says
+  cache hit, so check what it installs). pytest rose on all legs; that
+  tracks the added tests. The *-latest runner advice is covered by
+  mame-curator-1121.
+  **Layman:** One online test run was cut off for taking too long, and another step now takes longer than it used to.
+  Kind: chore.
+  Source: ci_report-2026-11-10.
+  Lanes: ci.
 
 ## Considered / under research (no target date)
 
