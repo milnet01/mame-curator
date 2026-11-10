@@ -14,9 +14,17 @@ export const ERROR_TOAST: ExternalToast = {
   closeButton: true,
 };
 
-/** Show an error toast that stays until closed. */
+/**
+ * Show an error toast that stays until closed.
+ *
+ * mame-curator-1202: the toast's id is its words, so the same error again
+ * takes the place of the one on screen instead of stacking a second copy
+ * that also stays. A different error still gets its own toast.
+ */
 export function toastError(title: string, options?: ExternalToast): void {
-  toast.error(title, { ...ERROR_TOAST, ...options });
+  const body = options?.description;
+  const words = typeof body === "string" ? `${title}\n${body}` : title;
+  toast.error(title, { ...ERROR_TOAST, id: `error:${words}`, ...options });
 }
 
 /**
@@ -40,12 +48,12 @@ export function toastError(title: string, options?: ExternalToast): void {
  * unboundedness rather than wiring a sweep. The set is small in practice
  * (the backend's enumerated error codes are a closed set).
  *
- * FP26-K: alternative `toast.error(msg, { id })` was considered and
- * rejected — Sonner's id-replace keeps the existing toast visible
- * indefinitely without resetting its auto-dismiss timer. UX desire is
- * "fresh outage 1.6 s later draws the user's eye again" — the window-
- * based dedup matches that intent; id-replace would let a stale toast
- * linger past its useful moment.
+ * The window does not stop a repeat more than 1.5 s later. `toastError`'s
+ * id does: the repeat replaces the toast on screen (mame-curator-1202).
+ * FP26-K rejected ids because a replaced toast kept its old auto-dismiss
+ * timer and lingered; since mame-curator-1190 an error toast has no timer
+ * and stays until closed, so that objection no longer holds, and without
+ * ids every repeat stacked another toast that also stayed.
  */
 const DEDUP_WINDOW_MS = 1500;
 

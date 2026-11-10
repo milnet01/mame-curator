@@ -353,7 +353,7 @@ describe("LibraryPage when a copy is refused", () => {
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
         `${strings.errors.byCode.copy_names_unknown} gone`,
-        ERROR_TOAST,
+        expect.objectContaining(ERROR_TOAST),
       ),
     );
   });
@@ -430,7 +430,7 @@ describe("LibraryPage when a copy is refused", () => {
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith(
           strings.errors.byCode.copy_setup_required,
-          ERROR_TOAST,
+          expect.objectContaining(ERROR_TOAST),
         ),
       );
       expect(remove).not.toHaveBeenCalled();
@@ -449,7 +449,7 @@ describe("LibraryPage when a copy is refused", () => {
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith(
           strings.errors.byCode.copy_setup_required,
-          ERROR_TOAST,
+          expect.objectContaining(ERROR_TOAST),
         ),
       );
       expect(remove).not.toHaveBeenCalled();

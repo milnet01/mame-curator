@@ -110,7 +110,7 @@ describe("LibraryPage: saving a session", () => {
     await waitFor(() => expect(sent).toHaveLength(1));
     expect(toast.error).not.toHaveBeenCalledWith(
       expect.anything(),
-      ERROR_TOAST,
+      expect.objectContaining(ERROR_TOAST),
     );
   });
 });

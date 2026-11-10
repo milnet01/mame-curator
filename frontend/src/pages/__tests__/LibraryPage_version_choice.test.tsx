@@ -179,7 +179,7 @@ describe("choosing a version from a clone", () => {
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
         strings.errors.byCode.override_rejected,
-        ERROR_TOAST,
+        expect.objectContaining(ERROR_TOAST),
       ),
     );
     expect(toast.success).not.toHaveBeenCalled();

@@ -59,7 +59,7 @@ describe("useConfigPatch onError → toast (FP13 § A1)", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       expect.stringContaining("not a valid directory"),
-      ERROR_TOAST,
+      expect.objectContaining(ERROR_TOAST),
     );
   });
 });
@@ -320,7 +320,7 @@ describe("useSnapshotRestore onError → toast (FP13 § A2)", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       expect.stringContaining("No configuration snapshot"),
-      ERROR_TOAST,
+      expect.objectContaining(ERROR_TOAST),
     );
   });
 });

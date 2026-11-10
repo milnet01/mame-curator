@@ -75,7 +75,7 @@ describe("apiErrorMessage: a refused setting", () => {
     toastApiError(err);
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       apiErrorMessage(err),
-      ERROR_TOAST,
+      expect.objectContaining(ERROR_TOAST),
     );
   });
 });
@@ -90,7 +90,7 @@ describe("toastApiError", () => {
     );
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       expect.stringContaining("Session names must start"),
-      ERROR_TOAST,
+      expect.objectContaining(ERROR_TOAST),
     );
   });
 
@@ -103,7 +103,7 @@ describe("toastApiError", () => {
     );
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       "detail-text",
-      ERROR_TOAST,
+      expect.objectContaining(ERROR_TOAST),
     );
   });
 
@@ -121,7 +121,7 @@ describe("toastApiError", () => {
     toastApiError(new Error("boom"));
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       expect.stringContaining("Something went wrong"),
-      ERROR_TOAST,
+      expect.objectContaining(ERROR_TOAST),
     );
   });
 

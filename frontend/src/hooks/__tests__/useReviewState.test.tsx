@@ -64,7 +64,7 @@ describe("useReviewStateSet — optimistic update", () => {
     expect(qc.getQueryData(["reviewState"])).toEqual({ entries: {} });
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       strings.library.stateUpdateFailed,
-      ERROR_TOAST,
+      expect.objectContaining(ERROR_TOAST),
     );
   });
 });

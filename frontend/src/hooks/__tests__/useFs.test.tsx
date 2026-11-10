@@ -68,7 +68,7 @@ describe("useFsGrantRoot onError → toast (FP13 § A3)", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
       expect.stringContaining("not a valid directory"),
-      ERROR_TOAST,
+      expect.objectContaining(ERROR_TOAST),
     );
   });
 });

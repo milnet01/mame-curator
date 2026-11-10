@@ -9,6 +9,7 @@ import { strings } from "@/strings";
 import {
   _resetApiErrorToastDedupForTests,
   toastApiError,
+  toastError,
 } from "../apiErrorToast";
 
 // mame-curator-1190: an error toast stays until the user closes it, so a
@@ -74,5 +75,42 @@ describe("error toasts (mame-curator-1190)", () => {
     await vi.waitFor(() =>
       expect(screen.queryByText(message)).not.toBeInTheDocument(),
     );
+  });
+});
+
+// mame-curator-1202: an error stays until closed, so the same error again
+// later must take the place of the one on screen, not stack a second copy.
+describe("a repeated error (mame-curator-1202)", () => {
+  it("the same API error seconds later shows one toast", () => {
+    vi.useFakeTimers();
+    render(<Toaster />);
+    act(() => toastApiError(refusal()));
+    act(() => vi.advanceTimersByTime(5_000));
+    act(() => toastApiError(refusal()));
+    act(() => vi.advanceTimersByTime(10));
+    const message = strings.errors.byCode.game_not_found;
+    expect(screen.getAllByText(message)).toHaveLength(1);
+  });
+
+  it("the same plain error seconds later shows one toast", () => {
+    vi.useFakeTimers();
+    render(<Toaster />);
+    act(() => toastError("Could not save"));
+    act(() => vi.advanceTimersByTime(5_000));
+    act(() => toastError("Could not save"));
+    act(() => vi.advanceTimersByTime(10));
+    expect(screen.getAllByText("Could not save")).toHaveLength(1);
+  });
+
+  it("two different errors still show side by side", () => {
+    vi.useFakeTimers();
+    render(<Toaster />);
+    act(() => {
+      toastError("Could not save");
+      toastError("Could not load");
+    });
+    act(() => vi.advanceTimersByTime(10));
+    expect(screen.getByText("Could not save")).toBeInTheDocument();
+    expect(screen.getByText("Could not load")).toBeInTheDocument();
   });
 });

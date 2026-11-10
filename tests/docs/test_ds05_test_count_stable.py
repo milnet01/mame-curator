@@ -564,7 +564,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1201
 # file is set but gave no clone data. 727 → 728.
 # Bumped 2026-11-10 (mame-curator-1188): the cart knows a chosen version's
 # name. 728 → 731.
-EXPECTED_VITEST_DECLARATIONS = 731
+# Bumped 2026-11-10 (mame-curator-1202): a repeated error replaces its
+# toast. 731 → 734.
+EXPECTED_VITEST_DECLARATIONS = 734
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
