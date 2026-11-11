@@ -104,7 +104,9 @@ import …`), not re-exported: `install_kind`, `latest_release`, `is_newer`,
   download result → report with `downloaded=False` + `error`.
 - Extracts every **flat** `*.png` entry into `<dest_dir>/snap/`
   (created if missing). Returns counts in `files_extracted` /
-  `files_skipped`. A corrupt / unreadable ZIP raises out of `refresh_snaps`
+  `files_skipped`. The PNGs it will write must fit in the free space first,
+  or nothing is unpacked and the report carries `downloaded=True` + `error`
+  (mame-curator-1225); `zipfile` cuts each entry at its declared size. A corrupt / unreadable ZIP raises out of `refresh_snaps`
   at this step (it is **not** caught into `error`; see "Edge cases").
 
 ## Public types
@@ -189,7 +191,9 @@ explicitly.
   documented layout is flat. The check rejects **any entry containing a
   path separator** (`/` or `\`) — the necessary ingredient of every
   directory-escape — so a **zip-slip** path like `../evil.png` is skipped
-  and a malicious archive cannot place files outside `snap/`.
+  and a malicious archive cannot place files outside `snap/`. An entry
+  holding `:` is skipped too: on Windows `C:evil.png` names a drive
+  (mame-curator-1225).
 
 ## App self-update
 

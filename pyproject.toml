@@ -170,6 +170,7 @@ module = [
     "tests.filter.test_property",
     "tests.copy.test_bios_properties",
     "tests.api.test_routes_config",
+    "tests.parser.test_mame_curator_1225_manufacturer",
 ]
 disallow_untyped_decorators = false
 

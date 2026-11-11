@@ -12,12 +12,21 @@ from pathlib import Path
 
 from mame_curator.copy.errors import UnsafeShortNameError
 
-_NOT_IN_A_FILE_NAME = frozenset("/\\:\0")
+_NOT_IN_A_FILE_NAME = frozenset('/\\:\0*?"<>|')
+# mame-curator-1225: Windows opens these as devices, whatever the extension, so
+# `con.zip` would block a copy worker. No MAME 0.287 machine has one.
+_WINDOWS_DEVICES = frozenset(
+    {"con", "prn", "aux", "nul"} | {f"com{n}" for n in range(10)} | {f"lpt{n}" for n in range(10)}
+)
 
 
 def is_safe_short_name(short: str) -> bool:
     """True when `short` is one plain file name on every platform we run on."""
-    return short not in ("", ".", "..") and _NOT_IN_A_FILE_NAME.isdisjoint(short)
+    return (
+        short not in ("", ".", "..")
+        and _NOT_IN_A_FILE_NAME.isdisjoint(short)
+        and short.lower() not in _WINDOWS_DEVICES
+    )
 
 
 def zip_path(folder: Path, short: str) -> Path:

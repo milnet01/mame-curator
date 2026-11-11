@@ -255,4 +255,22 @@ describe("UpdatesTab (mame-curator-1010)", () => {
     await userEvent.click(screen.getByRole("button", { name: "What's new" }));
     expect(screen.getByRole("dialog").innerHTML).not.toContain("tracker.test");
   });
+
+  it("strips every tag that would fetch from the release notes (mame-curator-1225)", async () => {
+    const fetching = [
+      '<video src="https://tracker.test/v.mp4" poster="https://tracker.test/p.png"></video>',
+      '<audio src="https://tracker.test/a.mp3"></audio>',
+      '<picture><source srcset="https://tracker.test/s.png"></picture>',
+      '<svg><image href="https://tracker.test/i.png"></image></svg>',
+      '<input type="image" src="https://tracker.test/b.png">',
+    ].join("");
+    const link = '<a href="https://example.test/pr/1">the change</a>';
+    renderTab(info({ notes_html: `<p>New ${link}</p>${fetching}` }), actions());
+    await userEvent.click(screen.getByRole("button", { name: "What's new" }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.innerHTML).not.toContain("tracker.test");
+    expect(
+      within(dialog).getByRole("link", { name: "the change" }),
+    ).toHaveAttribute("href", "https://example.test/pr/1");
+  });
 });

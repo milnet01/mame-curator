@@ -63,6 +63,9 @@ def write_lpl(playlist_path: Path, entries: Iterable[PlaylistEntry]) -> None:
 _RZIP_MAGIC = b"#RZIPv"
 _RZIP_HEADER = struct.Struct("<8sIQ")  # magic+version+'#', chunk size, total size
 _RZIP_CHUNK_LEN = struct.Struct("<I")
+# mame-curator-1225: a playlist of every MAME machine is a few MiB, so a header
+# declaring more than this is refused before anything is inflated.
+_RZIP_MAX_BYTES = 256 * 1024 * 1024
 
 
 def _decode_rzip(data: bytes) -> bytes:
@@ -74,6 +77,8 @@ def _decode_rzip(data: bytes) -> bytes:
     if len(data) < _RZIP_HEADER.size or data[7:8] != b"#":
         raise ValueError("RZIP header is truncated")
     _, chunk_size, total = _RZIP_HEADER.unpack_from(data)
+    if total > _RZIP_MAX_BYTES or chunk_size > _RZIP_MAX_BYTES:
+        raise ValueError(f"RZIP declares {total} bytes, over the {_RZIP_MAX_BYTES} cap")
     version = data[6]
     if version not in (1, 2):
         raise ValueError(f"RZIP version {version} is not supported")
@@ -92,7 +97,10 @@ def _decode_rzip(data: bytes) -> bytes:
             if version == 2:
                 block = zstandard.ZstdDecompressor().decompress(chunk, max_output_size=chunk_size)
             else:
-                block = zlib.decompress(chunk)
+                inflater = zlib.decompressobj()
+                block = inflater.decompress(chunk, chunk_size)
+                if inflater.unconsumed_tail:
+                    raise ValueError("RZIP chunk inflates past the chunk size")
         except (zstandard.ZstdError, zlib.error) as exc:
             raise ValueError(f"RZIP chunk does not decompress: {exc}") from exc
         out += block

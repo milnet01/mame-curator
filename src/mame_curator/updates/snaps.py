@@ -158,13 +158,28 @@ async def refresh_snaps(
             error=error,
         )
 
-    extracted, skipped = _extract_pack(pack_path, snap_dir, force=force)
+    try:
+        extracted, skipped = _extract_pack(pack_path, snap_dir, force=force)
+    except SnapPackTooLargeError as exc:
+        error = f"refresh_snaps: not enough disk space: {exc}"
+        logger.warning(error)
+        return SnapsRefreshReport(
+            downloaded=True,
+            pack_url=pack_url,
+            files_extracted=0,
+            files_skipped=0,
+            error=error,
+        )
     return SnapsRefreshReport(
         downloaded=True,
         pack_url=pack_url,
         files_extracted=extracted,
         files_skipped=skipped,
     )
+
+
+class SnapPackTooLargeError(Exception):
+    """The unpacked snaps would not fit in the free space (mame-curator-1225)."""
 
 
 async def _head_content_length(client: httpx.AsyncClient, url: str) -> int | None:
@@ -183,6 +198,18 @@ async def _head_content_length(client: httpx.AsyncClient, url: str) -> int | Non
         return None
 
 
+def _is_flat_png(info: zipfile.ZipInfo) -> bool:
+    """True for a ``.png`` at the archive root.
+
+    A directory component, or a ``:`` (a Windows drive, as in ``C:evil.png``;
+    mame-curator-1225), is skipped.
+    """
+    name = info.filename
+    if info.is_dir() or any(ch in name for ch in "/\\:"):
+        return False
+    return name.lower().endswith(".png")
+
+
 def _extract_pack(pack_path: Path, snap_dir: Path, *, force: bool) -> tuple[int, int]:
     """Extract ``*.png`` entries from ``pack_path`` flat into ``snap_dir``.
 
@@ -195,15 +222,20 @@ def _extract_pack(pack_path: Path, snap_dir: Path, *, force: bool) -> tuple[int,
     extracted = 0
     skipped = 0
     with zipfile.ZipFile(pack_path) as zf:
-        for info in zf.infolist():
-            if info.is_dir():
-                continue
+        entries = [info for info in zf.infolist() if _is_flat_png(info)]
+        # mame-curator-1225: what will be written must fit before anything is
+        # unpacked. zipfile cuts each entry at its declared file_size, so the
+        # sum holds; a snap already present is skipped unless forced.
+        needed = sum(
+            info.file_size for info in entries if force or not (snap_dir / info.filename).exists()
+        )
+        free = shutil.disk_usage(snap_dir).free
+        if needed > free:
+            raise SnapPackTooLargeError(
+                f"the snaps need {needed} bytes and {snap_dir!s} has {free} free"
+            )
+        for info in entries:
             name = info.filename
-            # Flat layout only: skip entries with a directory component.
-            if "/" in name or "\\" in name:
-                continue
-            if not name.lower().endswith(".png"):
-                continue
             dest = snap_dir / name
             if dest.exists() and not force:
                 skipped += 1

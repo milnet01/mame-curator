@@ -48,6 +48,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   list shows only pages inside the help folder. A copy request has a size
   limit, set well above any MAME set.
 
+- **Damaged or hostile files can no longer stall or fill the computer** (mame-curator-1225)
+  A crafted game list no longer freezes reading. An oversized filter
+  file or compressed RetroArch playlist is refused. The snap pack is
+  unpacked only if it fits on the disk.
+
+- **Game names Windows cannot hold are refused** (mame-curator-1225)
+  Names like `con` or ones with `*` or `?` are skipped when copying,
+  and a snap-pack file that names a drive is not unpacked. No real
+  MAME game has such a name.
+
+- **The "What's new" notes cannot load anything from the internet** (mame-curator-1225)
+  Videos, sound, pictures and similar parts of the notes are removed;
+  links still work.
+
 ### 2026-11-11 Fixed — Library and guide fixes: undated games, zoomed-in layout, Forget, palette words
 
 - **The Library shows games with no year until you choose years** (mame-curator-1150)

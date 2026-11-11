@@ -38,7 +38,15 @@ def read_capped_text(path: Path, *, exc_cls: type[Exception]) -> str:
                     f"{path!r} exceeds 1 MiB cap ({_MAX_YAML_BYTES} bytes; "
                     f"actual: {size}); refusing to parse to defend against YAML alias bombs"
                 )
-            return fh.read().decode("utf-8")
+            # mame-curator-1225: the cap holds on the read too — the file may
+            # grow after fstat, or report size 0 (a pipe or a device).
+            data = fh.read(_MAX_YAML_BYTES + 1)
+            if len(data) > _MAX_YAML_BYTES:
+                raise exc_cls(
+                    f"{path!r} exceeds 1 MiB cap ({_MAX_YAML_BYTES} bytes); "
+                    "refusing to parse to defend against YAML alias bombs"
+                )
+            return data.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise exc_cls(f"{path!r} is not valid UTF-8: {exc}") from exc
     except OSError as exc:

@@ -16,9 +16,24 @@ const notesSanitizer = DOMPurify(window);
 
 const NOTES_SANITIZE_CONFIG: Config = {
   ALLOWED_URI_REGEXP: /^(?:https?|mailto):/i,
-  // No images: opening the notes must not fetch from hosts they name.
-  FORBID_TAGS: ["style", "form", "img"],
-  FORBID_ATTR: ["style"],
+  // Nothing that fetches: opening the notes must not reach hosts they name.
+  // Images, media, SVG and image inputs go, and so do the attributes that
+  // load a URL, in case a tag carrying one is ever allowed (mame-curator-1225).
+  FORBID_TAGS: [
+    "style",
+    "form",
+    "img",
+    "video",
+    "audio",
+    "source",
+    "track",
+    "picture",
+    "svg",
+    "image",
+    "input",
+  ],
+  // Links keep their href: a link fetches nothing until it is followed.
+  FORBID_ATTR: ["style", "src", "srcset", "poster", "xlink:href"],
 };
 
 interface ReleaseNotesDialogProps {
