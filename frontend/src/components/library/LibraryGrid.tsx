@@ -309,7 +309,9 @@ export function LibraryGrid({
           focusInside.current = false;
         }
       }}
-      className="h-full min-h-[60vh] shrink-0 overflow-auto focus:outline-none"
+      // mame-curator-1223: never taller than the window, so the whole list
+      // fits on screen where the page scrolls as a whole.
+      className="h-full max-h-screen min-h-[60vh] shrink-0 overflow-auto focus:outline-none"
     >
       <div
         ref={spacerRef}

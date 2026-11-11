@@ -71,6 +71,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   On a narrow window the filters now sit above the games instead of
   beside them, so nothing runs off the right side.
 
+- **Zoomed right in, the full Library has one scrolling page** (mame-curator-1223)
+  Only the game list scrolls on its own, and it fits in the window.
+
 - **Pressing Forget again after a partial failure no longer shows an error** (mame-curator-1219)
   Choices already forgotten are skipped.
 

@@ -4221,12 +4221,15 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1218-2026-11-11.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1223] **In the narrow full Library view the games scroll inside a box inside the page.**
+- ✅ [mame-curator-1223] **In the narrow full Library view the games scroll inside a box inside the page.**
   After mame-curator-1218, below 40rem wide or 30rem tall the full view
   stacks the filters above the rest. The area below the top bar
   (banners, featured tiles, games) still scrolls on its own, in a box
   about 2.5 windows tall, inside a page that also scrolls. Everything is
   reachable, but two scrollers are awkward with a magnifier.
+  Fixed 2026-11-11: below 40rem wide or 30rem tall, full view's area
+  under the top bar no longer scrolls on its own, and the grid is capped
+  at one window. Test: guide-flow.spec.ts "mame-curator-1223".
   **Layman:** Zoomed right in, the full Library has a scrolling area inside a scrolling page.
   Kind: accessibility.
   Source: build-mame-curator-1218-2026-11-11.

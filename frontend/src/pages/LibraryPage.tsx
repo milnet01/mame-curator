@@ -184,8 +184,16 @@ export function LibraryPage({
 
       {/* mame-curator-1144: this area scrolls, and the grid keeps a minimum
           height, so at large text sizes the bars above cannot crush it to
-          nothing. */}
-      <div className="flex flex-col overflow-x-hidden overflow-y-auto">
+          nothing. mame-curator-1223: where the page scrolls as a whole, full
+          view's area does not scroll on its own; only the game list does. */}
+      <div
+        className={cn(
+          "flex flex-col",
+          simple
+            ? "overflow-x-hidden overflow-y-auto"
+            : "overflow-x-clip roomy:overflow-x-hidden roomy:overflow-y-auto",
+        )}
+      >
         {!simple && (
           <>
             <OnboardingBanner cartHasItems={cart.items.length > 0} />

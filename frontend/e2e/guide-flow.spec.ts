@@ -540,4 +540,30 @@ test.describe("mame-curator-1218: the full Library at 320px", () => {
     await firstGame.scrollIntoViewIfNeeded();
     await expect(firstGame).toBeInViewport();
   });
+
+  test("mame-curator-1223: only the game list scrolls inside the page, and it fits the window", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("library-grid")).toBeVisible();
+    // Every box below <html> that scrolls up and down on its own.
+    const scrollers = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("body *")]
+        .filter((el) => {
+          const y = getComputedStyle(el).overflowY;
+          return (
+            (y === "auto" || y === "scroll") &&
+            el.scrollHeight > el.clientHeight + 1
+          );
+        })
+        .map((el) => ({
+          what:
+            el.dataset.testid ??
+            `${el.tagName.toLowerCase()}.${el.className}`.slice(0, 80),
+          height: el.clientHeight,
+        })),
+    );
+    expect(scrollers.map((s) => s.what)).toEqual(["library-grid"]);
+    expect(scrollers[0].height).toBeLessThanOrEqual(400);
+  });
 });
