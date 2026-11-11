@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-12 Added — Take back a drive or folder you allowed
+
+- **Settings lists the drives and folders the app may use** (mame-curator-1175)
+  On the Paths tab, each drive or folder you allowed in the folder
+  picker has a Remove button, which asks first. A folder that is no
+  longer there is marked "Not there now", and can still be removed.
+
 ### 2026-11-12 Added — Make a new folder from the folder picker
 
 - **The folder picker has a New folder button** (mame-curator-1169)

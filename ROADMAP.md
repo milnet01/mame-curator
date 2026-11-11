@@ -3659,7 +3659,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: measured-2026-11-02.
   Lanes: copy.
 
-- 📋 [mame-curator-1175] **Nothing in the app can take back a folder grant.**
+- ✅ [mame-curator-1175] **Nothing in the app can take back a folder grant.**
   The server has a DELETE for allowed roots, but a search of frontend/src
   found no caller and strings.destructive.revokeRoot has none. Queued, not
   fixed: it wants a design beside mame-curator-1170, which is the user's.
@@ -3674,6 +3674,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   it by id, and the grant silently works again when the folder returns.
   Let Remove match the saved grants by id and show the missing ones as
   missing.
+  Shipped 2026-11-12: Settings, Paths tab, "Drives and folders the app
+  may use", each with a confirming Remove. CR-06-4: FsAllowedRoots
+  carries missing (missing_granted_roots); both lists are worked out
+  fresh per reply, and revoke finds a missing grant by id. Tests:
+  tests/api/test_routes_fs_missing_grants.py (the revoke lookup mutant
+  fails it), AllowedRootsList.test.tsx. No browser walk-through: a real
+  grant writes the tracked e2e fixture config.
   **Layman:** Once you allow a folder for the app, there is no button to undo that.
   Kind: review-fix.
   Source: close-findings-2026-11-02-1145.

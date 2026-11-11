@@ -87,6 +87,24 @@ export function useFsGrantRoot() {
   });
 }
 
+/** mame-curator-1175: take back a grant; a failure toasts, as a grant's does. */
+export function useFsRevokeRoot() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiRequest<FsAllowedRoots>(
+        `/api/fs/allowed-roots/${encodeURIComponent(id)}`,
+        FsAllowedRootsSchema,
+        { method: "DELETE" },
+      ),
+    onSuccess: (next) => {
+      qc.setQueryData(FS_ALLOWED_KEY, next);
+      qc.invalidateQueries({ queryKey: ["fs", "list"] });
+    },
+    onError: toastApiError,
+  });
+}
+
 /** mame-curator-1169: no toast; the picker says a failure beside the name. */
 export function useFsMakeFolder() {
   const qc = useQueryClient();

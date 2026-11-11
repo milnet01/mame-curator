@@ -17,6 +17,7 @@ import { BackupTab } from "@/components/settings/BackupTab";
 import { FiltersTab } from "@/components/settings/FiltersTab";
 import { MediaTab } from "@/components/settings/MediaTab";
 import { PathRow } from "@/components/settings/PathRow";
+import { AllowedRootsList } from "@/components/settings/AllowedRootsList";
 import { PickerTab } from "@/components/settings/PickerTab";
 import { PrefSwitch } from "@/components/settings/PrefSwitch";
 import { SnapshotsTab } from "@/components/settings/SnapshotsTab";
@@ -326,6 +327,7 @@ export function SettingsPage({
               onConfirm={() => updatePaths("source_dat", pendingDat)}
             />
           )}
+          <AllowedRootsList />
         </TabsContent>
 
         <TabsContent value="filters" className="flex flex-col gap-2">

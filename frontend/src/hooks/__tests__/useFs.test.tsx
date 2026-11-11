@@ -96,7 +96,11 @@ describe("useFsGrantRoot onSuccess → cache (FP31 mame-curator-1053)", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     // onSuccess pushes the server response straight into the allowed-roots cache.
-    expect(qc.getQueryData(["fs", "allowed-roots"])).toEqual(nextRoots);
+    // mame-curator-1175: the schema fills `missing` when a reply leaves it out.
+    expect(qc.getQueryData(["fs", "allowed-roots"])).toEqual({
+      ...nextRoots,
+      missing: [],
+    });
     // ...and invalidates every fs listing so a freshly-granted root refetches.
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["fs", "list"] });
   });

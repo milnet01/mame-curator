@@ -539,6 +539,8 @@ export interface FsAllowedRoot {
 
 export interface FsAllowedRoots {
   roots: FsAllowedRoot[];
+  /** mame-curator-1175: granted roots whose folder is gone; never allowed. */
+  missing: FsAllowedRoot[];
 }
 
 export interface FsDriveRoots {

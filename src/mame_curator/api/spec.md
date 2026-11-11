@@ -456,8 +456,17 @@ All FS browsing crosses `api/fs.py`:
   already covered by an existing root → `FsAlreadyCoveredError` (409). The
   picker's prompt says the grant is remembered, and whether it covers one
   drive or one folder and the folders inside it.
+- **Missing grants.** Every `FsAllowedRoots` reply also carries `missing`:
+  the granted roots `compose_allowlist` dropped because their target is no
+  longer an existing directory, each with its `id` and `source` `granted`
+  (`missing_granted_roots`). They are never in the sandbox. Both lists are
+  worked out from config and the disk at each reply, so every saved grant is
+  in exactly one. A grant stays in config until revoked: when its folder
+  returns it is listed in `roots` again, and allowed again from the next
+  world build (mame-curator-1175, review finding CR-06-4).
 - **Revoke** (`DELETE /api/fs/allowed-roots/{root_id}`) removes a `granted`
-  root; an unknown id → `FsRootNotFoundError` (404); a `config`-derived root
+  root, whether in `roots` or in `missing`; an unknown id →
+  `FsRootNotFoundError` (404); a `config`-derived root
   is **not revocable** via the API → `FsConfigRootNotRevocableError` (400)
   (it is removed by editing config, which re-composes the allowlist).
 

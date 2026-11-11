@@ -46,6 +46,8 @@ class FsAllowedRoot(BaseModel):
 class FsAllowedRoots(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     roots: tuple[FsAllowedRoot, ...]
+    # mame-curator-1175: granted roots whose folder is gone; never allowed.
+    missing: tuple[FsAllowedRoot, ...] = ()
 
 
 class FsDriveRoots(BaseModel):

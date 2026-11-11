@@ -17,6 +17,8 @@ from mame_curator.api.errors import (
     FsRootNotFoundError,
 )
 from mame_curator.api.fs import (
+    compose_allowlist,
+    missing_granted_roots,
     os_drive_roots,
     resolve_path,
     validate_fs_path,
@@ -143,7 +145,20 @@ def fs_drive_roots() -> FsDriveRoots:
 
 @router.get("/api/fs/allowed-roots", response_model=FsAllowedRoots)
 def fs_allowed_roots(world: WorldState = Depends(get_world)) -> FsAllowedRoots:
-    return FsAllowedRoots(roots=world.allowed_roots)
+    return _roots_reply(world)
+
+
+def _roots_reply(world: WorldState) -> FsAllowedRoots:
+    """Every saved grant in exactly one list, as config and the disk say now.
+
+    mame-curator-1175: worked out fresh, not from ``world.allowed_roots``, which
+    is fixed at the last world build. A folder that went and came back since
+    would otherwise be in neither list, so it could not be removed.
+    """
+    return FsAllowedRoots(
+        roots=compose_allowlist(world.config, log_stale=False),
+        missing=missing_granted_roots(world.config),
+    )
 
 
 @router.post("/api/fs/allowed-roots", response_model=FsAllowedRoots)
@@ -177,7 +192,7 @@ async def fs_grant_root(
 
         new_world = replace_world(base=world, config=new_config)
         set_world(request, new_world)
-        return FsAllowedRoots(roots=new_world.allowed_roots)
+        return _roots_reply(new_world)
 
 
 @router.delete("/api/fs/allowed-roots/{root_id}", response_model=FsAllowedRoots)
@@ -189,7 +204,9 @@ async def fs_revoke_root(
     async with request.app.state.world_lock:
         world: WorldState = request.app.state.world
         target: FsAllowedRoot | None = None
-        for r in world.allowed_roots:
+        # mame-curator-1175: a grant whose folder is gone can be revoked too.
+        listed = _roots_reply(world)
+        for r in (*listed.roots, *listed.missing):
             if r.id == root_id:
                 target = r
                 break
@@ -214,7 +231,7 @@ async def fs_revoke_root(
 
         new_world = replace_world(base=world, config=new_config)
         set_world(request, new_world)
-        return FsAllowedRoots(roots=new_world.allowed_roots)
+        return _roots_reply(new_world)
 
 
 def _config_to_yaml(config: AppConfig) -> dict[str, Any]:

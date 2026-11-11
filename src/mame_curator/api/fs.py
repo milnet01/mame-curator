@@ -84,6 +84,25 @@ def compose_allowlist(config: AppConfig, *, log_stale: bool = True) -> tuple[FsA
     return tuple(config_roots.values()) + tuple(granted.values())
 
 
+def missing_granted_roots(config: AppConfig) -> tuple[FsAllowedRoot, ...]:
+    """The granted roots ``compose_allowlist`` drops: no longer an existing directory.
+
+    mame-curator-1175: listed so the user can see them and revoke them; they
+    are never in the sandbox.
+    """
+    missing: dict[Path, FsAllowedRoot] = {}
+    for raw in config.fs.granted_roots:
+        try:
+            resolved = Path(raw).resolve(strict=False)
+        except (OSError, ValueError):  # ValueError: a NUL byte in the path.
+            continue
+        if not resolved.is_dir() and resolved not in missing:
+            missing[resolved] = FsAllowedRoot(
+                id=_hash_root_id(resolved), path=str(resolved), source="granted"
+            )
+    return tuple(missing.values())
+
+
 def resolve_path(raw: str) -> Path:
     """Resolve a user-supplied path; reject empty / NUL-byte inputs."""
     if not raw:

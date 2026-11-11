@@ -655,7 +655,11 @@ export const FsAllowedRootSchema = z
   .strict();
 
 export const FsAllowedRootsSchema = z
-  .object({ roots: z.array(FsAllowedRootSchema) })
+  .object({
+    roots: z.array(FsAllowedRootSchema),
+    // mame-curator-1175: the server always sends it; older test doubles do not.
+    missing: z.array(FsAllowedRootSchema).default([]),
+  })
   .strict();
 
 export const FsDriveRootsSchema = z

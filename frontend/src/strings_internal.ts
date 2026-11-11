@@ -708,6 +708,18 @@ export const strings = {
     fsBrowserOnlyFiles:
       "This folder holds only files, so there are no folders to open. You can still use it.",
     fsBrowserDirTag: "folder",
+    /** mame-curator-1175 — the drives and folders granted in the picker. */
+    allowedTitle: "Drives and folders the app may use",
+    allowedHint:
+      "You allowed these in the folder picker. Remove one to take that back.",
+    allowedNone:
+      "None yet. When you allow a drive or folder in the folder picker, it shows here.",
+    allowedMissing: "Not there now",
+    allowedRemove: "Remove",
+    allowedRemoveAria: (path: string) => `Remove ${path}`,
+    allowedRemoveTitle: "Stop the app using this?",
+    allowedRemoveConfirm: (path: string) =>
+      `MAME Curator will no longer look in ${path}. If you need it again, the folder picker will ask you.`,
     /** mame-curator-1169 — make a folder from the picker. */
     fsNewFolder: "New folder",
     fsNewFolderName: "Name of the new folder",
@@ -821,7 +833,7 @@ export const strings = {
     clearMediaCache: (entries: number) =>
       `Clear ${entries} cached image${entries === 1 ? "" : "s"}`,
     deleteSession: (name: string) => `Delete session "${name}"`,
-    revokeRoot: (path: string) => `Revoke filesystem access to ${path}`,
+    revokeRoot: (path: string) => `Stop using ${path}`,
   },
 
   errors: {
