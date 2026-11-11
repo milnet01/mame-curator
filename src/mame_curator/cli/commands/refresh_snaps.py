@@ -14,6 +14,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.markup import escape
 
+from mame_curator.cli.commands._text import shown_path
 from mame_curator.config_location import resolve_config_path
 
 
@@ -47,7 +48,7 @@ def _resolve_dest(args: argparse.Namespace, err_console: Console) -> Path | None
     except (ConfigError, OSError) as exc:
         err_console.print(
             f"[red]error:[/red] could not read media.snaps_dir from "
-            f"{escape(str(config_path))} ({escape(str(exc))}); "
+            f"{shown_path(config_path)} ({escape(str(exc))}); "
             "fix the config or pass --dest explicitly"
         )
         return None

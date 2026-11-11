@@ -3733,7 +3733,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: launchers.
 
-- 📋 [mame-curator-1180] **parse, filter and copy print paths unescaped.**
+- ✅ [mame-curator-1180] **parse, filter and copy print paths unescaped.**
   Same defect ccbdfbd fixed in setup, serve and the refresh commands; cli/spec.md
   § Error messages requires escaping. copy was outside that group.
   2026-11-11 readability review: a third quoting style sits at
@@ -3742,6 +3742,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   The 2026-11-11 readability review adds RR-06-5: the CLI prints a
   user's path in an error line three different ways
   (cli/commands/filter.py is one). One shared way would close both.
+  Fixed 2026-11-12: one helper, shown_path in cli/commands/_text.py
+  (escape(repr(str(path)))), for every user path in every command;
+  exception text escaped; parse, filter and copy stdout consoles now
+  soft_wrap. Settles RR-06-5. Test: tests/cli/test_cli_path_markup.py
+  (all 6 red without escape).
   **Layman:** A folder with square brackets in its name can print wrongly in some command-line messages.
   Kind: review-fix.
   Source: close-findings-2026-11-02-1145.

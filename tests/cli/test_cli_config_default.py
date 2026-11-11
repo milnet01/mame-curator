@@ -335,4 +335,4 @@ def test_refresh_snaps_broken_config_error_keeps_brackets(
     assert _run(["refresh-snaps", "--config", str(broken)]) == 1
 
     # This exact phrase: the cause quotes the path too, escaped by another call.
-    assert f"media.snaps_dir from {broken} " in capsys.readouterr().err
+    assert f"media.snaps_dir from {str(broken)!r} " in capsys.readouterr().err

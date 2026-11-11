@@ -10,13 +10,14 @@ from rich.console import Console
 from rich.markup import escape
 
 from mame_curator._atomic import atomic_write_text
+from mame_curator.cli.commands._text import shown_path
 from mame_curator.config_location import ConfigSource, resolve_config_path
 from mame_curator.updates.ini import INI_CONFIG_FIELDS
 
 
 def _warn_config_not_updated(console: Console, config_path: Path, reason: str) -> None:
     console.print(
-        f"[yellow]⚠[/yellow] {escape(str(config_path))} {reason} "
+        f"[yellow]⚠[/yellow] {shown_path(config_path)} {reason} "
         "The app will not use these files until that is put right."
     )
 
@@ -39,7 +40,7 @@ def _patch_config_with_ini_paths(
         data = yaml.safe_load(body)
     except (OSError, yaml.YAMLError) as exc:
         console.print(
-            f"[yellow]⚠[/yellow] could not read {escape(str(config_path))} to patch INI paths: "
+            f"[yellow]⚠[/yellow] could not read {shown_path(config_path)} to patch INI paths: "
             f"{escape(str(exc))}"
         )
         return
@@ -63,7 +64,7 @@ def _patch_config_with_ini_paths(
 
     if not updated_fields:
         console.print(
-            f"Nothing to update in {escape(str(config_path))}: these paths are already set, "
+            f"Nothing to update in {shown_path(config_path)}: these paths are already set, "
             "and are left as they are."
         )
         return
@@ -73,12 +74,12 @@ def _patch_config_with_ini_paths(
         atomic_write_text(config_path, new_body)
     except OSError as exc:
         console.print(
-            f"[yellow]⚠[/yellow] could not write {escape(str(config_path))}: {escape(str(exc))}"
+            f"[yellow]⚠[/yellow] could not write {shown_path(config_path)}: {escape(str(exc))}"
         )
         return
 
     console.print(
-        f"\n[green]✓[/green] {escape(str(config_path))} updated with {len(updated_fields)} "
+        f"\n[green]✓[/green] {shown_path(config_path)} updated with {len(updated_fields)} "
         f"INI path(s): {', '.join(updated_fields)}"
     )
     console.print(

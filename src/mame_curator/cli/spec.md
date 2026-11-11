@@ -407,9 +407,12 @@ URL, override key or exception string reaching a `Console.print` in `cli/`
 is user input for this purpose. Style markup the CLI itself writes
 (`[red]error:[/red]`) is not, and is the only markup that should survive.
 
-**Enforced class-wide in `_cmd_serve`, `setup`, `refresh-inis` and
-`refresh-snaps`.** Every `Console.print` site there escapes its interpolated
-values. A path prints as the plain path, not as `PosixPath('...')`. Their
+**Enforced class-wide in every command that prints with markup** (all but
+`self-test`, which prints with `markup=False`). Every `Console.print` site
+escapes its interpolated values. A user's path goes through one helper,
+`shown_path` in `cli/commands/_text.py`: `repr` of its `str`, escaped. So it
+is quoted, a control byte in it is written as an escape and cannot split the
+line, and it never reads `PosixPath('...')` (mame-curator-1180). Their
 consoles use `soft_wrap=True`, so a long path stays on one line. The one literal the CLI writes that *looks* like markup —
 `pip install mame-curator[api]` — is backslash-escaped at the source
 rather than passed through `escape()`, since it is not user input.

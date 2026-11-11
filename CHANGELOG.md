@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-12 Fixed — Command-line messages print folder names exactly
+
+- **A folder name with square brackets prints as typed** (mame-curator-1180)
+  The parse, filter and copy commands dropped text like `[bold]` from a
+  path. Every command now shows a path the same way: in quotes, on one
+  line.
+
 ### 2026-11-12 Added — Take back a drive or folder you allowed
 
 - **Settings lists the drives and folders the app may use** (mame-curator-1175)

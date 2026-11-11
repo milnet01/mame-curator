@@ -6,7 +6,9 @@ import argparse
 import json
 
 from rich.console import Console
+from rich.markup import escape
 
+from mame_curator.cli.commands._text import shown_path
 from mame_curator.copy import (
     ConflictStrategy,
     CopyError,
@@ -20,7 +22,7 @@ from mame_curator.parser.listxml import parse_listxml
 
 
 def _cmd_copy(args: argparse.Namespace) -> int:
-    console = Console()
+    console = Console(soft_wrap=True)
     err_console = Console(stderr=True, soft_wrap=True)
 
     if args.purge_recycle:
@@ -32,7 +34,7 @@ def _cmd_copy(args: argparse.Namespace) -> int:
         try:
             dirs, freed = purge_recycle()
         except OSError as exc:
-            err_console.print(f"[red]error:[/red] failed to purge recycle: {exc}")
+            err_console.print(f"[red]error:[/red] failed to purge recycle: {escape(str(exc))}")
             return 1
         console.print(f"  recycle purged: {dirs} directories, {freed} bytes freed")
         return 0
@@ -44,7 +46,7 @@ def _cmd_copy(args: argparse.Namespace) -> int:
         bios_chain = listxml.bios_chain
         chd_required = listxml.disks
     except ParserError as exc:
-        err_console.print(f"[red]error:[/red] failed to load inputs: {exc}")
+        err_console.print(f"[red]error:[/red] failed to load inputs: {escape(str(exc))}")
         return 1
     except OSError as exc:
         # FP05 B9: mirror DS01 C6 / FP05 B8 into _cmd_copy. Defense-in-depth
@@ -52,15 +54,15 @@ def _cmd_copy(args: argparse.Namespace) -> int:
         # that point at directories or unreadable files. The parsers wrap
         # most OSError cases, but the TOCTOU between `.exists()` and read
         # can still surface a bare exception.
-        err_console.print(f"[red]error:[/red] cannot read input: {exc}")
+        err_console.print(f"[red]error:[/red] cannot read input: {escape(str(exc))}")
         return 1
 
     try:
         report_data = json.loads(args.filter_report.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        # FP07 A3: quote args.filter_report via repr() — same threat model.
         err_console.print(
-            f"[red]error:[/red] failed to read filter report {args.filter_report!r}: {exc}"
+            f"[red]error:[/red] failed to read filter report {shown_path(args.filter_report)}: "
+            f"{escape(str(exc))}"
         )
         return 1
 
@@ -68,7 +70,7 @@ def _cmd_copy(args: argparse.Namespace) -> int:
     if not winners:
         # mame-curator-1182: with no winners, OVERWRITE would empty mame.lpl.
         err_console.print(
-            f"[red]error:[/red] filter report {args.filter_report!r} lists no winners; "
+            f"[red]error:[/red] filter report {shown_path(args.filter_report)} lists no winners; "
             "nothing to copy"
         )
         return 1
@@ -87,7 +89,7 @@ def _cmd_copy(args: argparse.Namespace) -> int:
     try:
         report = run_copy(plan)
     except CopyError as exc:
-        err_console.print(f"[red]error:[/red] copy failed: {exc}")
+        err_console.print(f"[red]error:[/red] copy failed: {escape(str(exc))}")
         return 1
 
     console.print(f"  status: {report.status.value}")

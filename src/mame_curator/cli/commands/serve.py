@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from rich.console import Console
 from rich.markup import escape
 
+from mame_curator.cli.commands._text import shown_path
 from mame_curator.config_location import (
     ConfigSource,
     ensure_starter_config,
@@ -281,7 +282,7 @@ def _run_server(
         if cause is not None:
             reason = " ".join(str(cause).split())
             err_console.print(
-                f"[red]error:[/red] could not start with {escape(str(config_path))}: "
+                f"[red]error:[/red] could not start with {shown_path(config_path)}: "
                 f"{escape(reason)}"
             )
         else:
@@ -342,14 +343,14 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         except OSError as exc:
             err_console.print(
                 f"[red]error:[/red] cannot create config at "
-                f"{escape(str(config_path))}: {escape(str(exc))}"
+                f"{shown_path(config_path)}: {escape(str(exc))}"
             )
             return 1
     if not config_path.exists():
         # Only reachable for an explicit --config: layer 2 is skipped when
         # absent and layer 3 was just created.
         err_console.print(
-            f"[red]error:[/red] config file not found: {escape(str(config_path))} — "
+            f"[red]error:[/red] config file not found: {shown_path(config_path)} — "
             "check the path, or run `mame-curator setup --out` with it first"
         )
         return 1

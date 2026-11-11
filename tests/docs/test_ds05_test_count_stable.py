@@ -417,7 +417,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # 1271 → 1280.
 # Bumped 2026-11-12 (mame-curator-1175): missing grants listed and revocable.
 # 1280 → 1284.
-EXPECTED_PYTEST_DECLARATIONS = 1284
+# Bumped 2026-11-12 (mame-curator-1180): parse, filter and copy keep a
+# path's brackets. 1284 → 1289.
+EXPECTED_PYTEST_DECLARATIONS = 1289
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

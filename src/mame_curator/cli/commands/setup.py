@@ -11,6 +11,7 @@ from rich.markup import escape
 from rich.prompt import Prompt
 
 from mame_curator._atomic import atomic_write_text
+from mame_curator.cli.commands._text import shown_path
 from mame_curator.config_location import STARTER_HEADER, resolve_config_path
 
 
@@ -36,7 +37,7 @@ def _cmd_setup(args: argparse.Namespace) -> int:
     # Without --out, write the file `serve` will read. A new ./config.yaml beside
     # a per-user config would silently take over from it.
     out, _ = resolve_config_path(args.out)
-    shown_out = escape(str(out))
+    shown_out = shown_path(out)
 
     if out.exists() and not args.force:
         err_console.print(
@@ -65,13 +66,13 @@ def _cmd_setup(args: argparse.Namespace) -> int:
 
     if not source_roms.is_dir():
         err_console.print(
-            f"[red]error:[/red] source_roms {escape(repr(str(source_roms)))} "
+            f"[red]error:[/red] source_roms {shown_path(source_roms)} "
             "does not exist or is not a directory."
         )
         return 1
     if not source_dat.is_file():
         err_console.print(
-            f"[red]error:[/red] source_dat {escape(repr(str(source_dat)))} "
+            f"[red]error:[/red] source_dat {shown_path(source_dat)} "
             "does not exist or is not a file."
         )
         return 1

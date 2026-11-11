@@ -5,8 +5,10 @@ from __future__ import annotations
 import argparse
 
 from rich.console import Console
+from rich.markup import escape
 
 from mame_curator._atomic import atomic_write_text
+from mame_curator.cli.commands._text import shown_path
 from mame_curator.filter import (
     FilterConfig,
     FilterContext,
@@ -30,7 +32,7 @@ from mame_curator.parser.listxml import apply_driver_status, parse_listxml
 
 
 def _cmd_filter(args: argparse.Namespace) -> int:
-    console = Console()
+    console = Console(soft_wrap=True)
     err_console = Console(stderr=True, soft_wrap=True)
     try:
         # The DAT first, as in `copy`: a bad DAT fails before the slow listxml.
@@ -55,7 +57,7 @@ def _cmd_filter(args: argparse.Namespace) -> int:
         overrides = load_overrides(args.overrides) if args.overrides else Overrides()
         sessions = load_sessions(args.sessions) if args.sessions else Sessions()
     except (ParserError, FilterError) as exc:
-        err_console.print(f"[red]error:[/red] failed to load inputs: {exc}")
+        err_console.print(f"[red]error:[/red] failed to load inputs: {escape(str(exc))}")
         return 1
     except OSError as exc:
         # FP05 B8: defense-in-depth. The loaders above already wrap OSError
@@ -63,7 +65,7 @@ def _cmd_filter(args: argparse.Namespace) -> int:
         # for raw OSError reaching this scope is narrow (TOCTOU between
         # `path.exists()` and read). Spec § "Errors the CLI catches but
         # never raises" requires exit-1 with a labelled error line.
-        err_console.print(f"[red]error:[/red] cannot read input: {exc}")
+        err_console.print(f"[red]error:[/red] cannot read input: {escape(str(exc))}")
         return 1
 
     overrides = migrate_clone_keys(overrides, ctx.cloneof_map, machines)
@@ -77,13 +79,14 @@ def _cmd_filter(args: argparse.Namespace) -> int:
     try:
         atomic_write_text(args.out, result.model_dump_json(indent=2) + "\n")
     except OSError as exc:
-        # FP07 A2: quote args.out via repr() — same threat model as A1.
-        err_console.print(f"[red]error:[/red] failed to write {args.out!r}: {exc}")
+        err_console.print(
+            f"[red]error:[/red] failed to write {shown_path(args.out)}: {escape(str(exc))}"
+        )
         return 1
 
     console.print(f"  winners: {len(result.winners)}")
     console.print(f"  dropped: {len(result.dropped)}")
     console.print(f"  contested groups: {len(result.contested_groups)}")
     console.print(f"  warnings: {len(result.warnings)}")
-    console.print(f"  report: {args.out}")
+    console.print(f"  report: {shown_path(args.out)}")
     return 0
