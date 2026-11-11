@@ -91,25 +91,31 @@ def test_save_refuses_a_session_name_ending_in_a_newline(client: Any) -> None:
 # ---- CR-06-7: the DAT check reads files only ---------------------------------
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="named pipes made by mkfifo are POSIX-only")
 def test_dat_check_does_not_hang_on_a_named_pipe(client: Any, fake_home: Path) -> None:
-    """CR-06-7: opening a FIFO for reading blocks until a writer appears."""
-    fifo = fake_home / "pipe.xml"
-    os.mkfifo(fifo)
-    answer: dict[str, Any] = {}
-    worker = threading.Thread(
-        target=lambda: answer.update(
-            r=client.get("/api/setup/dat-check", params={"path": str(fifo)})
+    """CR-06-7: opening a FIFO for reading blocks until a writer appears.
+
+    A platform branch rather than skipif, so mypy on Windows, which lacks
+    os.mkfifo, treats the POSIX half as unreachable and checks nothing there.
+    """
+    if sys.platform == "win32":
+        pytest.skip("named pipes made by mkfifo are POSIX-only")
+    else:
+        fifo = fake_home / "pipe.xml"
+        os.mkfifo(fifo)
+        answer: dict[str, Any] = {}
+        worker = threading.Thread(
+            target=lambda: answer.update(
+                r=client.get("/api/setup/dat-check", params={"path": str(fifo)})
+            )
         )
-    )
-    worker.start()
-    worker.join(timeout=5)
-    hung = worker.is_alive()
-    if hung:  # free the blocked reader so the suite can finish
-        os.close(os.open(fifo, os.O_WRONLY | os.O_NONBLOCK))
+        worker.start()
         worker.join(timeout=5)
-    assert not hung, "dat-check blocked on a named pipe"
-    assert answer["r"].json()["parses"] is False
+        hung = worker.is_alive()
+        if hung:  # free the blocked reader so the suite can finish
+            os.close(os.open(fifo, os.O_WRONLY | os.O_NONBLOCK))
+            worker.join(timeout=5)
+        assert not hung, "dat-check blocked on a named pipe"
+        assert answer["r"].json()["parses"] is False
 
 
 # ---- CR-06-8: the help index stays inside the help folder --------------------
