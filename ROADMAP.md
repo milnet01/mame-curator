@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1224 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1225 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3709,6 +3709,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 - 📋 [mame-curator-1180] **parse, filter and copy print paths unescaped.**
   Same defect ccbdfbd fixed in setup, serve and the refresh commands; cli/spec.md
   § Error messages requires escaping. copy was outside that group.
+  2026-11-11 readability review: a third quoting style sits at
+  cli/commands/setup.py:68 (escape(repr(str(...)))); fix it with the
+  rest.
   **Layman:** A folder with square brackets in its name can print wrongly in some command-line messages.
   Kind: review-fix.
   Source: close-findings-2026-11-02-1145.
@@ -4217,6 +4220,36 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: chore.
   Source: ci-run-43048202178-2026-11-11.
   Lanes: ci.
+
+- 🚧 [mame-curator-1225] **Close the 2026-11-11 code and readability review findings.**
+  317 distinct findings (HIGH 14, MEDIUM 91, LOW 178, plus leads),
+  sorted into 20 subject groups. Ledger and groups are kept OUTSIDE
+  the public repo, because some findings are unfixed security leads:
+  /mnt/Emulators/.claude/Scratchpad/MAME_Curator/close-findings-2026-11-11/
+  (ledger.json, groups.md). The raw lane reports are beside it in
+  reviews/review-code-2026-11-11/ and
+  reviews/review-readability-2026-11-11/.
+
+  Plan: close by subject (close-findings § Scope). First the two
+  security groups, media-fetch-safety and api-trust-edges, plus the
+  other rows marked [sec] in groups.md. Then file each remaining group
+  as its own roadmap item. Do not describe an unfixed security lead in
+  detail on this public roadmap.
+
+  User decisions, 2026-11-11:
+  - Show both the notes box and the "Why was this picked?" panel in
+    the game side panel (CR-09-1, with CR-07-1 as its duplicate).
+  - Make "Default sort order" and the "other versions" mark in
+    Settings work (CR-07-2).
+  - A restored backup never grants folder access; the user approves
+    again (CR-06-3).
+  - Saved selections match the short genre (text after the last /),
+    the same as the hide list and filter/spec.md § Phase D (CR-01-5).
+  Still open for the user: the other rows under "Findings that need a
+  user decision" in groups.md.
+  **Layman:** Two reviews of the app's code found about 300 things to fix or tidy; this item works through them group by group.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
 ## Considered / under research (no target date)
 
