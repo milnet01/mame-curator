@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1253 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1254 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3637,9 +3637,14 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1145-2026-10-30.
   Lanes: api, tests.
 
-- 📋 [mame-curator-1173] **docs/design.md § 6.6 still describes the old setup wizard.**
+- ✅ [mame-curator-1173] **docs/design.md § 6.6 still describes the old setup wizard.**
   It describes the old P08 setup/ wizard; mame-curator-1145 is the real one.
   The 2026-11-11 code review found the same thing (CR-10-6).
+  Fixed 2026-11-12: design.md 6.6 rewritten as the launchers plus the
+  1145 wizard, each pointing at its home (run.sh, cli/spec.md serve
+  resolution, spec 1145). Also dropped: the listxml acquisition tiers,
+  the ADR-0004 "until the wizard ships" pointer, and .wizard-state.json
+  in the data tree, none of which exist. Settles CR-10-6.
   **Layman:** A design document describes a setup wizard that was replaced.
   Kind: doc-fix.
   Source: build-mame-curator-1145-2026-10-30.
@@ -4827,6 +4832,18 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   **Layman:** Some add-on packages the screens are built with have known security problems to look at.
   Kind: security.
   Source: ci-run-43093557266-2026-11-11.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1254] **The listxml banner sends the user to Settings, which has no listxml field.**
+  ListxmlBanner's link goes to /settings, and its body says "Configure
+  the listxml path in Settings". SettingsPage's Paths tab has no PathRow
+  for paths.listxml (AppConfig has the key), and a search of
+  frontend/src/components/settings found none. Today the only way in is
+  editing config.yaml. Found while rewriting design.md for
+  mame-curator-1173.
+  **Layman:** The Library says to set a file in Settings, but Settings has no place to set it.
+  Kind: ux.
+  Source: build-mame-curator-1173-2026-11-12.
   Lanes: frontend.
 
 ## Considered / under research (no target date)
