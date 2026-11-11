@@ -123,9 +123,13 @@ export function LibraryPage({
     <div
       className={cn(
         // mame-curator-1210: where the page scrolls as a whole, <main> has no
-        // height to fill, so the Library takes one window's.
-        "grid h-screen roomy:h-full",
-        simple ? "grid-cols-1" : "grid-cols-[16rem_1fr]",
+        // height to fill, so the Library takes one window's. mame-curator-1218:
+        // there, full view stacks the filters above the rest and grows with
+        // them instead, so it is no wider than the window.
+        "grid roomy:h-full",
+        simple
+          ? "h-screen grid-cols-1"
+          : "min-h-screen grid-cols-1 roomy:min-h-0 roomy:grid-cols-[16rem_1fr]",
         // An open cart must not squeeze the games to nothing; #main scrolls.
         cartExpanded
           ? "grid-rows-[auto_minmax(60vh,1fr)_auto]"
@@ -367,7 +371,7 @@ export function LibraryPage({
         </ErrorBoundary>
       )}
 
-      <div ref={cartRef} className={simple ? undefined : "col-span-2"}>
+      <div ref={cartRef} className={simple ? undefined : "roomy:col-span-2"}>
         <CartPanel
           open={cartExpanded}
           items={cart.items}

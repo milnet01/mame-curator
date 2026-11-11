@@ -513,3 +513,39 @@ test.describe("mame-curator-1217: Which languages can you read?", () => {
     expect(config.filters.keep_languages).toEqual([]);
   });
 });
+
+test.describe("mame-curator-1218: the full Library at 320px", () => {
+  test.use({
+    viewport: { width: 320, height: 400 },
+    storageState: localStorageState({ [SEEN]: "true", [VIEW]: "full" }),
+  });
+
+  test("the top bar fits the window, with every control on it", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("library-grid")).toBeVisible();
+    const fewer = page.getByRole("button", { name: "Fewer options" });
+    const header = page.locator("header", { has: fewer });
+    await expect(fewer).toBeVisible();
+    await expect(page.getByTestId("library-walkthrough-toggle")).toBeVisible();
+    const box = await header.boundingBox();
+    expect(box, "the top bar is on the page").not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(320);
+    await expectNoSidewaysScroll(page, "html");
+
+    // Stacked, not squeezed: the page scrolls down to the end of the
+    // filters, and the game list keeps room to show games.
+    const lastFilter = page.getByRole("button", { name: "Save as session" });
+    await lastFilter.scrollIntoViewIfNeeded();
+    await expect(lastFilter).toBeInViewport();
+    const grid = page.getByTestId("library-grid");
+    await grid.scrollIntoViewIfNeeded();
+    const height = await grid.evaluate((el) => el.clientHeight);
+    expect(height).toBeGreaterThanOrEqual(400 * 0.6 - 1);
+    const firstGame = grid.getByRole("button", { name: /Pac-Man/ }).first();
+    await firstGame.scrollIntoViewIfNeeded();
+    await expect(firstGame).toBeInViewport();
+  });
+});
