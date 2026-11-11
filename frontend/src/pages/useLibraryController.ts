@@ -103,12 +103,17 @@ export function useLibraryController(cart: UseCartResult) {
   const theme = (config.data?.ui.theme ?? "dark") as ThemeName;
   const activeSession = sessions.data?.active ?? null;
 
+  // mame-curator-1150: year bounds leave out games with no year, so the
+  // untouched default range sends none.
+  const yearsChosen =
+    filters.yearRange[0] !== DEFAULT_FILTERS.yearRange[0] ||
+    filters.yearRange[1] !== DEFAULT_FILTERS.yearRange[1];
   const query: GamesQuery = {
     page: 1,
     pageSize: 200,
     search: filters.search,
-    yearFrom: filters.yearRange[0],
-    yearTo: filters.yearRange[1],
+    yearFrom: yearsChosen ? filters.yearRange[0] : undefined,
+    yearTo: yearsChosen ? filters.yearRange[1] : undefined,
     letter: filters.letter ?? undefined,
     genre: filters.genre ?? undefined,
     publisher: filters.publisher ?? undefined,

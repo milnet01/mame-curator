@@ -593,7 +593,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1228
 # compilations and languages. 748 → 756.
 # Bumped 2026-11-11 (mame-curator-1219): a second Forget press after one
 # failed partway. 756 → 757.
-EXPECTED_VITEST_DECLARATIONS = 757
+# Bumped 2026-11-11 (mame-curator-1150): the Library sends no year bounds
+# until a range is chosen. 757 → 758.
+EXPECTED_VITEST_DECLARATIONS = 758
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

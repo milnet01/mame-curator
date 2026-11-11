@@ -261,7 +261,8 @@ describe("LibraryPage views", () => {
     await waitFor(() =>
       expect(seen.at(-1)?.searchParams.get("genre")).toBe("Maze"),
     );
-    expect(seen.at(-1)?.searchParams.has("year_min")).toBe(true);
+    // mame-curator-1150: the years are untouched, so no year bounds.
+    expect(seen.at(-1)?.searchParams.has("year_min")).toBe(false);
     await waitFor(() =>
       expect(screen.getByTestId("route-state").textContent).toBe("null"),
     );
@@ -272,6 +273,29 @@ describe("LibraryPage views", () => {
         screen.getByRole("heading", { name: strings.nav.library }),
       ).toHaveFocus(),
     );
+  });
+
+  // mame-curator-1150: year bounds leave out games with no year, so the
+  // untouched default range sends none; a chosen range still sends both.
+  it("sends no year bounds until a year range is chosen", async () => {
+    const seen = serveGames();
+    const user = userEvent.setup();
+    renderPage("full");
+    await screen.findByTestId("library-grid");
+    expect(seen.length).toBeGreaterThan(0);
+    for (const url of seen) {
+      expect(url.searchParams.has("year_min")).toBe(false);
+      expect(url.searchParams.has("year_max")).toBe(false);
+    }
+
+    const tile = strings.library.featured.tiles[0];
+    await user.click(await screen.findByRole("button", { name: tile.title }));
+    await waitFor(() =>
+      expect(seen.at(-1)?.searchParams.get("year_max")).toBe(
+        String(tile.query.yearTo),
+      ),
+    );
+    expect(seen.at(-1)?.searchParams.get("year_min")).toBe("1975");
   });
 
   // mame-curator-1210: where the page scrolls as a whole, the Library still
