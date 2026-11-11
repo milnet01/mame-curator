@@ -5,6 +5,8 @@ The local mirror promises "the same commands, in the same order" as
 Compared: every check command, in order. Exempt on both sides: setup
 (installing Python, dependencies or gitleaks), which each side does its own
 way, and the local mirror's --docs branch, which ci.yml has no twin for.
+Steps the mirror runs through local_only_in are local by design and not
+compared.
 
 The mirror is found by glob, not by name (tests/docs/test_posix_only_tests_
 skip_on_win32.py flags a quoted shell-script name).

@@ -5,6 +5,7 @@
 # This is a faithful local mirror of the GitHub CI workflow. Every command
 # below is byte-for-byte the command CI runs, in the same order, grouped by
 # the same three jobs (lint-types-test / frontend-lint-types-test / gitleaks).
+# One addition runs here only: the Playwright browser tests (local_only_in).
 # A clean run here means CI will pass — with two inherent caveats that a single
 # local machine cannot reproduce:
 #
@@ -107,6 +108,12 @@ run_in() {
     fi
 }
 
+# local_only_in <dir> <label> <command...> — a check ci.yml does not run, so
+# the mirror test (tests/docs/test_local_ci_mirrors_ci_yml.py) skips it.
+local_only_in() {
+    run_in "$@"
+}
+
 echo "${BOLD}=== local-CI.sh — mirror of .github/workflows/ci.yml ===${RESET}"
 echo "Repo:    $REPO_ROOT"
 echo "OS:      $(uname -srm)"
@@ -158,6 +165,9 @@ else
             bash -c 'test -z "$(git status --porcelain -- dist)" || { git status --short -- dist; exit 1; }'
         run_in frontend "Bundle size (size-limit)"  npm run size
         run_in frontend "Vitest"                   npm test
+        # Local only (user, 2026-11-11): the browser walk-throughs run here
+        # before every push, not in ci.yml. They use ports 8080 and 4173.
+        local_only_in frontend "Playwright (local only)" npx playwright test --reporter=line
     fi
 fi
 

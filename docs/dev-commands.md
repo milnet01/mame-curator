@@ -12,6 +12,8 @@ uv sync && git config core.hooksPath .git/hooks && uv run pre-commit install \
 # Full CI mirror — runs every check .github/workflows/ci.yml runs, in the
 # same order (backend gates + api-type-sync + frontend + gitleaks). Keep it
 # in lockstep with ci.yml. `--fresh` provisions first (uv sync + npm ci).
+# It also runs the Playwright browser tests, which ci.yml does not; they
+# need ports 8080 and 4173 free, so stop a running `mame-curator serve`.
 ./local-CI.sh
 
 # Backend-only gate (must pass on `main`; a subset of the above)
