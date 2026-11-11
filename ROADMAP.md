@@ -4235,7 +4235,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1218-2026-11-11.
   Lanes: frontend.
 
-- 📋 [mame-curator-1224] **The frontend CI install still takes about 50 seconds with a cache hit.**
+- ✅ [mame-curator-1224] **The frontend CI install still takes about 50 seconds with a cache hit.**
   mame-curator-1212 added npm ci --prefer-offline (9951b0e). Run
   43048202178 still spent 53s installing after a cache hit, against
   about 8s before 3596487. Not yet found: whether the time is download,
@@ -4247,6 +4247,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   (18 now). Locally those records are cached, so no slowdown reproduces.
   Trial: ci.yml now passes --no-audit --no-fund. Done if the next run's
   install step is back near 8s; if not, revert and look again.
+  Confirmed 2026-11-11: run 43104270726 (a1facfc) installed in 4s with
+  --no-audit --no-fund, against 54s in run 43093557266. The advisories
+  the audit printed are mame-curator-1253.
   **Layman:** One step of the online checks is still slower than it used to be.
   Kind: chore.
   Source: ci-run-43048202178-2026-11-11.
