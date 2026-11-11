@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1225 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1252 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3282,6 +3282,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   reach such a drive and no read-only check settles it. Reproduce on a
   real FAT or exFAT stick before fixing. The likely fix compares names
   with case folded. Queued 2026-10-30 by the user's ruling.
+  The 2026-11-11 code review found the same thing (CR-02-5): the
+  OVERWRITE delete pass in copy/runner.py compares names
+  case-sensitively, so on a case-insensitive drive it can recycle a game
+  it just copied.
   **Layman:** On a USB stick that ignores upper and lower case in file names, an overwrite copy that removes old zips might send a freshly copied game to the recycle bin.
   Kind: investigate.
   Source: review-code-2026-10-30.
@@ -3630,6 +3634,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 
 - 📋 [mame-curator-1173] **docs/design.md § 6.6 still describes the old setup wizard.**
   It describes the old P08 setup/ wizard; mame-curator-1145 is the real one.
+  The 2026-11-11 code review found the same thing (CR-10-6).
   **Layman:** A design document describes a setup wizard that was replaced.
   Kind: doc-fix.
   Source: build-mame-curator-1145-2026-10-30.
@@ -3717,6 +3722,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   2026-11-11 readability review: a third quoting style sits at
   cli/commands/setup.py:68 (escape(repr(str(...)))); fix it with the
   rest.
+  The 2026-11-11 readability review adds RR-06-5: the CLI prints a
+  user's path in an error line three different ways
+  (cli/commands/filter.py is one). One shared way would close both.
   **Layman:** A folder with square brackets in its name can print wrongly in some command-line messages.
   Kind: review-fix.
   Source: close-findings-2026-11-02-1145.
@@ -3757,6 +3765,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Both were over before that commit, which added a few lines to each.
   2026-11-05: 89e4db5 moved run_copy's body into _run_copy, still well
   over the 80-line function cap.
+  The 2026-11-11 reviews confirm this (CR-02-12, RR-02-5: copy/runner.py
+  and _run_copy are over the caps; CR-05-15: api/jobs.py and
+  JobManager.start are over them).
   **Layman:** Two code files are bigger than the project's own limit.
   Kind: refactor.
   Source: close-findings-2026-11-02-1145.
@@ -4226,7 +4237,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: ci-run-43048202178-2026-11-11.
   Lanes: ci.
 
-- 🚧 [mame-curator-1225] **Close the 2026-11-11 code and readability review findings.**
+- ✅ [mame-curator-1225] **Close the 2026-11-11 code and readability review findings.**
   317 distinct findings (HIGH 14, MEDIUM 91, LOW 178, plus leads),
   sorted into 20 subject groups. Ledger and groups are kept OUTSIDE
   the public repo, because some findings are unfixed security leads:
@@ -4252,9 +4263,529 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
     the same as the hide list and filter/spec.md § Phase D (CR-01-5).
   Still open for the user: the other rows under "Findings that need a
   user decision" in groups.md.
+  Progress 2026-11-11: every security finding is fixed and pushed
+  (commits 16f4b4f, 1d522ca, 6d04ff9, ad1a19c; CI green on all
+  platforms). One, CR-06-4, moved to mame-curator-1175. The other groups
+  are filed as mame-curator-1226 to 1251, one item per group (big groups
+  in parts). The six findings that open items already cover are noted on
+  1137, 1173, 1180 and 1184. Every finding has an outcome in the ledger.
+  Still to do here: ask the user the open questions marked ASK USER in
+  those items, when each group is worked.
+  Done 2026-11-11: all 317 findings have an outcome (23 fixed, the rest
+  queued in 1226 to 1251, 1175 and the four items above). The open
+  questions marked ASK USER move with their items.
   **Layman:** Two reviews of the app's code found about 300 things to fix or tidy; this item works through them group by group.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1226] **Fix the web-server core findings from the 2026-11-11 code review.**
+  Group `api-server-core` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-05-7 [MEDIUM] (no file: no single-instance lock in src/): Nothing stops two app instances sharing one config and data folder, so edits silently overwrite each other (see CR-04-13 on the port claim). Fix: take an exclusive lock on a file in the data folder at startup and refuse, or point the browser at the running instance. ASK USER: On a second launch: refuse, or open the running instance?
+  - CR-05-11 [LOW] api/app.py:184-190: Shutdown closes the media client before cancelling the copy job and blocks the loop in thread.join. Fix: cancel the job first, and close each resource in its own `try`.
+  - CR-05-14 (+RL-22) [LOW] api/app.py:206: The FastAPI app reports version 0.0.1 in OpenAPI.
+  - CR-05-12 [LOW] api/app.py:78: A bare /api or /media returns the SPA index.html with status 200.
+  - CR-05-1 [HIGH] api/app.py:93: The root URL / serves index.html with no no-cache header, so a stale shell can survive an update. Fix: add `"."` to the set, or test whether the file served is `index.html`.
+  - RL-23 (+RR-04-15) [LEAD] api/errors.py:304: strips every `"body"` part of the location, not only the leading one, so a field literally named `body` would disappear from `loc`.
+  - CR-05-8 [MEDIUM] api/jobs.py:401-403: A failed copy-report write is logged and ignored, but job_finished still points at the missing report. Fix: add `report_saved: false` (or a reason) to the terminal event.
+  - CR-06-6 [LOW] api/routes/config.py:206: paths.retroarch accepts a folder because the check uses X_OK without is_file(). Fix: add `p.retroarch.is_file()`.
+  - CR-07-4 [MEDIUM] api/routes/curate.py:284-292: If the activity append fails after state.yaml is written, a later review mark silently undoes the earlier one.
+  - CR-07-3 [MEDIUM] api/routes/curate.py:82: Override and session saves re-run the whole filter on the event loop, stalling every other request. Fix: `await asyncio.to_thread(replace_world, ...)` inside the lock.
+  - RL-26 [LEAD] api/routes/games.py:314-315: the "not configured" message says "then restart", but `launch_game` reads `world.config.paths` on each request, so a saved setting works without a restart.
+  - CR-06-9 [LOW] api/routes/help.py:73-75: A non-UTF-8 help file or a folder named x.md gives a 500, not the documented 404. Fix: use `is_file()` and catch `(OSError, UnicodeDecodeError)` as `HelpTopicNotFoundError`.
+  - CR-05-6 (+RL-21) [MEDIUM] api/state.py:104-107: load_app_config does not wrap read_text failures in ConfigError, so serve loses its one-line startup error. Fix: wrap the read with `except (OSError, UnicodeDecodeError)` and raise `ConfigError`.
+  - CR-05-3 [MEDIUM] api/state.py:134-135: Config validation errors use repr(exc), giving a multi-line detail that echoes config values. Fix: a fixed one-line `detail` and the per-field errors in `fields[]` only; or `repr(str(exc))`.
+  **Layman:** Small faults in how the app's web service starts, answers and shuts down.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1227] **Fix the command-line error findings from the 2026-11-11 code review (part 1 of 2).**
+  Group `cli-errors` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-04-7 (+RL-33) [MEDIUM] _resources.py:24: _resources.py finds the frontend and help pages via parents[2], which is wrong in a wheel install. Fix: ship the SPA and help pages as package data and find them with `importlib.resources`. ASK USER: Is a wheel (pip) install promised the web UI and help pages?
+  - RR-06-10 [LOW] cli/__init__.py:21-27: This says the re-exports exist for "the FP28 tests that exercise _cmd_serve and _cmd_refresh_inis directly". Fix: shorten it to "re-exported so `mame_curator.cli` stays the import surface; underscore names are kept for tests".
+  - RR-06-4 [MEDIUM] cli/__init__.py:3-11: This hand-kept list of commands has fallen behind the parser: `self-test` is missing. Fix: drop the list from the docstring, or stop using the docstring as the `--help` description.
+  - RL-28 [LEAD] cli/commands/copy.py:26, cli/__init__.py:78-104: `--purge-recycle` still needs `--dry-run` or `--apply`, plus all of `--dat`, `--listxml`, `--filter-report`, `--source` and `--dest`, although it uses none of them. `--purge-recycle --dry-run` really deletes.
+  - RL-35 [LEAD] cli/commands/copy.py:77: Winners missing from the DAT are silently left out of `machines` but stay in `winners`. I could not see how `run_copy` handles them.
+  - RR-06-6 [LOW] cli/commands/filter.py:80: "A1" is in another file (`parse.py:18`). Fix: say the reason in place: "a control byte in a path must not break the one-line error".
+  - RL-34 [LEAD] cli/commands/parse.py:15-21: Unlike `copy` and `filter`, `parse` has no `except OSError`. `parse_dat` does turn `OSError` into `DATError` (`parser/dat.py:99`), so this is probably fine.
+  - CR-04-12 [LOW] cli/commands/refresh_inis.py:124: refresh-inis with an unwritable --dest prints an OSError traceback.
+  - RL-30 [LEAD] cli/commands/refresh_inis.py:138: Only a per-user config gets absolute paths. With an explicit `--config` in another folder and a relative `--dest`, the saved paths are relative and will point somewhere else depending on the folder `serve` is started from.
+  - CR-04-2 [MEDIUM] cli/commands/refresh_snaps.py:84-91: _cmd_refresh_snaps has no try, so being offline or a bad pack prints a traceback. Fix: catch `httpx.HTTPError`, `ValueError`, `zipfile.BadZipFile` and `OSError` (plus `DownloadError`) → one escaped `error:` line, exit 1.
+  - RL-29 [LEAD] cli/commands/serve.py:301-305: Any normal return from `uvicorn.run` becomes exit code 130 (the Ctrl-C code). That includes a SIGTERM shutdown, for example from LocalWebServerManager stopping the server.
+  - RR-06-2 [LOW] cli/commands/serve.py:37: A reader would think this sets the default port. Fix: add a one-line comment saying it mirrors `ServerConfig.port` and only `_resolve_port`'s callers outside `_cmd_serve` see it.
+  - RR-06-7 [LOW] cli/commands/serve.py:383-391: The current rule (this catch is a safety net; real config errors show up later, as `_run_server`'s `SystemExit`) is buried under history about what the code used to be. Fix: keep only the current reason in each comment; move the history to the commit log.
+  - RR-06-8 [LOW] cli/commands/serve.py:99: The leading underscore says "private to `api/state.py`". Fix: drop the underscore on names used from other modules, or comment the outside callers at the definition.
+  - RL-32 (+RR-06-9) [LEAD] cli/commands/setup.py:66-77: It can write a `dest_roms` or playlist folder that does not exist. According to `config_location.py:88-92`, the in-app settings save then refuses that config.
+  **Layman:** The command-line tools sometimes fail with a confusing message or the wrong result.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1228] **Fix the command-line error findings from the 2026-11-11 code review (part 2 of 2).**
+  Group `cli-errors` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-06-1 [MEDIUM] config_location.py:115: The server defaults exist in three places: `ServerConfig` (`api/schemas.py:69-71`), `serve.DEFAULT_PORT`, and this literal. Fix: build the `server` block from `ServerConfig()` defaults, or add a test pinning it to them.
+  - RR-06-3 [MEDIUM] main.py:51-52: These two sets are a hand-kept copy of the top-level options in `build_parser` (`cli/__init__.py:47-54`). Fix: derive both sets from `parser._actions` the way `subcommand_names` does, or add a comment at each place naming the other.
+  **Layman:** The command-line tools sometimes fail with a confusing message or the wrong result.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1229] **Fix the settings-snapshot and backup findings from the 2026-11-11 code review.**
+  Group `config-snapshots-backups` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-05-4 [MEDIUM] api/persist.py:69-73: A file that failed to read is still listed in .covers.json, so a later restore deletes the live file. Fix: leave names that failed to read out of the covers list, or fail the snapshot.
+  - CR-05-9 [LOW] api/persist.py:87-89: Snapshot pruning sorts by folder-name time, so after a clock change it can delete the snapshot just taken. Fix: always spare `snap_id`.
+  - CR-06-2 [MEDIUM] api/pictures.py:67-68: Every picture save makes a snapshot under the shared 200 cap, pushing out config and import snapshots. Fix: keep picture snapshots on their own limit or in their own folder (for example `snapshots/pictures/`), or let the pruning spare the newest snapshot that covers `config.yaml`.
+  - CR-06-1 [MEDIUM] api/routes/backup.py:98-103: Backup import does not drop unknown keys as load_app_config does, so a newer backup fails whole after a rollback. Fix: run `_drop_unknown_keys(AppConfig, raw_config, prefix="")` in `_check_bundle` (or share one `normalise_raw_config` helper with `load_app_config`) and report the dropped keys.
+  - RL-25 [LEAD] api/routes/config.py:328: a corrupt `notes.json` in a snapshot restores as empty notes. No error is raised and nothing is logged.
+  - RR-05-2 (+RL-24) [MEDIUM] api/routes/updates.py:195-203: The list of "the user's files" exists in three copies, and they have diverged: Fix: one shared target map, with a comment on why backup leaves out `state.yaml`.
+  - CR-07-12 [LOW] api/schemas_games.py:105: A hand-edited note over 4096 characters makes GET notes fail response validation with a 500.
+  - CR-05-5 [MEDIUM] api/state.py:341-347: A corrupt or non-object notes.json loads as empty, and the next note save overwrites the old file. Fix: log the non-dict case, and block note writes while the file failed to load, or keep a `.corrupt` copy.
+  - RR-04-6 (+RR-05-7) [LOW] api/state.py:344: `_load_notes` (lines 338-348) and `routes/config.py:_read_json_dict` (lines 366-375) are the same notes.json reader, and they have diverged. Fix: have the restore route call one shared reader.
+  - CR-04-6 (+RL-31) [MEDIUM] cli/commands/refresh_inis.py:38-39, 71-73: refresh-inis rewrites config.yaml through yaml.safe_dump, dropping all comments, and takes no snapshot. Fix: take a snapshot before writing, and patch the text in a way that keeps comments (ruamel round-trip, or a targeted insert).
+  **Layman:** Faults in how settings are saved, snapshotted and restored.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1230] **Fix the copy-run findings from the 2026-11-11 code review.**
+  Group `copy-runner` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-05-10 [LOW] api/jobs.py:135-146: file_finished can fire twice for one file, so files_done can exceed files_total. Fix: only fire `file_finished` once per name, by remembering which names have finished.
+  - CR-02-7 [LOW] copy/activity.py:158: activity.py reads the whole log as UTF-8, so one bad byte breaks the reader (function has no src caller).
+  - CR-02-2 (+RR-02-15) [MEDIUM] copy/executor.py:24: The 1.0 s mtime tolerance re-copies files on FAT32 (2 s steps, DST shifts) on every re-run. Fix: allow 2 seconds of difference, and treat an exact 3,600-second difference as a match.
+  - CR-02-6 [LOW] copy/executor.py:44: executor.py fsyncs without the OSError suppression _atomic.py uses, so copies fail on filesystems that reject fsync.
+  - RL-12 [LEAD] copy/executor.py:69: The fixed `<dst>.tmp` name is the "guessable tmp suffix (collision-prone with concurrent writers)" that `write_lpl`'s docstring says was retired elsewhere. Two runs copying into the same folder could collide.
+  - RL-11 [LEAD] copy/preflight.py:88-93: `already` holds only winners, so BIOS zips already at the destination are still counted in `total_needed`, which overstates the space needed.
+  - CR-02-11 [LOW] copy/recyclebin.py:319-326: A cross-drive recycle whose source unlink fails leaves an orphan copy with no manifest; recycled_orphan is never set.
+  - CR-02-8 [LOW] copy/recyclebin.py:383: A recycle manifest timestamp with no time zone makes purge_recycle crash with TypeError. Fix: if `tzinfo` is `None`, assume UTC.
+  - CR-02-4 [MEDIUM] copy/runner.py:126-138: APPEND drops existing entries matching any winner (even failed ones) and overwrites kept entries' core and crc fields. Fix: exclude an entry only when its replacement is present (succeeded or idempotent skip), and carry the original item dicts and top-level fields through unchanged.
+  - RL-10 [LEAD] copy/runner.py:233-250: The crash report leaves out `chd_missing`, which the other two report builders set.
+  - RR-02-1 (+RL-6) [HIGH] copy/runner.py:369-374: Five sites in the per-file loop each do the same thing by hand: record the outcome, then call `on_progress(short, 0, 0)` so the progress counter reaches its total. Fix: route every non-success outcome through one helper that records it and ticks progress.
+  - CR-02-3 (+RL-8) [MEDIUM] copy/runner.py:409-436: REPLACE_AND_RECYCLE recycles the old zip before the new copy runs, so a failed copy loses the game from drive and playlist. Fix: recycle only after `copy_one` returns `SUCCEEDED` or `SKIPPED_IDEMPOTENT`, and exclude a replaced entry only when its replacement is present.
+  - RL-13 [LEAD] copy/runner.py:439: In a dry run, `src.stat()` is not wrapped. A source that vanishes after the `exists()` check would crash the run.
+  - RL-7 [LEAD] copy/runner.py:540-564: In the cancel-and-recycle path, a file whose recycle fails stays at the destination, but `succeeded.clear()` removes it from the report and no warning is added.
+  - RL-9 [LEAD] copy/runner.py:588-589: `overwritten` and `recycled` are not sorted, but `copy/spec.md:411` says every tuple is sorted, with recycle records sorted by path.
+  - CR-02-1 (+RR-02-6) [HIGH] copy/runner.py:79: CANCEL re-run goes ahead when all winners are present and rewrites mame.lpl with only the narrowed set. Fix: also require that the existing playlist's entries match the winner set (or that no other zips are at the destination). Otherwise return `CANCELLED_PLAYLIST_CONFLICT`, in both this function and `check_playlist_conflict`.
+  **Layman:** Faults in how games are copied and the RetroArch playlist is written.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1231] **Bring the documents back in line with the code (2026-11-11 code review).**
+  Group `doc-drift` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-01-6 [MEDIUM] docs/design.md § 6.2 vs filter/drops.py:146-152: design.md 6.2 says drop rules are AND'd and lists drop_genres that can never match; code and filter/spec.md do first-match OR (doc-side).
+  - CR-04-13 [LOW] docs/design.md § 7: design.md 7 says server.port auto-increments to 8090; serve exits 1 as cli/spec.md specifies (doc-side).
+  - CR-05-13d [LOW] docs/design.md § 7: design.md 7 says snapshots are kept 30 days; the code keeps the newest 200. Fix: doc-side: review-contract
+  - CR-04-14 [LOW] docs/design.md § 7; api/schemas.py:179: design.md 7 and api/schemas.py default ini_check_on_startup: true, but 6.7 says the startup check is deferred and nothing reads it.
+  - CR-10-7 [LOW] docs/design.md § 8; strings_internal.ts:813-816: design.md 8 lists Media cache clear and Re-run wizard in Settings; neither exists, and two strings are orphans. ASK USER: Are "clear media cache" and "Re-run wizard" in Settings dropped or still owed?
+  - CR-05-13c [LOW] docs/plans/P04 § SSE: P04's SSE table names total_files/total_bytes; the code sends files_total/bytes_total. Fix: doc-side: review-contract
+  - CR-05-13b [LOW] docs/plans/P04 § Security: P04's Security table still says "CSRF not implemented" and "CORS allowlist". Fix: doc-side: review-contract
+  - CR-10-8 [LOW] docs/specs/mame-curator-1145 § 4.4; strings_internal.ts:715-718: 1145 4.4's fsGrantConfirm string is older than the code's 1170 wording (doc-side).
+  - CR-09-13 [LOW] fe/components/library/FeaturedTilesRow.tsx:23: FeaturedTilesRow comment and P15 say page_size=0; the code correctly sends 1 (doc-side).
+  - CR-05-13a (+RR-04-1) [LOW] api/__init__.py:10-12: api/__init__.py says every callable raises NotImplementedError and lists names not in __all__. Fix: doc-side: fix the docstring
+  - CR-07-9 [LOW] api/spec.md § Media proxy: api/spec.md says the arcadeDB and Wikipedia limiters gate sources not yet exposed by a route; they are (doc-side).
+  - CR-01-15 [LOW] filter/config.py:11: filter/config.py docstring and design.md 6.2 claim a Casino/Mahjong drop_categories default the code does not have (doc-side).
+  - CR-01-14 [LOW] filter/heuristics.py:20-25: filter/spec.md documents a stale REGION_RE suffix (doc-side).
+  - CR-03-14 [LOW] media/mobygames.py:91: Module-level mutable globals break coding-standards 3 but the media spec endorses them; which rule governs is open. ASK USER: Which governs module globals: coding-standards 3 or media/spec.md?
+  - CR-03-12 (+RR-03-9) [LOW] media/spec.md:535-537: media/spec.md and media/__init__.py still say the MobyGames cover parse is deferred, though it is built (doc-side).
+  **Layman:** Places where the project's documents describe something the app no longer does.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1232] **Fix the small screen findings from the 2026-11-11 code review.**
+  Group `frontend-small-fixes` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RL-43 (+RR-08-4) [LEAD] fe/App.tsx:178: a failed background reload of a page already showing data replaces the page with the error panel. Settings (446) avoids this.
+  - CR-08-9 [LOW] fe/App.tsx:416: The backup filename uses UTC time with no zone marker. Fix: build the name from local date parts.
+  - CR-08-5 (+RR-07-2, RL-36) [LOW] fe/api/client.ts:76: client.ts tags a 200 with a bad body as status -1, the same as "never reached the server". Fix: The code is the wrong side. Fix: give `parse` the real status as a parameter.
+  - RR-12-1 (+RL-59) [HIGH] fe/components/guide/settings/FoldersTopic.tsx:65: The comment claims something the code does not do. Fix: decide whether Settings' Cancel should behave like the wizard's, then make the code and comment say the same. - ASK USER: Should Cancel in the Settings folder topic return focus like the wizard (to the opening button)?
+  - RL-60 [LEAD] fe/components/guide/steps/WhereStep.tsx:37: `setFocusKey` runs before the `!paths` and same-folder checks, so focus jumps to the heading even when the choice is refused. That is probably fine, since the alert then reads; not confirmed.
+  - CR-10-4 [LOW] fe/components/settings/DownloadPackModal.tsx:43: A failed clipboard copy in DownloadPackModal shows no message. Fix: show a short "Copy failed — select the command above" status.
+  - RL-55 [LEAD] fe/components/settings/SnapshotsTab.tsx:67-89: `restoreError` shows only in the list view. The comment at lines 50-51 says the list may reload with an error or empty after a restore, and in those views a failed restore shows no alert.
+  - RL-56 [LEAD] fe/components/settings/UpdatesTab.tsx:75-77: `NoCheckYet` says "checking" whenever `checkFailed` is false, even when `checking` is false and no check is running.
+  - CR-10-5 [LOW] fe/strings_internal.ts:860-861: The fs_sandboxed message points to a Settings Paths control that does not exist. Fix: reword to "Choose it with Browse… and allow it when asked."
+  **Layman:** Small faults on the app's screens: focus, labels and messages.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1233] **Fix the Library page findings from the 2026-11-11 code review (part 1 of 2).**
+  Group `library-page-ui` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-08-3 [MEDIUM] fe/App.tsx:57-90: After an in-app update, an open tab's lazy page load fails forever; Try again cannot recover. Fix: when a page file fails to load, reload the whole page once (guarded by a sessionStorage flag), or have the fallback offer a reload when `error.name === "ChunkLoadError"` or the dynamic-import message matches.
+  - CR-09-8 [LOW] fe/components/ConfirmationDialog.tsx:69-72: ConfirmationDialog still confirms when busy, because aria-disabled does not stop clicks. Fix: `if (busy) return;` in `handleConfirm`.
+  - RR-10-4 [MEDIUM] fe/components/alternatives/AlternativesDrawer.tsx:284: This is one of three "Retry while retrying" buttons, and they have drifted apart: Fix: one shared retry button used by all three.
+  - RL-42 (+RR-08-3, RL-48) [LEAD] fe/components/alternatives/AlternativesDrawer.tsx:284: `disabled={retrying}` drops keyboard focus during a retry, which is the fault RouteLoadError's comment describes.
+  - RL-50 [LEAD] fe/components/library/CopyModal.tsx:147: `absoluteIndex` is negative with fewer than 3 warnings, and the first warning's key changes as warnings arrive (−2 → −1 → 0). That contradicts the "keeps DOM identity stable" comment
+  - CR-09-11 (+RR-10-3) [LOW] fe/components/library/CopyModal.tsx:74: CopyModal's comment says nothing reattaches to a job, contradicting the reattached prop. ASK USER: May the copy dialog be closed while a copy runs, now that copies reattach?
+  - RL-58 [LEAD] fe/components/library/CopyModal.tsx:91: the Library's progress bar uses `pct` even when the copy is complete, so it can stop short of 100% where the guide shows 100%.
+  - RL-52 [LEAD] fe/components/library/DryRunModal.tsx:64-66: each label is printed twice ("New … 5 new"). May be intended
+  - RL-49 [LEAD] fe/components/library/FiltersSidebar.tsx:91: `searchDraft` never follows an outside change to `value.search`, so the box can show stale text. I did not find which outside change reaches the full view while the sidebar is mounted
+  - CR-09-2 (+RL-41) [MEDIUM] fe/components/library/GameCard.tsx:164-171: Once in the cart, a card's button is announced as "Remove" but pressing it does nothing. Fix: make `onAdd` a toggle (`cart.has(s) ? cart.remove(s) : cart.add(s)`), or make the name "X is in cart" with `aria-pressed`.
+  - CR-09-4 (+RL-51) [MEDIUM] fe/components/library/OnboardingBanner.tsx:24: OnboardingBanner reads localStorage with no guard, so blocked storage crashes the full Library view. Fix: wrap the read in `try` and default to `false`.
+  - CR-08-7 [LOW] fe/hooks/useAlternatives.ts:84: Delete-alternatives refreshes only on full success, so a partial failure leaves stale choices on screen. Fix: move the refresh to `onSettled`.
+  - CR-08-2 (+RL-40) [MEDIUM] fe/hooks/useCart.ts:131-158: useCart.addAll fills its report inside a state updater, so the cart-full warning can silently not show. Fix: work out `next` from the `items` value at call time (or a ref), then call `setItems(next)` and return the report from that same calculation.
+  - CR-08-8 (+RL-39) [LOW] fe/hooks/useCart.ts:147: useCart over-counts truncated when the input has an earlier duplicate. Fix: use the loop index.
+  - CR-08-10 (+RR-08-8, RL-44) [INFO] fe/hooks/useUpdates.ts:99: useIniApply invalidates every query, re-running the startup update check refreshEverything skips (cost only).
+  - CR-09-14 [LOW] fe/pages/ActivityPage.tsx:40: An Activity ?page= past the end shows the empty state with no way back.
+  - CR-09-12 [LOW] fe/pages/LibraryPage.tsx, LibraryGrid.tsx, FiltersSidebar.tsx, useLibraryController.ts: LibraryPage, LibraryGrid, FiltersSidebar and two function bodies exceed the frontend size caps.
+  **Layman:** Faults on the Library page: filters, paging, the copy dialog and the cards.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1234] **Fix the Library page findings from the 2026-11-11 code review (part 2 of 2).**
+  Group `library-page-ui` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-09-9 [LOW] fe/pages/LibraryPage.tsx:247: Adding one game at the cart cap is silently ignored, while bulk add shows a toast. Fix: have `add` report the cap, and toast it.
+  - CR-09-6 [MEDIUM] fe/pages/LibraryPage.tsx:404-408: A dry run in flight is not part of the copy lock, so its modal's Copy can start a second job. Fix: add `dryRun.isPending` to `copyDisabled`, and make `handleCopy` return early when `copySession.state !== null`.
+  - CR-09-5 [MEDIUM] fe/pages/useLibraryController.ts:113: The full view shows only the first 200 games with no "showing N of M" hint. Fix: show the "showing first N of M" line in the full view too, or page or infinite-scroll the grid. ASK USER: Should the full Library grid page past 200, or just say "showing first 200 of N"?
+  - CR-09-7 [LOW] fe/pages/useLibraryController.ts:208: Bulk add has no in-flight guard, so a double-click runs two pagination loops. Fix: a pending flag that also disables the button.
+  - RR-09-3 (+RL-45) [MEDIUM] fe/pages/useVersionChoice.ts:63: The same warning appears in two places, and the count has drifted. Fix: VersionPage.tsx:71` counts `unusable`. The string's comment says it counts "older choices", and this file's own comment at line 16 says `unusable` names those choices. A stranger cannot tell which count is right without asking. — Fix: count `unusable` in both places, or state that the two lists always have the same length.
+  **Layman:** Faults on the Library page: filters, paging, the copy dialog and the cards.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1235] **Make the picture cache reliable (2026-11-11 code review).**
+  Group `media-cache-reliability` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-03-5 [MEDIUM] media/cache.py:120-127: The cache writers do not clean up .tmp or wrap OSError on a full disk, unlike the fixed downloads.py. Fix: add `OSError` to the cleanup clause and re-raise it as `MediaFetchError`.
+  - CR-03-4 [MEDIUM] media/cache.py:97: The cache uses a fixed .tmp name, so concurrent fetches of one URL can publish a torn file or 500. Fix: `tempfile.NamedTemporaryFile(dir=path.parent, delete=False)`.
+  - CR-03-10 [LOW] media/cache_text.py:69-70: A text-cache hit that fails to read or decode escapes untyped, so /wiki can return 500. Fix: wrap the read, unlink the bad slot, and raise `MediaFetchError`.
+  - CR-03-6 (+RL-15) [MEDIUM] media/sources.py:278-281: ArcadeDB and Wikipedia spend a rate-limit token before checking the disk cache, so cached art 404s after 30 cards a minute. Fix: check `cache_path_for(url).exists()` before calling `acquire()`. ASK USER: Is the art rate limit a courtesy budget for the upstream (spend only on real requests) or a hard request cap?
+  **Layman:** The picture store can be left half-written or spend its download allowance on pictures it already has.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1236] **Fix the game-list reading and filtering findings from the 2026-11-11 code review (part 1 of 2).**
+  Group `parser-filter` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-01-12 [LOW] filter/_io.py:16: The app can save a state.yaml larger than the 1 MiB cap its own loader refuses.
+  - RR-01-7 [LOW] filter/_io.py:3: the docstring names two users. Fix: say "the filter/ YAML loaders" and drop the list of names. - **
+  - RR-01-8 [LOW] filter/_io.py:38: "1 MiB" is hand-written in this message and in the docstring at line 20, beside the constant `_MAX_YAML_BYTES`. Fix: derive the figure in the message from the constant; drop it from the docstring. - **
+  - RR-01-10 [LOW] filter/heuristics.py:22: the region names are kept by hand in two lists: the `REGION_RE` pattern (lines 22-23) and the `Region` enum (35-49). Fix: build the pattern's alternation from `Region`, or put a cross-reference comment on each list. - **
+  - CR-01-9 [LOW] filter/overrides.py:28: Overrides accept empty keys and values, against filter/spec.md's non-empty rule. Fix: constrain both key and value types to `min_length=1`.
+  - RR-01-2 [MEDIUM] filter/overrides.py:81: `load_overrides` (73-92), `load_review_state` (`review_state.py:55-74`) and `load_sessions` (`sessions.py:92-108`) are three copies of one loader skeleton. Fix: move the shared prefix (exists / read / parse / null / mapping) into `_io.py` beside `read_capped_text`. - **
+  - CR-01-10 [LOW] filter/overrides.py:89-90: The null-section fix given to the sessions loader is missing from the overrides and review-state loaders. Fix: apply the same None→`{}` handling in both.
+  - RR-01-3 [LOW] filter/picker.py:4: the picker cites `filter/spec.md` by line number in three places, and none of them points at the right text now. Fix: cite spec sections (§ Phase B, § Public API) instead of line numbers. - **
+  - CR-01-5 (+RR-01-1, RL-1) [MEDIUM] filter/runner.py:139-140: Session include_genres matches the whole catver category while drop_genres and filter/spec.md use the derived genre. Fix: lane 01: doc-side, hand filter/spec.md to review-contract; readability RR-01-1: one genre rule for both sites, or state the difference (product decision) USER DECIDED 2026-11-11: saved selections match the short genre (text after the last /), as the hide list and filter/spec.md Phase D do.
+  - RL-5 [LEAD] filter/runner.py:52-62,98: `ContestedGroup.winner` records the picker's winner even when a Phase C override replaces it. This may be intended.
+  - CR-01-13 [LOW] filter/runner.py:75-97: Phase C warnings are not sorted, against filter/spec.md "sorted in canonical order" (which side is wrong is open).
+  - RR-01-11 [LOW] filter/sessions.py:146: the comment says the validator now handles empty session keys and the loader's duplicate check was removed. Fix: say why the loader keeps its early check, or remove it. - **
+  - RR-01-13 [LOW] filter/types.py:13: the enum's docstring describes the drop order as if the enum decided it. Fix: point the docstring at `drops._PREDICATES` as the thing that decides order. - **
+  - RR-01-9 [LOW] filter/types.py:66: the docstring says only Phase A (the drop rules) uses this context. Fix: say the context is used by phases A to D. - **
+  - RR-01-6 [LOW] parser/dat.py:155: this comment says the API exposure is in the future. Fix: put the comment in the present tense and word the message without "extraction". - **
+  - CR-01-8 (+RL-3) [LOW] parser/dat.py:238,241,248,309,318,329: Several DATErrors are raised without path= and are not re-wrapped, against "every ParserError carries the source path". Fix: catch `DATError` in `_stream_machines` and `check_dat_start` and re-raise it with the path.
+  - CR-01-4 [MEDIUM] parser/dat.py:76: For a .zip DAT, parse errors name the deleted temp file, not the user's file. Fix: pass the user's `path` into `_stream_machines` to build errors.
+  **Layman:** Faults in reading the game list and choosing which versions to keep.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1237] **Fix the game-list reading and filtering findings from the 2026-11-11 code review (part 2 of 2).**
+  Group `parser-filter` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RL-4 [LEAD] parser/dat.py:95: `check_dat_start` catches `ValidationError` from `_machine_from_element`, but `_stream_machines` (`parse_dat`) does not. If a `Machine` ever failed validation, it would escape `parse_dat` untyped. It may be unreachable.
+  - CR-01-7 (+RR-01-12) [LOW] parser/ini.py:38: parse_catver keeps key=value lines that come before any section header, against parser/spec.md. Fix: add `or not section`.
+  - CR-01-16 [LOW] parser/ini.py:57: A name listed twice under one language section yields a duplicated tuple, so rule 7 fails to drop it. Fix: de-duplicate per name.
+  - CR-01-3 [MEDIUM] parser/listxml.py:111: A listxml with no <machine> elements returns empty facts with no error, so every clone silently becomes its own group. Fix: raise `ListxmlError("listxml contained no <machine> elements")` when `chain` is empty.
+  - RR-01-5 [LOW] parser/listxml.py:22: `_driver_status_from_element` has a private name and its docstring speaks only of "the whole DAT parse" (`dat.py:337`), yet `listxml.py:86` uses it too. Fix: give it a public name, or move it to a module both parsers import, and update the docstring. - **
+  - RR-01-4 [LOW] parser/listxml.py:4: the module docstring describes CHD detection only. Fix: restate the docstring as "every fact read from `-listxml`". - **
+  - CR-01-2 [MEDIUM] parser/listxml.py:73-113: Nothing reads or logs the -listxml MAME build version that ADR-0003 promises as its wrong-version defence. Fix: read `build` from the root (a `start` event, or `elem.getparent()` on the first machine) and log it at INFO; return it in `ListxmlFacts`.
+  **Layman:** Faults in reading the game list and choosing which versions to keep.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1238] **Make the web-service code easier to follow (2026-11-11 readability review) (part 1 of 2).**
+  Group `rd-api` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-04-2 [MEDIUM] api/app.py:131: The comment presents itself as the list of routes that take `world_lock`, and says 14. Fix: keep the one-sentence rule, and point at the spec's "Mut." column instead of the count.
+  - RR-04-8 [LOW] api/app.py:214: This contradicts `_SPAStaticFiles` in the same file. Fix: say the subclass provides the fallback, with its carve-outs.
+  - RR-04-10 [LOW] api/jobs.py:167: `start()` sets `self._loop = asyncio.get_running_loop()` on every call (line 197), not only when none was set. Fix: say `start()` always rebinds to the running loop.
+  - RR-04-3 [MEDIUM] api/jobs.py:289: `pause`, `resume` and `abort` (lines 289, 298, 305) each wait 50 ms before building their reply, and nothing says why. Fix: add a one-line why-comment, or name the delay as a constant that states its purpose.
+  - RR-04-9 [LOW] api/jobs.py:445: The branch body is `pass`. Fix: delete the branch, or turn it into a one-line comment on the `else`.
+  - RR-04-13 [LOW] api/persist.py:125: The current guarantee (stage everything, then promote; a failure during staging leaves the live files alone) is buried in a description of the old code. Fix: keep only the current guarantee and its remaining risk (a failure during promote).
+  - RR-05-16 [LOW] api/routes/_deps.py:19: `app.state.job` holds the `JobManager`, not a job. Fix: comment at `get_jobs`. Renaming the attribute is pinned.
+  - RR-05-14 [LOW] api/routes/activity.py:43-49: The current rule (memory is bounded by `page * page_size`) is buried under a pre-fix/post-fix story. Fix: keep only the current constraint, and move the history to the commit body.
+  - RR-05-15 [LOW] api/routes/backup.py:27-31: `backup.py` imports four underscore-private names from other route modules: `_config_to_yaml`, `_import_path_errors`, `_swap_in_and_reply`, and, at line 113, `curate._SESSION_NAME_RE`. Fix: drop the underscore on the names shared across modules.
+  - RR-05-11 [LOW] api/routes/config.py:188: `games.py:275` is now inside `get_game`. Fix: name `games.launch_game` instead of a line number.
+  - RR-05-3 [MEDIUM] api/routes/config.py:358: Despite its name, `_stringify` changes nothing. Fix: delete `_stringify`, say in the docstring that `mode="json"` does the conversion, and have `fs.py` import `config._config_to_yaml` as `backup.py` already does.
+  - RR-05-10 [LOW] api/routes/curate.py:149-152: "persist, replace_world, set_world, return listing" repeats in four session handlers (lines 149-152, 169-172, 187-190, 205-208). Fix: one `_commit_sessions(request, world, new_sessions)` helper.
+  - RR-05-8 [LOW] api/routes/curate.py:221: The write rebuilds the data folder from `config_path`. Fix: use `world.data_dir / "state.yaml"`.
+  - RR-05-9 [LOW] api/routes/fs.py:135-138: The block "snapshot config.yaml if it exists, then write it" exists in three copies: `fs.py:135-138`, `fs.py:172-175` and `config.py:277-281`. Fix: one `save_config(world, new_config)` helper.
+  - RR-05-13 [LOW] api/routes/games.py:337: The ROM can also come from `source_roms` (lines 319-323). Fix: say "`dest_roms` or `source_roms`".
+  - RR-05-4 [MEDIUM] api/routes/games.py:68-69: The badge `BIOS_MISSING` (and the `only_bios_missing` filter) means "this game needs a BIOS". Fix: a one-line comment at the badge lines saying both badges mean "needs", not "absent". Renaming would change the wire format.
+  - RR-05-12 [LOW] api/routes/help.py:31: Line 54 is `help_index`'s existence check. Fix: name `help_topic`'s `relative_to` check instead of a line number.
+  **Layman:** Tidying so someone new can follow and change the web-service code safely.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1239] **Make the web-service code easier to follow (2026-11-11 readability review) (part 2 of 2).**
+  Group `rd-api` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-05-5 [MEDIUM] api/routes/stubs.py:1: The module is named `stubs`, but it holds the real, working setup-wizard checks (DAT parse probe, path probes, a cache). Fix: rename to `setup.py`, or at least make the docstring say "setup-wizard checks".
+  - RR-05-6 [MEDIUM] api/routes/updates.py:239-251: In `_apply_git`, `to_version = None` secretly means "dev channel". Fix: set `dev = world.config.updates.channel == "dev"` once at the top, and keep `to_version` for the version only.
+  - RR-04-14 [LOW] api/schemas_setup.py:18: These models are live response shapes, not stubs. Fix: drop "stubs".
+  - RR-04-5 [MEDIUM] api/state.py:120: `cli/commands/serve.py:_load_server_config` (lines 98-130) repeats this function's YAML read, error wrapping, unknown-key drop and warning. Fix: add a comment here naming `_load_server_config`, or have both call one shared YAML-mapping reader.
+  - RR-04-7 [LOW] api/state.py:200: `_read_ini` (lines 193-210) and `_read_listxml` (lines 213-227) are one "optional file; skip with WARNING if unreadable" behaviour. Fix: route the listxml through the same helper.
+  - RR-04-11 [LOW] api/state.py:332: Pydantic's `frozen` stops a field from being reassigned; it does not stop changes to the dict itself. Fix: say the field is not reassignable and the dict is shared by convention, not enforced.
+  - RR-04-12 [LOW] api/state.py:460: The example points at something that does not exist. Fix: drop the example, or name a real one.
+  **Layman:** Tidying so someone new can follow and change the web-service code safely.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1240] **Make the copy code easier to follow (2026-11-11 readability review).**
+  Group `rd-copy` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-02-4 [MEDIUM] _atomic.py:26-73: `atomic_write_bytes` (26-73) and `atomic_write_text` (104-171) carry the same write-then-rename protocol, about 25 lines each. Fix: make `atomic_write_text` encode its text and call `atomic_write_bytes`, which gains the `mode` parameter.
+  - RR-02-11 [LOW] _atomic.py:3-7: The module docstring opens with history and stale line numbers (`copy/executor.py:60-79`, `cli/__init__.py:189-203`). Fix: replace it with one line on what the module guarantees, and name `executor.copy_one` as the one deliberate exception.
+  - RR-02-17 [LOW] copy/controller.py:15: Nothing ever sets this state, and nothing reads it. Fix: either set it when a run ends, or remove it and say so.
+  - RR-02-14 [LOW] copy/errors.py:69: Close errors are suppressed, not wrapped (activity.py:97-98). Fix: change the list to "mkdir, open, or write".
+  - RR-02-18 [LOW] copy/playlist.py:33-35: The module docstring says "RetroArch v6+", but the file writes format `"1.5"`. Fix: add one comment saying these are RetroArch's playlist-format values, not its app version.
+  - RR-02-16 [LOW] copy/preflight.py:63-65: A refused short name is counted as `missing_source`, while the runner reports the same name as `FAILED`. Fix: add a one-line comment pointing to the spec rule.
+  - RR-02-12 [LOW] copy/recyclebin.py:298-300: The comment says there is "no rollback to perform", and the very next lines (306-308) roll back with `target_dir.rmdir()`. Fix: say that only the directory created by this call is removed, and drop "(L below)".
+  - RR-02-8 [LOW] copy/runner.py:142-153: _resolve_conflicts resolves nothing; the name misleads. Fix: rename it (for example `_load_append_context`) and correct the docstring.
+  - RR-02-10 [LOW] copy/runner.py:291-294: The comment says "at runner.py:240", but line 240 is now inside `_record_crash`. Fix: drop the line number and the history, and keep the one-line reason.
+  - RR-02-3 [MEDIUM] copy/runner.py:426-429: Three blocks do "recycle a file, then record it": 413-435, 507-524 and 541-560. Fix: one helper for recycle-and-record, with a single exception list and a single decision about warnings.
+  - RR-02-2 [MEDIUM] copy/runner.py:579-594: The finished report is built in three places: `_run_copy` (579), `_finalize` (649) and `_record_crash` (233). Fix: build every report and abort event from `_RunState` through one function each.
+  - RR-02-7 [LOW] copy/runner.py:61: The name suggests it looks on disk for missing CHD files. Fix: rename the helper to say "CHD-required winners", or add a one-line docstring.
+  - RR-02-9 [LOW] copy/runner.py:636: The name sounds like the general finishing step. Fix: rename it to something like `_abort_early`.
+  - RR-02-13 [LOW] copy/types.py:5-6: copy/types.py docstring cites a test (test_copy_idempotent) that does not exist. Fix: say which tuples are sorted, and drop the test name.
+  **Layman:** Tidying so someone new can follow and change the copy code safely.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1241] **Make the screen code easier to follow (2026-11-11 readability review) (part 1 of 3).**
+  Group `rd-fe-pages` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-12-10 [LOW] fe/components/guide/GuideAction.tsx:41: The link version silently ignores three settings. Fix: say in the doc that `disabled`, `busy` and `pressed` apply to the button form only. -
+  - RR-12-6 [MEDIUM] fe/components/guide/GuideStep.tsx:14: The example in this comment is now false. Fix: replace the example with a current one, such as "as while a save or start is under way" (CheckStep, SetupWizard). -
+  - RR-12-12 [LOW] fe/components/guide/settings/LeaveOutTopic.tsx:14: The strings catalogue silently decides which settings appear. Fix: a one-line comment that the `kinds` keys are `filters` field names and choose which switches show. -
+  - RR-12-9 [LOW] fe/components/guide/settings/SettingsStep.tsx:2: The comment understates who uses this file. Fix: say in the comment that `ChoiceLabel` is shared by both guides, or move it to `guide/`. -
+  - RR-12-8 [LOW] fe/components/guide/steps/ChooseGroupStep.tsx:52-55: One step hides the server's error message without saying why. Fix: use `apiErrorMessage(facets.error)` like the rest, or comment why not. -
+  - RR-12-7 [LOW] fe/components/guide/steps/PictureDoneStep.tsx:24: The comment suggests sharing that does not exist. Fix: VersionPage) renders its failure through this component. It does not: the only caller is `FixPictureGuide.tsx`, and FixVersionPage has its own copy. - A stranger would edit this component expecting both halves to change. - Fix: say "a failure screen like the version half's", or make it true by sharing. -
+  - RR-12-5 [MEDIUM] fe/components/guide/steps/PictureDoneStep.tsx:32: A shortcut name that hides keys from the strings test. Fix: VersionPage.tsx:104, 132 and 138 spell `savingHeading`, `nothingChanged` and `failedHeading` in full. Those are the only full spellings (searched `strings.guide.fix.(savingHeading|…)`). - The obvious tidy-up is to make FixVersionPage's identical "saving" and "failed" screens (FixVersionPage.tsx:101-150) reuse this one. Doing that turns `strings.test.ts` red, and nothing here says why. - Fix: spell those keys as `strings.guide.fix.<key>` here and drop the short name. -
+  - RR-12-3 [MEDIUM] fe/components/guide/steps/SetupWizard.tsx:113: SetupWizard treats a restart_required reply as "not a game list" with no comment saying why (spec 1145 4.3). Fix: a one-line comment saying that in setup mode `restart_required` means the game list did not load. -
+  - RR-12-13 [LOW] fe/components/guide/steps/SetupWizard.tsx:29: A hand-kept number that must match the step order. Fix: work it out from `STEPS` by finding the `source_dat` entry. -
+  - RR-12-11 [LOW] fe/components/guide/steps/WhatThatFindsStep.tsx:31: The name `count` holds the whole query result, not a number. Fix: rename it to something like `countQuery`. -
+  - RR-12-2 [MEDIUM] fe/components/guide/steps/WhereStep.tsx:89-95: Three copies of the large folder picker, and they have drifted apart. Fix: give the three guide sites one shared choice of props, or comment why WhereStep differs. -
+  - RR-10-6 (+RR-12-4) [MEDIUM] fe/components/library/CopyModal.tsx:64-70: The copy state rules are duplicated in `CopyingStep.tsx:35-52`: `live`, `paused`, `controllable`, `problem`, `pct`, the "preparing" progress line, the problem block, and the `AbortCopyDialog` wiring. Fix: move the shared state reading into one hook beside `copyOutcome`.
+  - RR-10-11 [LOW] fe/components/library/DryRunModal.tsx:79: A hard-coded copy of `strings.common.cancel`, and the `SECTIONS` labels are hard-coded English too. Fix: use `strings.common.cancel` and move the section labels into the catalogue.
+  **Layman:** Tidying so someone new can follow and change the app's pages safely.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1242] **Make the screen code easier to follow (2026-11-11 readability review) (part 2 of 3).**
+  Group `rd-fe-pages` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-10-5 [MEDIUM] fe/components/library/FiltersSidebar.tsx:104-115: The debounced search box exists twice. Fix: one shared debounced search-box component that carries the id.
+  - RR-10-7 [LOW] fe/components/library/GameCard.tsx:101-102: It claims that a cart drawer renders `GameCard` alongside the grid. Fix: drop the false clause and keep the one-line invariant.
+  - RR-10-9 [LOW] fe/components/library/LibraryFullHeader.tsx:86: The walkthrough setting is read in `libraryPageHelpers.readWalkthroughPref` but saved here, inside one switch's handler. Fix: save beside `readWalkthroughPref`, in the owner's setter.
+  - RR-11-4 [LOW] fe/components/settings/DragReorderList.tsx:30-37: The current rule is "`role=list`, because rows are moved by per-row controls". Fix: lead with the rule in one line and move the story to the journal.
+  - RR-11-3 [LOW] fe/components/settings/DragReorderList.tsx:38: The name promises drag-and-drop. Fix: rename to something like `ArrowReorderList`.
+  - RR-11-2 [MEDIUM] fe/components/settings/DragReorderList.tsx:72: This comment is false twice over: Fix: name both callers and say where each one's uniqueness actually comes from.
+  - RR-11-6 [MEDIUM] fe/components/settings/FsBrowser.tsx:119: Real app code finds the first row through a test id. Fix: add a comment at both `data-testid` sites naming this query, or use a dedicated attribute or ref instead.
+  - RR-11-8 [LOW] fe/components/settings/FsBrowser.tsx:142: In React, a `use…` name means a hook. Fix: rename to something like `pickCurrentFolder`.
+  - RR-11-5 [MEDIUM] fe/components/settings/FsBrowser.tsx:173-174: "see C2 comment" points nowhere. Fix: say the loop in one line here (what re-prompts, and why) and drop the dangling pointer.
+  - RR-11-9 [LOW] fe/components/settings/FsBrowser.tsx:199: `words`, `footerButton` (203) and `pathButton` (205) hold CSS class strings. Fix: name them as class names, e.g. `textSizeClass`, `footerButtonClass`.
+  - RR-11-7 [LOW] fe/components/settings/FsBrowser.tsx:315: The function already returned at line 168 whenever `sandboxBlocked` is set. Fix: drop both dead conditions.
+  - RR-11-10 [LOW] fe/components/settings/FsBrowser.tsx:82-85: The comment says `instanceof` fails across vitest's module graph, so it checks the error's `code` field instead. Fix: confirm whether the duck-typing is still needed, then fix the comment or the other sites to match.
+  - RR-11-1 [MEDIUM] fe/components/settings/PathRow.tsx:41: `FolderField` and `PathRow` are two copies of one widget: a label, a text box that saves when you leave it, a Browse button and an `FsBrowser`. Fix: make one folder-field component that covers both, with `optional`, `mode` and `help` as options.
+  - RR-11-13 [LOW] fe/components/settings/SnapshotsTab.tsx:11-25: This is a 15-line paragraph docstring mixing three review-round labels with the rule. Fix: keep the rule, and move the history to the journal.
+  - RR-11-11 [MEDIUM] fe/components/settings/UpdatesTab.tsx:97: An apply result asks for a restart only when the install is a git install. Fix: add a one-line comment giving the reason for the git-only check.
+  - RR-11-12 [LOW] fe/components/settings/YearRangeEditor.tsx:12: This reads as "both switches start at `minYear`". Fix: say "the default for `before`", matching line 14.
+  - RR-09-15 [LOW] fe/pages/FixVersionPage.tsx:36: The file is named `FixVersionPage` but exports `FixVersionRoute`. Fix: VersionPage` but exports `FixVersionRoute`. It also hosts the picture question. A stranger would look for a `FixVersionPage` component, and would not look in this file for the picture flow. — Fix: name the file after its export.
+  **Layman:** Tidying so someone new can follow and change the app's pages safely.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1243] **Make the screen code easier to follow (2026-11-11 readability review) (part 3 of 3).**
+  Group `rd-fe-pages` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-09-13 [LOW] fe/pages/HelpPage.tsx:54-56: The comment says `ADD_ATTR` adds `target`, but `ADD_ATTR` holds only `"rel"` (line 45). Fix: say `target` survives only through `forceKeepAttr`, and move the `rel` sentence above the second hook.
+  - RR-09-14 [LOW] fe/pages/HelpPage.tsx:99-101: This describes optional-chaining code that is no longer there. Fix: delete it.
+  - RR-09-1 [MEDIUM] fe/pages/LibraryPage.tsx:220-223: This keeps the error panel on screen while a retry runs. Fix: call `loadFailed(games)` and `loadFailed(alternatives)`, and cut the FP26-V comment to one line.
+  - RR-09-8 [LOW] fe/pages/SettingsPage.tsx:351-435: There are three label-plus-dropdown rows with the same shape: same width, same `aria-label` pattern. Fix: a `PrefSelect` component beside the existing `PrefSwitch`.
+  - RR-09-2 [MEDIUM] fe/pages/libraryPageHelpers.ts:105-111: `fetchTileCount` builds the `/api/games` address by hand. Fix: build a `GamesQuery` with `page: 1, pageSize: 1` from the tile's query and call `toQueryString`.
+  - RR-09-11 [LOW] fe/pages/useLibraryController.ts:2-3: This comment, and the same one at `libraryPageHelpers.ts:3`, says the split brought the page under the 350-line cap. Fix: drop the cap claim, or say the sizes were true at the time of the split.
+  - RR-09-4 [MEDIUM] fe/pages/useLibraryController.ts:235-237: The copy request (`selected_names`, `conflict_strategy`, `append_decisions: {}`) is built in three places: the dry run here (lines 243-247), the copy here (lines 278-282) and `GuidePage.tsx:60-66`. Fix: one shared constant, or one request-builder, used by both files.
+  - RR-09-10 [MEDIUM] fe/pages/useLibraryController.ts:295-299: The comment contradicts itself. Fix: state the real rule (the effect must fire only when the copy outcome or the clear policy changes) and drop the stability claim.
+  - RR-09-12 [LOW] fe/pages/useLibraryController.ts:322-327: The progress window closes after a copy only in some cases. Fix: one line naming what the window still shows in each case it stays open.
+  **Layman:** Tidying so someone new can follow and change the app's pages safely.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1244] **Make the screen frame and data code easier to follow (2026-11-11 readability review) (part 1 of 2).**
+  Group `rd-fe-shell-data` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-08-6 (+RR-09-7) [LOW] fe/App.tsx:188-196: The same loading line (`role="status"` with the same classes) is written six times: here, 277, 315, 351, 456, and in LibraryPage:234-240. Fix: one loading-status component.
+  - RR-08-10 [LOW] fe/App.tsx:439-441: Turning an error into words is done two ways: Fix: use `apiErrorMessage` throughout, or state the exception in one place.
+  - RR-08-17 [LOW] fe/App.tsx:481-485: Five lines of history about a removed conditional sit inside the prop the reader is trying to understand. Fix: cut to one line ("useMutation clears `error` on `mutate()`").
+  - RR-08-14 [LOW] fe/App.tsx:666: This disagrees with ErrorBoundary.tsx:19-22, where the third depth is the copy modal (P06 step 13: route + drawer + modal). Fix: make the ErrorBoundary docstring list where boundaries actually sit, and drop the count from both.
+  - RR-07-11 [LOW] fe/api/client.ts:157-161: This is history of the old code, written in the present tense. Fix: drop the history paragraph and keep line 156.
+  - RR-07-10 [LOW] fe/api/schemas.ts:4-5: It claims the split keeps the files under the 500-line cap, but schemas.ts has 770 lines and types.ts has 657. Fix: drop the cap claim and use one item id.
+  - RR-08-16 [LOW] fe/components/CmdKPalette.tsx:56-59: This comment sits above the focus-return code, some 35 lines from the `CommandItem` it explains (96-101), and runs straight into an unrelated comment. Fix: move it to line 96.
+  - RR-08-15 [LOW] fe/components/layout/AppShell.tsx:177-178: It goes on to say Ctrl on Windows and Super on Linux. Fix: say "Cmd or Ctrl, any platform".
+  - RR-08-2 (+RR-09-5) [MEDIUM] fe/components/layout/ErrorBoundary.tsx:55-68: The default crash panel is copied, markup for markup, into LibraryPage's drawer fallback (LibraryPage:270-288) and copy-modal fallback (346-362). Fix: give ErrorBoundary a `title` prop and drop the two inline fallbacks.
+  - RR-08-9 [LOW] fe/hooks/useAlternatives.ts:47-52: The same "reload games and every version list" step appears three times: here, useAlternatives.ts:84-88 and usePicture.ts:46-50. Fix: one shared helper.
+  - RR-08-1 [MEDIUM] fe/hooks/useCart.ts:118: The cart uses three different rules for "is this entry that game?": Fix: run `remove`, `setVariant` and `addAll` through `holds`, or name their parameter as the stored key.
+  - RR-08-18 [LOW] fe/hooks/useConfig.ts:124: Export and import live in `routes/backup.py` (lines 45 and 155), not config.py. Fix: name the file, not line numbers.
+  - RR-08-20 [LOW] fe/hooks/useDryRun.ts:12: The dry-run route is at copy.py:101. Fix: drop the line number and state the current input.
+  - RR-08-12 [LOW] fe/hooks/useGameGridFocus.ts:34: It finds an index and moves no focus. Fix: rename it to something like `findNextPending`.
+  - RR-08-19 [LOW] fe/hooks/useGames.ts:29: `list_games` is at games.py:104. Fix: drop the line number.
+  - RR-08-21 [LOW] fe/hooks/useReviewState.ts:21: No `['facets']` key exists; facets is `["library", "facets"]` (useFacets.ts:12). Fix: correct the example.
+  - RR-08-13 [LOW] fe/hooks/useSessions.ts:20: A private request helper shares its name with react-query's `mutate`. Fix: rename it to something like `sessionsRequest`.
+  - RR-07-12 [LOW] fe/lib/apiErrorToast.ts:30-57: This docblock describes `toastApiError` but sits above `DEDUP_WINDOW_MS`. Fix: put one line of doc on `toastApiError`, keep the dedup reason on the constant, and move the history out.
+  - RR-07-13 [LOW] fe/lib/theme.ts:4-5: index.css has a single `@theme inline` block, the token bridge. Fix: say "the matching `[data-theme]` block".
+  **Layman:** Tidying of the app's frame, menus and the code that fetches data.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1245] **Make the screen frame and data code easier to follow (2026-11-11 readability review) (part 2 of 2).**
+  Group `rd-fe-shell-data` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-07-9 [LOW] fe/strings.ts:8-10: The list of catalogue modules leaves out `strings_guide_settings.ts`, which holds all of `strings.guide.settings`. Fix: name all three modules in both headers.
+  - RR-07-7 [LOW] fe/strings_internal.ts:504: \`updates.channel\` dropdown options. Fix: move it to `updateChannelOptions`.
+  - RR-07-5 [MEDIUM] fe/strings_internal.ts:829-842: This doc comment for `byCode` sits above `rejectedPath` (line 843), which has its own doc right under it. Fix: move the comment down to `byCode`, and except the codes the browser makes itself.
+  - RR-07-6 [LOW] fe/strings_internal.ts:895: This describes `cross_site_blocked` (line 925) but sits above `update_in_progress`, under the update codes' comment. Fix: move it to `cross_site_blocked`.
+  - RR-07-8 [LOW] fe/strings_internal.ts:9: No `errorByCode` exists; the map is `errors.byCode`. Fix: write `errors.byCode`.
+  - RR-07-4 [MEDIUM] fe/strings_internal.ts:935: The `network` code has two messages that say different things. Fix: delete `byCode.network`, or mark it as unused.
+  **Layman:** Tidying of the app's frame, menus and the code that fetches data.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1246] **Make the picture and update code easier to follow (2026-11-11 readability review) (part 1 of 2).**
+  Group `rd-media-updates` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-05-1 [HIGH] api/routes/media.py:95-111: There are two hand-kept argument lists that must stay the same: `request_registry` here, and `build_all_sources` in `media_sources` at lines 242-257. Fix: build both calls from one shared keyword-argument helper in `media.py`.
+  - RR-03-8 [MEDIUM] downloads.py:12: This module docstring is false twice over: Fix: say "streams into a `.tmp` sibling, checks the sha256, then renames".
+  - RR-03-11 [LOW] downloads.py:3: The callers named here are wrong: the actual callers are `updates/ini.py`, `updates/snaps.py` and `updates/app.py`, and none is a setup wizard. Fix: drop the caller list.
+  - RR-03-2 [MEDIUM] downloads.py:42: There are three copies of the "http/https only" check and the size-capped streaming download: Fix: put the scheme guard and the capped stream-to-`.tmp` loop in one private helper, used by all three.
+  - RR-03-19 [LOW] downloads.py:49: This exception is declared but never raised. Fix: delete the class, or say in its docstring that it is only a log label.
+  - RR-03-1 [HIGH] media/candidates.py:31: This is a hand-kept list of the sources that have a request limit. Fix: build the list from a per-class marker (or from `Class.name`), as `_LOCAL_SOURCES` does.
+  - RR-03-7 [LOW] media/candidates.py:33: This is a hand copy of the `Kind` list (`sources.py:53`). Fix: build it from `typing.get_args(Kind)`.
+  - RR-03-20 [LOW] media/candidates.py:77: `found` holds a picture source here. Fix: rename it `chain_source`.
+  - RR-03-15 [LOW] media/mobygames.py:169: All five MobyGames log lines (169, 200, 214, 259, 287) begin `media/sources:`, but the code lives in `media/mobygames.py`. Fix: use the `media/mobygames:` prefix.
+  **Layman:** Tidying so someone new can follow and change the picture and update code.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1247] **Make the picture and update code easier to follow (2026-11-11 readability review) (part 2 of 2).**
+  Group `rd-media-updates` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-03-16 [LOW] media/mobygames.py:88: "Chunk 7 owns this … (the chunk-6 note anticipated it)" is project history, and "chunk 7" is `resolve.py`'s work package, which may send a reader there. Fix: drop the chunk history.
+  - RR-03-6 [LOW] media/resolve.py:202: The same nine dependency parameters are written out three times (`_source_factories`, `build_registry`, `build_all_sources`), and the call into `_source_factories` twice. Fix: pass the dependencies as one frozen dataclass.
+  - RR-03-14 [LOW] media/resolve.py:3: The walk through the source list now happens in `candidates.resolve_image_found`, as `resolve_image`'s own docstring (lines 76-79) says. Fix: say that `resolve_image` delegates the walk, and name all three local sources.
+  - RR-03-3 [MEDIUM] media/wikipedia.py:75: The steps "fetch text, parse JSON, delete the bad cache file and raise" appear three times: Fix: have `wikipedia.py` call the one URL builder, and extract the shared parse step.
+  - RR-03-13 [LOW] updates/__init__.py:10: App self-update already exists in `updates/app.py` (mame-curator-1010). Fix: describe `app.py` as present and say five INIs.
+  - RR-03-5 [MEDIUM] updates/app.py:191: `DEV_TARGET = "origin/main"` (line 35) names the development branch. Fix: build both the fetch arguments and the error text from one remote constant and one branch constant.
+  - RR-03-17 [LOW] updates/app.py:307: Linux and Windows write the new version next to the running app; macOS writes the `.dmg` to `~/Downloads`. Fix: one comment giving the reason.
+  - RR-03-18 [LOW] updates/app.py:342: `download()` already accepts `sha256=`, but `download_bundle` re-hashes the file itself and never says why. Fix: one comment giving the reason.
+  - RR-03-4 [MEDIUM] updates/ini.py:47: Two hand-kept tables use the same five INI file names: `INI_DEFAULT_SOURCES` (lines 37-43) and this one. Fix: keep one table mapping each file name to its URL and config field, and build both names from it.
+  - RR-03-10 [MEDIUM] updates/snaps.py:50: The comment calls this "Default destination root", but nothing reads it. Fix: delete it, or point the comment at `MediaConfig.snaps_dir`.
+  **Layman:** Tidying so someone new can follow and change the picture and update code.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1248] **Fix the Settings save and year-range findings from the 2026-11-11 code review.**
+  Group `settings-saves-year` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-09-10 (+RR-10-8, RL-47) [LOW] fe/components/library/FiltersSidebar.tsx:34: The sidebar's year range hardcodes 2025, so moving only the lower handle hides games from 2026 on.
+  - RL-57 [LEAD] fe/components/settings/PathRow.tsx:57: Picking the folder already shown still saves it again. `FolderField` skips that case. This is the bug side of the Q1 finding.
+  - CR-10-2 (+RL-54) [HIGH] fe/components/settings/YearRangeEditor.tsx:67: The year field clamps on every keystroke, so a year cannot be typed (and each key writes a snapshot). Fix: keep a local draft while typing, as `PathRow` and `FolderField` do. Validate and clamp on blur or Enter, and commit once.
+  - CR-08-1 [MEDIUM] fe/hooks/useConfig.ts:73-90: Settings filter saves and session changes do not refresh games, stats and facets, so the library shows stale results. Fix: refresh `["games"]`, `["library"]`, `["stats"]` and `["alternatives"]` in `useConfigPatch.onSuccess` when the patch touches `filters`, and in every session mutation's `onSuccess`. Then drop the per-step copies.
+  - CR-08-6 [LOW] fe/hooks/useReviewState.ts:55-56: A failed review-state change restores the whole snapshot, wiping an overlapping change. Fix: on error, undo only this one game's entry, not the whole snapshot.
+  - CR-10-1 [HIGH] fe/pages/SettingsPage.tsx:134: Settings PATCHes send whole sections built from a stale render, so quick edits revert each other. Fix: either queue config PATCHes one at a time, building each from the latest cache, or apply an optimistic `setQueryData` before each mutate, or send only the changed key.
+  - RL-46 [LEAD] fe/pages/libraryPageHelpers.ts:109-110: For a tile with only `yearFrom`, the count sends only `year_min`. The list sends both `year_min` and `year_max` = 2025, because `yearsChosen` is true. The tile's count and the games then shown could differ.
+  - CR-09-3 [MEDIUM] fe/pages/useLibraryController.ts:346: Saving a session without touching the slider stores the 1975-2025 default range, hiding games the view showed. Fix: reuse `yearsChosen` and save `null` when it is false.
+  **Layman:** Some Settings changes are not saved as shown, and the year range misbehaves at its edges.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1249] **Finish or remove the half-built features the 2026-11-11 code review found.**
+  Group `unused-features` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-09-1 (+CR-07-1, RR-10-1, RR-10-2, RL-53) [HIGH] fe/components/alternatives/WhyPickedPanel.tsx:9: WhyPickedPanel and NotesEditor are never mounted, so notes cannot be viewed or edited and "why picked" never shows. Fix: mount both panels in the drawer, with an explanation query and a notes GET/PUT hook. NotesEditor needs `key={winner.short_name}`, as its own contract requires. Otherwise, strike both from design § 8 and P06. USER DECIDED 2026-11-11: show both the notes box and the "Why was this picked?" panel in the side panel.
+  - CR-08-4 (+RR-08-11) [LOW] fe/hooks/useCart.ts:187: useCart.totalBytes is always 0, though P15 promises a cart size in the bottom bar. ASK USER: Is the cart size (GB) in the bottom bar still owed?
+  - CR-07-13 [LOW] api/routes/copy.py:179,218: /api/copy/history and /report have no frontend caller; whether a UI was promised is unknown. ASK USER: Was a copy-history UI promised, or is the Activity page its replacement?
+  - CR-07-2 [HIGH] api/schemas.py:162-163: Settings offers default_sort and show_alternatives_indicator, and nothing reads them. Fix: The user changes the setting, it saves, and nothing happens. Fix: wire the sort (a `sort=` query parameter, or sort on the client) and the alternatives indicator on `GameCard`, or remove both from Settings. Removal still keeps the keys readable, under versioning-overrides item 1. USER DECIDED 2026-11-11: make Default sort and the other-versions mark work.
+  **Layman:** Some features are built but never shown; two you decided to show, two need your answer.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1250] **Fix the update, snap-pack and download findings from the 2026-11-11 code review.**
+  Group `updates-snaps-downloads` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - CR-07-6 [MEDIUM] api/routes/updates.py:334-343: Git rollback reports failure after succeeding, because it skips the _keep_record guard apply uses. Fix: route rollback through `_keep_record`.
+  - CR-07-5 [MEDIUM] api/routes/updates_ini.py:111: Applying an INI preview installs the preview-time context, undoing config changes made since. Fix: record the config and context identity at preview, and answer 409 `ini_preview_missing` at apply if either changed. Or recompute the INI fields at apply time.
+  - CR-07-10 [LOW] api/routes/updates_ini.py:123-130: INI apply rollback stops at the first failed restore and hides the original error. Fix: restore each file in its own try block, then re-raise the first error.
+  - CR-07-11 [LOW] api/routes/updates_ini.py:165-170: If load_app_config fails after INIs and config.yaml are written, disk and memory disagree until restart.
+  - CR-03-11b [LOW] downloads.py:131,177: download() retries 404s with backoff, though the contract says retries are for network errors only. Fix: retry network errors only (do not retry HTTP status errors)
+  - CR-03-11a [LOW] downloads.py:198: download() compares sha256 case-sensitively, so an uppercase hash always mismatches. Fix: `.lower()` both sides. Also:
+  - CR-03-11c [LOW] downloads.py:206: download()'s os.replace is outside the try, so a failure raises instead of returning ManualFallback. Fix: move os.replace inside the try and return ManualFallback on failure
+  - RL-20 [LEAD] updates/app.py:231, updates/app.py:289: "could not read HEAD" and "git reset failed" both report as `update_merge_refused`, so the UI may show a merge message for a reset failure.
+  - CR-04-9 [LOW] updates/app.py:240-244: git merge-base exit 128 (unknown revision) is reported as "not a fast-forward". Fix: map exit 128 to `update_fetch_failed` or `update_merge_refused`, with git's output.
+  - CR-04-11 (+RR-03-12, RL-14) [LOW] updates/app.py:335: download_bundle uses the 100 MiB INI-sized cap, so a larger release bundle fails to download.
+  - RL-19 [LEAD] updates/app.py:343: `partial.unlink` is not wrapped in `suppress(OSError)`, unlike line 340. A failure there would hide the digest-mismatch error.
+  - CR-04-10 [LOW] updates/app.py:345-347: A failed rename or chmod in download_bundle leaves .partial behind, against INV-9. Fix: wrap both, unlink `.partial` on failure, and raise `UpdateError`.
+  - CR-04-1 (+RL-16) [HIGH] updates/snaps.py:123: refresh-snaps' disk-space check calls disk_usage on a parent that may not exist, crashing a first run. Fix: walk up to the nearest existing ancestor before calling `disk_usage`.
+  - RL-17 [LEAD] updates/snaps.py:143: the roughly 500 MB `pS_snap_fullset.zip` is never deleted after extraction.
+  - CR-04-5 (+RL-18) [MEDIUM] updates/snaps.py:208-213: Snap PNGs are written directly, so an interrupted extract leaves truncated files later runs skip forever. Fix: write to a temp file beside it, then `os.replace`.
+  - CR-04-8 [MEDIUM] updates/snaps.py:86: The snap index fetch has no retry and no network-error handling. Fix: catch `httpx.HTTPError` and either report it in `error` or retry it.
+  **Layman:** Faults in updating the app, fetching the snap pack and downloading files.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1251] **Keep the app's repeated value lists in step (2026-11-11 code review).**
+  Group `value-list-sync` of mame-curator-1225. Quotes and premises are in the
+  findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
+  close-findings-2026-11-11/ledger.json (not in the repo).
+  - RR-08-7 [LOW] fe/App.tsx:94: The list of pages is kept by hand three times: here, AppShell's `PRIMARY`/`MORE` (AppShell.tsx:45-56) and `<Routes>` (631-657). Fix: one shared page table that all three read.
+  - RR-07-3 (+RR-10-10) [MEDIUM] fe/api/schemas.ts:217-224: The six theme names are kept by hand in five places: Fix: build `THEME_ORDER` from `ThemeNameSchema.options`.
+  - RR-07-1 [HIGH] fe/api/types.ts:390-397: Someone adding a badge value on the server would trust this comment. Fix: say the gate checks interface field names only, so value lists in `type` unions and `z.enum`s are kept in step by hand.
+  - RL-38 [LEAD] fe/api/types.ts:4-5: nothing ties the zod schemas to the interfaces except call sites that pass an explicit generic. `useApi.ts:21`, `useUpdates.ts:53/63/83/95` and `SetupWizard.tsx:50` infer `T` from the schema. So a field added to an interface (which the check forces) but not to the `.strict()` schema compiles there and fails at runtime with `response_shape_invalid`. I compared the pairs by eye and found no mismatch today.
+  - RR-08-5 [MEDIUM] fe/components/CmdKPalette.tsx:13-15: One set of section names is kept by hand in four places: Fix: build the type from `SECTION_ORDER` declared `as const`.
+  - RL-37 [LEAD] fe/lib/apiErrorToast.ts:96-97: `strings.errors.byCode` is cast `as Record<string, string>` (strings_internal.ts:937), so `keyof typeof …byCode` is just `string` and `friendly` is typed `string` although it can be `undefined`. Line 99 relies on `copy_names_unknown` being present, with no check.
+  - RR-09-9 [LOW] fe/pages/SettingsPage.tsx:410: This is a third hand-kept list of the "cards per row" values, beside `CARDS_PER_ROW_VALUES` (line 50) and the `CardsPerRowHint` type. Fix: cast to `CardsPerRowHint` instead.
+  - RR-09-6 [LOW] fe/pages/useLibraryController.ts:184-190: When a tile is switched off, this resets the tile's own fields from a second hand-kept list. Fix: one exported list of the fields a tile owns, used by both.
+  - RR-07-14 [LOW] fe/strings_guide_settings.ts:5: This is a separate copy of `UiConfig.cart_clear_on_copy`. Fix: use `UiConfig["cart_clear_on_copy"]` here and build the value arrays from the schema's options.
+  - RR-04-4 [MEDIUM] api/schemas_copy.py:57: The nine job-event names are kept by hand in three places, which currently match: Fix: add a comment at each copy naming the other two (or generate the lists from one source).
+  **Layman:** The same list of choices is written in two places and the copies have drifted.
+  Kind: review-fix.
+  Source: review-code + review-readability 2026-11-11 (tree 401db7a).
+
+- 📋 [mame-curator-1252] **The serve-signal test failed once when the machine was busy.**
+  tests/cli/test_fp28_serve_signal.py::test_serve_returns_130_on_keyboard_interrupt
+  failed once on 2026-11-11 with "server did not bind to port within
+  deadline" during a full pytest run at load average 26. It passed alone
+  straight after. Same shape as mame-curator-1134 (Vitest under load).
+  Next step: measure how long the bind takes under load and widen the
+  deadline, or wait on the port instead of a fixed time.
+  **Layman:** One test that starts the app sometimes gives up waiting when the computer is busy; it passes when run again.
+  Kind: test.
+  Source: close-findings 2026-11-11 (mame-curator-1225 sweep).
 
 ## Considered / under research (no target date)
 
