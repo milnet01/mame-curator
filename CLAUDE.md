@@ -7,7 +7,7 @@ This project follows the global workflow, [`~/.claude/workflow.md`](~/.claude/wo
 ## Session start — read & summarise
 
 1. **This file** + **`roadmap_query status:active`** (what is open; the roadmap intro says what is next) — one parallel read.
-2. **Summarise back to the user**: "We're on `<ID>` (or between items), last did `<X>`, next is `<Y>`." Wait for confirm or redirect. **Never skip this step**, with one exception: when the session opens with a request from another session, answer that request first and skip steps 1–2 until the user brings project work.
+2. **Summarise back to the user**: "We're on `<ID>` (or between items), last did `<X>`, next is `<Y>`." Wait for confirm or redirect, unless the user pasted a handoff note: that is the go-ahead, so summarise and start the work in the same reply (user, 2026-11-11). **Never skip the summary**, with one exception: when the session opens with a request from another session, answer that request first and skip steps 1–2 until the user brings project work.
 3. When the active item's `Kind` is known, read the matching `docs/standards/<which>.md` (one read).
 4. Before invoking `check-code` or `review-code`, additionally read `docs/audit-allowlist.md`.
 
