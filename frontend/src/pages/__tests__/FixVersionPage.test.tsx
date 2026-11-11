@@ -190,8 +190,8 @@ describe("the version guide", () => {
     server.use(
       http.delete("/api/overrides/:parent", () =>
         HttpResponse.json(
-          { code: "override_not_found", detail: "no", fields: [] },
-          { status: 404 },
+          { code: "internal_error", detail: "no", fields: [] },
+          { status: 500 },
         ),
       ),
     );
@@ -206,6 +206,62 @@ describe("the version guide", () => {
     expect(
       screen.getByText(strings.library.overrideOldChoicesUnusable(1)),
     ).toBeInTheDocument();
+  });
+
+  it("forgets the rest on a second press after one failed partway", async () => {
+    // mame-curator-1219: the first press forgot 'ghost' and then failed, so
+    // the second press finds 'ghost' already gone (404). That is not a fault.
+    serve(() =>
+      accepted(
+        [
+          "override key 'ghost' is not a known parent",
+          "override key 'phantom' is not a known parent",
+        ],
+        ["ghost", "phantom"],
+      ),
+    );
+    const saved = new Set(["ghost", "phantom"]);
+    let failPhantom = true;
+    server.use(
+      http.delete("/api/overrides/:parent", ({ params }) => {
+        const name = String(params.parent);
+        if (name === "phantom" && failPhantom) {
+          failPhantom = false;
+          return HttpResponse.json(
+            { code: "internal_error", detail: "no", fields: [] },
+            { status: 500 },
+          );
+        }
+        if (!saved.delete(name)) {
+          return HttpResponse.json(
+            { code: "override_not_found", detail: "no", fields: [] },
+            { status: 404 },
+          );
+        }
+        return HttpResponse.json({
+          entries: { puck: "puckj" },
+          warnings: [],
+          unusable: [],
+        });
+      }),
+    );
+    await renderFix();
+    await userEvent.click(await versionButton("Puck Junior"));
+    const forgetButton = await screen.findByRole("button", {
+      name: strings.library.overrideForgetOld(2),
+    });
+    await userEvent.click(forgetButton);
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: strings.library.overrideForgetOld(2),
+      }),
+    );
+    expect(
+      await screen.findByText(strings.library.overrideForgotten(2)),
+    ).toBeInTheDocument();
+    expect(saved.size).toBe(0);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("changes nothing when the version in use is chosen", async () => {

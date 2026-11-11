@@ -591,7 +591,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1228
 # Bumped 2026-11-11 (mame-curator-1217): the guide's "Which languages can
 # you read?" step, the Filters tab toggles and the Settings guide's
 # compilations and languages. 748 → 756.
-EXPECTED_VITEST_DECLARATIONS = 756
+# Bumped 2026-11-11 (mame-curator-1219): a second Forget press after one
+# failed partway. 756 → 757.
+EXPECTED_VITEST_DECLARATIONS = 757
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/api/client";
+import { ApiError, apiRequest } from "@/api/client";
 import { toastApiError } from "@/lib/apiErrorToast";
 import {
   AlternativesSchema,
@@ -58,17 +58,27 @@ export function useOverride() {
 /**
  * mame-curator-1189: forget saved choices the server cannot use, one
  * `DELETE /api/overrides/{parent}` each, then reload what shows them.
+ * A choice the server no longer has (`override_not_found`) is already
+ * forgotten, as after a press that failed partway (mame-curator-1219).
  */
 export function useForgetChoices() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (parents: string[]) => {
       for (const parent of parents) {
-        await apiRequest<OverridesView>(
-          `/api/overrides/${encodeURIComponent(parent)}`,
-          OverridesViewSchema,
-          { method: "DELETE" },
-        );
+        try {
+          await apiRequest<OverridesView>(
+            `/api/overrides/${encodeURIComponent(parent)}`,
+            OverridesViewSchema,
+            { method: "DELETE" },
+          );
+        } catch (error) {
+          if (!(
+            error instanceof ApiError && error.code === "override_not_found"
+          )) {
+            throw error;
+          }
+        }
       }
     },
     onSuccess: () =>
