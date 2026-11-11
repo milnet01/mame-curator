@@ -8,8 +8,9 @@ import { fileURLToPath } from "node:url";
 /**
  * mame-curator-1149 — choosing a version, in a real browser, against a real
  * server, by keyboard, in the simple view a new user sees. Its own server and
- * port, on a game list with one parent and two clones. Run by hand: no gate
- * runs frontend/e2e, so `cd frontend && npm run build && npm run e2e`.
+ * port, on a game list with one parent and two clones. local-CI.sh runs
+ * frontend/e2e before every push; by hand: `cd frontend && npm run build && npm
+ * run e2e`.
  */
 const PORT = 8092;
 const BASE = `http://127.0.0.1:${PORT}`;

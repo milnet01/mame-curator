@@ -8,8 +8,8 @@ import { fileURLToPath } from "node:url";
 /**
  * mame-curator-1147 — the Settings guide, in a real browser, against a real
  * server that writes its own config file. Its own server and port, so the
- * shared fixture config is never written. Run by hand: no gate runs
- * frontend/e2e, so `cd frontend && npm run build && npm run e2e`.
+ * shared fixture config is never written. local-CI.sh runs frontend/e2e before
+ * every push; by hand: `cd frontend && npm run build && npm run e2e`.
  */
 const PORT = 8093;
 const BASE = `http://127.0.0.1:${PORT}`;

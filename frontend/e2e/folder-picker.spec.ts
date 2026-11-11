@@ -8,9 +8,10 @@ import { keepCompilations, keepLanguages } from "./guideSteps";
 /**
  * mame-curator-1145 INV-10, INV-12, mame-curator-1165, mame-curator-1171 —
  * what only a real browser can settle: whether the picker and its grant prompt
- * fit the window with a long path at large text, and where focus lands. Run by
- * hand: no gate runs frontend/e2e, so `cd frontend && npm run build && npm run
- * e2e`. The folder answers are stand-ins, so no test here can grant anything.
+ * fit the window with a long path at large text, and where focus lands.
+ * local-CI.sh runs frontend/e2e before every push; by hand: `cd frontend && npm
+ * run build && npm run e2e`. The folder answers are stand-ins, so no test here
+ * can grant anything.
  */
 const SIZE = "mame-curator:text-size:v1";
 const MEDIUM_PATH = "/mnt/Games/PC Games/Emulators/MAME/roms/arcade";

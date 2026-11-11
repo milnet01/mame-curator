@@ -6,8 +6,9 @@ import { fileURLToPath } from "node:url";
 import { keepCompilations, keepLanguages } from "./guideSteps";
 
 /**
- * mame-curator-1144 — the guide in a real browser. Run by hand: no gate runs
- * frontend/e2e, so `cd frontend && npm run build && npm run e2e`.
+ * mame-curator-1144 — the guide in a real browser. local-CI.sh runs
+ * frontend/e2e before every push; by hand: `cd frontend && npm run build && npm
+ * run e2e`.
  *
  * INV-6: a repeat copy adds to the existing playlist. The fixture's ROM
  * folders are empty stubs, so this seeds a zip per winner and an old playlist.

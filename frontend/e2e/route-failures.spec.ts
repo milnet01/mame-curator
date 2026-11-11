@@ -2,8 +2,9 @@ import { expect, test } from "@playwright/test";
 
 /**
  * mame-curator-1144 — a page that cannot load says so and offers a way
- * forward, and a keyboard user keeps their place when a retry fails too. Run
- * by hand: no gate runs frontend/e2e.
+ * forward, and a keyboard user keeps their place when a retry fails too.
+ * local-CI.sh runs frontend/e2e before every push; by hand: `cd frontend && npm
+ * run build && npm run e2e`.
  */
 test("Settings says it failed, and Try again keeps focus until it works", async ({
   page,

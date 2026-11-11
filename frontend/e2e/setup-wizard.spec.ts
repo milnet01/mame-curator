@@ -9,8 +9,8 @@ import { keepCompilations, keepLanguages } from "./guideSteps";
 
 /**
  * mame-curator-1145 INV-10, INV-12, INV-14 — a brand-new user, in a real
- * browser, against a real server. Run by hand: no gate runs frontend/e2e, so
- * `cd frontend && npm run build && npm run e2e`.
+ * browser, against a real server. local-CI.sh runs frontend/e2e before every
+ * push; by hand: `cd frontend && npm run build && npm run e2e`.
  *
  * This starts its own server, with an empty home and no config, so the server
  * writes its own starter config exactly as on a first run. It has its own
