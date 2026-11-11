@@ -12,6 +12,7 @@ which one actually made the decisive call.
 from __future__ import annotations
 
 import functools
+import re
 from collections.abc import Callable, Iterable
 
 from mame_curator.filter.config import FilterConfig
@@ -19,14 +20,9 @@ from mame_curator.filter.heuristics import Region, region_of, revision_key_of
 from mame_curator.filter.types import FilterContext, TiebreakerHit
 from mame_curator.parser.models import DriverStatus, Machine
 
-_TIER_RANK: dict[str, int] = {
-    "Best": 6,
-    "Great": 5,
-    "Good": 4,
-    "Average": 3,
-    "Bad": 2,
-    "Awful": 1,
-}
+# bestgames.ini bands are ten-point sections named from "0 to 10 (Worst)" up to
+# "90 to 100 (Best Games)"; the lower bound orders them.
+_BAND_LOWER_BOUND = re.compile(r"^(\d+) to \d+\b")
 _DRIVER_RANK: dict[DriverStatus | None, int] = {
     DriverStatus.GOOD: 3,
     DriverStatus.IMPERFECT: 2,
@@ -52,9 +48,15 @@ def _sign(diff: int) -> int:
 
 def _cmp_tier(a: Machine, b: Machine, ctx: FilterContext, _cfg: FilterConfig, _p: str) -> int:
     """Higher bestgames tier wins; absent tier ranks 0."""
-    rank_a = _TIER_RANK.get(ctx.bestgames_tier.get(a.name, ""), 0)
-    rank_b = _TIER_RANK.get(ctx.bestgames_tier.get(b.name, ""), 0)
+    rank_a = _tier_rank(ctx.bestgames_tier.get(a.name, ""))
+    rank_b = _tier_rank(ctx.bestgames_tier.get(b.name, ""))
     return -_sign(rank_a - rank_b)  # higher rank → wins → cmp says a < b
+
+
+def _tier_rank(band: str) -> int:
+    """Rank a band by its lower bound, 1 to 10; unrated or unrecognised is 0."""
+    match = _BAND_LOWER_BOUND.match(band)
+    return int(match.group(1)) // 10 + 1 if match else 0
 
 
 def _preferred_score(m: Machine, ctx: FilterContext, cfg: FilterConfig) -> int:

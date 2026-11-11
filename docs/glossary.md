@@ -40,7 +40,7 @@ docs, and commits.
 | **`mame.lpl`** | RetroArch's JSON-format playlist file. Phase 3 writes this so RetroArch shows pretty names and launches the curated set. |
 | **Session** | A user-defined slice of the curated library (e.g. "vertical shooters from Capcom 1980-1990"). Active sessions filter what's visible in the frontend; null session shows the full library. |
 | **Short name** | The MAME ROM short-name (e.g. `pacman`, `sf2ce`). The primary key everywhere in the data model. |
-| **Tier (best/great/good/...)** | Bestgames.ini ranks machines on a 7-level scale (Best > Great > Good > Average > Bad > Awful > unrated). Phase 2 uses tier as a tiebreaker. |
+| **Tier (rating band)** | Bestgames.ini rates machines in ten-point bands, from `0 to 10 (Worst)` to `90 to 100 (Best Games)`; a machine in no band is unrated. Phase 2 uses the band as a tiebreaker. |
 | **Winner** | The single machine the filter picks per parent/clone group, by drop rules + tiebreaker chain (+ overrides, + session slice). The winner-set is what gets copied. |
 
 ## External resources

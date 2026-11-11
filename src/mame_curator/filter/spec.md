@@ -48,7 +48,7 @@ Tiebreakers in order; later rules only run when earlier rules tie:
 
 | # | Comparator | Direction |
 |---|---|---|
-| 1 | `bestgames.ini` tier rank: `Best > Great > Good > Average > Bad > Awful > unrated` | higher wins |
+| 1 | `bestgames.ini` rating band, ranked by its lower bound: `90 to 100 (Best Games)` > `80 to 90 (Very Good)` > … > `0 to 10 (Worst)` > unrated | higher wins |
 | 2 | preferred-genre / preferred-publisher / preferred-developer boost: `+1` per match in `config.preferred_*` | higher wins |
 | 3 | parent over clone (when `config.prefer_parent_over_clone`) | parent wins |
 | 4 | driver status: `good > imperfect > preliminary` (when `config.prefer_good_driver`) | higher wins |

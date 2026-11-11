@@ -55,7 +55,7 @@ def sample() -> tuple[dict[str, Machine], FilterContext]:
         },
         chd_required=frozenset({"kinst"}),
         cloneof_map={"pacmanf": "pacman"},
-        bestgames_tier={"pacman": "Best", "pacmanf": "Average"},
+        bestgames_tier={"pacman": "90 to 100 (Best Games)", "pacmanf": "40 to 50 (Decent)"},
     )
     return machines, ctx
 

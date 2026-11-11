@@ -148,7 +148,7 @@ Each rule is independently togglable; rules listed below are the defaults. In or
 
 Within each group, pick the winner using this tiebreaker chain (top wins; later rules only break ties from earlier rules):
 
-1. Highest `bestgames.ini` tier (Best > Great > Good > Average > Bad > Awful > unrated)
+1. Highest `bestgames.ini` rating band, ranked by its lower bound (`90 to 100 (Best Games)` > `80 to 90 (Very Good)` > … > `0 to 10 (Worst)` > unrated)
 2. **Preferred genres / publishers / developers boost.** If the user has set `picker.preferred_genres: ["Shoot 'em Up"]`, machines matching get a boost ahead of generic tiebreakers. Same for `preferred_publishers` and `preferred_developers`. (No effect if the user hasn't set them.)
 3. Parent over clone
 4. `<driver status>` `good` over `imperfect`

@@ -12,9 +12,39 @@ from tests.filter.conftest import m
 def test_tier_tiebreaker_wins() -> None:
     pacman = m(name="pacman", description="Pac-Man (USA)")
     pacmanf = m(name="pacmanf", description="Pac-Man speedup (USA)")
-    ctx = FilterContext(bestgames_tier={"pacman": "Best", "pacmanf": "Average"})
+    ctx = FilterContext(
+        bestgames_tier={"pacman": "90 to 100 (Best Games)", "pacmanf": "40 to 50 (Decent)"}
+    )
     winner = pick_winner([pacman, pacmanf], parent="pacman", ctx=ctx, cfg=FilterConfig())
     assert winner.name == "pacman"
+
+
+_REAL_BANDS = (
+    "0 to 10 (Worst)",
+    "10 to 20 (Horrible)",
+    "20 to 30 (Bad)",
+    "30 to 40 (Amendable)",
+    "40 to 50 (Decent)",
+    "50 to 60 (Not Good Enough)",
+    "60 to 70 (Passable)",
+    "70 to 80 (Good)",
+    "80 to 90 (Very Good)",
+    "90 to 100 (Best Games)",
+)
+
+
+def test_tier_ranks_the_real_bestgames_bands() -> None:
+    """mame-curator-1221: each real band beats the one below; any band beats unrated."""
+    a = m(name="a", description="A (World)")
+    b = m(name="b", description="B (World)")
+    cfg = FilterConfig()
+    for low, high in zip(("", *_REAL_BANDS), _REAL_BANDS, strict=False):
+        tiers = {"a": low, "b": high} if low else {"b": high}
+        for order in ([a, b], [b, a]):
+            winner = pick_winner(
+                order, parent="a", ctx=FilterContext(bestgames_tier=tiers), cfg=cfg
+            )
+            assert winner.name == "b", (low, high)
 
 
 def test_preferred_genre_boost_breaks_tier_tie() -> None:
@@ -108,7 +138,9 @@ def test_region_outside_priority_list_ranks_low() -> None:
 def test_explain_records_decisive_steps_only() -> None:
     pacman = m(name="pacman", description="Pac-Man (USA)")
     pacmanf = m(name="pacmanf", description="Pac-Man speedup (USA)")
-    ctx = FilterContext(bestgames_tier={"pacman": "Best", "pacmanf": "Average"})
+    ctx = FilterContext(
+        bestgames_tier={"pacman": "90 to 100 (Best Games)", "pacmanf": "40 to 50 (Decent)"}
+    )
     chain = explain_pick([pacman, pacmanf], parent="pacman", ctx=ctx, cfg=FilterConfig())
     names = [hit.name for hit in chain]
     assert "tier" in names
@@ -131,7 +163,7 @@ def test_fp21_a_explain_only_first_decisive_per_opponent() -> None:
     """
     w = m(name="w", description="W (Japan)")
     loser = m(name="l", description="L (USA)")
-    ctx = FilterContext(bestgames_tier={"w": "Best", "l": "Average"})
+    ctx = FilterContext(bestgames_tier={"w": "90 to 100 (Best Games)", "l": "40 to 50 (Decent)"})
     cfg = FilterConfig(region_priority=("Japan", "USA"))
     chain = explain_pick([w, loser], parent="parent_not_here", ctx=ctx, cfg=cfg)
     names = [hit.name for hit in chain]
@@ -151,7 +183,11 @@ def test_fp21_a_explain_union_across_opponents() -> None:
     a = m(name="a", description="A (Japan)")
     b = m(name="b", description="B (USA)")
     ctx = FilterContext(
-        bestgames_tier={"w": "Best", "a": "Average", "b": "Best"},
+        bestgames_tier={
+            "w": "90 to 100 (Best Games)",
+            "a": "40 to 50 (Decent)",
+            "b": "90 to 100 (Best Games)",
+        },
     )
     cfg = FilterConfig(region_priority=("Japan", "USA"))
     chain = explain_pick([w, a, b], parent="parent_not_here", ctx=ctx, cfg=cfg)

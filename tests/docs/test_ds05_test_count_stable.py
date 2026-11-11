@@ -405,7 +405,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-11-11 (mame-curator-1217): the languages to keep, their
 # list route, a version choice over the drop, and Backup carrying it.
 # 1220 → 1227.
-EXPECTED_PYTEST_DECLARATIONS = 1227
+# Bumped 2026-11-11 (mame-curator-1221): the picker ranks the ten real
+# bestgames bands. 1227 → 1228.
+EXPECTED_PYTEST_DECLARATIONS = 1228
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
