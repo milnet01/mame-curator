@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1221 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1223 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3391,8 +3391,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: code-read-2026-10-30.
   Lanes: frontend, filter.
 
-- 📋 [mame-curator-1150] **The Library's default year range hides games with no year.**
+- ✅ [mame-curator-1150] **The Library's default year range hides games with no year.**
   DEFAULT_FILTERS.yearRange is applied as year_min and year_max, which exclude undated games. Measured on the running server 2026-10-30: 6262 games with no year filter, 5948 with 1975 to 2025.
+  Shipped 2026-11-11 in 6a2795a: the untouched default range sends no
+  year bounds; a chosen range sends both, as before.
   **Layman:** Some games never appear in the Library unless you know to change the year filter.
   Kind: fix.
   Source: measured-2026-10-30.
@@ -3556,8 +3558,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-10-30-1144.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1166] **The command palette promises a search of games and settings it may not do.**
+- ✅ [mame-curator-1166] **The command palette promises a search of games and settings it may not do.**
   strings.nav.commandPalette, strings.cmdK.placeholder and docs/design.md's palette lines say it searches games and settings. Reported by the fix agent; check against CmdK before changing either side.
+  Shipped 2026-11-11 in 85e8839: the palette's words now say it finds a
+  page or a help topic, which is what it does.
   **Layman:** The palette's description may promise more than it does.
   Kind: review-fix.
   Source: close-findings-2026-10-30-1144.
@@ -3584,6 +3588,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
 
 - 📋 [mame-curator-1169] **The folder picker cannot make a new folder, and a missing destination is refused.**
   Deferred in mame-curator-1145's spec §9.
+  Decided by the user 2026-11-11: add a New folder button to the folder
+  picker (type a name, it is made where you are). Do not make a missing
+  folder on copy.
   **Layman:** A new user must make their destination folder outside the app before the setup wizard will accept it.
   Kind: ux.
   Source: build-mame-curator-1145-2026-10-30.
@@ -3649,6 +3656,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   2026-11-10: unblocked by mame-curator-1170 (8199e5a). Grants are now
   per drive or per folder, so a revoke list has small, clearly named
   entries.
+  Decided by the user 2026-11-11: under More options, Settings, a short
+  list "Drives and folders the app may use", each with a Remove button
+  that asks to confirm first.
   **Layman:** Once you allow a folder for the app, there is no button to undo that.
   Kind: review-fix.
   Source: close-findings-2026-11-02-1145.
@@ -4061,7 +4071,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: user-2026-11-10.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1212] **A macOS CI job hit its 15-minute limit, and frontend install got slower.**
+- ✅ [mame-curator-1212] **A macOS CI job hit its 15-minute limit, and frontend install got slower.**
   ci_report 2026-11-10: both macOS test legs ran 15m01s against the 15m
   timeout in run 41489441651 (b84793f). Find whether it hung or was slow,
   then fix the cause or raise the budget. The frontend job's Install
@@ -4069,6 +4079,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   cache hit, so check what it installs). pytest rose on all legs; that
   tracks the added tests. The *-latest runner advice is covered by
   mame-curator-1121.
+  Shipped 2026-11-11 in 9951b0e. The macOS timeout has not recurred
+  (macOS legs about 2m30s over seven days), so the budget stays. The
+  install rise began at a docs-only commit, so it is runner-side; npm ci
+  now uses --prefer-offline. Its effect shows on the next CI runs.
   **Layman:** One online test run was cut off for taking too long, and another step now takes longer than it used to.
   Kind: chore.
   Source: ci_report-2026-11-10.
@@ -4108,20 +4122,26 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1205-1211-2026-11-10.
   Lanes: docs.
 
-- 📋 [mame-curator-1218] **In the full view at 320px the page header is wider than the window.**
+- ✅ [mame-curator-1218] **In the full view at 320px the page header is wider than the window.**
   Measured in headless Chrome while building mame-curator-1213: in the
   Library's full view at 320px the page header is 511px wide. The simple
   view and the guide fit since 1210 and 1213.
+  Shipped 2026-11-11 in c76336f: below 40rem wide or 30rem tall, full
+  view stacks the filters above the rest. Checked by a Playwright test
+  in guide-flow.spec.ts. The inner scroll box left over is filed
+  separately.
   **Layman:** Zoomed right in on the full view, the top bar still runs off the right side.
   Kind: accessibility.
   Source: build-mame-curator-1213-2026-11-10.
   Lanes: frontend.
 
-- 📋 [mame-curator-1219] **Forgetting several old choices again after a partial failure shows an error.**
+- ✅ [mame-curator-1219] **Forgetting several old choices again after a partial failure shows an error.**
   useForgetChoices sends one DELETE per choice. If one fails partway, a
   second press gets 404 for a choice already removed, and the guide shows an
   error. Needs two or more unusable choices and a failure partway. Likely
   fix: treat 404 as already forgotten.
+  Shipped 2026-11-11 in 1a754a4: a 404 override_not_found counts as
+  already forgotten; any other error still stops.
   **Layman:** In a rare case, pressing Forget a second time says it failed although the choice is already gone.
   Kind: fix.
   Source: build-mame-curator-1189-2026-11-10.
@@ -4164,6 +4184,28 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: fix.
   Source: build-mame-curator-1220-2026-11-10.
   Lanes: filter, docs.
+
+- 📋 [mame-curator-1222] **Four browser tests fail because they skip the guide's new steps.**
+  npx playwright test, 2026-11-11: three tests in folder-picker.spec.ts
+  and the main test in setup-wizard.spec.ts time out. They do not walk
+  the compilations and languages steps added by mame-curator-1216 and
+  mame-curator-1217. Playwright runs in neither local-CI.sh nor ci.yml,
+  so nothing caught it.
+  **Layman:** Some automatic checks of the app in a browser broke when the guide gained two questions, and nothing noticed.
+  Kind: test.
+  Source: build-mame-curator-1218-2026-11-11.
+  Lanes: frontend, tests.
+
+- 📋 [mame-curator-1223] **In the narrow full Library view the games scroll inside a box inside the page.**
+  After mame-curator-1218, below 40rem wide or 30rem tall the full view
+  stacks the filters above the rest. The area below the top bar
+  (banners, featured tiles, games) still scrolls on its own, in a box
+  about 2.5 windows tall, inside a page that also scrolls. Everything is
+  reachable, but two scrollers are awkward with a magnifier.
+  **Layman:** Zoomed right in, the full Library has a scrolling area inside a scrolling page.
+  Kind: accessibility.
+  Source: build-mame-curator-1218-2026-11-11.
+  Lanes: frontend.
 
 ## Considered / under research (no target date)
 

@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-11 Fixed — Library and guide fixes: undated games, zoomed-in layout, Forget, palette words
+
+- **The Library shows games with no year until you choose years** (mame-curator-1150)
+  The default year range used to hide every game with no year.
+
+- **Zoomed right in, the full Library fits the window** (mame-curator-1218)
+  On a narrow window the filters now sit above the games instead of
+  beside them, so nothing runs off the right side.
+
+- **Pressing Forget again after a partial failure no longer shows an error** (mame-curator-1219)
+  Choices already forgotten are skipped.
+
+- **The command palette says what it finds** (mame-curator-1166)
+  It finds a page or a help topic; its words no longer promise games
+  and settings.
+
 ### 2026-11-11 Fixed — The best-games ratings now count when choosing a version
 
 - **The picker reads the real rating bands** (mame-curator-1221)
