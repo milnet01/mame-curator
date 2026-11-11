@@ -95,7 +95,9 @@ jobs:
 
       - name: Install dependencies
         # mame-curator-1212: use the restored npm cache before the network.
-        run: npm ci --prefer-offline
+        # mame-curator-1224: skip npm's audit. It never fails the job, and
+        # with each advisory it fetches package records the cache lacks.
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: ESLint
         run: npm run lint

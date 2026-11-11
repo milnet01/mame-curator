@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1252 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1253 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -4241,6 +4241,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   about 8s before 3596487. Not yet found: whether the time is download,
   unpacking, or the msw postinstall. Next step: time npm ci with
   --timing in CI, or cache node_modules keyed on package-lock.json.
+  2026-11-11: in run 43093557266 the npm cache restored in about 2s and
+  npm ci then ran 54s. npm ci --timing here shows the audit's
+  metavuln:calculate work, fetching package records for each advisory
+  (18 now). Locally those records are cached, so no slowdown reproduces.
+  Trial: ci.yml now passes --no-audit --no-fund. Done if the next run's
+  install step is back near 8s; if not, revert and look again.
   **Layman:** One step of the online checks is still slower than it used to be.
   Kind: chore.
   Source: ci-run-43048202178-2026-11-11.
@@ -4795,6 +4801,18 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   **Layman:** One test that starts the app sometimes gives up waiting when the computer is busy; it passes when run again.
   Kind: test.
   Source: close-findings 2026-11-11 (mame-curator-1225 sweep).
+
+- 📋 [mame-curator-1253] **npm reports 18 advisories in the frontend's packages, one critical.**
+  CI run 43093557266's npm ci printed: 18 vulnerabilities (13 moderate,
+  4 high, 1 critical). Not yet read: which packages, whether they reach
+  the shipped dist/ or only dev tools, and which have a fixed version.
+  Next step: npm audit in frontend/, then check-dependencies. The same
+  log warns that msw's postinstall did not run (npm install-scripts not
+  approved). mame-curator-1224 stops CI's npm ci from printing the audit.
+  **Layman:** Some add-on packages the screens are built with have known security problems to look at.
+  Kind: security.
+  Source: ci-run-43093557266-2026-11-11.
+  Lanes: frontend.
 
 ## Considered / under research (no target date)
 
