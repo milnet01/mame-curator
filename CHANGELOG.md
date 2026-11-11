@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-11 Fixed — The best-games ratings now count when choosing a version
+
+- **The picker reads the real rating bands** (mame-curator-1221)
+  It knew only made-up rating names, so every game counted as unrated.
+  It now reads the real bands, from "0 to 10 (Worst)" to
+  "90 to 100 (Best Games)". On a typical setup the same games are kept.
+
 ### 2026-11-11 Added — Keep only games in languages you can read
 
 - **Choose the languages you can read, and games in other languages are left out** (mame-curator-1217)

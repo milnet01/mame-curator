@@ -4149,7 +4149,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1217-2026-11-10.
   Lanes: parser, tests.
 
-- 📋 [mame-curator-1221] **The picker's best-games tiebreak knows none of the real rating bands.**
+- ✅ [mame-curator-1221] **The picker's best-games tiebreak knows none of the real rating bands.**
   _TIER_RANK in src/mame_curator/filter/picker.py knows Best, Great,
   Good, Average, Bad and Awful. Since mame-curator-1220 the bands are the
   real section names, such as "90 to 100 (Best Games)" and "0 to 10
@@ -4157,6 +4157,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   winners (measured 2026-11-10). docs/design.md Phase B rule 1 still
   describes the six tiers. Fixing it will move winners again; say by how
   much before it ships.
+  Shipped 2026-11-11 in a2b5059. The rank is the band's lower bound.
+  On the repo config the rating now decides 1572 of 2387 contested
+  groups and moves no winner (5609 before and after).
   **Layman:** The best-games ratings now load, but the app still ignores them when choosing which version of a game to keep.
   Kind: fix.
   Source: build-mame-curator-1220-2026-11-10.
