@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1223 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1224 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -4206,6 +4206,17 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: accessibility.
   Source: build-mame-curator-1218-2026-11-11.
   Lanes: frontend.
+
+- 📋 [mame-curator-1224] **The frontend CI install still takes about 50 seconds with a cache hit.**
+  mame-curator-1212 added npm ci --prefer-offline (9951b0e). Run
+  43048202178 still spent 53s installing after a cache hit, against
+  about 8s before 3596487. Not yet found: whether the time is download,
+  unpacking, or the msw postinstall. Next step: time npm ci with
+  --timing in CI, or cache node_modules keyed on package-lock.json.
+  **Layman:** One step of the online checks is still slower than it used to be.
+  Kind: chore.
+  Source: ci-run-43048202178-2026-11-11.
+  Lanes: ci.
 
 ## Considered / under research (no target date)
 
