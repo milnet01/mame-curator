@@ -502,7 +502,7 @@ A persistent left rail (or top bar on narrow screens) holds:
 - **Stats** (overview of the curated library — counts by genre/year/decade/publisher, total size, etc.)
 - **Settings**
 - **Help**
-- A persistent global search affordance (Cmd-K / Ctrl-K palette: search games, settings, actions, help topics)
+- A persistent global search affordance (Cmd-K / Ctrl-K palette: go to a page or a help topic)
 
 ### Layout (key screens)
 

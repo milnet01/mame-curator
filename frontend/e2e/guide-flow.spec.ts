@@ -377,7 +377,7 @@ test.describe("mame-curator-1210: at 320px, about 400% zoom", () => {
     await expect(page.getByTestId("guide-step")).toBeVisible();
     await expectNoSidewaysScroll(page, "html");
     await expect(
-      page.getByRole("button", { name: "Search games, settings, and actions" }),
+      page.getByRole("button", { name: "Go to a page or help topic" }),
     ).toBeVisible();
 
     // The Library is one window tall, so its game list has room to fill.

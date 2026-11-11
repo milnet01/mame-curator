@@ -595,7 +595,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1228
 # failed partway. 756 → 757.
 # Bumped 2026-11-11 (mame-curator-1150): the Library sends no year bounds
 # until a range is chosen. 757 → 758.
-EXPECTED_VITEST_DECLARATIONS = 758
+# Bumped 2026-11-11 (mame-curator-1166): the palette's button and box name
+# only pages and help topics. 758 → 759.
+EXPECTED_VITEST_DECLARATIONS = 759
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

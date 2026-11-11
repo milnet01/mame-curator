@@ -101,7 +101,7 @@ export const strings = {
     stats: "Stats",
     settings: "Settings",
     help: "Help",
-    commandPalette: "Search games, settings, and actions",
+    commandPalette: "Go to a page or help topic",
     cart: (n: number) => `Cart (${n})`,
     more: "More",
   },
@@ -787,7 +787,7 @@ export const strings = {
   },
 
   cmdK: {
-    placeholder: "Type a command, game, or setting…",
+    placeholder: "Type a page or help topic…",
     goTo: {
       library: "Go to Library",
       sessions: "Go to Sessions",

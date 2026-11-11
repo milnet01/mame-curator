@@ -149,6 +149,21 @@ describe("FP27 A5 — CmdK games/settings sections removed", () => {
     expect(sections).not.toHaveProperty("games");
     expect(sections).not.toHaveProperty("settings");
   });
+
+  // mame-curator-1166: the palette finds pages and help topics, so its
+  // button and its box must not promise games or settings.
+  it("its button and its box name only pages and help topics", async () => {
+    const { strings } = await import("@/strings");
+    for (const words of [
+      strings.nav.commandPalette,
+      strings.cmdK.placeholder,
+    ]) {
+      expect(words).not.toMatch(/\bgames?\b/i);
+      expect(words).not.toMatch(/\bsettings?\b/i);
+      expect(words).toMatch(/\bpage\b/i);
+      expect(words).toMatch(/\bhelp\b/i);
+    }
+  });
 });
 
 // mame-curator-1160: the palette has no trigger button, so Radix sent focus
