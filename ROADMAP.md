@@ -3590,11 +3590,16 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1145-2026-10-30.
   Lanes: api, tests.
 
-- 📋 [mame-curator-1169] **The folder picker cannot make a new folder, and a missing destination is refused.**
+- ✅ [mame-curator-1169] **The folder picker cannot make a new folder, and a missing destination is refused.**
   Deferred in mame-curator-1145's spec §9.
   Decided by the user 2026-11-11: add a New folder button to the folder
   picker (type a name, it is made where you are). Do not make a missing
   folder on copy.
+  Shipped 2026-11-12: New folder in the picker (directory mode), via
+  POST /api/fs/folders inside an allowed root only. Contract:
+  api/spec.md Filesystem sandbox; picker: spec 1145 after the paragraph
+  on opening folders. Tests: tests/api/test_routes_fs_folders.py,
+  FsNewFolder.test.tsx, folder-picker.spec.ts "mame-curator-1169".
   **Layman:** A new user must make their destination folder outside the app before the setup wizard will accept it.
   Kind: ux.
   Source: build-mame-curator-1145-2026-10-30.

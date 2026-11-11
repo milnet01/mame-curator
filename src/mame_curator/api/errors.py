@@ -71,6 +71,13 @@ class FsAlreadyCoveredError(ApiException):
     status_code = 409
 
 
+class FsFolderExistsError(ApiException):
+    """409 — a new folder's name is already taken where it would go."""
+
+    code = "fs_folder_exists"
+    status_code = 409
+
+
 class FsPathInvalidError(ApiException):
     """400 — empty / NUL-byte / non-directory path."""
 

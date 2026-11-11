@@ -118,6 +118,8 @@ Hidden is the server's word, in `FsEntry.hidden`: a name starting with a dot, Wi
 
 A listing failure is said by the picker alone, with no toast, and a folder that failed or is still loading cannot be chosen. Listings are never treated as fresh, so a folder made elsewhere shows on return. A folder with very many rows draws only those near the window; every row can still be reached by keyboard and by scrolling. While a grant is under way the prompt ignores its buttons and Esc, and keeps focus. Opening a folder from its row puts focus on the new folder's first row, or on Up when it has none, and the current path is read out as it changes (mame-curator-1206).
 
+When choosing a folder, a **New folder** button opens a name box where you are. **Make folder** makes it there through `POST /api/fs/folders`, then opens it, with focus as when a folder is opened from its row; it stays greyed out while the name is blank. A name already taken, or a folder that cannot be made, is said under the box, with no toast, and the picker stays where it was. **Cancel** puts the button back and focus on it. Moving to another folder closes the box (mame-curator-1169).
+
 `PathRow` opens a file row's picker at the folder that holds the file, which need not exist yet. A field holds typed text only while typing, then shows what is saved, so a path the server refused does not stay in it.
 
 After "Allow", the picker stays open on the allowed folder, for every caller. Today `ConfirmationDialog`'s confirm also calls its `onOpenChange(false)`, which closes the picker. Cancel still closes it.
@@ -254,7 +256,6 @@ Each new test must be seen to fail before its code exists. `frontend/e2e` runs b
 
 ## 9. Out of scope
 
-- Making a new folder from the picker — deferred; not yet queued.
 - Asking for the optional reference files or `paths.listxml` — deferred; not yet queued. The Library's existing `ListxmlBanner` says what they add.
 - Changing the DAT outside setup mode, which still needs a restart (1095 §4.2b) — deferred; not yet queued.
 - Refusing a save whose reference INI or `paths.listxml` will not read — not planned: a bad listxml is skipped at startup since mame-curator-1168, and a bad reference INI since mame-curator-1200.

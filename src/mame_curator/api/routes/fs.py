@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Request
 from mame_curator.api.errors import (
     FsAlreadyCoveredError,
     FsConfigRootNotRevocableError,
+    FsFolderExistsError,
     FsPathInvalidError,
     FsRootNotFoundError,
 )
@@ -31,6 +32,7 @@ from mame_curator.api.schemas import (
     FsEntry,
     FsGrantRootRequest,
     FsListing,
+    FsMakeFolderRequest,
     FsPath,
 )
 from mame_curator.api.state import WorldState, replace_world
@@ -91,6 +93,42 @@ def fs_list(path: str, world: WorldState = Depends(get_world)) -> FsListing:
         if any(candidate.is_relative_to(Path(r.path)) for r in world.allowed_roots):
             parent = str(candidate)
     return FsListing(path=str(requested), entries=tuple(entries), parent=parent)
+
+
+# ext4's limit, in bytes. NTFS and APFS count characters, so allow at least this.
+_MAX_NAME_BYTES = 255
+
+
+def _check_folder_name(name: str) -> None:
+    """One folder's name, the same on every system the app runs on."""
+    try:
+        fits = len(name.encode("utf-8")) <= _MAX_NAME_BYTES
+    except UnicodeEncodeError:  # A lone surrogate can arrive in JSON; no disk takes it.
+        fits = False
+    if (
+        not name
+        or not fits
+        or any(c in name for c in "/\\\0")
+        # Covers "." and "..". Windows drops a trailing dot or space, so the
+        # folder made would not be the one named.
+        or name.endswith((".", " "))
+    ):
+        raise FsPathInvalidError(f"not a usable folder name: {name!r}")
+
+
+@router.post("/api/fs/folders", response_model=FsPath)
+def fs_make_folder(body: FsMakeFolderRequest, world: WorldState = Depends(get_world)) -> FsPath:
+    """mame-curator-1169: make one folder, only inside an allowed root."""
+    parent = validate_fs_path(body.parent, world.allowed_roots, require_dir=True)
+    _check_folder_name(body.name)
+    target = parent / body.name
+    try:
+        target.mkdir()
+    except FileExistsError as exc:
+        raise FsFolderExistsError(f"already there: {str(target)!r}") from exc
+    except OSError as exc:
+        raise FsPathInvalidError(f"failed to make {str(target)!r}: {exc!r}") from exc
+    return FsPath(path=str(target))
 
 
 @router.get("/api/fs/home", response_model=FsPath)

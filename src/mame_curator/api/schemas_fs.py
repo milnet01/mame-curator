@@ -56,3 +56,11 @@ class FsDriveRoots(BaseModel):
 class FsGrantRootRequest(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     path: str
+
+
+class FsMakeFolderRequest(BaseModel):
+    """mame-curator-1169: one new folder called ``name`` inside ``parent``."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    parent: str
+    name: str

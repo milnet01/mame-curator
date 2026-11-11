@@ -708,6 +708,14 @@ export const strings = {
     fsBrowserOnlyFiles:
       "This folder holds only files, so there are no folders to open. You can still use it.",
     fsBrowserDirTag: "folder",
+    /** mame-curator-1169 — make a folder from the picker. */
+    fsNewFolder: "New folder",
+    fsNewFolderName: "Name of the new folder",
+    fsNewFolderMake: "Make folder",
+    fsNewFolderExists:
+      "Something with that name is already here. Try another name.",
+    fsNewFolderFailed:
+      "That folder could not be made here. Try a name without / or \\ that does not end in a dot.",
     /** FP13 § D4 — accessible name for the per-row Browse button. */
     fsBrowseAriaLabel: (target: string) => `Browse for ${target}`,
     fsGrantTitle: "Allow MAME Curator to look here?",
@@ -860,6 +868,7 @@ export const strings = {
       fs_sandboxed:
         "That path is outside the allowed filesystem roots. Add it under Settings → Paths first.",
       fs_already_covered: "That path is already inside an allowed root.",
+      fs_folder_exists: "Something with that name is already there.",
       fs_path_invalid: "The supplied path is not a valid directory.",
       fs_not_found: "That path does not exist.",
       fs_root_not_found: "That allowed root is no longer registered.",

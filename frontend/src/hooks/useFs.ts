@@ -8,6 +8,7 @@ import {
   type FsAllowedRoots,
   type FsDriveRoots,
   type FsListing,
+  type FsMakeFolderRequest,
   type FsPath,
 } from "@/api/types";
 import { toastApiError } from "@/lib/apiErrorToast";
@@ -83,5 +84,19 @@ export function useFsGrantRoot() {
       qc.invalidateQueries({ queryKey: ["fs", "list"] });
     },
     onError: toastApiError,
+  });
+}
+
+/** mame-curator-1169: no toast; the picker says a failure beside the name. */
+export function useFsMakeFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: FsMakeFolderRequest) =>
+      apiRequest<FsPath>("/api/fs/folders", FsPathSchema, {
+        method: "POST",
+        body: req,
+      }),
+    onSuccess: (_made, { parent }) =>
+      qc.invalidateQueries({ queryKey: fsListKey(parent) }),
   });
 }

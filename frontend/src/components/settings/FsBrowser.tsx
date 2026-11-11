@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { FsEntryList } from "@/components/settings/FsEntryList";
+import { FsNewFolder } from "@/components/settings/FsNewFolder";
 import {
   useFsAllowedRoots,
   useFsDriveRoots,
@@ -335,6 +336,20 @@ export function FsBrowser({
             entries={visibleEntries}
             emptyMessage={emptyMessage}
             onOpen={handleEntryClick}
+            large={large}
+          />
+        )}
+
+        {mode === "directory" && (
+          // Keyed by folder, so moving to another folder closes the name box.
+          // Prefixed: FsEntryList, a sibling, is keyed by the bare path.
+          <FsNewFolder
+            key={`new-folder:${listing.data?.path}`}
+            parent={listing.data && !listing.error ? listing.data.path : null}
+            onMade={(made) => {
+              openedFromRow.current = true;
+              setUserPath(made);
+            }}
             large={large}
           />
         )}

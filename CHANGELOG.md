@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-12 Added — Make a new folder from the folder picker
+
+- **The folder picker has a New folder button** (mame-curator-1169)
+  Type a name and press Make folder: the folder is made where you are
+  and opened, ready to choose. You no longer need to leave the app to
+  make your destination folder first. A folder is only ever made in a
+  place the app is already allowed to use.
+
 ### 2026-11-11 Security — Game pictures are fetched more safely
 
 - **Picture sources cannot reach your own computer or home network** (mame-curator-1225)

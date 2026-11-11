@@ -413,7 +413,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # from the same review. 1248 → 1259.
 # Bumped 2026-11-11 (mame-curator-1225): the review's other safety fixes
 # (licence split, capped reads, RZIP, Windows names, snap pack). 1259 → 1271.
-EXPECTED_PYTEST_DECLARATIONS = 1271
+# Bumped 2026-11-11 (mame-curator-1169): New folder, POST /api/fs/folders.
+# 1271 → 1280.
+EXPECTED_PYTEST_DECLARATIONS = 1280
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -605,7 +607,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1271
 # only pages and help topics. 758 → 759.
 # Bumped 2026-11-11 (mame-curator-1225): the release notes drop every tag
 # that would fetch. 759 → 760.
-EXPECTED_VITEST_DECLARATIONS = 760
+# Bumped 2026-11-11 (mame-curator-1169): the picker's New folder button.
+# 760 → 766.
+EXPECTED_VITEST_DECLARATIONS = 766
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

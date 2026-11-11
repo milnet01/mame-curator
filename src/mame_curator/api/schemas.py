@@ -333,6 +333,7 @@ from mame_curator.api.schemas_fs import (  # noqa: E402
     FsEntry,
     FsGrantRootRequest,
     FsListing,
+    FsMakeFolderRequest,
     FsPath,
 )
 from mame_curator.api.schemas_games import (  # noqa: E402
@@ -403,6 +404,7 @@ __all__ = (
     "FsEntry",
     "FsGrantRootRequest",
     "FsListing",
+    "FsMakeFolderRequest",
     "FsPath",
     "GameCard",
     "GameDetail",

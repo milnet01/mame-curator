@@ -182,6 +182,7 @@ class vars). `install_handlers` registers three handlers:
 | `ConfigError` | `config_invalid` | 422 |
 | `FsSandboxError` | `fs_sandboxed` | 403 |
 | `FsAlreadyCoveredError` | `fs_already_covered` | 409 |
+| `FsFolderExistsError` | `fs_folder_exists` | 409 |
 | `FsPathInvalidError` | `fs_path_invalid` | 400 |
 | `FsNotFoundError` | `fs_not_found` | 404 |
 | `FsRootNotFoundError` | `fs_root_not_found` | 404 |
@@ -262,6 +263,7 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | GET | `/api/copy/history` | `HistoryListing` | |
 | GET | `/api/copy/history/{job_id}/report` | `CopyReport` | |
 | GET | `/api/fs/list` | `FsListing` | |
+| POST | `/api/fs/folders` | `FsPath` | |
 | GET | `/api/fs/home` | `FsPath` | |
 | GET | `/api/fs/roots` | `FsDriveRoots` | |
 | GET | `/api/fs/allowed-roots` | `FsAllowedRoots` | |
@@ -431,6 +433,16 @@ All FS browsing crosses `api/fs.py`:
   JSON, is left out. A file whose date the clock cannot express stays, dated
   1970. `FsEntry.hidden` is true for a name starting with a dot, Windows' hidden
   attribute or macOS's hidden flag.
+- **New folder** (`POST /api/fs/folders`, body `FsMakeFolderRequest`
+  `{parent, name}`) makes one folder called `name` inside `parent` and returns
+  its path (mame-curator-1169). `parent` passes `validate_fs_path` as a
+  directory, so a folder is only ever made inside an allowed root. A `name`
+  that is empty, `.` or `..`, holds `/`, `\` or a NUL, ends in a dot or a
+  space, or is over 255 bytes as UTF-8 → `FsPathInvalidError` (400); Windows
+  drops a trailing dot or space, so the folder made would not be the one
+  named. Anything already there by that name → `FsFolderExistsError` (409).
+  Any other failure to make it, such as no permission → `FsPathInvalidError`
+  (400). It makes no missing parents and changes no config.
 - **Drive roots** (`GET /api/fs/roots`, `os_drive_roots`) are informational:
   access is still gated by the allowlist. Windows lists its drive letters.
   Linux lists the mount points in `/proc/mounts` that are existing directories,

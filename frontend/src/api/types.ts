@@ -549,6 +549,11 @@ export interface FsGrantRootRequest {
   path: string;
 }
 
+export interface FsMakeFolderRequest {
+  parent: string;
+  name: string;
+}
+
 // === Setup / updates stubs =================================================
 export interface SetupPathStatus {
   path: string;

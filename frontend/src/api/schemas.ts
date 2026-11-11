@@ -664,6 +664,10 @@ export const FsDriveRootsSchema = z
 
 export const FsGrantRootRequestSchema = z.object({ path: z.string() }).strict();
 
+export const FsMakeFolderRequestSchema = z
+  .object({ parent: z.string(), name: z.string() })
+  .strict();
+
 // === Setup / updates stubs =================================================
 export const SetupPathStatusSchema = z
   .object({

@@ -1,4 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { keepCompilations, keepLanguages } from "./guideSteps";
 
@@ -412,4 +415,32 @@ test("mame-curator-1165: Retry keeps focus when the Library still cannot load", 
   await expect(retry).toHaveText("Retrying…");
   await expect(retry).toHaveText("Try again", { timeout: 15_000 });
   await expect(retry).toBeFocused();
+});
+
+test("mame-curator-1169: New folder makes a folder where you are, and opens it", async ({
+  page,
+}) => {
+  // The fixture config's destination, which git ignores.
+  const dest = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "fixtures/data/e2e/dest-roms",
+  );
+  const name = `new-folder-${Date.now()}`;
+  try {
+    await page.goto("/settings");
+    await page.getByRole("button", { name: "Browse for Destination" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("status")).toHaveText(/dest-roms$/);
+    await dialog.getByRole("button", { name: "New folder" }).click();
+    await dialog.getByLabel("Name of the new folder").fill(name);
+    await dialog.getByRole("button", { name: "Make folder" }).click();
+    await expect(dialog.getByRole("status")).toHaveText(
+      new RegExp(`/dest-roms/${name}$`),
+    );
+    // An empty folder: focus goes to Up, as when one is opened from its row.
+    await expect(dialog.getByRole("button", { name: "Up" })).toBeFocused();
+    expect(fs.statSync(path.join(dest, name)).isDirectory()).toBe(true);
+  } finally {
+    fs.rmSync(path.join(dest, name), { recursive: true, force: true });
+  }
 });
