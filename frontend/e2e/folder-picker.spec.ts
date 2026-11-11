@@ -1,5 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { keepCompilations, keepLanguages } from "./guideSteps";
+
 /**
  * mame-curator-1145 INV-10, INV-12, mame-curator-1165, mame-curator-1171 —
  * what only a real browser can settle: whether the picker and its grant prompt
@@ -296,6 +298,8 @@ test.describe("the guide's Where step", () => {
     await page
       .getByRole("button", { name: "The best version of every game" })
       .click();
+    await keepCompilations(page);
+    await keepLanguages(page);
     await page.getByRole("button", { name: "Copy these" }).click();
     await expect(
       page.getByRole("button", { name: "Choose another folder" }),
@@ -371,6 +375,8 @@ test.describe("mame-curator-1165: focus after a failure", () => {
     await page
       .getByRole("button", { name: "The best version of every game" })
       .click();
+    await keepCompilations(page);
+    await keepLanguages(page);
     const copy = page.getByRole("button", { name: "Copy these" });
     await expect(copy).toBeVisible();
     await page.route("**/api/games?*", (route) =>

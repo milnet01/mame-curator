@@ -4204,12 +4204,18 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1220-2026-11-10.
   Lanes: filter, docs.
 
-- 📋 [mame-curator-1222] **Four browser tests fail because they skip the guide's new steps.**
+- ✅ [mame-curator-1222] **Four browser tests fail because they skip the guide's new steps.**
   npx playwright test, 2026-11-11: three tests in folder-picker.spec.ts
   and the main test in setup-wizard.spec.ts time out. They do not walk
   the compilations and languages steps added by mame-curator-1216 and
   mame-curator-1217. Playwright runs in neither local-CI.sh nor ci.yml,
   so nothing caught it.
+  Fixed 2026-11-11: the steps for keeping compilations and keeping every
+  language now live in e2e/guideSteps.ts, shared by guide-flow,
+  setup-wizard and folder-picker. Before: 4 failed, 31 passed. After:
+  setup-wizard, folder-picker and guide-flow give 47 passed. Playwright
+  still runs in neither local-CI.sh nor ci.yml; whether to add it is a
+  question for the user.
   **Layman:** Some automatic checks of the app in a browser broke when the guide gained two questions, and nothing noticed.
   Kind: test.
   Source: build-mame-curator-1218-2026-11-11.

@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { keepCompilations, keepLanguages } from "./guideSteps";
+
 /**
  * mame-curator-1144 — the guide in a real browser. Run by hand: no gate runs
  * frontend/e2e, so `cd frontend && npm run build && npm run e2e`.
@@ -37,16 +39,6 @@ function localStorageState(items: Record<string, string>) {
       },
     ],
   };
-}
-
-/** mame-curator-1216: the step after the group choice; the fixture's answer is "keep". */
-async function keepCompilations(page: Page) {
-  await page.getByRole("button", { name: /^No, keep them/ }).click();
-}
-
-/** mame-curator-1217: the step after compilations; the fixture keeps every language. */
-async function keepLanguages(page: Page) {
-  await page.getByRole("button", { name: /^Keep every language/ }).click();
 }
 
 test.describe("INV-6: a repeat copy", () => {

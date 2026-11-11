@@ -5,6 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { keepCompilations, keepLanguages } from "./guideSteps";
+
 /**
  * mame-curator-1145 INV-10, INV-12, INV-14 — a brand-new user, in a real
  * browser, against a real server. Run by hand: no gate runs frontend/e2e, so
@@ -244,6 +246,8 @@ test("a new user reaches a Library with games, in three questions", async ({
   await page
     .getByRole("button", { name: "The best version of every game" })
     .click();
+  await keepCompilations(page);
+  await keepLanguages(page);
   await expect(
     page.getByRole("heading", { name: /^This finds \d/ }),
   ).toBeVisible();
