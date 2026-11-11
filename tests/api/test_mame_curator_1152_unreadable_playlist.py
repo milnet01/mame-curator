@@ -13,6 +13,8 @@ from typing import Any
 
 import httpx
 
+from tests.api.conftest import LOCAL_URL
+
 
 def test_start_refuses_append_on_unreadable_playlist(app: Any, dest_dir: Path) -> None:
     playlist = dest_dir / "mame.lpl"
@@ -21,7 +23,7 @@ def test_start_refuses_append_on_unreadable_playlist(app: Any, dest_dir: Path) -
     async def _drive() -> httpx.Response:
         async with app.router.lifespan_context(app):
             transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            async with httpx.AsyncClient(transport=transport, base_url=LOCAL_URL) as client:
                 return await client.post(
                     "/api/copy/start",
                     json={"selected_names": ["pacman"], "conflict_strategy": "APPEND"},

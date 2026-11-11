@@ -17,6 +17,7 @@ import pytest
 
 from mame_curator.api.state import build_world, ini_context_fields
 from mame_curator.parser import INIError
+from tests.api.conftest import LOCAL_URL
 
 INI_KEYS = ("catver", "languages", "bestgames", "mature", "series")
 
@@ -64,11 +65,11 @@ def test_settings_save_of_bad_ini_does_not_stop_next_start(
 
     bad = tmp_path / "gone-catver.ini"
     client: Any
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         saved = client.patch("/api/config", json={"paths": {"catver": str(bad)}})
         assert saved.status_code == 200, saved.text
 
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         assert client.get("/api/setup/check").json()["setup_required"] is False
         assert client.get("/api/games").status_code == 200
 

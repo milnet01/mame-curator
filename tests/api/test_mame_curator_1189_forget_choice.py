@@ -10,6 +10,8 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import LOCAL_URL
+
 _GHOST_WARNING = "override key 'ghost' is not a known parent; ignored"
 
 
@@ -21,7 +23,7 @@ def old_choice_client(config_file: Path, fake_home: Path) -> Iterator[Any]:
     (config_file.parent / "overrides.yaml").write_text(
         "overrides:\n  pacman: pacmanf\n  ghost: nothing\n"
     )
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         yield client
 
 

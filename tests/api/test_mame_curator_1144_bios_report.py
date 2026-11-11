@@ -15,6 +15,8 @@ from typing import Any
 
 import pytest
 
+from tests.api.conftest import LOCAL_URL
+
 # In tests/api/fixtures/api_listxml.xml, kof94 runs on the neogeo BIOS.
 REQUEST = {"selected_names": ["kof94"], "conflict_strategy": "OVERWRITE"}
 
@@ -59,7 +61,7 @@ async def _finished_payload(app: Any) -> dict[str, Any]:
     transport = httpx.ASGITransport(app=app)
     async with (
         app.router.lifespan_context(app),
-        httpx.AsyncClient(transport=transport, base_url="http://test") as client,
+        httpx.AsyncClient(transport=transport, base_url=LOCAL_URL) as client,
     ):
         start = await client.post("/api/copy/start", json=REQUEST)
         assert start.status_code == 200, start.text

@@ -17,6 +17,8 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import LOCAL_URL
+
 
 def _mount_names(app: Any) -> list[str]:
     """Return the names of every Mount route on the app, top-to-bottom."""
@@ -46,7 +48,7 @@ def _rebuilt_client(
     from mame_curator.api import create_app
 
     monkeypatch.setattr(app_module, "frontend_dist", lambda: dist)
-    return TestClient(create_app(config_file))
+    return TestClient(create_app(config_file), base_url=LOCAL_URL)
 
 
 def test_static_mount_absent_when_dist_missing(

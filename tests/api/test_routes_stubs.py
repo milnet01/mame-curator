@@ -10,6 +10,8 @@ from typing import Any
 
 import pytest
 
+from tests.api.conftest import LOCAL_URL
+
 
 def test_route_r35_shape_setup_check(client: Any) -> None:
     response = client.get("/api/setup/check")
@@ -137,6 +139,6 @@ def test_setup_check_retroarch_configured(
         core.write_text("")
 
     cfg = _write_config_with_retroarch(tmp_path, config_file, retroarch=binary, retroarch_core=core)
-    with TestClient(create_app(cfg)) as c:
+    with TestClient(create_app(cfg), base_url=LOCAL_URL) as c:
         body = c.get("/api/setup/check").json()
     assert body["retroarch_configured"] is expected

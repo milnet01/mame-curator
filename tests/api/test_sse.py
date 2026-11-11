@@ -19,6 +19,8 @@ from typing import Any
 import httpx
 import pytest
 
+from tests.api.conftest import LOCAL_URL
+
 
 @pytest.mark.slow
 @pytest.mark.asyncio
@@ -38,7 +40,7 @@ async def test_sse_copy_progress_streams_events(app: Any, source_dir: Path) -> N
     # drive it manually so app.state.world / .job exist when handlers fire.
     async with (
         app.router.lifespan_context(app),
-        httpx.AsyncClient(transport=transport, base_url="http://test") as client,
+        httpx.AsyncClient(transport=transport, base_url=LOCAL_URL) as client,
     ):
         # Start the copy job.
         start = await client.post(

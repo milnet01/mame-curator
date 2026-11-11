@@ -3659,6 +3659,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Decided by the user 2026-11-11: under More options, Settings, a short
   list "Drives and folders the app may use", each with a Remove button
   that asks to confirm first.
+  Also take in review finding CR-06-4 (2026-11-11): a granted folder
+  that disappears drops out of the allowed list, so Remove cannot find
+  it by id, and the grant silently works again when the folder returns.
+  Let Remove match the saved grants by id and show the missing ones as
+  missing.
   **Layman:** Once you allow a folder for the app, there is no button to undo that.
   Kind: review-fix.
   Source: close-findings-2026-11-02-1145.

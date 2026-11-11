@@ -22,6 +22,7 @@ from starlette.routing import Route
 
 from mame_curator.api.origin_guard import OriginGuard
 from mame_curator.media import refuse_private_hosts
+from tests.api.conftest import LOCAL_URL
 
 LOCAL = {"host": "127.0.0.1:8080"}
 
@@ -32,7 +33,7 @@ async def _ok(_: Request) -> PlainTextResponse:
 
 def _guarded() -> TestClient:
     inner = Starlette(routes=[Route("/media/pacman/boxart", _ok), Route("/api/games", _ok)])
-    return TestClient(OriginGuard(inner))
+    return TestClient(OriginGuard(inner), base_url=LOCAL_URL)
 
 
 def test_cross_site_picture_request_is_refused() -> None:

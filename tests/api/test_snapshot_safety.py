@@ -11,6 +11,7 @@ import pytest
 import yaml
 
 from mame_curator.api.persist import MAX_SNAPSHOTS, restore_snapshot, write_json_atomic
+from tests.api.conftest import LOCAL_URL
 
 _SNAP_ID = "20200101T000000_000000Z"
 WRITE_JSON = "mame_curator.api.routes.backup.write_json_atomic"
@@ -263,7 +264,7 @@ def test_save_and_restore_keep_a_symlinked_config(tmp_path: Path, config_file: P
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("HOME", str(home))
         mp.setenv("USERPROFILE", str(home))
-        with TestClient(create_app(config_file)) as client:
+        with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
             assert client.patch("/api/config", json={"ui": {"theme": "light"}}).status_code == 200
             assert config_file.is_symlink()
             assert yaml.safe_load(real.read_text(encoding="utf-8"))["ui"]["theme"] == "light"

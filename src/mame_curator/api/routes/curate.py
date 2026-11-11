@@ -139,7 +139,7 @@ async def upsert_session(
     Name validation happens before the lock acquire — a 422 on a bad name
     is read-only and shouldn't block a concurrent good-name writer.
     """
-    if not _SESSION_NAME_RE.match(body.name):
+    if not _SESSION_NAME_RE.fullmatch(body.name):
         raise SessionNameInvalidError(f"session name invalid: {body.name!r}")
     async with request.app.state.world_lock:
         world: WorldState = request.app.state.world

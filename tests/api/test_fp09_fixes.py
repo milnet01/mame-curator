@@ -13,6 +13,8 @@ from typing import Any
 
 import pytest
 
+from tests.api.conftest import LOCAL_URL
+
 # ---- A1 — `{exc}` repr-quoting at 5 sites ----------------------------------
 # Defends the FP06–FP08 single-line `detail` invariant when an exception's
 # str contains control bytes. The five sites all interpolate {exc} raw;
@@ -211,7 +213,7 @@ def test_b6_notes_only_skips_recompute(app: Any, monkeypatch: Any) -> None:
 
     monkeypatch.setattr(state_mod, "compose_allowlist", spy)
 
-    with TestClient(app) as client:
+    with TestClient(app, base_url=LOCAL_URL) as client:
         baseline = len(compose_calls)
         client.put("/api/games/pacman/notes", json={"notes": "x"})
         after = len(compose_calls)
@@ -346,7 +348,7 @@ def test_c1_subscriber_after_start_sees_job_started_via_history_replay(
     async def _drive() -> None:
         async with app.router.lifespan_context(app):
             transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            async with httpx.AsyncClient(transport=transport, base_url=LOCAL_URL) as client:
                 start = await client.post(
                     "/api/copy/start",
                     json={

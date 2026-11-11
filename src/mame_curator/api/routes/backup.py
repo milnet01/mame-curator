@@ -100,7 +100,11 @@ def _check_bundle(bundle: ConfigExportBundle, world: WorldState) -> _Bundle:
         raw_config = merge_picker_into_filters(dict(bundle.config))
     except ValueError as exc:
         raise ConfigError(f"config import: {exc}") from exc
-    new_config = _validated(AppConfig, raw_config, "config")
+    # mame-curator-1225 (user decision 2026-11-11): a restore never grants
+    # folder access; the grants in force stay, and the user approves again.
+    new_config = _validated(AppConfig, raw_config, "config").model_copy(
+        update={"fs": world.config.fs}
+    )
     new_overrides = _validated(Overrides, bundle.overrides, "overrides")
     new_sessions = _validated(Sessions, bundle.sessions, "sessions")
     # Absent means no choices (1146 §4.7).
@@ -113,7 +117,7 @@ def _check_bundle(bundle: ConfigExportBundle, world: WorldState) -> _Bundle:
     from mame_curator.api.routes.curate import _SESSION_NAME_RE
 
     for name in new_sessions.sessions:
-        if not _SESSION_NAME_RE.match(name):
+        if not _SESSION_NAME_RE.fullmatch(name):
             raise SessionNameInvalidError(f"session name invalid in import: {name!r}")
 
     path_errs = _import_path_errors(new_config, world.config)

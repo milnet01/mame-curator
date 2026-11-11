@@ -32,6 +32,8 @@ from typing import Any
 import httpx
 import pytest
 
+from tests.api.conftest import LOCAL_URL
+
 # The seven routes named in P04 spec lines 104-115 that FP25-A converts.
 CURATE_ROUTE_FUNCS = (
     "post_override",
@@ -281,7 +283,7 @@ def test_fp25_a_concurrent_cross_route_mutations_both_land(
             monkeypatch.setattr(games_module, "set_world", asserted_set_world)
 
             transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as ac:
+            async with httpx.AsyncClient(transport=transport, base_url=LOCAL_URL) as ac:
                 ra, rb = await asyncio.gather(
                     ac.post(
                         "/api/overrides",

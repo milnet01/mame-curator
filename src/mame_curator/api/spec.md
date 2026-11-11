@@ -336,7 +336,9 @@ later choice replies with no warnings.
   `selected_names` answers `CopyNothingSelectedError` (422) for the same reason:
   OVERWRITE would empty the playlist. Otherwise every name
   in `selected_names`, and every `append_decisions[*].replaces`, must be in
-  `world.machines`. One that is not refuses the whole request with
+  `world.machines`. `CopyJobRequest` caps each name at 64 characters and each
+  list at 100,000 entries, above any MAME set, so the guide can send its whole
+  list (mame-curator-1225). One that is not refuses the whole request with
   `CopyNamesUnknownError` (422), which names them in `fields[]` and starts no job.
   The Library's Copy button drops and reports stale cart items first, through
   `POST /api/games/validate`, so this refusal is the last word, not the usual one.
@@ -457,7 +459,9 @@ does unless its caller asks otherwise:
 
 - `PATCH /api/config` deep-merges the patch (`deep_merge`, depth-capped at
   10 for defence-in-depth), validates against `AppConfig`, writes the YAML,
-  and swaps the world.
+  and swaps the world. A patch that changes `fs.granted_roots` is a 422
+  `not_patchable` on that field: folder access changes only through Grant and
+  Revoke (mame-curator-1225).
   - `_validate_paths(config, *, setup_required=False)` collects the
     `path_not_found` / `path_invalid` field errors; a non-empty tuple is a
     422. A path holding a NUL byte is `path_invalid`. A save that changes
@@ -505,7 +509,9 @@ does unless its caller asks otherwise:
   (mame-curator-1146 §4.7). `picker:` in a bundle's config folds
   into `filters:` as `load_app_config` does. A NUL path is `path_invalid` and a
   bundle newly naming one folder for games and destination is `same_folder`
-  (mame-curator-1177). A path that does not exist is not refused: a kept backup
+  (mame-curator-1177). The bundle's `fs` is ignored and the grants in force are
+kept: a restore never grants folder access (mame-curator-1225, user decision
+2026-11-11). A path that does not exist is not refused: a kept backup
   may come from another machine, and setup mode or a later save reports it. If
   writing the files fails, the ones already written are put back from the
   snapshot taken first, and the error is raised.
@@ -556,15 +562,16 @@ does unless its caller asks otherwise:
 mame-curator-1083. The API authenticates nothing and binds loopback, so
 the risk it guards against is a hostile page in the user's own browser.
 `OriginGuard` (`api/origin_guard.py`) is a pure ASGI middleware
-installed by `create_app`, ahead of routing. It judges **browser
-requests only** — those carrying `Origin` or `Sec-Fetch-Site`; the CLI,
-curl and test clients send neither and pass. A refusal is a `403`
-`cross_site_blocked` envelope.
+installed by `create_app`, ahead of routing. Rule 1 judges every
+request; rules 2 to 4 judge **browser requests only** — those carrying
+`Origin` or `Sec-Fetch-Site`. The CLI and curl send neither and a local
+`Host`, so they pass; test clients address the app as `127.0.0.1`
+(mame-curator-1225). A refusal is a `403` `cross_site_blocked` envelope.
 
 A hostname is **local** when it is `localhost`, a loopback IP, or the
 address `serve` binds (`create_app(..., bind_host=)`).
 
-1. **Host (every method).** The `Host` header must name a local host or
+1. **Host (every request).** The `Host` header must name a local host or
    be an IP literal. This stops DNS rebinding, which needs a name: an IP
    cannot be re-pointed.
 2. **Origin (POST / PUT / PATCH / DELETE).** When `Origin` is present,

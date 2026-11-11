@@ -53,7 +53,10 @@ def help_index() -> HelpIndex:
     base = _help_dir()
     if not base.exists() or not base.is_dir():
         return HelpIndex(topics=())
-    topics = tuple(HelpTopic(slug=p.stem, title=_read_title(p)) for p in sorted(base.glob("*.md")))
+    # mame-curator-1225: a link out of the help folder is not a topic, the
+    # same boundary help_topic enforces.
+    pages = [p for p in sorted(base.glob("*.md")) if p.resolve().is_relative_to(base)]
+    topics = tuple(HelpTopic(slug=p.stem, title=_read_title(p)) for p in pages)
     return HelpIndex(topics=topics)
 
 

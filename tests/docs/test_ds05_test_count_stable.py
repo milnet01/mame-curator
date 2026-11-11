@@ -409,7 +409,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # bestgames bands. 1227 → 1228.
 # Bumped 2026-11-11 (mame-curator-1225): the picture and text fetch
 # safety fixes from the 2026-11-11 code review. 1228 → 1248.
-EXPECTED_PYTEST_DECLARATIONS = 1248
+# Bumped 2026-11-11 (mame-curator-1225): the web service's trust edges
+# from the same review. 1248 → 1259.
+EXPECTED_PYTEST_DECLARATIONS = 1259
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

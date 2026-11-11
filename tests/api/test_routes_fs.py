@@ -339,12 +339,14 @@ def test_a_stale_root_is_reported_with_no_memory_between_calls(
 def test_a_save_that_keeps_the_granted_roots_does_not_repeat_the_line(
     client: Any, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
+    # mame-curator-1225: a settings save cannot grant, so the grant goes
+    # through the picker and the folder then disappears.
     ghost = tmp_path / "ghost"
+    ghost.mkdir()
+    grant = client.post("/api/fs/allowed-roots", json={"path": str(ghost)})
+    assert grant.status_code == 200, grant.text
+    ghost.rmdir()
     with caplog.at_level("INFO", logger="mame_curator.api.fs"):
-        patch = client.patch("/api/config", json={"fs": {"granted_roots": [str(ghost)]}})
-        assert patch.status_code == 200, patch.text
-        assert sum(str(ghost) in r.message for r in caplog.records) == 1
-        caplog.clear()
         assert client.patch("/api/config", json={"ui": {"theme": "light"}}).status_code == 200
 
     assert not caplog.records

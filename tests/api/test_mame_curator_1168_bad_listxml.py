@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 
 from mame_curator.api.state import build_world
+from tests.api.conftest import LOCAL_URL
 
 
 def _config_with_listxml(config_file: Path, listxml: Path) -> Path:
@@ -57,11 +58,11 @@ def test_settings_save_of_bad_listxml_does_not_stop_next_start(
     bad = tmp_path / "bad-listxml.xml"
     bad.write_text("<mame><machine name='pacman'", encoding="utf-8")
     client: Any
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         saved = client.patch("/api/config", json={"paths": {"listxml": str(bad)}})
         assert saved.status_code == 200, saved.text
 
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         check = client.get("/api/setup/check").json()
         assert check["setup_required"] is False
         assert check["cloneof_map_size"] == 0

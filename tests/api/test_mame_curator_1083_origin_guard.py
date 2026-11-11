@@ -21,6 +21,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 
 from mame_curator.api.origin_guard import OriginGuard
+from tests.api.conftest import LOCAL_URL
 
 
 async def _ok(_: Request) -> PlainTextResponse:
@@ -29,7 +30,7 @@ async def _ok(_: Request) -> PlainTextResponse:
 
 def _guarded(bind_host: str | None = None) -> TestClient:
     inner = Starlette(routes=[Route("/x", _ok, methods=["GET", "POST", "PUT", "PATCH", "DELETE"])])
-    return TestClient(OriginGuard(inner, bind_host=bind_host))
+    return TestClient(OriginGuard(inner, bind_host=bind_host), base_url=LOCAL_URL)
 
 
 LOCAL = {"host": "127.0.0.1:8080"}
@@ -90,8 +91,9 @@ def test_fetch_metadata_same_origin_or_typed_url_is_allowed(site: str) -> None:
 
 
 def test_non_browser_request_is_untouched() -> None:
-    """No Origin, no Sec-Fetch-*: the CLI, curl, scripts. Nothing to judge."""
-    assert _guarded().post("/x", headers={"host": "anything.example"}).status_code == 200
+    """No Origin, no Sec-Fetch-*: the CLI, curl, scripts. Only the Host is
+    judged (mame-curator-1225), and theirs is local."""
+    assert _guarded().post("/x", headers={"host": "127.0.0.1:8080"}).status_code == 200
 
 
 def test_rebound_hostname_is_blocked_even_on_reads() -> None:

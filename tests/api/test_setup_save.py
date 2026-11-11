@@ -18,6 +18,7 @@ from mame_curator.api import create_app
 from mame_curator.api.fs import compose_allowlist
 from mame_curator.api.state import build_world
 from mame_curator.filter import OverridesError, load_overrides
+from tests.api.conftest import LOCAL_URL
 
 SAME_FOLDER_WORDS = "Please choose a different folder from the one holding your games."
 
@@ -32,7 +33,7 @@ def _set_paths(config_file: Path, **paths: str) -> None:
 def setup_client(config_file: Path, tmp_path: Path, fake_home: Path) -> Iterator[Any]:
     """A client whose app started in setup mode: the DAT path is absent."""
     _set_paths(config_file, source_dat=str(tmp_path / "does-not-exist.xml"))
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         yield client
 
 
@@ -355,7 +356,7 @@ def test_a_config_already_naming_one_folder_twice_loads_and_saves(
     data = yaml.safe_load(config_file.read_text(encoding="utf-8"))
     _set_paths(config_file, dest_roms=data["paths"]["source_roms"])
 
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         assert client.get("/api/games").status_code == 200
         reply = client.patch("/api/config", json={"ui": {"theme": "light"}})
         assert reply.status_code == 200, reply.text

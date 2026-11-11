@@ -35,6 +35,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A broken or oversized reply from a picture source means "no picture"** (mame-curator-1225)
   It used to show an error instead.
 
+- **Only the folder picker gives the app access to a folder** (mame-curator-1225)
+  Restoring a backup keeps the folder access you have now, so you approve
+  any other folder again. A settings save cannot add folder access either.
+
+- **The app refuses requests sent under another website's name** (mame-curator-1225)
+  This now holds for older browsers too.
+
+- **Smaller fixes to what the app accepts** (mame-curator-1225)
+  A saved selection's name cannot end in a hidden line break. Checking a
+  game list no longer freezes on something that is not a file. The help
+  list shows only pages inside the help folder. A copy request has a size
+  limit, set well above any MAME set.
+
 ### 2026-11-11 Fixed — Library and guide fixes: undated games, zoomed-in layout, Forget, palette words
 
 - **The Library shows games with no year until you choose years** (mame-curator-1150)

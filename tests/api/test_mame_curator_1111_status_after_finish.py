@@ -17,6 +17,8 @@ import asyncio
 import json
 from typing import Any
 
+from tests.api.conftest import LOCAL_URL
+
 
 def test_status_replays_a_job_that_finished_before_subscribe(app: Any) -> None:
     import httpx
@@ -24,7 +26,7 @@ def test_status_replays_a_job_that_finished_before_subscribe(app: Any) -> None:
     async def _drive() -> list[str]:
         async with app.router.lifespan_context(app):
             transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            async with httpx.AsyncClient(transport=transport, base_url=LOCAL_URL) as client:
                 start = await client.post(
                     "/api/copy/start",
                     json={"selected_names": ["pacman"], "conflict_strategy": "OVERWRITE"},

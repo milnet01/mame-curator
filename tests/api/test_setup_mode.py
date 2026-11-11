@@ -33,6 +33,7 @@ import pytest
 
 from mame_curator import __version__
 from mame_curator.api.state import WorldState, build_world, replace_world
+from tests.api.conftest import LOCAL_URL
 
 
 def _config_with_dat(config_file: Path, dat: Path) -> Path:
@@ -75,7 +76,7 @@ def setup_mode_client(config_file: Path, tmp_path: Path, fake_home: Path) -> Ite
     from mame_curator.api import create_app
 
     _config_with_dat(config_file, tmp_path / "does-not-exist.xml")
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         yield client
 
 

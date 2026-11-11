@@ -17,6 +17,7 @@ import yaml
 from fastapi.testclient import TestClient
 
 from mame_curator.api import create_app
+from tests.api.conftest import LOCAL_URL
 
 _ROUTES = ("/api/copy/dry-run", "/api/copy/start")
 
@@ -61,7 +62,8 @@ def test_an_absolute_name_is_refused(client: Any, outside: Path, route: str) -> 
     reply = client.post(route, json={"selected_names": [name], "conflict_strategy": "OVERWRITE"})
 
     assert reply.status_code == 422, reply.text
-    assert reply.json()["code"] == "copy_names_unknown"
+    # A long path trips the 64-character name cap first (mame-curator-1225).
+    assert reply.json()["code"] in {"copy_names_unknown", "validation_error"}
 
 
 def test_one_stale_name_refuses_the_whole_copy_and_says_which(
@@ -133,7 +135,7 @@ def setup_client(config_file: Path, tmp_path: Path, fake_home: Path) -> Iterator
     data = yaml.safe_load(config_file.read_text(encoding="utf-8"))
     data["paths"]["source_dat"] = str(tmp_path / "does-not-exist.xml")
     config_file.write_text(yaml.safe_dump(data), encoding="utf-8")
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         yield client
 
 

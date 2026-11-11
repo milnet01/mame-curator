@@ -17,6 +17,7 @@ from typing import Any
 import pytest
 
 from mame_curator.parser import parse_dat
+from tests.api.conftest import LOCAL_URL
 
 
 def _count_probe_parses(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
@@ -71,7 +72,7 @@ def test_check_rereads_the_dat_once_it_changes(
     shutil.copyfile(mini_dat, dat)
     _restart_with_dat(config_file, dat, lambda p: None)
     calls = _count_probe_parses(monkeypatch)
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         assert _dat_parses(client) is True
         assert calls == []
         dat.write_text("<datafile><machine name='x'", encoding="utf-8")
@@ -99,7 +100,7 @@ def test_finishing_the_wizard_reads_the_dat_once(
 
     _restart_with_dat(config_file, tmp_path / "does-not-exist.xml", lambda p: None)
     calls = _count_probe_parses(monkeypatch)
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         saved = client.patch("/api/config", json={"paths": {"source_dat": str(mini_dat)}})
         assert saved.status_code == 200, saved.text
         assert saved.json()["setup_ended"] is True

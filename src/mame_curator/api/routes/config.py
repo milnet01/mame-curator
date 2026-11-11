@@ -55,6 +55,11 @@ router = APIRouter()
 
 # The page shows `msg` for this type; a `path_` type reads "could not be found".
 _SAME_FOLDER_WORDS = "Please choose a different folder from the one holding your games."
+_GRANTS_NOT_PATCHABLE = FieldError(
+    loc="fs.granted_roots",
+    msg="Folder access is given in the folder picker, not here.",
+    type="not_patchable",
+)
 
 
 def _to_response(
@@ -262,6 +267,10 @@ async def patch_config(
                 fields=field_errors_from_pydantic(exc.errors()),
             ) from exc
 
+        if new_config.fs != world.config.fs:
+            # mame-curator-1225: folder access changes only through the folder
+            # picker's grant and revoke, never a settings save.
+            raise ConfigError("config validation failed", fields=(_GRANTS_NOT_PATCHABLE,))
         path_errs = _validate_paths(new_config, world.config, setup_required=world.setup_required)
         if path_errs:
             raise ConfigError("config validation failed", fields=path_errs)

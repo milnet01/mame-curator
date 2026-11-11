@@ -66,12 +66,14 @@ class OriginGuard:
         """Why this request is refused, or ``None`` to let it through."""
         origin = headers.get("origin")
         fetch_site = headers.get("sec-fetch-site")
+        host = _hostname(headers.get("host", ""))
+        # DNS rebinding needs a NAME; an IP literal cannot be re-pointed. Checked
+        # on every request (mame-curator-1225): an older browser sends neither
+        # Origin nor Sec-Fetch-Site, and the CLI and curl send a local Host.
+        if not (self._is_local(host) or (host is not None and _ip(host) is not None)):
+            return f"Refused a request addressed to host {headers.get('host')!r}."
         if origin is None and fetch_site is None:
             return None  # not a browser
-        host = _hostname(headers.get("host", ""))
-        # DNS rebinding needs a NAME; an IP literal cannot be re-pointed.
-        if not (self._is_local(host) or (host is not None and _ip(host) is not None)):
-            return f"Refused a browser request addressed to host {headers.get('host')!r}."
         if fetch_site == "cross-site" and path.startswith("/media/"):
             # mame-curator-1225: a picture GET makes the app fetch from third
             # parties (and spend the MobyGames quota), so it is not a safe read.

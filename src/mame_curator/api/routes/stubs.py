@@ -120,6 +120,10 @@ def dat_check(path: str, world: WorldState = Depends(get_world)) -> DatCheck:
     quick; a file broken further on is still found by the save.
     """
     requested = validate_fs_path(path, world.allowed_roots)
+    if not requested.is_file():
+        # mame-curator-1225: a folder or a named pipe is no list, and opening a
+        # pipe would block a worker until something writes to it.
+        return DatCheck(path=str(requested), parses=False)
     try:
         check_dat_start(requested)
     except ParserError:

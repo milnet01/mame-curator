@@ -10,6 +10,8 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import LOCAL_URL
+
 
 def _winners(client: Any) -> list[str]:
     return [card["short_name"] for card in client.get("/api/games").json()["items"]]
@@ -30,7 +32,7 @@ def old_file_client(config_file: Path, fake_home: Path) -> Iterator[Any]:
     (config_file.parent / "overrides.yaml").write_text(
         "overrides:\n  pacman: pacmanf\n  pacmanf: pacman\n  ghost: nothing\n"
     )
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         yield client
 
 
@@ -73,7 +75,7 @@ def test_an_old_clone_keyed_choice_applies_after_an_upgrade(
     from mame_curator.api import create_app
 
     (config_file.parent / "overrides.yaml").write_text("overrides:\n  pacmanf: pacmanf\n")
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         assert "pacmanf" in _winners(client)
         assert client.get("/api/games/pacmanf").json()["override"] == "pacmanf"
         assert "overridden" in client.get("/api/games/pacmanf").json()["badges"]

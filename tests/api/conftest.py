@@ -216,6 +216,11 @@ fs:
     return path
 
 
+# mame-curator-1225: OriginGuard checks the Host of every request, so a test
+# client must address the app as a local host, not "testserver".
+LOCAL_URL = "http://127.0.0.1"
+
+
 @pytest.fixture
 def fake_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Override ``Path.home()`` to a controlled subdir under ``tmp_path``.
@@ -253,7 +258,7 @@ def client(app: Any) -> Iterator[Any]:
     """``fastapi.testclient.TestClient`` bound to the application instance."""
     from fastapi.testclient import TestClient
 
-    with TestClient(app) as c:
+    with TestClient(app, base_url=LOCAL_URL) as c:
         yield c
 
 
@@ -269,5 +274,5 @@ def app_started(app: Any) -> Iterator[Any]:
     """
     from fastapi.testclient import TestClient
 
-    with TestClient(app):
+    with TestClient(app, base_url=LOCAL_URL):
         yield app

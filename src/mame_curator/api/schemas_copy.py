@@ -8,7 +8,7 @@ working unchanged.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -19,12 +19,20 @@ from mame_curator.copy.types import (
     CopyReportStatus,
 )
 
+# mame-curator-1225: bounds on user-controlled memory, as ValidateRequest has.
+# The count sits above any MAME set, because the guide sends the whole list;
+# 64 characters is ValidateRequest's per-name cap.
+_MAX_COPY_NAMES = 100_000
+_ShortName = Annotated[str, Field(max_length=64)]
+
 
 class CopyJobRequest(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
-    selected_names: tuple[str, ...]
+    selected_names: Annotated[tuple[_ShortName, ...], Field(max_length=_MAX_COPY_NAMES)]
     conflict_strategy: ConflictStrategy = ConflictStrategy.CANCEL
-    append_decisions: dict[str, AppendDecision] = Field(default_factory=dict)
+    append_decisions: Annotated[
+        dict[_ShortName, AppendDecision], Field(max_length=_MAX_COPY_NAMES)
+    ] = Field(default_factory=dict)
 
 
 class DryRunReport(BaseModel):

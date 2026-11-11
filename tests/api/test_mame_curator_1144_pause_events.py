@@ -21,6 +21,7 @@ import pytest
 from mame_curator.api import jobs as jobs_module
 from mame_curator.api.jobs import JobManager
 from mame_curator.copy import run_copy
+from tests.api.conftest import LOCAL_URL
 
 
 @pytest.fixture
@@ -39,7 +40,7 @@ def gate(monkeypatch: pytest.MonkeyPatch) -> threading.Event:
 async def _started_client(app: Any) -> AsyncIterator[httpx.AsyncClient]:
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(transport=transport, base_url=LOCAL_URL) as client:
             start = await client.post(
                 "/api/copy/start",
                 json={"selected_names": ["pacman"], "conflict_strategy": "OVERWRITE"},

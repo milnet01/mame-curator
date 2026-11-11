@@ -23,6 +23,7 @@ from mame_curator.media import Kind, MediaSource, MediaSourceRegistry
 from mame_curator.media import resolve as resolve_mod
 from mame_curator.media.rate_limit import MediaRateLimited
 from mame_curator.parser.models import Machine
+from tests.api.conftest import LOCAL_URL
 
 _SOURCES = ["esde", "retroarchThumbnails", "arcadeDB", "libretro"]
 _IMMUTABLE = "public, max-age=2592000, immutable"
@@ -166,7 +167,7 @@ def test_a_bad_pictures_file_loads_as_no_choices_and_is_left_alone(
     else:
         path.write_bytes(content)
     caplog.set_level(logging.WARNING, logger="mame_curator.api.pictures")
-    with TestClient(create_app(config_file)) as client:
+    with TestClient(create_app(config_file), base_url=LOCAL_URL) as client:
         assert client.get("/api/games").status_code == 200
         assert _card(client)["picture"] is None
     warnings = [r for r in caplog.records if r.name == "mame_curator.api.pictures"]
