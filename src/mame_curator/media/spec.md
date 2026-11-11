@@ -54,7 +54,7 @@ Source files under `src/mame_curator/media/`:
 | File | Contents |
 |---|---|
 | `urls.py` | `escape_libretro`, `urls_for`, `MediaUrls` (frozen), the `_BASE_URL` / `_KIND_FOLDER` / `_ESCAPE_CHARS` constants. |
-| `cache.py` | `fetch_with_cache`, `cache_path_for`, `MediaError`, `MediaFetchError`, `DEFAULT_MAX_BYTES` (16 MiB), the `http`/`https`-only scheme guard. |
+| `cache.py` | `fetch_with_cache`, `cache_path_for`, `refuse_private_hosts`, `MediaError`, `MediaFetchError`, `DEFAULT_MAX_BYTES` (16 MiB), the `http`/`https`-only scheme guard. |
 | `cache_text.py` | `fetch_text_with_cache`, `DEFAULT_TEXT_MAX_BYTES` (256 KiB), and its own independent copy of the same `http`/`https`-only scheme guard. |
 | `rate_limit.py` | `TokenBucket`, `MediaRateLimited`. |
 | `sources.py` | `Kind`, `MediaSource` (Protocol), `LibretroSource`, `ProgettoSnapsSource`, `ArcadeDBSource`, `WikipediaImageSource`, `MediaSourceRegistry`. |
@@ -97,6 +97,7 @@ Re-exported from `mame_curator.media.__init__` (`__all__`):
 | `urls_for` | function | `urls.py` |
 | `cache_path_for` | function | `cache.py` |
 | `fetch_with_cache` | async function | `cache.py` |
+| `refuse_private_hosts` | async `httpx` request hook | `cache.py` |
 | `fetch_text_with_cache` | async function | `cache_text.py` |
 | `DEFAULT_TEXT_MAX_BYTES` | `int` (256 KiB) | `cache_text.py` |
 | `TokenBucket` | class | `rate_limit.py` |
@@ -247,9 +248,11 @@ is `https://raw.githubusercontent.com/libretro-thumbnails/MAME/master`.
 ### `cache_path_for(url: str, cache_dir: Path) -> Path`
 
 Pure (no I/O): `cache_dir / f"{sha256(url).hexdigest()}{ext}"` where
-`ext = Path(urlparse(url).path).suffix`. A URL with no path suffix yields a
-bare-hex filename. Used by both cache helpers and by parse-before-trust
-unlink paths.
+`ext = Path(urlparse(url).path).suffix` when it is a picture suffix (`.png`,
+`.jpg`, `.jpeg`, `.gif`, `.webp`, compared case-blind). Any other suffix, or
+none, yields a bare-hex filename: the route picks the served MIME type from
+the suffix, and the URL comes from upstream JSON (mame-curator-1225). Used
+by both cache helpers and by parse-before-trust unlink paths.
 
 ### `async fetch_with_cache(url, cache_dir, *, client, max_bytes=DEFAULT_MAX_BYTES) -> Path | None`
 
@@ -265,6 +268,9 @@ order:
   on, FP27 B4).
 - 404 → `None` (sentinel; no negative caching).
 - non-200 → `MediaFetchError("upstream {status} ...")`.
+- a 200 whose `Content-Type` is present and is neither `image/*` nor
+  `application/octet-stream` → `MediaFetchError("not a picture ...")`, so a
+  soft-404 page is never cached (mame-curator-1225).
 - streamed bytes exceed `max_bytes` → abort + `MediaFetchError("BodyTooLarge ...")`.
 - 200 + empty body → `MediaFetchError("empty body ...")` (caching a zero-byte
   response would poison the slot forever — `raw.githubusercontent.com`
@@ -444,7 +450,8 @@ makes its **own** `client.get` (not `fetch_text_with_cache`) for two reasons:
 it must tell 401/403 (disable) from 429 (rate-limit) from other non-200s —
 distinctions the shared helper collapses into one generic `MediaFetchError` —
 and the API key rides in the query string, so every error / log message
-redacts it (`_redact`). A 401/403 flips the injected `SourceDisabledFlag`
+redacts it (`_redact`). It streams the body and refuses one over
+`DEFAULT_TEXT_MAX_BYTES`, like the shared helper. A 401/403 flips the injected `SourceDisabledFlag`
 (one WARNING; persists until restart); 429 → `MediaRateLimited`; 404 →
 no candidate.
 
@@ -466,7 +473,8 @@ key is available to this project.
 
 - **Directory:** injected as `cache_dir: Path`; `media/` reads no config. The
   route passes `world.config.media.cache_dir` (default `./data/media-cache`).
-- **Filename:** `<sha256(url).hexdigest()><ext>`, flat (no subdirs). Image and
+- **Filename:** `<sha256(url).hexdigest()><ext>`, flat (no subdirs); `ext`
+  is a picture suffix or empty (§ `cache_path_for`). Image and
   text bodies share the directory but never the slot (different URLs → different
   hashes).
 - **Write:** stream to a unique `.tmp` sibling in the same directory →
@@ -485,6 +493,14 @@ bare `Exception`.
 
 - Non-`http`/`https` URL into either cache helper → `MediaFetchError` before
   any I/O. Backstops the `file://` short-circuit's own trust check.
+- A request, or a redirect hop, to `localhost` or a non-global IP address →
+  refused by `refuse_private_hosts`, the request hook on the app's media
+  client, and surfaced as `MediaFetchError` (mame-curator-1225). Names are not
+  resolved: a public name that resolves to a private address still passes.
+- JSON nested too deep to parse (`RecursionError`) → treated like malformed
+  JSON (mame-curator-1225).
+- A `progettoSnaps` short name that resolves outside the pack folder → no
+  candidate (mame-curator-1225).
 - `200 + empty body` → `MediaFetchError`, `.tmp` removed (poison-cache guard).
 - Body exceeds `max_bytes` mid-stream → abort + `MediaFetchError`, `.tmp` removed.
 - Non-UTF-8 text body → `MediaFetchError("decode failed ...")`, slot never written.

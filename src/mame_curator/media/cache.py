@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import ipaddress
 import logging
 import os
 from pathlib import Path
@@ -32,6 +33,11 @@ DEFAULT_MAX_BYTES = 16 * 1024 * 1024
 
 _ALLOWED_URL_SCHEMES = frozenset({"http", "https"})
 
+# mame-curator-1225: the cached file's suffix picks the MIME type it is served
+# with, and the URL comes from upstream JSON. Only picture suffixes survive, so
+# an upstream ".html" can never be served as a page from the app's own origin.
+_PICTURE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp"})
+
 
 class MediaError(Exception):
     """Base class for media subsystem errors."""
@@ -41,16 +47,52 @@ class MediaFetchError(MediaError):
     """Upstream non-200 (other than 404) or network failure."""
 
 
+async def refuse_private_hosts(request: httpx.Request) -> None:
+    """Refuse a request to a local or private address (an ``httpx`` request hook).
+
+    mame-curator-1225: picture URLs come from upstream JSON (ArcadeDB,
+    Wikipedia, MobyGames), so a hostile or spoofed reply could point the app
+    at the user's own machine or LAN. Installed as a request hook, it runs on
+    every redirect hop too. Names are not resolved, so a public name that
+    resolves to a private address still passes.
+    """
+    host = request.url.host
+    if host == "localhost" or host.endswith(".localhost"):
+        refused = True
+    else:
+        try:
+            refused = not ipaddress.ip_address(host).is_global
+        except ValueError:
+            refused = False  # a name, not an address literal
+    if refused:
+        raise httpx.RequestError(f"refused a fetch from local address {host!r}", request=request)
+
+
 def cache_path_for(url: str, cache_dir: Path) -> Path:
     """Return ``cache_dir / f"{sha256(url).hexdigest()}{ext}"``.
 
-    ``ext`` is the URL path's suffix (``.png`` for libretro thumbnails). URLs
-    with no path suffix produce a bare-hex filename. Pure function — no I/O,
-    no directory creation.
+    ``ext`` is the URL path's suffix (``.png`` for libretro thumbnails) when it
+    is a picture suffix, compared case-blind; any other suffix, or none, gives
+    a bare-hex filename. Pure function — no I/O, no directory creation.
     """
     digest = hashlib.sha256(url.encode("utf-8")).hexdigest()
     ext = Path(urlparse(url).path).suffix
+    if ext.lower() not in _PICTURE_SUFFIXES:
+        ext = ""
     return cache_dir / f"{digest}{ext}"
+
+
+def _require_picture(resp: httpx.Response, url: str) -> None:
+    """Raise unless a 200's ``Content-Type`` could be a picture.
+
+    mame-curator-1225: a soft-404 HTML page would otherwise be cached for
+    good. A missing type and ``application/octet-stream`` pass, since some
+    hosts send pictures that way.
+    """
+    content_type = resp.headers.get("content-type", "").split(";")[0].strip().lower()
+    allowed = not content_type or content_type == "application/octet-stream"
+    if not allowed and not content_type.startswith("image/"):
+        raise MediaFetchError(f"not a picture ({content_type}) for {url!r}")
 
 
 async def fetch_with_cache(
@@ -103,6 +145,7 @@ async def fetch_with_cache(
                 return None
             if resp.status_code != 200:
                 raise MediaFetchError(f"upstream {resp.status_code} for {url!r}")
+            _require_picture(resp, url)
             tmp_handle = tmp.open("wb")
             try:
                 async for chunk in resp.aiter_bytes(chunk_size=64 * 1024):

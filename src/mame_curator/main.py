@@ -86,6 +86,9 @@ def main() -> int:
         level=level,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    # mame-curator-1225: httpx logs each request's full URL at INFO, and the
+    # MobyGames API key rides in the query string. Keep it out at any level.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     return run(args)
 
 

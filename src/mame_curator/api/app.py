@@ -26,7 +26,12 @@ from mame_curator.api.routes import router as api_router
 from mame_curator.api.routes.updates import init_update_state, install_update_error_handler
 from mame_curator.api.state import build_world
 from mame_curator.filter import FilterError
-from mame_curator.media import SourceDisabledFlag, TokenBucket, _build_user_agent
+from mame_curator.media import (
+    SourceDisabledFlag,
+    TokenBucket,
+    _build_user_agent,
+    refuse_private_hosts,
+)
 from mame_curator.parser import ParserError
 
 logger = logging.getLogger(__name__)
@@ -148,10 +153,13 @@ def create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI:
         # P10 chunk 5: descriptive User-Agent header per Wikipedia's
         # API:Etiquette page — single helper in media/__init__.py so the
         # version + repo URL live in one place.
+        # mame-curator-1225: picture URLs come from upstream JSON, so every
+        # request and redirect hop is kept off local and private addresses.
         app.state.media_client = httpx.AsyncClient(
             timeout=10.0,
             follow_redirects=True,
             headers={"User-Agent": _build_user_agent()},
+            event_hooks={"request": [refuse_private_hosts]},
         )
         # P10 chunk 4 + 5: per-source token buckets, constructed once at
         # startup and shared across all per-request source instances. Rate

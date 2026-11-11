@@ -102,8 +102,9 @@ def test_rebound_hostname_is_blocked_even_on_reads() -> None:
 
 
 def test_cross_site_read_is_left_to_the_browser() -> None:
-    """A cross-site GET changes nothing, and without CORS headers the page
-    cannot read the response, so the guard does not refuse it."""
+    """Outside ``/media/``, a cross-site GET changes nothing, and without CORS
+    headers the page cannot read the response, so the guard does not refuse
+    it (mame-curator-1225 refuses cross-site picture requests)."""
     r = _guarded().get("/x", headers={**LOCAL, "origin": "https://evil.example"})
     assert r.status_code == 200
 

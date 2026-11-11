@@ -36,6 +36,7 @@ from urllib.parse import quote
 import httpx
 
 from mame_curator.media.cache import MediaFetchError
+from mame_curator.media.cache_text import DEFAULT_TEXT_MAX_BYTES
 from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
 from mame_curator.media.sources import Kind
 from mame_curator.parser.models import Machine
@@ -235,7 +236,8 @@ class MobyGamesSource:
         ``None`` means no candidate: a 404, or a 401/403 that disabled the
         source. Raises ``MediaRateLimited`` on an empty bucket or a 429, and
         ``MediaFetchError`` (key redacted) on a network error, another
-        status, or a body that is not JSON. Only a parsed body is cached.
+        status, a body over ``DEFAULT_TEXT_MAX_BYTES``, or a body that is not
+        JSON. Only a parsed body is cached.
         """
         cache_file = self._cache_file(cache_name)
         try:
@@ -246,13 +248,14 @@ class MobyGamesSource:
         if not self._limiter.acquire():
             raise MediaRateLimited(f"mobyGames rate-limit exceeded for {machine.name!r}")
         try:
-            resp = await client.get(url)
+            async with client.stream("GET", url) as resp:
+                status = resp.status_code
+                raw = await self._read_capped(resp, url) if status == 200 else b""
         except httpx.HTTPError as exc:
             raise MediaFetchError(
                 f"mobyGames network error for {self._redact(url)}: {exc}"
             ) from exc
 
-        status = resp.status_code
         if status in (401, 403):
             if self._disabled_flag.reason is None:
                 self._disabled_flag.reason = _MOBYGAMES_BAD_KEY_REASON
@@ -271,12 +274,26 @@ class MobyGamesSource:
         if status != 200:
             raise MediaFetchError(f"mobyGames upstream {status} for {self._redact(url)}")
         try:
-            body: object = json.loads(resp.text)
-        except ValueError as exc:
+            body: object = json.loads(raw)
+        except (ValueError, RecursionError) as exc:
             raise MediaFetchError(
                 f"mobyGames sent a non-JSON body for {self._redact(url)}"
             ) from exc
         return body
+
+    async def _read_capped(self, resp: httpx.Response, url: str) -> bytes:
+        """The body, refused past ``DEFAULT_TEXT_MAX_BYTES`` like every text reply."""
+        chunks: list[bytes] = []
+        total = 0
+        async for chunk in resp.aiter_bytes():
+            total += len(chunk)
+            if total > DEFAULT_TEXT_MAX_BYTES:
+                raise MediaFetchError(
+                    f"BodyTooLarge: mobyGames reply for {self._redact(url)} "
+                    f"exceeds cap {DEFAULT_TEXT_MAX_BYTES}"
+                )
+            chunks.append(chunk)
+        return b"".join(chunks)
 
     def _store(self, cache_name: str, body: object) -> None:
         cache_file = self._cache_file(cache_name)

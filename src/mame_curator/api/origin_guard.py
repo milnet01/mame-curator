@@ -62,7 +62,7 @@ class OriginGuard:
         ip = _ip(hostname)
         return ip is not None and ip.is_loopback
 
-    def _refusal(self, headers: dict[str, str], method: str) -> str | None:
+    def _refusal(self, headers: dict[str, str], method: str, path: str) -> str | None:
         """Why this request is refused, or ``None`` to let it through."""
         origin = headers.get("origin")
         fetch_site = headers.get("sec-fetch-site")
@@ -72,6 +72,10 @@ class OriginGuard:
         # DNS rebinding needs a NAME; an IP literal cannot be re-pointed.
         if not (self._is_local(host) or (host is not None and _ip(host) is not None)):
             return f"Refused a browser request addressed to host {headers.get('host')!r}."
+        if fetch_site == "cross-site" and path.startswith("/media/"):
+            # mame-curator-1225: a picture GET makes the app fetch from third
+            # parties (and spend the MobyGames quota), so it is not a safe read.
+            return "Refused a picture request from another site."
         if method not in _UNSAFE_METHODS:
             return None  # a cross-site read cannot see the response without CORS
         if origin is not None:
@@ -87,7 +91,7 @@ class OriginGuard:
         """ASGI entry point."""
         if scope["type"] == "http":
             headers = {k.decode("latin-1"): v.decode("latin-1") for k, v in scope["headers"]}
-            reason = self._refusal(headers, scope["method"])
+            reason = self._refusal(headers, scope["method"], scope["path"])
             if reason is not None:
                 await render_error(CrossSiteBlockedError(reason))(scope, receive, send)
                 return

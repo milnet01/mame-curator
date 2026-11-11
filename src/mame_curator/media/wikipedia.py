@@ -78,7 +78,7 @@ async def resolve_wikipedia_extract(
         return None  # upstream 404 — no wiki page
     try:
         data = json.loads(text)
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, RecursionError) as exc:
         cache_path_for(url, cache_dir).unlink(missing_ok=True)
         raise MediaFetchError(
             f"wikipediaExtract returned unparseable JSON for {machine.name!r}"

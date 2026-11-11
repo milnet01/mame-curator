@@ -208,7 +208,11 @@ async def media_proxy(
     return FileResponse(
         path,
         media_type=mimetypes.guess_type(str(path))[0] or "image/png",
-        headers={"Cache-Control": _IMMUTABLE if cacheable else "no-store"},
+        headers={
+            "Cache-Control": _IMMUTABLE if cacheable else "no-store",
+            # mame-curator-1225: never let a browser guess a cached file is a page.
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

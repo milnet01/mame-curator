@@ -17,6 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-11 Security — Game pictures are fetched more safely
+
+- **Picture sources cannot reach your own computer or home network** (mame-curator-1225)
+  A picture address from ArcadeDB, Wikipedia or MobyGames that points
+  at your own machine or local network is refused. ArcadeDB is now asked
+  over a secure connection.
+
+- **Only picture files are kept and served** (mame-curator-1225)
+  A web page sent in place of a picture is no longer stored or shown.
+
+- **Another website cannot make the app fetch pictures** (mame-curator-1225)
+  This used to let a website spend your MobyGames allowance.
+
+- **The MobyGames key stays out of the log** (mame-curator-1225)
+
+- **A broken or oversized reply from a picture source means "no picture"** (mame-curator-1225)
+  It used to show an error instead.
+
 ### 2026-11-11 Fixed — Library and guide fixes: undated games, zoomed-in layout, Forget, palette words
 
 - **The Library shows games with no year until you choose years** (mame-curator-1150)

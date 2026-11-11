@@ -8,7 +8,6 @@ sentinel; UTF-8 decode failure raises ``MediaFetchError``.
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import httpx
@@ -19,9 +18,11 @@ _URL = "https://example.com/api/lookup.json"
 
 
 def _expected_path(url: str, cache_dir: Path) -> Path:
-    digest = hashlib.sha256(url.encode("utf-8")).hexdigest()
-    ext = Path(url).suffix
-    return cache_dir / f"{digest}{ext}"
+    # The slot is whatever cache_path_for names (mame-curator-1225 keeps only
+    # picture suffixes, so a .json URL now gets a bare-hex name).
+    from mame_curator.media import cache_path_for
+
+    return cache_path_for(url, cache_dir)
 
 
 def test_default_text_max_bytes_is_public_constant() -> None:

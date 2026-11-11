@@ -9,6 +9,8 @@ P05 (image cache):
 - ``MediaUrls`` — frozen Pydantic model holding the three URLs.
 - ``fetch_with_cache`` — async download-or-hit-cache helper.
 - ``cache_path_for`` — pure helper exposing the sha256 → path mapping.
+- ``refuse_private_hosts`` — request hook keeping fetches off local and
+  private addresses (mame-curator-1225).
 - ``MediaError`` / ``MediaFetchError`` — exception hierarchy.
 
 P10 chunk 1 (foundations for the source-chain expansion):
@@ -89,6 +91,7 @@ from mame_curator.media.cache import (
     MediaFetchError,
     cache_path_for,
     fetch_with_cache,
+    refuse_private_hosts,
 )
 from mame_curator.media.cache_text import (
     DEFAULT_TEXT_MAX_BYTES,
@@ -168,6 +171,7 @@ __all__ = [
     "file_digest",
     "list_candidates",
     "mobygames_key_path",
+    "refuse_private_hosts",
     "resolve_image",
     "resolve_image_found",
     "resolve_pair",

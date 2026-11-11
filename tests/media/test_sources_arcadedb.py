@@ -18,7 +18,7 @@ import pytest
 from tests.media.conftest import _machine, _make_unbounded_limiter
 
 _ARCADEDB_SCRAPER_URL = (
-    "http://adb.arcadeitalia.net/service_scraper.php?ajax=query_mame&game_name=pacman"
+    "https://adb.arcadeitalia.net/service_scraper.php?ajax=query_mame&game_name=pacman"
 )
 
 

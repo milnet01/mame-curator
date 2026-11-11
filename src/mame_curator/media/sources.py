@@ -210,8 +210,10 @@ class ProgettoSnapsSource:
             return None
 
         if name not in self._present:
-            candidate = self._snap_dir / f"{name}.png"
-            if candidate.is_file():
+            # mame-curator-1225: a DAT short name holding ".." must not reach a
+            # .png outside the pack — the same check local_folders.py makes.
+            candidate = (self._snap_dir / f"{name}.png").resolve()
+            if candidate.is_relative_to(self._snap_dir) and candidate.is_file():
                 self._present.add(name)
             else:
                 self._missing.add(name)
@@ -223,22 +225,22 @@ class ProgettoSnapsSource:
 # P10 chunk 4 — ArcadeDB JSON scraper. Two-step lookup; parse-before-trust
 # guards against cache-poisoning when upstream returns truncated TLS bodies
 # or mid-deploy HTML-instead-of-JSON. See spec § "2. ArcadeDB" step 3.
-_ARCADEDB_SCRAPER_BASE = "http://adb.arcadeitalia.net/service_scraper.php"
+_ARCADEDB_SCRAPER_BASE = "https://adb.arcadeitalia.net/service_scraper.php"
 
 
 class ArcadeDBSource:
     """ArcadeDB scraper — JSON-driven URL lookups for boxart/title/snap.
 
     ``prepare`` acquires one token from the per-source ``TokenBucket``,
-    fetches the scraper response via ``fetch_text_with_cache`` (HTTP 301 →
-    HTTPS handled by the lifespan client's ``follow_redirects=True``),
+    fetches the scraper response over ``https`` via ``fetch_text_with_cache``,
     parses ``{"release": N, "result": [...]}``, and stashes the
     redirector-form URLs from ``result[0]`` (``url_image_flyer`` →
     ``boxart``, ``url_image_title`` → ``title``, ``url_image_ingame`` →
     ``snap``). Empty ``result`` array leaves ``_url_cache[name]`` absent
     — uniform negative-cache shape, ``url_for`` returns ``None``.
 
-    Parse-before-trust: ``json.JSONDecodeError`` unlinks the offending
+    Parse-before-trust: ``json.JSONDecodeError`` (or a ``RecursionError`` from
+    too-deep nesting) unlinks the offending
     cache slot via ``cache_path_for(url, cache_dir).unlink(missing_ok=True)``
     and raises ``MediaFetchError`` chained from the original exception.
     The next request re-fetches; transient bad upstream doesn't
@@ -283,7 +285,7 @@ class ArcadeDBSource:
             return
         try:
             data = json.loads(text)
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, RecursionError) as exc:
             cache_path_for(url, self._cache_dir).unlink(missing_ok=True)
             raise MediaFetchError(
                 f"arcadeDB returned unparseable JSON for {machine.name!r}"
@@ -397,7 +399,7 @@ class WikipediaImageSource:
             return
         try:
             data = json.loads(text)
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, RecursionError) as exc:
             cache_path_for(url, self._cache_dir).unlink(missing_ok=True)
             raise MediaFetchError(
                 f"wikipediaImage returned unparseable JSON for {machine.name!r}"

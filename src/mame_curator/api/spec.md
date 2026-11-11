@@ -530,9 +530,9 @@ does unless its caller asks otherwise:
   502 surface for media**. If the whole chain misses (every source returns
   no candidate), the route raises `MediaUpstreamNotFoundError` (404). See
   `docs/specs/P10-media-coverage.md` § "Route contract".
-- A cache hit returns a `FileResponse` (content-type sniffed from the
-  cached file's suffix) with a 30-day `immutable` `Cache-Control`, except
-  as the table below says.
+- A cache hit returns a `FileResponse` (content-type from the cached
+  file's suffix, `X-Content-Type-Options: nosniff`) with a 30-day
+  `immutable` `Cache-Control`, except as the table below says.
 - **A stored picture choice and `?source=` (mame-curator-1146 §4.3):**
 
   | Request | Serves | On a miss | `Cache-Control` |
@@ -573,9 +573,12 @@ address `serve` binds (`create_app(..., bind_host=)`).
    (`localhost:5173`, proxying with `changeOrigin`) works.
 3. **Fetch metadata (unsafe methods without `Origin`).** `Sec-Fetch-Site`
    must be `same-origin` or `none`.
+4. **Pictures (every method).** A `/media/` request whose `Sec-Fetch-Site`
+   is `cross-site` is refused: it makes the app fetch from third parties
+   and spend the MobyGames quota (mame-curator-1225).
 
-Cross-site reads pass: without CORS headers the page cannot read the
-response, and a GET changes nothing. Remote access beyond this stays out
+Other cross-site reads pass: without CORS headers the page cannot read
+the response, and they change nothing. Remote access beyond this stays out
 of scope (§ Out of scope).
 
 ## App self-update
