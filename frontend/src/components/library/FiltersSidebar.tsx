@@ -351,7 +351,13 @@ function FacetSelect({
         value={value ?? ANY}
         onValueChange={(v) => onChange(v === ANY ? null : v)}
       >
-        <SelectTrigger id={id} aria-label={label}>
+        <SelectTrigger
+          id={id}
+          aria-label={label}
+          // mame-curator-1141: the column's width, and a long name wraps
+          // (all of it stays readable) instead of widening the column.
+          className="w-full min-w-0 whitespace-normal text-left data-[size=default]:h-auto data-[size=default]:min-h-9 *:data-[slot=select-value]:line-clamp-none"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

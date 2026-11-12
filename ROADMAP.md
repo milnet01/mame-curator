@@ -3343,11 +3343,16 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: in-session-2026-10-30 (trailer recording, mame-curator-1136).
   Lanes: media.
 
-- 📋 [mame-curator-1141] **A long genre name gives the Library filter sidebar a sideways scrollbar.**
+- ✅ [mame-curator-1141] **A long genre name gives the Library filter sidebar a sideways scrollbar.**
   Seen on v1.4.1 at 1920x1080 with 1.5 page scale: clicking the Beat 'em Ups
   Featured tile selects the genre "Platform / Fighter Scrolling", and the
   select pushes the sidebar wider than its column. Component:
   FiltersSidebar.tsx.
+  Fixed 2026-11-12: FiltersSidebar's genre, publisher and developer
+  boxes take the column's width and wrap a long name. At 1280x720 the
+  named genre alone now fits; "Platform / Fighter Scrolling * Mature *"
+  overflowed by 55px before the fix. Test: library-flow.spec.ts
+  "mame-curator-1141".
   **Layman:** Picking a long genre name makes a small sideways scrollbar appear in the filter column.
   Kind: ux.
   Source: in-session-2026-10-30 (trailer recording, mame-curator-1136).

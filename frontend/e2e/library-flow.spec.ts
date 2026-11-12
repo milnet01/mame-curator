@@ -69,3 +69,30 @@ test("FP27 A6b — `/` focuses the library search input", async ({ page }) => {
   // calls .focus() — single tick).
   await expect(page.locator("#filters-search")).toBeFocused();
 });
+
+test("mame-curator-1141: a long genre wraps instead of widening the filters", async ({
+  page,
+}) => {
+  // 1920x1080 at 150% page zoom, where the bug was seen.
+  await page.setViewportSize({ width: 1280, height: 720 });
+  // catver adds " * Mature *"; without it, this one name just fits.
+  const LONG = "Platform / Fighter Scrolling * Mature *";
+  await page.route("**/api/library/facets*", async (route) => {
+    const reply = await route.fetch();
+    const body = await reply.json();
+    body.genres = [...body.genres, LONG];
+    await route.fulfill({ response: reply, json: body });
+  });
+  await page.goto("/");
+  const filters = page.getByRole("complementary", { name: /filters/i });
+  await page.locator("#filters-genre").click();
+  await page.getByRole("option", { name: LONG }).click();
+  await expect(page.locator("#filters-genre")).toContainText(LONG);
+  const sideways = await filters.evaluate(
+    (el) => el.scrollWidth - el.clientWidth,
+  );
+  expect(sideways, "the filters scroll sideways").toBeLessThanOrEqual(0);
+  const box = (await page.locator("#filters-genre").boundingBox())!;
+  const column = (await filters.boundingBox())!;
+  expect(box.x + box.width).toBeLessThanOrEqual(column.x + column.width + 0.5);
+});

@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-12 Fixed — A long genre name wraps in the filter column
+
+- **The Library's filter column no longer scrolls sideways** (mame-curator-1141)
+  A long genre, publisher or developer name now wraps onto a second
+  line, so all of it stays readable and the column keeps its width.
+
 ### 2026-11-12 Fixed — Wikipedia text and box art come from the game's own page
 
 - **Games named like a year or an everyday word get their own article** (mame-curator-1140)
