@@ -189,13 +189,19 @@ class _Sandbox:
         self.stubs.mkdir()
         self.uv_log = tmp_path / "uv.log"
         self.uv_log.touch()
+        # mame-curator-1179: run.bat looks for uv in, and unpacks it to,
+        # %USERPROFILE%\.local\bin. A real home would find a machine's own uv,
+        # and a real download would land there.
+        self.home = tmp_path / "home"
+        self.home.mkdir()
 
     def stub(self, name: str, body: str) -> None:
         (self.stubs / name).write_text(body)
 
     def _env(self, path: str, **extra: str) -> dict[str, str]:
-        env = {k: v for k, v in os.environ.items() if k.upper() not in {"PORT", "PATH"}}
-        env.update(PATH=path, UV_LOG=str(self.uv_log), **extra)
+        skip = {"PORT", "PATH", "USERPROFILE"}
+        env = {k: v for k, v in os.environ.items() if k.upper() not in skip}
+        env.update(PATH=path, UV_LOG=str(self.uv_log), USERPROFILE=str(self.home), **extra)
         return env
 
     def run(
@@ -325,7 +331,8 @@ def test_failed_uv_install_says_so(tmp_path: Path) -> None:
     assert "completed" not in result.output, result.output
 
 
-def test_uv_installed_but_not_on_path_says_open_a_new_window(tmp_path: Path) -> None:
+def test_uv_that_will_not_run_after_unpacking_says_where_it_is(tmp_path: Path) -> None:
+    """The install reported success but no uv can be run: say where it went."""
     box = _Sandbox(tmp_path)
     box.stub("powershell.cmd", "@echo off\nexit /b 0\n")
     result = box.run(
@@ -333,7 +340,8 @@ def test_uv_installed_but_not_on_path_says_open_a_new_window(tmp_path: Path) -> 
         path=os.pathsep.join([str(box.stubs), _real_python_dir(), _system32()]),
     )
     assert result.returncode == 1, result.output
-    assert "new Command Prompt" in result.output, result.output
+    assert "cannot be run from there" in result.output, result.output
+    assert str(box.home) in result.output, result.output
 
 
 @pytest.mark.parametrize("folder", ["a!b", "a (b)", "a & b"])
