@@ -3722,12 +3722,20 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: api.
 
-- 📋 [mame-curator-1179] **The launchers run uv's install script with no version pin or checksum.**
+- ✅ [mame-curator-1179] **The launchers run uv's install script with no version pin or checksum.**
   run.sh and run.bat fetch astral.sh's script and run it. Hazard: whoever
   controls that host runs code on the user's machine at first start. On
   Windows a redirect to plain HTTP is not refused either. Queued because a
   pin needs a rewrite of the fetch that could not be tested without
   installing uv on the Windows box. Read, and the fetch run; script not run.
+  Fixed 2026-11-12 (user chose: pin and check everything): run.sh
+  fetches uv 0.13.7's uv-installer.sh from its GitHub release and checks
+  its SHA-256 before sh runs it; that installer checks uv's own
+  download. run.bat skips uv's Windows installer, which checks nothing,
+  and fetches the uv zip for the CPU, checks its SHA-256, and unpacks
+  it. Run for real: Linux scratch home (installed; tampered hash
+  refused, nothing run) and wintest (fresh install, second start,
+  tampered hash refused). macOS's shasum branch not run: no Mac here.
   **Layman:** On first start the launcher downloads and runs another project's install script without checking it.
   Kind: security.
   Source: close-findings-2026-11-02-1145.
@@ -3752,9 +3760,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: cli, tests.
 
-- 📋 [mame-curator-1181] **run.bat does not put uv on PATH after installing it.**
+- ✅ [mame-curator-1181] **run.bat does not put uv on PATH after installing it.**
   run.sh adds uv's folder after install; run.bat does not. Read, not run: a
   real install was not done on the Windows box.
+  Fixed 2026-11-12 with mame-curator-1179: run.bat adds
+  %USERPROFILE%\.local\bin to PATH after unpacking uv, and on a later
+  start finds uv.exe there even in a window older than the install. Both
+  run on wintest.
   **Layman:** On Windows, the very first start may need a second try in a new window.
   Kind: fix.
   Source: close-findings-2026-11-02-1145.

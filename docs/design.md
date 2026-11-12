@@ -305,7 +305,7 @@ There is no `setup/` package. Setup happens in two places.
 **The launchers.** `run.sh` (Linux and macOS) and `run.bat` (Windows):
 
 1. Find Python 3.12 or newer. Without one, they print how to install it and stop.
-2. Install `uv` from astral.sh's official installer when it is missing, without asking first. Pinning that script is mame-curator-1179.
+2. Install one pinned `uv` release when it is missing, without asking first. Each download is checked against its pinned SHA-256 before it runs: on Linux and macOS uv's installer, which checks uv in turn; on Windows uv itself, which `run.bat` unpacks to `%USERPROFILE%\.local\bin` (mame-curator-1179).
 3. Run `uv sync --inexact --no-dev`. `uv` keeps the project's own `.venv/`, so the user never activates it.
 4. Start `mame-curator serve`, passing `$PORT` when it is set.
 

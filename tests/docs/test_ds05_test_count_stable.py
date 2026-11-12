@@ -419,7 +419,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # 1280 → 1284.
 # Bumped 2026-11-12 (mame-curator-1180): parse, filter and copy keep a
 # path's brackets. 1284 → 1289. Then a backslash prints once. 1289 → 1290.
-EXPECTED_PYTEST_DECLARATIONS = 1290
+# Bumped 2026-11-12 (mame-curator-1179, 1181): the launchers pin and check
+# uv, and run.bat puts it on PATH. 1290 → 1294.
+EXPECTED_PYTEST_DECLARATIONS = 1294
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

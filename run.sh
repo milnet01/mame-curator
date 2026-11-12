@@ -48,17 +48,31 @@ fi
 
 # ---- 2. uv detection / install ---------------------------------------
 
+# mame-curator-1179: one uv release, and its installer's SHA-256 from that
+# release. The installer holds the SHA-256 of each uv download and checks it,
+# so checking the installer checks uv too. run.bat pins the same version;
+# tests/tools/test_launcher_text.py keeps the two in step. To move to a new
+# uv: take uv-installer.sh from its GitHub release and hash it.
+UV_VERSION="0.13.7"
+UV_INSTALLER_SHA256="d263ee68314cf5bea36b08e6bd9e2c4563240d7adb73756cf33af5c199b92db4"
+
 if ! command -v uv >/dev/null 2>&1; then
-    echo "uv not found — installing via the official installer (https://astral.sh/uv)..."
-    # FP21-Q: pin curl transport security — `--proto '=https'` rejects
-    # any non-HTTPS redirect target, and `--tlsv1.2` rejects pre-TLS-1.2
-    # downgrades. Without these, a network attacker who can intercept
-    # the user's DNS or a captive-portal layer can swap in a malicious
-    # installer over plain HTTP. The official Astral installer publishes
-    # over HTTPS only, so these flags are no-ops on a clean network and
-    # a real defense on a hostile one. This protects the download only:
-    # nothing pins the installer's version or checks a hash of it.
-    curl --proto '=https' --tlsv1.2 -LsSf https://astral.sh/uv/install.sh | sh
+    echo "uv not found — installing uv ${UV_VERSION} from its GitHub release..."
+    installer="$(mktemp)"
+    # FP21-Q: `--proto '=https'` refuses a redirect to plain HTTP and
+    # `--tlsv1.2` an older TLS, so the download cannot be swapped in transit.
+    curl --proto '=https' --tlsv1.2 -LsSf -o "${installer}" \
+        "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-installer.sh"
+    # sha256sum on Linux, shasum on macOS.
+    got="$(sha256sum "${installer}" 2>/dev/null || shasum -a 256 "${installer}")"
+    if [ "${got%% *}" != "${UV_INSTALLER_SHA256}" ]; then
+        rm -f "${installer}"
+        echo "error: the uv installer download does not match its pinned SHA-256; not running it." >&2
+        echo "Try again later. If it keeps happening, install uv yourself: https://docs.astral.sh/uv/" >&2
+        exit 1
+    fi
+    sh "${installer}"
+    rm -f "${installer}"
     # The uv installer drops the binary in ~/.local/bin or ~/.cargo/bin.
     export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
     if ! command -v uv >/dev/null 2>&1; then

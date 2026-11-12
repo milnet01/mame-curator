@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-12 Security — The launchers check uv before running it
+
+- **First start installs a fixed uv, checked first** (mame-curator-1179)
+  `run.sh` and `run.bat` install uv 0.13.7 and check each download
+  against its published fingerprint. A download that does not match is
+  refused and nothing runs.
+- **On Windows, the first start no longer needs a second try** (mame-curator-1181)
+  `run.bat` can use uv right after installing it, in the same window.
+
 ### 2026-11-12 Fixed — Command-line messages print folder names exactly
 
 - **A folder name with square brackets prints as typed** (mame-curator-1180)

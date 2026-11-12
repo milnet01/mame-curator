@@ -38,18 +38,33 @@ goto python_install_words
 
 REM ---- 2. uv detection / install ----------------------------------------
 
+REM mame-curator-1179: one uv release, and the SHA-256 its GitHub release
+REM publishes for each Windows build. uv's Windows installer checks nothing it
+REM downloads, so this script fetches uv itself and checks it. run.sh pins the
+REM same version; tests/tools/test_launcher_text.py keeps the two in step. To
+REM move to a new uv: copy the two .zip.sha256 values from its release.
+set "UV_VERSION=0.13.7"
+set "UV_SHA256_X64=0cdc5b38fe5a8168ed6a25814f5ba43c21d313dd3187314fccb37b7cec46e021"
+set "UV_SHA256_ARM64=505d9e65e7692bac3ddf98c66754aa26c5050c409c184af30a881a0a72cc85e3"
+set "UV_HOME=%USERPROFILE%\.local\bin"
+
 where uv >nul 2>nul
 if not errorlevel 1 goto uv_ready
+REM mame-curator-1181: installed by an earlier run, but this window's PATH is
+REM older than that.
+if exist "%UV_HOME%\uv.exe" goto uv_add_to_path
 
-echo uv not found - installing via the official installer from https://astral.sh/uv ...
-REM An HTTPS address and no TLS below 1.2, as run.sh's curl flags ask. Windows
-REM PowerShell has no equivalent of curl's --proto '=https', so a redirect to plain
-REM HTTP is not refused here. This protects the download only: nothing pins the
-REM installer's version or checks a hash of it. The Stop preference makes a failed
-REM download a non-zero exit. `call`, as for uv below.
-call powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; irm https://astral.sh/uv/install.ps1 | iex"
+echo uv not found - downloading uv %UV_VERSION% from its GitHub release ...
+REM HTTPS and TLS 1.2 or newer. Windows PowerShell has no equivalent of curl's
+REM --proto '=https', so a redirect to plain HTTP is not refused, but a swapped
+REM download fails the SHA-256 check. The Stop preference makes any failure a
+REM non-zero exit. No exclamation mark below: delayed expansion would eat it.
+call powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $arm = $env:PROCESSOR_ARCHITECTURE -eq 'ARM64'; $build = if ($arm) {'aarch64'} else {'x86_64'}; $want = if ($arm) {$env:UV_SHA256_ARM64} else {$env:UV_SHA256_X64}; $zip = Join-Path $env:TEMP ('uv-' + [guid]::NewGuid() + '.zip'); try { Invoke-WebRequest -UseBasicParsing -OutFile $zip -Uri ('https://github.com/astral-sh/uv/releases/download/' + $env:UV_VERSION + '/uv-' + $build + '-pc-windows-msvc.zip'); $got = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLower(); if ($got -ne $want) { throw 'the uv download does not match its pinned SHA-256' }; New-Item -ItemType Directory -Force $env:UV_HOME | Out-Null; Expand-Archive -Force $zip $env:UV_HOME } finally { Remove-Item -ErrorAction SilentlyContinue $zip }"
 if errorlevel 1 goto uv_install_failed
-REM cmd.exe inherits PATH at start, so a fresh terminal is needed to pick up uv.
+
+:uv_add_to_path
+REM For this run only; a new window finds uv through the check above.
+set "PATH=%UV_HOME%;%PATH%"
 where uv >nul 2>nul
 if errorlevel 1 goto uv_not_on_path
 
@@ -119,13 +134,13 @@ goto fail
 set "RC=!errorlevel!"
 echo.
 echo error: could not install uv, the tool that sets up MAME Curator.
-echo Check your internet connection, then re-run run.bat.
+echo Check your internet connection, then re-run run.bat. If it keeps failing,
+echo install uv yourself: https://docs.astral.sh/uv/
 goto fail
 
 :uv_not_on_path
 echo.
-echo error: uv install completed but the binary isn't on PATH.
-echo Open a new Command Prompt or PowerShell window and re-run run.bat.
+echo error: uv was unpacked to %UV_HOME% but cannot be run from there.
 set "RC=1"
 goto fail
 

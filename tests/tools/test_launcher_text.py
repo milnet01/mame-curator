@@ -67,10 +67,10 @@ def test_run_bat_checks_the_uv_installer_exit_code() -> None:
     assert "errorlevel" in code[install + 1]
 
 
-def test_run_bat_pins_the_installer_transport() -> None:
+def test_run_bat_pins_the_download_transport() -> None:
     """The TLS floor `run.sh` has with `--tlsv1.2`, and a failure PowerShell reports."""
     line = next(line for line in _bat_code() if line.startswith("call powershell"))
-    assert "https://astral.sh/uv/install.ps1" in line
+    assert "https://github.com/astral-sh/uv/releases/download/" in line
     assert "SecurityProtocolType]::Tls12" in line
     assert "$ErrorActionPreference='Stop'" in line
 
@@ -78,6 +78,49 @@ def test_run_bat_pins_the_installer_transport() -> None:
 def test_run_sh_pins_the_installer_transport() -> None:
     text = _posix_launcher()
     assert "--proto '=https' --tlsv1.2" in text
+
+
+def _pinned(pattern: str, text: str) -> str:
+    match = re.search(pattern, text, re.MULTILINE)
+    assert match, pattern
+    return match.group(1)
+
+
+def test_both_launchers_pin_the_same_uv() -> None:
+    """mame-curator-1179: one uv release, so both systems run the same uv."""
+    sh_version = _pinned(r'^UV_VERSION="([0-9.]+)"$', _posix_launcher())
+    bat_version = _pinned(r'^set "UV_VERSION=([0-9.]+)"$', "\n".join(_bat_code()))
+    assert sh_version == bat_version
+
+
+def test_run_sh_checks_the_installer_before_running_it() -> None:
+    """mame-curator-1179: nothing fetched is piped straight into a shell."""
+    text = _posix_launcher()
+    assert not re.search(r"\|\s*sh\b", text), "a download piped into sh"
+    _pinned(r'^UV_INSTALLER_SHA256="([0-9a-f]{64})"$', text)
+    check = text.index('!= "${UV_INSTALLER_SHA256}"')
+    assert check < text.index('sh "${installer}"')
+
+
+def test_run_bat_checks_uv_before_unpacking_it() -> None:
+    """mame-curator-1179: uv's Windows installer checks nothing, so run.bat does."""
+    code = "\n".join(_bat_code())
+    for arch in ("X64", "ARM64"):
+        _pinned(rf'^set "UV_SHA256_{arch}=([0-9a-f]{{64}})"$', code)
+    line = next(line for line in _bat_code() if line.startswith("call powershell"))
+    assert "Get-FileHash -Algorithm SHA256" in line
+    assert line.index("Get-FileHash") < line.index("Expand-Archive")
+    assert "install.ps1" not in line
+    assert "!" not in line, "delayed expansion would eat it"
+
+
+def test_run_bat_puts_uv_on_path_after_installing_it() -> None:
+    """mame-curator-1181: this window's PATH is older than the install."""
+    code = _bat_code()
+    install = next(i for i, line in enumerate(code) if line.startswith("call powershell"))
+    add = next(i for i, line in enumerate(code) if line == 'set "PATH=%UV_HOME%;%PATH%"')
+    assert install < add
+    assert 'if exist "%UV_HOME%\\uv.exe" goto uv_add_to_path' in code
 
 
 def test_no_launcher_cites_an_adr_that_does_not_exist() -> None:
