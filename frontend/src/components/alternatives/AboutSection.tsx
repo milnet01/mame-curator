@@ -1,5 +1,6 @@
 import { useWikipediaExtract } from "@/hooks/useWikipediaExtract";
 import { strings } from "@/strings";
+import { ExternalLink } from "@/components/ExternalLink";
 
 interface AboutSectionProps {
   shortName: string;
@@ -23,14 +24,9 @@ export function AboutSection({ shortName }: AboutSectionProps) {
     <section className="flex flex-col gap-1 text-sm text-muted-foreground">
       <p>{data.extract}</p>
       {safeUrl && (
-        <a
-          href={safeUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
-        >
+        <ExternalLink href={safeUrl}>
           {strings.alternatives.wikipediaReadMore}
-        </a>
+        </ExternalLink>
       )}
       <p className="text-xs">{strings.alternatives.wikipediaLicense}</p>
     </section>

@@ -1,4 +1,5 @@
 import { strings } from "@/strings";
+import { ExternalLink } from "@/components/ExternalLink";
 
 // mame-curator-1133: donations are optional; no feature is gated on them.
 const SPONSOR_URL = "https://github.com/sponsors/milnet01";
@@ -19,17 +20,9 @@ export function AboutTab({ version }: AboutTabProps) {
       )}
       <p className="text-sm">{strings.settings.about.license}</p>
       <p className="text-sm">{strings.settings.about.disclaimer}</p>
-      <a
-        href={SPONSOR_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="self-start text-sm underline"
-      >
-        {strings.settings.about.support}{" "}
-        <span className="text-muted-foreground">
-          {strings.common.opensInNewTab}
-        </span>
-      </a>
+      <ExternalLink href={SPONSOR_URL} className="self-start text-sm underline">
+        {strings.settings.about.support}
+      </ExternalLink>
     </div>
   );
 }

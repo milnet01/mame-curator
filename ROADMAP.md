@@ -3291,12 +3291,17 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-code-2026-10-30.
   Lanes: copy.
 
-- 📋 [mame-curator-1138] **Say "opens in a new tab" on the three other links that open one.**
+- ✅ [mame-curator-1138] **Say "opens in a new tab" on the three other links that open one.**
   Found next door by review-code 2026-10-30 lane 03, not filed by it:
   AboutSection.tsx, IniRefreshPanel.tsx and UpdatesTab.tsx each have a
   `target="_blank"` link with no new-tab cue. 8948775 added the shared
   `strings.common.opensInNewTab` string and used it on the Sponsor link;
   reuse it on these three. WCAG 2.2 technique G201 (SC 3.2.5, level AAA).
+  Fixed 2026-11-12: ExternalLink (components/ExternalLink.tsx) carries
+  target, rel and the opensInNewTab cue; the Sponsor link and the three
+  others use it. ExternalLink.test.tsx fails if any screen file sets a
+  target attribute itself. HelpPage keeps a target only where a help
+  page writes one, and none does today.
   **Layman:** Three more links open a new browser tab without warning you first; the About tab's Sponsor link now says so.
   Kind: accessibility.
   Source: review-code-2026-10-30.
@@ -3356,6 +3361,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   so the miss is not remembered. cache.py documents no negative caching
   as deliberate. Decide how long a miss is remembered, and how a user
   retries, before changing it.
+  Decided by the user 2026-11-12: remember a miss for 7 days, and add a
+  "Look for a picture again" button on a game with no picture, which
+  retries at once.
   **Layman:** Pictures that were found are saved, but a game with no picture is looked up again each time it scrolls into view, which is slow and uses up the art sources' limits.
   Kind: perf.
   Source: user-2026-10-30.

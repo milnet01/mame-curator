@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-12 Fixed — Every link that opens a new tab says so
+
+- **Links to a release, a game list file or Wikipedia say "opens in a new tab"** (mame-curator-1138)
+  Like the About tab's Sponsor link, they now warn before they open
+  a new tab.
+
 ### 2026-11-12 Security — The launchers check uv before running it
 
 - **First start installs a fixed uv, checked first** (mame-curator-1179)

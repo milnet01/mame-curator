@@ -18,6 +18,7 @@ import type {
   IniPreview,
   UpdateApplyResult,
 } from "@/api/types";
+import { ExternalLink } from "@/components/ExternalLink";
 
 type UpdatesCfg = AppConfigResponse["updates"];
 type UpdateChannel = UpdatesCfg["channel"];
@@ -121,14 +122,12 @@ function UpdateActionsRow({
         {info.install_kind === "package" &&
           info.update_available &&
           info.release_url && (
-            <a
+            <ExternalLink
               href={info.release_url}
-              target="_blank"
-              rel="noopener noreferrer"
               className="self-center text-sm underline"
             >
               {strings.settings.updates.packageLink}
-            </a>
+            </ExternalLink>
           )}
         {info.rollback_available && (
           <Button

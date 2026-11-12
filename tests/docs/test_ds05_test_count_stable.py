@@ -617,7 +617,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1294
 # 760 → 766.
 # Bumped 2026-11-12 (mame-curator-1175): Settings' list of granted folders.
 # 766 → 770.
-EXPECTED_VITEST_DECLARATIONS = 770
+# Bumped 2026-11-12 (mame-curator-1138): ExternalLink, and its scan.
+# 770 → 772.
+EXPECTED_VITEST_DECLARATIONS = 772
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

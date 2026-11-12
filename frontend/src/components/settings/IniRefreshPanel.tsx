@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { strings } from "@/strings";
 import type { IniPreview } from "@/api/types";
+import { ExternalLink } from "@/components/ExternalLink";
 
 interface IniRefreshPanelProps {
   onPreview: () => void;
@@ -84,14 +85,7 @@ export function IniRefreshPanel({
           {preview.failed.map(([name, url]) => (
             <p key={name} className="text-sm text-destructive">
               {strings.settings.updates.iniFailed(name)}{" "}
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                {url}
-              </a>
+              <ExternalLink href={url}>{url}</ExternalLink>
             </p>
           ))}
           {changed.length > 0 && (

@@ -155,7 +155,9 @@ describe("UpdatesTab (mame-curator-1010)", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("galaga")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "https://ini.test/series.ini" }),
+      screen.getByRole("link", {
+        name: "https://ini.test/series.ini (opens in a new tab)",
+      }),
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Apply" }));
     expect(a.onIniApply).toHaveBeenCalledOnce();
