@@ -10,10 +10,13 @@ from rich.markup import escape
 def shown_path(path: Path | str) -> str:
     """A path for a ``rich`` Console line: quoted, on one line, as typed.
 
-    ``repr`` quotes it and writes a control byte as an escape, so a newline in
-    a path cannot split the line (FP07). ``str`` first, so it never reads
-    ``PosixPath(...)``. ``escape`` stops ``rich`` reading ``[bold]`` as markup.
+    A character that cannot be printed, such as a newline, is written as its
+    escape, so it cannot split the line (FP07). Not ``repr``: that doubles
+    every backslash, and a Windows path must stay copyable. ``escape`` stops
+    ``rich`` reading ``[bold]`` as markup.
     """
-    # Typed here: pre-commit's mypy sees rich's escape as returning Any.
-    shown: str = escape(repr(str(path)))
+    text = "".join(
+        ch if ch.isprintable() else ch.encode("unicode_escape").decode("ascii") for ch in str(path)
+    )
+    shown: str = escape(f"'{text}'")  # Typed: pre-commit's mypy sees escape as Any.
     return shown

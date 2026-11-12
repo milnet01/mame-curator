@@ -21,7 +21,7 @@ TINY_DAT = (
 
 def _every_mention_kept(text: str, path: Path) -> None:
     """The CLI prints the path quoted, and nowhere with its brackets eaten."""
-    assert repr(str(path)) in text
+    assert f"'{path}'" in text
     assert path.name.replace("[bold]", "") not in text.replace(path.name, "")
 
 
@@ -31,6 +31,16 @@ def test_parse_failure_keeps_the_brackets(
     dat = tmp_path / "[bold]games.xml"
     assert run(build_parser().parse_args(["parse", str(dat)])) == 1
     _every_mention_kept(capsys.readouterr().err, dat)
+
+
+def test_a_backslash_prints_once(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A Windows path stays copyable: repr would double each backslash.
+
+    The local stand-in for the Windows runners (local-CI.sh, caveat 1).
+    """
+    dat = tmp_path / "back\\slash.xml"
+    assert run(build_parser().parse_args(["parse", str(dat)])) == 1
+    assert f"'{dat}'" in capsys.readouterr().err
 
 
 def test_parse_summary_keeps_the_brackets(
