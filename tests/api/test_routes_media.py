@@ -187,7 +187,8 @@ def test_media_wiki_returns_extract_json(client: Any) -> None:
 def test_media_wiki_returns_null_on_404(client: Any) -> None:
     """Wikipedia 404 (no page) → route returns JSON ``null`` with HTTP 200."""
     with respx.mock(assert_all_called=True) as mock:
-        mock.get(_WIKI_SUMMARY_URL).mock(return_value=httpx.Response(404))
+        # mame-curator-1140: every title the lookup tries has no page.
+        mock.get(url__startswith=_WIKI_SUMMARY_URL).mock(return_value=httpx.Response(404))
         response = client.get("/media/pacman/wiki")
 
     assert response.status_code == 200

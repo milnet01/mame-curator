@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote
 
 import httpx
@@ -25,11 +26,37 @@ from pydantic import BaseModel, ConfigDict
 from mame_curator.media.cache import MediaFetchError, cache_path_for
 from mame_curator.media.cache_text import fetch_text_with_cache
 from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
-from mame_curator.media.sources import (
+from mame_curator.media.wikipedia_titles import (
     _WIKIPEDIA_REST_SUMMARY_BASE,
-    _canonicalise_wikipedia_title,
+    candidate_titles,
+    is_game_page,
 )
 from mame_curator.parser.models import Machine
+
+
+async def _summary(
+    title: str, machine: Machine, *, cache_dir: Path, client: httpx.AsyncClient
+) -> dict[str, Any] | None:
+    """One title's REST summary, or ``None`` on a 404 or a non-object body."""
+    url = f"{_WIKIPEDIA_REST_SUMMARY_BASE}/{quote(title)}"
+    text = await fetch_text_with_cache(url, cache_dir, client=client)
+    if text is None:
+        return None  # upstream 404 — no page by this title
+    try:
+        data = json.loads(text)
+    except (json.JSONDecodeError, RecursionError) as exc:
+        cache_path_for(url, cache_dir).unlink(missing_ok=True)
+        raise MediaFetchError(
+            f"wikipediaExtract returned unparseable JSON for {machine.name!r}"
+        ) from exc
+    if not isinstance(data, dict):
+        # Valid-but-non-object JSON (`[]` / `null` / a bare string) would make
+        # `data.get("extract")` raise AttributeError → route 500. The About
+        # paragraph is non-essential, so this title has no page (unlinking the
+        # poisoned slot so the next request re-fetches).
+        cache_path_for(url, cache_dir).unlink(missing_ok=True)
+        return None
+    return data
 
 
 class WikipediaExtract(BaseModel):
@@ -55,40 +82,24 @@ async def resolve_wikipedia_extract(
     client: httpx.AsyncClient,
     limiter: TokenBucket,
 ) -> WikipediaExtract | None:
-    """Fetch + parse the Wikipedia REST summary into a ``WikipediaExtract``.
+    """Find the game's Wikipedia page and parse its summary into a ``WikipediaExtract``.
 
     Acquires one token first (empty bucket → ``MediaRateLimited`` *before* any
-    upstream hit), canonicalises ``machine.description`` (drops a trailing
-    parenthesised qualifier), and fetches the REST summary via
-    ``fetch_text_with_cache`` — the same URL, and therefore the same cache
-    slot, the chunk-5 ``WikipediaImageSource`` uses. A genuine upstream 404
-    (or an empty canonical title, or a summary missing the fields we map)
-    returns ``None``. Malformed JSON raises ``MediaFetchError`` after
-    invalidating the poisoned cache slot (parse-before-trust, matching the
-    ArcadeDB / Wikipedia-image sources).
+    upstream hit), then tries ``candidate_titles`` until ``is_game_page``
+    accepts one (mame-curator-1140), each through ``fetch_text_with_cache`` —
+    the same URLs, and therefore the same cache slots, ``WikipediaImageSource``
+    uses. No game page, or a summary missing the fields we map, returns
+    ``None``. Malformed JSON raises ``MediaFetchError`` after invalidating the
+    poisoned cache slot (parse-before-trust, matching the ArcadeDB /
+    Wikipedia-image sources).
     """
     if not limiter.acquire():
         raise MediaRateLimited(f"wikipediaExtract rate-limit exceeded for {machine.name!r}")
-    title = _canonicalise_wikipedia_title(machine.description)
-    if not title:
-        return None
-    url = f"{_WIKIPEDIA_REST_SUMMARY_BASE}/{quote(title)}"
-    text = await fetch_text_with_cache(url, cache_dir, client=client)
-    if text is None:
-        return None  # upstream 404 — no wiki page
-    try:
-        data = json.loads(text)
-    except (json.JSONDecodeError, RecursionError) as exc:
-        cache_path_for(url, cache_dir).unlink(missing_ok=True)
-        raise MediaFetchError(
-            f"wikipediaExtract returned unparseable JSON for {machine.name!r}"
-        ) from exc
-    if not isinstance(data, dict):
-        # Valid-but-non-object JSON (`[]` / `null` / a bare string) would make
-        # `data.get("extract")` raise AttributeError → route 500. The About
-        # paragraph is non-essential, so degrade to None (unlinking the
-        # poisoned slot so the next request re-fetches).
-        cache_path_for(url, cache_dir).unlink(missing_ok=True)
+    for title in candidate_titles(machine):
+        data = await _summary(title, machine, cache_dir=cache_dir, client=client)
+        if data is not None and is_game_page(data):
+            break
+    else:
         return None
     extract = data.get("extract")
     page_title = data.get("title")

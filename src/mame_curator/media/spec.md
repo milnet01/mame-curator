@@ -61,6 +61,7 @@ Source files under `src/mame_curator/media/`:
 | `mobygames.py` | `MobyGamesSource`, `SourceDisabledFlag`, `mobygames_key_path`. Split out so `sources.py` stays under the 500-line hard cap. |
 | `local_folders.py` | `EsdeSource`, `RetroArchThumbnailsSource` (mame-curator-1126): artwork another tool already scraped, read from a folder the user chose. Own file for the same size cap. |
 | `wikipedia.py` | `WikipediaExtract` (frozen), `resolve_wikipedia_extract`. |
+| `wikipedia_titles.py` | `candidate_titles`, `is_game_page`, `_canonicalise_wikipedia_title`, `_WIKIPEDIA_REST_SUMMARY_BASE`: which page is a game's, for both Wikipedia lookups (mame-curator-1140). Own file for the same size cap. |
 | `resolve.py` | `resolve_image` (orchestrator), `answer_from` (one prepared source's answer), `build_registry`, `build_all_sources`. The composition root — constructs concrete sources with injected deps. |
 | `candidates.py` | `resolve_pair`, `resolve_image_found`, `list_candidates`, `LIMITED_SOURCES`, `Found`, `CandidateList`, `file_digest` (mame-curator-1146). |
 | `__init__.py` | Re-exports the public surface; defines `_build_user_agent`. |
@@ -325,10 +326,11 @@ kwarg — the route passes the **same** `app.state.wikipedia_limiter` +
 `cache_dir` the `WikipediaImageSource` uses, so an image lookup and an
 extract lookup share one courtesy budget and one cache slot (same URL → same
 SHA-256 key). Acquires one token first (empty → `MediaRateLimited` before any
-upstream hit), canonicalises the description, fetches the REST summary, and
-parses it. Returns `None` on a genuine 404, an empty canonical title, a
-valid-but-non-object JSON body (unlinked, but degraded to `None` since the
-About paragraph is non-essential), or a summary missing a field it surfaces.
+upstream hit), finds the game's page as § "Source contracts" (wikipediaImage,
+"Which page") says, and parses its summary. Returns `None` when no title
+gives the game's page, or its summary misses a field it surfaces. A 404, or a
+valid-but-non-object JSON body (unlinked, since the About paragraph is
+non-essential), means no page by that title, and the next title is tried.
 A `JSONDecodeError` **raises** `MediaFetchError` after unlinking the poisoned
 slot (parse-before-trust — see § "Source contracts" for the full two-class model).
 
@@ -415,6 +417,15 @@ Wikipedia's API:Etiquette.
   candidate). Canonicalises `machine.description` (drops a trailing
   parenthesised qualifier: `"Pac-Man (Midway)"` → `"Pac-Man"`) before the
   lookup. Rate limit 60/min courtesy cap.
+
+  **Which page** (both Wikipedia lookups, `media/wikipedia_titles.py`,
+  mame-curator-1140). The canonical title can name something else: `1942`
+  is the year, `Joust` the sport, `Defender` a disambiguation page. So the
+  titles are tried in order: the canonical title, then `<title> (video
+  game)`, then `<title> (<year> video game)` when the machine has a year. The
+  first summary whose `type` is `standard` and whose `description` says
+  "video game" or "arcade game" is the game's page. None found → no page,
+  as for a 404. One token covers the whole search.
 - **mobyGames** — `boxart` only, requires an API key. Resolves it from
   `MOBYGAMES_API_KEY` (env, wins) then a **mode-0600** `data/secrets/mobygames.key`
   dotfile (POSIX-only mode check — Windows reports a synthetic 0o666, so the

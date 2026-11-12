@@ -70,6 +70,9 @@ async def test_wikipedia_extract_returns_none_on_404(tmp_path: Path) -> None:
     async with httpx.AsyncClient() as client:
         with respx.mock(assert_all_called=True) as mock:
             mock.get(url).mock(return_value=httpx.Response(404))
+            mock.get(_summary_url("Pac-Man (video game)")).mock(  # mame-curator-1140
+                return_value=httpx.Response(404)
+            )
             result = await resolve_wikipedia_extract(
                 _machine(description="Pac-Man"),
                 cache_dir=tmp_path,
@@ -164,7 +167,11 @@ async def test_wikipedia_extract_returns_none_when_summary_missing_fields(tmp_pa
     async with httpx.AsyncClient() as client:
         with respx.mock(assert_all_called=True) as mock:
             mock.get(_summary_url("Pac-Man")).mock(
-                return_value=httpx.Response(200, text='{"title": "Pac-Man"}')
+                return_value=httpx.Response(
+                    200,
+                    text='{"type": "standard", "description": "1980 video game", '
+                    '"title": "Pac-Man"}',
+                )
             )
             result = await resolve_wikipedia_extract(
                 _machine(description="Pac-Man"),
@@ -184,6 +191,9 @@ async def test_wikipedia_extract_non_object_json_returns_none_and_unlinks(tmp_pa
     async with httpx.AsyncClient() as client:
         with respx.mock(assert_all_called=True) as mock:
             mock.get(url).mock(return_value=httpx.Response(200, text="[]"))
+            mock.get(_summary_url("Pac-Man (video game)")).mock(  # mame-curator-1140
+                return_value=httpx.Response(404)
+            )
             result = await resolve_wikipedia_extract(
                 _machine(description="Pac-Man"),
                 cache_dir=tmp_path,
@@ -200,7 +210,10 @@ async def test_wikipedia_extract_survives_non_dict_content_urls(tmp_path: Path) 
     so it would escape the route's ``except MediaError`` and 500 the
     contractually never-500s wiki path. Degrade to ``None`` instead."""
     url = _summary_url("Pac-Man")
-    body = '{"extract":"x","title":"Pac-Man","content_urls":{"desktop":"not-an-object"}}'
+    body = (
+        '{"type":"standard","description":"1980 video game",'
+        '"extract":"x","title":"Pac-Man","content_urls":{"desktop":"not-an-object"}}'
+    )
     async with httpx.AsyncClient() as client:
         with respx.mock(assert_all_called=True) as mock:
             mock.get(url).mock(return_value=httpx.Response(200, text=body))

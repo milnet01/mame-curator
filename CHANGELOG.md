@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-12 Fixed — Wikipedia text and box art come from the game's own page
+
+- **Games named like a year or an everyday word get their own article** (mame-curator-1140)
+  1942 showed the article on the year, Joust the one on jousting, and
+  Asteroids the one on asteroids. The app now takes only a page that
+  Wikipedia describes as a video or arcade game, trying the
+  "(video game)" titles too, and shows nothing rather than the wrong page.
+
 ### 2026-11-12 Fixed — Every link that opens a new tab says so
 
 - **Links to a release, a game list file or Wikipedia say "opens in a new tab"** (mame-curator-1138)

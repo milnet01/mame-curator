@@ -171,7 +171,10 @@ async def test_wikipedia_image_source_prepare_survives_non_dict_thumbnail(tmp_pa
 
     src = WikipediaImageSource(limiter=_make_unbounded_limiter(), cache_dir=tmp_path)
     url = _wikipedia_url_for("Pac-Man")
-    body = '{"title":"Pac-Man","thumbnail":"not-an-object"}'
+    body = (
+        '{"type":"standard","description":"1980 video game",'
+        '"title":"Pac-Man","thumbnail":"not-an-object"}'
+    )
     async with httpx.AsyncClient() as client:
         with respx.mock(assert_all_called=True) as mock:
             mock.get(url).mock(return_value=httpx.Response(200, text=body))

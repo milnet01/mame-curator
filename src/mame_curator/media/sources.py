@@ -29,10 +29,9 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from collections.abc import Mapping
 from pathlib import Path
-from typing import ClassVar, Literal, Protocol, runtime_checkable
+from typing import Any, ClassVar, Literal, Protocol, runtime_checkable
 from urllib.parse import quote
 
 import httpx
@@ -41,6 +40,11 @@ from mame_curator.media.cache import MediaFetchError, cache_path_for
 from mame_curator.media.cache_text import fetch_text_with_cache
 from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
 from mame_curator.media.urls import urls_for
+from mame_curator.media.wikipedia_titles import (
+    _WIKIPEDIA_REST_SUMMARY_BASE,
+    candidate_titles,
+    is_game_page,
+)
 from mame_curator.parser.models import Machine
 
 logger = logging.getLogger(__name__)
@@ -330,18 +334,7 @@ class ArcadeDBSource:
 # image field with a documented location is ``thumbnail.source`` (the
 # infobox image). Title / snap aren't reliably present and would require
 # HTML scraping — explicitly out of scope per spec § "3. Wikipedia (image)".
-_WIKIPEDIA_REST_SUMMARY_BASE = "https://en.wikipedia.org/api/rest_v1/page/summary"
-_TRAILING_PARENS = re.compile(r"\s*\([^)]*\)\s*$")
-
-
-def _canonicalise_wikipedia_title(description: str) -> str:
-    """Strip trailing parenthesised qualifier + outer whitespace.
-
-    ``"Pac-Man (Midway)"`` → ``"Pac-Man"``. No fuzzy match, no second
-    attempt — the source's value is the head of the catalog (Pac-Man,
-    Tetris, Donkey Kong), not full coverage.
-    """
-    return _TRAILING_PARENS.sub("", description).strip()
+# Which title is the game's page: media/wikipedia_titles.py (mame-curator-1140).
 
 
 class WikipediaImageSource:
@@ -382,21 +375,37 @@ class WikipediaImageSource:
         *,
         client: httpx.AsyncClient,
     ) -> None:
-        """Populate ``_url_cache[name]`` from the REST summary's thumbnail.
+        """Populate ``_url_cache[name]`` from the game's page's thumbnail.
 
         Raises ``MediaRateLimited`` on empty bucket; ``MediaFetchError`` on
-        JSON parse failure (cache slot unlinked first). 404 / missing
-        thumbnail leave the cache entry absent — ``url_for`` returns ``None``.
+        JSON parse failure (cache slot unlinked first). No game page, or no
+        thumbnail, leaves the cache entry absent — ``url_for`` returns ``None``.
         """
         if not self._limiter.acquire():
             raise MediaRateLimited(f"wikipediaImage rate-limit exceeded for {machine.name!r}")
-        title = _canonicalise_wikipedia_title(machine.description)
-        if not title:
+        # mame-curator-1140: the first title whose page is the game's.
+        for title in candidate_titles(machine):
+            data = await self._summary(title, machine, client)
+            if data is not None and is_game_page(data):
+                break
+        else:
             return
+        # Nested parse-before-trust (FP33 H2): a truthy-but-non-dict thumbnail
+        # would make ``.get("source")`` raise before the isinstance(thumb, str)
+        # guard runs. Guard the container type first.
+        thumbnail = data.get("thumbnail")
+        thumb = thumbnail.get("source") if isinstance(thumbnail, dict) else None
+        if isinstance(thumb, str) and thumb:
+            self._url_cache[machine.name] = thumb
+
+    async def _summary(
+        self, title: str, machine: Machine, client: httpx.AsyncClient
+    ) -> dict[str, Any] | None:
+        """One title's REST summary, or ``None`` on a 404."""
         url = self._summary_url(title)
         text = await fetch_text_with_cache(url, self._cache_dir, client=client)
         if text is None:
-            return
+            return None
         try:
             data = json.loads(text)
         except (json.JSONDecodeError, RecursionError) as exc:
@@ -409,13 +418,7 @@ class WikipediaImageSource:
             # unparseable branch above (else `data.get("thumbnail")` throws).
             cache_path_for(url, self._cache_dir).unlink(missing_ok=True)
             raise MediaFetchError(f"wikipediaImage returned non-object JSON for {machine.name!r}")
-        # Nested parse-before-trust (FP33 H2): a truthy-but-non-dict thumbnail
-        # would make ``.get("source")`` raise before the isinstance(thumb, str)
-        # guard runs. Guard the container type first.
-        thumbnail = data.get("thumbnail")
-        thumb = thumbnail.get("source") if isinstance(thumbnail, dict) else None
-        if isinstance(thumb, str) and thumb:
-            self._url_cache[machine.name] = thumb
+        return data
 
     def url_for(self, machine: Machine, kind: Kind) -> str | None:
         """Return the cached thumbnail URL or ``None``.

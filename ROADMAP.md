@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1254 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1255 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3324,13 +3324,20 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: review-contract-2026-10-30.
   Lanes: cli.
 
-- 📋 [mame-curator-1140] **The versions panel shows the wrong Wikipedia article for a game named like a year.**
+- ✅ [mame-curator-1140] **The versions panel shows the wrong Wikipedia article for a game named like a year.**
   Seen on v1.4.1: GET /media/1942/wiki returned the article titled "1942",
   about the calendar year, and the panel displays it. sf2 resolved
   correctly to "Street Fighter II". Start at resolve_wikipedia_extract in
   media/wikipedia.py and _canonicalise_wikipedia_title in media/sources.py.
   Other games with plain-word or number names may match the same way;
   that is unchecked.
+  Fixed 2026-11-12: media/wikipedia_titles.py tries the plain title,
+  then "(video game)", then "(<year> video game)", and accepts only a
+  standard page described as a video or arcade game; both the About text
+  and the box art use it. The bug was wider than 1942: Joust, Asteroids
+  and Defender also got a namesake page. Checked live 2026-11-12: all
+  six sample games resolve to their game's page. Test:
+  tests/media/test_wikipedia_titles.py.
   **Layman:** Opening the game 1942 shows a history note about the year 1942, not the game.
   Kind: fix.
   Source: in-session-2026-10-30 (trailer recording, mame-curator-1136).
@@ -4870,6 +4877,16 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: ux.
   Source: build-mame-curator-1173-2026-11-12.
   Lanes: frontend.
+
+- 📋 [mame-curator-1255] **media/sources.py is 5 lines under the hard size cap.**
+  Measured 495 lines after mame-curator-1140; the cap is 500. Moving
+  WikipediaImageSource to its own file, as MobyGames and the local
+  folders already are, would make room. Do it before the next change
+  there; mame-curator-1143 (remembering a missing picture) may touch it.
+  **Layman:** One code file is nearly too big under the project's own limit.
+  Kind: refactor.
+  Source: build-mame-curator-1140-2026-11-12.
+  Lanes: media.
 
 ## Considered / under research (no target date)
 
