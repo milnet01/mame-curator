@@ -361,6 +361,7 @@ from mame_curator.api.schemas_pictures import (  # noqa: E402
     PictureCandidate,
     PictureCandidates,
     PictureChoiceView,
+    PictureRetry,
 )
 from mame_curator.api.schemas_setup import (  # noqa: E402
     AppUpdateInfo,
@@ -431,6 +432,7 @@ __all__ = (
     "PictureCandidates",
     "PictureChoice",
     "PictureChoiceView",
+    "PictureRetry",
     "ServerConfig",
     "SessionUpsertRequest",
     "SessionsListing",

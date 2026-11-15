@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { GameCard } from "../GameCard";
+import { notePictureLook } from "@/lib/pictureLook";
 import { strings } from "@/strings";
 import type { GameCard as GameCardType } from "@/api/types";
 
@@ -95,6 +96,24 @@ describe("GameCard", () => {
     // Description appears once in the heading and once as the art-area placeholder.
     const matches = screen.getAllByText("Pac-Man (Midway)");
     expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("mame-curator-1143: shows the picture again after a fresh look finds one", () => {
+    render(
+      <GameCard
+        card={{ ...baseCard, short_name: "lookcard" }}
+        inCart={false}
+        onOpen={() => {}}
+        onAdd={() => {}}
+      />,
+    );
+    fireEvent.error(screen.getByTestId("gamecard-img-lookcard"));
+    expect(screen.queryByTestId("gamecard-img-lookcard")).toBeNull();
+    act(() => notePictureLook("lookcard"));
+    expect(screen.getByTestId("gamecard-img-lookcard")).toHaveAttribute(
+      "src",
+      "/media/lookcard/boxart?r=1",
+    );
   });
 
   // ---- FP20-H: accessible-name + decorative-image hardening ---------------

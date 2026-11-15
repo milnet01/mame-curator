@@ -423,7 +423,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # uv, and run.bat puts it on PATH. 1290 → 1294.
 # Bumped 2026-11-12 (mame-curator-1140): the Wikipedia lookups find the
 # game's page. 1294 → 1298.
-EXPECTED_PYTEST_DECLARATIONS = 1298
+# Bumped 2026-11-15 (mame-curator-1143): a missing picture is remembered
+# for 7 days, and the retry route forgets it. 1298 → 1319.
+EXPECTED_PYTEST_DECLARATIONS = 1319
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
@@ -621,7 +623,9 @@ EXPECTED_PYTEST_DECLARATIONS = 1298
 # 766 → 770.
 # Bumped 2026-11-12 (mame-curator-1138): ExternalLink, and its scan.
 # 770 → 772.
-EXPECTED_VITEST_DECLARATIONS = 772
+# Bumped 2026-11-15 (mame-curator-1143): "Look for a picture again", and a
+# card that shows a picture a fresh look found. 772 → 779.
+EXPECTED_VITEST_DECLARATIONS = 779
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

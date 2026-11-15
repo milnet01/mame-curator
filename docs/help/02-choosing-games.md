@@ -52,6 +52,11 @@ choice is for that version only. **Look in more places** also asks the
 online sources that limit how often they may be asked. **Use the usual
 picture** undoes your choice. Choices are saved in a Backup.
 
+When no source has a picture for a game, the app remembers that for 7
+days, so it does not ask again each time the game comes into view. To
+look sooner, open the game's drawer and press **Look for a picture
+again**. Changing a picture setting in Settings also looks again.
+
 ## Sessions
 
 A session saves what the Library is showing: its year range, and the

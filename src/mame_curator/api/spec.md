@@ -282,6 +282,7 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | POST | `/api/updates/ini/apply` | `IniPreview` | ✓ |
 | GET | `/media/{name}/{kind}` | image bytes (`FileResponse`) | |
 | GET | `/media/{name}/wiki` | `WikipediaExtract \| null` | |
+| POST | `/api/media/{name}/retry` | `PictureRetry` | |
 | GET | `/api/media/sources` | `SourceReadiness` | |
 | PUT | `/api/media/sources/{name}/secret` | `204 No Content` | |
 
@@ -557,6 +558,14 @@ kept: a restore never grants folder access (mame-curator-1225, user decision
   502 surface for media**. If the whole chain misses (every source returns
   no candidate), the route raises `MediaUpstreamNotFoundError` (404). See
   `docs/specs/P10-media-coverage.md` § "Route contract".
+- **A miss is remembered for 7 days (mame-curator-1143).** Every chain
+  lookup goes through `media.resolve_image_remembered`, with
+  `config.media` as its settings text, so changing any picture setting asks
+  again. A `?source=` lookup is never remembered.
+  `POST /api/media/{name}/retry` forgets the game's misses, looks for its
+  card picture as the card would, and returns
+  `PictureRetry {short_name, found}`. Unknown `name` → 404
+  `game_not_found`.
 - A cache hit returns a `FileResponse` (content-type from the cached
   file's suffix, `X-Content-Type-Options: nosniff`) with a 30-day
   `immutable` `Cache-Control`, except as the table below says.

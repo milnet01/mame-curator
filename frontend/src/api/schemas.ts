@@ -330,6 +330,13 @@ export const PictureCandidatesSchema = z
   })
   .strict();
 
+export const PictureRetrySchema = z
+  .object({
+    short_name: z.string(),
+    found: z.boolean(),
+  })
+  .strict();
+
 export const PictureChoiceViewSchema = z
   .object({
     short_name: z.string(),

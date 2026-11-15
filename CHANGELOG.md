@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-15 Changed — A game with no picture is not looked up on every view
+
+- **The app remembers for 7 days that a game has no picture** (mame-curator-1143)
+  Before, such a game asked every picture source again each time it
+  scrolled into view, which was slow and used up the sources' limits.
+  A source that was busy or failed does not count, and changing a
+  picture setting looks again.
+- **"Look for a picture again" in a game's drawer**
+  It shows only when the game has no picture, and looks at once. A
+  picture it finds shows on the game's card straight away.
+
 ### 2026-11-12 Fixed — A long genre name wraps in the filter column
 
 - **The Library's filter column no longer scrolls sideways** (mame-curator-1141)

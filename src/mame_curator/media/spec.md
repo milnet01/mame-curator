@@ -31,6 +31,9 @@ disk. Specifically:
   text / JSON body **except MobyGames' own auth-probe** (see "MobyGames
   divergence") feeds `fetch_text_with_cache`. Both are SHA-256-keyed,
   flat, atomic (`.tmp` + `os.replace`), 404-returns-`None`, non-200-raises.
+- **Remember a missing picture** — a whole-chain miss is remembered for
+  `MISS_DAYS` (7), so a game with no picture does not ask every source on
+  each view (§ Remembered misses, mame-curator-1143).
 - **Resolve Wikipedia flavor text** — `resolve_wikipedia_extract` returns a
   frozen `WikipediaExtract` (title / extract / url / license) for the
   Alternatives-drawer "About" paragraph.
@@ -64,6 +67,7 @@ Source files under `src/mame_curator/media/`:
 | `wikipedia.py` | `WikipediaExtract` (frozen), `resolve_wikipedia_extract`. |
 | `wikipedia_titles.py` | `candidate_titles`, `is_game_page`, `_canonicalise_wikipedia_title`, `_WIKIPEDIA_REST_SUMMARY_BASE`: which page is a game's, for both Wikipedia lookups (mame-curator-1140). Own file for the same size cap. |
 | `resolve.py` | `resolve_image` (orchestrator), `answer_from` (one prepared source's answer), `build_registry`, `build_all_sources`. The composition root — constructs concrete sources with injected deps. |
+| `misses.py` | `resolve_image_remembered`, `forget_misses`, `miss_marker`, `MISS_DAYS` (mame-curator-1143). |
 | `candidates.py` | `resolve_pair`, `resolve_image_found`, `list_candidates`, `LIMITED_SOURCES`, `Found`, `CandidateList`, `file_digest` (mame-curator-1146). |
 | `__init__.py` | Re-exports the public surface; defines `_build_user_agent`. |
 
@@ -88,6 +92,9 @@ Re-exported from `mame_curator.media.__init__` (`__all__`):
 | `resolve_image_found` | async function | `candidates.py` |
 | `list_candidates` | async function | `candidates.py` |
 | `LIMITED_SOURCES` | `frozenset[str]` | `candidates.py` |
+| `resolve_image_remembered` | async function | `misses.py` |
+| `forget_misses` | function | `misses.py` |
+| `MISS_DAYS` | `int` | `misses.py` |
 | `Found` / `CandidateList` | frozen dataclasses | `candidates.py` |
 | `file_digest` | function | `candidates.py` |
 | `build_registry` | function | `resolve.py` |
@@ -315,10 +322,19 @@ dropped — never served.
 The contract is `docs/specs/mame-curator-1146-picture-choice.md` §4.3. In short:
 
 - `resolve_pair(machine, source, kind, *, registry, cache_dir, client) -> Path | None` asks one source for one kind. `None` when the source is not in `registry.chain_for(kind)`, has no candidate, or the upstream 404s. Raises `MediaRateLimited` and `MediaFetchError`. Keeps the `file://` rule above.
-- `resolve_image_found(...) -> Found | None` is `resolve_image` naming the source that answered. `resolve_image` returns its `path`.
+- `resolve_image_found(..., failed=None) -> Found | None` is `resolve_image` naming the source that answered. `resolve_image` returns its `path`. A `failed` set, when given, collects the sources that raised instead of answering.
 - `list_candidates(machine, *, registry, ask_limited, cache_dir, client) -> CandidateList` walks `boxart`, `title`, `snap`, every source in each chain, skipping `LIMITED_SOURCES` (`arcadeDB`, `wikipediaImage`, `mobyGames`) unless `ask_limited`. Each `prepare` runs at most once; a source whose `prepare` raised is not asked again. A picture whose bytes equal an earlier one's is dropped. Sources held back are in `not_asked`; sources that raised are in `not_answered`.
 
 The per-source step all three share is `resolve.answer_from`.
+
+### Remembered misses: `resolve_image_remembered`, `forget_misses` (mame-curator-1143)
+
+- `resolve_image_remembered(machine, kind, *, registry, cache_dir, client, settings) -> Path | None` is `resolve_image`, except a miss it remembers asks no source.
+- A miss is remembered only when every source in the chain answered with no picture. A source that raised `MediaRateLimited` or `MediaFetchError` may hold one, so that miss is not saved.
+- The marker is `<cache_dir>/misses/<kind>/<sha256(name)>.miss`. It holds a fingerprint of the chain's source names and the caller's `settings` text. A different fingerprint asks again.
+- A marker counts while younger than `MISS_DAYS` (7 days, the user's choice of 2026-11-12) by its modified time. An older one, or one dated in the future, asks again.
+- A marker that cannot be read or written is no miss: the sources are asked, and the view never fails.
+- `forget_misses(cache_dir, name)` deletes the game's markers for every kind.
 
 ### `async resolve_wikipedia_extract(machine, *, cache_dir, client, limiter) -> WikipediaExtract | None`
 
@@ -474,8 +490,8 @@ include one named `Arcade`, fetches
 cover whose `scan_of` contains "front cover", else the first `image` at all
 (`http://` upgraded to `https://`). No Arcade version is no candidate. Both
 bodies go through the same status handling above and are cached in
-`<cache_dir>/mobygames/<sha256(key-free name)>.json` — the one sub-folder in
-the cache, because a keyed URL cannot name a file — written only after the
+`<cache_dir>/mobygames/<sha256(key-free name)>.json` — its own sub-folder,
+because a keyed URL cannot name a file — written only after the
 body parses and holds the expected list, so a malformed body raises
 `MediaFetchError` and is never cached. Built from the published API shape as
 Skyscraper's parser uses it; unverified against the live service, since no
@@ -485,7 +501,7 @@ key is available to this project.
 
 - **Directory:** injected as `cache_dir: Path`; `media/` reads no config. The
   route passes `world.config.media.cache_dir` (default `./data/media-cache`).
-- **Filename:** `<sha256(url).hexdigest()><ext>`, flat (no subdirs); `ext`
+- **Filename:** `<sha256(url).hexdigest()><ext>`, flat; `ext`
   is a picture suffix or empty (§ `cache_path_for`). Image and
   text bodies share the directory but never the slot (different URLs → different
   hashes).
@@ -493,7 +509,9 @@ key is available to this project.
   `os.replace` → `fsync_parent_dir`. In-filesystem rename, so EXDEV never
   applies.
 - **Read:** `Path.exists()` → return. No mtime / checksum / LRU. The cache is
-  permanent by design; no negative caching (a 404 is never written).
+  permanent by design; a 404 is never written as a picture.
+- **Subfolders:** `mobygames/` holds MobyGames' JSON bodies; `misses/`
+  holds the remembered misses (§ Remembered misses).
 
 ## Errors
 
@@ -534,8 +552,9 @@ bare `Exception`.
 
 The following are **caller-side** and live outside `media/`:
 
-- **Route wiring** — `GET /media/{name}/{kind}` (calls `resolve_image`;
-  `None` → 404), `GET /media/{name}/wiki` (calls `resolve_wikipedia_extract`;
+- **Route wiring** — `GET /media/{name}/{kind}` (calls
+  `resolve_image_remembered`; `None` → 404), `POST /api/media/{name}/retry`
+  (calls `forget_misses`, then looks for the card's picture), `GET /media/{name}/wiki` (calls `resolve_wikipedia_extract`;
   catches `MediaError` → `null`), `GET /api/media/sources` (readiness),
   `PUT /api/media/sources/{name}/secret` (paste-key write) — all in
   `api/routes/media.py`. **A single source's 5xx / transport failure no longer

@@ -26,7 +26,7 @@ from mame_curator.api.errors import (
 )
 from mame_curator.api.pictures import PictureChoice
 from mame_curator.api.routes._deps import get_world
-from mame_curator.api.schemas import SourceReadiness, SourceReadinessRow, SourceSecret
+from mame_curator.api.schemas import PictureRetry, SourceReadiness, SourceReadinessRow, SourceSecret
 from mame_curator.api.state import WorldState
 from mame_curator.media import (
     Kind,
@@ -36,8 +36,9 @@ from mame_curator.media import (
     WikipediaExtract,
     build_all_sources,
     build_registry,
+    forget_misses,
     mobygames_key_path,
-    resolve_image,
+    resolve_image_remembered,
     resolve_pair,
     resolve_wikipedia_extract,
 )
@@ -130,6 +131,19 @@ async def _pair_or_none(
         return None
 
 
+async def _chain(
+    machine: Machine, kind: Kind, world: WorldState, registry: MediaSourceRegistry, **fetch: Any
+) -> Path | None:
+    """The chain's picture; a miss is remembered (mame-curator-1143).
+
+    The picture settings are the fingerprint, so a changed folder or source
+    list asks again.
+    """
+    return await resolve_image_remembered(
+        machine, kind, registry=registry, settings=world.config.media.model_dump_json(), **fetch
+    )
+
+
 async def _serve_boxart(
     machine: Machine, world: WorldState, registry: MediaSourceRegistry, v: str | None, **fetch: Any
 ) -> tuple[Path | None, bool]:
@@ -145,8 +159,8 @@ async def _serve_boxart(
         if path is not None:
             return path, v == f"{choice.source}.{choice.kind}"
     elif v is None:
-        return await resolve_image(machine, "boxart", registry=registry, **fetch), True
-    return await resolve_image(machine, "boxart", registry=registry, **fetch), False
+        return await _chain(machine, "boxart", world, registry, **fetch), True
+    return await _chain(machine, "boxart", world, registry, **fetch), False
 
 
 @router.get("/media/{name}/{kind}")
@@ -192,11 +206,11 @@ async def media_proxy(
     elif chain_kind == "boxart":
         path, cacheable = await _serve_boxart(machine, world, registry, v, **fetch)
     else:
-        # resolve_image swallows per-source MediaFetchError / MediaRateLimited
+        # The chain swallows per-source MediaFetchError / MediaRateLimited
         # and falls through, so an upstream 5xx no longer surfaces as 502 — a
         # chain that misses everywhere yields None → 404 (P10 spec § "Route
         # contract").
-        path = await resolve_image(machine, chain_kind, registry=registry, **fetch)
+        path = await _chain(machine, chain_kind, world, registry, **fetch)
     if path is None:
         raise MediaUpstreamNotFoundError(f"no media source resolved {kind!r} for {name!r}")
     # FP21-H: ``FileResponse`` streams the bytes via ``anyio.to_thread``
@@ -214,6 +228,24 @@ async def media_proxy(
             "X-Content-Type-Options": "nosniff",
         },
     )
+
+
+@router.post("/api/media/{name}/retry", response_model=PictureRetry)
+async def media_retry(
+    name: str, request: Request, world: WorldState = Depends(get_world)
+) -> PictureRetry:
+    """Forget the game's remembered misses and look for its card picture now."""
+    machine = world.machines.get(name)
+    if machine is None:
+        raise GameNotFoundError(f"game not found: {name!r}")
+    cache_dir = world.config.media.cache_dir
+    forget_misses(cache_dir, name)
+    registry = request_registry(request, world)
+    client = request.app.state.media_client
+    path, _ = await _serve_boxart(
+        machine, world, registry, None, cache_dir=cache_dir, client=client
+    )
+    return PictureRetry(short_name=name, found=path is not None)
 
 
 # --- P10 chunk 9: readiness surface + secret write -------------------------

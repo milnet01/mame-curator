@@ -242,6 +242,11 @@ export interface PictureCandidates {
   not_answered: string[];
 }
 
+export interface PictureRetry {
+  short_name: string;
+  found: boolean;
+}
+
 export interface PictureChoiceView {
   short_name: string;
   chosen: PictureChoice | null;

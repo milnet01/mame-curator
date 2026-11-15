@@ -5,7 +5,8 @@ Per ``docs/specs/P05-media.md`` § Public API:
 - ``cache_path_for`` is pure (no I/O).
 - ``fetch_with_cache`` returns the on-disk path if cached; otherwise downloads
   via the caller-supplied ``httpx.AsyncClient`` and writes atomically.
-- 404 is the no-image sentinel (returns ``None``); no negative caching.
+- 404 is the no-image sentinel (returns ``None``); it is never cached here.
+  A whole-chain miss is remembered one level up, in ``misses.py``.
 - Other upstream errors raise ``MediaFetchError``.
 """
 

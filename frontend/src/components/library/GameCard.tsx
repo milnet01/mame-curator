@@ -19,6 +19,7 @@ import type {
   ReviewBadgeKind,
   ReviewStateValue,
 } from "@/api/types";
+import { usePictureLook } from "@/lib/pictureLook";
 import { pictureSrc } from "@/lib/pictureSrc";
 
 interface GameCardProps {
@@ -90,8 +91,10 @@ export function GameCard({
   tabStop = true,
   row = false,
 }: GameCardProps) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const flyerSrc = pictureSrc(card);
+  const flyerSrc = pictureSrc(card, usePictureLook(card.short_name));
+  // Failed for this address only: a new address (a fresh look) tries again.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const imgFailed = failedSrc === flyerSrc;
   // FP20-H: stable id wires aria-labelledby on the outer card to the
   // inner heading, so the button's accessible name is exactly the
   // game description — not the screen-reader-clobbering aria-label
@@ -183,7 +186,7 @@ export function GameCard({
               alt=""
               data-testid={`gamecard-img-${card.short_name}`}
               loading="lazy"
-              onError={() => setImgFailed(true)}
+              onError={() => setFailedSrc(flyerSrc)}
               className="h-full w-full object-contain"
             />
           )}

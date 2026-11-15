@@ -317,6 +317,16 @@ export const strings = {
     notesLabel: "Notes",
     notesPlaceholder: "Notes (saved automatically when you click away)…",
     flyerAlt: (description: string) => `Box art for ${description}`,
+    /** mame-curator-1143 — a game with no picture. The 7 days is the
+     *  server's MISS_DAYS (media/misses.py). */
+    pictureMissing:
+      "No picture was found for this game. The app looks again after 7 days.",
+    pictureRetry: "Look for a picture again",
+    pictureRetrying: "Looking for a picture…",
+    pictureFound: "Found a picture.",
+    pictureStillMissing:
+      "Still no picture. None of the picture sources has one.",
+    pictureRetryFailed: "Could not look for a picture. Try again in a moment.",
     /** FP19 — Launch button + status copy. */
     launch: "Launch in RetroArch",
     launching: "Launching…",

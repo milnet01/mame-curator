@@ -3,10 +3,13 @@ import { apiRequest } from "@/api/client";
 import {
   PictureCandidatesSchema,
   PictureChoiceViewSchema,
+  PictureRetrySchema,
   type PictureCandidates,
   type PictureChoice,
   type PictureChoiceView,
+  type PictureRetry,
 } from "@/api/types";
+import { notePictureLook } from "@/lib/pictureLook";
 import { useApiQuery } from "./useApi";
 
 const pictureUrl = (shortName: string) =>
@@ -48,5 +51,24 @@ export function useSetPicture(shortName: string) {
         qc.invalidateQueries({ queryKey: ["games"] }),
         qc.invalidateQueries({ queryKey: ["alternatives"] }),
       ]),
+  });
+}
+
+/**
+ * mame-curator-1143: forget that the game had no picture and look now.
+ * A picture found is a fresh look, so every card showing the game asks
+ * for it again.
+ */
+export function usePictureRetry(shortName: string) {
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<PictureRetry>(
+        `/api/media/${encodeURIComponent(shortName)}/retry`,
+        PictureRetrySchema,
+        { method: "POST" },
+      ),
+    onSuccess: (result) => {
+      if (result.found) notePictureLook(shortName);
+    },
   });
 }

@@ -88,18 +88,26 @@ async def resolve_image_found(
     registry: MediaSourceRegistry,
     cache_dir: Path,
     client: httpx.AsyncClient,
+    failed: set[str] | None = None,
 ) -> Found | None:
-    """``resolve_image`` saying which source answered; ``None`` when all miss."""
+    """``resolve_image`` saying which source answered; ``None`` when all miss.
+
+    ``failed``, when given, collects the sources that raised instead of
+    answering (mame-curator-1143: such a miss is not final).
+    """
+    failures = failed if failed is not None else set()
     for source in registry.chain_for(kind):
         try:
             await source.prepare(machine, client=client)
         except MediaRateLimited:
             logger.info("media: %s rate-limited during prepare; falling through", source.name)
+            failures.add(source.name)
             continue
         except MediaFetchError:
             logger.warning(
                 "media: %s prepare failed for %s; falling through", source.name, machine.name
             )
+            failures.add(source.name)
             continue
         try:
             path = await _resolve.answer_from(
@@ -112,6 +120,7 @@ async def resolve_image_found(
                 machine.name,
                 kind,
             )
+            failures.add(source.name)
             continue
         if path is not None:
             return Found(source=source.name, kind=kind, path=path)

@@ -38,6 +38,14 @@ class PictureCandidates(BaseModel):
     not_answered: tuple[str, ...]
 
 
+class PictureRetry(BaseModel):
+    """mame-curator-1143: whether a fresh look found the game a picture."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    short_name: str
+    found: bool
+
+
 class PictureChoiceView(BaseModel):
     """A game's stored choice after a save or clear."""
 

@@ -8,6 +8,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { AboutSection } from "@/components/alternatives/AboutSection";
+import { PictureRetry } from "@/components/alternatives/PictureRetry";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useKeyboard } from "@/hooks/useKeyboard";
@@ -20,6 +21,7 @@ import type {
   ReviewStateValue,
   StateView,
 } from "@/api/types";
+import { usePictureLook } from "@/lib/pictureLook";
 import { pictureSrc } from "@/lib/pictureSrc";
 
 interface AlternativesDrawerProps {
@@ -81,7 +83,10 @@ function AlternativeRow({
   onPick: () => void;
   highlighted?: boolean;
 }) {
-  const [imgFailed, setImgFailed] = useState(false);
+  const src = pictureSrc(alt, usePictureLook(alt.short_name));
+  // Failed for this address only: a new address (a fresh look) tries again.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const imgFailed = failedSrc === src;
   const buttonName = isWinner
     ? strings.alternatives.selectedAriaLabel(alt.description)
     : strings.alternatives.useAriaLabel(alt.description);
@@ -105,10 +110,10 @@ function AlternativeRow({
             </div>
           ) : (
             <img
-              src={pictureSrc(alt)}
+              src={src}
               alt={strings.alternatives.flyerAlt(alt.description)}
               loading="lazy"
-              onError={() => setImgFailed(true)}
+              onError={() => setFailedSrc(src)}
               className="h-full w-full object-cover"
             />
           )}
@@ -274,6 +279,9 @@ export function AlternativesDrawer({
             {strings.guide.fix.entry}
           </Link>
         </Button>
+
+        {/* mame-curator-1143: shows only when the game has no picture. */}
+        <PictureRetry shortName={winner.short_name} picture={winner.picture} />
 
         {loadFailed && onRetry && (
           <div>

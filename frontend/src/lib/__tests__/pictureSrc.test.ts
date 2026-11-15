@@ -22,6 +22,18 @@ describe("pictureSrc", () => {
     ).toBe("/media/pacman/boxart?v=esde.title");
   });
 
+  it("mame-curator-1143: a fresh look is a new address, after the choice", () => {
+    expect(pictureSrc({ short_name: "pacman", picture: null }, 2)).toBe(
+      "/media/pacman/boxart?r=2",
+    );
+    expect(
+      pictureSrc(
+        { short_name: "pacman", picture: { source: "esde", kind: "title" } },
+        1,
+      ),
+    ).toBe("/media/pacman/boxart?v=esde.title&r=1");
+  });
+
   it("escapes the game's name", () => {
     expect(pictureSrc({ short_name: "a b", picture: null })).toBe(
       "/media/a%20b/boxart",

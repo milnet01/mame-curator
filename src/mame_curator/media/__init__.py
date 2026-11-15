@@ -82,6 +82,12 @@ mame-curator-1146 (the picture choice — lives in ``candidates.py``):
 - ``list_candidates`` — every picture the chain holds, for the picture guide.
 - ``LIMITED_SOURCES`` — the sources with a rate limit.
 - ``Found`` / ``CandidateList`` — what those return.
+
+mame-curator-1143 (remembered misses — lives in ``misses.py``):
+
+- ``resolve_image_remembered`` — ``resolve_image``, but a game with no
+  picture is not asked again for ``MISS_DAYS``.
+- ``forget_misses`` — drop a game's remembered misses at once.
 """
 
 from __future__ import annotations
@@ -107,6 +113,7 @@ from mame_curator.media.candidates import (
     resolve_pair,
 )
 from mame_curator.media.local_folders import EsdeSource, RetroArchThumbnailsSource
+from mame_curator.media.misses import MISS_DAYS, forget_misses, resolve_image_remembered
 from mame_curator.media.mobygames import (
     MobyGamesSource,
     SourceDisabledFlag,
@@ -142,6 +149,7 @@ def _build_user_agent() -> str:
 __all__ = [
     "DEFAULT_TEXT_MAX_BYTES",
     "LIMITED_SOURCES",
+    "MISS_DAYS",
     "ArcadeDBSource",
     "CandidateList",
     "EsdeSource",
@@ -169,11 +177,13 @@ __all__ = [
     "fetch_text_with_cache",
     "fetch_with_cache",
     "file_digest",
+    "forget_misses",
     "list_candidates",
     "mobygames_key_path",
     "refuse_private_hosts",
     "resolve_image",
     "resolve_image_found",
+    "resolve_image_remembered",
     "resolve_pair",
     "resolve_wikipedia_extract",
     "urls_for",

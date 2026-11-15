@@ -3367,7 +3367,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: user-2026-10-30.
   Lanes: cli.
 
-- 📋 [mame-curator-1143] **Games with no art ask the art sources again on every view.**
+- ✅ [mame-curator-1143] **Games with no art ask the art sources again on every view.**
   Measured 2026-10-30 on the running server: a cached image answers in
   about 2 ms; a game with no art (11beat) took 0.85 s and then 0.58 s,
   so the miss is not remembered. cache.py documents no negative caching
@@ -3376,6 +3376,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Decided by the user 2026-11-12: remember a miss for 7 days, and add a
   "Look for a picture again" button on a game with no picture, which
   retries at once.
+  Shipped 2026-11-15: media/misses.py remembers a whole-chain miss for 7
+  days (only when no source raised; keyed on the chain and
+  config.media), POST /api/media/{name}/retry forgets it, and the
+  drawer's "Look for a picture again" button shows when the game has no
+  picture. Not yet judged by the user on the running app.
   **Layman:** Pictures that were found are saved, but a game with no picture is looked up again each time it scrolls into view, which is slow and uses up the art sources' limits.
   Kind: perf.
   Source: user-2026-10-30.
@@ -4883,11 +4888,14 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: build-mame-curator-1173-2026-11-12.
   Lanes: frontend.
 
-- 📋 [mame-curator-1255] **media/sources.py is 5 lines under the hard size cap.**
+- ✅ [mame-curator-1255] **media/sources.py is 5 lines under the hard size cap.**
   Measured 495 lines after mame-curator-1140; the cap is 500. Moving
   WikipediaImageSource to its own file, as MobyGames and the local
   folders already are, would make room. Do it before the next change
   there; mame-curator-1143 (remembering a missing picture) may touch it.
+  Shipped 2026-11-15 in 8e315ea: WikipediaImageSource moved to
+  media/wikipedia_image.py; sources.py measured 388 lines after. No
+  behaviour change, so no CHANGELOG line.
   **Layman:** One code file is nearly too big under the project's own limit.
   Kind: refactor.
   Source: build-mame-curator-1140-2026-11-12.
