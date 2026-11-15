@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1256 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1258 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -4886,13 +4886,17 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: ci-run-43093557266-2026-11-11.
   Lanes: frontend.
 
-- 📋 [mame-curator-1254] **The listxml banner sends the user to Settings, which has no listxml field.**
+- ✅ [mame-curator-1254] **The listxml banner sends the user to Settings, which has no listxml field.**
   ListxmlBanner's link goes to /settings, and its body says "Configure
   the listxml path in Settings". SettingsPage's Paths tab has no PathRow
   for paths.listxml (AppConfig has the key), and a search of
   frontend/src/components/settings found none. Today the only way in is
   editing config.yaml. Found while rewriting design.md for
   mame-curator-1173.
+  Shipped 2026-11-15 in b999d6c: Settings → Paths has a "MAME listxml
+  file" row (empty saves null) with a note that a new file is read at
+  the next start; the banner's button opens /settings?tab=paths.
+  Re-reading on save: mame-curator-1257.
   **Layman:** The Library says to set a file in Settings, but Settings has no place to set it.
   Kind: ux.
   Source: build-mame-curator-1173-2026-11-12.
@@ -4923,6 +4927,32 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: chore.
   Source: build-mame-curator-1253-2026-11-15.
   Lanes: frontend.
+
+- 📋 [mame-curator-1257] **A new listxml path saved in Settings takes effect only at the next start.**
+  Found building mame-curator-1254. The config save calls replace_world,
+  which keeps the old cloneof_map, bios_chain and chd_required;
+  build_world reads paths.listxml at start-up only (retry_setup also
+  rebuilds, but only while setup is unfinished). Settings now says a new
+  file is read at the next start. Recommended: re-read the listxml off
+  the event loop when paths.listxml changes, as retry_setup does, and
+  drop the hint. The same holds for the five reference INIs.
+  **Layman:** After you choose the MAME listxml file in Settings, the app has to be restarted before it groups versions of a game together.
+  Kind: enhancement.
+  Source: build-mame-curator-1254-2026-11-15.
+  Lanes: api, frontend.
+
+- 📋 [mame-curator-1258] **A commit made in a git worktree runs no pre-commit checks.**
+  core.hooksPath is the relative path .git/hooks. In a linked worktree
+  .git is a file, so the path resolves to nothing and git runs no
+  pre-commit hook, silently. Seen 2026-11-15: the 1254 commit in
+  /mnt/Emulators/.claude/Scratchpad/MAME_Curator/wt-1254 ran none;
+  running pre-commit by hand then failed test_ds05_file_size_caps.
+  Fix: an absolute hooksPath, or $(git rev-parse --git-common-dir)/hooks.
+  Check whether the machine-wide hook installer sets it.
+  **Layman:** Work done in a side copy of the project skipped the automatic checks, which caught a real problem when run by hand.
+  Kind: chore.
+  Source: build-mame-curator-1254-2026-11-15.
+  Lanes: tooling.
 
 ## Considered / under research (no target date)
 
