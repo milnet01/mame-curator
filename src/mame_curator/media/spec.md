@@ -57,9 +57,10 @@ Source files under `src/mame_curator/media/`:
 | `cache.py` | `fetch_with_cache`, `cache_path_for`, `refuse_private_hosts`, `MediaError`, `MediaFetchError`, `DEFAULT_MAX_BYTES` (16 MiB), the `http`/`https`-only scheme guard. |
 | `cache_text.py` | `fetch_text_with_cache`, `DEFAULT_TEXT_MAX_BYTES` (256 KiB), and its own independent copy of the same `http`/`https`-only scheme guard. |
 | `rate_limit.py` | `TokenBucket`, `MediaRateLimited`. |
-| `sources.py` | `Kind`, `MediaSource` (Protocol), `LibretroSource`, `ProgettoSnapsSource`, `ArcadeDBSource`, `WikipediaImageSource`, `MediaSourceRegistry`. |
+| `sources.py` | `Kind`, `MediaSource` (Protocol), `LibretroSource`, `ProgettoSnapsSource`, `ArcadeDBSource`, `MediaSourceRegistry`. |
 | `mobygames.py` | `MobyGamesSource`, `SourceDisabledFlag`, `mobygames_key_path`. Split out so `sources.py` stays under the 500-line hard cap. |
 | `local_folders.py` | `EsdeSource`, `RetroArchThumbnailsSource` (mame-curator-1126): artwork another tool already scraped, read from a folder the user chose. Own file for the same size cap. |
+| `wikipedia_image.py` | `WikipediaImageSource`: the game's page's infobox image, boxart only (mame-curator-1255). Own file for the same size cap. |
 | `wikipedia.py` | `WikipediaExtract` (frozen), `resolve_wikipedia_extract`. |
 | `wikipedia_titles.py` | `candidate_titles`, `is_game_page`, `_canonicalise_wikipedia_title`, `_WIKIPEDIA_REST_SUMMARY_BASE`: which page is a game's, for both Wikipedia lookups (mame-curator-1140). Own file for the same size cap. |
 | `resolve.py` | `resolve_image` (orchestrator), `answer_from` (one prepared source's answer), `build_registry`, `build_all_sources`. The composition root — constructs concrete sources with injected deps. |
@@ -78,7 +79,7 @@ Re-exported from `mame_curator.media.__init__` (`__all__`):
 | `LibretroSource` | source class | `sources.py` |
 | `ProgettoSnapsSource` | source class | `sources.py` |
 | `ArcadeDBSource` | source class | `sources.py` |
-| `WikipediaImageSource` | source class | `sources.py` |
+| `WikipediaImageSource` | source class | `wikipedia_image.py` |
 | `MobyGamesSource` | source class | `mobygames.py` |
 | `SourceDisabledFlag` | class | `mobygames.py` |
 | `mobygames_key_path` | function | `mobygames.py` |

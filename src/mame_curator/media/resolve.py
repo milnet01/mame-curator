@@ -33,8 +33,8 @@ from mame_curator.media.sources import (
     MediaSource,
     MediaSourceRegistry,
     ProgettoSnapsSource,
-    WikipediaImageSource,
 )
+from mame_curator.media.wikipedia_image import WikipediaImageSource
 from mame_curator.parser.models import Machine
 
 logger = logging.getLogger(__name__)

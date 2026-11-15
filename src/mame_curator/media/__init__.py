@@ -121,10 +121,10 @@ from mame_curator.media.sources import (
     MediaSource,
     MediaSourceRegistry,
     ProgettoSnapsSource,
-    WikipediaImageSource,
 )
 from mame_curator.media.urls import MediaUrls, escape_libretro, urls_for
 from mame_curator.media.wikipedia import WikipediaExtract, resolve_wikipedia_extract
+from mame_curator.media.wikipedia_image import WikipediaImageSource
 
 
 def _build_user_agent() -> str:
