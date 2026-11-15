@@ -314,6 +314,18 @@ export function SettingsPage({
               updatePaths("retroarch_core", next === "" ? null : next)
             }
           />
+          <PathRow
+            id="paths-listxml"
+            label={strings.settings.pathRowLabels.listxml}
+            value={config.paths.listxml ?? ""}
+            mode="file"
+            onChange={(next) =>
+              updatePaths("listxml", next === "" ? null : next)
+            }
+          />
+          <p className="text-sm text-muted-foreground">
+            {strings.settings.listxmlRestartHint}
+          </p>
           {pendingDat !== null && (
             <ConfirmationDialog
               open

@@ -37,7 +37,7 @@ export function ListxmlBanner({ exists, cloneofMapSize }: ListxmlBannerProps) {
       <span className="font-medium">{title}</span>
       <span className="text-muted-foreground">{body}</span>
       <Link
-        to="/settings"
+        to="/settings?tab=paths"
         className="ml-auto rounded bg-amber-500/20 px-2 py-1 text-xs font-medium hover:bg-amber-500/30"
       >
         {strings.library.listxmlMissing.cta}

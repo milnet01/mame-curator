@@ -273,7 +273,7 @@ export const strings = {
      *  without it, so every machine surfaces as its own card). */
     listxmlMissing: {
       title: "MAME listxml not configured",
-      body: "Without a MAME listxml file, region and version variants of the same game appear as separate cards. Configure the listxml path in Settings to collapse them into one card per game.",
+      body: "Without a MAME listxml file, region and version variants of the same game appear as separate cards. Set the listxml file on the Paths tab of Settings to collapse them into one card per game.",
       cta: "Open Settings",
       // mame-curator-1200: the title when a file is set but gave no clone data.
       emptyParseTitle: "MAME listxml gave no clone data",
@@ -563,7 +563,13 @@ export const strings = {
           stays clean. */
       retroarchExecutable: "RetroArch executable",
       retroarchCore: "RetroArch core",
+      /** mame-curator-1254 — the Library's listxml banner sends users here. */
+      listxml: "MAME listxml file",
     },
+    /** mame-curator-1254: a save does not re-read the listxml (build_world
+     *  reads it at start-up only). */
+    listxmlRestartHint:
+      "A new listxml file is read the next time the app starts.",
     /** FP12 § H — DAT swap is destructive (replaces the entire library). */
     datSwapConfirmTitle: "Swap DAT?",
     datSwapConfirm:

@@ -26,7 +26,8 @@ describe("ListxmlBanner", () => {
     expect(screen.getByText(/listxml not configured/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /settings/i })).toHaveAttribute(
       "href",
-      "/settings",
+      // mame-curator-1254: straight to the tab that holds the field.
+      "/settings?tab=paths",
     );
   });
 

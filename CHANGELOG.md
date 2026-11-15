@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-15 Fixed — Settings has the listxml field the Library points to
+
+- **Settings → Paths has a "MAME listxml file" row** (mame-curator-1254)
+  The Library's listxml notice said to set the file in Settings, which
+  had no place for it. Its button now opens the Paths tab, where the
+  row is. A new file is read the next time the app starts.
+
 ### 2026-11-15 Security — The screens' add-on packages are updated
 
 - **Known security problems in the screens' packages are fixed** (mame-curator-1253)
