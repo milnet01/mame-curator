@@ -869,6 +869,10 @@ describe("FsBrowser (FP12 § G)", () => {
       const height = vi
         .spyOn(HTMLElement.prototype, "offsetHeight", "get")
         .mockReturnValue(300);
+      // @tanstack/react-virtual 3.14.26 measures the scroll box by its client size.
+      const clientHeight = vi
+        .spyOn(HTMLElement.prototype, "clientHeight", "get")
+        .mockReturnValue(300);
       renderWithClient(
         <FsBrowser
           open
@@ -883,6 +887,7 @@ describe("FsBrowser (FP12 § G)", () => {
       expect(first.closest("li")).toHaveAttribute("aria-setsize", "5000");
       expect(first.closest("li")).toHaveAttribute("aria-posinset", "1");
       height.mockRestore();
+      clientHeight.mockRestore();
     });
   });
 

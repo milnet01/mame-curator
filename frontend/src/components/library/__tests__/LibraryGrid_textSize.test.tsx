@@ -54,6 +54,9 @@ describe("LibraryGrid scroll position", () => {
   it("keeps the same game at the top when the text size changes", () => {
     vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(500);
     vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(800);
+    // @tanstack/react-virtual 3.14.26 measures the scroll box by its client size.
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(500);
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(800);
     render(
       <LibraryGrid
         cards={cards}

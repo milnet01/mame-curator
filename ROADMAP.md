@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1255 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1256 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -3739,9 +3739,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: api, tests.
 
-- 📋 [mame-curator-1178] **routes/config.py is close to the hard size cap.**
+- ✅ [mame-curator-1178] **routes/config.py is close to the hard size cap.**
   Measured 482 lines after 8c403ce; the cap is 500. Split the snapshot and
   import routes out before the next change there.
+  Checked 2026-11-15: already done by 3c54f5b, which moved export and
+  import to routes/backup.py (config.py 492 → 375 lines). Measured 384
+  lines at ee91d7d. No code change needed.
   **Layman:** One code file is nearly too big under the project's own limit.
   Kind: refactor.
   Source: close-findings-2026-11-02-1145.
@@ -4864,13 +4867,20 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: test.
   Source: close-findings 2026-11-11 (mame-curator-1225 sweep).
 
-- 📋 [mame-curator-1253] **npm reports 18 advisories in the frontend's packages, one critical.**
+- ✅ [mame-curator-1253] **npm reports 18 advisories in the frontend's packages, one critical.**
   CI run 43093557266's npm ci printed: 18 vulnerabilities (13 moderate,
   4 high, 1 critical). Not yet read: which packages, whether they reach
   the shipped dist/ or only dev tools, and which have a fixed version.
   Next step: npm audit in frontend/, then check-dependencies. The same
   log warns that msw's postinstall did not run (npm install-scripts not
   approved). mame-curator-1224 stops CI's npm ci from printing the audit.
+  Shipped 2026-11-15: npm update within package.json's ranges took npm
+  audit from 17 (1 critical, 4 high, 12 moderate) to 7 moderate. Fixed
+  in shipped code: dompurify 3.4.18 (the critical), zod 4.6.7. Fixed in
+  dev tools: vite 8.3.8, vitest 5.1.0, undici, source-map-js, eslint.
+  @tanstack/react-virtual 3.14.26 measures by clientHeight, so four
+  tests fake that size too. The 7 left and the major bumps:
+  mame-curator-1256.
   **Layman:** Some add-on packages the screens are built with have known security problems to look at.
   Kind: security.
   Source: ci-run-43093557266-2026-11-11.
@@ -4900,6 +4910,19 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: refactor.
   Source: build-mame-curator-1140-2026-11-12.
   Lanes: media.
+
+- 📋 [mame-curator-1256] **Move the frontend's packages past five major versions, and clear the lint tool's last advisory.**
+  npm outdated on 2026-11-15 listed majors beyond package.json's ranges:
+  framer-motion 13 → 14, jsdom 30 → 31, msw 2 → 3, typescript 6 → 7,
+  @types/node 24 → 26. Each needs its release notes read and its call
+  sites checked. npm audit then still listed 7 moderate advisories, all one
+  chain: typescript-eslint 8.72.2 (the newest) pulls minimatch 10.2.6
+  (GHSA range 7.0.0 - 11.0.0). A lint-time tool only; nothing ships in
+  dist/. Recheck when typescript-eslint moves to minimatch 11.
+  **Layman:** Some of the tools the screens are built with have bigger new versions, which need more care than a routine update.
+  Kind: chore.
+  Source: build-mame-curator-1253-2026-11-15.
+  Lanes: frontend.
 
 ## Considered / under research (no target date)
 

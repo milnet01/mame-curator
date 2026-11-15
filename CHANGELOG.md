@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-15 Security — The screens' add-on packages are updated
+
+- **Known security problems in the screens' packages are fixed** (mame-curator-1253)
+  The package that cleans the help and release-notes pages had a
+  critical problem, now fixed, and the one that checks the server's
+  replies is updated too. Seven moderate warnings remain in a tool used
+  only while building the app; none of it ships in the app.
+
 ### 2026-11-15 Changed — A game with no picture is not looked up on every view
 
 - **The app remembers for 7 days that a game has no picture** (mame-curator-1143)
