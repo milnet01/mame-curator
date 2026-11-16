@@ -4456,7 +4456,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1229] **Fix the settings-snapshot and backup findings from the 2026-11-11 code review.**
+- ✅ [mame-curator-1229] **Fix the settings-snapshot and backup findings from the 2026-11-11 code review.**
   Group `config-snapshots-backups` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4470,6 +4470,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - CR-05-5 [MEDIUM] api/state.py:341-347: A corrupt or non-object notes.json loads as empty, and the next note save overwrites the old file. Fix: log the non-dict case, and block note writes while the file failed to load, or keep a `.corrupt` copy.
   - RR-04-6 (+RR-05-7) [LOW] api/state.py:344: `_load_notes` (lines 338-348) and `routes/config.py:_read_json_dict` (lines 366-375) are the same notes.json reader, and they have diverged. Fix: have the restore route call one shared reader.
   - CR-04-6 (+RL-31) [MEDIUM] cli/commands/refresh_inis.py:38-39, 71-73: refresh-inis rewrites config.yaml through yaml.safe_dump, dropping all comments, and takes no snapshot. Fix: take a snapshot before writing, and patch the text in a way that keeps comments (ruamel round-trip, or a targeted insert).
+  Resolved 2026-11-16 (c7b3d5a): all ten fixed. An unreadable notes.json
+  is renamed aside and logged, at start-up and on restore; the restore goes
+  ahead rather than being refused. CR-04-6: refresh-inis snapshots
+  config.yaml first; its rewrite still drops comments, as every config save
+  does.
   **Layman:** Faults in how settings are saved, snapshotted and restored.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
