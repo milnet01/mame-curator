@@ -4557,7 +4557,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1232] **Fix the small screen findings from the 2026-11-11 code review.**
+- ✅ [mame-curator-1232] **Fix the small screen findings from the 2026-11-11 code review.**
   Group `frontend-small-fixes` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4570,6 +4570,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RL-55 [LEAD] fe/components/settings/SnapshotsTab.tsx:67-89: `restoreError` shows only in the list view. The comment at lines 50-51 says the list may reload with an error or empty after a restore, and in those views a failed restore shows no alert.
   - RL-56 [LEAD] fe/components/settings/UpdatesTab.tsx:75-77: `NoCheckYet` says "checking" whenever `checkFailed` is false, even when `checking` is false and no check is running.
   - CR-10-5 [LOW] fe/strings_internal.ts:860-861: The fs_sandboxed message points to a Settings Paths control that does not exist. Fix: reword to "Choose it with Browse… and allow it when asked."
+  Resolved 2026-11-17 (6e4d3ca): eight fixed, RL-60 dismissed (spec 1145 INV-10
+  moves focus on each choice, and the refusal is an alert). Cancel in
+  Settings → Folders now returns focus to Browse, as the user decided.
   **Layman:** Small faults on the app's screens: focus, labels and messages.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -4612,7 +4615,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1235] **Make the picture cache reliable (2026-11-11 code review).**
+- ✅ [mame-curator-1235] **Make the picture cache reliable (2026-11-11 code review).**
   Group `media-cache-reliability` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4620,6 +4623,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - CR-03-4 [MEDIUM] media/cache.py:97: The cache uses a fixed .tmp name, so concurrent fetches of one URL can publish a torn file or 500. Fix: `tempfile.NamedTemporaryFile(dir=path.parent, delete=False)`.
   - CR-03-10 [LOW] media/cache_text.py:69-70: A text-cache hit that fails to read or decode escapes untyped, so /wiki can return 500. Fix: wrap the read, unlink the bad slot, and raise `MediaFetchError`.
   - CR-03-6 (+RL-15) [MEDIUM] media/sources.py:278-281: ArcadeDB and Wikipedia spend a rate-limit token before checking the disk cache, so cached art 404s after 30 cards a minute. Fix: check `cache_path_for(url).exists()` before calling `acquire()`. ASK USER: Is the art rate limit a courtesy budget for the upstream (spend only on real requests) or a hard request cap?
+  Resolved 2026-11-17 (14d17e0): all four fixed. The rate limit is a
+  courtesy budget (P10), so a lookup the disk cache answers spends no token;
+  the question needed no decision.
   **Layman:** The picture store can be left half-written or spend its download allowance on pictures it already has.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
