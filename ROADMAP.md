@@ -4443,12 +4443,15 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1228] **Fix the command-line error findings from the 2026-11-11 code review (part 2 of 2).**
+- ✅ [mame-curator-1228] **Fix the command-line error findings from the 2026-11-11 code review (part 2 of 2).**
   Group `cli-errors` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
   - RR-06-1 [MEDIUM] config_location.py:115: The server defaults exist in three places: `ServerConfig` (`api/schemas.py:69-71`), `serve.DEFAULT_PORT`, and this literal. Fix: build the `server` block from `ServerConfig()` defaults, or add a test pinning it to them.
   - RR-06-3 [MEDIUM] main.py:51-52: These two sets are a hand-kept copy of the top-level options in `build_parser` (`cli/__init__.py:47-54`). Fix: derive both sets from `parser._actions` the way `subcommand_names` does, or add a comment at each place naming the other.
+  Resolved 2026-11-16 (8d562c3): both fixed. The root options are read
+  from the parser; the starter's server: block and DEFAULT_PORT are pinned
+  to ServerConfig's defaults by a test.
   **Layman:** The command-line tools sometimes fail with a confusing message or the wrong result.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
