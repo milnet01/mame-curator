@@ -37,7 +37,7 @@ import httpx
 
 from mame_curator.media.cache import MediaFetchError, cache_path_for
 from mame_curator.media.cache_text import fetch_text_with_cache
-from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
+from mame_curator.media.rate_limit import CourtesyToken, TokenBucket
 from mame_curator.media.urls import urls_for
 from mame_curator.parser.models import Machine
 
@@ -272,13 +272,15 @@ class ArcadeDBSource:
     ) -> None:
         """Populate the per-machine URL triple from one scraper hit.
 
-        Raises ``MediaRateLimited`` on empty bucket; ``MediaFetchError``
+        Raises ``MediaRateLimited`` on empty bucket when it must go to the
+        network; ``MediaFetchError``
         on JSON parse failure (cache slot unlinked first).
         """
-        if not self._limiter.acquire():
-            raise MediaRateLimited(f"arcadeDB rate-limit exceeded for {machine.name!r}")
+        token = CourtesyToken(self._limiter, f"arcadeDB rate-limit exceeded for {machine.name!r}")
         url = self._scraper_url(machine)
-        text = await fetch_text_with_cache(url, self._cache_dir, client=client)
+        text = await fetch_text_with_cache(
+            url, self._cache_dir, client=client, before_network=token.spend
+        )
         if text is None:
             return
         try:

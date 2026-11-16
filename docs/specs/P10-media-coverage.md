@@ -18,7 +18,7 @@
 - [Out of scope (deferred)](#out-of-scope-deferred)
 - [Architecture notes](#architecture-notes)
 - [Anti-jump compliance](#anti-jump-compliance)
-- [Open verification items](#open-verification-items-resolve-before-step-3-tests-first)
+- [Open verification items](#open-verification-items)
 - [Implementation plan (Step 2)](#implementation-plan-step-2)
 - [Commit & gate](#commit--gate)
 
@@ -235,7 +235,7 @@ Returns the cached image path on first hit, `None` if every configured source 40
 
 Returns a frozen Pydantic model.
 
-**Limiter injection (chunk-8 realisation).** Unlike `resolve_image` — where the limiter travels *inside* each `MediaSource` object and the orchestrator signature takes no `limiter=` — the Wikipedia extract is a standalone function with no source object to carry a bucket. So it takes an explicit `limiter: TokenBucket` kwarg, injected exactly as the image sources' buckets are (constructor-injection lets the rate-limit test substitute an exhausted bucket without app-state monkey-patching). The route passes **the existing `app.state.wikipedia_limiter`** — the same bucket the chunk-5 `WikipediaImageSource` uses, because both hit the same `en.wikipedia.org` REST summary endpoint and should share one courtesy budget (and one cache slot: same URL → same `fetch_text_with_cache` key, so an image lookup warms the extract's body cache and vice-versa). `resolve_wikipedia_extract` acquires one token first; an empty bucket raises `MediaRateLimited` before any upstream hit.
+**Limiter injection (chunk-8 realisation).** Unlike `resolve_image` — where the limiter travels *inside* each `MediaSource` object and the orchestrator signature takes no `limiter=` — the Wikipedia extract is a standalone function with no source object to carry a bucket. So it takes an explicit `limiter: TokenBucket` kwarg, injected exactly as the image sources' buckets are (constructor-injection lets the rate-limit test substitute an exhausted bucket without app-state monkey-patching). The route passes **the existing `app.state.wikipedia_limiter`** — the same bucket the chunk-5 `WikipediaImageSource` uses, because both hit the same `en.wikipedia.org` REST summary endpoint and should share one courtesy budget (and one cache slot: same URL → same `fetch_text_with_cache` key, so an image lookup warms the extract's body cache and vice-versa). `resolve_wikipedia_extract` spends one token before its first upstream request; an empty bucket raises `MediaRateLimited` before that request, and a lookup the cache answers spends none (mame-curator-1235).
 
 ```python
 class WikipediaExtract(BaseModel):

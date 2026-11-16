@@ -25,7 +25,7 @@ from pydantic import BaseModel, ConfigDict
 
 from mame_curator.media.cache import MediaFetchError, cache_path_for
 from mame_curator.media.cache_text import fetch_text_with_cache
-from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
+from mame_curator.media.rate_limit import CourtesyToken, TokenBucket
 from mame_curator.media.wikipedia_titles import (
     _WIKIPEDIA_REST_SUMMARY_BASE,
     candidate_titles,
@@ -35,11 +35,16 @@ from mame_curator.parser.models import Machine
 
 
 async def _summary(
-    title: str, machine: Machine, *, cache_dir: Path, client: httpx.AsyncClient
+    title: str,
+    machine: Machine,
+    *,
+    cache_dir: Path,
+    client: httpx.AsyncClient,
+    token: CourtesyToken,
 ) -> dict[str, Any] | None:
     """One title's REST summary, or ``None`` on a 404 or a non-object body."""
     url = f"{_WIKIPEDIA_REST_SUMMARY_BASE}/{quote(title)}"
-    text = await fetch_text_with_cache(url, cache_dir, client=client)
+    text = await fetch_text_with_cache(url, cache_dir, client=client, before_network=token.spend)
     if text is None:
         return None  # upstream 404 — no page by this title
     try:
@@ -84,8 +89,9 @@ async def resolve_wikipedia_extract(
 ) -> WikipediaExtract | None:
     """Find the game's Wikipedia page and parse its summary into a ``WikipediaExtract``.
 
-    Acquires one token first (empty bucket → ``MediaRateLimited`` *before* any
-    upstream hit), then tries ``candidate_titles`` until ``is_game_page``
+    Spends one token before its first upstream request (empty bucket →
+    ``MediaRateLimited`` before that request; a lookup the cache answers
+    spends none, mame-curator-1235), then tries ``candidate_titles`` until ``is_game_page``
     accepts one (mame-curator-1140), each through ``fetch_text_with_cache`` —
     the same URLs, and therefore the same cache slots, ``WikipediaImageSource``
     uses. No game page, or a summary missing the fields we map, returns
@@ -93,10 +99,9 @@ async def resolve_wikipedia_extract(
     poisoned cache slot (parse-before-trust, matching the ArcadeDB /
     Wikipedia-image sources).
     """
-    if not limiter.acquire():
-        raise MediaRateLimited(f"wikipediaExtract rate-limit exceeded for {machine.name!r}")
+    token = CourtesyToken(limiter, f"wikipediaExtract rate-limit exceeded for {machine.name!r}")
     for title in candidate_titles(machine):
-        data = await _summary(title, machine, cache_dir=cache_dir, client=client)
+        data = await _summary(title, machine, cache_dir=cache_dir, client=client, token=token)
         if data is not None and is_game_page(data):
             break
     else:

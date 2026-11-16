@@ -30,7 +30,10 @@ disk. Specifically:
 - **Fetch with cache** — every image URL feeds `fetch_with_cache`; every
   text / JSON body **except MobyGames' own auth-probe** (see "MobyGames
   divergence") feeds `fetch_text_with_cache`. Both are SHA-256-keyed,
-  flat, atomic (`.tmp` + `os.replace`), 404-returns-`None`, non-200-raises.
+  flat, atomic (a uniquely named `.tmp` + `os.replace`, `download_into`),
+  404-returns-`None`, non-200-raises. Any write failure, a full disk
+  included, raises `MediaFetchError` and leaves no `.tmp`; a cached text
+  slot that cannot be read is dropped and raises the same (mame-curator-1235).
 - **Remember a missing picture** — a whole-chain miss is remembered for
   `MISS_DAYS` (7), so a game with no picture does not ask every source on
   each view (§ Remembered misses, mame-curator-1143).
@@ -41,7 +44,10 @@ disk. Specifically:
   *rate-limited* network source (arcadeDB / wikipediaImage / mobyGames);
   libretro is unthrottled (raw GitHub, no bucket). Exhaustion raises
   `MediaRateLimited` and the chain moves on. No retries; no persistent state
-  (buckets reset on server restart).
+  (buckets reset on server restart). The buckets are a courtesy budget for
+  the upstream sites, so a lookup spends one token only before its first
+  real request (`CourtesyToken`, passed as the cache's `before_network`);
+  a lookup the disk cache answers spends none (mame-curator-1235).
 
 The module depends on `parser/` (for `Machine`) and `_atomic.fsync_parent_dir`
 only. It MUST NOT import from `api/`, `filter/`, `copy/`, or `updates/` (the

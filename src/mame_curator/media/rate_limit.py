@@ -74,3 +74,26 @@ class TokenBucket:
             self._tokens -= 1.0
             return True
         return False
+
+
+class CourtesyToken:
+    """One lookup's token: spent at most once, and only before a real request.
+
+    The buckets are a courtesy budget for the upstream sites (P10), so a
+    lookup the disk cache answers spends nothing (mame-curator-1235). Pass
+    ``spend`` as the cache's ``before_network`` hook.
+    """
+
+    def __init__(self, limiter: TokenBucket, refusal: str) -> None:
+        """Bind to ``limiter``; ``refusal`` is the ``MediaRateLimited`` message."""
+        self._limiter = limiter
+        self._refusal = refusal
+        self._spent = False
+
+    def spend(self) -> None:
+        """Take the token, once. Raises ``MediaRateLimited`` when the bucket is empty."""
+        if self._spent:
+            return
+        if not self._limiter.acquire():
+            raise MediaRateLimited(self._refusal)
+        self._spent = True

@@ -17,7 +17,7 @@ import httpx
 
 from mame_curator.media.cache import MediaFetchError, cache_path_for
 from mame_curator.media.cache_text import fetch_text_with_cache
-from mame_curator.media.rate_limit import MediaRateLimited, TokenBucket
+from mame_curator.media.rate_limit import CourtesyToken, TokenBucket
 from mame_curator.media.sources import Kind
 from mame_curator.media.wikipedia_titles import (
     _WIKIPEDIA_REST_SUMMARY_BASE,
@@ -77,11 +77,12 @@ class WikipediaImageSource:
         JSON parse failure (cache slot unlinked first). No game page, or no
         thumbnail, leaves the cache entry absent — ``url_for`` returns ``None``.
         """
-        if not self._limiter.acquire():
-            raise MediaRateLimited(f"wikipediaImage rate-limit exceeded for {machine.name!r}")
+        token = CourtesyToken(
+            self._limiter, f"wikipediaImage rate-limit exceeded for {machine.name!r}"
+        )
         # mame-curator-1140: the first title whose page is the game's.
         for title in candidate_titles(machine):
-            data = await self._summary(title, machine, client)
+            data = await self._summary(title, machine, client, token)
             if data is not None and is_game_page(data):
                 break
         else:
@@ -95,11 +96,13 @@ class WikipediaImageSource:
             self._url_cache[machine.name] = thumb
 
     async def _summary(
-        self, title: str, machine: Machine, client: httpx.AsyncClient
+        self, title: str, machine: Machine, client: httpx.AsyncClient, token: CourtesyToken
     ) -> dict[str, Any] | None:
         """One title's REST summary, or ``None`` on a 404."""
         url = self._summary_url(title)
-        text = await fetch_text_with_cache(url, self._cache_dir, client=client)
+        text = await fetch_text_with_cache(
+            url, self._cache_dir, client=client, before_network=token.spend
+        )
         if text is None:
             return None
         try:

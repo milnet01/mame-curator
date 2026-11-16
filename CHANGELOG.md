@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-17 Fixed — Pictures already downloaded keep showing, and the picture store stays whole
+
+- **Scrolling fast no longer hides pictures you already have** (mame-curator-1235)
+  The download allowance for ArcadeDB and Wikipedia was spent even on
+  pictures already on disk, so after about 30 cards a minute they
+  stopped showing. Only real downloads spend it now.
+- **A full disk or two downloads of one picture no longer damage the store**
+  Each download writes to its own temporary file, and a failed one
+  leaves nothing behind. A stored text entry that cannot be read is
+  dropped and fetched again, instead of causing an error.
+
 ### 2026-11-16 Fixed — Copying never loses a game or a playlist entry it should keep
 
 - **A failed copy no longer loses the version it was replacing** (mame-curator-1230)
