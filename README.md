@@ -98,12 +98,13 @@ uv run mame-curator setup --force
 uv run mame-curator serve --port 8080
 
 # CLI dry-run / copy without the UI
-uv run mame-curator filter --dat ... --catver ... --out report.json
-uv run mame-curator copy --dry-run --filter-report report.json --source ... --dest ...
+uv run mame-curator filter --dat ... --listxml ... --catver ... --languages ... --bestgames ... --out report.json
+uv run mame-curator copy --dry-run --dat ... --listxml ... --filter-report report.json --source ... --dest ...
 ```
 
-These commands use the same config file as the app.
-[`docs/help/04-command-line.md`](docs/help/04-command-line.md) says where it is.
+These two commands read no config file; every input is a flag.
+[`docs/help/04-command-line.md`](docs/help/04-command-line.md) says where the
+app's own config file is.
 
 ## Developer setup
 

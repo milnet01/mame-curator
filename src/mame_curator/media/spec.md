@@ -183,7 +183,7 @@ configured order. Filtering, in order:
 2. Unknown names (absent from `available`) are dropped with a **one-time**
    WARNING, deduped process-wide (a module-level `set` — the registry is
    rebuilt per request, so without the dedup a misconfigured name would log on
-   every request). `_reset_unknown_source_warn_dedup()` clears it in tests.
+   every request), as `coding-standards.md` § 3 allows. `_reset_unknown_source_warn_dedup()` clears it in tests.
 3. Sources whose `kinds` don't cover `kind` are filtered out.
 4. Sources with a non-`None` `disabled_reason` are filtered out.
 
@@ -579,9 +579,6 @@ Also deferred (out of `media/`'s current scope):
 - **Video thumbnails**, **EmuMovies**, **per-image license inspection**,
   **`keyring`-stored keys**, **source-specific retries**, **plugin
   auto-discovery** — all post-P10 per `docs/specs/P10-media-coverage.md` § "Out of scope (deferred)".
-- **MobyGames 200-path cover parse + JSON-body caching** — deferred to
-  `mame-curator-1079`. Until then a valid key validates but yields no covers
-  (`_url_cache` stays empty; `url_for` → `None`).
 
 ## Architecture notes
 

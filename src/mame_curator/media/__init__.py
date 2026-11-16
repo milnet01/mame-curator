@@ -51,8 +51,8 @@ P10 chunk 6 (MobyGames key-handling — lives in ``mobygames.py``):
 
 - ``MobyGamesSource`` — port-cover source, boxart only; resolves an API key
   (env var / mode-0600 dotfile), self-disables when no key resolves, and
-  flips a process-wide disabled flag on a 401/403. The success-path cover
-  parse is deferred pending a real-key fixture.
+  flips a process-wide disabled flag on a 401/403. It looks a cover up by
+  title for the Arcade platform (``media/spec.md`` § MobyGames cover lookup).
 - ``SourceDisabledFlag`` — injectable holder for a source's process-wide
   runtime-disabled reason (survives per-request source re-creation while
   keeping ``media/`` free of any ``api/`` import).

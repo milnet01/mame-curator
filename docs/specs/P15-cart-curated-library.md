@@ -170,7 +170,7 @@ export const FEATURED_TILES: FeaturedTile[] = [
 ]
 ```
 
-Tiles live in `strings.ts` colocated with copy text. Each tile fetches its count via `useGames(query, { pageSize: 0 })` — the existing `/api/games` already returns `total: int` in its envelope, so no new endpoint and no count-only short-circuit are needed. React-query caches counts keyed on the query object, with default 5-minute staleness.
+Tiles live in `strings.ts` colocated with copy text. Each tile fetches its count via `useGames(query, { pageSize: 1 })` — the existing `/api/games` already returns `total: int` in its envelope, so no new endpoint and no count-only short-circuit are needed. React-query caches counts keyed on the query object, with default 5-minute staleness.
 
 ### 4.3 Backend changes
 
@@ -337,7 +337,7 @@ All six risks have in-spec mitigations. None warrant pre-emptive roadmap entries
 2. **AlternativesDrawer ↔ cart consistency.** When a cart item's `chosenVariant` differs from the server-side override, which wins? Cart wins (§ 5.2). Risk: confusing if the user expected server-override to be authoritative. Mitigation: `CartPanel` badges any item with a non-default variant (`"⇄ Japanese"`) so the override is visible at glance.
 3. **`localStorage` unavailable.** Private-browsing modes, quota exceeded, browser policy. Cart silently breaks. Mitigation: feature-detect on mount via probe write; one-time toast warning; degrade to in-memory cart for the session.
 4. **Top-nav reshape muscle memory.** `v1.2.0` users (you) have routes in a left rail; moving Sessions / Activity / Stats under "More" is a one-time disruption. Mitigation: keep URL paths (`/sessions`, `/activity`, `/stats`) so bookmarks still work; the reshape is purely visual.
-5. **Featured-tile parallel fetch storm.** 5–8 concurrent `/api/games?pageSize=0` requests on every Library mount. Real cost is negligible (each is a count-only query that returns just `total`), but adds up for slow disks. Mitigation: react-query 5-minute staleness on tile counts; counts only re-fetch on DAT change.
+5. **Featured-tile parallel fetch storm.** 5–8 concurrent `/api/games?page_size=1` requests on every Library mount. Real cost is negligible (each reads only `total` from a one-card page), but adds up for slow disks. Mitigation: react-query 5-minute staleness on tile counts; counts only re-fetch on DAT change.
 6. **Cart capacity vs. localStorage.** Browser `localStorage` quota is typically 5 MB per origin. A worst-case full-DAT cart (~7k entries × ~80 bytes per `{shortName, chosenVariant?}` JSON = ~560 KB) is well under budget — no real exposure at v1. Defensive guard: `useCart` enforces `MAX_CART_SIZE = 10000` and logs a warning when the cart approaches it; `addAll` truncates with a one-time toast if a bulk-add would push past the cap. Mostly belt-and-braces; in practice the user runs out of disk space long before the cart runs out of `localStorage`.
 
 ---

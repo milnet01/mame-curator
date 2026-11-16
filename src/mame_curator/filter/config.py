@@ -8,7 +8,8 @@ from pydantic import BaseModel, ConfigDict
 class FilterConfig(BaseModel):
     """The `filters:` and `picker:` sections of config.yaml.
 
-    Defaults match the example config and the design spec §6.2.
+    The defaults are the ones written below. `drop_categories` defaults to
+    empty; `config.example.yaml` carries the starter list.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

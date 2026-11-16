@@ -598,8 +598,7 @@ kept: a restore never grants folder access (mame-curator-1225, user decision
   `v` only chooses the header.
 - This proxy path (libretro-thumbnails) is **not** rate-limited. The
   `arcadedb_limiter` / `wikipedia_limiter` token buckets on `app.state` gate
-  the P10 media-metadata sources (ArcadeDB / Wikipedia), which are not yet
-  exposed through a shipped route; their `MediaRateLimited` is a
+  the ArcadeDB and Wikipedia sources, which the media routes reach; their `MediaRateLimited` is a
   `media`-internal exception (not an `ApiException`) and does not reach the
   error envelope today.
 

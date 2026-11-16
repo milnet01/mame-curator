@@ -9,7 +9,7 @@ paths:
   retroarch_playlist: /path/to/ROMS/mame/mame.lpl
 
 server:
-  port: 8080                # auto-incremented up to 8090 if busy at start
+  port: 8080                # a busy port stops `serve`; it tries no other port
   open_browser_on_start: true
 
 filters:

@@ -141,7 +141,7 @@ Its strings change for every caller, to plain words:
 | `fsBrowserUpAtTop` | "Already at the top." |
 | `fsBrowserHomeError` | "Your home folder could not be found. Choose a drive to carry on." |
 | `fsGrantTitle` | "Allow MAME Curator to look here?" |
-| `fsGrantConfirm(path)` | "MAME Curator is not yet allowed to look in {path}. Allow it?" |
+| `fsGrantConfirm(path, kind)` | The wording lives in `frontend/src/strings_internal.ts` (`fsGrantConfirm`), which says how wide the grant is. |
 | `fsGrantActionLabel(path)` | "Allow {path}" |
 
 ### 4.5 The launchers

@@ -127,16 +127,18 @@ Each rule is independently togglable; rules listed below are the defaults. In or
    - `Mature*` (adult content)
    - `Console*`, `Computer*`, `Calculator*`, `Handheld*` (non-arcade — see §13)
    - `Utilities*`, `Tabletop*`, `Misc.*`
+
+   The code default for `drop_categories` is empty. `config.example.yaml` carries the list above.
 4. Drop machines whose `languages.ini` language is **only** `Japanese` (keeps games with no language requirement)
 5. Drop machines whose `<driver status>` is `preliminary` (broken emulation)
 6. Drop machines requiring CHDs (detected from official `-listxml`) — separately listed in the UI's "missing CHD" section
 7. **Drop by genre / publisher / developer** (configurable allowlists or denylists). Examples:
-   - `drop_genres: ["Casino", "Mahjong"]`
+   - `drop_genres: ["Reels", "Video Slot"]`
    - `drop_publishers: ["Aristocrat"]` (drops all of a vendor's slot machines)
    - `drop_developers: ["..."]` — same idea
    - `drop_year_before: 1985` / `drop_year_after: 2010` — optional year-range gates
 
-   Genre comes from `catver.ini` (the part after the last `/`). Publisher and developer come from the DAT's `<manufacturer>` field, which sometimes encodes both as `"Capcom (Sega license)"` — the parser splits these. Combinations are AND'd: `drop_genres: [Maze]` + `drop_publishers: [Namco]` drops only Namco maze games.
+   Genre comes from `catver.ini` (the part after the last `/`). Publisher and developer come from the DAT's `<manufacturer>` field, which sometimes encodes both as `"Capcom (Sega license)"` — the parser splits these. Rules are checked in order and the first match drops the machine, so they are OR'd, not AND'd: `drop_genres: [Maze]` + `drop_publishers: [Namco]` drops every maze game and every Namco game. [`filter/spec.md`](../src/mame_curator/filter/spec.md) lists the order.
 
 #### Phase B — pick winner per parent/clone group
 
@@ -309,7 +311,7 @@ There is no `setup/` package. Setup happens in two places.
 3. Run `uv sync --inexact --no-dev`. `uv` keeps the project's own `.venv/`, so the user never activates it.
 4. Start `mame-curator serve`, passing `$PORT` when it is set.
 
-`serve` picks its host and port, and opens the browser once the port accepts connections: [`cli/spec.md` § `serve` host, port and browser resolution](../src/mame_curator/cli/spec.md#serve-host-port-and-browser-resolution). It does not look for another port when its own is taken.
+`serve` picks its host and port, and opens the browser once the port accepts connections: [`cli/spec.md` § `serve` host, port and browser resolution](../src/mame_curator/cli/spec.md#serve-host-port-and-browser-resolution). It does not look for another port when its own is taken. A second launch on the same data folder opens the running copy instead: [`cli/spec.md` § One copy per data folder](../src/mame_curator/cli/spec.md#one-copy-per-data-folder).
 
 **The first-run wizard.** In setup mode the browser shows the wizard of [mame-curator-1145](specs/mame-curator-1145-setup-wizard.md): three questions in large text, saved together at the end, and then the Library works without a restart. The desktop bundles reach it too, through the starter configuration `ensure_starter_config` writes.
 
@@ -354,7 +356,7 @@ Help is searchable via the global Cmd-K palette. All help pages are versioned wi
 
 ## 7. Configuration model
 
-Configuration is split into four files so users can share `config.yaml` and `sessions.yaml` without leaking personal `overrides.yaml` and `notes.json`. Every change to any of these files snapshots the previous version into `data/snapshots/<timestamp>/` for one-click rollback (kept 30 days).
+Configuration is split into four files so users can share `config.yaml` and `sessions.yaml` without leaking personal `overrides.yaml` and `notes.json`. Every change to any of these files snapshots the previous version into `data/snapshots/<timestamp>/` for one-click rollback. Only the newest snapshots are kept; [`api/spec.md` § Config persistence + snapshots](../src/mame_curator/api/spec.md#config-persistence--snapshots) says which survive pruning.
 
 ### `config.yaml` (created by wizard, editable by user)
 
@@ -367,7 +369,7 @@ paths:
   retroarch_playlist: /mnt/Games/ROMS/mame/mame.lpl
 
 server:
-  port: 8080                # auto-incremented up to 8090 if busy at start
+  port: 8080                # a busy port stops `serve`; it tries no other port
   open_browser_on_start: true
 
 filters:
@@ -417,7 +419,7 @@ ui:
 updates:
   channel: stable             # stable | dev
   check_on_startup: true
-  ini_check_on_startup: true
+  ini_check_on_startup: true  # stored and shown in Settings; no startup check reads it yet (§6.7)
 ```
 
 There is deliberately no `privacy:` section. Telemetry is a hard non-goal (§3) — there are no analytics endpoints in the codebase, and a CI grep gate enforces that none get added. A configurable "opt out of telemetry" toggle would imply telemetry exists; it doesn't.

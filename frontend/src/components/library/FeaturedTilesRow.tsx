@@ -20,8 +20,9 @@ interface FeaturedTilesRowProps {
  *
  * Tile catalogue lives in strings.library.featured.tiles (code-
  * defined, one-PR-per-edit). Counts are supplied by the parent
- * (LibraryPage) which fans out one /api/games?…&page_size=0
- * query per tile; react-query 5min staleness keeps the cost down.
+ * (LibraryPage) which fans out one /api/games?…&page_size=1
+ * query per tile (the lowest page size the API takes; only the total
+ * is read); react-query 5min staleness keeps the cost down.
  *
  * Click filters the grid to the tile's query; CartBar morphs to
  * show "Add all N" (where N is the post-filter total). Click DOES

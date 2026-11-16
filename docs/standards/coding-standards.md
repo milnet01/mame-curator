@@ -54,7 +54,7 @@ The Rule of Three: **extract a helper on the third call-site, not the first or s
 - **Ruff** is the only formatter and linter. Configured in `pyproject.toml`. CI runs `ruff check` and `ruff format --check`.
 - **No bare `except:`**. Catch the specific exception. If catching `Exception`, log it with `logger.exception()` and re-raise or convert to a typed app-level error.
 - **No silent failures.** `try: ... except: pass` is forbidden. If a failure is genuinely safe to ignore, the comment must explain *why* and the rule still applies that the exception type is named.
-- **No globals, no module-level mutable state.** Use dependency injection (FastAPI's `Depends`, constructors, function parameters).
+- **No globals, no module-level mutable state.** Use dependency injection (FastAPI's `Depends`, constructors, function parameters). One exception: process-wide log de-duplication and caches may live at module level. Each needs a test reset hook.
 - **Prefer dataclasses / Pydantic models** over loose dicts for structured data. Use `frozen=True` on dataclasses where mutation isn't needed.
 - **`async def` for I/O-bound** (network, disk where it's worth it), regular `def` for pure CPU work. Don't `async`-color a function unless it actually awaits.
 - **No `print()` in source code.** Use `logging` with the module's logger. CLI surfaces use `rich` or `print()` only in dedicated `cli.py` files.

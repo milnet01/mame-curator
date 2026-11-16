@@ -193,10 +193,14 @@ Match the **first** parenthesized group whose first token is a known region tag:
 
 ```python
 REGION_RE = re.compile(
-    r"\(\s*(?P<region>World|USA|Europe|Japan|Asia|Brazil|Korea|Spain|Italy|"
-    r"Germany|France|UK|Australia|Taiwan|Hong Kong)\b"
+    r"\(\s*(?P<region>"
+    r"World|USA|Europe|Japan|Asia|Brazil|Korea|Spain|Italy|"
+    r"Germany|France|UK|Australia|Taiwan|Hong Kong"
+    r")(?:\s*(?:,|\)|$)|\s+(?=[^A-Z]))"
 )
 ```
+
+After the region name the match needs a comma, a closing parenthesis, the end of the text, or whitespace followed by a character that is not an uppercase letter. So `(World 910411)` and `(Europe v2.1)` match, and `(World Heroes 2)` does not.
 
 Returns a `Region` enum (`WORLD`, `USA`, `EUROPE`, ..., `UNKNOWN` for no match). Description tokens after the region (`World 910411`, `USA, Set 2`, `Europe v2.1`) are ignored. The regex deliberately does not match free-text manufacturer parentheticals like `(Midway)`.
 

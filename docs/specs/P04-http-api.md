@@ -257,7 +257,7 @@ Discriminated union via `event: Literal[...]`:
 
 | Event | Payload | Source |
 |---|---|---|
-| `job_started` | `{job_id, total_files, total_bytes, started_at}` | JobManager, before spawning the worker thread. |
+| `job_started` | `{job_id, files_total, bytes_total, started_at}` | JobManager, before spawning the worker thread. |
 | `bios_warning` | `{name, kind}` (forwarded from `BIOSResolutionWarning`) | JobManager, **before** spawning the worker thread. JobManager calls `resolve_bios_dependencies(plan.winners, world.bios_chain)` itself first (already a public function in `copy/__init__.py`); replays each warning as an SSE event; then proceeds. This means BIOS warnings reach the UI before any file copy starts. **Type-narrowing note:** `world.bios_chain` is typed `Mapping[str, BIOSChainEntry]` here while `resolve_bios_dependencies(bios_chain: dict[str, BIOSChainEntry])` is narrower. JobManager passes through a one-line `dict(world.bios_chain)` at the call site; widening the function signature itself would be a `copy/` change and is out of scope. |
 | `file_started` | `{short_name, bytes_total}` | Synthesized: emitted on the first `on_progress(short, bytes_done, bytes_total)` tick for a new `short_name`. JobManager keeps a `_seen_shorts: set[str]` and emits when `short ∉ _seen_shorts`. |
 | `file_progress` | `{short_name, bytes_done, bytes_total}` | Direct: every `on_progress` tick. The runner enables chunked progress whenever `on_progress is not None` (`copy/runner.py:263`), so a normal copy emits ~one tick per 1 MiB chunk via `_chunked_copy` (`copy/executor.py:26-37`); dry-run (`runner.py:259-260`) and idempotent-skip (`runner.py:294-295`) paths emit a single end-of-file tick. JobManager wires itself as `on_progress` unconditionally — there is no API knob to disable chunked progress in P04. |
@@ -866,8 +866,8 @@ sub_serve.set_defaults(func=_cmd_serve)
 |---|---|---|
 | Bind | `127.0.0.1` default; `--host` override for advanced users | Single-user local tool; loopback eliminates network exposure. |
 | Auth | None | Single-user local; loopback bind is the trust boundary. |
-| CORS | Allowlist `http://localhost:5173` only (Vite dev) | Production same-origin; dev-server is the only legitimate cross-origin caller. |
-| CSRF | Not implemented | Loopback + no auth + no cookies → no CSRF surface. |
+| CORS | No CORS headers are sent | Production is same-origin. The Vite dev server proxies, so it needs none. |
+| Cross-site requests | `OriginGuard` middleware refuses a foreign `Host` or `Origin` with 403 `cross_site_blocked` | A hostile page in the user's browser is the risk. Rules: `api/spec.md` § Cross-site guard. |
 | Path traversal | `Path.resolve` + `is_relative_to` allowlist | § Sandbox. |
 | Job concurrency | Singleton with 409 on double-start | Eliminates whole class of race bugs; one user, one copy. |
 | Error info leak | `detail` never includes raw exception text on 500 | Avoid leaking implementation details. |
