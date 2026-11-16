@@ -4419,7 +4419,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Group `cli-errors` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
-  - CR-04-7 (+RL-33) [MEDIUM] _resources.py:24: _resources.py finds the frontend and help pages via parents[2], which is wrong in a wheel install. Fix: ship the SPA and help pages as package data and find them with `importlib.resources`. ASK USER: Is a wheel (pip) install promised the web UI and help pages?
+  - CR-04-7 (+RL-33) [MEDIUM] _resources.py:24: _resources.py finds the frontend and help pages via parents[2], which is wrong in a wheel install. Fix: ship the SPA and help pages as package data and find them with `importlib.resources`. USER DECIDED 2026-11-16: no; a pip install is command-line only, and the app ships through run.sh/run.bat and the desktop bundles.
   - RR-06-10 [LOW] cli/__init__.py:21-27: This says the re-exports exist for "the FP28 tests that exercise _cmd_serve and _cmd_refresh_inis directly". Fix: shorten it to "re-exported so `mame_curator.cli` stays the import surface; underscore names are kept for tests".
   - RR-06-4 [MEDIUM] cli/__init__.py:3-11: This hand-kept list of commands has fallen behind the parser: `self-test` is missing. Fix: drop the list from the docstring, or stop using the docstring as the `--help` description.
   - RL-28 [LEAD] cli/commands/copy.py:26, cli/__init__.py:78-104: `--purge-recycle` still needs `--dry-run` or `--apply`, plus all of `--dat`, `--listxml`, `--filter-report`, `--source` and `--dest`, although it uses none of them. `--purge-recycle --dry-run` really deletes.
