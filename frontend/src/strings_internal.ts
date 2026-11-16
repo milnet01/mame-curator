@@ -516,6 +516,7 @@ export const strings = {
     updates: {
       checkNow: "Check now",
       checking: "Checking…",
+      notChecked: "Not checked yet.",
       checkFailed: "The update check did not finish. Try again.",
       previewing: "Previewing…",
       rollingBack: "Rolling back…",
@@ -622,6 +623,7 @@ export const strings = {
       command: "mame-curator refresh-snaps",
       copyButton: "Copy command",
       copied: "Copied!",
+      copyFailed: "Copy failed — select the command above and copy it.",
       close: "Close",
     },
     backupBlurb:
@@ -894,7 +896,7 @@ export const strings = {
         "Session names must start with a letter and use only letters, numbers, hyphens, and underscores.",
       session_not_found: "No session by that name.",
       fs_sandboxed:
-        "That path is outside the allowed filesystem roots. Add it under Settings → Paths first.",
+        "The app may not use that place yet. Choose it with Browse… and allow it when asked.",
       fs_already_covered: "That path is already inside an allowed root.",
       fs_folder_exists: "Something with that name is already there.",
       fs_path_invalid: "The supplied path is not a valid directory.",

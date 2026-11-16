@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import { UpdatesTab, type UpdateActions } from "../UpdatesTab";
 import type { AppUpdateInfo } from "@/api/types";
+import { strings } from "@/strings";
 
 // mame-curator-1010 §4.7 — the Updates tab's actions per install kind, the
 // What's new modal and the INI preview's lists.
@@ -185,6 +186,30 @@ describe("UpdatesTab (mame-curator-1010)", () => {
     expect(screen.getByText(/did not finish/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Check now" }));
     expect(a.onCheckNow).toHaveBeenCalledOnce();
+  });
+
+  it("says not checked yet, not checking, when no check is running", () => {
+    render(
+      <UpdatesTab updates={updates} onChange={() => {}} actions={actions()} />,
+    );
+    expect(screen.queryByText(strings.settings.updates.checking)).toBeNull();
+    expect(
+      screen.getByText(strings.settings.updates.notChecked),
+    ).toHaveAttribute("role", "status");
+  });
+
+  it("says checking while a check runs", () => {
+    render(
+      <UpdatesTab
+        updates={updates}
+        onChange={() => {}}
+        actions={actions({ checking: true })}
+      />,
+    );
+    const said = screen
+      .getAllByText(strings.settings.updates.checking)
+      .filter((el) => el.getAttribute("role") === "status");
+    expect(said).toHaveLength(1);
   });
 
   it("shows a rollback's result (L3-2)", () => {

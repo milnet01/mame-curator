@@ -63,8 +63,11 @@ function fieldsFromZod(error: z.ZodError): FieldError[] {
   }));
 }
 
-/** Strict-parse a payload against a zod schema; throw `ApiError` on failure. */
-export function parse<T>(schema: ZodType<T>, data: unknown): T {
+/**
+ * Strict-parse a payload against a zod schema; on failure throw `ApiError`
+ * carrying `status`, the HTTP status of the response the payload came from.
+ */
+export function parse<T>(schema: ZodType<T>, data: unknown, status: number): T {
   const result = schema.safeParse(data);
   if (!result.success) {
     throw new ApiError(
@@ -73,7 +76,7 @@ export function parse<T>(schema: ZodType<T>, data: unknown): T {
         detail: `response failed schema validation: ${z.prettifyError(result.error)}`,
         fields: fieldsFromZod(result.error),
       },
-      STATUS_UNSENT,
+      status,
     );
   }
   return result.data;
@@ -198,7 +201,7 @@ export async function apiRequest<T>(
       response.status,
     );
   }
-  return parse(schema, payload);
+  return parse(schema, payload, response.status);
 }
 
 /**

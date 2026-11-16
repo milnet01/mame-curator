@@ -3,7 +3,7 @@
  * forward, and the words stay on the page after a toast has gone.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
@@ -51,10 +51,12 @@ const healthyPages = () => [
   ),
 ];
 
-function renderAt(path: string) {
-  const client = new QueryClient({
+function renderAt(
+  path: string,
+  client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
-  });
+  }),
+) {
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
@@ -131,6 +133,97 @@ describe("a page that cannot load", () => {
       await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
     },
   );
+});
+
+describe("a page already showing data", () => {
+  it.each([
+    [
+      "Sessions",
+      "/sessions",
+      "/api/sessions",
+      strings.sessions.loadError,
+      strings.loading.sessions,
+    ],
+    [
+      "Help",
+      "/help",
+      "/api/help/index",
+      strings.help.loadError,
+      strings.loading.help,
+    ],
+    [
+      "Activity",
+      "/activity",
+      "/api/activity",
+      strings.activity.loadError,
+      strings.loading.activity,
+    ],
+    [
+      "Stats",
+      "/stats",
+      "/api/stats",
+      strings.stats.loadError,
+      strings.loading.stats,
+    ],
+  ])(
+    "%s keeps showing it when a reload in the background fails",
+    async (_name, path, url, words, loading) => {
+      server.use(...healthyPages());
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      renderAt(path, client);
+      await waitFor(() => expect(screen.queryByText(loading)).toBeNull());
+      expect(screen.queryByText(words)).toBeNull();
+
+      let failed = 0;
+      server.use(
+        http.get(url, () => {
+          failed += 1;
+          return boom();
+        }),
+      );
+      await act(() => client.refetchQueries({ type: "active" }));
+      // React Query tells the page on the next tick.
+      await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
+      expect(failed).toBeGreaterThan(0);
+      expect(screen.queryByText(words)).toBeNull();
+      expect(screen.queryByText(loading)).toBeNull();
+    },
+  );
+
+  it("a help topic keeps showing when a reload in the background fails", async () => {
+    server.use(
+      http.get("/api/help/start", () =>
+        HttpResponse.json({
+          slug: "start",
+          title: "Getting started",
+          html: "<p>Welcome</p>",
+        }),
+      ),
+    );
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderAt("/help?topic=start", client);
+    expect(await screen.findByText("Welcome")).toBeVisible();
+
+    let failed = 0;
+    server.use(
+      http.get("/api/help/start", () => {
+        failed += 1;
+        return boom();
+      }),
+    );
+    await act(() => client.refetchQueries({ type: "active" }));
+    // React Query tells the page on the next tick.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
+    expect(failed).toBeGreaterThan(0);
+    expect(screen.getByText("Welcome")).toBeVisible();
+    expect(screen.queryByText(strings.help.topicLoadError)).toBeNull();
+  });
 });
 
 describe("a retry", () => {

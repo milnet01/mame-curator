@@ -75,7 +75,9 @@ function NoCheckYet({ actions }: { actions: UpdateActions }) {
       <p role="status" className="text-sm">
         {actions.checkFailed
           ? strings.settings.updates.checkFailed
-          : strings.settings.updates.checking}
+          : actions.checking
+            ? strings.settings.updates.checking
+            : strings.settings.updates.notChecked}
       </p>
       <CheckNowButton actions={actions} />
     </div>

@@ -284,6 +284,53 @@ describe("the Settings guide", () => {
     expect(patches).toEqual([]);
   });
 
+  it("a refused folder moves focus to the heading, as in the setup wizard", async () => {
+    serve();
+    server.use(
+      http.get("/api/config", () =>
+        HttpResponse.json({
+          ...config,
+          paths: { ...config.paths, source_roms: `${HOME}/roms` },
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, t.topics.folders);
+    await press(user, starting(t.folders.dest));
+    await pickFolder(user, "roms");
+    await screen.findByRole("alert");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: strings.guide.setup.dest.heading }),
+      ).toHaveFocus(),
+    );
+  });
+
+  it("Cancel gives focus back to the button that opened the picker, as in the setup wizard", async () => {
+    serve();
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, t.topics.folders);
+    await press(user, starting(t.folders.dest));
+    await heading(strings.guide.setup.dest.heading);
+    await press(user, t.folders.choose);
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByRole("button", { name: starting("copied") });
+    await user.click(
+      within(dialog).getByRole("button", { name: strings.common.cancel }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    // Past the frame on which the step would focus its heading.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(
+      screen.getByRole("button", { name: t.folders.choose }),
+    ).toHaveFocus();
+  });
+
   it("says a failed save changed nothing, and tries the same change again", async () => {
     const patches = serve(refused);
     const user = userEvent.setup();

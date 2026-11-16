@@ -27,27 +27,33 @@ export function DownloadPackModal({
   onOpenChange,
 }: DownloadPackModalProps) {
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   const handleOpenChange = (next: boolean) => {
     // Reset the transient "Copied!" state on close so a reopen (the component
     // stays mounted while the Media settings tab is active) never shows a
     // stale success. (FP33 L1)
-    if (!next) setCopied(false);
+    if (!next) {
+      setCopied(false);
+      setCopyFailed(false);
+    }
     onOpenChange(next);
   };
 
   const onCopy = () => {
     // navigator.clipboard is undefined in non-secure (plain-HTTP LAN) contexts,
     // and writeText can reject on a permissions denial — only flip to "Copied!"
-    // on a real success so the button never lies. (FP32 H2)
-    if (!navigator.clipboard) return;
+    // on a real success so the button never lies. (FP32 H2) A failure says so.
+    setCopyFailed(false);
+    if (!navigator.clipboard) {
+      setCopyFailed(true);
+      return;
+    }
     Promise.resolve(
       navigator.clipboard.writeText(strings.settings.mediaPackModal.command),
     )
       .then(() => setCopied(true))
-      .catch(() => {
-        /* copy failed (permissions / non-secure) — leave the button un-flipped */
-      });
+      .catch(() => setCopyFailed(true));
   };
 
   return (
@@ -69,6 +75,9 @@ export function DownloadPackModal({
               : strings.settings.mediaPackModal.copyButton}
           </Button>
         </div>
+        <p role="status" className="text-sm">
+          {copyFailed && strings.settings.mediaPackModal.copyFailed}
+        </p>
         <DialogFooter>
           <Button variant="ghost" onClick={() => handleOpenChange(false)}>
             {strings.settings.mediaPackModal.close}

@@ -194,4 +194,28 @@ describe("SnapshotsTab (FP12 § I)", () => {
     );
     expect(screen.getByRole("status")).toHaveTextContent(/restored/i);
   });
+
+  it("shows a failed restore when the list comes back empty", () => {
+    render(
+      <SnapshotsTab
+        snapshots={[]}
+        restoreError="Last restore failed."
+        onRestore={() => {}}
+      />,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Last restore failed.");
+  });
+
+  it("shows a failed restore when the list could not reload", () => {
+    render(
+      <SnapshotsTab
+        snapshots={sample}
+        error="Could not load snapshots."
+        restoreError="Last restore failed."
+        onRestore={() => {}}
+      />,
+    );
+    const alerts = screen.getAllByRole("alert");
+    expect(alerts.map((a) => a.textContent)).toContain("Last restore failed.");
+  });
 });

@@ -56,6 +56,11 @@ export function SnapshotsTab({
         : strings.settings.snapshotRestored}
     </p>
   );
+  const restoreAlert = restoreError && (
+    <p role="alert" className="text-sm text-destructive">
+      {restoreError}
+    </p>
+  );
 
   if (loading) {
     return (
@@ -68,6 +73,7 @@ export function SnapshotsTab({
     return (
       <div className="flex flex-col gap-2">
         {restoreStatus}
+        {restoreAlert}
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
@@ -78,6 +84,7 @@ export function SnapshotsTab({
     return (
       <div className="flex flex-col gap-2">
         {restoreStatus}
+        {restoreAlert}
         <p className="text-sm text-muted-foreground">
           {strings.settings.snapshotsEmpty}
         </p>
@@ -95,11 +102,7 @@ export function SnapshotsTab({
         {strings.settings.snapshotsStateExclusionNote}
       </p>
       {restoreStatus}
-      {restoreError && (
-        <p role="alert" className="text-sm text-destructive">
-          {restoreError}
-        </p>
-      )}
+      {restoreAlert}
       <ul className="flex flex-col gap-1">
         {snapshots.map((s) => (
           <li

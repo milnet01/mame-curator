@@ -175,7 +175,7 @@ function SessionsRoute() {
     };
   };
 
-  if (loadFailed(sessions)) {
+  if (!sessions.data && loadFailed(sessions)) {
     return (
       <RouteLoadError
         message={strings.sessions.loadError}
@@ -264,7 +264,7 @@ function ActivityRoute() {
   const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const activity = useActivity(page, ACTIVITY_PAGE_SIZE);
 
-  if (loadFailed(activity)) {
+  if (!activity.data && loadFailed(activity)) {
     return (
       <RouteLoadError
         message={strings.activity.loadError}
@@ -302,7 +302,7 @@ function ActivityRoute() {
 
 function StatsRoute() {
   const stats = useStats();
-  if (loadFailed(stats)) {
+  if (!stats.data && loadFailed(stats)) {
     return (
       <RouteLoadError
         message={strings.stats.loadError}
@@ -338,7 +338,7 @@ function HelpRoute() {
   const selectedSlug = searchParams.get("topic");
   const topic = useHelpTopic(selectedSlug);
 
-  if (loadFailed(index)) {
+  if (!index.data && loadFailed(index)) {
     return (
       <RouteLoadError
         message={strings.help.loadError}
@@ -366,7 +366,7 @@ function HelpRoute() {
       selectedSlug={selectedSlug}
       topicHtml={topic.data?.html ?? ""}
       topicLoading={topic.isLoading}
-      topicError={loadFailed(topic)}
+      topicError={!topic.data && loadFailed(topic)}
       onRetryTopic={() => void topic.refetch()}
       topicRetrying={topic.isFetching}
       onSelect={(slug) => {
@@ -411,9 +411,17 @@ function SettingsRoute() {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);
-      // FP13 § E3: drop millisecond noise from the export filename — second
-      // resolution is plenty for a human-shaped backup name.
-      const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      // Named by the user's own date and time, to the second.
+      const now = new Date();
+      const two = (n: number) => String(n).padStart(2, "0");
+      const ts = [
+        now.getFullYear(),
+        two(now.getMonth() + 1),
+        two(now.getDate()),
+        two(now.getHours()),
+        two(now.getMinutes()),
+        two(now.getSeconds()),
+      ].join("-");
       const a = document.createElement("a");
       a.href = url;
       a.download = `mame-curator-config-${ts}.json`;

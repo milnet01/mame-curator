@@ -3,6 +3,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { DownloadPackModal } from "../DownloadPackModal";
+import { strings } from "@/strings";
 
 describe("DownloadPackModal", () => {
   it("copies the refresh-snaps command to the clipboard (no network)", () => {
@@ -78,5 +79,79 @@ describe("DownloadPackModal", () => {
     expect(
       screen.getByRole("button", { name: /copy command/i }),
     ).toBeInTheDocument();
+  });
+
+  it("says when the copy failed, and how to copy by hand", async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error("permission denied"));
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<DownloadPackModal open onOpenChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /copy command/i }));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        strings.settings.mediaPackModal.copyFailed,
+      ),
+    );
+  });
+
+  it("says the copy failed when there is no clipboard (non-secure LAN)", () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    });
+    render(<DownloadPackModal open onOpenChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /copy command/i }));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      strings.settings.mediaPackModal.copyFailed,
+    );
+  });
+
+  it("clears the failure on close, so a reopen starts fresh", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    });
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>reopen</button>
+          <DownloadPackModal open={open} onOpenChange={setOpen} />
+        </>
+      );
+    }
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: /copy command/i }));
+    expect(
+      screen.getByText(strings.settings.mediaPackModal.copyFailed),
+    ).toBeInTheDocument();
+    const closeButtons = screen.getAllByRole("button", { name: "Close" });
+    fireEvent.click(closeButtons[closeButtons.length - 1]);
+    fireEvent.click(screen.getByRole("button", { name: /reopen/i }));
+    await screen.findByRole("button", { name: /copy command/i });
+    expect(
+      screen.queryByText(strings.settings.mediaPackModal.copyFailed),
+    ).toBeNull();
+  });
+
+  it("clears the failure when a later copy works", async () => {
+    const writeText = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("permission denied"))
+      .mockResolvedValueOnce(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<DownloadPackModal open onOpenChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /copy command/i }));
+    await screen.findByText(strings.settings.mediaPackModal.copyFailed);
+    fireEvent.click(screen.getByRole("button", { name: /copy command/i }));
+    await screen.findByRole("button", { name: /copied/i });
+    expect(
+      screen.queryByText(strings.settings.mediaPackModal.copyFailed),
+    ).toBeNull();
   });
 });

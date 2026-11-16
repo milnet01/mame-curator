@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-17 Fixed — Small fixes on the screens: focus, messages and backups
+
+- **A page already showing its data keeps it when a reload fails** (mame-curator-1232)
+  Sessions, Activity, Stats and Help no longer swap to an error panel
+  because a background refresh failed.
+- **Cancel in Settings → Folders returns you to Browse**
+  As in the setup wizard, so keyboard and screen-reader users land
+  where they were.
+- **Clearer messages**
+  A failed copy of the snap-pack command says so. Updates says "Not
+  checked yet" instead of "checking" when nothing runs. A failed
+  restore shows its error in every view of the snapshot list. The
+  "not allowed" folder message points to Browse, which exists.
+- **Backup files are named by your own date and time**
+  Not by UTC.
+
 ### 2026-11-17 Fixed — Pictures already downloaded keep showing, and the picture store stays whole
 
 - **Scrolling fast no longer hides pictures you already have** (mame-curator-1235)

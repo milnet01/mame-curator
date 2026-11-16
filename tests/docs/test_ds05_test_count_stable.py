@@ -636,7 +636,8 @@ EXPECTED_PYTEST_DECLARATIONS = 1383
 # Bumped 2026-11-15 (mame-curator-1143): "Look for a picture again", and a
 # card that shows a picture a fresh look found. 772 → 779.
 # Bumped 2026-11-15 (mame-curator-1254): Settings' listxml row. 779 → 781.
-EXPECTED_VITEST_DECLARATIONS = 781
+# Bumped 2026-11-17 (mame-curator-1232): the small screen fixes. 781 → 796.
+EXPECTED_VITEST_DECLARATIONS = 796
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

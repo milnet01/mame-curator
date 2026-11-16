@@ -2,8 +2,8 @@
  * Group 5 of the 2026-11-02 review — restoring saved settings and importing a
  * backup say they are under way, and say when they have worked.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
@@ -122,5 +122,51 @@ describe("Settings", () => {
     expect(
       await screen.findByText(/settings have been imported/i),
     ).toBeVisible();
+  });
+});
+
+describe("Settings backup export", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("names the file by the user's own date and time, not UTC", async () => {
+    // Auckland is UTC+12 in May, so the local date differs from UTC's.
+    vi.stubEnv("TZ", "Pacific/Auckland");
+    server.use(
+      http.post("/api/config/export", () =>
+        HttpResponse.json({
+          config: {},
+          overrides: {},
+          sessions: {},
+          notes: {},
+        }),
+      ),
+    );
+    Object.assign(URL, {
+      createObjectURL: vi.fn(() => "blob:backup"),
+      revokeObjectURL: vi.fn(),
+    });
+    const names: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      names.push(this.download);
+    });
+    const user = userEvent.setup();
+    renderAt("/settings?tab=backup");
+    const exportButton = await screen.findByRole("button", {
+      name: strings.settings.backupExportLabel,
+    });
+
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-05-02T16:43:21Z"));
+    await user.click(exportButton);
+
+    await waitFor(() =>
+      expect(names).toEqual(["mame-curator-config-2026-05-03-04-43-21.json"]),
+    );
   });
 });

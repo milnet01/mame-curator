@@ -62,14 +62,12 @@ export function FoldersTopic({ config, onChoose, onBack }: TopicProps) {
   }
 
   const about = FOLDERS[folder];
-  // As in the setup wizard: with no trigger to return to, the dialog would
-  // otherwise drop focus on the page, and this user with it.
-  const closePicker = (open: boolean) => {
-    setBrowseOpen(open);
-    if (!open) setFocusKey((key) => key + 1);
-  };
-  // mame-curator-1145 INV-11: the server also refuses it, by resolved path.
+  // As in the setup wizard: a choice moves focus to the heading. Cancel
+  // leaves it to the picker, which gives it back to the button that opened
+  // it (mame-curator-1206).
   const pick = (path: string) => {
+    setFocusKey((key) => key + 1);
+    // mame-curator-1145 INV-11: the server also refuses it, by resolved path.
     if (path === paths[OTHER[folder]]) {
       setError(about.sameAsOther);
       return;
@@ -102,7 +100,7 @@ export function FoldersTopic({ config, onChoose, onBack }: TopicProps) {
           open
           large
           simple
-          onOpenChange={closePicker}
+          onOpenChange={setBrowseOpen}
           onPick={pick}
           initialPath={paths[folder]}
         />

@@ -80,6 +80,16 @@ describe("apiErrorMessage: a refused setting", () => {
   });
 });
 
+describe("apiErrorMessage: a folder outside what the app may use", () => {
+  it("points to the Browse button Settings has, not a control it lacks", () => {
+    const words = apiErrorMessage(
+      new ApiError({ code: "fs_sandboxed", detail: "raw", fields: [] }, 403),
+    );
+    expect(words).toContain(strings.settings.fsBrowserBrowse);
+    expect(words).not.toContain("Settings → Paths");
+  });
+});
+
 describe("toastApiError", () => {
   it("uses byCode-friendly copy when ApiError.code is mapped", () => {
     toastApiError(
