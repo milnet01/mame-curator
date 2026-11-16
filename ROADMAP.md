@@ -4389,7 +4389,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1226] **Fix the web-server core findings from the 2026-11-11 code review.**
+- ✅ [mame-curator-1226] **Fix the web-server core findings from the 2026-11-11 code review.**
   Group `api-server-core` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4407,6 +4407,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - CR-06-9 [LOW] api/routes/help.py:73-75: A non-UTF-8 help file or a folder named x.md gives a 500, not the documented 404. Fix: use `is_file()` and catch `(OSError, UnicodeDecodeError)` as `HelpTopicNotFoundError`.
   - CR-05-6 (+RL-21) [MEDIUM] api/state.py:104-107: load_app_config does not wrap read_text failures in ConfigError, so serve loses its one-line startup error. Fix: wrap the read with `except (OSError, UnicodeDecodeError)` and raise `ConfigError`.
   - CR-05-3 [MEDIUM] api/state.py:134-135: Config validation errors use repr(exc), giving a multi-line detail that echoes config values. Fix: a fixed one-line `detail` and the per-field errors in `fields[]` only; or `repr(str(exc))`.
+  Resolved 2026-11-16 (b83be02): all fourteen findings fixed, each locked by a test. CR-07-3 fixed at every save site with the same cause
+  (config, folder grants, snapshot restore, backup import too). CR-05-7: a
+  second launch opens the running copy and exits; cli/spec.md § One copy per
+  data folder.
   **Layman:** Small faults in how the app's web service starts, answers and shuts down.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
