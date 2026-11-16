@@ -4479,7 +4479,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1230] **Fix the copy-run findings from the 2026-11-11 code review.**
+- ✅ [mame-curator-1230] **Fix the copy-run findings from the 2026-11-11 code review.**
   Group `copy-runner` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4499,6 +4499,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RL-7 [LEAD] copy/runner.py:540-564: In the cancel-and-recycle path, a file whose recycle fails stays at the destination, but `succeeded.clear()` removes it from the report and no warning is added.
   - RL-9 [LEAD] copy/runner.py:588-589: `overwritten` and `recycled` are not sorted, but `copy/spec.md:411` says every tuple is sorted, with recycle records sorted by path.
   - CR-02-1 (+RR-02-6) [HIGH] copy/runner.py:79: CANCEL re-run goes ahead when all winners are present and rewrites mame.lpl with only the narrowed set. Fix: also require that the existing playlist's entries match the winner set (or that no other zips are at the destination). Otherwise return `CANCELLED_PLAYLIST_CONFLICT`, in both this function and `check_playlist_conflict`.
+  Resolved 2026-11-16 (811991e): all sixteen fixed; RR-02-1 had already
+  been fixed by the runner split (dbec285). Also fixed next door: a source
+  that vanished during the copy was left out of the report.
   **Layman:** Faults in how games are copied and the RetroArch playlist is written.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
