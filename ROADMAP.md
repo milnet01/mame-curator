@@ -4415,7 +4415,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1227] **Fix the command-line error findings from the 2026-11-11 code review (part 1 of 2).**
+- ✅ [mame-curator-1227] **Fix the command-line error findings from the 2026-11-11 code review (part 1 of 2).**
   Group `cli-errors` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4434,6 +4434,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-06-7 [LOW] cli/commands/serve.py:383-391: The current rule (this catch is a safety net; real config errors show up later, as `_run_server`'s `SystemExit`) is buried under history about what the code used to be. Fix: keep only the current reason in each comment; move the history to the commit log.
   - RR-06-8 [LOW] cli/commands/serve.py:99: The leading underscore says "private to `api/state.py`". Fix: drop the underscore on names used from other modules, or comment the outside callers at the definition.
   - RL-32 (+RR-06-9) [LEAD] cli/commands/setup.py:66-77: It can write a `dest_roms` or playlist folder that does not exist. According to `config_location.py:88-92`, the in-app settings save then refuses that config.
+  Resolved 2026-11-16 (72c7823): thirteen fixed, two dismissed. RL-34
+  dismissed: parse_dat already wraps OSError as DATError. RL-29 dismissed:
+  measured, SIGTERM ends serve by that signal (returncode -15), not 130.
+  RR-06-6 had already been fixed by fd2cdec. The README's CLI examples went
+  to mame-curator-1231.
   **Layman:** The command-line tools sometimes fail with a confusing message or the wrong result.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -4509,6 +4514,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - CR-01-14 [LOW] filter/heuristics.py:20-25: filter/spec.md documents a stale REGION_RE suffix (doc-side).
   - CR-03-14 [LOW] media/mobygames.py:91: Module-level mutable globals break coding-standards 3 but the media spec endorses them; which rule governs is open. ASK USER: Which governs module globals: coding-standards 3 or media/spec.md?
   - CR-03-12 (+RR-03-9) [LOW] media/spec.md:535-537: media/spec.md and media/__init__.py still say the MobyGames cover parse is deferred, though it is built (doc-side).
+  Added 2026-11-16 (found while closing mame-curator-1227): README.md's
+  "CLI dry-run / copy without the UI" block omits required flags (filter
+  needs --listxml, --languages, --bestgames; copy needs --dat, --listxml),
+  and its next line says these commands use the app's config file, but
+  `filter` and `copy` read no config.
   **Layman:** Places where the project's documents describe something the app no longer does.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
