@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1259 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1261 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2823,6 +2823,26 @@ P14 (per-game review state).
   Source: user-request-2026-11-16.
   Lanes: parser, filter, copy, api, frontend.
 
+- 📋 [mame-curator-1260] **A Settings button that clears the picture cache, with its size shown.**
+  docs/design.md § 6.3 and § 8 promise it: "The user can clear the cache from
+  the Settings page (one click)" and "Media (cache size + clear)". It was
+  never built; strings_internal.ts holds orphan strings for it. Clearing is
+  a destructive action, so design.md's confirm rule applies. The user
+  decided 2026-11-16 that it is still owed.
+  **Layman:** Settings shows how much space downloaded pictures take, and one button frees it.
+  Kind: feature.
+  Source: user-decision-2026-11-16 (mame-curator-1231 CR-10-7).
+  Lanes: frontend, api, media.
+
+- 📋 [mame-curator-1261] **A Settings button that runs the first-time setup questions again.**
+  docs/design.md § 8 lists "Re-run wizard" among the Settings sections; it
+  was never built. It reuses the browser setup wizard of mame-curator-1145.
+  The user decided 2026-11-16 that it is still owed.
+  **Layman:** Settings can walk you through the setup questions again, as on the first start.
+  Kind: feature.
+  Source: user-decision-2026-11-16 (mame-curator-1231 CR-10-7).
+  Lanes: frontend, api.
+
 ### 📚 Documentation
 
 - ✅ [mame-curator-1029] **README hero shot + 4 screenshots (closed 2026-05-16).**
@@ -4514,7 +4534,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - CR-04-13 [LOW] docs/design.md § 7: design.md 7 says server.port auto-increments to 8090; serve exits 1 as cli/spec.md specifies (doc-side).
   - CR-05-13d [LOW] docs/design.md § 7: design.md 7 says snapshots are kept 30 days; the code keeps the newest 200. Fix: doc-side: review-contract
   - CR-04-14 [LOW] docs/design.md § 7; api/schemas.py:179: design.md 7 and api/schemas.py default ini_check_on_startup: true, but 6.7 says the startup check is deferred and nothing reads it.
-  - CR-10-7 [LOW] docs/design.md § 8; strings_internal.ts:813-816: design.md 8 lists Media cache clear and Re-run wizard in Settings; neither exists, and two strings are orphans. ASK USER: Are "clear media cache" and "Re-run wizard" in Settings dropped or still owed?
+  - CR-10-7 [LOW] docs/design.md § 8; strings_internal.ts:813-816: design.md 8 lists Media cache clear and Re-run wizard in Settings; neither exists, and two strings are orphans. USER DECIDED 2026-11-16: both still owed; filed as mame-curator-1260 and mame-curator-1261.
   - CR-05-13c [LOW] docs/plans/P04 § SSE: P04's SSE table names total_files/total_bytes; the code sends files_total/bytes_total. Fix: doc-side: review-contract
   - CR-05-13b [LOW] docs/plans/P04 § Security: P04's Security table still says "CSRF not implemented" and "CORS allowlist". Fix: doc-side: review-contract
   - CR-10-8 [LOW] docs/specs/mame-curator-1145 § 4.4; strings_internal.ts:715-718: 1145 4.4's fsGrantConfirm string is older than the code's 1170 wording (doc-side).
@@ -4523,7 +4543,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - CR-07-9 [LOW] api/spec.md § Media proxy: api/spec.md says the arcadeDB and Wikipedia limiters gate sources not yet exposed by a route; they are (doc-side).
   - CR-01-15 [LOW] filter/config.py:11: filter/config.py docstring and design.md 6.2 claim a Casino/Mahjong drop_categories default the code does not have (doc-side).
   - CR-01-14 [LOW] filter/heuristics.py:20-25: filter/spec.md documents a stale REGION_RE suffix (doc-side).
-  - CR-03-14 [LOW] media/mobygames.py:91: Module-level mutable globals break coding-standards 3 but the media spec endorses them; which rule governs is open. ASK USER: Which governs module globals: coding-standards 3 or media/spec.md?
+  - CR-03-14 [LOW] media/mobygames.py:91: Module-level mutable globals break coding-standards 3 but the media spec endorses them; which rule governs is open. USER DECIDED 2026-11-16: add one narrow named exception to coding-standards § 3 (process-wide log de-duplication and caches, with a test reset hook).
   - CR-03-12 (+RR-03-9) [LOW] media/spec.md:535-537: media/spec.md and media/__init__.py still say the MobyGames cover parse is deferred, though it is built (doc-side).
   Added 2026-11-16 (found while closing mame-curator-1227): README.md's
   "CLI dry-run / copy without the UI" block omits required flags (filter
