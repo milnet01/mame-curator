@@ -3822,7 +3822,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Source: close-findings-2026-11-02-1145.
   Lanes: frontend, tests.
 
-- 📋 [mame-curator-1184] **jobs.py and runner.py are over the hard size cap.**
+- ✅ [mame-curator-1184] **jobs.py and runner.py are over the hard size cap.**
   Measured 2026-11-02 at a5417fa: 527 and 580 lines against a cap of 500.
   Both were over before that commit, which added a few lines to each.
   2026-11-05: 89e4db5 moved run_copy's body into _run_copy, still well
@@ -3830,6 +3830,17 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   The 2026-11-11 reviews confirm this (CR-02-12, RR-02-5: copy/runner.py
   and _run_copy are over the caps; CR-05-15: api/jobs.py and
   JobManager.start are over them).
+  Done 2026-11-16. copy/runner.py keeps run_copy and the per-file step;
+  the run's record and report moved to copy/run_state.py, the playlist
+  entries to copy/run_playlist.py, the end-of-run recycle passes to
+  copy/run_recycle.py. api/jobs.py lost ProgressSynthesizer and
+  sum_input_sizes (api/job_progress.py) and check_playlist_conflict
+  (api/job_preflight.py); JobManager.start is split into _run_worker and
+  _emit_start_events. Every file is under 500 lines and every function
+  under 80. Still over the soft caps: runner.py and jobs.py (300), and
+  _run_copy, _copy_item, build_playlist_entries (50). Old and new code
+  gave byte-identical reports, activity logs, playlists and recycle
+  folders over 11 scripted copies.
   **Layman:** Two code files are bigger than the project's own limit.
   Kind: refactor.
   Source: close-findings-2026-11-02-1145.

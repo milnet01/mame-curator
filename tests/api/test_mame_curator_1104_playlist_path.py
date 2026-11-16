@@ -16,7 +16,7 @@ from typing import cast
 import pytest
 
 from mame_curator.api.errors import PlaylistConflictCancelledError
-from mame_curator.api.jobs import check_playlist_conflict
+from mame_curator.api.job_preflight import check_playlist_conflict
 from mame_curator.api.routes.copy import _build_plan
 from mame_curator.api.schemas_copy import CopyJobRequest
 from mame_curator.api.state import WorldState

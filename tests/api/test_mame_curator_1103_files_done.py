@@ -10,10 +10,10 @@ The frontend (``useCopySession.ts``) only reads ``files_done`` off
 entirely (see the ``case 'file_finished': default: return prev`` fallthrough).
 For the counter to ever reach its total — including for a skipped file,
 which never produces a ``file_progress`` tick — each ``file_finished``
-event emitted by ``_ProgressSynthesizer`` (``api/jobs.py``) must itself
+event emitted by ``ProgressSynthesizer`` (``api/job_progress.py``) must itself
 carry a running ``files_done`` count (1, 2, 3, ... in emission order).
 
-Pre-fix: ``_ProgressSynthesizer.__call__`` builds the ``file_finished``
+Pre-fix: ``ProgressSynthesizer.__call__`` builds the ``file_finished``
 payload as ``{"short_name": short, "bytes": bytes_total}`` — no
 ``files_done`` key at all, so this test's assertion fails at the first
 `in` check as reliably as at the value check.
@@ -27,7 +27,8 @@ from __future__ import annotations
 import asyncio
 from typing import cast
 
-from mame_curator.api.jobs import JobManager, _ProgressSynthesizer
+from mame_curator.api.job_progress import ProgressSynthesizer
+from mame_curator.api.jobs import JobManager
 from mame_curator.api.schemas import JobEvent
 
 
@@ -45,16 +46,16 @@ async def test_file_finished_payload_carries_running_files_done_count() -> None:
     """Each file_finished event's files_done is the 1-based running count."""
     loop = asyncio.get_running_loop()
     sink = _RecordingSink()
-    # _RecordingSink duck-types JobManager's only seam _ProgressSynthesizer
+    # _RecordingSink duck-types JobManager's only seam ProgressSynthesizer
     # calls (`_emit`); a real JobManager needs a running Job + history_dir
     # this test has no use for.
-    synth = _ProgressSynthesizer(loop, cast(JobManager, sink))
+    synth = ProgressSynthesizer(loop, cast(JobManager, sink))
 
     # Three distinct files, each finishing in one tick (done == total).
     synth("pacman", 100, 100)
     synth("dkong", 50, 50)
     synth("galaga", 75, 75)
-    # _ProgressSynthesizer dispatches via call_soon_threadsafe; yield to the
+    # ProgressSynthesizer dispatches via call_soon_threadsafe; yield to the
     # loop so the scheduled _emit callbacks actually run before we inspect
     # `sink.events`.
     await asyncio.sleep(0)

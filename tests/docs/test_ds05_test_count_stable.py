@@ -214,7 +214,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # tests, B1+B2, defects still live): +2 declarations:
 #   • +1 tests/api/test_mame_curator_1103_files_done.py —
 #     test_file_finished_payload_carries_running_files_done_count
-#     (_ProgressSynthesizer's file_finished payload must carry a running
+#     (ProgressSynthesizer's file_finished payload must carry a running
 #     files_done count).
 #   • +1 tests/copy/test_runner.py —
 #     test_copy_missing_source_still_invokes_on_progress (a

@@ -1,9 +1,10 @@
 """JobManager — singleton owning the in-flight copy job + SSE event stream.
 
 Bridges sync ``run_copy`` → async event consumers via a worker thread plus
-a ``_ProgressSynthesizer`` that schedules events on the FastAPI event loop
-through ``loop.call_soon_threadsafe``. See ``docs/specs/P04-http-api.md`` §
-JobManager + SSE contract.
+a ``ProgressSynthesizer`` (``job_progress.py``) that schedules events on
+the FastAPI event loop through ``loop.call_soon_threadsafe``. See
+``docs/specs/P04-http-api.md`` § JobManager + SSE contract. The playlist
+pre-check is ``job_preflight.py``.
 """
 
 from __future__ import annotations
@@ -24,24 +25,18 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from mame_curator._atomic import atomic_write_bytes
-from mame_curator.api.errors import (
-    JobAlreadyRunningError,
-    JobNotFoundError,
-    PlaylistConflictCancelledError,
-    PlaylistUnreadableError,
-)
+from mame_curator.api.errors import JobAlreadyRunningError, JobNotFoundError
+from mame_curator.api.job_progress import ProgressSynthesizer, sum_input_sizes
 from mame_curator.api.schemas import JobEvent, JobStatus
 from mame_curator.api.schemas_copy import JobState
 from mame_curator.copy import (
-    ConflictStrategy,
+    BIOSResolutionWarning,
     CopyController,
     CopyControlState,
     CopyOutcomeStatus,
     CopyPlan,
     CopyReport,
     CopyReportStatus,
-    PlaylistError,
-    read_lpl,
     resolve_bios_dependencies,
     run_copy,
 )
@@ -98,58 +93,6 @@ class Job:
     subscribers: list[asyncio.Queue[JobEvent | None]] = field(default_factory=list)
 
 
-class _ProgressSynthesizer:
-    """Worker-thread on_progress callback; converts ticks into JobEvents."""
-
-    def __init__(self, loop: AbstractEventLoop, sink: JobManager) -> None:
-        """Build a synthesizer bound to ``loop`` for thread-safe event dispatch."""
-        self._loop = loop
-        self._sink = sink
-        self._seen: set[str] = set()
-        # mame-curator-1103: job-wide count carried on each file_finished,
-        # so a client (or a reconnect replay) reads the count, not a tally.
-        self._files_done = 0
-
-    def __call__(self, short: str, bytes_done: int, bytes_total: int) -> None:
-        ts = datetime.now(UTC)
-        if short not in self._seen:
-            self._seen.add(short)
-            self._dispatch(
-                JobEvent(
-                    event="file_started",
-                    payload={"short_name": short, "bytes_total": bytes_total},
-                    ts=ts,
-                )
-            )
-        self._dispatch(
-            JobEvent(
-                event="file_progress",
-                payload={
-                    "short_name": short,
-                    "bytes_done": bytes_done,
-                    "bytes_total": bytes_total,
-                },
-                ts=ts,
-            )
-        )
-        if bytes_done == bytes_total:
-            self._files_done += 1
-            self._dispatch(
-                JobEvent(
-                    event="file_finished",
-                    payload={
-                        "short_name": short,
-                        "bytes": bytes_total,
-                        "files_done": self._files_done,
-                    },
-                    ts=ts,
-                )
-            )
-
-    def _dispatch(self, event: JobEvent) -> None:
-        self._loop.call_soon_threadsafe(self._sink._emit, event)
-
-
 class JobManager:
     """Singleton: owns ``app.state.job``."""
 
@@ -201,84 +144,95 @@ class JobManager:
                 plan.winners, dict(world.bios_chain)
             )
 
-            files_total = len(plan.winners) + len(bios_set)
-            bytes_total = _sum_input_sizes(plan, bios_set)
-
             controller = CopyController()
             job_id = _new_job_id()
-            started_at = datetime.now(UTC)
-
-            synth = _ProgressSynthesizer(self._loop, self)
-
-            def worker() -> None:
-                # mame-curator-1157: run_copy hands over the partial report of
-                # a crash here before the exception reaches us.
-                crash_reports: list[CopyReport] = []
-                try:
-                    report = run_copy(
-                        plan,
-                        controller=controller,
-                        on_progress=synth,
-                        # mame-curator-1105: anchor on the config's data dir,
-                        # never the process cwd.
-                        data_dir=world.data_dir,
-                        on_crash=crash_reports.append,
-                    )
-                except Exception as exc:
-                    logger.exception("copy worker crashed")
-                    if not crash_reports:
-                        # It crashed before copy_started; nothing recorded it.
-                        record_copy_error(
-                            exc, session_id=job_id, log_path=world.data_dir / "activity.jsonl"
-                        )
-                    crashed = crash_reports[0] if crash_reports else None
-                    if self._loop is not None:
-                        self._loop.call_soon_threadsafe(self._on_worker_error, str(exc), crashed)
-                    return
-                if self._loop is None:
-                    return
-                self._loop.call_soon_threadsafe(self._on_worker_done, report)
-
-            thread = threading.Thread(target=worker, name=f"copy-{job_id}", daemon=True)
+            synth = ProgressSynthesizer(self._loop, self)
+            thread = threading.Thread(
+                target=self._run_worker,
+                args=(plan, controller, synth, world, job_id),
+                name=f"copy-{job_id}",
+                daemon=True,
+            )
             job = Job(
                 id=job_id,
                 plan=plan,
-                started_at=started_at,
+                started_at=datetime.now(UTC),
                 controller=controller,
                 thread=thread,
-                files_total=files_total,
-                bytes_total=bytes_total,
+                files_total=len(plan.winners) + len(bios_set),
+                bytes_total=sum_input_sizes(plan, bios_set),
             )
             self._current = job
-
             # Emit initial events on the loop thread before the worker spawns.
-            # FP24-A: payload keys files_total/bytes_total match the typed
-            # JobStartedPayload contract (schemas.py JobStatus + frontend
-            # api/types.ts). Drifted total_files/total_bytes left the
-            # progress bar pinned at 0/0.
-            self._emit(
-                JobEvent(
-                    event="job_started",
-                    payload={
-                        "job_id": job_id,
-                        "files_total": files_total,
-                        "bytes_total": bytes_total,
-                        "started_at": started_at.isoformat(),
-                    },
-                    ts=started_at,
-                )
-            )
-            for warn in bios_warnings:
-                self._emit(
-                    JobEvent(
-                        event="bios_warning",
-                        payload={"name": warn.name, "kind": warn.kind},
-                        ts=started_at,
-                    )
-                )
-
+            self._emit_start_events(job, bios_warnings)
             thread.start()
             return job
+
+    def _run_worker(
+        self,
+        plan: CopyPlan,
+        controller: CopyController,
+        synth: ProgressSynthesizer,
+        world: WorldState,
+        job_id: str,
+    ) -> None:
+        """Worker thread: run the copy, then hand its end to the loop thread."""
+        # mame-curator-1157: run_copy hands over the partial report of
+        # a crash here before the exception reaches us.
+        crash_reports: list[CopyReport] = []
+        try:
+            report = run_copy(
+                plan,
+                controller=controller,
+                on_progress=synth,
+                # mame-curator-1105: anchor on the config's data dir,
+                # never the process cwd.
+                data_dir=world.data_dir,
+                on_crash=crash_reports.append,
+            )
+        except Exception as exc:
+            logger.exception("copy worker crashed")
+            if not crash_reports:
+                # It crashed before copy_started; nothing recorded it.
+                record_copy_error(
+                    exc, session_id=job_id, log_path=world.data_dir / "activity.jsonl"
+                )
+            crashed = crash_reports[0] if crash_reports else None
+            if self._loop is not None:
+                self._loop.call_soon_threadsafe(self._on_worker_error, str(exc), crashed)
+            return
+        if self._loop is None:
+            return
+        self._loop.call_soon_threadsafe(self._on_worker_done, report)
+
+    def _emit_start_events(
+        self, job: Job, bios_warnings: tuple[BIOSResolutionWarning, ...]
+    ) -> None:
+        """Emit `job_started`, then one `bios_warning` per BIOS problem."""
+        # FP24-A: payload keys files_total/bytes_total match the typed
+        # JobStartedPayload contract (schemas.py JobStatus + frontend
+        # api/types.ts). Drifted total_files/total_bytes left the
+        # progress bar pinned at 0/0.
+        self._emit(
+            JobEvent(
+                event="job_started",
+                payload={
+                    "job_id": job.id,
+                    "files_total": job.files_total,
+                    "bytes_total": job.bytes_total,
+                    "started_at": job.started_at.isoformat(),
+                },
+                ts=job.started_at,
+            )
+        )
+        for warn in bios_warnings:
+            self._emit(
+                JobEvent(
+                    event="bios_warning",
+                    payload={"name": warn.name, "kind": warn.kind},
+                    ts=job.started_at,
+                )
+            )
 
     async def pause(self) -> JobStatus:
         """Pause the in-flight job at the next file boundary."""
@@ -518,39 +472,3 @@ def _control_state(job: Job) -> JobState:
     if state is CopyControlState.PAUSED:
         return "paused"
     return "terminating" if state is CopyControlState.CANCELLING else "running"
-
-
-def _sum_input_sizes(plan: CopyPlan, bios_set: frozenset[str]) -> int:
-    total = 0
-    for short in (*plan.winners, *bios_set):
-        src = plan.source_dir / f"{short}.zip"
-        try:
-            total += src.stat().st_size
-        except OSError:
-            continue
-    return total
-
-
-def check_playlist_conflict(plan: CopyPlan) -> None:
-    """Pre-flight: raise if CANCEL would abort or APPEND cannot read the playlist.
-
-    The API answers here rather than from the worker so the refusal is the
-    start's own error, before any file is touched.
-    """
-    if not plan.playlist_file.exists():
-        return
-    if plan.conflict_strategy is ConflictStrategy.APPEND:
-        try:
-            read_lpl(plan.playlist_file)
-        except PlaylistError as exc:
-            raise PlaylistUnreadableError(str(exc)) from exc
-        return
-    if plan.conflict_strategy is not ConflictStrategy.CANCEL:
-        return
-    # Only raise if not idempotent — let run_copy handle the no-op case.
-    all_present = all((plan.dest_dir / f"{w}.zip").exists() for w in plan.winners)
-    if not all_present:
-        raise PlaylistConflictCancelledError(
-            f"existing playlist at {str(plan.playlist_file)!r}; "
-            "use APPEND or OVERWRITE conflict strategy"
-        )

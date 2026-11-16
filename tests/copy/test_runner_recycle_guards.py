@@ -53,7 +53,7 @@ def test_overwrite_delete_recycle_failure_warns_and_still_writes_playlist(
     def _fail_recycle(path: Path, **_kw: object) -> Path:
         raise RecycleError("simulated recycle failure", path=path)
 
-    monkeypatch.setattr("mame_curator.copy.runner.recycle_file", _fail_recycle)
+    monkeypatch.setattr("mame_curator.copy.run_recycle.recycle_file", _fail_recycle)
     report = run_copy(_overwrite_plan(source_dir, dest_dir, bios_chain), data_dir=tmp_path)
     assert report.status is CopyReportStatus.OK
     assert (dest_dir / "mame.lpl").exists()

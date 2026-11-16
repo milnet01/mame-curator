@@ -1,194 +1,66 @@
-"""Top-level orchestrator: run a CopyPlan, return a CopyReport."""
+"""Top-level orchestrator: run a CopyPlan, return a CopyReport.
+
+The run's record and its report are in `run_state.py`, the playlist's entries
+in `run_playlist.py`, and the two end-of-run recycle passes in `run_recycle.py`.
+"""
 
 from __future__ import annotations
 
 import functools
 import logging
-import secrets
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from mame_curator.copy.activity import append_activity, record_copy_error, short_error_message
 from mame_curator.copy.bios import resolve_bios_dependencies
 from mame_curator.copy.controller import CopyController
-from mame_curator.copy.errors import CopyError, RecycleError, UnsafeShortNameError
+from mame_curator.copy.errors import CopyError, UnsafeShortNameError
 from mame_curator.copy.executor import copy_one
 from mame_curator.copy.paths import is_safe_short_name, zip_path
-from mame_curator.copy.playlist import read_lpl, write_lpl
+from mame_curator.copy.playlist import write_lpl
 from mame_curator.copy.preflight import preflight
 from mame_curator.copy.recyclebin import recycle_file
+from mame_curator.copy.run_playlist import (
+    build_playlist_entries,
+    resolve_conflicts,
+    should_cancel_for_playlist_conflict,
+)
+from mame_curator.copy.run_recycle import recycle_partial_copy, recycle_unwritten_zips
+from mame_curator.copy.run_state import (
+    RunState,
+    finish_early,
+    finish_report,
+    log_started,
+    make_plan_summary,
+    new_session_id,
+    record_crash,
+)
 from mame_curator.copy.types import (
-    ActivityEvent,
-    ActivityEventType,
+    AppendDecision,
     AppendDecisionKind,
     ConflictStrategy,
-    CopyAbortedDetails,
-    CopyFinishedDetails,
     CopyOutcome,
     CopyOutcomeStatus,
     CopyPlan,
     CopyReport,
     CopyReportStatus,
-    CopyStartedDetails,
     OverwriteRecord,
-    PlanSummary,
-    PlaylistEntry,
-    PreflightResult,
     RecycleRecord,
-    ReportSummary,
 )
 
 logger = logging.getLogger(__name__)
 
-
-def _new_session_id() -> str:
-    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ-") + secrets.token_hex(4)
-
-
-def _make_plan_summary(plan: CopyPlan, bios_count: int) -> PlanSummary:
-    return PlanSummary(
-        winners_count=len(plan.winners),
-        bios_count=bios_count,
-        conflict_strategy=plan.conflict_strategy,
-        source_dir=plan.source_dir,
-        dest_dir=plan.dest_dir,
-    )
-
-
-def _chd_missing(plan: CopyPlan) -> tuple[str, ...]:
-    return tuple(sorted(short for short in plan.winners if short in plan.chd_required))
-
-
-def _should_cancel_for_playlist_conflict(plan: CopyPlan, pre: PreflightResult) -> bool:
-    """True iff CANCEL strategy + existing playlist + not fully idempotent.
-
-    Idempotent rerun = every winner already at dest (matching size+mtime) AND
-    no extra zips at dest beyond winners + bios. Per design § 6.4 we want
-    such a rerun to proceed as a no-op without requiring the user to
-    re-invoke with ``--conflict append``.
-    """
-    if not (
-        pre.existing_playlist
-        and not plan.dry_run
-        and plan.conflict_strategy is ConflictStrategy.CANCEL
-    ):
-        return False
-    return not (set(pre.already_copied) >= set(plan.winners))
-
-
-def _build_playlist_entries(
-    plan: CopyPlan,
-    succeeded: list[CopyOutcome],
-    skipped: list[CopyOutcome],
-    existing_items: list[dict[str, str]],
-    replaced_shorts: frozenset[str],
-) -> list[PlaylistEntry]:
-    """Compose the final mame.lpl entry list for write_lpl.
-
-    Only winners *definitely present at dst* become entries (SUCCEEDED or
-    SKIPPED_IDEMPOTENT); SKIPPED_MISSING_SOURCE / SKIPPED_EXISTING_VERSION
-    / FAILED outcomes have no file at ``dst`` per spec § "Which winners
-    become entries". For APPEND, pre-existing entries are carried forward
-    unless they are being replaced or overlap a same-name winner.
-    """
-    entries: list[PlaylistEntry] = []
-    winner_set = set(plan.winners)
-    present_basenames: set[str] = set()
-    present_statuses = {CopyOutcomeStatus.SUCCEEDED, CopyOutcomeStatus.SKIPPED_IDEMPOTENT}
-    for o in (*succeeded, *skipped):
-        if o.role != "winner" or o.status not in present_statuses:
-            continue
-        machine = plan.machines.get(o.short_name)
-        if machine is None:
-            continue
-        entries.append(
-            PlaylistEntry(
-                short_name=o.short_name,
-                description=machine.description,
-                abs_path=o.dst.resolve(),
-            )
-        )
-        present_basenames.add(o.dst.name)
-
-    if plan.conflict_strategy is ConflictStrategy.APPEND and existing_items:
-        replaced_basenames = {f"{s}.zip" for s in replaced_shorts}
-        winner_basenames = {f"{w}.zip" for w in winner_set}
-        for it in existing_items:
-            # FP05 L5: skip empty paths; Path("") resolves to Path(".") and
-            # would carry the dest dir itself into mame.lpl.
-            raw_path = it.get("path", "")
-            if not raw_path:
-                continue
-            ipath = Path(raw_path)
-            if (
-                ipath.name in present_basenames
-                or ipath.name in replaced_basenames
-                or ipath.name in winner_basenames
-            ):
-                continue
-            entries.append(
-                PlaylistEntry(
-                    short_name=ipath.stem,
-                    description=str(it.get("label", ipath.stem)),
-                    abs_path=ipath,
-                )
-            )
-    return entries
-
-
-def _resolve_conflicts(
-    plan: CopyPlan, pre: PreflightResult
-) -> tuple[list[dict[str, str]], frozenset[str]]:
-    """Return (existing_items, replaced_shorts) for an APPEND copy.
-
-    ``existing_items`` is the destination playlist's pre-existing
-    entries (carried forward by ``write_lpl``), or ``[]`` for non-APPEND
-    paths. A playlist that cannot be read raises ``PlaylistError``: APPEND
-    promises to keep those entries, so the copy must not replace them.
-    ``replaced_shorts`` is the set of names targeted by REPLACE /
-    REPLACE_AND_RECYCLE decisions.
-    """
-    existing_items: list[dict[str, str]] = []
-    if pre.existing_playlist and plan.conflict_strategy is ConflictStrategy.APPEND:
-        existing_items = read_lpl(plan.playlist_file)
-    replaced_shorts = frozenset(
-        d.replaces
-        for d in plan.append_decisions.values()
-        if d.kind in (AppendDecisionKind.REPLACE, AppendDecisionKind.REPLACE_AND_RECYCLE)
-        and d.replaces is not None
-    )
-    return existing_items, replaced_shorts
-
-
-@dataclass
-class _RunState:
-    """What a run has done so far, kept so a crash can still be reported.
-
-    mame-curator-1157: the outcome lists are the run's own lists, filled in
-    place, so they hold every file finished before an exception.
-    """
-
-    started_at: datetime
-    session_id: str
-    plan_summary: PlanSummary | None = None
-    bios_set: frozenset[str] = frozenset()
-    started: bool = False  # `copy_started` is in the activity log
-    warnings: list[str] = field(default_factory=list)
-    succeeded: list[CopyOutcome] = field(default_factory=list)
-    skipped: list[CopyOutcome] = field(default_factory=list)
-    failed: list[CopyOutcome] = field(default_factory=list)
-    overwritten: list[OverwriteRecord] = field(default_factory=list)
-    recycled: list[RecycleRecord] = field(default_factory=list)
+# Typed as Literal so CopyOutcome.role narrows without `# type: ignore`.
+_Role = Literal["winner", "bios"]
+_Progress = Callable[[str, int, int], None]
 
 
 def run_copy(
     plan: CopyPlan,
     *,
     controller: CopyController | None = None,
-    on_progress: Callable[[str, int, int], None] | None = None,
+    on_progress: _Progress | None = None,
     data_dir: Path = Path("data"),
     on_crash: Callable[[CopyReport], None] | None = None,
 ) -> CopyReport:
@@ -198,7 +70,7 @@ def run_copy(
     `copy_aborted` event and hands an `ERROR` report of the files done so far
     to ``on_crash``; then the exception propagates unchanged.
     """
-    state = _RunState(started_at=datetime.now(UTC), session_id=_new_session_id())
+    state = RunState(started_at=datetime.now(UTC), session_id=new_session_id())
     try:
         return _run_copy(
             plan,
@@ -209,462 +81,243 @@ def run_copy(
         )
     except Exception as exc:
         if state.started:
-            _record_crash(state, exc, data_dir=data_dir, on_crash=on_crash)
+            record_crash(state, exc, data_dir=data_dir, on_crash=on_crash)
         raise
-
-
-def _record_crash(
-    state: _RunState,
-    exc: Exception,
-    *,
-    data_dir: Path,
-    on_crash: Callable[[CopyReport], None] | None,
-) -> None:
-    """Log the crash to the activity log and build its report. Never raises."""
-    record_copy_error(
-        exc,
-        session_id=state.session_id,
-        recycled_count=len(state.recycled),
-        log_path=data_dir / "activity.jsonl",
-    )
-    if on_crash is None or state.plan_summary is None:
-        return
-    try:
-        report = CopyReport(
-            session_id=state.session_id,
-            started_at=state.started_at,
-            finished_at=datetime.now(UTC),
-            status=CopyReportStatus.ERROR,
-            plan_summary=state.plan_summary,
-            succeeded=tuple(sorted(state.succeeded, key=lambda o: o.short_name)),
-            skipped=tuple(sorted(state.skipped, key=lambda o: o.short_name)),
-            failed=tuple(sorted(state.failed, key=lambda o: o.short_name)),
-            overwritten=tuple(state.overwritten),
-            recycled=tuple(state.recycled),
-            bios_included=tuple(sorted(state.bios_set)),
-            bytes_copied=sum(o.bytes for o in state.succeeded),
-            warnings=(
-                *state.warnings,
-                f"stopped because of an error: {short_error_message(exc)}",
-            ),
-        )
-        on_crash(report)
-    except Exception:
-        logger.exception("could not hand on the report of a crashed copy")
 
 
 def _run_copy(
     plan: CopyPlan,
     *,
     ctl: CopyController,
-    on_progress: Callable[[str, int, int], None] | None,
+    on_progress: _Progress | None,
     data_dir: Path,
-    state: _RunState,
+    state: RunState,
 ) -> CopyReport:
-    started_at, session_id = state.started_at, state.session_id
-
     bios_set, bios_warnings = resolve_bios_dependencies(plan.winners, plan.bios_chain)
-    plan_summary = _make_plan_summary(plan, len(bios_set))
+    plan_summary = make_plan_summary(plan, len(bios_set))
     state.plan_summary, state.bios_set = plan_summary, bios_set
 
     # mame-curator-1152: before copy_started, so a refused playlist leaves no
     # started copy in the activity log and no file touched.
     pre = preflight(plan)
-    existing_items, replaced_shorts = _resolve_conflicts(plan, pre)
-
-    # Activity: copy_started.
-    append_activity(
-        ActivityEvent(
-            timestamp=started_at,
-            event_type=ActivityEventType.COPY_STARTED,
-            summary=f"copy started: {len(plan.winners)} winners + {len(bios_set)} BIOS",
-            session_id=session_id,
-            details=CopyStartedDetails(
-                plan_summary=plan_summary,
-                conflict_strategy=plan.conflict_strategy,
-            ),
-        ),
-        log_path=data_dir / "activity.jsonl",
-    )
-    state.started = True
+    existing_items, replaced_shorts = resolve_conflicts(plan, pre)
+    log_started(plan, state, plan_summary, data_dir=data_dir)
 
     # FP08 R1 (Cluster R): quote w.name via repr() — the BIOS short-name
-    # flows from DAT data (user-controlled). Same threat model as FP08 A1
-    # at runner.py:240; missed by FP08's initial `warnings.append(f"...")`
-    # grep because this site uses the list-comprehension form.
-    warnings = state.warnings
-    warnings.extend(f"{w.name!r}: {w.kind}" for w in bios_warnings)
+    # flows from DAT data (user-controlled).
+    state.warnings.extend(f"{w.name!r}: {w.kind}" for w in bios_warnings)
 
     # DS02 A4: CANCEL idempotency guard extracted; see helper docstring.
-    if _should_cancel_for_playlist_conflict(plan, pre):
-        return _finalize(
-            plan=plan,
-            started_at=started_at,
-            session_id=session_id,
-            data_dir=data_dir,
-            status=CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT,
-            plan_summary=plan_summary,
-            bios_set=bios_set,
-            warnings=warnings,
+    if should_cancel_for_playlist_conflict(plan, pre):
+        status = CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT
+        return finish_early(plan, state, plan_summary, status, data_dir=data_dir)
+    if ctl.should_cancel():  # cancelled before any work
+        return finish_early(
+            plan, state, plan_summary, CopyReportStatus.CANCELLED, data_dir=data_dir
         )
 
-    succeeded, skipped, failed = state.succeeded, state.skipped, state.failed
-    overwritten, recycled = state.overwritten, state.recycled
-    bytes_copied = 0
-
-    # Build the file list: winners first (preserves "winner" role), then BIOS.
-    # Typed as Literal so CopyOutcome.role narrows without `# type: ignore`.
-    work: list[tuple[str, Literal["winner", "bios"]]] = [
-        (w, "winner") for w in sorted(plan.winners)
-    ]
+    # Winners first (preserves the "winner" role), then BIOS.
+    work: list[tuple[str, _Role]] = [(w, "winner") for w in sorted(plan.winners)]
     work += [(b, "bios") for b in sorted(bios_set)]
-
-    # Cancellation check before any work.
-    if ctl.should_cancel():
-        return _finalize(
-            plan=plan,
-            started_at=started_at,
-            session_id=session_id,
-            data_dir=data_dir,
-            status=CopyReportStatus.CANCELLED,
-            plan_summary=plan_summary,
-            bios_set=bios_set,
-            warnings=warnings,
-            recycled=tuple(recycled),
-        )
-
     for short, role in work:
-        # Pause boundary.
-        ctl.wait_if_paused()
+        ctl.wait_if_paused()  # pause boundary
         if ctl.should_cancel():
             break
+        _copy_item(plan, short, role, state=state, on_progress=on_progress, data_dir=data_dir)
 
-        try:
-            src, dst = zip_path(plan.source_dir, short), zip_path(plan.dest_dir, short)
-        except UnsafeShortNameError as exc:
-            failed.append(
-                CopyOutcome(
-                    short_name=short,
-                    role=role,
-                    status=CopyOutcomeStatus.FAILED,
-                    src=plan.source_dir,
-                    dst=plan.dest_dir,
-                    error=str(exc),
-                )
-            )
-            if on_progress is not None:
-                on_progress(short, 0, 0)
-            continue
-
-        if not src.exists():
-            skipped.append(
-                CopyOutcome(
-                    short_name=short,
-                    role=role,
-                    status=CopyOutcomeStatus.SKIPPED_MISSING_SOURCE,
-                    src=src,
-                    dst=dst,
-                )
-            )
-            # mame-curator-1103: a skipped or failed file reports one
-            # done == total tick so a progress consumer counts it as
-            # processed and the counter can reach files_total.
-            if on_progress is not None:
-                on_progress(short, 0, 0)
-            continue
-
-        # APPEND + cross-version conflict handling.
-        # The caller (CLI / API) pre-detects same-parent-group conflicts using
-        # its cloneof_map and supplies `AppendDecision(kind=..., replaces=...)`
-        # in plan.append_decisions. Presence of `short` in the map IS the
-        # conflict signal; `replaces` names which existing entry is targeted.
-        # Absent: the winner is added alongside existing entries.
-        if (
-            role == "winner"
-            and plan.conflict_strategy is ConflictStrategy.APPEND
-            and short in plan.append_decisions
-        ):
-            decision = plan.append_decisions[short]
-            if decision.kind is AppendDecisionKind.KEEP_EXISTING:
-                skipped.append(
-                    CopyOutcome(
-                        short_name=short,
-                        role=role,
-                        status=CopyOutcomeStatus.SKIPPED_EXISTING_VERSION,
-                        src=src,
-                        dst=dst,
-                    )
-                )
-                if on_progress is not None:
-                    on_progress(short, 0, 0)
-                continue
-            # REPLACE / REPLACE_AND_RECYCLE: caller specifies which existing
-            # entry is replaced via `replaces`. Without it, no record is
-            # emitted (the winner still copies normally below).
-            if decision.replaces is not None:
-                replaced_short = decision.replaces
-                overwritten.append(OverwriteRecord(old_short=replaced_short, new_short=short))
-                if not is_safe_short_name(replaced_short):
-                    warnings.append(f"not recycling {replaced_short!r}: not a plain game name")
-                elif decision.kind is AppendDecisionKind.REPLACE_AND_RECYCLE:
-                    old_zip = zip_path(plan.dest_dir, replaced_short)
-                    if old_zip.exists() and not plan.dry_run:
-                        try:
-                            new_path = recycle_file(
-                                old_zip,
-                                reason="REPLACE_AND_RECYCLE",
-                                session_id=session_id,
-                                recycle_root=data_dir / "recycle",
-                            )
-                            recycled.append(
-                                RecycleRecord(
-                                    original_path=old_zip,
-                                    recycled_path=new_path,
-                                    reason="REPLACE_AND_RECYCLE",
-                                )
-                            )
-                        except (OSError, CopyError) as exc:
-                            # mame-curator-1192: OSError too, as the OVERWRITE
-                            # recycle site catches — _session_lock can raise a
-                            # raw PermissionError, which must not stop the copy.
-                            # FP08 A1: quote old_zip.name via repr() — the
-                            # basename embeds replaced_short which flows from
-                            # AppendDecision.replaces (a DAT machine short
-                            # name; user-data path). Same threat model as
-                            # FP06 B3 / FP07 A4.
-                            warnings.append(f"recycle of {old_zip.name!r} failed: {exc}")
-
-        if plan.dry_run:
-            # Pretend success without writing.
-            size = src.stat().st_size
-            succeeded.append(
-                CopyOutcome(
-                    short_name=short,
-                    role=role,
-                    status=CopyOutcomeStatus.SUCCEEDED,
-                    src=src,
-                    dst=dst,
-                    bytes=size,
-                )
-            )
-            bytes_copied += size
-            if on_progress is not None:
-                on_progress(short, size, size)
-            continue
-
-        per_file_progress: Callable[[int, int], None] | None = (
-            functools.partial(on_progress, short) if on_progress is not None else None
-        )
-
-        try:
-            outcome = copy_one(src, dst, short_name=short, role=role, progress=per_file_progress)
-        except (OSError, CopyError) as exc:
-            # FP05 A3: narrowed from `except Exception`. CopyError is the
-            # project's typed failure mode (`copy/spec.md` § Errors); OSError
-            # is defense-in-depth for any path that doesn't transit
-            # CopyExecutionError. MemoryError, RecursionError, and other
-            # non-OSError Exceptions propagate — continuing the loop after
-            # OOM is exactly wrong.
-            logger.exception("copy_one(short=%s, role=%s) failed", short, role)
-            failed.append(
-                CopyOutcome(
-                    short_name=short,
-                    role=role,
-                    status=CopyOutcomeStatus.FAILED,
-                    src=src,
-                    dst=dst,
-                    error=str(exc),
-                )
-            )
-            if on_progress is not None:
-                on_progress(short, 0, 0)
-            continue
-
-        if outcome.status is CopyOutcomeStatus.SUCCEEDED:
-            succeeded.append(outcome)
-            bytes_copied += outcome.bytes
-        elif outcome.status is CopyOutcomeStatus.SKIPPED_IDEMPOTENT:
-            skipped.append(outcome)
-            if on_progress is not None:
-                on_progress(short, outcome.bytes, outcome.bytes)
-
-    # OVERWRITE with delete_existing_zips: recycle every existing dest zip
-    # except the ones we just wrote. A cancel means no recycling.
+    # A cancel means no OVERWRITE clear-out.
     if (
         plan.conflict_strategy is ConflictStrategy.OVERWRITE
         and plan.delete_existing_zips
         and not plan.dry_run
         and not ctl.should_cancel()
     ):
-        # Idempotently skipped files are this run's files too (already
-        # present and current); recycling them would leave the new
-        # playlist pointing at missing zips.
-        wrote = {o.dst.name for o in succeeded}
-        wrote |= {o.dst.name for o in skipped if o.status is CopyOutcomeStatus.SKIPPED_IDEMPOTENT}
-        for existing in plan.dest_dir.glob("*.zip"):
-            if existing.name in wrote:
-                continue
-            try:
-                new_path = recycle_file(
-                    existing,
-                    reason="OVERWRITE_DELETE_EXISTING",
-                    session_id=session_id,
-                    recycle_root=data_dir / "recycle",
-                )
-            except (OSError, CopyError) as exc:
-                # The copies are done; keep the playlist and the report.
-                warnings.append(f"recycle of {existing.name!r} failed: {exc}")
-                continue
-            recycled.append(
-                RecycleRecord(
-                    original_path=existing,
-                    recycled_path=new_path,
-                    reason="OVERWRITE_DELETE_EXISTING",
-                )
-            )
+        recycle_unwritten_zips(plan, state, data_dir=data_dir)
 
-    # FP05 A1: cancel(recycle_partial=True) recycles every successfully-copied
-    # file from the current session. Spec § Pause/Resume/Cancel: "every
-    # successfully-copied file from the current session is moved to recycle
-    # … one `copy_aborted` activity event with `details.recycled_count = N`."
-    # Both winner and bios outcomes are session-owned (recycle is keyed on
-    # session_id; the user can restore a partial run end-to-end).
     cancelled_mid = ctl.should_cancel()
     if cancelled_mid and ctl.recycle_partial and not plan.dry_run:
-        # Closing-review R1: use the project-default `data/recycle/` root,
-        # matching the OVERWRITE_DELETE_EXISTING and REPLACE_AND_RECYCLE call
-        # sites elsewhere in this runner. The earlier dest-local recycle path
-        # would split recycle entries across two roots (project-local from
-        # other branches; dest-local from cancel-partial) — `purge_recycle`
-        # only knows the project default.
-        for outcome in tuple(succeeded):
-            try:
-                new_path = recycle_file(
-                    outcome.dst,
-                    reason="CANCELLED_RECYCLE_PARTIAL",
-                    session_id=session_id,
-                    recycle_root=data_dir / "recycle",
-                )
-            except (OSError, RecycleError):
-                logger.exception(
-                    "recycle_file(short=%s) failed during cancel-with-partial",
-                    outcome.short_name,
-                )
-                continue
-            recycled.append(
-                RecycleRecord(
-                    original_path=outcome.dst,
-                    recycled_path=new_path,
-                    reason="CANCELLED_RECYCLE_PARTIAL",
-                )
-            )
-        # Files have been moved out of dst; drop them from `succeeded` so
-        # the report doesn't claim files that no longer exist at the
-        # destination.
-        succeeded.clear()
+        recycle_partial_copy(state, data_dir=data_dir)
 
     # Write playlist (skip when dry-run or cancelled-mid-flight).
     if not plan.dry_run and not cancelled_mid:
-        entries = _build_playlist_entries(plan, succeeded, skipped, existing_items, replaced_shorts)
+        entries = build_playlist_entries(
+            plan, state.succeeded, state.skipped, existing_items, replaced_shorts
+        )
         write_lpl(plan.playlist_file, entries)
 
-    finished_at = datetime.now(UTC)
-    if cancelled_mid:
-        status = CopyReportStatus.CANCELLED
-    elif failed:
-        status = CopyReportStatus.PARTIAL_FAILURE
-    else:
-        status = CopyReportStatus.OK
-
-    report = CopyReport(
-        session_id=session_id,
-        started_at=started_at,
-        finished_at=finished_at,
-        status=status,
-        plan_summary=plan_summary,
-        succeeded=tuple(sorted(succeeded, key=lambda o: o.short_name)),
-        skipped=tuple(sorted(skipped, key=lambda o: o.short_name)),
-        failed=tuple(sorted(failed, key=lambda o: o.short_name)),
-        overwritten=tuple(overwritten),
-        recycled=tuple(recycled),
-        bios_included=tuple(sorted(bios_set)),
-        chd_missing=_chd_missing(plan),
-        bytes_copied=bytes_copied,
-        warnings=tuple(warnings),
-    )
-
-    # Activity: copy_finished or copy_aborted.
-    if status in (CopyReportStatus.OK, CopyReportStatus.PARTIAL_FAILURE):
-        append_activity(
-            ActivityEvent(
-                timestamp=finished_at,
-                event_type=ActivityEventType.COPY_FINISHED,
-                summary=(
-                    f"copy {status.value.lower()}: {len(succeeded)} ok, "
-                    f"{len(skipped)} skipped, {len(failed)} failed"
-                ),
-                session_id=session_id,
-                details=CopyFinishedDetails(
-                    report_summary=ReportSummary(
-                        succeeded_count=len(succeeded),
-                        skipped_count=len(skipped),
-                        failed_count=len(failed),
-                        bytes_copied=bytes_copied,
-                    )
-                ),
-            ),
-            log_path=data_dir / "activity.jsonl",
-        )
-    else:
-        append_activity(
-            ActivityEvent(
-                timestamp=finished_at,
-                event_type=ActivityEventType.COPY_ABORTED,
-                summary=f"copy aborted: {status.value.lower()}",
-                session_id=session_id,
-                details=CopyAbortedDetails(
-                    reason=status.value,
-                    recycled_count=len(recycled),
-                ),
-            ),
-            log_path=data_dir / "activity.jsonl",
-        )
-
-    return report
+    return finish_report(plan, state, plan_summary, cancelled=cancelled_mid, data_dir=data_dir)
 
 
-def _finalize(
-    *,
+def _record_unfinished(
+    bucket: list[CopyOutcome], outcome: CopyOutcome, on_progress: _Progress | None
+) -> None:
+    """Record a file that was skipped or failed, and tick it done.
+
+    mame-curator-1103: a skipped or failed file reports one done == total
+    tick so a progress consumer counts it as processed and the counter can
+    reach files_total.
+    """
+    bucket.append(outcome)
+    if on_progress is not None:
+        on_progress(outcome.short_name, 0, 0)
+
+
+def _copy_item(
     plan: CopyPlan,
-    started_at: datetime,
-    session_id: str,
-    status: CopyReportStatus,
-    plan_summary: PlanSummary,
-    bios_set: frozenset[str],
-    warnings: list[str],
-    recycled: tuple[RecycleRecord, ...] = (),
+    short: str,
+    role: _Role,
+    *,
+    state: RunState,
+    on_progress: _Progress | None,
     data_dir: Path,
-) -> CopyReport:
-    finished_at = datetime.now(UTC)
-    report = CopyReport(
-        session_id=session_id,
-        started_at=started_at,
-        finished_at=finished_at,
-        status=status,
-        plan_summary=plan_summary,
-        bios_included=tuple(sorted(bios_set)),
-        chd_missing=_chd_missing(plan),
-        recycled=recycled,
-        warnings=tuple(warnings),
+) -> None:
+    """Copy, skip or fail one file of the run, recording its outcome in ``state``."""
+    try:
+        src, dst = zip_path(plan.source_dir, short), zip_path(plan.dest_dir, short)
+    except UnsafeShortNameError as exc:
+        failure = CopyOutcome(
+            short_name=short,
+            role=role,
+            status=CopyOutcomeStatus.FAILED,
+            src=plan.source_dir,
+            dst=plan.dest_dir,
+            error=str(exc),
+        )
+        _record_unfinished(state.failed, failure, on_progress)
+        return
+
+    def skip(status: CopyOutcomeStatus) -> None:
+        outcome = CopyOutcome(short_name=short, role=role, status=status, src=src, dst=dst)
+        _record_unfinished(state.skipped, outcome, on_progress)
+
+    if not src.exists():
+        skip(CopyOutcomeStatus.SKIPPED_MISSING_SOURCE)
+        return
+
+    decision = _append_decision(plan, short, role)
+    if decision is not None:
+        if decision.kind is AppendDecisionKind.KEEP_EXISTING:
+            skip(CopyOutcomeStatus.SKIPPED_EXISTING_VERSION)
+            return
+        _replace_existing(plan, short, decision, state=state, data_dir=data_dir)
+
+    if plan.dry_run:
+        # Pretend success without writing.
+        size = src.stat().st_size
+        state.succeeded.append(
+            CopyOutcome(
+                short_name=short,
+                role=role,
+                status=CopyOutcomeStatus.SUCCEEDED,
+                src=src,
+                dst=dst,
+                bytes=size,
+            )
+        )
+        state.bytes_copied += size
+        if on_progress is not None:
+            on_progress(short, size, size)
+        return
+
+    _copy_file(short, role, src, dst, state=state, on_progress=on_progress)
+
+
+def _append_decision(plan: CopyPlan, short: str, role: _Role) -> AppendDecision | None:
+    """The caller's decision for a winner that conflicts with the APPEND playlist.
+
+    The caller (CLI / API) pre-detects same-parent-group conflicts using its
+    cloneof_map and supplies `AppendDecision(kind=..., replaces=...)` in
+    plan.append_decisions. Presence of `short` in the map IS the conflict
+    signal; `replaces` names which existing entry is targeted. Absent: the
+    winner is added alongside existing entries.
+    """
+    if role != "winner" or plan.conflict_strategy is not ConflictStrategy.APPEND:
+        return None
+    return plan.append_decisions.get(short)
+
+
+def _replace_existing(
+    plan: CopyPlan,
+    short: str,
+    decision: AppendDecision,
+    *,
+    state: RunState,
+    data_dir: Path,
+) -> None:
+    """REPLACE / REPLACE_AND_RECYCLE: record the replaced entry, recycle its zip if asked.
+
+    Without `replaces`, no record is made (the winner still copies normally).
+    """
+    if decision.replaces is None:
+        return
+    replaced_short = decision.replaces
+    state.overwritten.append(OverwriteRecord(old_short=replaced_short, new_short=short))
+    if not is_safe_short_name(replaced_short):
+        state.warnings.append(f"not recycling {replaced_short!r}: not a plain game name")
+        return
+    if decision.kind is not AppendDecisionKind.REPLACE_AND_RECYCLE:
+        return
+    old_zip = zip_path(plan.dest_dir, replaced_short)
+    if not old_zip.exists() or plan.dry_run:
+        return
+    try:
+        new_path = recycle_file(
+            old_zip,
+            reason="REPLACE_AND_RECYCLE",
+            session_id=state.session_id,
+            recycle_root=data_dir / "recycle",
+        )
+    except (OSError, CopyError) as exc:
+        # mame-curator-1192: OSError too, as the OVERWRITE recycle site
+        # catches — _session_lock can raise a raw PermissionError, which must
+        # not stop the copy. FP08 A1: quote old_zip.name via repr() — the
+        # basename embeds replaced_short which flows from
+        # AppendDecision.replaces (a DAT machine short name; user-data path).
+        state.warnings.append(f"recycle of {old_zip.name!r} failed: {exc}")
+        return
+    state.recycled.append(
+        RecycleRecord(original_path=old_zip, recycled_path=new_path, reason="REPLACE_AND_RECYCLE")
     )
-    append_activity(
-        ActivityEvent(
-            timestamp=finished_at,
-            event_type=ActivityEventType.COPY_ABORTED,
-            summary=f"copy aborted: {status.value.lower()}",
-            session_id=session_id,
-            details=CopyAbortedDetails(reason=status.value, recycled_count=len(recycled)),
-        ),
-        log_path=data_dir / "activity.jsonl",
+
+
+def _copy_file(
+    short: str,
+    role: _Role,
+    src: Path,
+    dst: Path,
+    *,
+    state: RunState,
+    on_progress: _Progress | None,
+) -> None:
+    """Copy one file for real; a copy error fails that file and the run goes on."""
+    per_file_progress: Callable[[int, int], None] | None = (
+        functools.partial(on_progress, short) if on_progress is not None else None
     )
-    return report
+    try:
+        outcome = copy_one(src, dst, short_name=short, role=role, progress=per_file_progress)
+    except (OSError, CopyError) as exc:
+        # FP05 A3: narrowed from `except Exception`. CopyError is the
+        # project's typed failure mode (`copy/spec.md` § Errors); OSError
+        # is defense-in-depth for any path that doesn't transit
+        # CopyExecutionError. MemoryError, RecursionError, and other
+        # non-OSError Exceptions propagate — continuing the loop after
+        # OOM is exactly wrong.
+        logger.exception("copy_one(short=%s, role=%s) failed", short, role)
+        failure = CopyOutcome(
+            short_name=short,
+            role=role,
+            status=CopyOutcomeStatus.FAILED,
+            src=src,
+            dst=dst,
+            error=str(exc),
+        )
+        _record_unfinished(state.failed, failure, on_progress)
+        return
+
+    if outcome.status is CopyOutcomeStatus.SUCCEEDED:
+        state.succeeded.append(outcome)
+        state.bytes_copied += outcome.bytes
+    elif outcome.status is CopyOutcomeStatus.SKIPPED_IDEMPOTENT:
+        state.skipped.append(outcome)
+        if on_progress is not None:
+            on_progress(short, outcome.bytes, outcome.bytes)

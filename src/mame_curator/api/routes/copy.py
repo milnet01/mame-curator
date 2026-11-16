@@ -16,7 +16,8 @@ from mame_curator.api.errors import (
     FieldError,
     JobNotFoundError,
 )
-from mame_curator.api.jobs import JobManager, check_playlist_conflict, is_job_id
+from mame_curator.api.job_preflight import check_playlist_conflict
+from mame_curator.api.jobs import JobManager, is_job_id
 from mame_curator.api.routes._deps import get_jobs, get_world
 from mame_curator.api.schemas import (
     CopyAbortRequest,

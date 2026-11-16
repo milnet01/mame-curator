@@ -164,7 +164,7 @@ def test_copy_missing_source_still_invokes_on_progress(
 ) -> None:
     """mame-curator-1103 B2 — a SKIPPED_MISSING_SOURCE winner must still
     drive on_progress exactly once, done == total, so a progress consumer
-    (the SSE ``_ProgressSynthesizer`` / frontend counter) can count it as
+    (the SSE ``ProgressSynthesizer`` / frontend counter) can count it as
     processed.
 
     Investigation note (verbatim): "The runner skips a missing source with
