@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1258 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1259 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -2803,6 +2803,26 @@ P14 (per-game review state).
   Source: user-2026-11-10.
   Lanes: filter, api, frontend.
 
+- 📋 [mame-curator-1259] **Support FBNeo romsets as well as MAME.**
+  The user asked for this 2026-11-16: FBNeo (FinalBurn Neo) supports
+  games MAME does not. Today the app reads only MAME DATs and -listxml.
+  Nothing below is checked yet; check each before designing:
+  - Where FBNeo's DATs come from and their format (its own XML or
+    ClrMamePro DATs), and whether they carry cloneof / romof, so the
+    parent/clone join from -listxml (ADR-0002) is not needed.
+  - How FBNeo's romsets differ from MAME's for the same game: a MAME
+    zip may not load in FBNeo, so the two collections stay apart.
+  - The RetroArch core and playlist: FBNeo games need their own core
+    in mame.lpl's core fields, or their own playlist.
+  - What the INI sources (genre, mature, etc.) cover for FBNeo names.
+  Open design question for the user: a second library beside MAME,
+  or one library with a choice of emulator per game.
+  Needs a spec (several subsystems; parser, filter, copy, frontend).
+  **Layman:** FBNeo is another arcade emulator that runs some games MAME does not, or runs them better; the app should be able to sort and copy an FBNeo collection too.
+  Kind: feature.
+  Source: user-request-2026-11-16.
+  Lanes: parser, filter, copy, api, frontend.
+
 ### 📚 Documentation
 
 - ✅ [mame-curator-1029] **README hero shot + 4 screenshots (closed 2026-05-16).**
@@ -4373,7 +4393,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Group `api-server-core` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
-  - CR-05-7 [MEDIUM] (no file: no single-instance lock in src/): Nothing stops two app instances sharing one config and data folder, so edits silently overwrite each other (see CR-04-13 on the port claim). Fix: take an exclusive lock on a file in the data folder at startup and refuse, or point the browser at the running instance. ASK USER: On a second launch: refuse, or open the running instance?
+  - CR-05-7 [MEDIUM] (no file: no single-instance lock in src/): Nothing stops two app instances sharing one config and data folder, so edits silently overwrite each other (see CR-04-13 on the port claim). Fix: take an exclusive lock on a file in the data folder at startup and refuse, or point the browser at the running instance. USER DECIDED 2026-11-16: a second launch opens the browser on the running instance, then exits.
   - CR-05-11 [LOW] api/app.py:184-190: Shutdown closes the media client before cancelling the copy job and blocks the loop in thread.join. Fix: cancel the job first, and close each resource in its own `try`.
   - CR-05-14 (+RL-22) [LOW] api/app.py:206: The FastAPI app reports version 0.0.1 in OpenAPI.
   - CR-05-12 [LOW] api/app.py:78: A bare /api or /media returns the SPA index.html with status 200.
@@ -4515,7 +4535,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-10-4 [MEDIUM] fe/components/alternatives/AlternativesDrawer.tsx:284: This is one of three "Retry while retrying" buttons, and they have drifted apart: Fix: one shared retry button used by all three.
   - RL-42 (+RR-08-3, RL-48) [LEAD] fe/components/alternatives/AlternativesDrawer.tsx:284: `disabled={retrying}` drops keyboard focus during a retry, which is the fault RouteLoadError's comment describes.
   - RL-50 [LEAD] fe/components/library/CopyModal.tsx:147: `absoluteIndex` is negative with fewer than 3 warnings, and the first warning's key changes as warnings arrive (−2 → −1 → 0). That contradicts the "keeps DOM identity stable" comment
-  - CR-09-11 (+RR-10-3) [LOW] fe/components/library/CopyModal.tsx:74: CopyModal's comment says nothing reattaches to a job, contradicting the reattached prop. ASK USER: May the copy dialog be closed while a copy runs, now that copies reattach?
+  - CR-09-11 (+RR-10-3) [LOW] fe/components/library/CopyModal.tsx:74: CopyModal's comment says nothing reattaches to a job, contradicting the reattached prop. USER DECIDED 2026-11-16: yes, closing hides the dialog; the copy goes on and reopening shows its progress.
   - RL-58 [LEAD] fe/components/library/CopyModal.tsx:91: the Library's progress bar uses `pct` even when the copy is complete, so it can stop short of 100% where the guide shows 100%.
   - RL-52 [LEAD] fe/components/library/DryRunModal.tsx:64-66: each label is printed twice ("New … 5 new"). May be intended
   - RL-49 [LEAD] fe/components/library/FiltersSidebar.tsx:91: `searchDraft` never follows an outside change to `value.search`, so the box can show stale text. I did not find which outside change reaches the full view while the sidebar is mounted
@@ -4537,7 +4557,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   close-findings-2026-11-11/ledger.json (not in the repo).
   - CR-09-9 [LOW] fe/pages/LibraryPage.tsx:247: Adding one game at the cart cap is silently ignored, while bulk add shows a toast. Fix: have `add` report the cap, and toast it.
   - CR-09-6 [MEDIUM] fe/pages/LibraryPage.tsx:404-408: A dry run in flight is not part of the copy lock, so its modal's Copy can start a second job. Fix: add `dryRun.isPending` to `copyDisabled`, and make `handleCopy` return early when `copySession.state !== null`.
-  - CR-09-5 [MEDIUM] fe/pages/useLibraryController.ts:113: The full view shows only the first 200 games with no "showing N of M" hint. Fix: show the "showing first N of M" line in the full view too, or page or infinite-scroll the grid. ASK USER: Should the full Library grid page past 200, or just say "showing first 200 of N"?
+  - CR-09-5 [MEDIUM] fe/pages/useLibraryController.ts:113: The full view shows only the first 200 games with no "showing N of M" hint. Fix: show the "showing first N of M" line in the full view too, or page or infinite-scroll the grid. USER DECIDED 2026-11-16: show every game, loading more as the user scrolls.
   - CR-09-7 [LOW] fe/pages/useLibraryController.ts:208: Bulk add has no in-flight guard, so a double-click runs two pagination loops. Fix: a pending flag that also disables the button.
   - RR-09-3 (+RL-45) [MEDIUM] fe/pages/useVersionChoice.ts:63: The same warning appears in two places, and the count has drifted. Fix: VersionPage.tsx:71` counts `unusable`. The string's comment says it counts "older choices", and this file's own comment at line 16 says `unusable` names those choices. A stranger cannot tell which count is right without asking. — Fix: count `unusable` in both places, or state that the two lists always have the same length.
   **Layman:** Faults on the Library page: filters, paging, the copy dialog and the cards.
@@ -4818,7 +4838,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
   - CR-09-1 (+CR-07-1, RR-10-1, RR-10-2, RL-53) [HIGH] fe/components/alternatives/WhyPickedPanel.tsx:9: WhyPickedPanel and NotesEditor are never mounted, so notes cannot be viewed or edited and "why picked" never shows. Fix: mount both panels in the drawer, with an explanation query and a notes GET/PUT hook. NotesEditor needs `key={winner.short_name}`, as its own contract requires. Otherwise, strike both from design § 8 and P06. USER DECIDED 2026-11-11: show both the notes box and the "Why was this picked?" panel in the side panel.
-  - CR-08-4 (+RR-08-11) [LOW] fe/hooks/useCart.ts:187: useCart.totalBytes is always 0, though P15 promises a cart size in the bottom bar. ASK USER: Is the cart size (GB) in the bottom bar still owed?
+  - CR-08-4 (+RR-08-11) [LOW] fe/hooks/useCart.ts:187: useCart.totalBytes is always 0, though P15 promises a cart size in the bottom bar. USER DECIDED 2026-11-16: build it; the bottom bar shows the chosen games' total size.
   - CR-07-13 [LOW] api/routes/copy.py:179,218: /api/copy/history and /report have no frontend caller; whether a UI was promised is unknown. ASK USER: Was a copy-history UI promised, or is the Activity page its replacement?
   - CR-07-2 [HIGH] api/schemas.py:162-163: Settings offers default_sort and show_alternatives_indicator, and nothing reads them. Fix: The user changes the setting, it saves, and nothing happens. Fix: wire the sort (a `sort=` query parameter, or sort on the client) and the alternatives indicator on `GameCard`, or remove both from Settings. Removal still keeps the keys readable, under versioning-overrides item 1. USER DECIDED 2026-11-11: make Default sort and the other-versions mark work.
   **Layman:** Some features are built but never shown; two you decided to show, two need your answer.
