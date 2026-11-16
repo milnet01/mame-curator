@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import shutil
 import sys
@@ -19,11 +18,13 @@ from mame_curator.api.errors import (
     SnapshotNotFoundError,
     SnapshotUnusableError,
 )
+from mame_curator.api.notes import load_notes_or_set_aside
 from mame_curator.api.persist import (
     is_snapshot_id,
     list_snapshots,
     restore_snapshot,
     snapshot_files,
+    user_files,
     write_yaml_atomic,
 )
 from mame_curator.api.pictures import load_pictures
@@ -319,16 +320,9 @@ async def restore_config_snapshot(
         if not is_snapshot_id(snap_id) or not snap_dir.is_dir():
             raise SnapshotNotFoundError(f"snapshot id not found: {snap_id!r}")
 
-        targets = {
-            "config.yaml": world.config_path,
-            "overrides.yaml": world.config_path.parent / "overrides.yaml",
-            "sessions.yaml": world.config_path.parent / "sessions.yaml",
-            "notes.json": world.data_dir / "notes.json",
-            "state.yaml": world.data_dir / "state.yaml",
-            # mame-curator-1146: a snapshot from before choices does not
-            # cover this name, so restore_snapshot leaves the file alone.
-            "pictures.json": world.data_dir / "pictures.json",
-        }
+        # A snapshot that does not cover a name (one from before
+        # pictures.json, mame-curator-1146) leaves that file alone.
+        targets = user_files(world.config_path, world.data_dir)
         # The restore is itself undoable: keep what it is about to replace.
         undo_id = snapshot_files(snapshots_dir, targets, keep=snap_id)
 
@@ -337,7 +331,7 @@ async def restore_config_snapshot(
             new_config = load_app_config(world.config_path)
             new_overrides = load_overrides(targets["overrides.yaml"])
             new_sessions = load_sessions(targets["sessions.yaml"])
-            new_notes = _read_json_dict(targets["notes.json"])
+            new_notes = load_notes_or_set_aside(targets["notes.json"])
             new_review_state = load_review_state(targets["state.yaml"])
             new_pictures = load_pictures(targets["pictures.json"])
         except (ConfigError, FilterError, OSError, ValueError) as exc:
@@ -374,15 +368,3 @@ def _stringify(obj: Any) -> Any:
     if isinstance(obj, list):
         return [_stringify(v) for v in obj]
     return obj
-
-
-def _read_json_dict(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):  # ValueError: bad JSON, or bad UTF-8.
-        return {}
-    if not isinstance(raw, dict):
-        return {}
-    return {str(k): str(v) for k, v in raw.items()}

@@ -32,6 +32,7 @@ from mame_curator.api.schemas import (
     ValidateRequest,
     ValidateResponse,
 )
+from mame_curator.api.schemas_games import NOTE_MAX_CHARS
 from mame_curator.api.state import WorldState, replace_world
 from mame_curator.copy import resolve_bios_dependencies
 from mame_curator.filter import ReviewStateFilter, ReviewStateValue
@@ -400,7 +401,13 @@ def get_explanation(name: str, world: WorldState = Depends(get_world)) -> Explan
 def get_notes(name: str, world: WorldState = Depends(get_world)) -> Notes:
     if name not in world.machines:
         raise GameNotFoundError(f"game not found: {name!r}")
-    return Notes(notes=world.notes.get(name, ""))
+    text = world.notes.get(name, "")
+    if len(text) > NOTE_MAX_CHARS:
+        # Hand-edited past the limit: show it cut, and keep the file whole
+        # until the user saves this note (mame-curator-1229).
+        logger.warning("note for %r is longer than %d characters", name, NOTE_MAX_CHARS)
+        text = text[:NOTE_MAX_CHARS]
+    return Notes(notes=text)
 
 
 @router.put("/api/games/{name}/notes", response_model=Notes)

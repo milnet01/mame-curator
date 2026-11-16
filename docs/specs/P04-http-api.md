@@ -88,7 +88,7 @@ class WorldState(BaseModel):
 1. Load `config.yaml` from `--config` (or `./config.yaml`); parse via `AppConfig` Pydantic model. Raise `ConfigError` if missing or invalid; uvicorn bails before binding the port.
 2. Run `parse_dat`, `parse_catver`, `parse_languages`, `parse_bestgames`, `parse_mature`, `parse_series`, `parse_listxml_cloneof`, `parse_listxml_disks`, `parse_listxml_bios_chain` against the configured paths. Wrap any `ParserError` into `ApiStartupError` with the failing path quoted via `repr()` per FP07 A5.
 3. Load `overrides.yaml` and `sessions.yaml` via the existing loaders.
-4. Load `data/notes.json` (default: `{}` if missing).
+4. Load `data/notes.json` (default: `{}` if missing). One that is not a JSON object is renamed to `notes.json.unreadable-<UTC time>` and logged, and the app starts with no notes, so the next save cannot write over it (`api/notes.py`, mame-curator-1229).
 5. Build `FilterContext` and run `run_filter` → `FilterResult`.
 6. Construct `WorldState`; assign to `app.state.world`.
 7. Initialize `app.state.job: JobManager`. (`JobManager` itself is created here but holds no job yet.)

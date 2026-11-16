@@ -69,6 +69,21 @@ def _patch_config_with_ini_paths(
         )
         return
 
+    # The rewrite drops comments, as every config save does, so first keep
+    # the file as it was; Settings lists the snapshot (mame-curator-1229).
+    from mame_curator.api.persist import snapshot_files
+    from mame_curator.api.state import data_dir_for
+
+    try:
+        snapshot_files(data_dir_for(config_path) / "snapshots", {"config.yaml": config_path})
+    except OSError as exc:
+        _warn_config_not_updated(
+            console,
+            config_path,
+            f"could not be copied first ({escape(str(exc))}), so was not updated.",
+        )
+        return
+
     new_body = yaml.safe_dump(data, sort_keys=False)
     try:
         atomic_write_text(config_path, new_body)

@@ -286,6 +286,11 @@ Routers are aggregated in `routes/__init__.py` and mounted by `create_app`.
 | GET | `/api/media/sources` | `SourceReadiness` | |
 | PUT | `/api/media/sources/{name}/secret` | `204 No Content` | |
 
+A note is saved only up to `NOTE_MAX_CHARS` (`api/schemas_games.py`). One
+hand-edited past it is returned cut to that length, with a WARNING, and the
+file keeps the whole note until the user saves that game's note
+(mame-curator-1229).
+
 The three picture routes live in `routes/pictures.py`; their contract is
 `docs/specs/mame-curator-1146-picture-choice.md` §4.4. A save takes only a
 source in `chain_for(kind)` (else 422 `media_source_unknown`) and fetches
@@ -509,17 +514,27 @@ does unless its caller asks otherwise:
 - `snapshot_files` captures the pre-write state before each config mutation;
   `restore_snapshot` reverts to a captured snapshot id (unknown id, or one not
   in the snapshot id format → `SnapshotNotFoundError` 404). Old snapshots are
-  pruned, oldest first, except the one a restore is about to read.
+  pruned, oldest first, except the one just taken, one a restore is about to
+  read, and the newest that holds `config.yaml`, so frequent override or
+  picture saves cannot push out every config one. A file that could not be
+  read is left out of what its snapshot covers, so restoring it leaves the
+  live file alone (mame-curator-1229).
 - The restore route's targets are `config.yaml`, `overrides.yaml`,
   `sessions.yaml`, `data/notes.json`, `data/state.yaml` and
-  `data/pictures.json` (mame-curator-1146), keyed by bare name. A snapshot
+  `data/pictures.json` (mame-curator-1146), keyed by bare name. They are
+  `persist.user_files`, the one list an update's rollback snapshot and the
+  import also use; the import leaves out `state.yaml`, since a backup holds
+  no review marks (mame-curator-1229). A snapshot
   taken before 1146 does not cover `pictures.json`, so it is left alone. The
   route first snapshots the current state of all six, so a restore can
   be undone. It then reloads each into the world, review state included,
   so an update snapshot restores whole and the next review write cannot
   save stale state over the restored file (mame-curator-1010 §4.3 step 2).
   If a restored file will not load, the files it replaced are put back and the
-  reply is `SnapshotUnusableError` (422) (mame-curator-1145 INV-16). This is how
+  reply is `SnapshotUnusableError` (422) (mame-curator-1145 INV-16).
+  `notes.json` is the exception: one that is not a JSON object is renamed
+  aside and logged, as at start-up, and the restore goes ahead with no notes
+  (`api/notes.py`, mame-curator-1229). This is how
   a snapshot from an older schema is handled: `load_app_config` drops keys it no
   longer knows and folds `picker:`; anything else that does not fit is refused
   whole, with the current settings untouched (mame-curator-1132).
@@ -529,7 +544,8 @@ does unless its caller asks otherwise:
   `pictures.json` object, only when a choice exists; an import without it
   clears the choices, and `pictures.json` is among the snapshotted targets
   (mame-curator-1146 §4.7). `picker:` in a bundle's config folds
-  into `filters:` as `load_app_config` does. A NUL path is `path_invalid` and a
+  into `filters:`, and keys this version does not know are dropped and
+  logged, as `load_app_config` does (`normalise_raw_config`, mame-curator-1229). A NUL path is `path_invalid` and a
   bundle newly naming one folder for games and destination is `same_folder`
   (mame-curator-1177). The bundle's `fs` is ignored and the grants in force are
 kept: a restore never grants folder access (mame-curator-1225, user decision

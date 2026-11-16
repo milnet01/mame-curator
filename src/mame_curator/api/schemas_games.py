@@ -100,9 +100,14 @@ class Explanation(BaseModel):
     hits: tuple[TiebreakerHit, ...]
 
 
+# The longest note a user can save. One hand-edited past it is shown cut
+# to this length, not refused (mame-curator-1229).
+NOTE_MAX_CHARS = 4096
+
+
 class Notes(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
-    notes: str = Field(max_length=4096)
+    notes: str = Field(max_length=NOTE_MAX_CHARS)
 
 
 class Stats(BaseModel):

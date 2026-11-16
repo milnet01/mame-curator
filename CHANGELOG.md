@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-16 Fixed — Settings snapshots, backups and notes keep your data safer
+
+- **A broken notes file is kept, not overwritten** (mame-curator-1229)
+  If notes.json cannot be read, at start-up or in a restored snapshot,
+  it is renamed to notes.json.unreadable-<time> and the problem is
+  logged. Before, the next note you saved wrote over it.
+- **Settings snapshots are kept more carefully**
+  The newest snapshot holding your settings is never removed to make
+  room, so frequent picture or override saves cannot push them all out.
+  A file that could not be read is no longer deleted by a restore.
+- **Undoing an update also restores your picture choices**
+  The update's safety snapshot now includes them.
+- **A backup from a newer version imports**
+  Settings this version does not know are skipped, as they are when
+  the app starts.
+- **A very long hand-edited note opens**
+  It shows cut to the length the app allows, instead of an error.
+- **`refresh-inis` keeps a copy of config.yaml before changing it**
+  The copy is listed in Settings, so comments it removes can be got back.
+
 ### 2026-11-16 Fixed — The command-line tools fail clearly and never purge during a preview
 
 - **`copy --purge-recycle --dry-run` no longer deletes** (mame-curator-1227)

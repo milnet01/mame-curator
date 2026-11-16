@@ -20,6 +20,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from mame_curator.api.schemas_games import NOTE_MAX_CHARS
 from mame_curator.filter.config import FilterConfig
 from mame_curator.media import Kind  # P10 chunk 9 — source-chain kind vocabulary
 
@@ -296,7 +297,7 @@ class AppConfigResponse(BaseModel):
 
 class NotesPutRequest(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
-    notes: str = Field(max_length=4096)
+    notes: str = Field(max_length=NOTE_MAX_CHARS)
 
 
 class OverridePostRequest(BaseModel):

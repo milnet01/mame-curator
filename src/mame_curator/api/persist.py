@@ -40,6 +40,26 @@ _SNAPSHOT_ID_FORMAT = "%Y%m%dT%H%M%S_%fZ"
 _SNAPSHOT_ID_RE = re.compile(r"\d{8}T\d{6}_\d{6}Z", re.ASCII)
 
 
+def user_files(config_path: Path, data_dir: Path) -> dict[str, Path]:
+    """The user's files, keyed by the bare name a snapshot stores each under.
+
+    The one list that restore, an update's rollback and a backup import use
+    (mame-curator-1229); a caller that leaves one out says why.
+    """
+    # Imported here: pictures.py imports this module.
+    from mame_curator.api.pictures import pictures_path
+
+    parent = config_path.parent
+    return {
+        "config.yaml": config_path,
+        "overrides.yaml": parent / "overrides.yaml",
+        "sessions.yaml": parent / "sessions.yaml",
+        "notes.json": data_dir / "notes.json",
+        "state.yaml": data_dir / "state.yaml",
+        "pictures.json": pictures_path(data_dir),
+    }
+
+
 def is_snapshot_id(text: str) -> bool:
     """Is `text` in the form `snapshot_files` names a snapshot? Never a path part."""
     return _SNAPSHOT_ID_RE.fullmatch(text) is not None
@@ -61,6 +81,7 @@ def snapshot_files(
     snap_id = datetime.now(UTC).strftime(_SNAPSHOT_ID_FORMAT)
     snap_dir = snapshots_dir / snap_id
     snap_dir.mkdir(parents=True, exist_ok=True)
+    unread: set[str] = set()
     for name, src in files.items():
         if not src.exists():
             continue
@@ -68,25 +89,42 @@ def snapshot_files(
             data = src.read_bytes()
         except OSError:
             logger.exception("snapshot read failed for %r", str(src))
+            # Not covered: restore would otherwise delete the live file
+            # (mame-curator-1229).
+            unread.add(name)
             continue
         atomic_write_bytes(snap_dir / name, data)
-    atomic_write_bytes(snap_dir / _COVERS, json.dumps(sorted(files)).encode("utf-8"))
-    _prune_old_snapshots(snapshots_dir, keep=keep)
+    covered = sorted(set(files) - unread)
+    atomic_write_bytes(snap_dir / _COVERS, json.dumps(covered).encode("utf-8"))
+    _prune_old_snapshots(snapshots_dir, spare={snap_id, keep})
     return snap_id
 
 
-def _prune_old_snapshots(snapshots_dir: Path, *, keep: str | None = None) -> None:
-    """FP21-M: enforce ``MAX_SNAPSHOTS`` cap by removing oldest siblings."""
+def _covers_config(snap_dir: Path) -> bool:
+    """Does this snapshot hold a ``config.yaml``?"""
+    return (snap_dir / "config.yaml").is_file()
+
+
+def _prune_old_snapshots(snapshots_dir: Path, *, spare: set[str | None]) -> None:
+    """FP21-M: enforce ``MAX_SNAPSHOTS`` by removing the oldest siblings.
+
+    Never removed (mame-curator-1229): the snapshots named in ``spare`` (the
+    one just taken, which a clock change can make sort oldest, and one a
+    restore is about to read), and the newest that holds ``config.yaml``, so
+    frequent overrides or picture saves cannot push out every config one.
+    """
     try:
         all_dirs = [p for p in snapshots_dir.iterdir() if p.is_dir()]
     except OSError:
         return
     if len(all_dirs) <= MAX_SNAPSHOTS:
         return
-    # Sort oldest-first by name (timestamp prefix is monotonic).
+    # Sort oldest-first by name (the id is a timestamp).
     all_dirs.sort(key=lambda p: p.name)
+    newest_config = next((p.name for p in reversed(all_dirs) if _covers_config(p)), None)
+    kept = spare | {newest_config}
     overflow = len(all_dirs) - MAX_SNAPSHOTS
-    for victim in [p for p in all_dirs if p.name != keep][:overflow]:
+    for victim in [p for p in all_dirs if p.name not in kept][:overflow]:
         try:
             shutil.rmtree(victim)
         except OSError:

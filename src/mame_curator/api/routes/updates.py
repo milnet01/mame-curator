@@ -24,7 +24,7 @@ from mame_curator import __version__
 from mame_curator._resources import bundle_root
 from mame_curator.api.errors import ApiErrorBody
 from mame_curator.api.markdown import render_markdown
-from mame_curator.api.persist import snapshot_files, write_json_atomic
+from mame_curator.api.persist import snapshot_files, user_files, write_json_atomic
 from mame_curator.api.schemas import AppUpdateInfo, UpdateApplyResult, UpdatesCheck
 from mame_curator.api.state import WorldState
 from mame_curator.copy.activity import append_activity
@@ -193,14 +193,7 @@ async def updates_check(request: Request, refresh: bool = False) -> UpdatesCheck
 
 
 def _snapshot_targets(world: WorldState) -> dict[str, Path]:
-    parent = world.config_path.parent
-    return {
-        "config.yaml": world.config_path,
-        "overrides.yaml": parent / "overrides.yaml",
-        "sessions.yaml": parent / "sessions.yaml",
-        "notes.json": world.data_dir / "notes.json",
-        "state.yaml": world.data_dir / "state.yaml",
-    }
+    return user_files(world.config_path, world.data_dir)
 
 
 async def _release(request: Request) -> ReleaseInfo:

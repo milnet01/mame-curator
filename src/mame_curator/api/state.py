@@ -5,7 +5,6 @@ Per ``docs/specs/P04-http-api.md`` § Lifespan + ``app.state`` model.
 
 from __future__ import annotations
 
-import json
 import logging
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -16,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from mame_curator.api.errors import ConfigError
 from mame_curator.api.fs import compose_allowlist
+from mame_curator.api.notes import load_notes_or_set_aside
 from mame_curator.api.pictures import PictureChoices, load_pictures, pictures_path
 from mame_curator.api.schemas import AppConfig, FsAllowedRoot, merge_picker_into_filters
 from mame_curator.filter import (
@@ -121,19 +121,9 @@ def load_app_config(config_path: Path) -> AppConfig:
     if not isinstance(raw, dict):
         raise ConfigError(f"{str(config_path)!r} must be a YAML mapping")
     try:
-        raw = merge_picker_into_filters(raw)
+        raw = normalise_raw_config(raw, str(config_path))
     except ValueError as exc:
         raise ConfigError(f"config validation failed: {exc}") from exc
-    # mame-curator-1131: a rollback to older code can leave keys a newer
-    # version wrote. Drop them rather than refuse to start.
-    dropped = _drop_unknown_keys(AppConfig, raw, prefix="")
-    if dropped:
-        # repr each name: a key holding a newline must not forge a log line.
-        logger.warning(
-            "%r: ignoring keys this version does not recognise: %s",
-            str(config_path),
-            ", ".join(map(repr, dropped)),
-        )
     try:
         return AppConfig.model_validate(raw)
     except ValidationError as exc:
@@ -144,6 +134,29 @@ def load_app_config(config_path: Path) -> AppConfig:
         fields = field_errors_from_pydantic(exc.errors())
         where = ", ".join(repr(f.loc) for f in fields)
         raise ConfigError(f"config validation failed at {where}", fields=fields) from exc
+
+
+def normalise_raw_config(raw: dict[str, Any], where: str) -> dict[str, Any]:
+    """Read old forms and newer keys as every config reader must.
+
+    Folds a top-level ``picker:`` into ``filters:`` (versioning-overrides
+    item 1), and drops keys a newer version wrote, logging them against
+    ``where``, so a rollback still loads (mame-curator-1131). Shared by
+    ``load_app_config`` and the backup import (mame-curator-1229).
+
+    Raises:
+        ValueError: from ``merge_picker_into_filters``.
+    """
+    raw = merge_picker_into_filters(raw)
+    dropped = _drop_unknown_keys(AppConfig, raw, prefix="")
+    if dropped:
+        # repr each name: a key holding a newline must not forge a log line.
+        logger.warning(
+            "%r: ignoring keys this version does not recognise: %s",
+            where,
+            ", ".join(map(repr, dropped)),
+        )
+    return raw
 
 
 def _drop_unknown_keys(model: type[BaseModel], data: dict[str, Any], *, prefix: str) -> list[str]:
@@ -289,7 +302,7 @@ def build_world(config_path: Path) -> WorldState:
     sessions = load_sessions(config_path.parent / "sessions.yaml")
 
     data_dir = data_dir_for(config_path)
-    notes = _load_notes(data_dir / "notes.json")
+    notes = load_notes_or_set_aside(data_dir / "notes.json")
     pictures = load_pictures(pictures_path(data_dir))
     review_state = load_review_state(data_dir / "state.yaml")
 
@@ -344,19 +357,6 @@ def _compute_bytes_by_machine(machines: dict[str, Machine]) -> Mapping[str, int]
     so downstream calls cannot mutate it.
     """
     return {name: sum((r.size or 0) for r in machine.roms) for name, machine in machines.items()}
-
-
-def _load_notes(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):  # ValueError: bad JSON, or bad UTF-8.
-        logger.exception("failed to read notes file %r", str(path))
-        return {}
-    if not isinstance(raw, dict):
-        return {}
-    return {str(k): str(v) for k, v in raw.items()}
 
 
 def replace_world(

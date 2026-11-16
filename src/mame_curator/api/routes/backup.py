@@ -20,6 +20,7 @@ from mame_curator.api.errors import ConfigError, SessionNameInvalidError
 from mame_curator.api.persist import (
     restore_snapshot,
     snapshot_files,
+    user_files,
     write_json_atomic,
     write_yaml_atomic,
 )
@@ -34,9 +35,8 @@ from mame_curator.api.schemas import (
     AppConfig,
     AppConfigResponse,
     ConfigExportBundle,
-    merge_picker_into_filters,
 )
-from mame_curator.api.state import WorldState, replace_world
+from mame_curator.api.state import WorldState, normalise_raw_config, replace_world
 from mame_curator.filter import Overrides, Sessions
 
 router = APIRouter()
@@ -98,7 +98,7 @@ def _check_bundle(bundle: ConfigExportBundle, world: WorldState) -> _Bundle:
     """Validate every part before anything is written."""
     # versioning-overrides item 1: the same old forms load_app_config reads.
     try:
-        raw_config = merge_picker_into_filters(dict(bundle.config))
+        raw_config = normalise_raw_config(dict(bundle.config), "config import")
     except ValueError as exc:
         raise ConfigError(f"config import: {exc}") from exc
     # mame-curator-1225 (user decision 2026-11-11): a restore never grants
@@ -136,12 +136,12 @@ def _write_bundle(world: WorldState, new: _Bundle) -> None:
     """
     snapshots_dir = world.data_dir / "snapshots"
     pictures_file = pictures_path(world.data_dir)
+    # A backup carries no review marks (ConfigExportBundle has no field for
+    # them), so an import leaves state.yaml as it is.
     targets = {
-        "config.yaml": world.config_path,
-        "overrides.yaml": world.config_path.parent / "overrides.yaml",
-        "sessions.yaml": world.config_path.parent / "sessions.yaml",
-        "notes.json": world.data_dir / "notes.json",
-        "pictures.json": pictures_file,
+        name: path
+        for name, path in user_files(world.config_path, world.data_dir).items()
+        if name != "state.yaml"
     }
     undo_id = snapshot_files(snapshots_dir, targets)
     try:
