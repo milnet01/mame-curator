@@ -8,7 +8,7 @@ from pathlib import Path
 from mame_curator.copy.errors import CopyError, RecycleError
 from mame_curator.copy.recyclebin import recycle_file
 from mame_curator.copy.run_state import RunState
-from mame_curator.copy.types import CopyOutcomeStatus, CopyPlan, RecycleRecord
+from mame_curator.copy.types import CopyOutcome, CopyOutcomeStatus, CopyPlan, RecycleRecord
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,7 @@ def recycle_partial_copy(state: RunState, *, data_dir: Path) -> None:
     # matching the OVERWRITE_DELETE_EXISTING and REPLACE_AND_RECYCLE call
     # sites. A dest-local recycle path would split recycle entries across
     # two roots — `purge_recycle` only knows the project default.
+    stayed: list[CopyOutcome] = []
     for outcome in tuple(state.succeeded):
         try:
             new_path = recycle_file(
@@ -65,11 +66,15 @@ def recycle_partial_copy(state: RunState, *, data_dir: Path) -> None:
                 session_id=state.session_id,
                 recycle_root=data_dir / "recycle",
             )
-        except (OSError, RecycleError):
+        except (OSError, RecycleError) as exc:
             logger.exception(
                 "recycle_file(short=%s) failed during cancel-with-partial",
                 outcome.short_name,
             )
+            # Still at the destination, so still in the report, and said so
+            # (mame-curator-1230). repr: the name comes from DAT data.
+            stayed.append(outcome)
+            state.warnings.append(f"recycle of {outcome.dst.name!r} failed: {exc}")
             continue
         state.recycled.append(
             RecycleRecord(
@@ -78,7 +83,6 @@ def recycle_partial_copy(state: RunState, *, data_dir: Path) -> None:
                 reason="CANCELLED_RECYCLE_PARTIAL",
             )
         )
-    # Files have been moved out of dst; drop them from `succeeded` so
-    # the report doesn't claim files that no longer exist at the
-    # destination.
-    state.succeeded.clear()
+    # The recycled files are no longer at dst; only the ones that stayed
+    # remain in `succeeded`.
+    state.succeeded[:] = stayed

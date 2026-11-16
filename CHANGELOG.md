@@ -17,6 +17,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-16 Fixed — Copying never loses a game or a playlist entry it should keep
+
+- **A failed copy no longer loses the version it was replacing** (mame-curator-1230)
+  With "replace and recycle", the old version used to go to the recycle
+  bin before the new one was copied. It now goes only once the new one
+  is in place.
+- **Adding to a playlist keeps what was there**
+  Entries the copy does not replace stay exactly as they were, cores and
+  all, and so do the playlist's own settings. A game whose new copy
+  failed keeps its old entry.
+- **Copying fewer games with "cancel" no longer shrinks the playlist**
+  A re-run that would drop games from the playlist now stops and asks,
+  as any other change does.
+- **Games on a FAT or exFAT drive are not copied again every time**
+  Those drives round file times to 2 seconds, and a clock change moves
+  them an hour; both now count as the same file.
+- **Smaller fixes**
+  Copies work on drives that do not support flushing to disk. Two
+  copies into one folder no longer share a temporary file. The space
+  check leaves out BIOS files already copied. A cancelled copy that
+  could not recycle a file keeps it in the report, with a warning. A
+  recycle bin entry with an old-style time no longer stops the purge.
+  Progress no longer counts a failed file twice.
+
 ### 2026-11-16 Fixed — Settings snapshots, backups and notes keep your data safer
 
 - **A broken notes file is kept, not overwritten** (mame-curator-1229)

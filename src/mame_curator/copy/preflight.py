@@ -9,6 +9,9 @@ import tempfile
 from pathlib import Path
 
 from mame_curator.copy.bios import resolve_bios_dependencies
+
+# The copy's own "already there" test, so the estimate and the copy agree.
+from mame_curator.copy.executor import _is_idempotent
 from mame_curator.copy.paths import is_safe_short_name
 from mame_curator.copy.types import CopyPlan, PreflightResult
 
@@ -40,19 +43,17 @@ def _can_create_dir(target: Path) -> bool:
     return False
 
 
-def _is_idempotent(src: Path, dst: Path) -> bool:
-    if not dst.exists():
-        return False
-    s = src.stat()
-    d = dst.stat()
-    return s.st_size == d.st_size and abs(s.st_mtime - d.st_mtime) < 1.0
-
-
 def _size_or_zero(p: Path) -> int:
     try:
         return p.stat().st_size if p.exists() else 0
     except OSError:
         return 0
+
+
+def _already_at_dest(plan: CopyPlan, short: str) -> bool:
+    """Is ``short``'s zip at dest and current, by the copy's own size+mtime test?"""
+    src = plan.source_dir / f"{short}.zip"
+    return src.exists() and _is_idempotent(src, plan.dest_dir / f"{short}.zip")
 
 
 def preflight(plan: CopyPlan) -> PreflightResult:
@@ -85,7 +86,10 @@ def preflight(plan: CopyPlan) -> PreflightResult:
             # meaningful gap instead of phantom shortfall.
             bios_set, _bios_warnings = resolve_bios_dependencies(plan.winners, plan.bios_chain)
             transfer_set: set[str] = set(plan.winners) | bios_set
-            already_set = set(already)
+            # A BIOS already at dest needs no space either (mame-curator-1230).
+            already_set = set(already) | {
+                b for b in bios_set if is_safe_short_name(b) and _already_at_dest(plan, b)
+            }
             total_needed = sum(
                 _size_or_zero(plan.source_dir / f"{short}.zip")
                 for short in transfer_set

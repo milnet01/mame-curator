@@ -53,6 +53,15 @@ def _by_name(outcomes: list[CopyOutcome]) -> tuple[CopyOutcome, ...]:
     return tuple(sorted(outcomes, key=lambda o: o.short_name))
 
 
+# copy/spec.md § Sorting: every report tuple is sorted (mame-curator-1230).
+def _overwrites(state: RunState) -> tuple[OverwriteRecord, ...]:
+    return tuple(sorted(state.overwritten, key=lambda r: (r.old_short, r.new_short)))
+
+
+def _recycles(state: RunState) -> tuple[RecycleRecord, ...]:
+    return tuple(sorted(state.recycled, key=lambda r: str(r.original_path)))
+
+
 @dataclass
 class RunState:
     """What a run has done so far, kept so a crash can still be reported.
@@ -100,6 +109,7 @@ def record_crash(
     state: RunState,
     exc: Exception,
     *,
+    plan: CopyPlan,
     data_dir: Path,
     on_crash: Callable[[CopyReport], None] | None,
 ) -> None:
@@ -122,9 +132,10 @@ def record_crash(
             succeeded=_by_name(state.succeeded),
             skipped=_by_name(state.skipped),
             failed=_by_name(state.failed),
-            overwritten=tuple(state.overwritten),
-            recycled=tuple(state.recycled),
+            overwritten=_overwrites(state),
+            recycled=_recycles(state),
             bios_included=tuple(sorted(state.bios_set)),
+            chd_missing=_chd_missing(plan),
             bytes_copied=sum(o.bytes for o in state.succeeded),
             warnings=(
                 *state.warnings,
@@ -188,7 +199,7 @@ def finish_early(
         plan_summary=plan_summary,
         bios_included=tuple(sorted(state.bios_set)),
         chd_missing=_chd_missing(plan),
-        recycled=tuple(state.recycled),
+        recycled=_recycles(state),
         warnings=tuple(state.warnings),
     )
     append_activity(
@@ -223,8 +234,8 @@ def finish_report(
         succeeded=_by_name(state.succeeded),
         skipped=_by_name(state.skipped),
         failed=_by_name(state.failed),
-        overwritten=tuple(state.overwritten),
-        recycled=tuple(state.recycled),
+        overwritten=_overwrites(state),
+        recycled=_recycles(state),
         bios_included=tuple(sorted(state.bios_set)),
         chd_missing=_chd_missing(plan),
         bytes_copied=state.bytes_copied,

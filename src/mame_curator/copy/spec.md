@@ -84,13 +84,15 @@ def copy_one(
 
 Algorithm:
 
-1. If `dst.exists()` and `dst.stat().st_size == src.stat().st_size` and `abs(dst.stat().st_mtime - src.stat().st_mtime) < 1.0`: return `CopyOutcome(status=SKIPPED_IDEMPOTENT, src=src, dst=dst, bytes=0)`. (Idempotency contract — design § 6.4 "re-running with no changes is a no-op".)
-2. Compute `tmp = dst.with_suffix(dst.suffix + ".tmp")`. Tmp file lives **in the same directory** as the destination so `os.replace` is atomic on the same filesystem (per the Python atomic-write idiom; cross-FS replaces are not atomic).
+1. If `dst.exists()` and `dst.stat().st_size == src.stat().st_size` and the two modification times differ by at most 2 seconds, or by an hour give or take 2 seconds: return `CopyOutcome(status=SKIPPED_IDEMPOTENT, src=src, dst=dst, bytes=0)`. (Idempotency contract — design § 6.4 "re-running with no changes is a no-op".) FAT and exFAT keep times in 2-second steps, and a daylight-saving change moves a FAT time by an hour; a tighter test re-copied every game on such a drive each run (mame-curator-1230). `preflight` uses this same test.
+2. Create a uniquely named tmp, `<dst name>.<random>.tmp`, so two runs into one folder never share one (mame-curator-1230). Tmp file lives **in the same directory** as the destination so `os.replace` is atomic on the same filesystem (per the Python atomic-write idiom; cross-FS replaces are not atomic).
 3. `shutil.copy2(src, tmp)` — preserves mtime + permissions.
 4. `os.replace(tmp, dst)` — atomic rename. The destination is either the old file or the new file; never a half-written file.
 5. On any exception during steps 3–4: `tmp.unlink(missing_ok=True)`; re-raise as `CopyError(message, src=src, dst=dst)` with the underlying OSError chained (`raise CopyError(...) from exc`).
 6. On `KeyboardInterrupt` mid-copy: same cleanup, re-raise the `KeyboardInterrupt` (do not swallow signals).
 7. Return `CopyOutcome(status=SUCCEEDED, src=src, dst=dst, bytes=src.stat().st_size)`.
+
+The tmp file's bytes are fsynced before the rename. A filesystem that does not support fsync (`EINVAL`, `ENOTSUP`) is not an error; any other fsync error fails the copy (mame-curator-1230).
 
 `progress` callback is invoked once per ~1 MiB chunk via a chunked copy (not `shutil.copyfileobj`'s default block; tune for large `.zip` files). If `None`, no callback. Callback signature: `(bytes_done: int, bytes_total: int) -> None`.
 
@@ -109,7 +111,7 @@ Checks (all non-fatal — accumulate into `PreflightResult`; the caller decides 
 |---|---|
 | Each `<short>.zip` exists in `plan.source_dir` | `missing_source: tuple[str, ...]` |
 | `plan.dest_dir` exists or can be created, and a file can really be written there (the nearest existing folder gets a uniquely named file created and removed; mame-curator-1153) | `dest_writable: bool` |
-| Sum of source-zip sizes ≤ free space at dest | `free_space_gap_bytes: int` (positive = sufficient; negative = shortfall) |
+| Sum of the source-zip sizes of winners and BIOS not already at dest (by `copy_one`'s step-1 test) ≤ free space at dest | `free_space_gap_bytes: int` (positive = sufficient; negative = shortfall) |
 | `plan.playlist_file` exists | `existing_playlist: bool` |
 | Each existing dest zip's size+mtime matches source (idempotency hit count) | `already_copied: tuple[str, ...]` |
 
@@ -167,15 +169,17 @@ The writer routes through **`_atomic.atomic_write_text`** (FP20-B): unique tmp n
 |---|---|---|
 | `SUCCEEDED` | Yes | Just-written; dst exists. |
 | `SKIPPED_IDEMPOTENT` | Yes | Already at dst with matching size+mtime. |
-| `SKIPPED_EXISTING_VERSION` | No | KEEP_EXISTING was chosen; the **existing** entry stays in the playlist (carried over from `existing_items`); the new winner's `dst` was never written. |
+| `SKIPPED_EXISTING_VERSION` | No | KEEP_EXISTING was chosen; the **existing** entry stays in the playlist (carried over unchanged); the new winner's `dst` was never written. |
 | `SKIPPED_MISSING_SOURCE` | No | Source `.zip` was missing; nothing copied; `dst` does not exist. |
 | `FAILED` | No | Copy raised; `dst` does not exist. |
+
+**What APPEND keeps.** Each entry of the existing playlist is written back exactly as read, its core, CRC and other fields included, and so are the playlist's own top-level settings. An old entry is dropped only when a winner with its file name is present, or a replacement for it arrived (`CopyReport.overwritten`). A winner that failed or was skipped leaves the old entry in place (mame-curator-1230).
 
 (Pre-FP02, `SKIPPED_MISSING_SOURCE` outcomes were included by accident — their `dst` was the would-be path, never created. Filtering to the two "present at dst" statuses is the v1 contract.)
 
 ### `read_lpl` input scope
 
-`read_lpl(playlist_path) -> list[dict[str, str]]` reads existing playlists during `APPEND` conflict resolution. **Only RetroArch v1.5+ JSON-format playlists are supported, plain or in RetroArch's compressed RZIP form** (version 2 zstd, version 1 zlib; mame-curator-1174). A malformed RZIP file raises `PlaylistError("failed to parse playlist")`; so does one declaring more than 256 MiB, or a chunk inflating past the header's chunk size (mame-curator-1225). `write_lpl` always writes plain JSON, which RetroArch reads either way. The legacy 6-line format (deprecated since RetroArch 1.7.5; see libretro/RetroArch#7959 / #8439) is **out of scope for v1** — a pre-1.7.5 playlist at the destination raises `PlaylistError("failed to parse playlist")`. `run_copy` lets it propagate before writing anything, the activity log included, so the playlist keeps its bytes (mame-curator-1152). `OVERWRITE` and `CANCEL` never read the playlist. Users on legacy installs should run RetroArch's built-in conversion (Settings → Playlists → Refresh Playlist) before using this tool. (Post-v1: a legacy-format reader could ship as a feature flag.)
+`read_lpl(playlist_path) -> list[dict[str, str]]` reads existing playlists during `APPEND` conflict resolution. **Only RetroArch v1.5+ JSON-format playlists are supported, plain or in RetroArch's compressed RZIP form** (version 2 zstd, version 1 zlib; mame-curator-1174). A malformed RZIP file raises `PlaylistError("failed to parse playlist")`; so does one declaring more than 256 MiB, or a chunk inflating past the header's chunk size (mame-curator-1225). `write_lpl` always writes plain JSON, which RetroArch reads either way. The legacy 6-line format (deprecated since RetroArch 1.7.5; see libretro/RetroArch#7959 / #8439) is **out of scope for v1** — a pre-1.7.5 playlist at the destination raises `PlaylistError("failed to parse playlist")`. `run_copy` lets it propagate before writing anything, the activity log included, so the playlist keeps its bytes (mame-curator-1152). `OVERWRITE` never reads the playlist; `CANCEL` reads it only to decide whether a re-run is a no-op, and an unreadable one is not. Users on legacy installs should run RetroArch's built-in conversion (Settings → Playlists → Refresh Playlist) before using this tool. (Post-v1: a legacy-format reader could ship as a feature flag.)
 
 ## Playlist conflict resolution
 
@@ -185,7 +189,7 @@ When `plan.playlist_file` exists at preflight time, the caller (CLI or API) choo
 |---|---|
 | `APPEND` | Merge new entries into existing playlist; per-entry conflicts (below) resolved per `plan.append_decisions: dict[str, AppendDecision]` |
 | `OVERWRITE` | Discard existing playlist entirely; if `plan.delete_existing_zips=True`, every existing dest `.zip` this run did not copy or find already current (`SKIPPED_IDEMPOTENT`) is moved to the recycle bin, and one that cannot be moved stays and becomes a report warning; new entries written |
-| `CANCEL` | `run_copy` returns `CopyReport.status = CANCELLED_PLAYLIST_CONFLICT`; no writes; no recycling |
+| `CANCEL` | `run_copy` returns `CopyReport.status = CANCELLED_PLAYLIST_CONFLICT`; no writes; no recycling. The exception is a no-op re-run, which goes ahead: every winner is already at dest (`already_copied`) and every entry of the existing playlist names a winner. A re-run with fewer winners is not a no-op, since the rewrite would drop the others (mame-curator-1230). The API's `check_playlist_conflict` applies the same test before the worker starts. |
 
 For `APPEND`, each new winner is checked against the existing entries (matched by `path` basename, i.e. short-name + `.zip`):
 
@@ -213,7 +217,7 @@ Semantics:
 
 - `KEEP_EXISTING` — winner is recorded in `CopyReport.skipped_existing_version`; not copied; existing playlist entry untouched. `replaces` is ignored.
 - `REPLACE` — winner is copied (atomic); old playlist entry (matched by `replaces`) is replaced with new; **old `.zip` stays on disk untouched** (per design § 6.4 — explicit confirmation is required to delete). `replaces` is required.
-- `REPLACE_AND_RECYCLE` — winner is copied (atomic); old playlist entry (matched by `replaces`) replaced; old `.zip` (`<replaces>.zip`) is moved to `data/recycle/<session_id>/<old-short>.zip`; recycled file recorded in `CopyReport.recycled` and one `file_recycled` activity event is emitted. `replaces` is required. An old `.zip` that cannot be moved, for any reason including a refused recycle lock, stays where it is and becomes a report warning; the winner is still copied (mame-curator-1192).
+- `REPLACE_AND_RECYCLE` — winner is copied (atomic); **only once it is at dst** (copied, or already current) is the old playlist entry (matched by `replaces`) replaced and the old `.zip` (`<replaces>.zip`) moved; a failed copy leaves both (mame-curator-1230). The old `.zip` is moved to `data/recycle/<session_id>/<old-short>.zip`; recycled file recorded in `CopyReport.recycled` and one `file_recycled` activity event is emitted. `replaces` is required. An old `.zip` that cannot be moved, for any reason including a refused recycle lock, stays where it is and becomes a report warning; the winner is still copied (mame-curator-1192).
 
 **Caller responsibility for conflict detection.** Same-parent-group cross-version conflict detection requires the cloneof map (P02 produces it; the runner does not carry it). The CLI / API caller is responsible for:
 
@@ -270,9 +274,9 @@ def purge_recycle(
 
 **One recycle at a time per session.** `recycle_file` holds `<recycle_root>/<session_id>.lock` (created with `O_EXCL`) for the whole move, so two calls in one session cannot pick the same target. A caller finding the lock held waits. The holder writes a random token into the lock, and every 10 seconds while it works writes one more byte through its own open file, so a long move (a large file to another drive) keeps the lock changing; it never writes to a lock it did not make. On release it deletes the lock only if the lock still starts with its token (mame-curator-1201). A waiter takes a lock to belong to a crashed process when it has itself watched the lock (`lstat`: inode, size, modification time) stay the same for 60 seconds. Its own clock counts, in steps of at most 1 second per look, so neither a share's clock nor a suspend can age a live lock. A lock found already old still takes 60 seconds of watching. To delete a stale lock the waiter first creates `<session_id>.lock.reclaim` with `O_EXCL`, then checks the lock is still the one it watched; so two waiters cannot both reclaim, and none deletes a lock that changed (mame-curator-1201). A stale lock, or a `.reclaim` guard, that stops the delete for 5 seconds raises `RecycleError` naming that file (mame-curator-1193). A wait that lasts 600 seconds, counted the same way, raises `RecycleError` naming the lock, even when its holder is alive: a move stuck on a dead share would otherwise keep it for ever. Every retry sleeps first, so the wait never spins (mame-curator-1201). On Windows only, a refused open of the lock (a delete still pending) is retried for up to 5 seconds before the `PermissionError` is raised.
 
-The accompanying `<basename>.manifest.json` write is routed through `_atomic.atomic_write_text` (FP20-B): tmp+rename+fsync+cleanup so a crash mid-write leaves either the prior manifest or no manifest at all — never a half-written record. **FP21-D ordering:** the manifest is written **before** the source file is moved; a failure during the manifest write therefore leaves the source untouched (no rollback path needed). If the manifest write succeeds and the move then fails, the just-written manifest is unlinked so the recycle directory doesn't accumulate metadata for files that aren't there. The pre-FP21-D move-then-write-then-rollback envelope (FP25-C) is superseded by this ordering — under any single-step failure, the source file is intact at its original location.
+The accompanying `<basename>.manifest.json` write is routed through `_atomic.atomic_write_text` (FP20-B): tmp+rename+fsync+cleanup so a crash mid-write leaves either the prior manifest or no manifest at all — never a half-written record. **FP21-D ordering:** the manifest is written **before** the source file is moved; a failure during the manifest write therefore leaves the source untouched (no rollback path needed). If the manifest write succeeds and the move then fails, the just-written manifest is unlinked so the recycle directory doesn't accumulate metadata for files that aren't there. A move across drives copies and then deletes the source; when that delete fails, the copy left in the recycle folder is removed, and if it cannot be, `RecycleError.recycled_orphan` names it (mame-curator-1230). The pre-FP21-D move-then-write-then-rollback envelope (FP25-C) is superseded by this ordering — under any single-step failure, the source file is intact at its original location.
 
-`purge_recycle` decides eligibility from the latest `recycled_at` across the dir's manifests (FP21-F); legacy single-`manifest.json` layouts are also read so a recycle tree written before the FP21-D upgrade purges correctly. Falls back to directory mtime when no readable manifest is present.
+`purge_recycle` decides eligibility from the latest `recycled_at` across the dir's manifests (FP21-F); legacy single-`manifest.json` layouts are also read so a recycle tree written before the FP21-D upgrade purges correctly. Falls back to directory mtime when no readable manifest is present. A `recycled_at` with no time zone is read as UTC (mame-curator-1230).
 
 `purge_recycle` runs only on explicit user opt-in (CLI `mame-curator copy --purge-recycle` or API `POST /api/copy/recycle/purge`). It is NOT automatic — the design's 30-day retention is a *minimum*; users can keep recycle indefinitely.
 
@@ -308,7 +312,7 @@ Contract (testable per `test_pause_holds_at_file_boundary`, `test_cancel_with_ke
 - **Resume continues from the next file.** No state is rebuilt; `run_copy` simply un-blocks on the threading.Event and proceeds to the next entry in its iteration order.
 - **Cancel transitions to `CANCELLING`** which `run_copy` checks via `controller.should_cancel()` after each `copy_one` (and inside `wait_if_paused`). On cancel:
   - `recycle_partial=False` (default): copies completed so far stay; `run_copy` returns `CopyReport.status = CANCELLED`; no recycling.
-  - `recycle_partial=True`: every successfully-copied file from the current session is moved to recycle (via `recycle_file(reason="CANCELLED_RECYCLE_PARTIAL")`); report records the recycled set; one `copy_aborted` activity event with `details.recycled_count = N`.
+  - `recycle_partial=True`: every successfully-copied file from the current session is moved to recycle (via `recycle_file(reason="CANCELLED_RECYCLE_PARTIAL")`); report records the recycled set; one `copy_aborted` activity event with `details.recycled_count = N`. A file that cannot be moved stays at the destination, stays in `succeeded`, and becomes a report warning (mame-curator-1230).
 - **No mid-file cancellation** — design constraint. A `KeyboardInterrupt` mid-`copy_one` is the only way to stop in-flight; the `.tmp` is cleaned up but the rest of the session is left in whatever state it reached.
 - **Threading discipline** — `CopyController` is thread-safe via the `threading.Event`. Concurrent `pause()` and `resume()` calls collapse to "last call wins" by design. `cancel()` is sticky — it cannot be undone (a sticky `_cancel_flag: bool` set once and never cleared).
 
@@ -356,7 +360,7 @@ Reader (for the future Activity API in Phase 4):
 
 ```python
 def read_activity(log_path: Path = Path("data/activity.jsonl")) -> Iterator[ActivityEvent]:
-    """Stream events newest-first via reverse-line iteration. Tolerates corrupt lines (logs warning, skips)."""
+    """Stream events newest-first via reverse-line iteration. Tolerates corrupt lines (logs warning, skips); a line that is not UTF-8 is one of them."""
 ```
 
 ## CopyReport
@@ -408,7 +412,7 @@ class CopyReport(BaseModel):
 
 **Completeness invariant** (testable per `test_copy_report_completeness`): every entry of `plan.winners | bios_set` appears in exactly one of `succeeded`, `skipped`, or `failed`. The lists are disjoint and their union covers the plan. An `ERROR` report is the exception: it lists only the files finished before the crash.
 
-**Sorting**: every tuple is sorted in canonical order (`short_name` for outcomes, `path` for recycle records) for byte-identical determinism.
+**Sorting**: every tuple is sorted in canonical order (`short_name` for outcomes, `path` for recycle records, the replaced short name for overwrite records) for byte-identical determinism; the `ERROR` report too, which also carries `chd_missing` (mame-curator-1230).
 
 ## CopyPlan
 

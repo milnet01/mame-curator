@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from mame_curator.api.errors import PlaylistConflictCancelledError, PlaylistUnreadableError
 from mame_curator.copy import ConflictStrategy, CopyPlan, PlaylistError, read_lpl
+from mame_curator.copy.run_playlist import playlist_holds_only_winners
 
 
 def check_playlist_conflict(plan: CopyPlan) -> None:
@@ -22,9 +23,11 @@ def check_playlist_conflict(plan: CopyPlan) -> None:
         return
     if plan.conflict_strategy is not ConflictStrategy.CANCEL:
         return
-    # Only raise if not idempotent — let run_copy handle the no-op case.
+    # Only raise if not a no-op — let run_copy handle that case. Like
+    # run_copy, a playlist naming games beyond the winners is a conflict:
+    # the rewrite would drop them (mame-curator-1230).
     all_present = all((plan.dest_dir / f"{w}.zip").exists() for w in plan.winners)
-    if not all_present:
+    if not all_present or not playlist_holds_only_winners(plan):
         raise PlaylistConflictCancelledError(
             f"existing playlist at {str(plan.playlist_file)!r}; "
             "use APPEND or OVERWRITE conflict strategy"

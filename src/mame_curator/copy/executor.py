@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import contextlib
+import errno
 import os
 import shutil
+import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
@@ -15,13 +17,32 @@ from mame_curator.copy.types import CopyOutcome, CopyOutcomeStatus
 
 _CHUNK = 1024 * 1024  # 1 MiB
 
+# FAT and exFAT keep modification times in 2-second steps, and a daylight
+# saving change can move a FAT time by exactly one hour (mame-curator-1230).
+_MTIME_SLACK_S = 2.0
+_DST_SHIFT_S = 3600.0
+# fsync errors that mean "this filesystem does not do fsync", not a failed write.
+_FSYNC_UNSUPPORTED = frozenset({errno.EINVAL, errno.ENOTSUP, errno.EOPNOTSUPP})
+
 
 def _is_idempotent(src: Path, dst: Path) -> bool:
     if not dst.exists():
         return False
     s = src.stat()
     d = dst.stat()
-    return s.st_size == d.st_size and abs(s.st_mtime - d.st_mtime) < 1.0
+    gap = abs(s.st_mtime - d.st_mtime)
+    return s.st_size == d.st_size and (
+        gap <= _MTIME_SLACK_S or abs(gap - _DST_SHIFT_S) <= _MTIME_SLACK_S
+    )
+
+
+def _fsync(fd: int) -> None:
+    """Flush ``fd`` to disk; a filesystem that does not support fsync is not an error."""
+    try:
+        os.fsync(fd)
+    except OSError as exc:
+        if exc.errno not in _FSYNC_UNSUPPORTED:
+            raise
 
 
 def _chunked_copy(src: Path, tmp: Path, total: int, progress: Callable[[int, int], None]) -> None:
@@ -41,7 +62,7 @@ def _chunked_copy(src: Path, tmp: Path, total: int, progress: Callable[[int, int
         # returned leaves dst pointing at an inode whose bytes never
         # reached the platter → zero-byte / truncated dst on reboot.
         fout.flush()
-        os.fsync(fout.fileno())
+        _fsync(fout.fileno())
     # Preserve mtime + permissions like shutil.copy2.
     shutil.copystat(src, tmp)
 
@@ -66,7 +87,6 @@ def copy_one(
         )
 
     dst.parent.mkdir(parents=True, exist_ok=True)
-    tmp = dst.with_suffix(dst.suffix + ".tmp")
     # FP21-G: source can disappear between an upstream existence check
     # and this ``stat`` (TOCTOU). Return the SKIPPED variant instead of
     # raising ``FileNotFoundError`` — the runner already has typed
@@ -86,6 +106,11 @@ def copy_one(
     # try/finally over try/except so KeyboardInterrupt, MemoryError, and any
     # other BaseException also trigger tmp cleanup. The OSError branch wraps
     # into CopyExecutionError; everything else propagates with the .tmp gone.
+    # A unique name beside dst, so two runs into one folder cannot share a
+    # tmp file, and os.replace stays on one filesystem (mame-curator-1230).
+    fd, tmp_name = tempfile.mkstemp(dir=dst.parent, prefix=dst.name + ".", suffix=".tmp")
+    os.close(fd)
+    tmp = Path(tmp_name)
     completed = False
     try:
         try:

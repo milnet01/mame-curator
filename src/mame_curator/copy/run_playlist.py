@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
-from mame_curator.copy.playlist import read_lpl
+from mame_curator.copy.errors import PlaylistError
+from mame_curator.copy.playlist import read_lpl, read_lpl_document
 from mame_curator.copy.types import (
-    AppendDecisionKind,
     ConflictStrategy,
     CopyOutcome,
     CopyOutcomeStatus,
@@ -16,13 +17,27 @@ from mame_curator.copy.types import (
 )
 
 
-def should_cancel_for_playlist_conflict(plan: CopyPlan, pre: PreflightResult) -> bool:
-    """True iff CANCEL strategy + existing playlist + not fully idempotent.
+def playlist_holds_only_winners(plan: CopyPlan) -> bool:
+    """Does every entry of the existing playlist name one of the plan's winners?
 
-    Idempotent rerun = every winner already at dest (matching size+mtime) AND
-    no extra zips at dest beyond winners + bios. Per design § 6.4 we want
-    such a rerun to proceed as a no-op without requiring the user to
-    re-invoke with ``--conflict append``.
+    A CANCEL re-run rewrites the playlist with the winners alone, so it is a
+    no-op only when this holds (mame-curator-1230). A playlist that cannot be
+    read does not.
+    """
+    try:
+        items = read_lpl(plan.playlist_file)
+    except PlaylistError:
+        return False
+    winners = set(plan.winners)
+    return all(Path(it.get("path", "")).stem in winners for it in items)
+
+
+def should_cancel_for_playlist_conflict(plan: CopyPlan, pre: PreflightResult) -> bool:
+    """True iff CANCEL strategy + existing playlist + the run is not a no-op.
+
+    A no-op re-run (design § 6.4) has every winner already at dest (matching
+    size+mtime) and a playlist naming only winners; such a rerun proceeds
+    without asking for ``--conflict append``.
     """
     if not (
         pre.existing_playlist
@@ -30,50 +45,38 @@ def should_cancel_for_playlist_conflict(plan: CopyPlan, pre: PreflightResult) ->
         and plan.conflict_strategy is ConflictStrategy.CANCEL
     ):
         return False
-    return not (set(pre.already_copied) >= set(plan.winners))
+    every_winner_present = set(pre.already_copied) >= set(plan.winners)
+    return not (every_winner_present and playlist_holds_only_winners(plan))
 
 
-def resolve_conflicts(
-    plan: CopyPlan, pre: PreflightResult
-) -> tuple[list[dict[str, str]], frozenset[str]]:
-    """Return (existing_items, replaced_shorts) for an APPEND copy.
+def existing_playlist(plan: CopyPlan, pre: PreflightResult) -> dict[str, Any] | None:
+    """The destination playlist an APPEND copy keeps, settings and items; else None.
 
-    ``existing_items`` is the destination playlist's pre-existing
-    entries (carried forward by ``write_lpl``), or ``[]`` for non-APPEND
-    paths. A playlist that cannot be read raises ``PlaylistError``: APPEND
-    promises to keep those entries, so the copy must not replace them.
-    ``replaced_shorts`` is the set of names targeted by REPLACE /
-    REPLACE_AND_RECYCLE decisions.
+    A playlist that cannot be read raises ``PlaylistError``: APPEND promises
+    to keep those entries, so the copy must not replace them.
     """
-    existing_items: list[dict[str, str]] = []
     if pre.existing_playlist and plan.conflict_strategy is ConflictStrategy.APPEND:
-        existing_items = read_lpl(plan.playlist_file)
-    replaced_shorts = frozenset(
-        d.replaces
-        for d in plan.append_decisions.values()
-        if d.kind in (AppendDecisionKind.REPLACE, AppendDecisionKind.REPLACE_AND_RECYCLE)
-        and d.replaces is not None
-    )
-    return existing_items, replaced_shorts
+        return read_lpl_document(plan.playlist_file)
+    return None
 
 
 def build_playlist_entries(
     plan: CopyPlan,
     succeeded: list[CopyOutcome],
     skipped: list[CopyOutcome],
-    existing_items: list[dict[str, str]],
+    existing_items: list[dict[str, Any]],
     replaced_shorts: frozenset[str],
-) -> list[PlaylistEntry]:
-    """Compose the final mame.lpl entry list for write_lpl.
+) -> tuple[list[PlaylistEntry], list[dict[str, Any]]]:
+    """Compose mame.lpl: ``(new entries, old items kept unchanged)``.
 
     Only winners *definitely present at dst* become entries (SUCCEEDED or
     SKIPPED_IDEMPOTENT); SKIPPED_MISSING_SOURCE / SKIPPED_EXISTING_VERSION
     / FAILED outcomes have no file at ``dst`` per spec § "Which winners
-    become entries". For APPEND, pre-existing entries are carried forward
-    unless they are being replaced or overlap a same-name winner.
+    become entries". For APPEND, an old item is kept unless a present winner
+    has its file name, or replaced it; ``replaced_shorts`` names only
+    replacements that arrived (mame-curator-1230).
     """
     entries: list[PlaylistEntry] = []
-    winner_set = set(plan.winners)
     present_basenames: set[str] = set()
     present_statuses = {CopyOutcomeStatus.SUCCEEDED, CopyOutcomeStatus.SKIPPED_IDEMPOTENT}
     for o in (*succeeded, *skipped):
@@ -91,27 +94,13 @@ def build_playlist_entries(
         )
         present_basenames.add(o.dst.name)
 
-    if plan.conflict_strategy is ConflictStrategy.APPEND and existing_items:
-        replaced_basenames = {f"{s}.zip" for s in replaced_shorts}
-        winner_basenames = {f"{w}.zip" for w in winner_set}
+    kept: list[dict[str, Any]] = []
+    if plan.conflict_strategy is ConflictStrategy.APPEND:
+        gone = present_basenames | {f"{s}.zip" for s in replaced_shorts}
         for it in existing_items:
             # FP05 L5: skip empty paths; Path("") resolves to Path(".") and
             # would carry the dest dir itself into mame.lpl.
             raw_path = it.get("path", "")
-            if not raw_path:
-                continue
-            ipath = Path(raw_path)
-            if (
-                ipath.name in present_basenames
-                or ipath.name in replaced_basenames
-                or ipath.name in winner_basenames
-            ):
-                continue
-            entries.append(
-                PlaylistEntry(
-                    short_name=ipath.stem,
-                    description=str(it.get("label", ipath.stem)),
-                    abs_path=ipath,
-                )
-            )
-    return entries
+            if raw_path and Path(raw_path).name not in gone:
+                kept.append(it)
+    return entries, kept

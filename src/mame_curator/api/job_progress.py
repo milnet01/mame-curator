@@ -21,6 +21,9 @@ class ProgressSynthesizer:
         self._loop = loop
         self._sink = sink
         self._seen: set[str] = set()
+        # A copy can reach 100% and then fail at the rename, which ticks it
+        # done again; each file finishes once (mame-curator-1230).
+        self._finished: set[str] = set()
         # mame-curator-1103: job-wide count carried on each file_finished,
         # so a client (or a reconnect replay) reads the count, not a tally.
         self._files_done = 0
@@ -48,7 +51,8 @@ class ProgressSynthesizer:
                 ts=ts,
             )
         )
-        if bytes_done == bytes_total:
+        if bytes_done == bytes_total and short not in self._finished:
+            self._finished.add(short)
             self._files_done += 1
             self._dispatch(
                 JobEvent(

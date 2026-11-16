@@ -155,7 +155,9 @@ def read_activity(
     """Stream events newest-first; corrupt lines logged + skipped."""
     if not log_path.exists():
         return
-    lines = log_path.read_text(encoding="utf-8").splitlines()
+    # errors="replace": one bad byte spoils its own line, which is then
+    # skipped as corrupt, not the whole log (mame-curator-1230).
+    lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
     for line in reversed(lines):
         if not line.strip():
             continue

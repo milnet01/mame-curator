@@ -320,10 +320,16 @@ def recycle_file(
         except OSError as exc:
             with contextlib.suppress(OSError):
                 manifest.unlink()
+            # A move across drives copies, then deletes the source. When the
+            # delete fails, the original is still in place and the copy is
+            # an orphan with no manifest: remove it, or name it (mame-curator-1230).
+            orphan = _remove_orphan_copy(path, target)
             if not target_dir_existed:
                 with contextlib.suppress(OSError):
                     target_dir.rmdir()
-            raise RecycleError(f"failed to move to recycle: {exc}", path=path) from exc
+            raise RecycleError(
+                f"failed to move to recycle: {exc}", path=path, recycled_orphan=orphan
+            ) from exc
 
     # FP27 A3: append a FILE_RECYCLED activity event so the Activity UI
     # tab can show the audit trail promised at copy/spec.md:266. Activity
@@ -371,6 +377,18 @@ def _latest_recycled_at(sub: Path) -> datetime | None:
     return latest
 
 
+def _remove_orphan_copy(original: Path, copy: Path) -> Path | None:
+    """Delete ``copy`` when ``original`` survived a failed move; return it if it stays."""
+    if not (original.exists() and copy.exists()):
+        return None
+    try:
+        copy.unlink()
+    except OSError:
+        logger.exception("recycle: could not remove the orphan copy %r", str(copy))
+        return copy
+    return None
+
+
 def _read_recycled_at(manifest_path: Path) -> datetime | None:
     try:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -380,9 +398,12 @@ def _read_recycled_at(manifest_path: Path) -> datetime | None:
     if not isinstance(ts_str, str):
         return None
     try:
-        return datetime.fromisoformat(ts_str)
+        ts = datetime.fromisoformat(ts_str)
     except ValueError:
         return None
+    # A time written without a zone is read as UTC, the zone this app writes;
+    # comparing it as it is raised TypeError (mame-curator-1230).
+    return ts if ts.tzinfo is not None else ts.replace(tzinfo=UTC)
 
 
 def purge_recycle(

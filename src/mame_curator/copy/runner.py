@@ -23,7 +23,7 @@ from mame_curator.copy.preflight import preflight
 from mame_curator.copy.recyclebin import recycle_file
 from mame_curator.copy.run_playlist import (
     build_playlist_entries,
-    resolve_conflicts,
+    existing_playlist,
     should_cancel_for_playlist_conflict,
 )
 from mame_curator.copy.run_recycle import recycle_partial_copy, recycle_unwritten_zips
@@ -81,7 +81,7 @@ def run_copy(
         )
     except Exception as exc:
         if state.started:
-            record_crash(state, exc, data_dir=data_dir, on_crash=on_crash)
+            record_crash(state, exc, plan=plan, data_dir=data_dir, on_crash=on_crash)
         raise
 
 
@@ -100,7 +100,7 @@ def _run_copy(
     # mame-curator-1152: before copy_started, so a refused playlist leaves no
     # started copy in the activity log and no file touched.
     pre = preflight(plan)
-    existing_items, replaced_shorts = resolve_conflicts(plan, pre)
+    kept_playlist = existing_playlist(plan, pre)
     log_started(plan, state, plan_summary, data_dir=data_dir)
 
     # FP08 R1 (Cluster R): quote w.name via repr() — the BIOS short-name
@@ -140,10 +140,14 @@ def _run_copy(
 
     # Write playlist (skip when dry-run or cancelled-mid-flight).
     if not plan.dry_run and not cancelled_mid:
-        entries = build_playlist_entries(
-            plan, state.succeeded, state.skipped, existing_items, replaced_shorts
+        # Only replacements that arrived are recorded, so only their old
+        # entries leave the playlist (mame-curator-1230).
+        replaced = frozenset(r.old_short for r in state.overwritten)
+        old_items = kept_playlist["items"] if kept_playlist is not None else []
+        entries, kept = build_playlist_entries(
+            plan, state.succeeded, state.skipped, old_items, replaced
         )
-        write_lpl(plan.playlist_file, entries)
+        write_lpl(plan.playlist_file, entries, kept=kept, base=kept_playlist)
 
     return finish_report(plan, state, plan_summary, cancelled=cancelled_mid, data_dir=data_dir)
 
@@ -195,15 +199,17 @@ def _copy_item(
         return
 
     decision = _append_decision(plan, short, role)
-    if decision is not None:
-        if decision.kind is AppendDecisionKind.KEEP_EXISTING:
-            skip(CopyOutcomeStatus.SKIPPED_EXISTING_VERSION)
-            return
-        _replace_existing(plan, short, decision, state=state, data_dir=data_dir)
+    if decision is not None and decision.kind is AppendDecisionKind.KEEP_EXISTING:
+        skip(CopyOutcomeStatus.SKIPPED_EXISTING_VERSION)
+        return
 
     if plan.dry_run:
         # Pretend success without writing.
-        size = src.stat().st_size
+        try:
+            size = src.stat().st_size
+        except FileNotFoundError:  # gone since the exists() check (mame-curator-1230)
+            skip(CopyOutcomeStatus.SKIPPED_MISSING_SOURCE)
+            return
         state.succeeded.append(
             CopyOutcome(
                 short_name=short,
@@ -217,9 +223,14 @@ def _copy_item(
         state.bytes_copied += size
         if on_progress is not None:
             on_progress(short, size, size)
-        return
+        arrived = True
+    else:
+        arrived = _copy_file(short, role, src, dst, state=state, on_progress=on_progress)
 
-    _copy_file(short, role, src, dst, state=state, on_progress=on_progress)
+    # The old version goes only once the new one is in place, so a failed
+    # copy never loses the game (mame-curator-1230).
+    if decision is not None and arrived:
+        _replace_existing(plan, short, decision, state=state, data_dir=data_dir)
 
 
 def _append_decision(plan: CopyPlan, short: str, role: _Role) -> AppendDecision | None:
@@ -288,8 +299,11 @@ def _copy_file(
     *,
     state: RunState,
     on_progress: _Progress | None,
-) -> None:
-    """Copy one file for real; a copy error fails that file and the run goes on."""
+) -> bool:
+    """Copy one file for real; a copy error fails that file and the run goes on.
+
+    Returns whether the file is now at ``dst`` (copied, or already current).
+    """
     per_file_progress: Callable[[int, int], None] | None = (
         functools.partial(on_progress, short) if on_progress is not None else None
     )
@@ -312,12 +326,18 @@ def _copy_file(
             error=str(exc),
         )
         _record_unfinished(state.failed, failure, on_progress)
-        return
+        return False
 
     if outcome.status is CopyOutcomeStatus.SUCCEEDED:
         state.succeeded.append(outcome)
         state.bytes_copied += outcome.bytes
-    elif outcome.status is CopyOutcomeStatus.SKIPPED_IDEMPOTENT:
+        return True
+    if outcome.status is CopyOutcomeStatus.SKIPPED_IDEMPOTENT:
         state.skipped.append(outcome)
         if on_progress is not None:
             on_progress(short, outcome.bytes, outcome.bytes)
+        return True
+    # The source went missing after the runner's exists() check; it was left
+    # out of the report altogether before (mame-curator-1230).
+    _record_unfinished(state.skipped, outcome, on_progress)
+    return False

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import struct
 import zlib
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -16,8 +16,12 @@ from mame_curator.copy.errors import PlaylistError
 from mame_curator.copy.types import PlaylistEntry
 
 
-def _build_payload(entries: Iterable[PlaylistEntry]) -> dict[str, Any]:
-    items: list[dict[str, str | int]] = []
+def _build_payload(
+    entries: Iterable[PlaylistEntry],
+    kept: Iterable[Mapping[str, Any]],
+    base: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    items: list[Mapping[str, Any]] = []
     for e in entries:
         items.append(
             {
@@ -29,8 +33,11 @@ def _build_payload(entries: Iterable[PlaylistEntry]) -> dict[str, Any]:
                 "db_name": "MAME.lpl",
             }
         )
+    # An APPEND copy keeps each old entry, and the playlist's own settings,
+    # exactly as RetroArch or the user left them (mame-curator-1230).
+    items.extend(kept)
     # Top-level keys in canonical RetroArch order.
-    return {
+    payload: dict[str, Any] = {
         "version": "1.5",
         "default_core_path": "",
         "default_core_name": "",
@@ -38,12 +45,23 @@ def _build_payload(entries: Iterable[PlaylistEntry]) -> dict[str, Any]:
         "right_thumbnail_mode": 0,
         "left_thumbnail_mode": 0,
         "sort_mode": 0,
-        "items": items,
     }
+    payload.update({k: v for k, v in (base or {}).items() if k != "items"})
+    payload["items"] = items
+    return payload
 
 
-def write_lpl(playlist_path: Path, entries: Iterable[PlaylistEntry]) -> None:
+def write_lpl(
+    playlist_path: Path,
+    entries: Iterable[PlaylistEntry],
+    *,
+    kept: Iterable[Mapping[str, Any]] = (),
+    base: Mapping[str, Any] | None = None,
+) -> None:
     """Atomically write a RetroArch v6+ JSON playlist to `playlist_path`.
+
+    ``entries`` are written in this app's form; ``kept`` items follow them
+    unchanged, and ``base``'s top-level settings replace the defaults.
 
     FP20-B: routed through ``atomic_write_text`` so the rename + parent-
     fsync + tmp cleanup-on-failure protocol matches the project-wide
@@ -51,7 +69,7 @@ def write_lpl(playlist_path: Path, entries: Iterable[PlaylistEntry]) -> None:
     used a guessable tmp suffix (collision-prone with concurrent writers),
     and missed parent-dir fsync entirely.
     """
-    payload = _build_payload(entries)
+    payload = _build_payload(entries, kept, base)
     text = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
 
     try:
@@ -112,7 +130,13 @@ def _decode_rzip(data: bytes) -> bytes:
 
 
 def read_lpl(playlist_path: Path) -> list[dict[str, str]]:
-    """Parse an existing `.lpl` and return the items list.
+    """Parse an existing `.lpl` and return the items list."""
+    items: list[dict[str, str]] = read_lpl_document(playlist_path)["items"]
+    return items
+
+
+def read_lpl_document(playlist_path: Path) -> dict[str, Any]:
+    """Parse an existing `.lpl`: its top-level settings and its ``items``.
 
     Reads plain JSON and RetroArch's compressed RZIP form.
     """
@@ -133,4 +157,5 @@ def read_lpl(playlist_path: Path) -> list[dict[str, str]]:
         raise PlaylistError("playlist 'items' is not a list", path=playlist_path)
     # Callers read entries with `.get` and build a Path from `path`; drop
     # anything that is not an object, or whose `path` is not a string.
-    return [it for it in items if isinstance(it, dict) and isinstance(it.get("path", ""), str)]
+    kept = [it for it in items if isinstance(it, dict) and isinstance(it.get("path", ""), str)]
+    return {**parsed, "items": kept}

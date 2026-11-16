@@ -433,7 +433,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # block pinned. 1347 → 1349.
 # Bumped 2026-11-16 (mame-curator-1229): snapshots, backups and notes.
 # 1349 → 1358.
-EXPECTED_PYTEST_DECLARATIONS = 1358
+# Bumped 2026-11-16 (mame-curator-1230): the copy-run fixes. 1358 → 1376.
+EXPECTED_PYTEST_DECLARATIONS = 1376
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.
