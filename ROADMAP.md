@@ -4526,7 +4526,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1231] **Bring the documents back in line with the code (2026-11-11 code review).**
+- ✅ [mame-curator-1231] **Bring the documents back in line with the code (2026-11-11 code review).**
   Group `doc-drift` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4550,6 +4550,9 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   needs --listxml, --languages, --bestgames; copy needs --dat, --listxml),
   and its next line says these commands use the app's config file, but
   `filter` and `copy` read no config.
+  Resolved 2026-11-16 (8b5c33d): fifteen fixed; CR-10-7 queued as
+  mame-curator-1260 and mame-curator-1261 by the user's decision. The same
+  false port comment in config.example.yaml was fixed too.
   **Layman:** Places where the project's documents describe something the app no longer does.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -4561,7 +4564,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RL-43 (+RR-08-4) [LEAD] fe/App.tsx:178: a failed background reload of a page already showing data replaces the page with the error panel. Settings (446) avoids this.
   - CR-08-9 [LOW] fe/App.tsx:416: The backup filename uses UTC time with no zone marker. Fix: build the name from local date parts.
   - CR-08-5 (+RR-07-2, RL-36) [LOW] fe/api/client.ts:76: client.ts tags a 200 with a bad body as status -1, the same as "never reached the server". Fix: The code is the wrong side. Fix: give `parse` the real status as a parameter.
-  - RR-12-1 (+RL-59) [HIGH] fe/components/guide/settings/FoldersTopic.tsx:65: The comment claims something the code does not do. Fix: decide whether Settings' Cancel should behave like the wizard's, then make the code and comment say the same. - ASK USER: Should Cancel in the Settings folder topic return focus like the wizard (to the opening button)?
+  - RR-12-1 (+RL-59) [HIGH] fe/components/guide/settings/FoldersTopic.tsx:65: The comment claims something the code does not do. Fix: decide whether Settings' Cancel should behave like the wizard's, then make the code and comment say the same. USER DECIDED 2026-11-16: yes; Cancel returns focus to Browse, as in the wizard.
   - RL-60 [LEAD] fe/components/guide/steps/WhereStep.tsx:37: `setFocusKey` runs before the `!paths` and same-folder checks, so focus jumps to the heading even when the choice is refused. That is probably fine, since the alert then reads; not confirmed.
   - CR-10-4 [LOW] fe/components/settings/DownloadPackModal.tsx:43: A failed clipboard copy in DownloadPackModal shows no message. Fix: show a short "Copy failed — select the command above" status.
   - RL-55 [LEAD] fe/components/settings/SnapshotsTab.tsx:67-89: `restoreError` shows only in the list view. The comment at lines 50-51 says the list may reload with an error or empty after a restore, and in those views a failed restore shows no alert.
