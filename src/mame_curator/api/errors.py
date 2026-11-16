@@ -306,9 +306,13 @@ def install_handlers(app: FastAPI) -> None:
 
         if not isinstance(exc, RequestValidationError):  # pragma: no cover - guard
             raise exc
+        # FastAPI puts `"body"` in front of a request-body location; only that
+        # leading part goes, so a field that is itself named `body` keeps it.
         fields = tuple(
             FieldError(
-                loc=".".join(str(p) for p in err["loc"] if p != "body"),
+                loc=".".join(
+                    str(p) for p in (err["loc"][1:] if err["loc"][:1] == ("body",) else err["loc"])
+                ),
                 msg=err.get("msg", ""),
                 type=err.get("type", ""),
             )
@@ -336,7 +340,8 @@ def field_errors_from_pydantic(errors: Any) -> tuple[FieldError, ...]:
 
     Typed as ``Any`` because Pydantic v2's ``ErrorDetails`` TypedDict isn't
     re-exported from ``pydantic`` in a stable way; consumers always pass the
-    direct return of ``exc.errors()``.
+    direct return of ``exc.errors()``. Unlike a request-validation location,
+    a model's own location starts at the field, so nothing is stripped.
     """
     return tuple(
         FieldError(

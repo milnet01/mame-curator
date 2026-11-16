@@ -43,7 +43,7 @@ def _read_title(md_path: Path) -> str:
             stripped = line.strip()
             if stripped.startswith("# "):
                 return stripped[2:].strip()
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return md_path.stem
     return md_path.stem
 
@@ -73,9 +73,14 @@ def help_topic(topic: str) -> HelpContent:
         candidate.relative_to(base)
     except ValueError as exc:
         raise HelpTopicNotFoundError(f"help topic not found: {topic!r}") from exc
-    if not candidate.exists():
+    # mame-curator-1226: a folder named `x.md`, or a file that is not UTF-8,
+    # is no topic either.
+    if not candidate.is_file():
         raise HelpTopicNotFoundError(f"help topic not found: {topic!r}")
-    text = candidate.read_text(encoding="utf-8")
+    try:
+        text = candidate.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise HelpTopicNotFoundError(f"help topic not found: {topic!r}") from exc
     title = _read_title(candidate)
     html = render_markdown(text)
     return HelpContent(slug=topic, title=title, html=html)

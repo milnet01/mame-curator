@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 from datetime import UTC, datetime
 
@@ -79,7 +80,7 @@ async def post_override(
         entries = dict(world.overrides.entries)
         entries[body.parent] = body.winner
         new_overrides = Overrides.model_validate({"entries": entries})
-        new_world = replace_world(base=world, overrides=new_overrides)
+        new_world = await asyncio.to_thread(replace_world, base=world, overrides=new_overrides)
         # Mirrors Phase C by asking it, so the two cannot disagree. The reply's
         # warnings are the whole world's: only a new one is about this choice.
         new_warnings = set(new_world.filter_result.warnings) - set(world.filter_result.warnings)
@@ -106,7 +107,7 @@ async def delete_override(
         del entries[parent]
         new_overrides = Overrides.model_validate({"entries": entries})
         _persist_overrides(world, new_overrides)
-        new_world = replace_world(base=world, overrides=new_overrides)
+        new_world = await asyncio.to_thread(replace_world, base=world, overrides=new_overrides)
         set_world(request, new_world)
         return _overrides_view(new_world)
 
@@ -147,7 +148,7 @@ async def upsert_session(
         sessions_map[body.name] = body.session
         new_sessions = Sessions(active=world.sessions.active, sessions=sessions_map)
         _persist_sessions(world, new_sessions)
-        new_world = replace_world(base=world, sessions=new_sessions)
+        new_world = await asyncio.to_thread(replace_world, base=world, sessions=new_sessions)
         set_world(request, new_world)
         return _listing(new_sessions)
 
@@ -167,7 +168,7 @@ async def delete_session(
         new_active = None if world.sessions.active == name else world.sessions.active
         new_sessions = Sessions(active=new_active, sessions=sessions_map)
         _persist_sessions(world, new_sessions)
-        new_world = replace_world(base=world, sessions=new_sessions)
+        new_world = await asyncio.to_thread(replace_world, base=world, sessions=new_sessions)
         set_world(request, new_world)
         return _listing(new_sessions)
 
@@ -185,7 +186,7 @@ async def deactivate_session(
         world: WorldState = request.app.state.world
         new_sessions = Sessions(active=None, sessions=dict(world.sessions.sessions))
         _persist_sessions(world, new_sessions)
-        new_world = replace_world(base=world, sessions=new_sessions)
+        new_world = await asyncio.to_thread(replace_world, base=world, sessions=new_sessions)
         set_world(request, new_world)
         return _listing(new_sessions)
 
@@ -203,7 +204,7 @@ async def activate_session(
             raise SessionNotFoundError(f"session not found: {name!r}")
         new_sessions = Sessions(active=name, sessions=dict(world.sessions.sessions))
         _persist_sessions(world, new_sessions)
-        new_world = replace_world(base=world, sessions=new_sessions)
+        new_world = await asyncio.to_thread(replace_world, base=world, sessions=new_sessions)
         set_world(request, new_world)
         return _listing(new_sessions)
 
@@ -277,19 +278,17 @@ async def post_state(body: StatePostRequest, request: Request) -> StateView:
         entries[body.short_name] = body.state
         new_state = ReviewState.model_validate({"entries": entries})
 
-        # Disk-write order: persist YAML before activity append before world
-        # swap. A YAML failure raises 500 with state unchanged. An activity
-        # failure after a successful YAML write leaves on-disk state ahead
-        # of the log; recovery walks the YAML (source of truth).
+        # Order: persist YAML, swap world, append activity. A YAML failure
+        # raises 500 with state unchanged. The swap follows the write at once,
+        # so an activity failure (still a 500) leaves memory matching the YAML,
+        # the source of truth; else the next mark would write this one away.
         _persist_review_state(world, new_state)
+        set_world(request, replace_world(base=world, review_state=new_state))
         previous_str = previous_enum.value if previous_enum is not None else "pending"
         append_activity(
             _build_review_event(body.short_name, body.state.value, previous_str),
             log_path=world.data_dir / "activity.jsonl",
         )
-
-        new_world = replace_world(base=world, review_state=new_state)
-        set_world(request, new_world)
         return StateView(entries=dict(new_state.entries))
 
 
@@ -314,12 +313,11 @@ async def delete_state(short_name: str, request: Request) -> StateView:
         del entries[short_name]
         new_state = ReviewState.model_validate({"entries": entries})
 
+        # Same order as post_state, for the same reason.
         _persist_review_state(world, new_state)
+        set_world(request, replace_world(base=world, review_state=new_state))
         append_activity(
             _build_review_event(short_name, "pending", previous_enum.value),
             log_path=world.data_dir / "activity.jsonl",
         )
-
-        new_world = replace_world(base=world, review_state=new_state)
-        set_world(request, new_world)
         return StateView(entries=dict(new_state.entries))

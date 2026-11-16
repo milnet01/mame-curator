@@ -425,7 +425,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # game's page. 1294 → 1298.
 # Bumped 2026-11-15 (mame-curator-1143): a missing picture is remembered
 # for 7 days, and the retry route forgets it. 1298 → 1319.
-EXPECTED_PYTEST_DECLARATIONS = 1319
+# Bumped 2026-11-16 (mame-curator-1226): the web-server core fixes and the
+# one-copy-per-data-folder launch. 1319 → 1338.
+EXPECTED_PYTEST_DECLARATIONS = 1338
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

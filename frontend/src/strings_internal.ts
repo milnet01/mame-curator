@@ -928,7 +928,7 @@ export const strings = {
         "The requested media is not in the libretro library.",
       // FP21-J / FP22-D: typed launch_game errors lifted out of bare HTTPException.
       retroarch_not_configured:
-        "RetroArch is not configured. Set paths.retroarch and paths.retroarch_core under Settings → Paths, then restart.",
+        "RetroArch is not configured. Set paths.retroarch and paths.retroarch_core under Settings → Paths.",
       // mame-curator-1083: the cross-site guard refused a browser request.
       // mame-curator-1010: codes carried by `updates/app.py::UpdateError`,
       // raised by `api/routes/updates.py` and `updates_ini.py`.

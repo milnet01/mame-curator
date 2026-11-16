@@ -312,7 +312,7 @@ def launch_game(name: str, world: WorldState = Depends(get_world)) -> LaunchResp
         # it to the friendly toast copy in strings.ts byCode.
         raise RetroArchNotConfiguredError(
             "RetroArch not configured. Set paths.retroarch and "
-            "paths.retroarch_core in config.yaml, then restart."
+            "paths.retroarch_core under Settings → Paths."
         )
 
     rom_path: Path | None = None

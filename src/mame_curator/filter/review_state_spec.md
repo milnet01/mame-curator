@@ -150,11 +150,14 @@ current value, or DELETE of an already-pending game) skips *both* the
 YAML write and the activity append, so a keypress that changes nothing
 never touches the file mtime or the log.
 
-**Write ordering under partial failure** (`post_state`): persist YAML →
-append activity → swap world. A YAML-write failure leaves state, log,
-and world all unchanged (caller sees 500). An activity-append failure
-*after* a successful persist leaves the on-disk YAML ahead of the log;
-the YAML is the source of truth and is what a restart reloads.
+**Write ordering under partial failure** (`post_state`, `delete_state`):
+persist YAML → swap world → append activity. A YAML-write failure leaves
+state, log, and world all unchanged (caller sees 500). An activity-append
+failure *after* a successful persist also gives a 500, and leaves the YAML
+and the world ahead of the log; the YAML is the source of truth and is
+what a restart reloads. The world swaps before the append so that it
+always matches the YAML: otherwise the next mark, built from the stale
+world, would write this one away.
 
 ## Per-request filter — `?review_state=` on `GET /api/games`
 

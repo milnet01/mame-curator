@@ -344,7 +344,8 @@ class JobManager:
                 with contextlib.suppress(asyncio.QueueFull):
                     q.put_nowait(event)
 
-    def _persist_report(self, job: Job, report: CopyReport) -> Path:
+    def _persist_report(self, job: Job, report: CopyReport) -> bool:
+        """Write the job's report to its history folder; False when that failed."""
         report_dir = self._history_dir / job.id
         try:
             report_dir.mkdir(parents=True, exist_ok=True)
@@ -354,13 +355,15 @@ class JobManager:
             )
         except OSError:
             logger.exception("failed to persist copy report for job %r", job.id)
-        return report_dir
+            return False
+        return True
 
     def _on_worker_done(self, report: CopyReport) -> None:
         job = self._current
         if job is None:
             return
-        report_dir = self._persist_report(job, report)
+        report_saved = self._persist_report(job, report)
+        report_dir = self._history_dir / job.id
 
         terminal: JobEvent
         if report.status in (CopyReportStatus.OK, CopyReportStatus.PARTIAL_FAILURE):
@@ -371,6 +374,9 @@ class JobManager:
                     "job_id": job.id,
                     "status": report.status.value,
                     "report_path": str(report_dir / "report.json"),
+                    # mame-curator-1226: the path is where it would be; this
+                    # says whether it is there.
+                    "report_saved": report_saved,
                     # Skipped, not failed, so an OK job can have some.
                     "bios_missing": sum(
                         o.role == "bios" and o.status is CopyOutcomeStatus.SKIPPED_MISSING_SOURCE

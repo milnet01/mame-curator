@@ -266,7 +266,7 @@ Discriminated union via `event: Literal[...]`:
 | `resumed` | `{at: datetime}` | Synthesized: same poll, `state == PAUSED` → `state != PAUSED` transition. |
 
 **Superseded 2026-10-30 (mame-curator-1144):** `paused` and `resumed` are now emitted by `JobManager.pause` and `.resume`, not from a tick, because a worker held at a file boundary sends none. `src/mame_curator/api/spec.md` holds the current contract.
-| `job_finished` | `{job_id, status: CopyReportStatus, report_path: str}` | JobManager, after worker thread joins cleanly with a `CopyReport`. JobManager additionally writes the report to `data/copy-history/<job_id>/report.json` per § Atomic-write protocol before emitting. |
+| `job_finished` | `{job_id, status: CopyReportStatus, report_path: str, report_saved: bool}` | JobManager, after worker thread joins cleanly with a `CopyReport`. JobManager additionally writes the report to `data/copy-history/<job_id>/report.json` per § Atomic-write protocol before emitting; `report_saved` is false when that write failed. |
 | `job_aborted` | `{job_id, reason: str, recycled_count: int}` | JobManager, after `controller.cancel(...)` plus worker join. `recycled_count` from `CopyReport.recycled` length (the FP05 A1 contract). |
 
 The event stream **always ends** with exactly one of `job_finished` / `job_aborted`. The SSE handler closes the response after the terminal event. Playlist-conflict cancels (per R21) return 409 synchronously and **never become SSE events** — JobManager isn't created.

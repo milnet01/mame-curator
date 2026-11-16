@@ -208,7 +208,8 @@ def _validate_paths(
                         type="path_invalid",
                     )
                 )
-        elif not (p.retroarch.exists() and os.access(p.retroarch, os.X_OK)):
+        elif not (p.retroarch.is_file() and os.access(p.retroarch, os.X_OK)):
+            # is_file, not exists: a folder carries the execute bit too.
             errs.append(
                 FieldError(
                     loc="paths.retroarch",
@@ -290,7 +291,9 @@ async def patch_config(
         write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
 
         rerun = filter_relevant_changed(world.config, new_config)
-        new_world = replace_world(base=world, config=new_config, rerun_filter=rerun)
+        new_world = await asyncio.to_thread(
+            replace_world, base=world, config=new_config, rerun_filter=rerun
+        )
         # mame-curator-1145 §4.1: in setup mode ANY save retries the DAT,
         # deliberately not just a `source_dat` change: the likeliest recovery
         # leaves the path string unchanged (mame-curator-1095 § 4.2b).
@@ -343,7 +346,8 @@ async def restore_config_snapshot(
             # the answer to a snapshot from an older schema (mame-curator-1132).
             restore_snapshot(snapshots_dir, undo_id, targets)
             raise SnapshotUnusableError(f"snapshot {snap_id!r} not restored: {exc!r}") from exc
-        new_world = replace_world(
+        new_world = await asyncio.to_thread(
+            replace_world,
             base=world,
             config=new_config,
             overrides=new_overrides,

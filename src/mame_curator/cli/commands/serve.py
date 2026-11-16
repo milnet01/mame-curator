@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from rich.console import Console
 from rich.markup import escape
 
+from mame_curator.cli.commands._single_instance import InstanceLock, running_url
 from mame_curator.cli.commands._text import shown_path
 from mame_curator.config_location import (
     ConfigSource,
@@ -177,36 +178,44 @@ def _open_browser_when_ready(host: str, port: int, instance: str) -> None:
     Best-effort by contract: every failure path returns rather than
     raising, and each non-open outcome logs its own distinguishable line.
     """
-    connect_host = "127.0.0.1" if _is_wildcard(host) else host.strip("[]")
-    # An IPv6 literal needs brackets in a URL, and none on a socket.
-    url_host = f"[{connect_host}]" if ":" in connect_host else connect_host
-    url = f"http://{url_host}:{port}/"
+    connect_host, url = _browser_address(host, port)
     deadline = time.monotonic() + _BROWSER_POLL_TIMEOUT_S
 
     while time.monotonic() < deadline:
         if not _answers_as_this_server(connect_host, port, instance):
             time.sleep(_BROWSER_POLL_INTERVAL_S)
             continue
-        try:
-            if not webbrowser.open(url):
-                logger.debug("browser open failed: no browser could be started")
-        except Exception as exc:
-            # Deliberately broad, and the one place in `cli/` where that is
-            # right: this runs in a daemon thread, `webbrowser` backends
-            # raise whatever their platform opener raises, and cli/spec.md
-            # § Browser requires that a failed open can never reach the
-            # server or the exit code. An escaping exception here would
-            # print a traceback the user can do nothing about.
-            logger.debug("browser open failed: %s", exc)
+        _open_url(url)
         return
 
     logger.debug("browser open gave up: %s not accepting after %ss", url, _BROWSER_POLL_TIMEOUT_S)
 
 
-def _maybe_open_browser(
-    host: str, port: int, instance: str, *, enabled: bool, suppressed: bool, managed: bool
-) -> None:
-    """Start the browser poller, or log the reason it was skipped.
+def _browser_address(host: str, port: int) -> tuple[str, str]:
+    """`(host to connect to, URL to open)` for a server bound to `host:port`."""
+    connect_host = "127.0.0.1" if _is_wildcard(host) else host.strip("[]")
+    # An IPv6 literal needs brackets in a URL, and none on a socket.
+    url_host = f"[{connect_host}]" if ":" in connect_host else connect_host
+    return connect_host, f"http://{url_host}:{port}/"
+
+
+def _open_url(url: str) -> None:
+    """Open `url` in the browser; best-effort, so every failure only logs."""
+    try:
+        if not webbrowser.open(url):
+            logger.debug("browser open failed: no browser could be started")
+    except Exception as exc:
+        # Deliberately broad, and the one place in `cli/` where that is
+        # right: it may run in a daemon thread, `webbrowser` backends
+        # raise whatever their platform opener raises, and cli/spec.md
+        # § Browser requires that a failed open can never reach the
+        # server or the exit code. An escaping exception here would
+        # print a traceback the user can do nothing about.
+        logger.debug("browser open failed: %s", exc)
+
+
+def _browser_skip_reason(*, enabled: bool, suppressed: bool, managed: bool) -> str | None:
+    """Why the browser must not open, or None when it may.
 
     `suppressed` is `--no-open-browser`, `enabled` is
     `server.open_browser_on_start`, and `managed` is `LWSM_MANAGED=1`:
@@ -216,11 +225,21 @@ def _maybe_open_browser(
     config saying false.
     """
     if suppressed:
-        logger.debug("browser open skipped: disabled by flag")
-    elif managed:
-        logger.debug("browser open skipped: started by LocalWebServerManager")
-    elif not enabled:
-        logger.debug("browser open skipped: disabled by config")
+        return "disabled by flag"
+    if managed:
+        return "started by LocalWebServerManager"
+    if not enabled:
+        return "disabled by config"
+    return None
+
+
+def _maybe_open_browser(
+    host: str, port: int, instance: str, *, enabled: bool, suppressed: bool, managed: bool
+) -> None:
+    """Start the browser poller, or log the reason it was skipped."""
+    reason = _browser_skip_reason(enabled=enabled, suppressed=suppressed, managed=managed)
+    if reason is not None:
+        logger.debug("browser open skipped: %s", reason)
     elif port == 0:
         # `--port 0` is "any free port"; the port uvicorn actually binds is
         # not knowable here, so the poll target would be unconnectable by
@@ -362,8 +381,8 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         # than as an ImportError traceback from deeper in the command.
         import uvicorn  # noqa: F401
 
-        from mame_curator.api import create_app
         from mame_curator.api.errors import ConfigError
+        from mame_curator.api.state import data_dir_for
     except ImportError as exc:
         err_console.print(
             f"[red]error:[/red] API extras not installed ({escape(str(exc))}); "
@@ -380,6 +399,52 @@ def _cmd_serve(args: argparse.Namespace) -> int:
 
     port = server.port if use_config_port else port_from_flag_or_env
     host = args.host or server.host
+    skip_reason = _browser_skip_reason(
+        enabled=server.open_browser_on_start,
+        suppressed=args.no_open_browser,
+        managed=os.environ.get("LWSM_MANAGED") == "1",
+    )
+
+    data_dir = data_dir_for(config_path)
+    lock = InstanceLock(data_dir)
+    if not lock.claim("" if port == 0 else _browser_address(host, port)[1]):
+        return _hand_over(data_dir, config_path, skip_reason, err_console)
+    try:
+        return _start(args, config_path, host, port, server, err_console)
+    finally:
+        lock.release()
+
+
+def _hand_over(
+    data_dir: Path, config_path: Path, skip_reason: str | None, err_console: Console
+) -> int:
+    """Another copy holds this data folder: point the user at it, start nothing."""
+    url = running_url(data_dir)
+    if url is None:
+        err_console.print(
+            f"[red]error:[/red] MAME Curator is already running with {shown_path(config_path)}. "
+            "Use the copy that is open, or close it first."
+        )
+        return 1
+    Console(soft_wrap=True).print(f"MAME Curator is already running at {escape(url)}")
+    if skip_reason is not None:
+        logger.debug("browser open skipped: %s", skip_reason)
+    else:
+        _open_url(url)
+    return 0
+
+
+def _start(
+    args: argparse.Namespace,
+    config_path: Path,
+    host: str,
+    port: int,
+    server: ServerConfig,
+    err_console: Console,
+) -> int:
+    """Build the app and run it: stage 3, with this copy's claim held."""
+    from mame_curator.api import create_app
+    from mame_curator.api.errors import ConfigError
 
     # FP28 D2: narrowed from bare `except Exception` to the typed errors
     # create_app actually raises on bad inputs. Programmer errors

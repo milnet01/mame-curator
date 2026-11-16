@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-16 Fixed — Starting the app twice opens the running copy, and the web service is steadier
+
+- **A second start opens the copy already running** (mame-curator-1226)
+  Two copies sharing one data folder overwrote each other's edits. Now
+  a second start prints the running copy's address, opens it in the
+  browser, and closes.
+- **A review mark is no longer lost after a log-write failure**
+  If the activity log could not be written, the next review mark
+  quietly undid the one before. The mark now stays.
+- **Saving overrides, sessions or settings no longer stalls the app**
+  The game list is recalculated off to one side, so other screens keep
+  answering while it runs.
+- **Smaller fixes**
+  After an update, opening the app's address always loads the new
+  screens. A broken Help page shows "not found" instead of an error.
+  Settings refuses a folder as the RetroArch program. The RetroArch
+  message no longer says to restart. A config error names the setting
+  on one line, without its value. A finished copy says whether its
+  report was saved. Closing the app stops a running copy first.
+
 ### 2026-11-15 Fixed — Settings has the listxml field the Library points to
 
 - **Settings → Paths has a "MAME listxml file" row** (mame-curator-1254)

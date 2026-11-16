@@ -8,6 +8,7 @@
   - [Port](#port)
   - [Host](#host)
   - [Browser](#browser)
+  - [One copy per data folder](#one-copy-per-data-folder)
   - [Entry points](#entry-points)
 - [Output routing (per coding standards §9)](#output-routing-per-coding-standards-9)
 - [Error messages](#error-messages)
@@ -90,11 +91,11 @@ error (exit 2).
 
 | Code | Meaning | Source |
 |---|---|---|
-| `0` | Success. | Library calls returned without raising. **Not reachable from `serve`** — see the 130 row. |
+| `0` | Success. | Library calls returned without raising. From `serve`, **only when another copy already runs** and its address was handed over (§ One copy per data folder); a server that ran returns 130. |
 | `1` | Runtime / data error — DAT corrupt, listxml unreadable, override target missing, copy `PARTIAL_FAILURE` / `FAILED`, server failed to start, etc. | A `ParserError` / `FilterError` / `CopyError` / `ConfigError` was caught at the CLI boundary, or `_cmd_copy`'s report status was non-OK and not a cancel-family, or `_cmd_serve` hit one of its startup failures (below). |
 | `2` | Usage error — unknown subcommand, missing required argument, malformed flag, etc. | argparse exits with this BEFORE `run()` is ever called. The CLI MUST NOT use `2` for runtime errors (collides with argparse's reserved meaning; breaks shell-scripting around the tool). |
 | `3` | User-prompt cancel — `mame-curator copy` was cancelled via the playlist-conflict prompt (`CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT`). Distinct from SIGINT-driven cancel so shell scripts that special-case 130 don't mis-attribute prompt-cancels (FP05 B10). | `_cmd_copy` |
-| `130` | SIGINT-family cancel — `mame-curator copy` was cancelled by Ctrl-C / signal-driven stop (`CopyReportStatus.CANCELLED`). Conventional POSIX exit code (128 + signal 2 = 130). Also **every non-error return from `serve`** (FP28 D1). | `_cmd_copy`, `_cmd_serve` |
+| `130` | SIGINT-family cancel — `mame-curator copy` was cancelled by Ctrl-C / signal-driven stop (`CopyReportStatus.CANCELLED`). Conventional POSIX exit code (128 + signal 2 = 130). Also **every non-error return from a `serve` whose server ran** (FP28 D1). | `_cmd_copy`, `_cmd_serve` |
 
 `serve` returns `130` on **every** path where the server actually ran,
 not just an observed `KeyboardInterrupt`. The current uvicorn catches
@@ -132,11 +133,13 @@ surface too**; `P04-http-api.md` § "Contract" says so and defers here.
    coding-standards §9's "typed exceptions per module" bars raising bare
    `Exception` — not reusing a sibling module's typed error for the exact
    condition it names.
-5. `create_app` raised `ConfigError` / `ParserError` / `FilterError`.
-6. The bind raised — `OSError`, or `OverflowError` (a **resolved** port
+5. Another copy holds this config's data folder and recorded no address
+   (§ One copy per data folder).
+6. `create_app` raised `ConfigError` / `ParserError` / `FilterError`.
+7. The bind raised — `OSError`, or `OverflowError` (a **resolved** port
    outside 0-65535, which can come from `--port` or from `server.port` —
    neither is range-checked, see § Port rules (1) and (3)).
-7. uvicorn exited — `SystemExit`, whatever its code (mame-curator-1139).
+8. uvicorn exited — `SystemExit`, whatever its code (mame-curator-1139).
    uvicorn logs the cause and calls `sys.exit` itself: `1` when the address is
    in use or the privileged port is refused, `3` when the lifespan fails.
    Neither code passes through. `serve` prints one `error:` line and returns 1.
@@ -184,7 +187,7 @@ The `config.yaml` layer is the `server:` block, typed by
 **Only the `server:` block is read here, not the whole `AppConfig`**:
 full config validation belongs to the API lifespan. A bad value in another
 section therefore gets past this read and fails in the lifespan: exit-`1`
-path 7. (Measured 2026-11-02, `filters.region_priority: 5`.)
+path 8. (Measured 2026-11-02, `filters.region_priority: 5`.)
 
 **The block is read once, and unconditionally** — not lazily when a layer
 below the flags turns out to be needed. So a malformed `server:` block
@@ -283,7 +286,7 @@ here; `tests/cli/test_serve_startup_failure.py` pins what the lifespan then does
 
 1. **`--port <n>`** — explicit beats implicit. Passed through as given (including `--port 0`, which uvicorn reads as "any free port" — see § Browser for why that value suppresses the browser open); only argparse's `type=int` constrains it. **The 1024-65535 check does NOT apply to the flag** — a caller who names a port explicitly is taken at their word (a privileged port under `sudo` is the motivating case). `$PORT` is not read at all when the flag is present, so a malformed `$PORT` alongside `--port 9000` is ignored, not an error.
 2. **`$PORT`** — read only when `--port` is absent. **An unset `$PORT` and a set-but-empty `PORT=""` both count as absent** and fall through to (3); this matches bash's `${PORT:-…}` and is what the two existing `_resolve_port(None) == 8080` tests pin. Otherwise it MUST match `[0-9]+` in full and fall inside **1024-65535, inclusive**. Leading zeros are accepted (`08080` → 8080); a leading `+`, surrounding whitespace, underscores, and non-ASCII digits are NOT — `int()` and `str.isdigit()` both accept some of those, so neither is a conforming implementation on its own.
-3. **`server.port`** — read when neither of the above is set. Constrained only by `ServerConfig`'s `int` type, on the same "taken at their word" grounds as (1): a hand-edited config naming port 80 is as deliberate as a typed flag. Because it is unconstrained, it can reach the bind out of range — see exit-`1` path 6.
+3. **`server.port`** — read when neither of the above is set. Constrained only by `ServerConfig`'s `int` type, on the same "taken at their word" grounds as (1): a hand-edited config naming port 80 is as deliberate as a typed flag. Because it is unconstrained, it can reach the bind out of range — see exit-`1` path 7.
 4. **`8080`** — `ServerConfig.port`'s own default, reached when `config.yaml` has no `server:` block **or has one that omits `port`** (every `ServerConfig` field carries its own default, so a partial block is valid). `serve.DEFAULT_PORT` mirrors it as the fallback for `_resolve_port`'s unit-level callers. **A test MUST pin `serve.DEFAULT_PORT == ServerConfig.model_fields["port"].default` so the two cannot drift** — `tests/cli/test_serve_config_layer.py::test_default_port_tracks_server_config_default`.
 
 A `$PORT` that is non-empty and does not satisfy (2) MUST exit **1** with `error: PORT='<value>' is not a valid port — expected an integer in 1024-65535.` on stderr, where `<value>` is the environment value **verbatim, modulo `repr` quoting** per § "Error messages" — rich markup in it (`[abc]`) MUST be escaped, not interpreted. It MUST NOT fall back to 8080 or to `server.port`, and MUST NOT be allowed to reach argparse (whose `invalid int value:` message omits the range) or the bind call (whose `permission denied` names neither). The check runs **before** the config-existence check, so a bad `$PORT` reports as itself rather than as a missing config.
@@ -345,6 +348,21 @@ def _is_wildcard(host: str) -> bool:
 **Test surface** (`tests/cli/test_serve_browser.py`): the open is skipped when `open_browser_on_start` is false; skipped when `--no-open-browser` is passed with config true; skipped when `LWSM_MANAGED=1` with config true, and not skipped for any other value of it; skipped when the resolved port is `0`; fires once this server answers at the poll target; does not fire for another program's reply, another copy's reply, or a port that accepts and stays silent; gives up after `_BROWSER_POLL_TIMEOUT_S` (monkeypatched small); each of the outcomes above emits its own distinct line; `_is_wildcard` returns true for `""`, `0.0.0.0`, `::`, `[::]`, `::0` and false for `127.0.0.1`, `192.168.1.5` and `localhost`; and a `webbrowser.open` that raises does not change the exit code.
 
 **Every test-built `serve` Namespace carries `no_open_browser`**, because `_cmd_serve` reads it unconditionally and a missing attribute raises `AttributeError`. `_serve_args` in `tests/cli/test_serve_port_env.py` defaults it to argparse's own `False`; `tests/cli/test_fp28_serve_signal.py` sets it explicitly. Production code MUST NOT paper the gap over with `getattr(args, …, False)`, which would hide a genuinely missing argparse registration.
+
+### One copy per data folder
+
+Two copies sharing one data folder would overwrite each other's edits. So `serve` claims the folder before `create_app`, once the `server:` block is read and the host and port are resolved. The data folder is the one the API uses, `data/` beside `config.yaml` (`api.state.data_dir_for`).
+
+**The claim is an exclusive, non-blocking OS lock on `data/instance.lock`**, held until `_cmd_serve` returns. The OS also drops it when the process dies, so a crash leaves no stale claim. On a claim, `serve` writes the address the browser would open to `data/instance.url`, or an empty file when the port is `0`.
+
+**When another copy holds the lock, `serve` hands over and starts nothing.** It reads `data/instance.url`.
+
+- **An `http://` address** → it prints `MAME Curator is already running at <url>` to stdout, opens that address in the browser, and exits `0`. The open follows § Browser's three conditions (flag, marker, config), each skip logging its § Browser line; there is no poll, since the other copy already answers.
+- **No usable address** → one `error:` line saying MAME Curator is already running with this config, and exit `1` (path 5).
+
+**A lock the filesystem cannot take is not a held one.** When locking fails for any other reason, such as a share that does not support it, `serve` logs a WARNING and runs unlocked. Windows reports both cases alike, so there any failure counts as held.
+
+**Test surface** (`tests/cli/test_mame_curator_1226_single_instance.py`): a held lock with an address exits `0`, prints the address and opens it once, and never creates the app; the flag suppresses that open; a held lock with no address exits `1`; a running `serve` holds the lock and has written its address, and releases the lock when it returns; a lock the filesystem refuses gives a WARNING and the server still runs.
 
 ### Entry points
 

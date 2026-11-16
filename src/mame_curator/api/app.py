@@ -18,6 +18,7 @@ from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 from starlette.types import Scope
 
+from mame_curator import __version__
 from mame_curator._resources import frontend_dist
 from mame_curator.api.errors import ConfigError, install_handlers
 from mame_curator.api.jobs import JobManager
@@ -62,7 +63,18 @@ class _SPAStaticFiles(StaticFiles):
     fallback, the SPA boots, react-router renders the right view.
     """
 
-    _NO_FALLBACK_PREFIXES = ("api/", "media/", "assets/")
+    # The bare folder counts too: `/api` is a missing route (mame-curator-1226).
+    _NO_FALLBACK_DIRS = frozenset({"api", "media", "assets"})
+
+    @classmethod
+    def _is_reserved(cls, path: str) -> bool:
+        r"""Is `path` under a folder whose misses must 404, not fall back?
+
+        Starlette joins the URL path against the on-disk directory using
+        `os.path`, which normalises separators to the host's native form. On
+        Windows that's `\`, so `api\typo` must match as `api/typo` does.
+        """
+        return path.replace("\\", "/").split("/", 1)[0] in cls._NO_FALLBACK_DIRS
 
     async def get_response(self, path: str, scope: Scope) -> Response:
         served_fallback = False
@@ -71,16 +83,7 @@ class _SPAStaticFiles(StaticFiles):
         except StarletteHTTPException as exc:
             if exc.status_code != 404:
                 raise
-            # Starlette joins the URL path against the on-disk directory
-            # using `os.path`, which normalises separators to the host's
-            # native form. On Windows that's `\\`, so a naive
-            # `path.startswith("api/")` misses `api\typo`. Normalise back
-            # to forward slashes for the prefix check (the underlying
-            # 404 was raised by Starlette's resolver, which already
-            # handled the OS-side normalisation; we only need a
-            # uniform string for the carve-out comparison).
-            posix_path = path.replace("\\", "/")
-            if posix_path.startswith(self._NO_FALLBACK_PREFIXES):
+            if self._is_reserved(path):
                 raise
             response = await super().get_response("index.html", scope)
             served_fallback = True
@@ -92,12 +95,42 @@ class _SPAStaticFiles(StaticFiles):
         # /sessions, /help, etc.) MUST revalidate every load, otherwise
         # a fresh deploy hands users a stale shell that references
         # deleted bundle hashes — observed 2026-05-04 on the v1.0.0 cut.
+        # Starlette hands the root URL `/` over as ".".
         posix_path = path.replace("\\", "/")
         if posix_path.startswith("assets/"):
             response.headers["cache-control"] = "public, max-age=31536000, immutable"
-        elif served_fallback or posix_path in ("", "index.html"):
+        elif served_fallback or posix_path in ("", ".", "index.html"):
             response.headers["cache-control"] = "no-cache, must-revalidate"
         return response
+
+
+async def _shut_down(app: FastAPI) -> None:
+    """Stop the copy job, then close each HTTP client (mame-curator-1226).
+
+    The job goes first: it may still be fetching through a client. Each
+    client closes in its own `try`, so one failure leaves none open.
+    """
+    jm: JobManager = app.state.job
+    current = jm.current
+    if current is not None:
+        current.controller.cancel()
+        # Joined off the loop, which stays free for the worker's last callbacks.
+        await asyncio.to_thread(current.thread.join, 5.0)
+        # FP21-I: a worker still alive after the join is detached, not
+        # silently: the daemon flag (set in JobManager.start) lets Python reap
+        # it at exit, and the warning says the graceful path didn't take.
+        if current.thread.is_alive():
+            logger.warning(
+                "FP21-I: copy worker thread did not exit within 5s "
+                "of cancel; detaching (daemon will be reaped at "
+                "interpreter exit). job_id=%r",
+                current.id,
+            )
+    for client in (app.state.media_client, app.state.updates_client):
+        try:
+            await client.aclose()
+        except (httpx.HTTPError, OSError, RuntimeError):
+            logger.exception("failed to close an HTTP client at shutdown")
 
 
 def create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI:
@@ -189,29 +222,9 @@ def create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI:
         try:
             yield
         finally:
-            await app.state.media_client.aclose()
-            await app.state.updates_client.aclose()
-            jm: JobManager = app.state.job
-            current = jm.current
-            if current is not None:
-                current.controller.cancel()
-                current.thread.join(timeout=5.0)
-                # FP21-I: log a warning if the worker is still alive
-                # after the 5-second join — the prior code silently
-                # detached, leaving a daemon thread running with no
-                # signal to the operator that the controlled shutdown
-                # failed. The daemon flag (set in JobManager.start)
-                # means Python will reap it on interpreter exit; the
-                # warning surfaces that the graceful path didn't take.
-                if current.thread.is_alive():
-                    logger.warning(
-                        "FP21-I: copy worker thread did not exit within 5s "
-                        "of cancel; detaching (daemon will be reaped at "
-                        "interpreter exit). job_id=%r",
-                        current.id,
-                    )
+            await _shut_down(app)
 
-    app = FastAPI(title="MAME Curator", version="0.0.1", lifespan=lifespan)
+    app = FastAPI(title="MAME Curator", version=__version__, lifespan=lifespan)
     install_handlers(app)
     install_update_error_handler(app)
     app.add_middleware(OriginGuard, bind_host=bind_host)

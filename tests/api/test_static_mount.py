@@ -183,6 +183,11 @@ def test_missing_asset_returns_404_not_spa_html(
         (r"api\typo", True),
         (r"media\foo\bar", True),
         (r"assets\missing.js", True),
+        # The bare folder (mame-curator-1226).
+        ("api", True),
+        ("media", True),
+        # A name that only starts like one is not under it.
+        ("apiary", False),
         # Non-carve-out paths must still cascade to the SPA shell.
         ("sessions/foo", False),
         (r"sessions\foo", False),
@@ -196,7 +201,7 @@ def test_carveout_normalises_windows_backslashes(path: str, expected: bool) -> N
     ``_SPAStaticFiles.get_response`` a backslash-form path
     (``api\\typo`` instead of ``api/typo``). The carve-out check MUST
     normalise to forward slashes before comparing against
-    ``_NO_FALLBACK_PREFIXES``, otherwise typo'd API paths cascade to
+    ``_NO_FALLBACK_DIRS``, otherwise typo'd API paths cascade to
     ``index.html`` on Windows but not Linux.
 
     The Windows-only failure surfaced via CI on the FP11 push; this
@@ -207,6 +212,5 @@ def test_carveout_normalises_windows_backslashes(path: str, expected: bool) -> N
     """
     from mame_curator.api.app import _SPAStaticFiles
 
-    posix = path.replace("\\", "/")
-    actual = posix.startswith(_SPAStaticFiles._NO_FALLBACK_PREFIXES)
+    actual = _SPAStaticFiles._is_reserved(path)
     assert actual is expected, f"path={path!r}: expected carve-out match={expected}, got {actual}"

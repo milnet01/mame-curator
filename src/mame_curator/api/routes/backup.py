@@ -8,6 +8,7 @@ the snapshot taken first keeps them.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 
@@ -165,7 +166,8 @@ async def import_config(
         world: WorldState = request.app.state.world
         new = _check_bundle(bundle, world)
         _write_bundle(world, new)
-        new_world = replace_world(
+        new_world = await asyncio.to_thread(
+            replace_world,
             base=world,
             config=new.config,
             overrides=new.overrides,

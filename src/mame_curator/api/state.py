@@ -99,12 +99,21 @@ def file_stamp(path: Path) -> tuple[str, int, int] | None:
     return (str(path), st.st_mtime_ns, st.st_size)
 
 
+def data_dir_for(config_path: Path) -> Path:
+    """The data folder that belongs to ``config_path``: ``data/`` beside it."""
+    return config_path.parent / "data"
+
+
 def load_app_config(config_path: Path) -> AppConfig:
     """Read and validate ``config.yaml`` from disk."""
     if not config_path.exists():
         raise ConfigError(f"config file does not exist: {str(config_path)!r}")
     try:
         raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError) as exc:
+        # mame-curator-1226: unreadable (a folder, no permission, not UTF-8)
+        # is a config fault, so `serve` can report it in one line.
+        raise ConfigError(f"failed to read {str(config_path)!r}: {exc!r}") from exc
     except yaml.YAMLError as exc:
         # FP09 A1: repr-quote `exc` so a multi-line YAML error message can't
         # break the FP06-FP08 single-line `detail` invariant.
@@ -130,11 +139,11 @@ def load_app_config(config_path: Path) -> AppConfig:
     except ValidationError as exc:
         from mame_curator.api.errors import field_errors_from_pydantic
 
-        # FP09 A1: repr-quote `exc` (Pydantic ValidationError str is multi-line).
-        raise ConfigError(
-            f"config validation failed: {exc!r}",
-            fields=field_errors_from_pydantic(exc.errors()),
-        ) from exc
+        # mame-curator-1226: name the fields, never their values; each
+        # field's message is in `fields`. One line, per FP09 A1.
+        fields = field_errors_from_pydantic(exc.errors())
+        where = ", ".join(repr(f.loc) for f in fields)
+        raise ConfigError(f"config validation failed at {where}", fields=fields) from exc
 
 
 def _drop_unknown_keys(model: type[BaseModel], data: dict[str, Any], *, prefix: str) -> list[str]:
@@ -277,7 +286,7 @@ def build_world(config_path: Path) -> WorldState:
     )
     sessions = load_sessions(config_path.parent / "sessions.yaml")
 
-    data_dir = config_path.parent / "data"
+    data_dir = data_dir_for(config_path)
     notes = _load_notes(data_dir / "notes.json")
     pictures = load_pictures(pictures_path(data_dir))
     review_state = load_review_state(data_dir / "state.yaml")

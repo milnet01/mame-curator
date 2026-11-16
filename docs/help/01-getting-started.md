@@ -7,7 +7,8 @@ for RetroArch. Your original ROM folder is never changed.
 ## Starting the app
 
 Run `./run.sh` on Linux or macOS, or `run.bat` on Windows. The app
-opens in your browser.
+opens in your browser. If it is already running, starting it again opens
+the running copy instead of a second one.
 
 ## First-time setup
 

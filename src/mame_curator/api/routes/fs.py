@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import stat
 from datetime import UTC, datetime
 from pathlib import Path
@@ -190,7 +191,7 @@ async def fs_grant_root(
             snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
         write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
 
-        new_world = replace_world(base=world, config=new_config)
+        new_world = await asyncio.to_thread(replace_world, base=world, config=new_config)
         set_world(request, new_world)
         return _roots_reply(new_world)
 
@@ -229,7 +230,7 @@ async def fs_revoke_root(
             snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
         write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
 
-        new_world = replace_world(base=world, config=new_config)
+        new_world = await asyncio.to_thread(replace_world, base=world, config=new_config)
         set_world(request, new_world)
         return _roots_reply(new_world)
 
