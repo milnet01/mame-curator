@@ -241,6 +241,24 @@ def subcommand_names(parser: argparse.ArgumentParser) -> frozenset[str]:
     )
 
 
+def root_options(parser: argparse.ArgumentParser) -> tuple[frozenset[str], frozenset[str]]:
+    """The root parser's ``(answers, flags)``, read from ``parser._actions``.
+
+    An answer (``--help``, ``--version``) makes argparse reply and exit; a
+    flag (``--verbose``) takes no value and leaves a subcommand to follow.
+    Derived, like ``subcommand_names``, so a new root option needs no second
+    edit in ``main.py`` (mame-curator-1228).
+    """
+    answers: set[str] = set()
+    flags: set[str] = set()
+    for action in parser._actions:
+        if isinstance(action, argparse._HelpAction | argparse._VersionAction):
+            answers.update(action.option_strings)
+        elif action.option_strings and action.nargs == 0:
+            flags.update(action.option_strings)
+    return frozenset(answers), frozenset(flags)
+
+
 def run(args: argparse.Namespace) -> int:
     """Dispatch to the chosen subcommand. Returns process exit code.
 

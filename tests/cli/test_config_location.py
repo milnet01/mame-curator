@@ -141,6 +141,21 @@ def test_starter_config_is_valid_appconfig(user_dirs: tuple[Path, Path]) -> None
     AppConfig.model_validate(yaml.safe_load(user_config.read_text()))
 
 
+def test_starter_server_block_matches_the_server_defaults(
+    user_dirs: tuple[Path, Path],
+) -> None:
+    """mame-curator-1228: the starter's `server:` and `DEFAULT_PORT` copy `ServerConfig`."""
+    from mame_curator.api.schemas import ServerConfig
+    from mame_curator.cli.commands.serve import DEFAULT_PORT
+
+    user_config, _ = user_dirs
+    ensure_starter_config(user_config)
+    written = yaml.safe_load(user_config.read_text(encoding="utf-8"))["server"]
+    assert written == ServerConfig().model_dump(mode="json", include=set(written))
+    assert set(written) == set(ServerConfig.model_fields)
+    assert ServerConfig().port == DEFAULT_PORT
+
+
 def test_existing_config_is_never_overwritten(user_dirs: tuple[Path, Path]) -> None:
     """A corrupt or hand-edited config is the user's; creation is absent-only."""
     user_config, _ = user_dirs

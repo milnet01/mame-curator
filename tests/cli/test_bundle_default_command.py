@@ -15,9 +15,9 @@ import sys
 import pytest
 
 from mame_curator import main as main_mod
-from mame_curator.cli import build_parser, subcommand_names
+from mame_curator.cli import build_parser, root_options
 
-COMMANDS = subcommand_names(build_parser())
+PARSER = build_parser()
 
 
 @pytest.mark.parametrize(
@@ -34,7 +34,15 @@ COMMANDS = subcommand_names(build_parser())
     ],
 )
 def test_bundle_argv(argv: list[str], expected: list[str]) -> None:
-    assert main_mod._bundle_argv(argv, COMMANDS) == expected
+    assert main_mod._bundle_argv(argv, PARSER) == expected
+
+
+def test_root_options_are_read_from_the_parser() -> None:
+    """mame-curator-1228: the answers and flags come from `build_parser`, not a copy."""
+    assert root_options(PARSER) == (
+        frozenset({"-h", "--help", "--version"}),
+        frozenset({"-v", "--verbose"}),
+    )
 
 
 def test_frozen_bare_launch_runs_serve(monkeypatch: pytest.MonkeyPatch) -> None:

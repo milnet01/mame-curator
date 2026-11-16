@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import argparse
 import logging
 import sys
 from typing import TextIO
 
-from mame_curator.cli import build_parser, run, subcommand_names
+from mame_curator.cli import build_parser, root_options, run, subcommand_names
 from mame_curator.config_location import user_log_path
 
 
@@ -48,21 +49,19 @@ def _tee_stderr_if_frozen() -> None:
     sys.stderr = _Tee(sys.stderr, log)
 
 
-_ROOT_ANSWERS = frozenset({"-h", "--help", "--version"})
-_ROOT_FLAGS = frozenset({"-v", "--verbose"})
-
-
-def _bundle_argv(argv: list[str], commands: frozenset[str]) -> list[str]:
+def _bundle_argv(argv: list[str], parser: argparse.ArgumentParser) -> list[str]:
     """Insert ``serve`` for a bundle launched without a subcommand.
 
     mame-curator-1095 § 4.14: a double-click passes no arguments. Leading
     root flags stay in front of ``serve``; a help or version request is
     left for the root parser to answer.
     """
-    if any(arg in commands or arg in _ROOT_ANSWERS for arg in argv):
+    commands = subcommand_names(parser)
+    answers, flags = root_options(parser)
+    if any(arg in commands or arg in answers for arg in argv):
         return argv
     lead = 0
-    while lead < len(argv) and argv[lead] in _ROOT_FLAGS:
+    while lead < len(argv) and argv[lead] in flags:
         lead += 1
     return [*argv[:lead], "serve", *argv[lead:]]
 
@@ -79,7 +78,7 @@ def main() -> int:
     parser = build_parser()
     argv = sys.argv[1:]
     if getattr(sys, "frozen", False):
-        argv = _bundle_argv(argv, subcommand_names(parser))
+        argv = _bundle_argv(argv, parser)
     args = parser.parse_args(argv)
     level = logging.DEBUG if getattr(args, "verbose", False) else logging.INFO
     logging.basicConfig(

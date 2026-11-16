@@ -112,6 +112,8 @@ def ensure_starter_config(path: Path) -> bool:
             "dest_roms": str(dest_roms),
             "retroarch_playlist": str(playlist),
         },
+        # ServerConfig's defaults, written out so the file shows them;
+        # tests/cli/test_config_location.py pins the two together.
         "server": {"host": "127.0.0.1", "port": 8080, "open_browser_on_start": True},
     }
     # Atomic: a partial file left by a full disk would never be recreated,
