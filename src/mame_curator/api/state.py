@@ -149,8 +149,10 @@ def load_app_config(config_path: Path) -> AppConfig:
 def _drop_unknown_keys(model: type[BaseModel], data: dict[str, Any], *, prefix: str) -> list[str]:
     """Remove keys ``model`` has no field for, recursing into nested models.
 
-    Mutates ``data``; returns the dotted names of the keys removed. A value
-    that is not a mapping is left for validation to judge.
+    Also called from outside this module, by ``cli/commands/serve.py``'s
+    ``_load_server_config`` for the ``server:`` block. Mutates ``data``;
+    returns the dotted names of the keys removed. A value that is not a
+    mapping is left for validation to judge.
     """
     dropped: list[str] = []
     for key in list(data):

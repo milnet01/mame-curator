@@ -41,7 +41,9 @@ The `setup` subcommand is a small CLI-only bootstrap shipped ahead of the
 P08 browser-based first-run wizard. Scope is deliberately minimal:
 prompts for the four required `paths.*` fields (or accepts them via flags
 for non-interactive use), validates that `source_roms` and `source_dat`
-exist, then writes a starter config that omits the rest of the
+exist, creates the `dest_roms` folder and the playlist's folder when
+they are absent (the in-app Settings save refuses a config naming a
+missing one), then writes a starter config that omits the rest of the
 sections so they fall back to `AppConfig` defaults. Anything richer
 (filter chip lists, region priority, theme, …) is tweaked through the
 in-app Settings page or by hand-editing — `setup`'s job is "get me to a
@@ -65,10 +67,10 @@ and an empty answer re-prompts. With all four path flags supplied,
 | `setup` exit | When |
 |---|---|
 | `0` | The config was written. |
-| `1` | The target file exists without `--force`; stdin closes before a prompt is answered (the line names the four path flags); `source_roms` is not a directory; `source_dat` is not a file; or the write failed. Each prints one `error:` line on stderr. |
+| `1` | The target file exists without `--force`; stdin closes before a prompt is answered (the line names the four path flags); `source_roms` is not a directory; `source_dat` is not a file; a folder could not be created; or the write failed. Each prints one `error:` line on stderr. |
 | `2` | argparse usage error. |
 
-**`refresh-inis` and `refresh-snaps` find their config the same way.** With no `--config` they use `resolve_config_path`, so they read and update the file `serve` reads. None of the three creates the per-user starter; only `serve` does. `refresh-inis` updates only `paths.*` fields that are unset, and a relative `--dest` goes into a per-user config as an absolute path. When it downloads files but updates nothing, it says so, and still exits by the downloads alone: there is no such file, the file cannot be read or written, the file or its `paths:` is not a mapping, or every path was already set. `--no-config` skips the update and the message.
+**`refresh-inis` and `refresh-snaps` find their config the same way.** With no `--config` they use `resolve_config_path`, so they read and update the file `serve` reads. None of the three creates the per-user starter; only `serve` does. `refresh-inis` updates only `paths.*` fields that are unset, and a relative `--dest` goes in as an absolute path, except into a `./config.yaml`, which `serve` reads only from that same folder. When it downloads files but updates nothing, it says so, and still exits by the downloads alone: there is no such file, the file cannot be read or written, the file or its `paths:` is not a mapping, or every path was already set. `--no-config` skips the update and the message.
 
 The CLI MUST refuse to run with no subcommand (argparse `required=True` on the subparsers group). Adding a subcommand is a change to `build_parser()` alone — register the subparser and attach its handler with `set_defaults(func=...)`; `run()` is never edited. See § "Dispatch pattern" for the mandatory form. Handlers live one-per-module in `cli/commands/<name>.py` (dashes in the subcommand name become underscores in the module name: `refresh-inis` → `cli/commands/refresh_inis.py`) and are re-exported from `cli/__init__.py` as `_cmd_<name>` so tests can import them from their historical location.
 
@@ -93,7 +95,7 @@ error (exit 2).
 |---|---|---|
 | `0` | Success. | Library calls returned without raising. From `serve`, **only when another copy already runs** and its address was handed over (§ One copy per data folder); a server that ran returns 130. |
 | `1` | Runtime / data error — DAT corrupt, listxml unreadable, override target missing, copy `PARTIAL_FAILURE` / `FAILED`, server failed to start, etc. | A `ParserError` / `FilterError` / `CopyError` / `ConfigError` was caught at the CLI boundary, or `_cmd_copy`'s report status was non-OK and not a cancel-family, or `_cmd_serve` hit one of its startup failures (below). |
-| `2` | Usage error — unknown subcommand, missing required argument, malformed flag, etc. | argparse exits with this BEFORE `run()` is ever called. The CLI MUST NOT use `2` for runtime errors (collides with argparse's reserved meaning; breaks shell-scripting around the tool). |
+| `2` | Usage error — unknown subcommand, missing required argument, malformed flag, etc. | argparse exits with this BEFORE `run()` is ever called. The one exception is `copy`'s inputs, required only in some modes, which `_cmd_copy` checks itself (`copy/spec.md` § CLI). The CLI MUST NOT use `2` for runtime errors (collides with argparse's reserved meaning; breaks shell-scripting around the tool). |
 | `3` | User-prompt cancel — `mame-curator copy` was cancelled via the playlist-conflict prompt (`CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT`). Distinct from SIGINT-driven cancel so shell scripts that special-case 130 don't mis-attribute prompt-cancels (FP05 B10). | `_cmd_copy` |
 | `130` | SIGINT-family cancel — `mame-curator copy` was cancelled by Ctrl-C / signal-driven stop (`CopyReportStatus.CANCELLED`). Conventional POSIX exit code (128 + signal 2 = 130). Also **every non-error return from a `serve` whose server ran** (FP28 D1). | `_cmd_copy`, `_cmd_serve` |
 
@@ -119,7 +121,7 @@ surface too**; `P04-http-api.md` § "Contract" says so and defers here.
 1. `--port` absent and `$PORT` set and invalid (see § Port).
 2. `--config` names a file that does not exist, or the per-user starter
    cannot be created (`cannot create config at`).
-3. The API extras are not installed (`ImportError` on `uvicorn` / `mame_curator.api`).
+3. The web-server packages cannot be imported (`ImportError` on `uvicorn` / `mame_curator.api`): a broken install, since both are core dependencies.
 4. `config.yaml` is unreadable, is not a YAML mapping, or its
    `server:` block fails validation (`ConfigError`). Because `load_app_config`
    is deliberately not used here, `cli/` opens and parses the file itself,
@@ -211,7 +213,7 @@ two-staged, and the stages straddle the exit-`1` ordering above:
 - **Stage 1** — `$PORT` is validated before any config I/O (exit-`1` path
   1 precedes paths 2 and 4; § Port states the rationale).
 - **Stage 2** — the `server:` block is read, only after the config file is
-  known to exist and the API extras import has succeeded (exit-`1` paths
+  known to exist and the web-server import has succeeded (exit-`1` paths
   2 and 3), and regardless of which flags were supplied.
 
 **Ownership of the resolution is `_cmd_serve`, not `_resolve_port`.**
@@ -432,9 +434,7 @@ escapes its interpolated values. A user's path goes through one helper,
 writes a character that cannot be printed as its escape, so a newline cannot
 split the line, and escapes it for `rich`. It never reads `PosixPath('...')`,
 and a backslash prints once, not doubled as `repr` would (mame-curator-1180). Their
-consoles use `soft_wrap=True`, so a long path stays on one line. The one literal the CLI writes that *looks* like markup —
-`pip install mame-curator[api]` — is backslash-escaped at the source
-rather than passed through `escape()`, since it is not user input.
+consoles use `soft_wrap=True`, so a long path stays on one line.
 
 ## Logging configuration
 
@@ -469,7 +469,7 @@ The CLI is the outermost user-facing layer. It catches the **typed** library
 errors (`ParserError`, `FilterError`, `CopyError`, `ConfigError` and their
 subclasses) plus the specific stdlib errors a bad user input or a missing
 install can reach: `ValueError` from `_resolve_port` (an invalid `$PORT`),
-`ImportError` (the API extras are absent), and `OSError`, `OverflowError` and
+`ImportError` (a broken install), and `OSError`, `OverflowError` and
 uvicorn's `SystemExit` around `uvicorn.run`. Each converts into a
 `(stderr message, exit code 1)` pair. `KeyboardInterrupt` is also caught
 at `_cmd_serve`, but maps to 130 rather than 1 and so is not part of this

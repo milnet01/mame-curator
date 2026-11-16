@@ -9,6 +9,7 @@ model" for the architectural decision.
 from __future__ import annotations
 
 import argparse
+import zipfile
 from pathlib import Path
 
 from rich.console import Console
@@ -105,4 +106,10 @@ def _cmd_refresh_snaps(args: argparse.Namespace) -> int:
             )
         return 0
 
-    return asyncio.run(_run())
+    try:
+        return asyncio.run(_run())
+    except (httpx.HTTPError, ValueError, zipfile.BadZipFile, OSError) as exc:
+        # mame-curator-1227: offline, a page with no pack link, a bad pack, or
+        # a destination that cannot be written. One line, as cli/spec.md asks.
+        err_console.print(f"[red]error:[/red] snap pack not refreshed: {escape(str(exc))}")
+        return 1

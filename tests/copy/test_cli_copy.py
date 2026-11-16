@@ -61,28 +61,13 @@ def test_copy_cli_dry_run_smoke(tmp_path: Path, source_dir: Path, dest_dir: Path
     assert list(dest_dir.iterdir()) == []
 
 
-def test_copy_cli_purge_recycle_short_circuits(tmp_path: Path) -> None:
-    """`--purge-recycle` exits without doing a copy run."""
-    parser = build_parser()
-    # purge-recycle still requires the other args via argparse, so populate them.
-    args = parser.parse_args(
-        [
-            "copy",
-            "--dry-run",
-            "--dat",
-            str(tmp_path / "x.xml"),
-            "--listxml",
-            str(tmp_path / "x.xml"),
-            "--filter-report",
-            str(tmp_path / "x.json"),
-            "--source",
-            str(tmp_path),
-            "--dest",
-            str(tmp_path),
-            "--purge-recycle",
-        ]
-    )
-    # Doesn't crash even though the inputs would otherwise be invalid.
+def test_copy_cli_purge_recycle_short_circuits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--purge-recycle` is its own mode: it exits without doing a copy run."""
+    # The purge works on ./data/recycle; run it in an empty folder, never the repo.
+    monkeypatch.chdir(tmp_path)
+    args = build_parser().parse_args(["copy", "--purge-recycle"])
     assert run(args) == 0
 
 
@@ -278,24 +263,7 @@ def test_cmd_copy_purge_recycle_oserror_surfaces_clean(
     a clean `error:` line with exit 1.
     """
     monkeypatch.setattr("mame_curator.cli.commands.copy.purge_recycle", _raise_oserror)
-    parser = build_parser()
-    args = parser.parse_args(
-        [
-            "copy",
-            "--dry-run",
-            "--dat",
-            str(tmp_path / "x.xml"),
-            "--listxml",
-            str(tmp_path / "x.xml"),
-            "--filter-report",
-            str(tmp_path / "x.json"),
-            "--source",
-            str(tmp_path),
-            "--dest",
-            str(tmp_path),
-            "--purge-recycle",
-        ]
-    )
+    args = build_parser().parse_args(["copy", "--purge-recycle"])
     assert run(args) == 1
     err = capsys.readouterr().err
     assert "error:" in err

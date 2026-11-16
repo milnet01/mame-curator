@@ -427,7 +427,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # for 7 days, and the retry route forgets it. 1298 → 1319.
 # Bumped 2026-11-16 (mame-curator-1226): the web-server core fixes and the
 # one-copy-per-data-folder launch. 1319 → 1338.
-EXPECTED_PYTEST_DECLARATIONS = 1338
+# Bumped 2026-11-16 (mame-curator-1227): the command-line error fixes.
+# 1338 → 1347.
+EXPECTED_PYTEST_DECLARATIONS = 1347
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

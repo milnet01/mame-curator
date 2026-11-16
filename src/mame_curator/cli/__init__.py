@@ -1,13 +1,7 @@
 """mame-curator command-line interface.
 
-Subcommands (added incrementally as phases land):
-    parse <dat-path>   — parse the DAT and print summary stats (Phase 1)
-    filter <args>      — run the filter pipeline and write a report (Phase 2)
-    copy <args>        — copy winners + BIOS deps and write mame.lpl (Phase 3)
-    serve <args>       — run the HTTP API server (Phase 4)
-    setup <args>       — interactive bootstrap wizard for config.yaml
-    refresh-inis <args>  — download progettoSnaps reference INIs (P07)
-    refresh-snaps <args> — download + extract progettoSnaps snap pack (P10 3a)
+Each subcommand's one-line help comes from its `add_parser` call below, so
+`mame-curator --help` lists them all without a second, hand-kept list.
 """
 
 from __future__ import annotations
@@ -18,13 +12,8 @@ from pathlib import Path
 
 from mame_curator import __version__
 
-# PEP 484 explicit re-export: `import X as X` flags the underscore-prefixed
-# command handlers as public re-exports, so tests can import them via
-# `mame_curator.cli` (the historical location pre-DS02 A2 split) without
-# mypy attr-defined warnings. The handlers live in cli/commands/<name>.py
-# now, but this module is still the import surface for build_parser() /
-# run() consumers and the FP28 tests that exercise _cmd_serve and
-# _cmd_refresh_inis directly.
+# Re-exported (`import X as X`, PEP 484) so `mame_curator.cli` stays the
+# import surface; the underscore names are kept for tests.
 from mame_curator.cli.commands.copy import _cmd_copy as _cmd_copy
 from mame_curator.cli.commands.filter import _cmd_filter as _cmd_filter
 from mame_curator.cli.commands.parse import _cmd_parse as _cmd_parse
@@ -44,7 +33,9 @@ def build_parser() -> argparse.ArgumentParser:
     cli/spec.md §"Dispatch pattern" — `run()` then dispatches with
     `args.func(args)` instead of an if/elif chain.
     """
-    parser = argparse.ArgumentParser(prog="mame-curator", description=__doc__)
+    parser = argparse.ArgumentParser(
+        prog="mame-curator", description="Curate a MAME library and copy it for RetroArch."
+    )
     parser.add_argument(
         "--version",
         action="version",
@@ -78,13 +69,18 @@ def build_parser() -> argparse.ArgumentParser:
     cp_mode = cp.add_mutually_exclusive_group(required=True)
     cp_mode.add_argument("--dry-run", action="store_true", help="Preview without writing")
     cp_mode.add_argument("--apply", action="store_true", help="Execute the copy")
-    cp.add_argument("--dat", type=Path, required=True, help="Path to DAT XML or .zip")
-    cp.add_argument("--listxml", type=Path, required=True, help="Official MAME -listxml output")
-    cp.add_argument(
-        "--filter-report", type=Path, required=True, help="Path to a Phase-2 filter JSON report"
+    cp_mode.add_argument(
+        "--purge-recycle",
+        action="store_true",
+        help="Delete recycle entries older than 30 days, then exit without copying",
     )
-    cp.add_argument("--source", type=Path, required=True, help="Source ROM directory")
-    cp.add_argument("--dest", type=Path, required=True, help="Destination ROM directory")
+    # Required with --dry-run and --apply; _cmd_copy checks them, since
+    # argparse cannot require a flag in some modes only.
+    cp.add_argument("--dat", type=Path, help="Path to DAT XML or .zip")
+    cp.add_argument("--listxml", type=Path, help="Official MAME -listxml output")
+    cp.add_argument("--filter-report", type=Path, help="Path to a Phase-2 filter JSON report")
+    cp.add_argument("--source", type=Path, help="Source ROM directory")
+    cp.add_argument("--dest", type=Path, help="Destination ROM directory")
     cp.add_argument(
         "--conflict",
         choices=("append", "overwrite", "cancel"),
@@ -95,11 +91,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--delete-existing-zips",
         action="store_true",
         help="With --conflict overwrite, recycle existing dest zips",
-    )
-    cp.add_argument(
-        "--purge-recycle",
-        action="store_true",
-        help="One-shot: delete recycle entries older than 30 days; exits without copying",
     )
     cp.set_defaults(func=_cmd_copy)
 

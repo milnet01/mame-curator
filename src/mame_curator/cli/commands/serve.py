@@ -36,6 +36,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Mirrors `ServerConfig.port`'s default; it does not set the app's port.
+# `_resolve_port` returns it with no flag and no $PORT, and `_cmd_serve` then
+# takes `server.port` instead, so only direct callers of `_resolve_port` see it.
 DEFAULT_PORT = 8080
 MIN_PORT = 1024
 MAX_PORT = 65535
@@ -385,8 +388,8 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         from mame_curator.api.state import data_dir_for
     except ImportError as exc:
         err_console.print(
-            f"[red]error:[/red] API extras not installed ({escape(str(exc))}); "
-            "install with `pip install mame-curator\\[api]`"
+            f"[red]error:[/red] the web-server packages could not be loaded "
+            f"({escape(str(exc))}); reinstall MAME Curator"
         )
         return 1
 
@@ -446,15 +449,9 @@ def _start(
     from mame_curator.api import create_app
     from mame_curator.api.errors import ConfigError
 
-    # FP28 D2: narrowed from bare `except Exception` to the typed errors
-    # create_app actually raises on bad inputs. Programmer errors
-    # (RuntimeError, AttributeError, ...) propagate as tracebacks per
-    # coding-standards.md § 9 — the trace is the actionable signal.
-    # NOTE: create_app is currently a pure FastAPI factory; config
-    # validation happens inside the async lifespan and surfaces during
-    # uvicorn.run, as `_run_server`'s SystemExit. This catch is
-    # defence-in-depth in case a future refactor moves validation up into
-    # the factory body.
+    # A safety net: create_app validates nothing today, and a config error
+    # surfaces later as `_run_server`'s SystemExit. Only the typed errors are
+    # caught; a programmer error keeps its traceback (coding-standards § 9).
     try:
         app = create_app(config_path, bind_host=host)
     except (ConfigError, ParserError, FilterError) as exc:

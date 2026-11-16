@@ -77,6 +77,17 @@ def _cmd_setup(args: argparse.Namespace) -> int:
         )
         return 1
 
+    # mame-curator-1227: the in-app Settings save refuses a config naming a
+    # missing destination or playlist folder, so make them now.
+    for folder in (dest_roms, retroarch_playlist.parent):
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            err_console.print(
+                f"[red]error:[/red] cannot create {shown_path(folder)}: {escape(str(exc))}"
+            )
+            return 1
+
     paths_block = {
         "paths": {
             "source_roms": str(source_roms),

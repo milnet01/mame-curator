@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-16 Fixed — The command-line tools fail clearly and never purge during a preview
+
+- **`copy --purge-recycle --dry-run` no longer deletes** (mame-curator-1227)
+  The purge is now a mode of its own beside `--dry-run` and `--apply`,
+  so the two cannot be combined, and it no longer asks for the five
+  copy inputs it never used.
+- **A copy stops when the filter report names games the DAT does not hold**
+  Before, those games were copied with no playlist entry.
+- **Clear one-line errors instead of crash reports**
+  `refresh-snaps` while offline or with a bad pack, and `refresh-inis`
+  with a folder it cannot write, now say what went wrong in one line.
+- **`setup` creates the destination and playlist folders**
+  The in-app Settings refused a config naming folders that did not
+  exist. A relative `refresh-inis --dest` is saved as a full path,
+  except in a config.yaml in the current folder.
+
 ### 2026-11-16 Fixed — Starting the app twice opens the running copy, and the web service is steadier
 
 - **A second start opens the copy already running** (mame-curator-1226)

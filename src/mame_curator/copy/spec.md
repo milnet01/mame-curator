@@ -466,18 +466,21 @@ The CLI catches `CopyError` at the boundary and exits 1 with `error: ...` to std
 
 ## CLI
 
-`mame-curator copy` subcommand. Two mutually-exclusive modes:
+`mame-curator copy` subcommand. Three mutually-exclusive modes, one of them required:
 
 | Flag | Semantics |
 |---|---|
 | `--dry-run` | Run preflight + BIOS resolution + conflict detection. Print a copy plan summary. **No writes.** |
 | `--apply` | Run the full copy. |
+| `--purge-recycle` | Delete recycle entries older than 30 days (`purge_recycle`'s defaults), print what was freed, and exit 0 without copying; 1 when the purge raised `OSError`. It takes none of the flags below. Being its own mode, it cannot be combined with `--dry-run`, which would otherwise read as a preview and still delete (mame-curator-1227). |
 
-Exit codes (both modes): 0 on `OK`, 130 on `CANCELLED`, 3 on `CANCELLED_PLAYLIST_CONFLICT`, 1 otherwise.
+Exit codes (`--dry-run` and `--apply`): 0 on `OK`, 130 on `CANCELLED`, 3 on `CANCELLED_PLAYLIST_CONFLICT`, 1 otherwise.
 
 A filter report with no winners exits 1 before anything is written, in both modes: `--conflict overwrite` would otherwise empty `mame.lpl` (mame-curator-1182). The API refuses an empty selection the same way (`api/spec.md`).
 
-Required flags (both modes):
+So does a filter report naming a winner the DAT does not hold, since that game would be copied with no playlist entry; the line names the first few (mame-curator-1227). The report was most likely made from another DAT.
+
+Required flags (`--dry-run` and `--apply`; argparse cannot require a flag per mode, so `_cmd_copy` checks them and exits 2, the usage-error code, naming each one missing):
 
 - `--dat <path>` — the DAT (`.xml` or `.zip`).
 - `--listxml <path>` — official MAME `-listxml` for BIOS chain + CHD detection.
@@ -491,7 +494,6 @@ Optional flags:
 |---|---|---|
 | `--conflict {append,overwrite,cancel}` | `cancel` | Strategy when `mame.lpl` already exists. The CLI passes no `append_decisions`. |
 | `--delete-existing-zips` | false | With `--conflict overwrite`, recycle existing dest zips |
-| `--purge-recycle` | none | One-shot: delete recycle entries older than 30 days; exits without copying |
 
 `-v` / `--verbose` is a top-level flag (`cli/spec.md`), given before `copy`.
 

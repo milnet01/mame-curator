@@ -134,9 +134,10 @@ def _cmd_refresh_inis(args: argparse.Namespace) -> int:
             if config_path.exists():
                 _patch_config_with_ini_paths(
                     config_path=config_path,
-                    # The per-user config is read from any folder, so a relative
-                    # path in it would point somewhere else on the next start.
-                    ini_dir=args.dest.absolute() if source is ConfigSource.USER else args.dest,
+                    # `serve` reads a ./config.yaml only when started in this
+                    # folder, so a relative path there resolves the same. Any
+                    # other config may be read from elsewhere (mame-curator-1227).
+                    ini_dir=args.dest if source is ConfigSource.CWD else args.dest.absolute(),
                     downloaded=report.updated,
                     console=console,
                 )
@@ -150,4 +151,11 @@ def _cmd_refresh_inis(args: argparse.Namespace) -> int:
 
         return 0 if report.all_succeeded else 1
 
-    return asyncio.run(_run())
+    try:
+        return asyncio.run(_run())
+    except OSError as exc:
+        # mame-curator-1227: an --dest that cannot be created or written.
+        err_console.print(
+            f"[red]error:[/red] cannot write to {shown_path(args.dest)}: {escape(str(exc))}"
+        )
+        return 1

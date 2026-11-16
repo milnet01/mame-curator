@@ -20,6 +20,12 @@ from mame_curator.copy import (
 from mame_curator.parser import ParserError, parse_dat
 from mame_curator.parser.listxml import parse_listxml
 
+# Required with --dry-run and --apply (copy/spec.md § CLI); --purge-recycle
+# takes none of them.
+_INPUTS = ("dat", "listxml", "filter_report", "source", "dest")
+# How many missing winners the error line names before "and N more".
+_SHOWN_MISSING = 5
+
 
 def _cmd_copy(args: argparse.Namespace) -> int:
     console = Console(soft_wrap=True)
@@ -38,6 +44,13 @@ def _cmd_copy(args: argparse.Namespace) -> int:
             return 1
         console.print(f"  recycle purged: {dirs} directories, {freed} bytes freed")
         return 0
+
+    missing = [f"--{name.replace('_', '-')}" for name in _INPUTS if getattr(args, name) is None]
+    if missing:
+        # 2, the usage-error code: argparse would have used it, had it been
+        # able to require these in some modes only.
+        err_console.print(f"[red]error:[/red] --dry-run and --apply need {', '.join(missing)}")
+        return 2
 
     try:
         machines = parse_dat(args.dat)
@@ -74,9 +87,19 @@ def _cmd_copy(args: argparse.Namespace) -> int:
             "nothing to copy"
         )
         return 1
+    absent = [short for short in winners if short not in machines]
+    if absent:
+        # mame-curator-1227: such a game would be copied with no playlist entry.
+        named = ", ".join(map(repr, absent[:_SHOWN_MISSING]))
+        more = f" and {len(absent) - _SHOWN_MISSING} more" if len(absent) > _SHOWN_MISSING else ""
+        err_console.print(
+            f"[red]error:[/red] filter report {shown_path(args.filter_report)} names games "
+            f"the DAT does not hold: {escape(named)}{more}. Was it made from another DAT?"
+        )
+        return 1
     plan = CopyPlan(
         winners=winners,
-        machines={short: machines[short] for short in winners if short in machines},
+        machines={short: machines[short] for short in winners},
         bios_chain=bios_chain,
         chd_required=chd_required,
         source_dir=args.source,

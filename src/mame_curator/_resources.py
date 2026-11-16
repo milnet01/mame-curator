@@ -6,6 +6,10 @@ position in the *source* tree resolves outside the bundle. Every lookup
 of a shipped data file goes through `bundle_root()` instead.
 
 See `docs/specs/mame-curator-1095-desktop-bundles.md` § 4.3.
+
+A pip install from a wheel finds neither the screens nor the Help pages,
+and is not meant to: the app ships through run.sh/run.bat and the desktop
+bundles, and a wheel is command-line only (user decision 2026-11-16).
 """
 
 from __future__ import annotations
