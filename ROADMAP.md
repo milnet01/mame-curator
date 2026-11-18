@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1262 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1264 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -5079,6 +5079,32 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: enhancement.
   Source: close-findings mame-curator-1237 CR-01-2, 2026-11-18.
   Lanes: frontend, api.
+
+- 📋 [mame-curator-1263] **Clear the lint warning on the folder list's windowed rows.**
+  npm run lint on 2026-11-18 (tree 1ed8a3e) warned once:
+  frontend/src/components/settings/FsEntryList.tsx, WindowedRows,
+  react-hooks/incompatible-library: TanStack Virtual's useVirtualizer
+  returns functions the React Compiler cannot memoise, so it skips the
+  component. LibraryGrid.tsx calls useVirtualizer too and draws no
+  warning; find out why first. Then either opt the component out of
+  the compiler with a reason, or restructure, and show the folder
+  list still redraws as it scrolls.
+  **Layman:** A checking tool warns that one part of the folder picker may show out-of-date rows; settle it so the warning goes.
+  Kind: fix.
+  Source: gate-run-mame-curator-1234-2026-11-18.
+  Lanes: frontend.
+
+- 📋 [mame-curator-1264] **Cut the frontend test suite's time spent rebuilding its test page.**
+  npx vitest run on 2026-11-18 (tree 1ed8a3e) reported: jsdom was
+  created 103 times, 124.78s total, 33% of tracked time. Vitest
+  suggests pool: 'vmThreads' (keeps per-file isolation) or
+  isolate: false in frontend/vitest.config.ts. Measure the suite's
+  time before and after, and check no test starts depending on
+  another's leftovers (localStorage, msw handlers, module mocks).
+  **Layman:** The screen tests spend about a third of their time setting up a fake browser over and over; set it up less often so checks finish sooner.
+  Kind: perf.
+  Source: gate-run-mame-curator-1234-2026-11-18.
+  Lanes: frontend.
 
 ## Considered / under research (no target date)
 
