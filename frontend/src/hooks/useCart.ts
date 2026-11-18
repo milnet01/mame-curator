@@ -13,12 +13,16 @@ export interface AddAllReport {
   truncated: number;
 }
 
+/** mame-curator-1234 (CR-09-9): what adding one game did. `full` is the cart
+ *  at MAX_CART_SIZE refusing it, which the caller tells the user. */
+export type AddOutcome = "added" | "held" | "full";
+
 export interface UseCartResult {
   items: CartItem[];
   has: (shortName: string) => boolean;
-  add: (shortName: string, variant?: string) => void;
+  add: (shortName: string, variant?: string) => AddOutcome;
   remove: (shortName: string) => void;
-  toggle: (shortName: string) => void;
+  toggle: (shortName: string) => AddOutcome | "removed";
   addAll: (shortNames: string[]) => AddAllReport;
   setVariant: (shortName: string, variant: string | undefined) => void;
   clear: () => void;
@@ -112,13 +116,14 @@ export function useCart(): UseCartResult {
   );
 
   const add = useCallback(
-    (shortName: string, variant?: string) => {
+    (shortName: string, variant?: string): AddOutcome => {
       const prev = latest.current;
-      if (prev.some((i) => holds(i, shortName))) return;
-      if (prev.length >= MAX_CART_SIZE) return;
+      if (prev.some((i) => holds(i, shortName))) return "held";
+      if (prev.length >= MAX_CART_SIZE) return "full";
       const item: CartItem = { shortName };
       if (variant !== undefined) item.chosenVariant = variant;
       commit([...prev, item]);
+      return "added";
     },
     [commit],
   );
@@ -135,11 +140,12 @@ export function useCart(): UseCartResult {
   // The game card's button: removes the entry standing for the game shown,
   // by either of its names, or adds the game.
   const toggle = useCallback(
-    (shortName: string) => {
+    (shortName: string): AddOutcome | "removed" => {
       const prev = latest.current;
       const next = prev.filter((i) => !holds(i, shortName));
-      if (next.length !== prev.length) commit(next);
-      else add(shortName);
+      if (next.length === prev.length) return add(shortName);
+      commit(next);
+      return "removed";
     },
     [add, commit],
   );

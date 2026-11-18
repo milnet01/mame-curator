@@ -253,4 +253,37 @@ describe("useCart.toggle", () => {
     act(() => result.current.toggle("puckj"));
     expect(result.current.items).toEqual([]);
   });
+
+  // mame-curator-1234 (CR-09-9): a full cart refuses one game, and says so,
+  // so the page can tell the user as it does for Add all.
+  it("reports a full cart, and what it did otherwise", () => {
+    const { result } = renderHook(() => useCart());
+    let outcome: string | undefined;
+    act(() => {
+      outcome = result.current.toggle("pacman");
+    });
+    expect(outcome).toBe("added");
+    act(() => {
+      outcome = result.current.toggle("pacman");
+    });
+    expect(outcome).toBe("removed");
+    act(() => {
+      outcome = result.current.add("galaga");
+    });
+    expect(outcome).toBe("added");
+    act(() => {
+      outcome = result.current.add("galaga");
+    });
+    expect(outcome).toBe("held");
+    act(() => {
+      result.current.addAll(
+        Array.from({ length: MAX_CART_SIZE }, (_, i) => `g${i}`),
+      );
+    });
+    act(() => {
+      outcome = result.current.toggle("extra");
+    });
+    expect(outcome).toBe("full");
+    expect(result.current.has("extra")).toBe(false);
+  });
 });

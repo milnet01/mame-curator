@@ -232,6 +232,14 @@ export function useLibraryController(cart: UseCartResult) {
     }
   };
 
+  // mame-curator-1234 (CR-09-9): a full cart refuses one game as it does many,
+  // and says so as Add all does.
+  const handleToggleCart = (shortName: string) => {
+    if (cart.toggle(shortName) === "full") {
+      toast.warning(strings.library.cart.maxCartReachedToast(MAX_CART_SIZE));
+    }
+  };
+
   // mame-curator-1148: add to an existing playlist, as the guide does. CANCEL
   // made the server refuse every copy once a playlist existed.
   const conflictStrategy = "APPEND";
@@ -395,6 +403,7 @@ export function useLibraryController(cart: UseCartResult) {
     handleTileSelect,
     clearFilters,
     handleBulkAdd,
+    handleToggleCart,
     handleDryRun,
     handleCopy,
     handleSaveSession,

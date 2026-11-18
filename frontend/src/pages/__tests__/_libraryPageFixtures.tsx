@@ -31,9 +31,9 @@ export function makeFakeCart(): UseCartResult {
   return {
     items: [],
     has: () => false,
-    add: () => {},
+    add: () => "added",
     remove: () => {},
-    toggle: () => {},
+    toggle: () => "added",
     addAll: () => ({ added: 0, truncated: 0 }),
     setVariant: () => {},
     clear: () => {},

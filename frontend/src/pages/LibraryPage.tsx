@@ -81,6 +81,7 @@ export function LibraryPage({
     handleTileSelect,
     clearFilters,
     handleBulkAdd,
+    handleToggleCart,
     handleDryRun,
     handleCopy,
     handleSaveSession,
@@ -254,7 +255,7 @@ export function LibraryPage({
                 layout={simple ? "covers" : layout}
                 cardsPerRowHint={config.data?.ui.cards_per_row_hint}
                 isInCart={(s) => cart.has(s)}
-                onToggleCart={cart.toggle}
+                onToggleCart={handleToggleCart}
                 onOpen={(card) => setOpenedShortName(card.short_name)}
                 focusCard={versionChoice.focusCard}
                 onFocusCardTaken={versionChoice.clearFocusCard}

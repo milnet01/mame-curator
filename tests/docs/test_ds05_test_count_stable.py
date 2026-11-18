@@ -643,7 +643,8 @@ EXPECTED_PYTEST_DECLARATIONS = 1399
 # Bumped 2026-11-15 (mame-curator-1254): Settings' listxml row. 779 → 781.
 # Bumped 2026-11-17 (mame-curator-1232): the small screen fixes. 781 → 796.
 # Bumped 2026-11-18 (mame-curator-1233): the Library page fixes. 796 → 815.
-EXPECTED_VITEST_DECLARATIONS = 815
+# Bumped 2026-11-18 (mame-curator-1234 CR-09-9): a full cart says so. 815 → 818.
+EXPECTED_VITEST_DECLARATIONS = 818
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
