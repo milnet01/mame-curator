@@ -7,6 +7,9 @@ interface CartBarProps {
   bulkAddTotal: number | null;
   expanded: boolean;
   onBulkAdd: () => void;
+  /** True while Add all fetches: the button ignores presses and keeps focus,
+   *  as RetryButton does (mame-curator-1165). */
+  bulkAdding?: boolean;
   onToggleExpand: () => void;
   onDryRun: () => void;
   onCopy: () => void;
@@ -27,6 +30,7 @@ export function CartBar({
   bulkAddTotal,
   expanded,
   onBulkAdd,
+  bulkAdding = false,
   onToggleExpand,
   onDryRun,
   onCopy,
@@ -53,7 +57,12 @@ export function CartBar({
             with a confusing "Add all 0" label. Only render when there's
             something to add. */}
         {bulkAddTotal !== null && bulkAddTotal > 0 && (
-          <Button variant="outline" onClick={onBulkAdd}>
+          <Button
+            variant="outline"
+            onClick={bulkAdding ? undefined : onBulkAdd}
+            aria-disabled={bulkAdding || undefined}
+            className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+          >
             {strings.library.cart.bulkAdd(bulkAddTotal)}
           </Button>
         )}

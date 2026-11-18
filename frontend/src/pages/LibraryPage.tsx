@@ -81,6 +81,7 @@ export function LibraryPage({
     handleTileSelect,
     clearFilters,
     handleBulkAdd,
+    bulkAdding,
     handleToggleCart,
     handleDryRun,
     handleCopy,
@@ -407,6 +408,7 @@ export function LibraryPage({
           bulkAddTotal={activeTileId !== null ? total : null}
           expanded={cartExpanded}
           onBulkAdd={handleBulkAdd}
+          bulkAdding={bulkAdding}
           onToggleExpand={() => onCartExpandedChange(!cartExpanded)}
           onDryRun={handleDryRun}
           onCopy={handleCopy}

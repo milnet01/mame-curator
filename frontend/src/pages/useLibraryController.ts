@@ -213,26 +213,30 @@ export function useLibraryController(cart: UseCartResult) {
   // page_size=500 cap until we've covered `total`, then `addAll`.
   // Surfaces MAX_CART_SIZE truncation as a toast so the user knows
   // some items didn't fit.
+  // mame-curator-1234 (CR-09-7): a press while it runs is ignored.
+  const [bulkAdding, setBulkAdding] = useState(false);
   const handleBulkAdd = async () => {
     const PAGE_SIZE = 500;
     const collected: string[] = [];
     const targetTotal = Math.min(total, MAX_CART_SIZE);
     let page = 1;
-    while (collected.length < targetTotal) {
-      const pageQuery: GamesQuery = { ...query, page, pageSize: PAGE_SIZE };
-      let pageData: GamesPage;
-      try {
-        pageData = await apiRequest<GamesPage>(
+    setBulkAdding(true);
+    try {
+      while (collected.length < targetTotal) {
+        const pageQuery: GamesQuery = { ...query, page, pageSize: PAGE_SIZE };
+        const pageData = await apiRequest<GamesPage>(
           `/api/games?${toQueryString(pageQuery)}`,
           GamesPageSchema,
         );
-      } catch (err) {
-        toastApiError(err);
-        return;
+        collected.push(...pageData.items.map((c) => c.short_name));
+        if (pageData.items.length === 0) break;
+        page += 1;
       }
-      collected.push(...pageData.items.map((c) => c.short_name));
-      if (pageData.items.length === 0) break;
-      page += 1;
+    } catch (err) {
+      toastApiError(err);
+      return;
+    } finally {
+      setBulkAdding(false);
     }
     const { truncated } = cart.addAll(collected);
     if (truncated > 0) {
@@ -411,6 +415,7 @@ export function useLibraryController(cart: UseCartResult) {
     handleTileSelect,
     clearFilters,
     handleBulkAdd,
+    bulkAdding,
     handleToggleCart,
     handleDryRun,
     handleCopy,

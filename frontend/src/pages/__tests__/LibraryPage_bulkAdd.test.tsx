@@ -71,3 +71,51 @@ describe("Add all with a review filter on", () => {
     expect(bulk?.get("publisher")).toBe(tile.query.publisher);
   });
 });
+
+// mame-curator-1234 (CR-09-7): a second press while Add all is fetching would
+// run the whole fetch again. The button ignores it and keeps focus, as Retry
+// does (mame-curator-1165).
+describe("Add all while it is fetching", () => {
+  it("ignores a second press and keeps focus", async () => {
+    let bulkRequests = 0;
+    let answer = () => {};
+    server.use(
+      ...libraryPageBaseHandlers(),
+      http.get("/api/games", ({ request }) => {
+        if (new URL(request.url).searchParams.get("page_size") !== "500") {
+          return HttpResponse.json(makeGamesPage([card("g1")]));
+        }
+        bulkRequests += 1;
+        return new Promise((resolve) => {
+          answer = () =>
+            resolve(HttpResponse.json(makeGamesPage([card("g1")])));
+        });
+      }),
+    );
+    const addAll = vi.fn(() => ({ added: 1, truncated: 0 }));
+    const user = userEvent.setup();
+    renderLibraryPageTree(
+      <LibraryPage
+        cart={{ ...makeFakeCart(), addAll }}
+        cartExpanded={false}
+        onCartExpandedChange={() => {}}
+      />,
+    );
+    const tile = strings.library.featured.tiles[0];
+    await user.click(await screen.findByRole("button", { name: tile.title }));
+    const button = await screen.findByRole("button", {
+      name: strings.library.cart.bulkAdd(1),
+    });
+
+    await user.click(button);
+    await waitFor(() => expect(bulkRequests).toBe(1));
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    await user.click(button);
+    expect(button).toHaveFocus();
+    answer();
+
+    await waitFor(() => expect(addAll).toHaveBeenCalledOnce());
+    await waitFor(() => expect(button).not.toHaveAttribute("aria-disabled"));
+    expect(bulkRequests).toBe(1);
+  });
+});
