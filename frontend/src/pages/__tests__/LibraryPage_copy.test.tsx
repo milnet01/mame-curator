@@ -334,7 +334,8 @@ describe("LibraryPage during a copy", () => {
         "/api/copy/dry-run",
         () =>
           new Promise((resolve) => {
-            answerDryRun = () => resolve(HttpResponse.json({}, { status: 500 }));
+            answerDryRun = () =>
+              resolve(HttpResponse.json({}, { status: 500 }));
           }),
       ),
     );
