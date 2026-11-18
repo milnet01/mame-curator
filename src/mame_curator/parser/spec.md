@@ -5,7 +5,7 @@
 - Streams a MAME non-merged DAT XML into typed `Machine` records keyed by short name.
 - Tolerates a DAT path that is either a `.xml` file or a `.zip` containing a single `.xml`.
 - Parses the five progettoSnaps reference INI files: `catver.ini`, `languages.ini`, `bestgames.ini`, `mature.ini`, `series.ini`.
-- Parses the official MAME `-listxml` output (separate from the Pleasuredome DAT) and returns the set of machine short names that require a CHD.
+- Parses the official MAME `-listxml` output (separate from the Pleasuredome DAT) for every fact the DAT leaves out: parent/clone links, CHD needs, BIOS chains, driver status and the MAME build.
 - Splits a DAT `<manufacturer>` field that encodes both publisher and developer (e.g. `"Capcom (Sega license)"`) into a `(publisher, developer)` tuple.
 
 ## Public types
@@ -106,7 +106,7 @@ Before mame-curator-1220 the four folder-file parsers read `key=value` lines, so
 ### `parse_languages(path: Path) -> dict[str, list[str]]`
 
 - Returns `{shortname: [lang, ...]}`; each language is the name of a section listing the machine.
-- A machine listed under several language sections gets every one, in file order. That is data, not a conflict, and does not warn.
+- A machine listed under several language sections gets every one, once each, in file order. That is data, not a conflict, and does not warn.
 
 ### `parse_bestgames(path: Path) -> dict[str, str]`
 
@@ -124,9 +124,9 @@ Before mame-curator-1220 the four folder-file parsers read `key=value` lines, so
 
 ### `parse_listxml(path: Path) -> ListxmlFacts`
 
-- Streams the listxml **once** and returns a frozen `ListxmlFacts` with four fields: `cloneof`, `bios_chain`, `disks: frozenset[str]` and `driver_status`. Each holds exactly what the matching single-fact function below returns (mame-curator-1118).
+- Streams the listxml **once** and returns a frozen `ListxmlFacts` with four facts — `cloneof`, `bios_chain`, `disks: frozenset[str]` and `driver_status` — each exactly what the matching single-fact function below returns (mame-curator-1118). A fifth field, `build`, is the root's `build` attribute (the MAME version that wrote the file), or `None`; it is logged at INFO (ADR-0003).
 - A caller needing more than one fact calls this. Each single-fact function is a full pass over the ~300 MB file, and three of them in a row made startup read it three or four times. `api/state.py` (`build_world`) and the `filter` and `copy` subcommands call it once.
-- The only `lxml.iterparse` pass in `listxml.py`: it clears each element and detaches previous siblings to keep memory bounded across the 43k-machine listxml, and splats `HARDENED_ITERPARSE_KWARGS` (XXE / Billion Laughs / `file://` URI defence — see `parse_dat` above). Missing file, malformed XML and a mid-read `OSError` all raise `ListxmlError`.
+- The only `lxml.iterparse` pass in `listxml.py`: it clears each element and detaches previous siblings to keep memory bounded across the 43k-machine listxml, and splats `HARDENED_ITERPARSE_KWARGS` (XXE / Billion Laughs / `file://` URI defence — see `parse_dat` above). Missing file, malformed XML, a mid-read `OSError` and a file with no named `<machine>` all raise `ListxmlError`.
 - It reads every machine's `<driver>` whichever fact the caller wants, so an unknown driver status is logged once per value on every call, `copy` included.
 - The single-fact functions below each call it and return one field, so each is a full pass. No application code calls them since mame-curator-1118.
 

@@ -438,7 +438,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Bumped 2026-11-18 (mame-curator-1236): DAT errors name the user's file. 1383 → 1385.
 # Bumped 2026-11-18 (mame-curator-1236): the filter loader and runner fixes.
 # 1385 → 1394.
-EXPECTED_PYTEST_DECLARATIONS = 1394
+# Bumped 2026-11-18 (mame-curator-1237): INI and listxml reading fixes.
+# 1394 → 1399.
+EXPECTED_PYTEST_DECLARATIONS = 1399
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

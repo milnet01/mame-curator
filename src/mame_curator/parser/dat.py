@@ -279,7 +279,7 @@ def _machine_from_element(elem: Any, seen_unknown_statuses: set[str]) -> Machine
         runnable=elem.get("runnable") != "no",
         roms=tuple(_rom_from_element(r) for r in elem.findall("rom")),
         biossets=tuple(_biosset_from_element(b) for b in elem.findall("biosset")),
-        driver_status=_driver_status_from_element(elem.find("driver"), seen_unknown_statuses),
+        driver_status=driver_status_from_element(elem.find("driver"), seen_unknown_statuses),
         sample_of=elem.get("sampleof"),
     )
 
@@ -343,14 +343,15 @@ def _biosset_from_element(elem: Any) -> BiosSet:
         raise DATError(f"<biosset> validation failed: {exc.errors(include_url=False)}") from exc
 
 
-def _driver_status_from_element(elem: Any, seen_unknown_statuses: set[str]) -> DriverStatus | None:
+def driver_status_from_element(elem: Any, seen_unknown_statuses: set[str]) -> DriverStatus | None:
     """Parse <driver status="...">; unknown values log once per status string.
 
-    Per parser/spec.md G3: DriverStatus is open-membership. Future MAME schema
-    additions log a warning and return None — they do NOT raise DATError.
-    The `seen_unknown_statuses` set carries across the whole DAT parse to
-    avoid log floods on a 43k-machine input where one unknown status would
-    otherwise produce ~3% of all log lines.
+    Used by both the DAT and the `-listxml` parser. Per parser/spec.md G3:
+    DriverStatus is open-membership. Future MAME schema additions log a
+    warning and return None — they do NOT raise DATError. The caller passes
+    one `seen_unknown_statuses` set for its whole file, to avoid log floods
+    on a 43k-machine input where one unknown status would otherwise produce
+    ~3% of all log lines.
     """
     if elem is None:
         return None

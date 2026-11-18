@@ -33,6 +33,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Warnings about choices that cannot be used appear in a fixed order**
   They follow the game names, not the order of the lines in
   overrides.yaml.
+- **A listxml file with no games in it is reported, not used** (mame-curator-1237)
+  It used to read as empty, so every clone was treated as its own game
+  without a word. The app now logs a warning and starts without the
+  file, as it does for any listxml it cannot read. The MAME version
+  that wrote the file is now logged when it loads.
+- **Stray lines at the top of catver.ini no longer count as games**
+  A `name=value` line before the first `[Section]` was read as a game's
+  category.
+- **A game listed twice under one language gets that language once**
 
 ### 2026-11-17 Fixed — Small fixes on the screens: focus, messages and backups
 

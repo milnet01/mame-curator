@@ -1,11 +1,13 @@
-"""CHD detection from MAME's official `-listxml` output.
+"""Every fact the app reads from MAME's official `-listxml` output.
 
-The Pleasuredome ROM-set DAT does not include <disk> entries; this module
-reads the official MAME XML to identify which machines require a CHD.
+The Pleasuredome ROM-set DAT leaves out what this module reads from the
+official MAME XML: parent/clone links, `<disk>` entries (which machines need a
+CHD), BIOS chains, driver status, and the MAME build that wrote the file.
 """
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 # bandit B410: lxml is wired through HARDENED_ITERPARSE_KWARGS (defined in
@@ -19,9 +21,11 @@ from pathlib import Path
 from lxml import etree  # nosec B410
 from pydantic import BaseModel, ConfigDict
 
-from mame_curator.parser.dat import HARDENED_ITERPARSE_KWARGS, _driver_status_from_element
+from mame_curator.parser.dat import HARDENED_ITERPARSE_KWARGS, driver_status_from_element
 from mame_curator.parser.errors import ListxmlError
 from mame_curator.parser.models import DriverStatus, Machine
+
+logger = logging.getLogger(__name__)
 
 
 class BIOSChainEntry(BaseModel):
@@ -44,7 +48,8 @@ class ListxmlFacts(BaseModel):
 
     `cloneof` maps clone → parent. `bios_chain` has an entry for every named
     machine. `disks` names machines with a `<disk>` child. `driver_status`
-    holds each `<driver status>` that is a known `DriverStatus`.
+    holds each `<driver status>` that is a known `DriverStatus`. `build` is the
+    root's `build` attribute, the MAME version that wrote the file, if present.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -52,6 +57,7 @@ class ListxmlFacts(BaseModel):
     bios_chain: dict[str, BIOSChainEntry]
     disks: frozenset[str]
     driver_status: dict[str, DriverStatus]
+    build: str | None = None
 
 
 def parse_listxml(path: Path) -> ListxmlFacts:
@@ -69,6 +75,7 @@ def parse_listxml(path: Path) -> ListxmlFacts:
     disks: set[str] = set()
     statuses: dict[str, DriverStatus] = {}
     seen_unknown: set[str] = set()
+    build: str | None = None
     try:
         for _event, elem in etree.iterparse(
             str(path),
@@ -76,6 +83,8 @@ def parse_listxml(path: Path) -> ListxmlFacts:
             tag="machine",
             **HARDENED_ITERPARSE_KWARGS,
         ):
+            if not chain and (root := elem.getparent()) is not None:
+                build = root.get("build")
             name = elem.get("name")
             if name:
                 parent = elem.get("cloneof")
@@ -83,7 +92,7 @@ def parse_listxml(path: Path) -> ListxmlFacts:
                     cloneof[name] = parent
                 if elem.find("disk") is not None:
                     disks.add(name)
-                status = _driver_status_from_element(elem.find("driver"), seen_unknown)
+                status = driver_status_from_element(elem.find("driver"), seen_unknown)
                 if status is not None:
                     statuses[name] = status
                 biossets = tuple(
@@ -108,8 +117,17 @@ def parse_listxml(path: Path) -> ListxmlFacts:
         # (file disappeared race, EIO, perms revoked) would otherwise propagate
         # raw past the CLI's ParserError catch. Typed at the parser/CLI seam.
         raise ListxmlError(f"failed to read listxml: {exc}", path=path) from exc
+    if not chain:
+        # mame-curator-1237: no machines would make every clone its own group.
+        raise ListxmlError("listxml contained no <machine> elements", path=path)
+    # ADR-0003: the build lets a user spot a listxml from the wrong MAME.
+    logger.info("listxml %s was written by MAME %s", path, build or "(build not stated)")
     return ListxmlFacts(
-        cloneof=cloneof, bios_chain=chain, disks=frozenset(disks), driver_status=statuses
+        cloneof=cloneof,
+        bios_chain=chain,
+        disks=frozenset(disks),
+        driver_status=statuses,
+        build=build,
     )
 
 

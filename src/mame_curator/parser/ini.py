@@ -30,12 +30,12 @@ def parse_catver(path: Path) -> dict[str, str]:
     """Return {shortname: category} from progettoSnaps catver.ini.
 
     Section headers are ignored; only `name=value` lines under non-metadata sections
-    are kept, and [VerAdded] is skipped. Duplicate shortnames overwrite (last write
-    wins) and emit a warning.
+    are kept. [VerAdded] and lines before any header are skipped. Duplicate
+    shortnames overwrite (last write wins) and emit a warning.
     """
     out: dict[str, str] = {}
     for section, key, value in _parse_simple_ini(path):
-        if section in _META_SECTIONS or section in _CATVER_NON_CATEGORY_SECTIONS:
+        if section in _META_SECTIONS or section in _CATVER_NON_CATEGORY_SECTIONS or not section:
             continue
         if key in out:
             logger.warning("duplicate catver key %r in %s; overwriting", key, path)
@@ -47,14 +47,16 @@ def parse_languages(path: Path) -> dict[str, list[str]]:
     """Return {shortname: [lang, ...]} from languages.ini.
 
     Each section is a language and lists bare shortnames. A game listed under
-    several sections gets every one, in file order; that is data, not a
-    conflict, so it does not warn. Excludes progettoSnaps metadata sections.
+    several sections gets every one, once each, in file order; that is data,
+    not a conflict, so it does not warn. Excludes progettoSnaps metadata sections.
     """
     out: dict[str, list[str]] = {}
     for section, name in _parse_sectioned_ini(path):
         if section in _META_SECTIONS or not section:
             continue
-        out.setdefault(name, []).append(section)
+        languages = out.setdefault(name, [])
+        if section not in languages:
+            languages.append(section)
     return out
 
 
