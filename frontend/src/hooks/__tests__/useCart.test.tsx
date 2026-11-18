@@ -193,3 +193,64 @@ describe("useCart after a version is chosen", () => {
     expect(result.current.items).toHaveLength(1);
   });
 });
+
+// mame-curator-1233 (CR-08-2, CR-08-8): addAll's report is worked out before
+// the state changes, so it holds whatever else is waiting to be applied.
+describe("useCart.addAll report", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("is right when another change is still waiting to apply", () => {
+    const { result } = renderHook(() => useCart());
+    let report = { added: -1, truncated: -1 };
+    act(() => {
+      result.current.add("x");
+      report = result.current.addAll(["a", "b"]);
+    });
+    expect(report).toEqual({ added: 2, truncated: 0 });
+    expect(result.current.items.map((i) => i.shortName)).toEqual([
+      "x",
+      "a",
+      "b",
+    ]);
+  });
+
+  it("counts a name repeated before the cap once per place it is dropped", () => {
+    const { result } = renderHook(() => useCart());
+    const room = Array.from({ length: MAX_CART_SIZE - 1 }, (_, i) => `g${i}`);
+    act(() => {
+      result.current.addAll(room);
+    });
+    let report = { added: -1, truncated: -1 };
+    act(() => {
+      report = result.current.addAll(["a", "a", "c"]);
+    });
+    expect(report).toEqual({ added: 1, truncated: 2 });
+  });
+});
+
+// mame-curator-1233 (CR-09-2): the card's button adds, and once the game is
+// held, removes — by either name the entry stands for.
+describe("useCart.toggle", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("adds a game, then removes it", () => {
+    const { result } = renderHook(() => useCart());
+    act(() => result.current.toggle("pacman"));
+    expect(result.current.has("pacman")).toBe(true);
+    act(() => result.current.toggle("pacman"));
+    expect(result.current.items).toEqual([]);
+    expect(localStorage.getItem("mame-curator:cart:v1")).toBe("[]");
+  });
+
+  it("removes the entry by its chosen version's name", () => {
+    const { result } = renderHook(() => useCart());
+    act(() => result.current.add("puckf"));
+    act(() => result.current.setVariant("puckf", "puckj"));
+    act(() => result.current.toggle("puckj"));
+    expect(result.current.items).toEqual([]);
+  });
+});

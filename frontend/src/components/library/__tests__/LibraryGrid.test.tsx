@@ -105,7 +105,7 @@ describe("LibraryGrid", () => {
         layout="masonry"
         onOpen={() => {}}
         isInCart={() => false}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     // DS04 T1.14: dropped the prior `<` count check on
@@ -146,7 +146,7 @@ describe("LibraryGrid", () => {
         layout="masonry"
         onOpen={() => {}}
         isInCart={() => false}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     expect(screen.getByText(/No games match/i)).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe("LibraryGrid", () => {
         layout="masonry"
         onOpen={() => {}}
         isInCart={() => false}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const before = screen.getByTestId("library-grid");
@@ -170,7 +170,7 @@ describe("LibraryGrid", () => {
         layout="list"
         onOpen={() => {}}
         isInCart={() => false}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const after = screen.getByTestId("library-grid");
@@ -202,7 +202,7 @@ describe("LibraryGrid", () => {
           cardsPerRowHint={hint}
           onOpen={() => {}}
           isInCart={() => false}
-          onAdd={() => {}}
+          onToggleCart={() => {}}
         />,
       );
       expect(

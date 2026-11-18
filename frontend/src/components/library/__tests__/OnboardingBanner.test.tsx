@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
@@ -45,5 +45,23 @@ describe("OnboardingBanner", () => {
       screen.queryByText(strings.library.onboarding.body),
     ).not.toBeInTheDocument();
     expect(localStorage.getItem(ONBOARDING_DISMISS_KEY)).toBe("1");
+  });
+
+  // mame-curator-1233 (CR-09-4): storage the browser blocks must not take
+  // the Library down; the banner shows, as on a first visit.
+  it("shows when the browser refuses to read storage", () => {
+    const read = vi
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw new DOMException("blocked", "SecurityError");
+      });
+    try {
+      render(<OnboardingBanner cartHasItems={false} />);
+      expect(
+        screen.getByText(strings.library.onboarding.body),
+      ).toBeInTheDocument();
+    } finally {
+      read.mockRestore();
+    }
   });
 });

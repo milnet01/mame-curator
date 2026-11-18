@@ -3,7 +3,8 @@
 ## The cart
 
 Games you want to copy go in the cart first. Press **+Add** on a game
-card. The bar at the bottom of the library shows how many games are in
+card. It then reads **✓ Added**; press it again to take the game out.
+The bar at the bottom of the library shows how many games are in
 the cart. When you are viewing a featured category, the bar also
 offers **Add all** for every game in it.
 
@@ -13,8 +14,9 @@ offers **Add all** for every game in it.
    and writes nothing.
 2. Check the list, then press **Copy**.
 
-A window shows progress while the files copy. It stays open until the
-copy ends, because it holds the Pause and Cancel buttons.
+A window shows progress while the files copy, with Pause and Cancel
+buttons. You can close it and the copy goes on. Press **Show copy** in
+the cart bar to open it again.
 
 ## What gets copied
 

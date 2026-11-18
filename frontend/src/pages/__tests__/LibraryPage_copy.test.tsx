@@ -280,14 +280,22 @@ describe("LibraryPage when a copy ends", () => {
 });
 
 describe("LibraryPage during a copy", () => {
-  it("Esc does not lose control of a running copy", async () => {
+  // mame-curator-1233 (CR-09-11): the user decided 2026-11-16 that closing
+  // the window during a copy hides it; the copy goes on, and the cart bar
+  // brings it back.
+  it("Esc hides a running copy, and Show copy brings it back", async () => {
     serve("on_success");
     const user = userEvent.setup();
     renderPage();
     await configLoaded();
-    await startCopy(user);
+    const es = await startCopy(user);
     await user.keyboard("{Escape}");
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(es.readyState).not.toBe(MockEventSource.CLOSED);
+    await user.click(
+      screen.getByRole("button", { name: strings.library.actions.showCopy }),
+    );
+    await screen.findByRole("dialog");
     expect(
       screen.getByRole("button", { name: strings.copy.pause }),
     ).toBeInTheDocument();

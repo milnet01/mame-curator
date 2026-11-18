@@ -28,7 +28,7 @@ interface LibraryGridProps {
   cardsPerRowHint?: CardsPerRowHint;
   onOpen: (card: GameCardType) => void;
   isInCart: (shortName: string) => boolean;
-  onAdd: (shortName: string) => void;
+  onToggleCart: (shortName: string) => void;
   /** P14 — review-state cache passed through to the focus hook and the
    *  per-card badge slot. Optional so callers that don't care about
    *  review state (rare in v1, common in tests) need not plumb it. */
@@ -87,7 +87,7 @@ export function LibraryGrid({
   cardsPerRowHint,
   onOpen,
   isInCart,
-  onAdd,
+  onToggleCart,
   reviewState,
   onSetReviewState,
   onClearReviewState,
@@ -360,7 +360,7 @@ export function LibraryGrid({
                       tabStop={isActive}
                       inCart={isInCart(card.short_name)}
                       onOpen={() => onOpen(card)}
-                      onAdd={onAdd}
+                      onToggleCart={onToggleCart}
                       reviewState={reviewState?.entries[card.short_name]}
                       row={layout === "list"}
                     />

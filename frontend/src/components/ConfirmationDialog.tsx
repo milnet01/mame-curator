@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +22,7 @@ interface ConfirmationDialogProps {
   destructive?: boolean;
   /** Large words and buttons, for the guide's screens. */
   large?: boolean;
-  /** Shows its action is under way, keeping focus. The caller ignores presses. */
+  /** Shows its action is under way: the action ignores presses and keeps focus. */
   busy?: boolean;
 }
 
@@ -66,7 +67,12 @@ export function ConfirmationDialog({
     );
   }
 
-  const handleConfirm = () => {
+  const handleConfirm = (event: MouseEvent) => {
+    // preventDefault also stops Radix's own close on the action.
+    if (busy) {
+      event.preventDefault();
+      return;
+    }
     onConfirm();
     onOpenChange(false);
   };

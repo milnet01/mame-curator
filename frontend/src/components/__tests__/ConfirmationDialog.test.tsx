@@ -66,4 +66,26 @@ describe("ConfirmationDialog", () => {
     expect(onConfirm).toHaveBeenCalled();
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  // mame-curator-1233 (CR-09-8): aria-disabled stops no click, so the dialog
+  // itself ignores a press on its action while busy, and stays open.
+  it("ignores its action while busy", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    const onOpenChange = vi.fn();
+    render(
+      <ConfirmationDialog
+        open
+        onOpenChange={onOpenChange}
+        title="Allow access"
+        description="Allow the app to read this folder"
+        actionLabel="Allow this folder"
+        onConfirm={onConfirm}
+        busy
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Allow this folder" }));
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
 });

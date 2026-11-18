@@ -81,7 +81,8 @@ export function useForgetChoices() {
         }
       }
     },
-    onSuccess: () =>
+    // On failure too: the deletes before the one that failed took effect.
+    onSettled: () =>
       Promise.all([
         qc.invalidateQueries({ queryKey: ["games"] }),
         qc.invalidateQueries({ queryKey: ["alternatives"] }),

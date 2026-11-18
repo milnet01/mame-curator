@@ -17,6 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-18 Fixed — The Library page: the cart, the copy window and Retry
+
+- **A card's ✓ Added button takes the game out of the cart** (mame-curator-1233)
+  It was announced as "Remove … from cart" but did nothing.
+- **You can close the copy window while a copy runs**
+  The copy goes on. **Show copy** in the cart bar opens the window
+  again, with its Pause and Cancel buttons.
+- **The copy window's bar reaches 100% when a copy finishes**
+  Games it skipped used to leave it short. Screen readers can now hear
+  how far the bar has got.
+- **Add all's "cart is full" warning always shows**
+  When another cart change was still being applied, it could report
+  nothing added. It also counted a game listed twice as two lost
+  games.
+- **After an update, an open tab loads the new pages**
+  A page whose file the update replaced failed for good, and Retry
+  could not help. The tab now reloads once to fetch the new files.
+- **Retry buttons all behave the same way**
+  While a retry runs, each says "Retrying…", ignores presses and keeps
+  keyboard focus. The one in a game's drawer used to lose focus.
+- **Smaller fixes**
+  The Library no longer fails to open when the browser blocks saved
+  settings. A dialog that is busy ignores its main button. Forgetting
+  old choices refreshes the screen even when one of them fails. An
+  Activity page number past the end offers the last page. The dry
+  run's counts no longer say each label twice. Applying an INI update
+  no longer re-runs the startup update check.
+
 ### 2026-11-18 Fixed — Reading the game list and your saved files
 
 - **A game-list error names the file you chose** (mame-curator-1236)

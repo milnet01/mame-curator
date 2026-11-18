@@ -398,6 +398,32 @@ describe("AlternativesDrawer", () => {
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
 
+    // mame-curator-1233 (RL-42, RR-10-4): plain `disabled` would drop a
+    // keyboard user's focus when the retry fails again.
+    it("keeps Retry focusable while retrying, and ignores presses", async () => {
+      const user = userEvent.setup();
+      const onRetry = vi.fn();
+      renderWithRouter(
+        <AlternativesDrawer
+          open
+          onOpenChange={() => {}}
+          winner={winner}
+          alternatives={[]}
+          error
+          onRetry={onRetry}
+          retrying
+          onOverride={() => {}}
+        />,
+      );
+      const button = screen.getByRole("button", {
+        name: strings.common.retrying,
+      });
+      expect(button).not.toBeDisabled();
+      expect(button).toHaveAttribute("aria-disabled", "true");
+      await user.click(button);
+      expect(onRetry).not.toHaveBeenCalled();
+    });
+
     it("announces what failed, not just the Retry label", () => {
       renderWithRouter(
         <AlternativesDrawer

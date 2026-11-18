@@ -7,6 +7,7 @@ import {
   type UpdatesCheck,
 } from "@/api/types";
 import { toastApiError } from "@/lib/apiErrorToast";
+import { refreshEverything } from "./useConfig";
 import { useApiQuery } from "./useApi";
 
 const CHECK_KEY = ["updates", "check"] as const;
@@ -96,7 +97,7 @@ export function useIniApply() {
         method: "POST",
       }),
     // The library's winners changed: every games / stats view is stale.
-    onSuccess: () => qc.invalidateQueries(),
+    onSuccess: () => refreshEverything(qc),
     onError: toastApiError,
   });
 }

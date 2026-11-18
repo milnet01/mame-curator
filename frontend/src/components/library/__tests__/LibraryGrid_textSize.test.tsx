@@ -25,7 +25,7 @@ function spacerHeight() {
       layout="list"
       onOpen={() => {}}
       isInCart={() => false}
-      onAdd={() => {}}
+      onToggleCart={() => {}}
     />,
   );
   const spacer = screen.getByTestId("library-grid").firstElementChild;
@@ -63,7 +63,7 @@ describe("LibraryGrid scroll position", () => {
         layout="list"
         onOpen={() => {}}
         isInCart={() => false}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const grid = screen.getByTestId("library-grid");

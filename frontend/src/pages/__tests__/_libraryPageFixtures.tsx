@@ -33,6 +33,7 @@ export function makeFakeCart(): UseCartResult {
     has: () => false,
     add: () => {},
     remove: () => {},
+    toggle: () => {},
     addAll: () => ({ added: 0, truncated: 0 }),
     setVariant: () => {},
     clear: () => {},

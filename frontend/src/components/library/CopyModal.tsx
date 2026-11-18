@@ -66,20 +66,20 @@ export function CopyModal({
   const paused = live && state.state === "paused";
   const controllable = live && (state.state === "running" || paused);
   const problem = copyProblem(state);
+  // Skipped games leave filesDone short of filesTotal, so a finish says 100.
   const pct =
-    state.filesTotal === 0 ? 0 : (state.filesDone / state.filesTotal) * 100;
+    outcome === "complete"
+      ? 100
+      : state.filesTotal === 0
+        ? 0
+        : (state.filesDone / state.filesTotal) * 100;
 
   return (
     <>
-      {/* Nothing reattaches to a job, so closing during a copy would lose
-          Pause and Cancel for good: no way to dismiss it until it ends. */}
-      <Dialog
-        open={open}
-        onOpenChange={(next) => {
-          if (!live) onOpenChange(next);
-        }}
-      >
-        <DialogContent className="max-w-lg" showCloseButton={!live}>
+      {/* Closing during a copy only hides the window: the copy goes on, and
+          the caller can open it again (user decision 2026-11-16). */}
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{strings.copy.modalTitle}</DialogTitle>
           </DialogHeader>
@@ -139,12 +139,11 @@ export function CopyModal({
             <ul className="rounded border bg-muted/40 p-2 text-xs">
               {/* FP11 § D9: warnings are append-only via SSE; key by
                   the absolute index of the warning rather than the
-                  position in the slice. The slice shifts on every
-                  new event, so positional keys forced React to
-                  re-mount each <li> on each event — replacing with
-                  absolute index keeps DOM identity stable. */}
+                  position in the slice, so each <li> keeps its DOM
+                  identity as new warnings arrive. */}
               {state.warnings.slice(-3).map((w, sliceIndex) => {
-                const absoluteIndex = state.warnings.length - 3 + sliceIndex;
+                const absoluteIndex =
+                  Math.max(0, state.warnings.length - 3) + sliceIndex;
                 return <li key={absoluteIndex}>{w}</li>;
               })}
             </ul>

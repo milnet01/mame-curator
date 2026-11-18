@@ -59,12 +59,9 @@ export function DryRunModal({
           {SECTIONS.map(({ key, label }) => (
             <li
               key={key}
-              className="flex items-center justify-between rounded bg-muted/50 px-3 py-2"
+              className="rounded bg-muted/50 px-3 py-2 tabular-nums"
             >
-              <span className="capitalize">{label}</span>
-              <span className="font-mono tabular-nums">
-                {(values[key] ?? 0).toLocaleString()} {label}
-              </span>
+              {(values[key] ?? 0).toLocaleString()} {label}
             </li>
           ))}
         </ul>

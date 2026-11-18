@@ -25,7 +25,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     expect(
@@ -41,7 +41,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     expect(screen.getByText("pacman")).toBeInTheDocument();
@@ -57,7 +57,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const img = screen.getByTestId("gamecard-img-pacman");
@@ -70,7 +70,7 @@ describe("GameCard", () => {
         card={{ ...baseCard, picture: { source: "esde", kind: "title" } }}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     expect(screen.getByTestId("gamecard-img-pacman")).toHaveAttribute(
@@ -85,7 +85,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const img = screen.getByTestId("gamecard-img-pacman");
@@ -104,7 +104,7 @@ describe("GameCard", () => {
         card={{ ...baseCard, short_name: "lookcard" }}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     fireEvent.error(screen.getByTestId("gamecard-img-lookcard"));
@@ -124,7 +124,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const card = screen.getByRole("button", { name: "Pac-Man (Midway)" });
@@ -137,7 +137,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const card = screen.getByRole("button", { name: "Pac-Man (Midway)" });
@@ -153,7 +153,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const img = screen.getByTestId("gamecard-img-pacman");
@@ -176,7 +176,7 @@ describe("GameCard", () => {
         card={card}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     expect(
@@ -204,7 +204,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={onOpen}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     await user.click(screen.getByRole("button", { name: "Pac-Man (Midway)" }));
@@ -219,7 +219,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={onOpen}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const card = screen.getByRole("button", { name: "Pac-Man (Midway)" });
@@ -240,7 +240,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={onOpen}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const card = screen.getByRole("button", { name: "Pac-Man (Midway)" });
@@ -255,7 +255,7 @@ describe("GameCard", () => {
         card={baseCard}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     const card = screen.getByRole("button", { name: "Pac-Man (Midway)" });
@@ -269,18 +269,18 @@ describe("GameCard +Add", () => {
     async (key) => {
       const user = userEvent.setup();
       const onOpen = vi.fn();
-      const onAdd = vi.fn();
+      const onToggleCart = vi.fn();
       render(
         <GameCard
           card={baseCard}
           inCart={false}
           onOpen={onOpen}
-          onAdd={onAdd}
+          onToggleCart={onToggleCart}
         />,
       );
       screen.getByRole("button", { name: /add .*pac-man/i }).focus();
       await user.keyboard(key);
-      expect(onAdd).toHaveBeenCalledWith("pacman");
+      expect(onToggleCart).toHaveBeenCalledWith("pacman");
       expect(onOpen).not.toHaveBeenCalled();
     },
   );
@@ -291,7 +291,7 @@ describe("GameCard +Add", () => {
         card={baseCard}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     expect(
@@ -305,32 +305,42 @@ describe("GameCard +Add", () => {
         card={baseCard}
         inCart={true}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     expect(screen.getByText(/✓ added/i)).toBeInTheDocument();
   });
 
-  it("emits onAdd when Add button clicked, does not bubble to onOpen", async () => {
+  it("emits onToggleCart when Add button clicked, does not bubble to onOpen", async () => {
     const user = userEvent.setup();
-    const onAdd = vi.fn();
+    const onToggleCart = vi.fn();
     const onOpen = vi.fn();
     render(
-      <GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={onAdd} />,
+      <GameCard
+        card={baseCard}
+        inCart={false}
+        onOpen={onOpen}
+        onToggleCart={onToggleCart}
+      />,
     );
     await user.click(
       screen.getByRole("button", { name: /add pac-man \(midway\) to cart/i }),
     );
-    expect(onAdd).toHaveBeenCalledWith("pacman");
+    expect(onToggleCart).toHaveBeenCalledWith("pacman");
     expect(onOpen).not.toHaveBeenCalled();
   });
 
   it("emits onOpen when card body clicked", async () => {
     const user = userEvent.setup();
-    const onAdd = vi.fn();
+    const onToggleCart = vi.fn();
     const onOpen = vi.fn();
     render(
-      <GameCard card={baseCard} inCart={false} onOpen={onOpen} onAdd={onAdd} />,
+      <GameCard
+        card={baseCard}
+        inCart={false}
+        onOpen={onOpen}
+        onToggleCart={onToggleCart}
+      />,
     );
     // FP20-H: outer card's accessible name now comes from the <h3> via
     // aria-labelledby — no aria-label on the wrapper.
@@ -346,7 +356,7 @@ describe("GameCard +Add", () => {
         card={baseCard}
         inCart={false}
         onOpen={() => {}}
-        onAdd={() => {}}
+        onToggleCart={() => {}}
       />,
     );
     expect(
@@ -372,7 +382,7 @@ describe("GameCard +Add", () => {
           card={baseCard}
           inCart={false}
           onOpen={() => {}}
-          onAdd={() => {}}
+          onToggleCart={() => {}}
           reviewState={state}
         />,
       );

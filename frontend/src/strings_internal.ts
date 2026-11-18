@@ -122,6 +122,8 @@ export const strings = {
     actions: {
       dryRun: "Dry-run",
       copy: "Copy",
+      /** mame-curator-1233: opens a copy window closed while it ran. */
+      showCopy: "Show copy",
     },
     badges: {
       contested: "Has alternative versions",
@@ -379,6 +381,10 @@ export const strings = {
     emptyTitle: "No activity yet",
     emptyHint: "Run a copy to see events here.",
     loadError: "Could not load activity.",
+    /** mame-curator-1233: a ?page= past the end of the list. */
+    pastEnd: (page: number, last: number) =>
+      `There is no page ${page}. The last page is ${last}.`,
+    goToLastPage: "Go to the last page",
     /** mame-curator-1199: which games a copy skipped or failed. */
     copyNames: {
       show: "Show which",

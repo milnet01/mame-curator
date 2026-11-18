@@ -37,6 +37,20 @@ export function ActivityPage({
   };
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  if (items.length === 0 && total > 0) {
+    return (
+      <section className="flex flex-col items-center gap-2 p-8 text-center">
+        <h1 className="text-2xl font-semibold">{strings.activity.pageTitle}</h1>
+        <p className="text-lg font-medium">
+          {strings.activity.pastEnd(page, totalPages)}
+        </p>
+        <Button variant="outline" onClick={() => onPageChange(totalPages)}>
+          {strings.activity.goToLastPage}
+        </Button>
+      </section>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <section className="flex flex-col items-center gap-2 p-8 text-center">

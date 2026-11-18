@@ -20,9 +20,13 @@ export function OnboardingBanner({ cartHasItems }: OnboardingBannerProps) {
   // so the cart-has-items auto-hide doesn't need a setState inside an
   // effect (eslint react-hooks/set-state-in-effect). The effect still
   // persists the auto-dismissal so the banner stays gone across reloads.
-  const [explicitlyDismissed, setExplicitlyDismissed] = useState(
-    () => localStorage.getItem(ONBOARDING_DISMISS_KEY) === "1",
-  );
+  const [explicitlyDismissed, setExplicitlyDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(ONBOARDING_DISMISS_KEY) === "1";
+    } catch {
+      return false; // Storage blocked: show the banner, as on a first visit.
+    }
+  });
 
   useEffect(() => {
     if (cartHasItems && !explicitlyDismissed) {

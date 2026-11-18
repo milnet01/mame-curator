@@ -27,7 +27,8 @@ interface GameCardProps {
   focused?: boolean;
   inCart: boolean;
   onOpen: () => void;
-  onAdd: (shortName: string) => void;
+  /** The Add button: adds the game, or removes it once it is in the cart. */
+  onToggleCart: (shortName: string) => void;
   /** P14 — per-card review state, rendered as a frontend-only badge in
    *  the same top-right slot as the existing backend-emitted badges. */
   reviewState?: ReviewStateValue;
@@ -86,7 +87,7 @@ export function GameCard({
   focused = false,
   inCart,
   onOpen,
-  onAdd,
+  onToggleCart,
   reviewState,
   tabStop = true,
   row = false,
@@ -162,7 +163,7 @@ export function GameCard({
             tabIndex={tabStop ? 0 : -1}
             onClick={(e) => {
               e.stopPropagation();
-              onAdd(card.short_name);
+              onToggleCart(card.short_name);
             }}
             aria-label={
               inCart

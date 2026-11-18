@@ -13,6 +13,8 @@ interface CartBarProps {
   // FP24-N: disabled while a Copy is in flight (validate or job
   // running) so a second click can't fire validate+start twice.
   copyDisabled?: boolean;
+  /** Set while a copy's window is hidden: Copy becomes Show copy and calls it. */
+  onShowCopy?: () => void;
 }
 
 // FP24-B: byte total dropped from the cart bar. `useCart.totalBytes` is
@@ -29,6 +31,7 @@ export function CartBar({
   onDryRun,
   onCopy,
   copyDisabled = false,
+  onShowCopy,
 }: CartBarProps) {
   const empty = itemCount === 0;
   const ChevronIcon = expanded ? ChevronDown : ChevronUp;
@@ -61,9 +64,15 @@ export function CartBar({
         >
           {strings.library.actions.dryRun}
         </Button>
-        <Button onClick={onCopy} disabled={empty || copyDisabled}>
-          {strings.library.actions.copy}
-        </Button>
+        {onShowCopy ? (
+          <Button onClick={onShowCopy}>
+            {strings.library.actions.showCopy}
+          </Button>
+        ) : (
+          <Button onClick={onCopy} disabled={empty || copyDisabled}>
+            {strings.library.actions.copy}
+          </Button>
+        )}
         <Button
           size="icon"
           variant="ghost"

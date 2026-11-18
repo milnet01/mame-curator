@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 export interface CartItem {
   shortName: string;
@@ -18,6 +18,7 @@ export interface UseCartResult {
   has: (shortName: string) => boolean;
   add: (shortName: string, variant?: string) => void;
   remove: (shortName: string) => void;
+  toggle: (shortName: string) => void;
   addAll: (shortNames: string[]) => AddAllReport;
   setVariant: (shortName: string, variant: string | undefined) => void;
   clear: () => void;
@@ -81,8 +82,7 @@ export function useCart(): UseCartResult {
 
   // FP24-G: persistence runs inline at each mutation site rather than
   // in a useEffect, so the catch can call setIsStorageBroken without
-  // tripping eslint's react-hooks/set-state-in-effect rule. Each
-  // mutator computes its `next` value, stores it, and persists.
+  // tripping eslint's react-hooks/set-state-in-effect rule.
   const persist = useCallback((next: CartItem[]) => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(next));
@@ -92,6 +92,20 @@ export function useCart(): UseCartResult {
     }
   }, []);
 
+  // mame-curator-1233: each mutator works out `next` from the latest list,
+  // including changes React has not applied yet, and then stores it. A
+  // state updater is no place for that: React may run it late or twice, so
+  // addAll's report could come back empty or doubled.
+  const latest = useRef(items);
+  const commit = useCallback(
+    (next: CartItem[]) => {
+      latest.current = next;
+      setItems(next);
+      persist(next);
+    },
+    [persist],
+  );
+
   const has = useCallback(
     (shortName: string) => items.some((i) => holds(i, shortName)),
     [items],
@@ -99,29 +113,35 @@ export function useCart(): UseCartResult {
 
   const add = useCallback(
     (shortName: string, variant?: string) => {
-      setItems((prev) => {
-        if (prev.some((i) => holds(i, shortName))) return prev;
-        if (prev.length >= MAX_CART_SIZE) return prev;
-        const item: CartItem = { shortName };
-        if (variant !== undefined) item.chosenVariant = variant;
-        const next = [...prev, item];
-        persist(next);
-        return next;
-      });
+      const prev = latest.current;
+      if (prev.some((i) => holds(i, shortName))) return;
+      if (prev.length >= MAX_CART_SIZE) return;
+      const item: CartItem = { shortName };
+      if (variant !== undefined) item.chosenVariant = variant;
+      commit([...prev, item]);
     },
-    [persist],
+    [commit],
   );
 
   const remove = useCallback(
     (shortName: string) => {
-      setItems((prev) => {
-        const next = prev.filter((i) => i.shortName !== shortName);
-        if (next.length === prev.length) return prev;
-        persist(next);
-        return next;
-      });
+      const prev = latest.current;
+      const next = prev.filter((i) => i.shortName !== shortName);
+      if (next.length !== prev.length) commit(next);
     },
-    [persist],
+    [commit],
+  );
+
+  // The game card's button: removes the entry standing for the game shown,
+  // by either of its names, or adds the game.
+  const toggle = useCallback(
+    (shortName: string) => {
+      const prev = latest.current;
+      const next = prev.filter((i) => !holds(i, shortName));
+      if (next.length !== prev.length) commit(next);
+      else add(shortName);
+    },
+    [add, commit],
   );
 
   // FP24-S: returns {added, truncated} so the caller can fire the
@@ -130,59 +150,52 @@ export function useCart(): UseCartResult {
   // dropped because the cap was reached.
   const addAll = useCallback(
     (shortNames: string[]): AddAllReport => {
-      let added = 0;
+      const prev = latest.current;
+      const seen = new Set(
+        prev.flatMap((i) =>
+          i.chosenVariant ? [i.shortName, i.chosenVariant] : [i.shortName],
+        ),
+      );
+      const merged = [...prev];
       let truncated = 0;
-      setItems((prev) => {
-        const seen = new Set(
-          prev.flatMap((i) =>
-            i.chosenVariant ? [i.shortName, i.chosenVariant] : [i.shortName],
-          ),
-        );
-        const merged = [...prev];
-        for (const name of shortNames) {
-          if (merged.length >= MAX_CART_SIZE) {
-            // Every remaining input from this point is dropped. Count
-            // them all (including dups) so the toast tells the truth
-            // about how many user-supplied entries we lost.
-            truncated += shortNames.length - shortNames.indexOf(name);
-            break;
-          }
-          if (seen.has(name)) continue;
-          merged.push({ shortName: name });
-          seen.add(name);
-          added += 1;
+      for (const [index, name] of shortNames.entries()) {
+        if (merged.length >= MAX_CART_SIZE) {
+          // Every remaining input from this point is dropped. Count
+          // them all (including dups) so the toast tells the truth
+          // about how many user-supplied entries we lost.
+          truncated = shortNames.length - index;
+          break;
         }
-        if (merged.length !== prev.length) persist(merged);
-        return merged;
-      });
+        if (seen.has(name)) continue;
+        merged.push({ shortName: name });
+        seen.add(name);
+      }
+      const added = merged.length - prev.length;
+      if (added > 0) commit(merged);
       return { added, truncated };
     },
-    [persist],
+    [commit],
   );
 
   const setVariant = useCallback(
     (shortName: string, variant: string | undefined) => {
-      setItems((prev) => {
-        if (!prev.some((i) => i.shortName === shortName)) return prev;
-        const next = prev.map((i) => {
+      const prev = latest.current;
+      if (!prev.some((i) => i.shortName === shortName)) return;
+      commit(
+        prev.map((i) => {
           if (i.shortName !== shortName) return i;
           if (variant === undefined) {
             const { chosenVariant: _unused, ...rest } = i;
             return rest;
           }
           return { ...i, chosenVariant: variant };
-        });
-        persist(next);
-        return next;
-      });
+        }),
+      );
     },
-    [persist],
+    [commit],
   );
 
-  const clear = useCallback(() => {
-    setItems([]);
-    persist([]);
-  }, [persist]);
+  const clear = useCallback(() => commit([]), [commit]);
 
   const totalBytes = useMemo(() => 0, []);
 
@@ -191,6 +204,7 @@ export function useCart(): UseCartResult {
     has,
     add,
     remove,
+    toggle,
     addAll,
     setVariant,
     clear,

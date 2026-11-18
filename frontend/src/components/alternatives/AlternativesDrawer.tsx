@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { AboutSection } from "@/components/alternatives/AboutSection";
 import { PictureRetry } from "@/components/alternatives/PictureRetry";
+import { RetryButton } from "@/components/RetryButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useKeyboard } from "@/hooks/useKeyboard";
@@ -43,7 +44,7 @@ interface AlternativesDrawerProps {
   error?: boolean;
   /** Re-runs the failed family request. The button hides when absent. */
   onRetry?: () => void;
-  /** True while that retry is in flight; disables the button. */
+  /** True while that retry is in flight; the button ignores presses. */
   retrying?: boolean;
   onOverride: (request: OverridePostRequest) => void;
   /** FP19: optional Launch handler. Hides the button when not provided
@@ -285,14 +286,7 @@ export function AlternativesDrawer({
 
         {loadFailed && onRetry && (
           <div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRetry}
-              disabled={retrying}
-            >
-              {retrying ? strings.common.retrying : strings.common.retry}
-            </Button>
+            <RetryButton onRetry={onRetry} retrying={retrying} />
           </div>
         )}
 

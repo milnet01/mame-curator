@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useLocation } from "react-router";
 
 import { ActivityPage } from "../ActivityPage";
+import { strings } from "@/strings";
 
 const items: Record<string, unknown>[] = [
   {
@@ -51,5 +52,24 @@ describe("ActivityPage", () => {
   it("renders an empty state when items is empty", () => {
     renderAt("/activity", 0, []);
     expect(screen.getByText(/no activity yet/i)).toBeInTheDocument();
+  });
+
+  // mame-curator-1233 (CR-09-14): a ?page= past the end is not "no activity".
+  it("offers the last page when ?page is past the end", async () => {
+    const user = userEvent.setup();
+    function Where() {
+      return <p data-testid="where">{useLocation().search}</p>;
+    }
+    render(
+      <MemoryRouter initialEntries={["/activity?page=9"]}>
+        <ActivityPage pageSize={50} total={150} items={[]} />
+        <Where />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText(/no activity yet/i)).toBeNull();
+    await user.click(
+      screen.getByRole("button", { name: strings.activity.goToLastPage }),
+    );
+    expect(screen.getByTestId("where")).toHaveTextContent("page=3");
   });
 });

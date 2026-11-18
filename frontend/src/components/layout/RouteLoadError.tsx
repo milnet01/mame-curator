@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { RetryButton } from "@/components/RetryButton";
 import { strings } from "@/strings";
 
 interface RouteLoadErrorProps {
@@ -22,15 +22,7 @@ export function RouteLoadError({
         <p className="font-medium">{message}</p>
         <p>{strings.common.loadFailedHint}</p>
       </div>
-      {/* aria-disabled, not disabled, so a retry that fails keeps focus here. */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onRetry}
-        aria-disabled={retrying || undefined}
-      >
-        {retrying ? strings.common.retrying : strings.common.retry}
-      </Button>
+      <RetryButton onRetry={onRetry} retrying={retrying} />
     </div>
   );
 }

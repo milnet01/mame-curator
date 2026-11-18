@@ -194,17 +194,43 @@ describe("CopyModal — mame-curator-1144 copy honesty", () => {
     };
   }
 
+  // mame-curator-1233 (CR-09-11): the user decided 2026-11-16 that closing
+  // the window during a copy hides it; the copy goes on.
   it.each(["running", "paused", "terminating"] as const)(
-    "cannot be dismissed while %s: no close button, and Esc does nothing",
+    "can be closed while %s, by its close button or Esc",
     async (jobState) => {
       const user = userEvent.setup();
       const onOpenChange = vi.fn();
       renderModal({ state: jobState }, onOpenChange);
-      expect(screen.queryByRole("button", { name: /close/i })).toBeNull();
+      await user.click(screen.getByRole("button", { name: /close/i }));
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+      onOpenChange.mockClear();
       await user.keyboard("{Escape}");
-      expect(onOpenChange).not.toHaveBeenCalled();
+      expect(onOpenChange).toHaveBeenCalledWith(false);
     },
   );
+
+  // mame-curator-1233 (RL-58): a finished copy fills the bar, as the guide's does.
+  it("fills the progress bar once the copy is complete", () => {
+    renderModal({
+      state: "finished",
+      finishedStatus: "OK",
+      filesDone: 2,
+      filesTotal: 3,
+    });
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "100",
+    );
+  });
+
+  // mame-curator-1233 (RL-50): a warning keeps its row as more arrive.
+  it("keeps a warning's row as more warnings arrive", () => {
+    const view = renderModal({ warnings: ["first"] });
+    const row = screen.getByText("first");
+    view.update({ warnings: ["first", "second"] });
+    expect(screen.getByText("first")).toBe(row);
+  });
 
   it("can be dismissed once the connection is lost, since no control is left", async () => {
     const user = userEvent.setup();

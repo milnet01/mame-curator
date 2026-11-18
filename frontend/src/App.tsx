@@ -40,6 +40,7 @@ import { useKeyboard } from "@/hooks/useKeyboard";
 import { useSetupCheck } from "@/hooks/useSetupCheck";
 import { apiErrorMessage } from "@/lib/apiErrorToast";
 import { isGuideSeen } from "@/lib/guideState";
+import { reloadOnceIfMissing } from "@/lib/lazyPage";
 import { loadFailed } from "@/lib/queryFailure";
 import { UpdateStartupToast } from "@/components/UpdateStartupToast";
 import {
@@ -54,39 +55,57 @@ import { strings } from "@/strings";
 import { ApiError } from "@/api/client";
 import type { ConfigExportBundle, ThemeName } from "@/api/types";
 
-const LibraryPage = lazy(() =>
-  import("@/pages/LibraryPage").then((m) => ({ default: m.LibraryPage })),
+const LibraryPage = lazy(
+  reloadOnceIfMissing(() =>
+    import("@/pages/LibraryPage").then((m) => ({ default: m.LibraryPage })),
+  ),
 );
-const SessionsPage = lazy(() =>
-  import("@/pages/SessionsPage").then((m) => ({ default: m.SessionsPage })),
+const SessionsPage = lazy(
+  reloadOnceIfMissing(() =>
+    import("@/pages/SessionsPage").then((m) => ({ default: m.SessionsPage })),
+  ),
 );
-const ActivityPage = lazy(() =>
-  import("@/pages/ActivityPage").then((m) => ({ default: m.ActivityPage })),
+const ActivityPage = lazy(
+  reloadOnceIfMissing(() =>
+    import("@/pages/ActivityPage").then((m) => ({ default: m.ActivityPage })),
+  ),
 );
-const StatsPage = lazy(() =>
-  import("@/pages/StatsPage").then((m) => ({ default: m.StatsPage })),
+const StatsPage = lazy(
+  reloadOnceIfMissing(() =>
+    import("@/pages/StatsPage").then((m) => ({ default: m.StatsPage })),
+  ),
 );
-const SettingsPage = lazy(() =>
-  import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+const SettingsPage = lazy(
+  reloadOnceIfMissing(() =>
+    import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+  ),
 );
-const HelpPage = lazy(() =>
-  import("@/pages/HelpPage").then((m) => ({ default: m.HelpPage })),
+const HelpPage = lazy(
+  reloadOnceIfMissing(() =>
+    import("@/pages/HelpPage").then((m) => ({ default: m.HelpPage })),
+  ),
 );
 
-const GuidePage = lazy(() =>
-  import("@/pages/GuidePage").then((m) => ({ default: m.GuidePage })),
+const GuidePage = lazy(
+  reloadOnceIfMissing(() =>
+    import("@/pages/GuidePage").then((m) => ({ default: m.GuidePage })),
+  ),
 );
 
-const FixVersionRoute = lazy(() =>
-  import("@/pages/FixVersionPage").then((m) => ({
-    default: m.FixVersionRoute,
-  })),
+const FixVersionRoute = lazy(
+  reloadOnceIfMissing(() =>
+    import("@/pages/FixVersionPage").then((m) => ({
+      default: m.FixVersionRoute,
+    })),
+  ),
 );
 
-const SettingsGuidePage = lazy(() =>
-  import("@/pages/SettingsGuidePage").then((m) => ({
-    default: m.SettingsGuidePage,
-  })),
+const SettingsGuidePage = lazy(
+  reloadOnceIfMissing(() =>
+    import("@/pages/SettingsGuidePage").then((m) => ({
+      default: m.SettingsGuidePage,
+    })),
+  ),
 );
 
 const queryClient = createAppQueryClient();

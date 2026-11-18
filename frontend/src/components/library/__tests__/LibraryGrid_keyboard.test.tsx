@@ -35,7 +35,7 @@ const cards: GameCard[] = Array.from({ length: 12 }, (_, i) => ({
 function setup(reviewState?: StateView) {
   const handlers = {
     onOpen: vi.fn(),
-    onAdd: vi.fn(),
+    onToggleCart: vi.fn(),
     onSetReviewState: vi.fn(),
     onClearReviewState: vi.fn(),
   };
@@ -88,7 +88,7 @@ describe("LibraryGrid: arrow keys move real focus", () => {
           layout="covers"
           isInCart={() => false}
           onOpen={() => {}}
-          onAdd={() => {}}
+          onToggleCart={() => {}}
         />
         <button type="button">after the grid</button>
       </>,
@@ -150,11 +150,11 @@ describe("LibraryGrid: keys act on the game that has focus", () => {
   it.each(["{Enter}", " "])(
     "%s on Add adds the game and opens nothing",
     async (key) => {
-      const { user, onAdd, onOpen } = setup();
+      const { user, onToggleCart, onOpen } = setup();
       add(2).focus();
       await user.keyboard(key);
-      expect(onAdd).toHaveBeenCalledTimes(1);
-      expect(onAdd).toHaveBeenCalledWith("g2");
+      expect(onToggleCart).toHaveBeenCalledTimes(1);
+      expect(onToggleCart).toHaveBeenCalledWith("g2");
       expect(onOpen).not.toHaveBeenCalled();
     },
   );
@@ -203,7 +203,7 @@ describe("LibraryGrid: a focused card that leaves the list (mame-curator-1160)",
           isInCart={() => false}
           walkthrough={false}
           onOpen={vi.fn()}
-          onAdd={vi.fn()}
+          onToggleCart={vi.fn()}
         />
         <button type="button">after the grid</button>
       </>,
@@ -222,7 +222,7 @@ describe("LibraryGrid: a focused card that leaves the list (mame-curator-1160)",
           isInCart={() => false}
           walkthrough={false}
           onOpen={vi.fn()}
-          onAdd={vi.fn()}
+          onToggleCart={vi.fn()}
         />
         <button type="button">after the grid</button>
       </>,
@@ -245,7 +245,7 @@ describe("LibraryGrid: a focused card that leaves the list (mame-curator-1160)",
           isInCart={() => false}
           walkthrough={false}
           onOpen={vi.fn()}
-          onAdd={vi.fn()}
+          onToggleCart={vi.fn()}
         />
         <button type="button">after the grid</button>
       </>,
@@ -266,7 +266,7 @@ describe("LibraryGrid: a focused card that leaves the list (mame-curator-1160)",
           isInCart={() => false}
           walkthrough={false}
           onOpen={vi.fn()}
-          onAdd={vi.fn()}
+          onToggleCart={vi.fn()}
         />
         <button type="button">after the grid</button>
       </>,
@@ -285,7 +285,7 @@ describe("LibraryGrid: a filter that leaves no games (mame-curator-1203)", () =>
         isInCart={() => false}
         walkthrough={false}
         onOpen={vi.fn()}
-        onAdd={vi.fn()}
+        onToggleCart={vi.fn()}
       />
       <button type="button">after the grid</button>
     </>

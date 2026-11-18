@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
 import { DEFAULT_FILTERS } from "./libraryPageHelpers";
+import { useCopyWindow } from "./useCopyWindow";
 import { useLibraryController } from "./useLibraryController";
 
 interface LibraryPageProps {
@@ -85,6 +86,7 @@ export function LibraryPage({
     handleSaveSession,
     fromGuide,
   } = useLibraryController(cart);
+  const copyWindow = useCopyWindow(copySession.state, copySession.reset);
 
   // mame-curator-1209: arriving from the guide, focus the heading, so a screen
   // reader says where the user is and a magnifier moves to the top. Otherwise
@@ -252,7 +254,7 @@ export function LibraryPage({
                 layout={simple ? "covers" : layout}
                 cardsPerRowHint={config.data?.ui.cards_per_row_hint}
                 isInCart={(s) => cart.has(s)}
-                onAdd={(s) => cart.add(s)}
+                onToggleCart={cart.toggle}
                 onOpen={(card) => setOpenedShortName(card.short_name)}
                 focusCard={versionChoice.focusCard}
                 onFocusCardTaken={versionChoice.clearFocusCard}
@@ -369,8 +371,8 @@ export function LibraryPage({
           )}
         >
           <CopyModal
-            open={true}
-            onOpenChange={(open) => !open && copySession.reset()}
+            open={!copyWindow.hidden}
+            onOpenChange={(open) => !open && copyWindow.close()}
             state={copySession.state}
             onPause={copySession.pause}
             onResume={copySession.resume}
@@ -414,6 +416,7 @@ export function LibraryPage({
             copySession.isStarting ||
             copySession.state !== null
           }
+          onShowCopy={copyWindow.hidden ? copyWindow.show : undefined}
         />
       </div>
     </div>

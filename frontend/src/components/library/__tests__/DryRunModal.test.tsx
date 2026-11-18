@@ -38,6 +38,8 @@ describe("DryRunModal", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("1 not in your game list")).toBeInTheDocument();
     expect(screen.getByText("2 BIOS included")).toBeInTheDocument();
+    // mame-curator-1233 (RL-52): each row says its words once.
+    expect(screen.getAllByText(/already there/)).toHaveLength(1);
   });
 
   it("counts only the BIOS files it can copy, and names the missing ones", () => {

@@ -1,13 +1,11 @@
-import { Button } from "@/components/ui/button";
+import { RetryButton } from "@/components/RetryButton";
 import { strings } from "@/strings";
 
 interface LibraryErrorPanelProps {
   onRetry: () => void;
   /**
-   * FP25-H: gates the Retry button. While the in-flight refetch is running,
-   * the button ignores presses + label switches to "Retrying…" so the user
-   * can't mash it and queue redundant refetches. Not `disabled`, which would
-   * drop a keyboard user's focus when the refetch fails too (1165).
+   * FP25-H: gates the Retry button while the refetch is in flight, so the
+   * user can't mash it and queue redundant refetches.
    * Optional with a default of `false` so the FP20-I call sites don't
    * have to thread the prop until they care.
    */
@@ -36,15 +34,7 @@ export function LibraryErrorPanel({
       <p className="font-medium">{strings.library.loadFailedTitle}</p>
       <p className="text-muted-foreground">{strings.library.loadFailedHint}</p>
       <div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={isFetching ? undefined : onRetry}
-          aria-disabled={isFetching || undefined}
-          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-        >
-          {isFetching ? strings.common.retrying : strings.common.retry}
-        </Button>
+        <RetryButton onRetry={onRetry} retrying={isFetching} />
       </div>
     </div>
   );
