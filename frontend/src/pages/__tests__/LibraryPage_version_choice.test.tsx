@@ -170,6 +170,38 @@ describe("choosing a version from a clone", () => {
     expect(toast.success).not.toHaveBeenCalled();
   });
 
+  // mame-curator-1234 (RR-09-3): the message counts older choices, as the Fix
+  // page does, so it counts `unusable` and not the warnings about them.
+  it("counts the older choices, not the warnings", async () => {
+    serve(() =>
+      accepted(
+        [
+          "override key 'ghost' is not a known parent",
+          "override target 'gone' is not in the DAT",
+        ],
+        ["ghost"],
+      ),
+    );
+    await chooseJunior();
+    await waitFor(() =>
+      expect(toast.warning).toHaveBeenCalledWith(
+        strings.library.overrideOldChoicesUnusable(1),
+        expect.anything(),
+      ),
+    );
+  });
+
+  it("names the choice when no older choice is unusable", async () => {
+    serve(() => accepted(["a warning about no saved choice"], []));
+    await chooseJunior();
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        strings.library.overrideApplied("Puck Junior"),
+      ),
+    );
+    expect(toast.warning).not.toHaveBeenCalled();
+  });
+
   it("offers to forget an older choice that cannot be used", async () => {
     serve(() =>
       accepted(["override key 'ghost' is not a known parent"], ["ghost"]),

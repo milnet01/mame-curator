@@ -58,9 +58,11 @@ export function useVersionChoice(
           report.onSaved(warnings, unusable);
           return;
         }
-        if (warnings.length > 0) {
+        // mame-curator-1234 (RR-09-3): the message is about older choices, so
+        // it counts `unusable`, as the version guide's page does.
+        if (unusable.length > 0) {
           toast.warning(
-            strings.library.overrideOldChoicesUnusable(warnings.length),
+            strings.library.overrideOldChoicesUnusable(unusable.length),
             {
               duration: WARNING_MS,
               action: {
