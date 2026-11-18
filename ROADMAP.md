@@ -4624,6 +4624,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   are too long. Do it after this item's other fixes, since CR-09-5 and
   CR-09-6 edit the same files; splitting first would write those edits
   twice.
+  Progress 2026-11-18: CR-09-9, RR-09-3 (+RL-45), CR-09-6 and CR-09-7
+  fixed and pushed (5f056ca..e21b021). Left: CR-09-5, then CR-09-12.
+  USER DECIDED 2026-11-18: the simple view loads as you scroll too, and
+  its "Showing the first N of M" line becomes "N games"; amend
+  mame-curator-1144 INV-12 first.
   **Layman:** Faults on the Library page: filters, paging, the copy dialog and the cards.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
