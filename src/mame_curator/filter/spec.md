@@ -6,8 +6,8 @@ Given parsed Phase-1 data (`dict[str, Machine]`), an INI-augmented context (catv
 
 - `winners: tuple[str, ...]` — short names of machines that survived all four phases, alphabetically sorted.
 - `dropped: tuple[tuple[str, DroppedReason], ...]` — one entry per dropped machine, with the typed reason it was dropped; **sort key is the short name** (first element of each pair), enforced by `tuple(sorted(dropped.items()))` at construction in `runner.py` for deterministic byte-identical output across runs. Immutable: tuple-of-tuples on a `frozen=True` model (DS01 C2 closed the prior `dict[str, DroppedReason]` shape that was mutable in-place despite the model's `frozen=True`). Read sites use `dict(result.dropped)["short"]` for O(1) lookup or `len(result.dropped)` for the count.
-- `contested_groups: tuple[ContestedGroup, ...]` — one entry per parent/clone group where Phase B had to choose between ≥2 candidates; records the winner, the candidates, and the tiebreaker chain that produced the result. Used by `/api/games/{name}/explanation` (Phase 4).
-- `warnings: tuple[str, ...]` — non-fatal advisories from Phase C overrides (unknown parent, target outside its parent's group, target machine not in the parsed DAT). May be empty when no override produced an advisory; populated entries are sorted in canonical order.
+- `contested_groups: tuple[ContestedGroup, ...]` — one entry per parent/clone group where Phase B had to choose between ≥2 candidates; records Phase B's winner, the candidates, and the tiebreaker chain that produced it. A Phase C override changes `winners`, not this record. Used by `/api/games/{name}/explanation` (Phase 4).
+- `warnings: tuple[str, ...]` — non-fatal advisories from Phase C overrides (unknown parent, target outside its parent's group, target machine not in the parsed DAT). May be empty when no override produced an advisory; entries are in override-key order.
 - `ignored_overrides: tuple[str, ...]` — the override key behind each Phase C warning, in the order of the warnings (mame-curator-1189). A client uses it to offer to forget that saved choice.
 
 Re-running the filter on the same input produces byte-identical output (verified by `test_idempotency` and a hypothesis property test).
@@ -81,7 +81,7 @@ A key that is a clone's name is not a group, so Phase C ignores it with a warnin
 
 Phase D is also an internal phase of `run_filter`, applied at the end of the orchestrator (private helper `_apply_session` in `filter/runner.py`). When `sessions.active` is non-null and points at a defined session, the winner set is filtered to machines matching **all** non-empty include rules:
 
-- `include_genres: list[str]` — fnmatch against derived genre.
+- `include_genres: list[str]` — fnmatch against the whole catver category (`Shooter / Flying Vertical`), the value the Library saves. This differs from `drop_genres`, which matches the part after the last `/` (user, 2026-11-18).
 - `include_publishers: list[str]` — fnmatch against `machine.publisher`.
 - `include_developers: list[str]` — fnmatch against `machine.developer`.
 - `include_year_range: [int, int] | null` — closed interval `[lo, hi]`; `null` means unconstrained.
@@ -109,7 +109,8 @@ class Overrides(BaseModel):
 ```
 
 Constraints:
-- Keys and values are non-empty strings.
+- An empty `overrides:` section is no overrides.
+- An empty key or value is not refused at load: Phase C warns about it and ignores it, as it does any unknown name (user, 2026-11-18).
 - Single winner per parent (no multi-winner support in v1; keep "always include both versions" as a future enhancement — see design §3 future enhancements).
 
 **Old entries keyed by a clone (mame-curator-1149).** Releases before this fix let the version panel save `clone: chosen` when the current pick was a clone, and Phase C ignored those entries. `versioning-overrides.md` item 2 makes that file a surface, so `migrate_clone_keys(overrides, cloneof_map, known)` reads them as the user's choice. `build_world`, `replace_world` and the CLI `filter` command all run it before `run_filter`. The rule, per family:
@@ -192,13 +193,11 @@ class FilterConfig(BaseModel):
 Match the **first** parenthesized group whose first token is a known region tag:
 
 ```python
-REGION_RE = re.compile(
-    r"\(\s*(?P<region>"
-    r"World|USA|Europe|Japan|Asia|Brazil|Korea|Spain|Italy|"
-    r"Germany|France|UK|Australia|Taiwan|Hong Kong"
-    r")(?:\s*(?:,|\)|$)|\s+(?=[^A-Z]))"
-)
+_REGION_NAMES = "|".join(re.escape(r.value) for r in Region if r is not Region.UNKNOWN)
+REGION_RE = re.compile(rf"\(\s*(?P<region>{_REGION_NAMES})(?:\s*(?:,|\)|$)|\s+(?=[^A-Z]))")
 ```
+
+The region names are the `Region` enum's values, except `UNKNOWN`.
 
 After the region name the match needs a comma, a closing parenthesis, the end of the text, or whitespace followed by a character that is not an uppercase letter. So `(World 910411)` and `(Europe v2.1)` match, and `(World Heroes 2)` does not.
 

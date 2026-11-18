@@ -72,7 +72,8 @@ def run_filter(
     # mame-curator-1191: a family Phase A emptied has no group, yet still takes
     # its override, so the known parents come from every machine.
     families = {ctx.cloneof_map.get(name, name) for name in machines}
-    for parent, override_name in overrides.entries.items():
+    # mame-curator-1236: key order, so the warnings do not depend on file order.
+    for parent, override_name in sorted(overrides.entries.items()):
         if parent not in families:
             msg = f"override key '{parent}' is not a known parent; ignored"
             logger.warning(msg)
@@ -136,6 +137,8 @@ def _apply_session(
 
 def _machine_matches_session(m: Machine, session: Session, ctx: FilterContext) -> bool:
     if session.include_genres:
+        # The whole category, as the Library saves it; `drop_genres` matches
+        # only the part after the last `/` (filter/spec.md § Phase D).
         cat = ctx.category.get(m.name)
         if cat is None or not _any_fnmatch(cat, session.include_genres):
             return False

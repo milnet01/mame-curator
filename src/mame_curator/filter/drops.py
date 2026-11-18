@@ -21,6 +21,8 @@ def _matches_any(value: str | None, patterns: tuple[str, ...]) -> bool:
 
 
 def _genre_of(category: str | None) -> str | None:
+    # The part after the last `/`. Sessions match the whole category instead
+    # (filter/spec.md § Phase D).
     if category is None:
         return None
     return category.rsplit("/", 1)[-1].strip()

@@ -1,7 +1,7 @@
 """Phase B picker — tiebreaker chain produces a winner per parent group.
 
 Each tiebreaker is a `cmp(a, b, ctx, cfg, parent) -> int` returning -1, 0, or +1
-per spec line 55. Comparators are evaluated in spec order; the first non-zero
+per filter/spec.md § Phase B. Comparators are evaluated in spec order; the first non-zero
 result decides the comparison. Composed via `functools.cmp_to_key` and used to
 select the minimum of the candidate list, which is the winner.
 
@@ -124,7 +124,7 @@ def _cmp_revision(a: Machine, b: Machine, _ctx: FilterContext, _cfg: FilterConfi
 
 
 def _cmp_alpha(a: Machine, b: Machine, _ctx: FilterContext, _cfg: FilterConfig, _p: str) -> int:
-    """Alphabetically lower short-name wins (deterministic fallback per spec line 53).
+    """Alphabetically lower short-name wins (deterministic fallback, filter/spec.md § Phase B).
 
     Direct string compare — no tuple-length surprises.
     """
@@ -174,7 +174,7 @@ def explain_pick(
 ) -> tuple[TiebreakerHit, ...]:
     """List the tiebreakers that actually decided the winner.
 
-    Per spec line 63: a tiebreaker is decisive **per opponent**: the *first*
+    Per filter/spec.md § Public API: a tiebreaker is decisive **per opponent**: the *first*
     non-zero comparator in chain order settles that pairing; any later
     comparators that also discriminate against the same opponent are
     already-decided and not recorded. The reported set is the union across

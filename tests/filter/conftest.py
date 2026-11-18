@@ -4,16 +4,17 @@ from pathlib import Path
 
 import pytest
 
+from mame_curator.filter import _io
 from mame_curator.filter.overrides import Overrides
 from mame_curator.filter.types import FilterContext
 from mame_curator.parser.models import Machine
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
-# Oversized YAML payload threshold — `filter/io.py` caps YAML reads at 1 MiB.
-# Cross-referenced from test_io / test_overrides / test_sessions to assert the
-# cap is enforced consistently.
-OVER_CAP = b"0" * (1024 * 1024 + 1)
+# One byte over the filter/ YAML size cap (`filter/_io._MAX_YAML_BYTES`).
+# Shared by test_io / test_overrides / test_sessions so all three test the
+# same limit.
+OVER_CAP = b"0" * (_io._MAX_YAML_BYTES + 1)
 
 
 def m(**kw: object) -> Machine:

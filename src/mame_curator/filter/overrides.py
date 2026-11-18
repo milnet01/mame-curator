@@ -5,12 +5,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Container, Mapping
 from pathlib import Path
-from typing import Any
 
-import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from mame_curator.filter._io import read_capped_text
+from mame_curator.filter._io import read_yaml_mapping
 from mame_curator.filter.errors import OverridesError
 
 logger = logging.getLogger(__name__)
@@ -71,21 +69,13 @@ def migrate_clone_keys(
 
 
 def load_overrides(path: Path) -> Overrides:
-    """Read and validate `overrides.yaml`. Missing file → empty Overrides."""
-    if not path.exists():
-        return Overrides()
-    text = read_capped_text(path, exc_cls=OverridesError)
-    try:
-        raw: Any = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
-        # FP06 B3: quote user-controlled paths via repr().
-        raise OverridesError(f"failed to parse {path!r}: {exc}") from exc
-    # Empty file / YAML `null` at top level → empty Overrides (matches the
-    # missing-file case).
+    """Read and validate `overrides.yaml`. Missing, empty or `null` → empty Overrides."""
+    raw = read_yaml_mapping(path, exc_cls=OverridesError)
     if raw is None:
         return Overrides()
-    if not isinstance(raw, dict):
-        raise OverridesError(f"{path!r} is not a YAML mapping")
+    # mame-curator-1236: an empty `overrides:` section is no overrides.
+    if "overrides" in raw and raw["overrides"] is None:
+        raw = {**raw, "overrides": {}}
     try:
         return Overrides.model_validate(raw)
     except ValidationError as exc:

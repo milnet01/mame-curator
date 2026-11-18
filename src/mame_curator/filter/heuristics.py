@@ -10,20 +10,6 @@ import re
 from enum import StrEnum
 from functools import lru_cache
 
-# FP28 B2: after the region token, allow either (a) whitespace then comma/
-# close-paren/EOL (e.g. "(World)", "(USA, Set 2)") or (b) whitespace then a
-# non-uppercase char — typically a digit (year/set/build like "(World 910411)",
-# "(Germany 1998)") or a lowercase letter (version like "(Europe v2.1)").
-# Rejects "(World Heroes 2)" because "Heroes" starts with an uppercase H —
-# real region parentheticals never have Title-cased continuations, only
-# modifiers introduced by a comma.
-REGION_RE = re.compile(
-    r"\(\s*(?P<region>"
-    r"World|USA|Europe|Japan|Asia|Brazil|Korea|Spain|Italy|"
-    r"Germany|France|UK|Australia|Taiwan|Hong Kong"
-    r")(?:\s*(?:,|\)|$)|\s+(?=[^A-Z]))"
-)
-
 _REV_LETTER_RE = re.compile(r"\(\s*rev\s+(?P<letter>[A-Z])\s*\)")
 _SET_NUMBER_RE = re.compile(r"\(\s*[Ss]et\s+(?P<n>\d+)\s*\)")
 _V_VERSION_RE = re.compile(r"\bv(?P<major>\d+)(?:\.(?P<minor>\d+))?\b")
@@ -48,6 +34,18 @@ class Region(StrEnum):
     TAIWAN = "Taiwan"
     HONG_KONG = "Hong Kong"
     UNKNOWN = "Unknown"
+
+
+# FP28 B2: after the region token, allow either (a) whitespace then comma/
+# close-paren/EOL (e.g. "(World)", "(USA, Set 2)") or (b) whitespace then a
+# non-uppercase char — typically a digit (year/set/build like "(World 910411)",
+# "(Germany 1998)") or a lowercase letter (version like "(Europe v2.1)").
+# Rejects "(World Heroes 2)" because "Heroes" starts with an uppercase H —
+# real region parentheticals never have Title-cased continuations, only
+# modifiers introduced by a comma. The region names come from `Region`, so
+# the two cannot drift apart (mame-curator-1236).
+_REGION_NAMES = "|".join(re.escape(r.value) for r in Region if r is not Region.UNKNOWN)
+REGION_RE = re.compile(rf"\(\s*(?P<region>{_REGION_NAMES})(?:\s*(?:,|\)|$)|\s+(?=[^A-Z]))")
 
 
 # Cached for the same reason as `revision_key_of` below: `_cmp_region`

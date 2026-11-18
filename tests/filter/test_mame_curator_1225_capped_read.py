@@ -1,4 +1,4 @@
-"""mame-curator-1225 CR-01-11 — the 1 MiB cap holds on the read itself.
+"""mame-curator-1225 CR-01-11 — the size cap holds on the read itself.
 
 The size came from fstat, then the file was read whole, so a file that
 grew after the check, or one whose size reads as 0 (a pipe, /dev/zero),

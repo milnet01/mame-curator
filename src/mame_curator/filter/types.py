@@ -10,7 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class DroppedReason(StrEnum):
     """Why a machine was dropped in Phase A.
 
-    Order matches the spec's drop-rule ordering. The first rule to match wins.
+    Members are listed in the spec's drop-rule order, but the order the rules
+    run in is `drops._PREDICATES`; the first rule to match wins.
     """
 
     BIOS = "bios"
@@ -63,7 +64,7 @@ class FilterResult(BaseModel):
 
 
 class FilterContext(BaseModel):
-    """INI-augmented per-machine context consumed by Phase A predicates.
+    """INI-augmented per-machine context used by all four filter phases (A to D).
 
     The dict-shaped fields below (`category`, `languages`, `cloneof_map`,
     `bestgames_tier`) are owner-mutable Python dicts: Pydantic's

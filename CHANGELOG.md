@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-18 Fixed — Reading the game list and your saved files
+
+- **A game-list error names the file you chose** (mame-curator-1236)
+  For a zipped list it used to name a temporary file that was already
+  gone. Every error about a damaged game entry now names the file too.
+- **Reviewing a very large library no longer stops the app from starting**
+  With tens of thousands of games marked, the review-state file could
+  pass the 1 MiB size limit, and the app then refused to read the file it
+  had just written. The limit is now 8 MiB, room for 100,000 games.
+- **An empty section in overrides.yaml or state.yaml reads as empty**
+  `overrides:` or `state:` with nothing under it was refused as
+  malformed. It now means no choices or no review marks, as an empty
+  `sessions:` already did.
+- **Warnings about choices that cannot be used appear in a fixed order**
+  They follow the game names, not the order of the lines in
+  overrides.yaml.
+
 ### 2026-11-17 Fixed — Small fixes on the screens: focus, messages and backups
 
 - **A page already showing its data keeps it when a reload fails** (mame-curator-1232)

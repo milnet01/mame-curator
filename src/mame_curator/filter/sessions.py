@@ -5,10 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from mame_curator.filter._io import read_capped_text
+from mame_curator.filter._io import read_yaml_mapping
 from mame_curator.filter.errors import SessionsError
 
 
@@ -76,7 +75,8 @@ class Sessions(BaseModel):
         #   - `active` is None or a real session key.
         #   - empty-string `active` is rejected (would silently match a `""`
         #     session key).
-        #   - empty-string session keys are rejected at load time (FP05 A2b).
+        #   - empty-string session keys are rejected (FP05 A2b); the loader
+        #     relies on this check.
         if self.active is not None and self.active not in self.sessions:
             # FP06 R2 (Cluster R): `self.active` comes from YAML
             # (user-controlled). Quote via repr() so a control byte in the
@@ -90,22 +90,10 @@ class Sessions(BaseModel):
 
 
 def load_sessions(path: Path) -> Sessions:
-    """Read and validate `sessions.yaml`. Missing file → empty Sessions."""
-    if not path.exists():
-        return Sessions()
-    text = read_capped_text(path, exc_cls=SessionsError)
-    try:
-        raw_obj: Any = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
-        # FP06 B3: quote user-controlled paths via repr().
-        raise SessionsError(f"failed to parse {path!r}: {exc}") from exc
-
-    # Empty file or YAML `null` at the top level is the legitimate "no
-    # sessions" default — same shape as a missing file.
+    """Read and validate `sessions.yaml`. Missing, empty or `null` → empty Sessions."""
+    raw_obj = read_yaml_mapping(path, exc_cls=SessionsError)
     if raw_obj is None:
         return Sessions()
-    if not isinstance(raw_obj, dict):
-        raise SessionsError(f"{path!r} is not a YAML mapping")
 
     active = raw_obj.get("active")
     # Explicit None semantics (DS01 C4): YAML `null` (Python `None`) is the
@@ -124,10 +112,6 @@ def load_sessions(path: Path) -> Sessions:
 
     validated: dict[str, Session] = {}
     for name, body in sessions_dict.items():
-        # Reject empty-string session keys at load time (FP05 A2b) — they
-        # are valid Python dict keys and would silently match an `active: ""`.
-        if name == "":
-            raise SessionsError("session keys must be non-empty strings")
         # Same explicit-None semantics for per-session bodies — `null` means
         # "no fields set" (caught by `from_raw`'s no-include-rules check),
         # but a stray `[]` / `""` / `0` is malformed.
@@ -142,11 +126,9 @@ def load_sessions(path: Path) -> Sessions:
             )
         validated[name] = Session.from_raw(name, body_dict)
     # Build via `Sessions(...)` so the `_active_must_reference_a_defined_session`
-    # model_validator runs (catches active-not-in-sessions, empty-active,
-    # empty-key residuals — FP05 L4 removes the duplicate explicit check
-    # this used to do). FP06 B2: the validator now raises `ValueError` so
-    # Pydantic wraps in `ValidationError`; this except clause rewraps to
-    # `SessionsError` with path context.
+    # model_validator runs: it refuses an `active` that is not a session, an
+    # empty `active` and an empty session key. Its `ValueError` reaches here
+    # as `ValidationError`, rewrapped to `SessionsError` with the path.
     try:
         return Sessions(active=active, sessions=validated)
     except ValidationError as exc:

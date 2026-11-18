@@ -89,7 +89,9 @@ Reads and validates `state.yaml`. Mirrors `load_overrides` exactly:
 - `yaml.YAMLError` while parsing → `ReviewStateError` (the path is
   `repr()`-quoted per FP06 B3).
 - Top-level `null` / empty file → empty `ReviewState()` (same as
-  missing).
+  missing). So is a `state:` key with no value.
+- The size cap leaves room for one entry per game: a file for 100k
+  games is about 3.5 MB.
 - Top-level value that is not a mapping → `ReviewStateError`.
 - Pydantic `ValidationError` (unknown state value, wrong shape) →
   re-raised as `ReviewStateError`.

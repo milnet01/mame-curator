@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
 
-import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from mame_curator.filter._io import read_capped_text
+from mame_curator.filter._io import read_yaml_mapping
 from mame_curator.filter.errors import ReviewStateError
 
 
@@ -53,21 +51,13 @@ class ReviewState(BaseModel):
 
 
 def load_review_state(path: Path) -> ReviewState:
-    """Read and validate ``state.yaml``. Missing file → empty ReviewState."""
-    if not path.exists():
-        return ReviewState()
-    text = read_capped_text(path, exc_cls=ReviewStateError)
-    try:
-        raw: Any = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
-        # FP06 B3: quote user-controlled paths via repr().
-        raise ReviewStateError(f"failed to parse {path!r}: {exc}") from exc
-    # Empty file / YAML `null` at top level → empty ReviewState (matches
-    # the missing-file case).
+    """Read and validate ``state.yaml``. Missing, empty or ``null`` → empty ReviewState."""
+    raw = read_yaml_mapping(path, exc_cls=ReviewStateError)
     if raw is None:
         return ReviewState()
-    if not isinstance(raw, dict):
-        raise ReviewStateError(f"{path!r} is not a YAML mapping")
+    # mame-curator-1236: an empty `state:` section is no state.
+    if "state" in raw and raw["state"] is None:
+        raw = {**raw, "state": {}}
     try:
         return ReviewState.model_validate(raw)
     except ValidationError as exc:
