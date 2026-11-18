@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1261 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1262 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -4665,7 +4665,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1237] **Fix the game-list reading and filtering findings from the 2026-11-11 code review (part 2 of 2).**
+- ✅ [mame-curator-1237] **Fix the game-list reading and filtering findings from the 2026-11-11 code review (part 2 of 2).**
   Group `parser-filter` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4676,6 +4676,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-01-5 [LOW] parser/listxml.py:22: `_driver_status_from_element` has a private name and its docstring speaks only of "the whole DAT parse" (`dat.py:337`), yet `listxml.py:86` uses it too. Fix: give it a public name, or move it to a module both parsers import, and update the docstring. - **
   - RR-01-4 [LOW] parser/listxml.py:4: the module docstring describes CHD detection only. Fix: restate the docstring as "every fact read from `-listxml`". - **
   - CR-01-2 [MEDIUM] parser/listxml.py:73-113: Nothing reads or logs the -listxml MAME build version that ADR-0003 promises as its wrong-version defence. Fix: read `build` from the root (a `start` event, or `elem.getparent()` on the first machine) and log it at INFO; return it in `ListxmlFacts`.
+  Resolved 2026-11-18 in a9fc378. Fixed: CR-01-3, CR-01-7 (+RR-01-12),
+  CR-01-16, RR-01-5, RR-01-4, each code fix with a test that failed first
+  and a mutation check. CR-01-2: the build is read into ListxmlFacts.build
+  and logged; showing it on screen is queued as mame-curator-1262.
+  RL-4 dismissed: unreachable, since Machine has no field constraints a DAT
+  can break (Rom and BiosSet errors are already wrapped as DATError).
   **Layman:** Faults in reading the game list and choosing which versions to keep.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -5048,6 +5054,18 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: chore.
   Source: build-mame-curator-1254-2026-11-15.
   Lanes: tooling.
+
+- 📋 [mame-curator-1262] **Show which MAME version wrote the listxml, so a mismatch is easy to spot.**
+  ADR-0003 (Consequences, the "valid but wrong listxml" mitigation) says
+  the wizard shows the MAME build from the listxml header so the user can
+  spot a mismatch. mame-curator-1237 made `parse_listxml` read `build`
+  into `ListxmlFacts.build` and log it at INFO. Not done there: nothing
+  puts it on a screen. Queued because it needs an API field and a place
+  in the wizard and Settings, which is screen design, not a parser fix.
+  **Layman:** The app reads the MAME version from the listxml file but does not show it to you yet.
+  Kind: enhancement.
+  Source: close-findings mame-curator-1237 CR-01-2, 2026-11-18.
+  Lanes: frontend, api.
 
 ## Considered / under research (no target date)
 
