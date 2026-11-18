@@ -4577,7 +4577,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1233] **Fix the Library page findings from the 2026-11-11 code review (part 1 of 2).**
+- ✅ [mame-curator-1233] **Fix the Library page findings from the 2026-11-11 code review (part 1 of 2).**
   Group `library-page-ui` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4598,6 +4598,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - CR-08-10 (+RR-08-8, RL-44) [INFO] fe/hooks/useUpdates.ts:99: useIniApply invalidates every query, re-running the startup update check refreshEverything skips (cost only).
   - CR-09-14 [LOW] fe/pages/ActivityPage.tsx:40: An Activity ?page= past the end shows the empty state with no way back.
   - CR-09-12 [LOW] fe/pages/LibraryPage.tsx, LibraryGrid.tsx, FiltersSidebar.tsx, useLibraryController.ts: LibraryPage, LibraryGrid, FiltersSidebar and two function bodies exceed the frontend size caps.
+  Resolved 2026-11-18. Fourteen fixed, RL-49 dismissed, CR-09-12 moved to
+  mame-curator-1234. The card's ✓ Added button removes the game; closing
+  the copy window during a copy hides it, and the cart bar's Show copy
+  opens it again (user, 2026-11-16); a page file that fails to load
+  reloads the tab once; one shared Retry button. RL-49 dismissed: nothing
+  outside the filter sidebar changes the search while it is on screen.
+  CR-09-12 (file size caps) moved to 1234, which edits the same files.
   **Layman:** Faults on the Library page: filters, paging, the copy dialog and the cards.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -4611,6 +4618,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - CR-09-5 [MEDIUM] fe/pages/useLibraryController.ts:113: The full view shows only the first 200 games with no "showing N of M" hint. Fix: show the "showing first N of M" line in the full view too, or page or infinite-scroll the grid. USER DECIDED 2026-11-16: show every game, loading more as the user scrolls.
   - CR-09-7 [LOW] fe/pages/useLibraryController.ts:208: Bulk add has no in-flight guard, so a double-click runs two pagination loops. Fix: a pending flag that also disables the button.
   - RR-09-3 (+RL-45) [MEDIUM] fe/pages/useVersionChoice.ts:63: The same warning appears in two places, and the count has drifted. Fix: VersionPage.tsx:71` counts `unusable`. The string's comment says it counts "older choices", and this file's own comment at line 16 says `unusable` names those choices. A stranger cannot tell which count is right without asking. — Fix: count `unusable` in both places, or state that the two lists always have the same length.
+  - CR-09-12 [LOW], moved here from mame-curator-1233 on 2026-11-18:
+  LibraryPage, LibraryGrid and FiltersSidebar pass the 350-line hard
+  cap, and two function bodies in LibraryPage and useLibraryController
+  are too long. Do it after this item's other fixes, since CR-09-5 and
+  CR-09-6 edit the same files; splitting first would write those edits
+  twice.
   **Layman:** Faults on the Library page: filters, paging, the copy dialog and the cards.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
