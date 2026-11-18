@@ -67,7 +67,7 @@ export function LibraryPage({
     versionChoice,
     launch,
     setupCheck,
-    validateCart,
+    copyLocked,
     copySession,
     layout,
     theme,
@@ -410,13 +410,7 @@ export function LibraryPage({
           onToggleExpand={() => onCartExpandedChange(!cartExpanded)}
           onDryRun={handleDryRun}
           onCopy={handleCopy}
-          // FP24-N: lock Copy + Dry-run while a copy is queued so a
-          // double-click can't fire validate+start twice.
-          copyDisabled={
-            validateCart.isPending ||
-            copySession.isStarting ||
-            copySession.state !== null
-          }
+          copyDisabled={copyLocked}
           onShowCopy={copyWindow.hidden ? copyWindow.show : undefined}
         />
       </div>

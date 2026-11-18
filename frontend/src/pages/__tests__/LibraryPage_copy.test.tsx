@@ -323,6 +323,34 @@ describe("LibraryPage during a copy", () => {
     answerStart();
     await screen.findByRole("dialog");
   });
+
+  // mame-curator-1234 (CR-09-6): a copy started while a dry run is out would
+  // leave the dry run's window offering a second copy when it answers.
+  it("Copy and Dry run stay off while a dry run is out", async () => {
+    let answerDryRun = () => {};
+    serve("on_success");
+    server.use(
+      http.post(
+        "/api/copy/dry-run",
+        () =>
+          new Promise((resolve) => {
+            answerDryRun = () => resolve(HttpResponse.json({}, { status: 500 }));
+          }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await configLoaded();
+    const dryRun = await screen.findByRole("button", {
+      name: strings.library.actions.dryRun,
+    });
+    await user.click(dryRun);
+    await waitFor(() => expect(dryRun).toBeDisabled());
+    expect(await copyButton()).toBeDisabled();
+    answerDryRun();
+    await waitFor(() => expect(dryRun).toBeEnabled());
+    expect(await copyButton()).toBeEnabled();
+  });
 });
 
 describe("LibraryPage when a copy is refused", () => {

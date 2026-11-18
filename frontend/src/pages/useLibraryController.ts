@@ -98,6 +98,14 @@ export function useLibraryController(cart: UseCartResult) {
   const dryRun = useDryRun();
   const validateCart = useValidateCart();
   const copySession = useCopySession();
+  // FP24-N: Copy and Dry run are off while a copy is checked, started or
+  // running, so a double-click cannot start two. mame-curator-1234 (CR-09-6):
+  // and while a dry run is out, whose window would offer Copy again.
+  const copyLocked =
+    dryRun.isPending ||
+    validateCart.isPending ||
+    copySession.isStarting ||
+    copySession.state !== null;
 
   const layout = (config.data?.ui.layout ?? "masonry") as LayoutName;
   const theme = (config.data?.ui.theme ?? "dark") as ThemeName;
@@ -389,7 +397,7 @@ export function useLibraryController(cart: UseCartResult) {
     versionChoice,
     launch,
     setupCheck,
-    validateCart,
+    copyLocked,
     copySession,
     layout,
     theme,

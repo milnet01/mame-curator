@@ -645,7 +645,8 @@ EXPECTED_PYTEST_DECLARATIONS = 1399
 # Bumped 2026-11-18 (mame-curator-1233): the Library page fixes. 796 → 815.
 # Bumped 2026-11-18 (mame-curator-1234 CR-09-9): a full cart says so. 815 → 818.
 # Bumped 2026-11-18 (mame-curator-1234 RR-09-3): the old-choices count. 818 → 820.
-EXPECTED_VITEST_DECLARATIONS = 820
+# Bumped 2026-11-18 (mame-curator-1234 CR-09-6): the dry-run lock. 820 → 821.
+EXPECTED_VITEST_DECLARATIONS = 821
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.
