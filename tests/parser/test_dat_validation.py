@@ -132,7 +132,7 @@ def test_zip_slip_traversal_member_raises(tmp_path: Path, mini_dat: Path) -> Non
     bad = tmp_path / "evil.zip"
     with zipfile.ZipFile(bad, "w") as zf:
         zf.write(mini_dat, arcname="../evil.xml")
-    with pytest.raises(DATError, match="escape the extraction"):
+    with pytest.raises(DATError, match="unsafe path"):
         parse_dat(bad)
 
 

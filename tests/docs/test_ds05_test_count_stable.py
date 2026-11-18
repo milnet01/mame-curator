@@ -435,7 +435,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # 1349 → 1358.
 # Bumped 2026-11-16 (mame-curator-1230): the copy-run fixes. 1358 → 1376.
 # Bumped 2026-11-17 (mame-curator-1235): the picture cache fixes. 1376 → 1383.
-EXPECTED_PYTEST_DECLARATIONS = 1383
+# Bumped 2026-11-18 (mame-curator-1236): DAT errors name the user's file. 1383 → 1385.
+EXPECTED_PYTEST_DECLARATIONS = 1385
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

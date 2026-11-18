@@ -73,7 +73,7 @@ def parse_dat(path: Path) -> dict[str, Machine]:
         raise DATError("DAT path does not exist", path=path)
 
     with _resolve_xml(path) as xml_path:
-        return _stream_machines(xml_path)
+        return _stream_machines(xml_path, source=path)
 
 
 def check_dat_start(path: Path) -> None:
@@ -90,6 +90,11 @@ def check_dat_start(path: Path) -> None:
             ):
                 _machine_from_element(elem, set())
                 return
+    except DATError as exc:
+        # mame-curator-1236: a machine's own fault is raised without a path.
+        if exc.path is not None:
+            raise
+        raise DATError(str(exc), path=path) from exc
     except etree.XMLSyntaxError as exc:
         raise DATError(f"XML parse failed: {exc}", path=path) from exc
     except ValidationError as exc:
@@ -151,14 +156,13 @@ def _open_dat_zip(path: Path) -> Iterator[tuple[zipfile.ZipFile, zipfile.ZipInfo
         if len(xml_members) > 1:
             raise DATError(f"DAT zip contains multiple .xml files: {xml_members}", path=path)
         member = xml_members[0]
-        # Per parser/spec.md G5: defend against zip-slip even when the threat
-        # model nominally trusts the source — Phase 4 will expose parse_dat
-        # via API where the path is network-controlled. Reject absolute paths
-        # and any `..` traversal component before extraction.
+        # Per parser/spec.md G5: defend against zip-slip. The API passes
+        # parse_dat a path it was sent, so the zip is not trusted. Reject
+        # absolute paths and any `..` traversal component before unpacking.
         member_path = Path(member)
         if member_path.is_absolute() or ".." in member_path.parts:
             raise DATError(
-                f"DAT zip member {member!r} would escape the extraction tempdir",
+                f"DAT zip member {member!r} has an unsafe path (absolute or '..')",
                 path=path,
             )
         # FP20-A: refuse extraction if the central-dir advertises a
@@ -196,7 +200,12 @@ def _resolve_xml(path: Path) -> Iterator[Path]:
         yield Path(extracted)
 
 
-def _stream_machines(xml_path: Path) -> dict[str, Machine]:
+def _stream_machines(xml_path: Path, *, source: Path) -> dict[str, Machine]:
+    """Read every machine from ``xml_path``; errors name ``source``, the user's file.
+
+    mame-curator-1236: for a ``.zip`` the two differ, and ``xml_path`` is a
+    temp file that is gone by the time anyone reads the error.
+    """
     machines: dict[str, Machine] = {}
     seen_unknown_statuses: set[str] = set()
     try:
@@ -208,7 +217,7 @@ def _stream_machines(xml_path: Path) -> dict[str, Machine]:
         ):
             machine = _machine_from_element(elem, seen_unknown_statuses)
             if machine.name in machines:
-                raise DATError(f"duplicate machine name: {machine.name}", path=xml_path)
+                raise DATError(f"duplicate machine name: {machine.name}", path=source)
             machines[machine.name] = machine
             # Canonical lxml fast-iter cleanup: clear() empties the element's children
             # but doesn't detach it from the parent <datafile>, so the spine accumulates
@@ -217,17 +226,22 @@ def _stream_machines(xml_path: Path) -> dict[str, Machine]:
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
+    except DATError as exc:
+        # mame-curator-1236: a machine's own fault is raised without a path.
+        if exc.path is not None:
+            raise
+        raise DATError(str(exc), path=source) from exc
     except etree.XMLSyntaxError as exc:
-        raise DATError(f"XML parse failed: {exc}", path=xml_path) from exc
+        raise DATError(f"XML parse failed: {exc}", path=source) from exc
     except OSError as exc:
         # FP04 A3: iterparse opens the file lazily on first __next__ — OSError
         # (file disappeared race, EIO, perms revoked between exists() and read)
         # would otherwise propagate raw past the CLI's ParserError catch.
-        raise DATError(f"failed to read DAT XML: {exc}", path=xml_path) from exc
+        raise DATError(f"failed to read DAT XML: {exc}", path=source) from exc
     if not machines:
         raise DATError(
             "DAT contained no <machine> elements; check that this file is actually a MAME DAT",
-            path=xml_path,
+            path=source,
         )
     return machines
 
