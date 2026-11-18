@@ -4630,7 +4630,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1236] **Fix the game-list reading and filtering findings from the 2026-11-11 code review (part 1 of 2).**
+- ✅ [mame-curator-1236] **Fix the game-list reading and filtering findings from the 2026-11-11 code review (part 1 of 2).**
   Group `parser-filter` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4651,6 +4651,16 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-01-6 [LOW] parser/dat.py:155: this comment says the API exposure is in the future. Fix: put the comment in the present tense and word the message without "extraction". - **
   - CR-01-8 (+RL-3) [LOW] parser/dat.py:238,241,248,309,318,329: Several DATErrors are raised without path= and are not re-wrapped, against "every ParserError carries the source path". Fix: catch `DATError` in `_stream_machines` and `check_dat_start` and re-raise it with the path.
   - CR-01-4 [MEDIUM] parser/dat.py:76: For a .zip DAT, parse errors name the deleted temp file, not the user's file. Fix: pass the user's `path` into `_stream_machines` to build errors.
+  Resolved 2026-11-18 in 2c1600f (parser) and 1e549a1 (filter). All 17
+  fixed; each code fix has a test that failed first and a mutation check.
+  CR-01-5 (+RR-01-1, RL-1): the user reversed the 2026-11-11 note on
+  2026-11-18 — sessions keep matching the whole category, because the
+  Library saves the whole category and the spec's own examples need it.
+  filter/spec.md § Phase D now says so. CR-01-9: by the user's choice the
+  same day, an empty override key or value still loads and Phase C warns
+  about it; the spec says so instead of "non-empty". CR-01-13: Phase C now
+  walks overrides in key order. RL-5: intended; the spec now says
+  ContestedGroup records Phase B's winner. CR-01-12: the YAML cap is 8 MiB.
   **Layman:** Faults in reading the game list and choosing which versions to keep.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
