@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1264 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1265 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -5115,6 +5115,20 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: perf.
   Source: gate-run-mame-curator-1234-2026-11-18.
   Lanes: frontend.
+
+- 📋 [mame-curator-1265] **Silence the "not wrapped in act(...)" warnings the Vitest run prints.**
+  The push gate of 2026-11-21 (9640254) printed "An update to X inside a
+  test was not wrapped in act(...)" from these test files:
+  LibraryGrid_keyboard, LibraryGrid_loadMore, LibraryPage_loadMore,
+  LibraryPage_simpleBehaviour, SimpleLibraryBar, NotesEditor, AppShell,
+  DownloadPackModal, FsBrowser, SnapshotsTab, useConfig, useCopySession,
+  errorToastLifetime. Most name LibraryGrid, where the virtualizer and the
+  focus effect update after a test's last await; Toaster and TestComponent
+  name the rest. All tests pass. Fix: find each late update and await it
+  (findBy / waitFor), or end the test once it settles.
+  **Layman:** The test run prints React warnings that some screen updates landed after a test stopped watching; they hide real problems in the output.
+  Kind: test.
+  Source: gate-run-mame-curator-1234-2026-11-21.
 
 ## Considered / under research (no target date)
 
