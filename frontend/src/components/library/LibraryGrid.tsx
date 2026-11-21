@@ -44,7 +44,15 @@ interface LibraryGridProps {
   focusCard?: string | null;
   /** Called when focus has been sent, so the owner can clear `focusCard`. */
   onFocusCardTaken?: () => void;
+  /** mame-curator-1234 (CR-09-5): more games exist than `cards` holds. */
+  hasMore?: boolean;
+  /** Asks for the next page. Called again while one loads; the owner must
+   *  ignore those calls. */
+  onLoadMore?: () => void;
 }
+
+/** Rows short of the end at which the next page starts to load. */
+const LOAD_AHEAD_ROWS = 8;
 
 const KEY_TO_STATE: Record<string, ReviewStateValue> = {
   r: "reviewed",
@@ -94,6 +102,8 @@ export function LibraryGrid({
   walkthrough = true,
   focusCard,
   onFocusCardTaken,
+  hasMore = false,
+  onLoadMore,
 }: LibraryGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const columns = resolveColumns(layout, cardsPerRowHint);
@@ -171,6 +181,45 @@ export function LibraryGrid({
   } = useGameGridFocus(cards, reviewState, columns, virtualizer);
   const cardsLen = cards.length;
 
+  // mame-curator-1234 (CR-09-5): the next page loads while a few rows are
+  // still to scroll, so the user rarely reaches an end that is not the end.
+  // The active card's row counts as reached, since a key moves it before the
+  // scroll draws its row. No row drawn means no box to scroll in yet, which
+  // is no sign of the end.
+  const lastDrawnRow = virtualizer.getVirtualItems().at(-1)?.index ?? -1;
+  const reachedRow =
+    lastDrawnRow < 0
+      ? -1
+      : Math.max(lastDrawnRow, Math.floor(activeIndex / columns));
+  useEffect(() => {
+    if (hasMore && reachedRow >= 0 && reachedRow >= rowCount - LOAD_AHEAD_ROWS)
+      onLoadMore?.();
+  }, [hasMore, reachedRow, rowCount, onLoadMore]);
+
+  // P14 walkthrough: the next pending game may be on a page not loaded yet.
+  // `advanceFrom` holds where the search starts until that page lands.
+  const advanceFrom = useRef<number | null>(null);
+  const advance = useCallback(
+    (startIndex: number) => {
+      const next = focusNextPending(startIndex);
+      if (next !== null) {
+        advanceFrom.current = null;
+        setActive(next);
+      } else if (hasMore) {
+        advanceFrom.current = startIndex;
+        onLoadMore?.();
+      } else {
+        advanceFrom.current = null;
+        toast.success(strings.library.walkthroughCaughtUp);
+      }
+    },
+    [focusNextPending, hasMore, onLoadMore, setActive],
+  );
+  // `advance` changes when a page lands, so the search goes on from there.
+  useEffect(() => {
+    if (advanceFrom.current !== null) advance(advanceFrom.current);
+  }, [advance]);
+
   // mame-curator-1149: the card that had focus may be gone. If the named card
   // is not listed either (a search or session hides it), the active card takes
   // focus. Clearing the prop is the render that delivers it.
@@ -189,6 +238,9 @@ export function LibraryGrid({
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       // Ctrl+R, Ctrl+S, Ctrl+K and the like belong to the browser or palette.
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Any key the grid acts on ends a walkthrough search still waiting for
+      // a page, so the page landing cannot pull focus from where it went.
+      advanceFrom.current = null;
       switch (e.key) {
         case "ArrowDown":
         case "j":
@@ -244,12 +296,7 @@ export function LibraryGrid({
             onClearReviewState?.(card.short_name);
           } else {
             onSetReviewState(card.short_name, target);
-            if (walkthrough) {
-              const nextIdx = focusNextPending(startedAt + 1);
-              if (nextIdx === null)
-                toast.success(strings.library.walkthroughCaughtUp);
-              else setActive(nextIdx);
-            }
+            if (walkthrough) advance(startedAt + 1);
           }
           break;
         }
@@ -257,10 +304,10 @@ export function LibraryGrid({
     },
     [
       activeIndex,
+      advance,
       cards,
       cardsLen,
       columns,
-      focusNextPending,
       move,
       onClearReviewState,
       onOpen,

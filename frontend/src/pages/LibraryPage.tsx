@@ -73,6 +73,8 @@ export function LibraryPage({
     theme,
     cards,
     total,
+    hasMore,
+    loadMore,
     tileCounts,
     openedWinner,
     games,
@@ -151,8 +153,7 @@ export function LibraryPage({
             JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS)
           }
           onClearFilters={clearFilters}
-          shown={cards.length}
-          total={total}
+          total={games.data ? total : null}
           onMoreOptions={() => changeView("full")}
           viewButtonRef={viewButtonRef}
         />
@@ -260,6 +261,8 @@ export function LibraryPage({
                 onOpen={(card) => setOpenedShortName(card.short_name)}
                 focusCard={versionChoice.focusCard}
                 onFocusCardTaken={versionChoice.clearFocusCard}
+                hasMore={hasMore}
+                onLoadMore={loadMore}
                 reviewState={reviewState.data}
                 // mame-curator-1156: simple view hides the walkthrough
                 // switch, so it does not leave walkthrough on behind it.

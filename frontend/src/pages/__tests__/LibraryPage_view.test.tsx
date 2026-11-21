@@ -22,8 +22,8 @@ const s = strings.guide.simpleLibrary;
 const card = makeGameCard({ short_name: "pacman", description: "Pac-Man" });
 
 /** Every /api/games request the page's own grid made, tile counts excluded.
- *  A filtered request answers with a long list, so the page's "Showing the
- *  first" line tells which query the grid is on, even when a clear goes back
+ *  A filtered request answers with a long list, so the page's "N games"
+ *  line tells which query the grid is on, even when a clear goes back
  *  to an answer already cached and sends no request. */
 const FILTERED_TOTAL = 5000;
 function serveGames(total?: number): URL[] {
@@ -190,7 +190,7 @@ describe("LibraryPage views", () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByText(s.showingFirst(1, FILTERED_TOTAL)),
+        screen.queryByText(s.gameCount(FILTERED_TOTAL)),
       ).not.toBeInTheDocument(),
     );
     expect(screen.queryByText(s.filtersOn)).not.toBeInTheDocument();
@@ -210,7 +210,7 @@ describe("LibraryPage views", () => {
     await waitFor(() => expect(search).toHaveValue(""));
     await waitFor(() =>
       expect(
-        screen.queryByText(s.showingFirst(1, FILTERED_TOTAL)),
+        screen.queryByText(s.gameCount(FILTERED_TOTAL)),
       ).not.toBeInTheDocument(),
     );
   });
@@ -222,10 +222,10 @@ describe("LibraryPage views", () => {
     expect(screen.queryByText(s.filtersOn)).not.toBeInTheDocument();
   });
 
-  it("INV-12: a list cut to one page says so", async () => {
+  it("INV-12: the page says how many games match, loaded or not", async () => {
     serveGames(5000);
     renderPage("simple");
-    expect(await screen.findByText(s.showingFirst(1, 5000))).toBeVisible();
+    expect(await screen.findByText(s.gameCount(5000))).toBeVisible();
   });
 
   it("applies a selection the guide sent once, and clears it from the route", async () => {
@@ -313,7 +313,7 @@ describe("LibraryPage views", () => {
   it("leaves focus alone when the Library is opened any other way", async () => {
     serveGames(5000);
     renderPage("simple");
-    await screen.findByText(s.showingFirst(1, 5000));
+    await screen.findByText(s.gameCount(5000));
     await new Promise((resolve) => requestAnimationFrame(resolve));
     expect(
       screen.getByRole("heading", { name: strings.nav.library }),

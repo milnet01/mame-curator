@@ -3,6 +3,8 @@ import {
   type GamesPage,
   type ReviewStateFilter,
 } from "@/api/types";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/api/client";
 import { useApiQuery } from "./useApi";
 
 export interface GamesQuery {
@@ -56,4 +58,31 @@ export function useGames(query: GamesQuery) {
     GamesPageSchema,
     { staleTime: 5_000 },
   );
+}
+
+/**
+ * mame-curator-1234 (CR-09-5): every game the filters match, a page at a
+ * time; `fetchNextPage` loads the next. Keyed under `["games"]`, so the
+ * invalidations that refresh `useGames` refresh this too.
+ */
+export function useGamesList(query: Omit<GamesQuery, "page">) {
+  const qs = toQueryString({ ...query, page: 1 });
+  return useInfiniteQuery({
+    queryKey: ["games", "list", qs],
+    queryFn: ({ pageParam }) =>
+      apiRequest<GamesPage>(
+        `/api/games?${toQueryString({ ...query, page: pageParam })}`,
+        GamesPageSchema,
+      ),
+    initialPageParam: 1,
+    // An empty page ends the list too, so a total that overstates it cannot
+    // keep asking for pages that are not there.
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.items.length, 0);
+      return last.items.length > 0 && loaded < last.total
+        ? pages.length + 1
+        : undefined;
+    },
+    staleTime: 5_000,
+  });
 }

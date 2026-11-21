@@ -679,7 +679,7 @@ These are the choices baked into this spec; flag any to revise before sign-off.
 9. **No per-change snapshot of `state.yaml`** (recovery via `activity.jsonl` replay; explicit deviation from the overrides/sessions snapshot policy because state writes are keypress-frequency).
 10. **Per-clone state in the alternatives drawer** (over "drawer R/S/? marks the parent"). Each clone is its own state entry; reviewing `sf2ce` does not mark `sf2t`. INV-7 codifies this.
 11. **`?` claimed for needs-decision** (per ROADMAP). No help-overlay collision today; FP27 removed the only prior advertisement of `?` (the chord-shortcut list was unwired). A future help overlay must pick a different key.
-12. **Walkthrough does not auto-fetch the next API page.** `useGames` returns one paged slice (page size in `LibraryPage`); `focusNextPending(startIndex)` walks the in-memory slice and returns `null` when the slice is exhausted, surfacing the "All caught up" toast. The user advances pages manually. A future enhancement could chain auto-fetch + auto-advance, but it is not in v1 scope.
+12. **Walkthrough loads the next page.** The Library loads its games a page at a time as the user scrolls (mame-curator-1234, CR-09-5). `focusNextPending(startIndex)` walks the loaded games and returns `null` when they hold no pending card. If more pages exist, the grid loads the next one and walks again; the "All caught up" toast shows only once every page is loaded.
 
 ## Acceptance criteria (Step 4 close gate — all met at close 2026-05-17)
 

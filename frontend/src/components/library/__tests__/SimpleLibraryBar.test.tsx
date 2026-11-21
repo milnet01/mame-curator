@@ -13,7 +13,6 @@ function bar(search: string, onSearch: (s: string) => void = () => {}) {
         onSearch={onSearch}
         filtersOn={false}
         onClearFilters={() => {}}
-        shown={1}
         total={1}
         onMoreOptions={() => {}}
       />

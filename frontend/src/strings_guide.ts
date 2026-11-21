@@ -206,7 +206,6 @@ export const guideStrings = {
     startHere: "Start here",
     filtersOn: "Some filters are on.",
     clearFilters: "Clear filters",
-    showingFirst: (shown: number, total: number) =>
-      `Showing the first ${count(shown)} of ${count(total)}.`,
+    gameCount: (total: number) => `${games(total)}.`,
   },
 };

@@ -647,7 +647,8 @@ EXPECTED_PYTEST_DECLARATIONS = 1399
 # Bumped 2026-11-18 (mame-curator-1234 RR-09-3): the old-choices count. 818 → 820.
 # Bumped 2026-11-18 (mame-curator-1234 CR-09-6): the dry-run lock. 820 → 821.
 # Bumped 2026-11-18 (mame-curator-1234 CR-09-7): Add all ignores a 2nd press. 821 → 822.
-EXPECTED_VITEST_DECLARATIONS = 822
+# Bumped 2026-11-21 (mame-curator-1234 CR-09-5): the Library loads more as it scrolls. 822 → 828.
+EXPECTED_VITEST_DECLARATIONS = 828
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

@@ -7,7 +7,7 @@
  * structural tests (`LibraryPage_error_boundary`, `landmark_labels`)
  * keep asserting against the rendered tree's shape.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useQueries } from "@tanstack/react-query";
@@ -21,7 +21,7 @@ import {
 import { useCopySession } from "@/hooks/useCopySession";
 import { useDryRun } from "@/hooks/useDryRun";
 import { useFacets } from "@/hooks/useFacets";
-import { toQueryString, useGames, type GamesQuery } from "@/hooks/useGames";
+import { toQueryString, useGamesList, type GamesQuery } from "@/hooks/useGames";
 import {
   useReviewState,
   useReviewStateClear,
@@ -116,8 +116,7 @@ export function useLibraryController(cart: UseCartResult) {
   const yearsChosen =
     filters.yearRange[0] !== DEFAULT_FILTERS.yearRange[0] ||
     filters.yearRange[1] !== DEFAULT_FILTERS.yearRange[1];
-  const query: GamesQuery = {
-    page: 1,
+  const query: Omit<GamesQuery, "page"> = {
     pageSize: 200,
     search: filters.search,
     yearFrom: yearsChosen ? filters.yearRange[0] : undefined,
@@ -132,16 +131,19 @@ export function useLibraryController(cart: UseCartResult) {
     onlyBiosMissing: filters.onlyBiosMissing,
     reviewState: filters.reviewState,
   };
-  const games = useGames(query);
-  // FP24-V: stable refs so downstream useMemo/useEffect deps don't
-  // re-run on every render. games.data flips reference on each fetch
-  // resolution; the inner items/total references are already stable
-  // per react-query's cached result.
+  // mame-curator-1234 (CR-09-5): every game, a page at a time as the user
+  // scrolls. FP24-V: `cards` keeps its reference until a page lands, so the
+  // useMemo/useEffect deps downstream don't re-run on every render.
+  const games = useGamesList(query);
   const cards: GameCard[] = useMemo(
-    () => games.data?.items ?? [],
+    () => games.data?.pages.flatMap((p) => p.items) ?? [],
     [games.data],
   );
-  const total = games.data?.total ?? 0;
+  const total = games.data?.pages[0]?.total ?? 0;
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = games;
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Fan out one count query per featured tile. useQueries keeps hook count
   // fixed (Rules of Hooks); tiles array is `as const` so length is stable.
@@ -208,8 +210,8 @@ export function useLibraryController(cart: UseCartResult) {
   };
 
   // FP24-M + S: handleBulkAdd promises "Add all N" where N is the
-  // filter-result total — but the loaded `cards` slice is at most one
-  // page (pageSize=200). Iterate the same filter at the backend's
+  // filter-result total — but the loaded `cards` may be only the pages
+  // scrolled to so far. Iterate the same filter at the backend's
   // page_size=500 cap until we've covered `total`, then `addAll`.
   // Surfaces MAX_CART_SIZE truncation as a toast so the user knows
   // some items didn't fit.
@@ -407,6 +409,8 @@ export function useLibraryController(cart: UseCartResult) {
     theme,
     cards,
     total,
+    hasMore: hasNextPage,
+    loadMore,
     tileCounts,
     openedWinner,
     games,

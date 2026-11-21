@@ -12,8 +12,8 @@ interface SimpleLibraryBarProps {
   onSearch: (search: string) => void;
   filtersOn: boolean;
   onClearFilters: () => void;
-  shown: number;
-  total: number;
+  /** Games the filters match, every page counted; null until known. */
+  total: number | null;
   onMoreOptions: () => void;
   /** Takes focus when the page switches to this view. */
   viewButtonRef?: React.Ref<HTMLButtonElement>;
@@ -28,7 +28,6 @@ export function SimpleLibraryBar({
   onSearch,
   filtersOn,
   onClearFilters,
-  shown,
   total,
   onMoreOptions,
   viewButtonRef,
@@ -98,9 +97,7 @@ export function SimpleLibraryBar({
           </Button>
         </p>
       )}
-      {total > shown && (
-        <p>{strings.guide.simpleLibrary.showingFirst(shown, total)}</p>
-      )}
+      {total !== null && <p>{strings.guide.simpleLibrary.gameCount(total)}</p>}
     </div>
   );
 }
