@@ -4,24 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
+import { FacetSelect } from "./FacetSelect";
+import { SaveSessionDialog } from "./SaveSessionDialog";
 import { strings } from "@/strings";
 import type { LibraryFacets, ReviewStateFilter } from "@/api/types";
 
@@ -89,8 +75,6 @@ export function FiltersSidebar({
   facets,
 }: FiltersSidebarProps) {
   const [searchDraft, setSearchDraft] = useState(value.search);
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [sessionName, setSessionName] = useState("");
   // The debounce must add the search to the filters as they are when it fires.
   const latestValue = useRef(value);
   useEffect(() => {
@@ -122,13 +106,6 @@ export function FiltersSidebar({
   const handleYearChange = (range: number[]) => {
     if (range.length !== 2) return;
     onChange({ ...value, yearRange: [range[0]!, range[1]!] });
-  };
-
-  const handleSave = () => {
-    if (!sessionName.trim()) return;
-    onSaveSession(sessionName.trim());
-    setSessionName("");
-    setSaveDialogOpen(false);
   };
 
   const yearMin = yearBounds?.min ?? YEAR_MIN;
@@ -293,84 +270,7 @@ export function FiltersSidebar({
       <p className="text-xs text-muted-foreground">
         {strings.library.filters.sessionsExplainer}
       </p>
-      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline">
-            {strings.library.filters.saveAsSession}
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{strings.library.filters.saveAsSession}</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="session-name">
-              {strings.library.filters.sessionNameLabel}
-            </Label>
-            <Input
-              id="session-name"
-              value={sessionName}
-              onChange={(e) => setSessionName(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setSaveDialogOpen(false)}>
-              {strings.common.cancel}
-            </Button>
-            <Button onClick={handleSave}>{strings.common.save}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SaveSessionDialog onSave={onSaveSession} />
     </aside>
-  );
-}
-
-/** FP17 § C: facet Select with a sentinel "(any)" first option that
- *  maps to null. Renders nothing when the options list is empty so the
- *  sidebar doesn't show a useless empty dropdown. */
-function FacetSelect({
-  id,
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string | null;
-  options: readonly string[];
-  onChange: (next: string | null) => void;
-}) {
-  if (options.length === 0) return null;
-  const ANY = "__any__";
-  return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={id}>{label}</Label>
-      <Select
-        value={value ?? ANY}
-        onValueChange={(v) => onChange(v === ANY ? null : v)}
-      >
-        <SelectTrigger
-          id={id}
-          aria-label={label}
-          // mame-curator-1141: the column's width, and a long name wraps
-          // (all of it stays readable) instead of widening the column.
-          className="w-full min-w-0 whitespace-normal text-left data-[size=default]:h-auto data-[size=default]:min-h-9 *:data-[slot=select-value]:line-clamp-none"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ANY}>
-            {strings.library.filters.anyOption}
-          </SelectItem>
-          {options.map((o) => (
-            <SelectItem key={o} value={o}>
-              {o}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
   );
 }

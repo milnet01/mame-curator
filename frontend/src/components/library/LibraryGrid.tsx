@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -7,8 +6,8 @@ import {
   useSyncExternalStore,
 } from "react";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
-import { toast } from "sonner";
 import { GameCard } from "./GameCard";
+import { useLibraryGridKeys } from "./useLibraryGridKeys";
 import { strings } from "@/strings";
 import { cn } from "@/lib/utils";
 import { useGameGridFocus } from "@/hooks/useGameGridFocus";
@@ -53,12 +52,6 @@ interface LibraryGridProps {
 
 /** Rows short of the end at which the next page starts to load. */
 const LOAD_AHEAD_ROWS = 8;
-
-const KEY_TO_STATE: Record<string, ReviewStateValue> = {
-  r: "reviewed",
-  s: "skipped",
-  "?": "needs-decision",
-};
 
 /**
  * Per-layout default column count + row-height target. The auto-fill
@@ -179,7 +172,6 @@ export function LibraryGrid({
     noteFocus,
     focusCard: sendFocus,
   } = useGameGridFocus(cards, reviewState, columns, virtualizer);
-  const cardsLen = cards.length;
 
   // mame-curator-1234 (CR-09-5): the next page loads while a few rows are
   // still to scroll, so the user rarely reaches an end that is not the end.
@@ -196,29 +188,21 @@ export function LibraryGrid({
       onLoadMore?.();
   }, [hasMore, reachedRow, rowCount, onLoadMore]);
 
-  // P14 walkthrough: the next pending game may be on a page not loaded yet.
-  // `advanceFrom` holds where the search starts until that page lands.
-  const advanceFrom = useRef<number | null>(null);
-  const advance = useCallback(
-    (startIndex: number) => {
-      const next = focusNextPending(startIndex);
-      if (next !== null) {
-        advanceFrom.current = null;
-        setActive(next);
-      } else if (hasMore) {
-        advanceFrom.current = startIndex;
-        onLoadMore?.();
-      } else {
-        advanceFrom.current = null;
-        toast.success(strings.library.walkthroughCaughtUp);
-      }
-    },
-    [focusNextPending, hasMore, onLoadMore, setActive],
-  );
-  // `advance` changes when a page lands, so the search goes on from there.
-  useEffect(() => {
-    if (advanceFrom.current !== null) advance(advanceFrom.current);
-  }, [advance]);
+  const onKeyDown = useLibraryGridKeys({
+    cards,
+    columns,
+    activeIndex,
+    move,
+    setActive,
+    focusNextPending,
+    hasMore,
+    onLoadMore,
+    onOpen,
+    reviewState,
+    onSetReviewState,
+    onClearReviewState,
+    walkthrough,
+  });
 
   // mame-curator-1149: the card that had focus may be gone. If the named card
   // is not listed either (a search or session hides it), the active card takes
@@ -233,90 +217,6 @@ export function LibraryGrid({
   useEffect(() => {
     activeRow.current = Math.floor(activeIndex / columns);
   }, [activeIndex, columns]);
-
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      // Ctrl+R, Ctrl+S, Ctrl+K and the like belong to the browser or palette.
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      // Any key the grid acts on ends a walkthrough search still waiting for
-      // a page, so the page landing cannot pull focus from where it went.
-      advanceFrom.current = null;
-      switch (e.key) {
-        case "ArrowDown":
-        case "j":
-          e.preventDefault();
-          move(columns);
-          break;
-        case "ArrowUp":
-        case "k":
-          e.preventDefault();
-          move(-columns);
-          break;
-        case "ArrowRight":
-          e.preventDefault();
-          move(1);
-          break;
-        case "ArrowLeft":
-          e.preventDefault();
-          move(-1);
-          break;
-        case "Home":
-          e.preventDefault();
-          setActive(0);
-          break;
-        case "End":
-          e.preventDefault();
-          setActive(Math.max(0, cardsLen - 1));
-          break;
-        case "Enter":
-        case "o": {
-          // A card and its Add button answer Enter themselves.
-          if (e.key === "Enter" && e.target !== e.currentTarget) break;
-          const card = cards[activeIndex];
-          if (card) {
-            e.preventDefault();
-            onOpen(card);
-          }
-          break;
-        }
-        case "r":
-        case "s":
-        case "?": {
-          // P14 chunk 12 — toggle on same-key press; walkthrough auto-advance.
-          if (!onSetReviewState) break;
-          const card = cards[activeIndex];
-          if (!card) break;
-          e.preventDefault();
-          const target = KEY_TO_STATE[e.key]!;
-          const current = reviewState?.entries[card.short_name];
-          const startedAt = activeIndex;
-          if (current === target) {
-            // Toggle back to pending; no walkthrough advance (the just-
-            // cleared card is itself pending now).
-            onClearReviewState?.(card.short_name);
-          } else {
-            onSetReviewState(card.short_name, target);
-            if (walkthrough) advance(startedAt + 1);
-          }
-          break;
-        }
-      }
-    },
-    [
-      activeIndex,
-      advance,
-      cards,
-      cardsLen,
-      columns,
-      move,
-      onClearReviewState,
-      onOpen,
-      onSetReviewState,
-      reviewState,
-      setActive,
-      walkthrough,
-    ],
-  );
 
   if (cards.length === 0) {
     return (

@@ -4632,8 +4632,15 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   2026-11-21: CR-09-5 fixed in 9cd590e. The Library loads more games as
   the user scrolls, in both views; simple view says "N games"; the
   walkthrough looks in the next page before "All caught up". Specs
-  amended: mame-curator-1144 INV-12, P14 open design call 12. Left:
-  CR-09-12, then the § 4 sweep, the flip and CHANGELOG.
+  amended: mame-curator-1144 INV-12, P14 open design call 12.
+  2026-11-21: CR-09-12 fixed. All four files are under the 350-line cap,
+  split into FacetSelect, SaveSessionDialog, useLibraryGridKeys,
+  useLibraryGames, useBulkAdd, useLibraryCopy, LibraryGamesState,
+  LibraryCartArea, ModalErrorFallback and useLibraryViewSwitch. The
+  LibraryPage and useLibraryController bodies are shorter but still over
+  the 80-line function cap, as most components here are; reaching it would
+  break up the JSX the source-text tests read. Left: the § 4 sweep, the
+  flip and CHANGELOG.
   **Layman:** Faults on the Library page: filters, paging, the copy dialog and the cards.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -4823,13 +4830,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   close-findings-2026-11-11/ledger.json (not in the repo).
   - RR-09-13 [LOW] fe/pages/HelpPage.tsx:54-56: The comment says `ADD_ATTR` adds `target`, but `ADD_ATTR` holds only `"rel"` (line 45). Fix: say `target` survives only through `forceKeepAttr`, and move the `rel` sentence above the second hook.
   - RR-09-14 [LOW] fe/pages/HelpPage.tsx:99-101: This describes optional-chaining code that is no longer there. Fix: delete it.
-  - RR-09-1 [MEDIUM] fe/pages/LibraryPage.tsx:220-223: This keeps the error panel on screen while a retry runs. Fix: call `loadFailed(games)` and `loadFailed(alternatives)`, and cut the FP26-V comment to one line.
+  - RR-09-1 [MEDIUM] fe/pages/LibraryPage.tsx:220-223 (the games half is now `LibraryGamesState`, fe/components/library/LibraryGamesState.tsx, since 2026-11-21): This keeps the error panel on screen while a retry runs. Fix: call `loadFailed(games)` and `loadFailed(alternatives)`, and cut the FP26-V comment to one line.
   - RR-09-8 [LOW] fe/pages/SettingsPage.tsx:351-435: There are three label-plus-dropdown rows with the same shape: same width, same `aria-label` pattern. Fix: a `PrefSelect` component beside the existing `PrefSwitch`.
   - RR-09-2 [MEDIUM] fe/pages/libraryPageHelpers.ts:105-111: `fetchTileCount` builds the `/api/games` address by hand. Fix: build a `GamesQuery` with `page: 1, pageSize: 1` from the tile's query and call `toQueryString`.
   - RR-09-11 [LOW] fe/pages/useLibraryController.ts:2-3: This comment, and the same one at `libraryPageHelpers.ts:3`, says the split brought the page under the 350-line cap. Fix: drop the cap claim, or say the sizes were true at the time of the split.
-  - RR-09-4 [MEDIUM] fe/pages/useLibraryController.ts:235-237: The copy request (`selected_names`, `conflict_strategy`, `append_decisions: {}`) is built in three places: the dry run here (lines 243-247), the copy here (lines 278-282) and `GuidePage.tsx:60-66`. Fix: one shared constant, or one request-builder, used by both files.
-  - RR-09-10 [MEDIUM] fe/pages/useLibraryController.ts:295-299: The comment contradicts itself. Fix: state the real rule (the effect must fire only when the copy outcome or the clear policy changes) and drop the stability claim.
-  - RR-09-12 [LOW] fe/pages/useLibraryController.ts:322-327: The progress window closes after a copy only in some cases. Fix: one line naming what the window still shows in each case it stays open.
+  - RR-09-4 [MEDIUM] fe/pages/useLibraryController.ts:235-237 (`handleDryRun` and `handleCopy` are in fe/pages/useLibraryCopy.ts since 2026-11-21): The copy request (`selected_names`, `conflict_strategy`, `append_decisions: {}`) is built in three places: the dry run here (lines 243-247), the copy here (lines 278-282) and `GuidePage.tsx:60-66`. Fix: one shared constant, or one request-builder, used by both files.
+  - RR-09-10 [MEDIUM] fe/pages/useLibraryController.ts:295-299 (the copy-end effect, in fe/pages/useLibraryCopy.ts since 2026-11-21): The comment contradicts itself. Fix: state the real rule (the effect must fire only when the copy outcome or the clear policy changes) and drop the stability claim.
+  - RR-09-12 [LOW] fe/pages/useLibraryController.ts:322-327 (the copy-end effect, in fe/pages/useLibraryCopy.ts since 2026-11-21): The progress window closes after a copy only in some cases. Fix: one line naming what the window still shows in each case it stays open.
   **Layman:** Tidying so someone new can follow and change the app's pages safely.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).

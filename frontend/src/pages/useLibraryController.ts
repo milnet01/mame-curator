@@ -1,57 +1,39 @@
 /**
  * `LibraryPage` controller hook (mame-curator-1077 — split the page
- * under the §2 frontend file-size hard cap of 350 lines). Holds all of
- * the page's non-render logic — state, data hooks, derived values,
- * handlers, and effects — so `LibraryPage.tsx` stays a thin view. The
- * page's JSX is deliberately left in place so the source-text
- * structural tests (`LibraryPage_error_boundary`, `landmark_labels`)
- * keep asserting against the rendered tree's shape.
+ * under the §2 frontend file-size hard cap of 350 lines). Holds the
+ * page's non-render logic so `LibraryPage.tsx` stays a thin view. The
+ * games list, Add all, and dry run and copy are their own hooks
+ * (mame-curator-1234, CR-09-12).
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
-import { useQueries } from "@tanstack/react-query";
 import { type FilterSidebarState } from "@/components/library/FiltersSidebar";
 import { useAlternatives, useLaunchGame } from "@/hooks/useAlternatives";
-import {
-  type CartItem,
-  MAX_CART_SIZE,
-  type UseCartResult,
-} from "@/hooks/useCart";
-import { useCopySession } from "@/hooks/useCopySession";
-import { useDryRun } from "@/hooks/useDryRun";
+import { MAX_CART_SIZE, type UseCartResult } from "@/hooks/useCart";
 import { useFacets } from "@/hooks/useFacets";
-import { toQueryString, useGamesList, type GamesQuery } from "@/hooks/useGames";
 import {
   useReviewState,
   useReviewStateClear,
   useReviewStateSet,
 } from "@/hooks/useReviewState";
-import { useValidateCart } from "@/hooks/useValidateCart";
 import { useConfig, useConfigPatch } from "@/hooks/useConfig";
 import { useSessions, useSessionUpsert } from "@/hooks/useSessions";
 import { useSetupCheck } from "@/hooks/useSetupCheck";
-import { toastApiError, toastError } from "@/lib/apiErrorToast";
-import { copyOutcome } from "@/lib/copyOutcome";
+import { toastApiError } from "@/lib/apiErrorToast";
 import { strings } from "@/strings";
-import { apiRequest } from "@/api/client";
-import { GamesPageSchema, type GamesPage } from "@/api/types";
-import type {
-  DryRunReport,
-  GameCard,
-  LayoutName,
-  Session,
-  ThemeName,
-} from "@/api/types";
+import type { GameCard, LayoutName, Session, ThemeName } from "@/api/types";
 import {
   DEFAULT_FILTERS,
-  fetchTileCount,
   filtersForGuideSelection,
   filtersForTile,
   readGuideSelection,
   readReturnFocus,
   readWalkthroughPref,
 } from "./libraryPageHelpers";
+import { useBulkAdd } from "./useBulkAdd";
+import { useLibraryCopy } from "./useLibraryCopy";
+import { useLibraryGames } from "./useLibraryGames";
 import { useVersionChoice } from "./useVersionChoice";
 
 export function useLibraryController(cart: UseCartResult) {
@@ -65,7 +47,6 @@ export function useLibraryController(cart: UseCartResult) {
     filtersForGuideSelection(guideSelection),
   );
   const [openedShortName, setOpenedShortName] = useState<string | null>(null);
-  const [dryRunReport, setDryRunReport] = useState<DryRunReport | null>(null);
   const [activeTileId, setActiveTileId] = useState<string | null>(
     guideSelection?.kind === "tile" ? guideSelection.id : null,
   );
@@ -82,9 +63,6 @@ export function useLibraryController(cart: UseCartResult) {
   const reviewState = useReviewState();
   const setReviewState = useReviewStateSet();
   const clearReviewState = useReviewStateClear();
-  // FP24-O: Clear-all is destructive (cart has no undo) — coding-
-  // standards § 4 mandates AlertDialog confirm for destructive ops.
-  const [clearAllOpen, setClearAllOpen] = useState(false);
 
   const config = useConfig();
   const patch = useConfigPatch();
@@ -95,75 +73,14 @@ export function useLibraryController(cart: UseCartResult) {
   const launch = useLaunchGame();
   const facets = useFacets();
   const setupCheck = useSetupCheck();
-  const dryRun = useDryRun();
-  const validateCart = useValidateCart();
-  const copySession = useCopySession();
-  // FP24-N: Copy and Dry run are off while a copy is checked, started or
-  // running, so a double-click cannot start two. mame-curator-1234 (CR-09-6):
-  // and while a dry run is out, whose window would offer Copy again.
-  const copyLocked =
-    dryRun.isPending ||
-    validateCart.isPending ||
-    copySession.isStarting ||
-    copySession.state !== null;
+  const { query, games, cards, total, hasMore, loadMore, tileCounts } =
+    useLibraryGames(filters);
+  const { handleBulkAdd, bulkAdding } = useBulkAdd(cart, query, total);
+  const copy = useLibraryCopy(cart, config);
 
   const layout = (config.data?.ui.layout ?? "masonry") as LayoutName;
   const theme = (config.data?.ui.theme ?? "dark") as ThemeName;
   const activeSession = sessions.data?.active ?? null;
-
-  // mame-curator-1150: year bounds leave out games with no year, so the
-  // untouched default range sends none.
-  const yearsChosen =
-    filters.yearRange[0] !== DEFAULT_FILTERS.yearRange[0] ||
-    filters.yearRange[1] !== DEFAULT_FILTERS.yearRange[1];
-  const query: Omit<GamesQuery, "page"> = {
-    pageSize: 200,
-    search: filters.search,
-    yearFrom: yearsChosen ? filters.yearRange[0] : undefined,
-    yearTo: yearsChosen ? filters.yearRange[1] : undefined,
-    letter: filters.letter ?? undefined,
-    genre: filters.genre ?? undefined,
-    publisher: filters.publisher ?? undefined,
-    developer: filters.developer ?? undefined,
-    onlyContested: filters.onlyContested,
-    onlyOverridden: filters.onlyOverridden,
-    onlyChdMissing: filters.onlyChdMissing,
-    onlyBiosMissing: filters.onlyBiosMissing,
-    reviewState: filters.reviewState,
-  };
-  // mame-curator-1234 (CR-09-5): every game, a page at a time as the user
-  // scrolls. FP24-V: `cards` keeps its reference until a page lands, so the
-  // useMemo/useEffect deps downstream don't re-run on every render.
-  const games = useGamesList(query);
-  const cards: GameCard[] = useMemo(
-    () => games.data?.pages.flatMap((p) => p.items) ?? [],
-    [games.data],
-  );
-  const total = games.data?.pages[0]?.total ?? 0;
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = games;
-  const loadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  // Fan out one count query per featured tile. useQueries keeps hook count
-  // fixed (Rules of Hooks); tiles array is `as const` so length is stable.
-  const tileQueries = useQueries({
-    queries: strings.library.featured.tiles.map((tile) => ({
-      queryKey: ["games", "tile-count", tile.id],
-      queryFn: () => fetchTileCount(tile),
-      staleTime: 5 * 60 * 1000,
-    })),
-  });
-  // FP24-Z: omit `?? 0` so still-loading tiles surface as `undefined`
-  // and FeaturedTilesRow's `count !== undefined` guard suppresses the
-  // count label until the query lands. Otherwise tiles flash a
-  // misleading "0 games" before the real number paints.
-  const tileCounts: Record<string, number | undefined> = Object.fromEntries(
-    strings.library.featured.tiles.map((tile, idx) => [
-      tile.id,
-      (tileQueries[idx].data as GamesPage | undefined)?.total,
-    ]),
-  );
 
   const openedWinner = useMemo<GameCard | null>(
     () =>
@@ -209,43 +126,6 @@ export function useLibraryController(cart: UseCartResult) {
     setFilters(DEFAULT_FILTERS);
   };
 
-  // FP24-M + S: handleBulkAdd promises "Add all N" where N is the
-  // filter-result total — but the loaded `cards` may be only the pages
-  // scrolled to so far. Iterate the same filter at the backend's
-  // page_size=500 cap until we've covered `total`, then `addAll`.
-  // Surfaces MAX_CART_SIZE truncation as a toast so the user knows
-  // some items didn't fit.
-  // mame-curator-1234 (CR-09-7): a press while it runs is ignored.
-  const [bulkAdding, setBulkAdding] = useState(false);
-  const handleBulkAdd = async () => {
-    const PAGE_SIZE = 500;
-    const collected: string[] = [];
-    const targetTotal = Math.min(total, MAX_CART_SIZE);
-    let page = 1;
-    setBulkAdding(true);
-    try {
-      while (collected.length < targetTotal) {
-        const pageQuery: GamesQuery = { ...query, page, pageSize: PAGE_SIZE };
-        const pageData = await apiRequest<GamesPage>(
-          `/api/games?${toQueryString(pageQuery)}`,
-          GamesPageSchema,
-        );
-        collected.push(...pageData.items.map((c) => c.short_name));
-        if (pageData.items.length === 0) break;
-        page += 1;
-      }
-    } catch (err) {
-      toastApiError(err);
-      return;
-    } finally {
-      setBulkAdding(false);
-    }
-    const { truncated } = cart.addAll(collected);
-    if (truncated > 0) {
-      toast.warning(strings.library.cart.maxCartReachedToast(MAX_CART_SIZE));
-    }
-  };
-
   // mame-curator-1234 (CR-09-9): a full cart refuses one game as it does many,
   // and says so as Add all does.
   const handleToggleCart = (shortName: string) => {
@@ -253,102 +133,6 @@ export function useLibraryController(cart: UseCartResult) {
       toast.warning(strings.library.cart.maxCartReachedToast(MAX_CART_SIZE));
     }
   };
-
-  // mame-curator-1148: add to an existing playlist, as the guide does. CANCEL
-  // made the server refuse every copy once a playlist existed.
-  const conflictStrategy = "APPEND";
-
-  // P15: dry-run reads from cart.items (with chosenVariant substitution).
-  const handleDryRun = () => {
-    if (cart.items.length === 0) return;
-    dryRun.mutate(
-      {
-        selected_names: cart.items.map((i) => i.chosenVariant ?? i.shortName),
-        conflict_strategy: conflictStrategy,
-        append_decisions: {},
-      },
-      { onSuccess: setDryRunReport, onError: toastApiError },
-    );
-  };
-
-  const handleCopy = () => {
-    if (cart.items.length === 0) return;
-    // What is checked is what is sent: the server refuses a whole copy over a
-    // name it does not hold, so a stale variant is dropped and said here too.
-    const nameOf = (i: CartItem) => i.chosenVariant ?? i.shortName;
-    validateCart.mutate(
-      { short_names: cart.items.map(nameOf) },
-      {
-        onSuccess: ({ existing, missing, setupRequired }) => {
-          // With no game list, every name is "missing" and none of them has
-          // gone. Taking them out would empty the saved cart.
-          if (setupRequired) {
-            toastError(strings.errors.byCode.copy_setup_required);
-            return;
-          }
-          if (missing.length > 0) {
-            toast.warning(
-              strings.library.cart.validateDroppedToast(missing.length),
-            );
-            const gone = new Set(missing);
-            for (const item of cart.items) {
-              if (gone.has(nameOf(item))) cart.remove(item.shortName);
-            }
-          }
-          if (existing.length === 0) return;
-          copySession.start(
-            {
-              selected_names: [...existing],
-              conflict_strategy: conflictStrategy,
-              append_decisions: {},
-            },
-            { onError: toastApiError },
-          );
-        },
-        onError: toastApiError,
-      },
-    );
-  };
-
-  // P15 D9: what a copy's end does to the cart, per config.ui.cart_clear_on_copy,
-  // and whether the modal still has anything to say. A lost stream's outcome is
-  // not known, so it does neither. Waits for the config: until it loads, the
-  // user may be one who chose `never`.
-  // FP24-T: cart and copySession.reset are stable useCallback refs out of
-  // useCart / useCopySession, so omitting them from the dep array is
-  // intentional — including them would re-run this effect on every cart
-  // mutation (cart.clear changes identity if cart re-renders) and the
-  // policy logic only wants to react to outcome and policy changes.
-  const copyEnd = copySession.state ? copyOutcome(copySession.state) : null;
-  const clearPolicy = config.data?.ui.cart_clear_on_copy;
-  useEffect(() => {
-    if (
-      !clearPolicy ||
-      !copyEnd ||
-      copyEnd === "active" ||
-      copyEnd === "lost"
-    ) {
-      return;
-    }
-    // mame-curator-1158: a copy taken up on opening may be the guide's, so
-    // its end is no reason to empty the cart.
-    if (
-      !copySession.state?.reattached &&
-      (clearPolicy === "always" ||
-        (clearPolicy === "on_success" && copyEnd === "complete"))
-    ) {
-      cart.clear();
-    }
-    // mame-curator-1164: BIOS warnings stay on screen until the user closes them.
-    const warned = (copySession.state?.warnings.length ?? 0) > 0;
-    if (copyEnd === "complete" && clearPolicy !== "never" && !warned) {
-      toast.success(strings.guide.copying.finishedHeading);
-      copySession.reset();
-    } else if (copyEnd === "stopped" && clearPolicy === "always") {
-      copySession.reset();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [copyEnd, clearPolicy]);
 
   // FP24-G: surface the localStorage-unavailable state as a toast so
   // the user knows their cart won't persist. Toast fires once on the
@@ -382,20 +166,17 @@ export function useLibraryController(cart: UseCartResult) {
   return {
     /** mame-curator-1209: the page was opened by the guide's "Look through". */
     fromGuide: guideSelection !== null,
+    ...copy,
     filters,
     setFilters,
     openedShortName,
     setOpenedShortName,
-    dryRunReport,
-    setDryRunReport,
     activeTileId,
     walkthrough,
     setWalkthrough,
     reviewState,
     setReviewState,
     clearReviewState,
-    clearAllOpen,
-    setClearAllOpen,
     config,
     facets,
     activeSession,
@@ -403,13 +184,11 @@ export function useLibraryController(cart: UseCartResult) {
     versionChoice,
     launch,
     setupCheck,
-    copyLocked,
-    copySession,
     layout,
     theme,
     cards,
     total,
-    hasMore: hasNextPage,
+    hasMore,
     loadMore,
     tileCounts,
     openedWinner,
@@ -421,8 +200,6 @@ export function useLibraryController(cart: UseCartResult) {
     handleBulkAdd,
     bulkAdding,
     handleToggleCart,
-    handleDryRun,
-    handleCopy,
     handleSaveSession,
   };
 }
