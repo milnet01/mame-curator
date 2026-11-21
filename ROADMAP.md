@@ -4629,6 +4629,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   USER DECIDED 2026-11-18: the simple view loads as you scroll too, and
   its "Showing the first N of M" line becomes "N games"; amend
   mame-curator-1144 INV-12 first.
+  2026-11-21: CR-09-5 fixed in 9cd590e. The Library loads more games as
+  the user scrolls, in both views; simple view says "N games"; the
+  walkthrough looks in the next page before "All caught up". Specs
+  amended: mame-curator-1144 INV-12, P14 open design call 12. Left:
+  CR-09-12, then the § 4 sweep, the flip and CHANGELOG.
   **Layman:** Faults on the Library page: filters, paging, the copy dialog and the cards.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
