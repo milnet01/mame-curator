@@ -87,6 +87,14 @@ export function readWalkthroughPref(): boolean {
   }
 }
 
+export function saveWalkthroughPref(on: boolean): void {
+  try {
+    localStorage.setItem(WALKTHROUGH_KEY, String(on));
+  } catch {
+    /* localStorage unavailable; the setting lasts until the page reloads. */
+  }
+}
+
 // Module-level helper so useQueries queryFn doesn't close over any reactive
 // deps — tile objects are `as const` so they're stable references.
 //

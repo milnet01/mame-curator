@@ -21,6 +21,7 @@ import {
 import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
 import { strings } from "@/strings";
+import { ApiError } from "@/api/client";
 import type { FsEntry } from "@/api/types";
 
 /** A path with a line break allowed after each separator, so it wraps at a
@@ -82,14 +83,11 @@ export function FsBrowser({
 
   // R33 grant flow — surface a confirm dialog if `path` is outside the
   // allowlist (`fs_sandboxed` 403 from R29). On confirm we POST the path
-  // and react-query auto-refetches the listing. Duck-typed `code` check
-  // tolerates module-identity differences across vitest's module graph.
-  const errCode =
-    listing.error &&
-    typeof (listing.error as unknown as { code?: unknown }).code === "string"
-      ? (listing.error as unknown as { code: string }).code
+  // and react-query auto-refetches the listing.
+  const sandboxBlocked =
+    listing.error instanceof ApiError && listing.error.code === "fs_sandboxed"
+      ? path
       : null;
-  const sandboxBlocked = errCode === "fs_sandboxed" ? path : null;
 
   // mame-curator-1176: no caller opens the picker from a Radix trigger, so
   // Radix sent focus to the page when it closed. Remember what had focus
@@ -117,7 +115,7 @@ export function FsBrowser({
     openedFromRow.current = false;
     const id = requestAnimationFrame(() => {
       const row = contentRef.current?.querySelector<HTMLElement>(
-        '[data-testid="fs-entries"] button',
+        "[data-fs-entries] button",
       );
       (row ?? upRef.current)?.focus();
     });
@@ -140,7 +138,7 @@ export function FsBrowser({
     }
   };
 
-  const usePath = () => {
+  const pickCurrentFolder = () => {
     if (path) {
       onPick(path);
       onOpenChange(false);
@@ -171,8 +169,8 @@ export function FsBrowser({
       <ConfirmationDialog
         open
         onOpenChange={(o) => {
-          // FP13 § C2: cancel = close FsBrowser entirely (avoid the
-          // re-prompt loop when home isn't loaded — see C2 comment).
+          // Cancel closes the whole picker: the folder is still blocked, so
+          // closing only this prompt would bring it straight back.
           if (!o && !granting.current) onOpenChange(false);
         }}
         title={strings.settings.fsGrantTitle}
@@ -197,14 +195,14 @@ export function FsBrowser({
     );
   }
 
-  const words = large ? "text-xl" : "text-sm";
-  const quickJump = large
+  const textSizeClass = large ? "text-xl" : "text-sm";
+  const quickJumpProps = large
     ? ({ size: "default", className: "min-h-12 text-xl" } as const)
     : ({ size: "sm" } as const);
-  const footerButton = large ? "min-h-12 text-xl" : undefined;
+  const footerButtonClass = large ? "min-h-12 text-xl" : undefined;
   // A long path wraps, because nowrap would push the buttons off the window.
-  const pathButton = cn(
-    large ? quickJump.className : undefined,
+  const pathButtonClass = cn(
+    large ? quickJumpProps.className : undefined,
     "h-auto max-w-full whitespace-normal break-words text-left",
   );
   const shownRoots = (allowed.data?.roots ?? []).filter(
@@ -246,7 +244,7 @@ export function FsBrowser({
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <Button
-            {...quickJump}
+            {...quickJumpProps}
             variant="outline"
             onClick={() => home.data && setUserPath(home.data.path)}
             disabled={!home.data}
@@ -256,8 +254,8 @@ export function FsBrowser({
           {shownRoots.map((r) => (
             <Button
               key={r.id}
-              {...quickJump}
-              className={pathButton}
+              {...quickJumpProps}
+              className={pathButtonClass}
               variant="outline"
               onClick={() => setUserPath(r.path)}
               aria-label={r.path}
@@ -272,8 +270,8 @@ export function FsBrowser({
             .map((r) => (
               <Button
                 key={r}
-                {...quickJump}
-                className={pathButton}
+                {...quickJumpProps}
+                className={pathButtonClass}
                 variant="outline"
                 onClick={() => setUserPath(r)}
                 aria-label={r}
@@ -283,10 +281,10 @@ export function FsBrowser({
             ))}
         </div>
 
-        <div className={cn("flex items-center gap-2", words)}>
+        <div className={cn("flex items-center gap-2", textSizeClass)}>
           <Button
             ref={upRef}
-            {...quickJump}
+            {...quickJumpProps}
             variant="outline"
             onClick={goUp}
             disabled={!listing.data?.parent}
@@ -313,19 +311,19 @@ export function FsBrowser({
 
         {/* FP13 § C7: home detection failed and the user hasn't quick-jumped
             anywhere — surface so the path bar isn't an unexplained blank. */}
-        {home.error && !userPath && !sandboxBlocked && (
-          <p role="alert" className={cn(words, "text-destructive")}>
+        {home.error && !userPath && (
+          <p role="alert" className={cn(textSizeClass, "text-destructive")}>
             {strings.settings.fsBrowserHomeError}
           </p>
         )}
 
         {listing.isLoading && (
-          <p className={cn(words, "text-muted-foreground")}>
+          <p className={cn(textSizeClass, "text-muted-foreground")}>
             {strings.settings.fsBrowserLoading}
           </p>
         )}
-        {listing.error && !sandboxBlocked && (
-          <p role="alert" className={cn(words, "text-destructive")}>
+        {listing.error && (
+          <p role="alert" className={cn(textSizeClass, "text-destructive")}>
             {strings.settings.fsBrowserListError}
           </p>
         )}
@@ -357,7 +355,7 @@ export function FsBrowser({
         <DialogFooter>
           <Button
             variant="ghost"
-            className={footerButton}
+            className={footerButtonClass}
             onClick={() => onOpenChange(false)}
           >
             {strings.common.cancel}
@@ -366,8 +364,8 @@ export function FsBrowser({
               the directory-confirm button is meaningless here. */}
           {mode === "directory" && (
             <Button
-              className={footerButton}
-              onClick={usePath}
+              className={footerButtonClass}
+              onClick={pickCurrentFolder}
               disabled={!listing.data || !!listing.error}
             >
               {strings.settings.fsBrowserUseDirectory}

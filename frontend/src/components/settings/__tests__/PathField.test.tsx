@@ -3,8 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { FolderField } from "../FolderField";
-import { PathRow } from "../PathRow";
+import { PathField } from "../PathField";
 import { http, HttpResponse, server } from "@/test/handlers";
 
 function listed() {
@@ -27,11 +26,15 @@ function inClient(ui: React.ReactElement) {
   return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
 }
 
-const row = (props: Partial<React.ComponentProps<typeof PathRow>>) => (
-  <PathRow id="r" label="Thing" value="" onChange={() => {}} {...props} />
-);
+const row = (
+  props: Partial<{
+    value: string;
+    mode: "directory" | "file";
+    onCommit: (value: string) => void;
+  }>,
+) => <PathField id="r" label="Thing" value="" onCommit={() => {}} {...props} />;
 
-describe("PathRow Browse (mame-curator-1145 review)", () => {
+describe("PathField Browse (mame-curator-1145 review)", () => {
   it("on a file row opens the folder that holds the file", async () => {
     const user = userEvent.setup();
     const paths = listed();
@@ -58,20 +61,20 @@ describe("PathRow Browse (mame-curator-1145 review)", () => {
 });
 
 describe("a save the server refuses (mame-curator-1145 review)", () => {
-  it("PathRow goes back to the saved path, and does not send it again", () => {
-    const onChange = vi.fn();
-    inClient(row({ value: "/saved", onChange }));
+  it("PathField goes back to the saved path, and does not send it again", () => {
+    const onCommit = vi.fn();
+    inClient(row({ value: "/saved", onCommit }));
     const field = screen.getByRole("textbox");
     fireEvent.change(field, { target: { value: "/refused" } });
     fireEvent.blur(field);
-    expect(onChange).toHaveBeenCalledExactlyOnceWith("/refused");
+    expect(onCommit).toHaveBeenCalledExactlyOnceWith("/refused");
     // The parent's value did not change, because the server said no.
     expect(field).toHaveValue("/saved");
     fireEvent.blur(field);
-    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onCommit).toHaveBeenCalledTimes(1);
   });
 
-  it("PathRow shows the new path once it is saved", () => {
+  it("PathField shows the new path once it is saved", () => {
     const qc = new QueryClient();
     const ui = (value: string) => (
       <QueryClientProvider client={qc}>{row({ value })}</QueryClientProvider>
@@ -84,21 +87,21 @@ describe("a save the server refuses (mame-curator-1145 review)", () => {
     expect(field).toHaveValue("/new");
   });
 
-  it("FolderField goes back to the saved path, and does not send it again", () => {
+  it("an optional PathField saves an emptied field as not set, once", () => {
     const onCommit = vi.fn();
     inClient(
-      <FolderField
+      <PathField
         id="f"
         label="Folder"
-        browseLabel="Browse"
         value="/saved"
+        optional
         onCommit={onCommit}
       />,
     );
     const field = screen.getByRole("textbox");
-    fireEvent.change(field, { target: { value: "/refused" } });
+    fireEvent.change(field, { target: { value: " " } });
     fireEvent.blur(field);
-    expect(onCommit).toHaveBeenCalledExactlyOnceWith("/refused");
+    expect(onCommit).toHaveBeenCalledExactlyOnceWith(null);
     expect(field).toHaveValue("/saved");
     fireEvent.blur(field);
     expect(onCommit).toHaveBeenCalledTimes(1);
@@ -115,7 +118,7 @@ describe("Settings folder pickers give focus back (mame-curator-1176)", () => {
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });
 
-  it("PathRow: Cancel gives focus back to Browse", async () => {
+  it("PathField: Cancel gives focus back to Browse", async () => {
     const user = userEvent.setup();
     listed();
     inClient(row({ value: "/mnt/roms" }));
@@ -126,7 +129,7 @@ describe("Settings folder pickers give focus back (mame-curator-1176)", () => {
     expect(browse()).toHaveFocus();
   });
 
-  it("PathRow: Esc gives focus back to Browse", async () => {
+  it("PathField: Esc gives focus back to Browse", async () => {
     const user = userEvent.setup();
     listed();
     inClient(row({ value: "/mnt/roms" }));
@@ -138,21 +141,35 @@ describe("Settings folder pickers give focus back (mame-curator-1176)", () => {
     expect(browse()).toHaveFocus();
   });
 
-  it("PathRow: choosing a folder gives focus back to Browse", async () => {
+  it("PathField: choosing a folder gives focus back to Browse", async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
+    const onCommit = vi.fn();
     listed();
-    inClient(row({ value: "/mnt/roms", onChange }));
+    inClient(row({ onCommit }));
     await user.click(browse());
     const use = await screen.findByRole("button", { name: /use this folder/i });
     await waitFor(() => expect(use).toBeEnabled());
     await user.click(use);
     await closed();
-    expect(onChange).toHaveBeenCalledWith("/mnt/roms");
+    expect(onCommit).toHaveBeenCalledWith("/home/me");
     expect(browse()).toHaveFocus();
   });
 
-  it("PathRow: cancelling the grant prompt gives focus back to Browse", async () => {
+  // RL-57: as on blur, an unchanged path is not saved again.
+  it("PathField: choosing the folder already saved sends nothing", async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn();
+    listed();
+    inClient(row({ value: "/mnt/roms", onCommit }));
+    await user.click(browse());
+    const use = await screen.findByRole("button", { name: /use this folder/i });
+    await waitFor(() => expect(use).toBeEnabled());
+    await user.click(use);
+    await closed();
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it("PathField: cancelling the grant prompt gives focus back to Browse", async () => {
     const user = userEvent.setup();
     listed();
     server.use(
@@ -167,25 +184,6 @@ describe("Settings folder pickers give focus back (mame-curator-1176)", () => {
     await user.click(browse());
     await screen.findByRole("alertdialog");
     await user.click(screen.getByRole("button", { name: /^cancel$/i }));
-    await closed();
-    expect(browse()).toHaveFocus();
-  });
-
-  it("FolderField: Esc gives focus back to Browse", async () => {
-    const user = userEvent.setup();
-    listed();
-    inClient(
-      <FolderField
-        id="f"
-        label="Folder"
-        browseLabel="Browse for the folder"
-        value="/mnt/roms"
-        onCommit={() => {}}
-      />,
-    );
-    await user.click(browse());
-    await screen.findByRole("dialog");
-    await user.keyboard("{Escape}");
     await closed();
     expect(browse()).toHaveFocus();
   });

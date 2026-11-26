@@ -19,7 +19,7 @@ interface MediaSourceRowProps {
 
 /**
  * P10 chunk 10 / mame-curator-1084 — one row of the Settings → Media source
- * list. Rendered inside DragReorderList's `renderItem` slot for in-chain
+ * list. Rendered inside ArrowReorderList's `renderItem` slot for in-chain
  * sources (the arrow reorder buttons sit to the right, provided by the list),
  * and directly below the list for unconfigured (off) sources. Shows a status
  * dot (`data-state`), the source name + covered kinds, an inline
@@ -58,7 +58,7 @@ export function MediaSourceRow({
           {row.kinds.join(", ")}
         </span>
         {/* Inner controls must not let ArrowUp/Down bubble to the row-level
-            reorder handler (DragReorderList <li> onKeyDown). */}
+            reorder handler (ArrowReorderList <li> onKeyDown). */}
         <div
           className="ml-auto flex shrink-0 items-center gap-2"
           onKeyDown={(e) => e.stopPropagation()}

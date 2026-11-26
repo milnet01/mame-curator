@@ -2,15 +2,15 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { DragReorderList } from "../DragReorderList";
+import { ArrowReorderList } from "../ArrowReorderList";
 
 // DS04 T3.1: removed redundant `afterEach(() => cleanup())` — vitest
 // `globals: true` enables RTL's auto-cleanup.
 
-describe("DragReorderList", () => {
+describe("ArrowReorderList", () => {
   it("exposes the list with the supplied ariaLabel and renders items in order", () => {
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={["us", "eu", "jp"]}
         onChange={() => {}}
@@ -28,7 +28,7 @@ describe("DragReorderList", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={["us", "eu", "jp"]}
         onChange={onChange}
@@ -42,7 +42,7 @@ describe("DragReorderList", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={["us", "eu", "jp"]}
         onChange={onChange}
@@ -54,7 +54,7 @@ describe("DragReorderList", () => {
 
   it("disables the Up button on the first item", () => {
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={["us", "eu", "jp"]}
         onChange={() => {}}
@@ -68,7 +68,7 @@ describe("DragReorderList", () => {
 
   it("disables the Down button on the last item", () => {
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={["us", "eu", "jp"]}
         onChange={() => {}}
@@ -84,7 +84,7 @@ describe("DragReorderList", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={["us", "eu", "jp"]}
         onChange={onChange}
@@ -100,7 +100,7 @@ describe("DragReorderList", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={["us", "eu", "jp"]}
         onChange={onChange}
@@ -116,7 +116,7 @@ describe("DragReorderList", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={["us", "eu", "jp"]}
         onChange={onChange}
@@ -132,7 +132,7 @@ describe("DragReorderList", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={["us", "eu", "jp"]}
         onChange={onChange}
@@ -146,7 +146,7 @@ describe("DragReorderList", () => {
 
   it("renders an empty list without crashing", () => {
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={[]}
         onChange={() => {}}
@@ -161,7 +161,7 @@ describe("DragReorderList", () => {
   it("announces moves via an aria-live region (FP13 § D2)", async () => {
     const user = userEvent.setup();
     render(
-      <DragReorderList
+      <ArrowReorderList
         ariaLabel="Region priority"
         items={["us", "eu", "jp"]}
         onChange={() => {}}

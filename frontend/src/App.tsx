@@ -94,7 +94,7 @@ const GuidePage = lazy(
 
 const FixVersionRoute = lazy(
   reloadOnceIfMissing(() =>
-    import("@/pages/FixVersionPage").then((m) => ({
+    import("@/pages/FixVersionRoute").then((m) => ({
       default: m.FixVersionRoute,
     })),
   ),

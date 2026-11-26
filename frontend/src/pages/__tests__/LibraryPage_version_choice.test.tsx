@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { Route, Routes } from "react-router";
 
 import { LibraryPage } from "../LibraryPage";
-import { FixVersionRoute } from "../FixVersionPage";
+import { FixVersionRoute } from "../FixVersionRoute";
 import { useOverride } from "@/hooks/useAlternatives";
 import { delay } from "msw";
 import { server, http, HttpResponse } from "@/test/handlers";

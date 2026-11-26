@@ -1,10 +1,6 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DEBOUNCE_MS } from "@/components/library/FiltersSidebar";
+import { LibrarySearchBox } from "@/components/library/LibrarySearchBox";
 import { strings } from "@/strings";
 
 interface SimpleLibraryBarProps {
@@ -32,28 +28,6 @@ export function SimpleLibraryBar({
   onMoreOptions,
   viewButtonRef,
 }: SimpleLibraryBarProps) {
-  const [draft, setDraft] = useState(search);
-  // The box follows filters.search, so Clear filters empties it.
-  const [lastSearch, setLastSearch] = useState(search);
-  // Except for a search this box sent itself: more may be typed by the time
-  // it comes back.
-  const [sent, setSent] = useState(search);
-  if (search !== lastSearch) {
-    setLastSearch(search);
-    if (search !== sent) setDraft(search);
-  }
-
-  useEffect(() => {
-    if (draft === search) return;
-    const id = setTimeout(() => {
-      setSent(draft);
-      onSearch(draft);
-    }, DEBOUNCE_MS);
-    return () => clearTimeout(id);
-    // Same shape as FiltersSidebar's debounce: only a new draft re-arms it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft]);
-
   return (
     <div
       data-testid="simple-library-bar"
@@ -63,25 +37,11 @@ export function SimpleLibraryBar({
         {/* mame-curator-1213: 16rem is where the box would like to start,
             not a floor; a narrower window shrinks it rather than widening
             the page. */}
-        <div className="flex min-w-0 flex-1 basis-[16rem] flex-col gap-1">
-          <Label htmlFor="filters-search">
-            {strings.library.filters.searchLabel}
-          </Label>
-          <div className="relative">
-            <Search
-              className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              id="filters-search"
-              type="search"
-              placeholder={strings.library.filters.searchPlaceholder}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              className="pl-8"
-            />
-          </div>
-        </div>
+        <LibrarySearchBox
+          search={search}
+          onSearch={onSearch}
+          className="min-w-0 flex-1 basis-[16rem] gap-1"
+        />
         <Button asChild>
           <Link to="/start">{strings.guide.simpleLibrary.startHere}</Link>
         </Button>

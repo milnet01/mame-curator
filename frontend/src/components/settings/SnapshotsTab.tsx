@@ -8,21 +8,10 @@ interface SnapshotsTabProps {
   snapshots: readonly Snapshot[];
   loading?: boolean;
   error?: string | null;
-  /** FP20-J: persistent alert above the snapshot list when the most
-   * recent restore mutation failed. The dialog auto-closes on
-   * confirm, and the toastApiError flash dismisses — without this
-   * the user has no signal the restore actually failed and the
-   * config didn't change. Mirrors ``BackupTab.error``.
-   *
-   * FP25-K(9) / FP26-L: lifetime contract — the alert lives from the
-   * `useSnapshotRestore()` mutation's last error settle until the
-   * next `mutate()` call. SettingsRoute owns the state via the
-   * mutation hook; React Query 5 synchronously clears the mutation's
-   * `error` field when `mutate()` is called, so the alert disappears
-   * for the duration of a pending retry without any explicit clear.
-   * The tab itself does NOT own the state — it would have no way to
-   * distinguish "Settings just mounted" from "user opened the tab
-   * after a fresh restore failed" once it remounted. */
+  /** The last restore's failure, shown above the list until the next
+   * restore starts; the dialog and the toast have both gone by then.
+   * SettingsRoute owns it (the restore mutation's `error`), because a
+   * remounted tab could not tell a fresh failure from an old one. */
   restoreError?: string | null;
   /** A restore is under way; stays on the page until it has finished. */
   restoring?: boolean;

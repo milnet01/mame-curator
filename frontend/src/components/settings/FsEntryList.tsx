@@ -62,7 +62,12 @@ function WindowedRows({
   });
 
   return (
-    <div ref={scrollRef} data-testid="fs-entries" className={FRAME}>
+    <div
+      ref={scrollRef}
+      data-testid="fs-entries"
+      data-fs-entries
+      className={FRAME}
+    >
       <ul
         className="relative w-full"
         style={{ height: virtualizer.getTotalSize() }}
@@ -100,7 +105,7 @@ export function FsEntryList({
     return <WindowedRows entries={entries} onOpen={onOpen} large={large} />;
   }
   return (
-    <ul data-testid="fs-entries" className={FRAME}>
+    <ul data-testid="fs-entries" data-fs-entries className={FRAME}>
       {entries.map((entry) => (
         <li key={entry.path}>
           <Row entry={entry} onOpen={onOpen} large={large} />

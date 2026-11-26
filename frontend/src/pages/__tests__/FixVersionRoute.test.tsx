@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { toast } from "sonner";
 
-import { FixVersionRoute } from "../FixVersionPage";
+import { FixVersionRoute } from "../FixVersionRoute";
 import type { UseCartResult } from "@/hooks/useCart";
 import { strings } from "@/strings";
 import { http, HttpResponse, server } from "@/test/handlers";

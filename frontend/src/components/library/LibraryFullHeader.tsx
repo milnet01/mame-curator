@@ -2,7 +2,6 @@ import { Link } from "react-router";
 import { LayoutSwitcher } from "@/components/library/LayoutSwitcher";
 import { ThemeSwitcher } from "@/components/library/ThemeSwitcher";
 import { Switch } from "@/components/ui/switch";
-import { WALKTHROUGH_KEY } from "@/pages/libraryPageHelpers";
 import { strings } from "@/strings";
 import type { GameCard, LayoutName, ThemeName } from "@/api/types";
 
@@ -80,14 +79,7 @@ export function LibraryFullHeader({
         <Switch
           data-testid="library-walkthrough-toggle"
           checked={walkthrough}
-          onCheckedChange={(checked) => {
-            onWalkthroughChange(checked);
-            try {
-              localStorage.setItem(WALKTHROUGH_KEY, String(checked));
-            } catch {
-              /* localStorage unavailable; in-memory state still updates. */
-            }
-          }}
+          onCheckedChange={onWalkthroughChange}
         />
         {strings.library.walkthroughToggle}
       </label>

@@ -9,7 +9,7 @@ export interface YearRangeEditorProps {
   after: number | null;
   onBeforeChange: (next: number | null) => void;
   onAfterChange: (next: number | null) => void;
-  /** Inclusive lower bound for the inputs (also the default when toggled on). */
+  /** Inclusive lower bound for the inputs (also the default for `before`). */
   minYear: number;
   /** Inclusive upper bound for the inputs (also the default for `after`). */
   maxYear: number;

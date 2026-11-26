@@ -9,7 +9,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router";
 
-import { FixVersionRoute } from "../FixVersionPage";
+import { FixVersionRoute } from "../FixVersionRoute";
 import type { PictureCandidates, PictureChoice } from "@/api/types";
 import { strings } from "@/strings";
 import { http, HttpResponse, server } from "@/test/handlers";

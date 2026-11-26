@@ -1,17 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useEffect, useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { FacetSelect } from "./FacetSelect";
+import { LibrarySearchBox } from "./LibrarySearchBox";
 import { SaveSessionDialog } from "./SaveSessionDialog";
 import { strings } from "@/strings";
 import type { LibraryFacets, ReviewStateFilter } from "@/api/types";
-
-export const DEBOUNCE_MS = 200;
 
 /** Year-range slider extents. Earliest MAME machine is 1971; max
  *  pulled from the user's stats / DAT (FP11 § D6) — until that wiring
@@ -74,29 +71,12 @@ export function FiltersSidebar({
   yearBounds,
   facets,
 }: FiltersSidebarProps) {
-  const [searchDraft, setSearchDraft] = useState(value.search);
-  // The debounce must add the search to the filters as they are when it fires.
+  // The search box's debounce adds the search to the filters as they are
+  // when it fires.
   const latestValue = useRef(value);
   useEffect(() => {
     latestValue.current = value;
   });
-
-  // FP11 § D7: canonical debounce — single useEffect, single timer,
-  // single cleanup. The prior implementation used a useRef + manual
-  // double-clear; the React-canonical shape (timer is closed-over by
-  // the cleanup) is shorter and equivalent.
-  useEffect(() => {
-    if (searchDraft === value.search) return;
-    const id = setTimeout(() => {
-      onChange({ ...latestValue.current, search: searchDraft });
-    }, DEBOUNCE_MS);
-    return () => clearTimeout(id);
-    // Watching only `searchDraft` is intentional — the parent `value`
-    // identity churns on every dispatch and would re-arm the timer
-    // in a loop. The `searchDraft === value.search` short-circuit
-    // above handles the steady-state case.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchDraft]);
 
   const handleSwitch =
     (key: (typeof SWITCH_KEYS)[number]) => (next: boolean) => {
@@ -119,25 +99,11 @@ export function FiltersSidebar({
 
   return (
     <aside className="flex h-full flex-col gap-6 border-r p-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="filters-search">
-          {strings.library.filters.searchLabel}
-        </Label>
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            id="filters-search"
-            type="search"
-            placeholder={strings.library.filters.searchPlaceholder}
-            value={searchDraft}
-            onChange={(e) => setSearchDraft(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-      </div>
+      <LibrarySearchBox
+        search={value.search}
+        onSearch={(search) => onChange({ ...latestValue.current, search })}
+        className="gap-2"
+      />
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">

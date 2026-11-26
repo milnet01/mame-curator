@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { ChipListEditor } from "@/components/settings/ChipListEditor";
-import { DragReorderList } from "@/components/settings/DragReorderList";
+import { ArrowReorderList } from "@/components/settings/ArrowReorderList";
 import { PrefSwitch } from "@/components/settings/PrefSwitch";
 import { strings } from "@/strings";
 import type { AppConfigResponse } from "@/api/types";
@@ -58,7 +58,7 @@ export function PickerTab({ filters, onChange }: PickerTabProps) {
         <p className="text-xs text-muted-foreground">
           {strings.settings.regionPriorityHelp}
         </p>
-        <DragReorderList
+        <ArrowReorderList
           ariaLabel={strings.settings.pickerLabels.region_priority}
           items={filters.region_priority}
           onChange={(next) => onChange("region_priority", next)}

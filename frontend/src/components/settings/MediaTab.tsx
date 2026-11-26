@@ -3,8 +3,8 @@ import { useMemo, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { ConfigureSourceKeyModal } from "@/components/settings/ConfigureSourceKeyModal";
 import { DownloadPackModal } from "@/components/settings/DownloadPackModal";
-import { DragReorderList } from "@/components/settings/DragReorderList";
-import { FolderField } from "@/components/settings/FolderField";
+import { ArrowReorderList } from "@/components/settings/ArrowReorderList";
+import { PathField } from "@/components/settings/PathField";
 import { MediaSourceRow } from "@/components/settings/MediaSourceRow";
 import { useMediaSources } from "@/hooks/useMediaSources";
 import { strings } from "@/strings";
@@ -61,25 +61,25 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
 
   return (
     <>
-      <FolderField
+      <PathField
         id="media-cache-dir"
         label={strings.settings.mediaCacheLabel}
         browseLabel={strings.settings.mediaCacheBrowseLabel}
         value={media.cache_dir}
-        onCommit={(v) => onChange("cache_dir", v ?? "")}
+        onCommit={(v) => onChange("cache_dir", v)}
       />
       {/* mame-curator-1081 — progettoSnaps pack folder; kept in sync with the
           folder `refresh-snaps` downloads into so the source can't miss it. */}
-      <FolderField
+      <PathField
         id="media-snaps-dir"
         label={strings.settings.mediaSnapsLabel}
         browseLabel={strings.settings.mediaSnapsBrowseLabel}
         help={strings.settings.mediaSnapsHelp}
         value={media.snaps_dir}
-        onCommit={(v) => onChange("snaps_dir", v ?? "")}
+        onCommit={(v) => onChange("snaps_dir", v)}
       />
       {/* mame-curator-1126 — artwork ES-DE / RetroArch already scraped. */}
-      <FolderField
+      <PathField
         id="media-esde-dir"
         label={strings.settings.mediaEsdeLabel}
         browseLabel={strings.settings.mediaEsdeBrowseLabel}
@@ -88,7 +88,7 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
         onCommit={(v) => onChange("esde_media_dir", v)}
         optional
       />
-      <FolderField
+      <PathField
         id="media-retroarch-thumbnails-dir"
         label={strings.settings.mediaRetroarchLabel}
         browseLabel={strings.settings.mediaRetroarchBrowseLabel}
@@ -106,7 +106,7 @@ export function MediaTab({ media, onChange }: MediaTabProps) {
             {strings.settings.mediaSources.sectionHelp}
           </p>
         </div>
-        <DragReorderList
+        <ArrowReorderList
           ariaLabel={strings.settings.mediaSources.reorderAriaLabel}
           items={media.sources}
           onChange={(next) => onChange("sources", next)}

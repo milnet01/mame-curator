@@ -95,6 +95,8 @@ function UpdateActionsRow({
   const busy = actions.applying || actions.rollingBack;
   const result = actions.applyResult;
   const rollback = actions.rollbackResult;
+  // Only a git update changes this copy in place; a bundle update downloads
+  // a new copy beside it, so there is nothing here to restart.
   const restart =
     info.restart_pending ||
     (result?.install_kind === "git" && result.restart_required) ||

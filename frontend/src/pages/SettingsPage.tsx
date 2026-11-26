@@ -16,7 +16,7 @@ import { AboutTab } from "@/components/settings/AboutTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { FiltersTab } from "@/components/settings/FiltersTab";
 import { MediaTab } from "@/components/settings/MediaTab";
-import { PathRow } from "@/components/settings/PathRow";
+import { PathField } from "@/components/settings/PathField";
 import { AllowedRootsList } from "@/components/settings/AllowedRootsList";
 import { PickerTab } from "@/components/settings/PickerTab";
 import { PrefSwitch } from "@/components/settings/PrefSwitch";
@@ -264,64 +264,59 @@ export function SettingsPage({
         </TabsList>
 
         <TabsContent value="paths" className="flex flex-col gap-3">
-          <PathRow
+          <PathField
             id="paths-source-roms"
             label={strings.settings.pathRowLabels.sourceRoms}
             value={config.paths.source_roms}
-            onChange={(next) => updatePaths("source_roms", next)}
+            onCommit={(next) => updatePaths("source_roms", next)}
           />
-          <PathRow
+          <PathField
             id="paths-dest-roms"
             label={strings.settings.pathRowLabels.destination}
             value={config.paths.dest_roms}
-            onChange={(next) => updatePaths("dest_roms", next)}
+            onCommit={(next) => updatePaths("dest_roms", next)}
           />
-          <PathRow
+          <PathField
             id="paths-source-dat"
             label={strings.settings.pathRowLabels.dat}
             value={config.paths.source_dat}
             mode="file"
-            onChange={(next) => {
-              if (next !== config.paths.source_dat) setPendingDat(next);
-            }}
+            onCommit={setPendingDat}
           />
-          <PathRow
+          <PathField
             id="paths-retroarch-playlist"
             label={strings.settings.pathRowLabels.retroarchPlaylist}
             value={config.paths.retroarch_playlist}
             mode="file"
-            onChange={(next) => updatePaths("retroarch_playlist", next)}
+            onCommit={(next) => updatePaths("retroarch_playlist", next)}
           />
           {/* FP29 — Launch-button gate (FP22-B) reads
               ``retroarch_configured = retroarch && retroarch_core``;
               both fields are nullable on the backend, so blank input
               round-trips to ``null`` rather than ``""``. */}
-          <PathRow
+          <PathField
             id="paths-retroarch"
             label={strings.settings.pathRowLabels.retroarchExecutable}
-            value={config.paths.retroarch ?? ""}
+            value={config.paths.retroarch}
             mode="file"
-            onChange={(next) =>
-              updatePaths("retroarch", next === "" ? null : next)
-            }
+            optional
+            onCommit={(next) => updatePaths("retroarch", next)}
           />
-          <PathRow
+          <PathField
             id="paths-retroarch-core"
             label={strings.settings.pathRowLabels.retroarchCore}
-            value={config.paths.retroarch_core ?? ""}
+            value={config.paths.retroarch_core}
             mode="file"
-            onChange={(next) =>
-              updatePaths("retroarch_core", next === "" ? null : next)
-            }
+            optional
+            onCommit={(next) => updatePaths("retroarch_core", next)}
           />
-          <PathRow
+          <PathField
             id="paths-listxml"
             label={strings.settings.pathRowLabels.listxml}
-            value={config.paths.listxml ?? ""}
+            value={config.paths.listxml}
             mode="file"
-            onChange={(next) =>
-              updatePaths("listxml", next === "" ? null : next)
-            }
+            optional
+            onCommit={(next) => updatePaths("listxml", next)}
           />
           <p className="text-sm text-muted-foreground">
             {strings.settings.listxmlRestartHint}

@@ -122,7 +122,7 @@ When choosing a folder, a **New folder** button opens a name box where you are. 
 
 Settings' Paths tab ends with "Drives and folders the app may use": every `granted` root, then every `missing` one marked "Not there now", or a line saying none has been granted. The app's own folders are not listed, since nothing there can remove them. Each row's **Remove** asks first; confirming sends `DELETE /api/fs/allowed-roots/{id}` and the row goes (mame-curator-1175).
 
-`PathRow` opens a file row's picker at the folder that holds the file, which need not exist yet. A field holds typed text only while typing, then shows what is saved, so a path the server refused does not stay in it.
+`PathField` opens a file row's picker at the folder that holds the file, which need not exist yet. A field holds typed text only while typing, then shows what is saved, so a path the server refused does not stay in it.
 
 After "Allow", the picker stays open on the allowed folder, for every caller. Today `ConfirmationDialog`'s confirm also calls its `onOpenChange(false)`, which closes the picker. Cancel still closes it.
 

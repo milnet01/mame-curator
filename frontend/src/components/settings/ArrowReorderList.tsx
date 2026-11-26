@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-export interface DragReorderListProps {
+export interface ArrowReorderListProps {
   /** Accessible name for the list (e.g. "Region priority"). */
   ariaLabel: string;
   /** Current items, rendered top-to-bottom in priority order. */
@@ -27,20 +27,14 @@ function swap(arr: string[], from: number, to: number): string[] {
   return next;
 }
 
-// FP13 § D3: the FP12 § Step 1 research contract called for `role="listbox"`
-// + `aria-activedescendant`, which is the standard ARIA pattern for a
-// single-select keyboard-driven list. After the user elected the simpler
-// arrow-button + ArrowUp/ArrowDown reorder model (Karpathy push-back over
-// dnd-kit), `role="list"` is the right semantic — this is a static priority
-// list whose items are reordered via per-row controls, not a single-select
-// listbox. The aria-live region (D2) carries the dynamic announcement that
-// `aria-activedescendant` would otherwise provide.
-export function DragReorderList({
+// `role="list"`, not a listbox: rows are moved by per-row controls, and the
+// aria-live region announces each move.
+export function ArrowReorderList({
   ariaLabel,
   items,
   onChange,
   renderItem,
-}: DragReorderListProps) {
+}: ArrowReorderListProps) {
   const [announcement, setAnnouncement] = useState("");
 
   const move = (from: number, to: number) => {
@@ -66,11 +60,10 @@ export function DragReorderList({
   return (
     <>
       <ul role="list" aria-label={ariaLabel} className="flex flex-col gap-1">
-        {/* FP13 § E4: `key={item}` keeps React reconciliation stable across
-            reorder so focus survives the swap (important since this list is
-            keyboard-driven). The contract is that items are unique; callers
-            (today only `region_priority`, fed via `ChipListEditor` and
-            server-validated config) enforce uniqueness upstream. */}
+        {/* `key={item}` keeps focus on a row as it moves, so items must be
+            unique. The server checks neither caller's list: Settings →
+            Media's source toggle adds a name only when it is absent, and
+            Picker's region_priority is as config.yaml spells it. */}
         {items.map((item, i) => {
           const isFirst = i === 0;
           const isLast = i === items.length - 1;

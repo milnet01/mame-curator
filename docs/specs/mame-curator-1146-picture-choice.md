@@ -161,7 +161,7 @@ export function pictureSrc(card: { short_name: string; picture: PictureChoice | 
 
 ### 4.6 The guide
 
-The version half's route, `/fix/:shortName`, gains these screens. They act on the version in use when they open: the `in_use` of `GET /api/games/{shortName}/alternatives`, as `FixVersionPage` reads it, or `shortName` when `in_use` is null. After a version save that reply is reloaded, so they act on the saved version. Each renders through `GuideStep`, with every action a `GuideAction`, so mame-curator-1144 INV-2 (focus) and INV-3's exit rule hold here unchanged.
+The version half's route, `/fix/:shortName`, gains these screens. They act on the version in use when they open: the `in_use` of `GET /api/games/{shortName}/alternatives`, as `FixVersionRoute` reads it, or `shortName` when `in_use` is null. After a version save that reply is reloaded, so they act on the saved version. Each renders through `GuideStep`, with every action a `GuideAction`, so mame-curator-1144 INV-2 (focus) and INV-3's exit rule hold here unchanged.
 
 1. **What would you like to fix?** Two actions: "A different version" (the version half's screens) and "A different picture". Shown only when the game has more than one version; otherwise the guide opens at step 2.
 2. **Which picture would you like?** While the list loads: "Looking for pictures…" in a `role="status"` element. Then one column of candidates, each one `GuideAction` holding the image, loaded from `/media/<name>/<kind>?source=<source>`, at the column's width and, under it, its label and place, for example "Title screen, from your ES-DE pictures". The in-use one also says "In use now" in text. The image's `alt` is empty, because the text beside it says the same.

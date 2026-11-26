@@ -30,6 +30,7 @@ import {
   readGuideSelection,
   readReturnFocus,
   readWalkthroughPref,
+  saveWalkthroughPref,
 } from "./libraryPageHelpers";
 import { useBulkAdd } from "./useBulkAdd";
 import { useLibraryCopy } from "./useLibraryCopy";
@@ -57,9 +58,13 @@ export function useLibraryController(cart: UseCartResult) {
     }
   }, [guideSelection, returnFocus, navigate]);
   // P14 — walkthrough toggle (default on; persisted to localStorage).
-  const [walkthrough, setWalkthrough] = useState<boolean>(() =>
+  const [walkthrough, setWalkthroughState] = useState<boolean>(() =>
     readWalkthroughPref(),
   );
+  const setWalkthrough = (on: boolean) => {
+    setWalkthroughState(on);
+    saveWalkthroughPref(on);
+  };
   const reviewState = useReviewState();
   const setReviewState = useReviewStateSet();
   const clearReviewState = useReviewStateClear();
