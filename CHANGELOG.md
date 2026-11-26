@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-26 Changed — Guide screens tidied (mame-curator-1241)
+
+Part 1 of the 2026-11-11 screen-code readability fixes.
+
+- **The "Which type of game?" step now says why the list of types failed to load, as every other guide step does, rather than a bare "That could not be loaded."**
+
+- **The folder picker on the copy guide's "Where" step now matches the other guide pickers: it hides hidden folders and the app's own folder shortcuts.**
+
+- **The copy window and the guide's copying step now read a copy's progress from one shared place, so they cannot drift apart. The dry-run window's labels moved into the strings catalogue.**
+
 ### 2026-11-26 Changed — The copy code, tidied
 
 - **The copy code is easier to follow** (mame-curator-1240)

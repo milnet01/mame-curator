@@ -4796,7 +4796,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1241] **Make the screen code easier to follow (2026-11-11 readability review) (part 1 of 3).**
+- ✅ [mame-curator-1241] **Make the screen code easier to follow (2026-11-11 readability review) (part 1 of 3).**
   Group `rd-fe-pages` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4813,6 +4813,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-12-2 [MEDIUM] fe/components/guide/steps/WhereStep.tsx:89-95: Three copies of the large folder picker, and they have drifted apart. Fix: give the three guide sites one shared choice of props, or comment why WhereStep differs. -
   - RR-10-6 (+RR-12-4) [MEDIUM] fe/components/library/CopyModal.tsx:64-70: The copy state rules are duplicated in `CopyingStep.tsx:35-52`: `live`, `paused`, `controllable`, `problem`, `pct`, the "preparing" progress line, the problem block, and the `AbortCopyDialog` wiring. Fix: move the shared state reading into one hook beside `copyOutcome`.
   - RR-10-11 [LOW] fe/components/library/DryRunModal.tsx:79: A hard-coded copy of `strings.common.cancel`, and the `SECTIONS` labels are hard-coded English too. Fix: use `strings.common.cancel` and move the section labels into the catalogue.
+  Shipped 2026-11-26. All 13 findings fixed. RR-10-6 + RR-12-4: one
+  copyView() in lib/copyOutcome.ts feeds both copy screens. RR-12-8: the
+  type step shows apiErrorMessage. RR-12-2: the Where picker is
+  `simple`, user decision 2026-11-26. The rest are comments, names and
+  catalogue moves.
   **Layman:** Tidying so someone new can follow and change the app's pages safely.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
