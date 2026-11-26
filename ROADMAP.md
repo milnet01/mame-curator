@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1266 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1267 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -5159,6 +5159,15 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   **Layman:** The security scanner prints confusing warnings because of how three explanatory comments are worded.
   Kind: chore.
   Source: gate-run-mame-curator-1238-2026-11-26.
+
+- 📋 [mame-curator-1267] **Replace the stale line numbers in test_fp28_validate_paths_retroarch.py's docstring.**
+  The module docstring cites `api/routes/config.py:60-83` and
+  `api/routes/games.py:275`; both moved long ago (found in the
+  mame-curator-1238 sweep, 2026-11-26). Fix: name `_validate_paths` and
+  `games.launch_game` instead.
+  **Layman:** A test's description points at code by line numbers that are no longer right.
+  Kind: doc-fix.
+  Source: close-findings-sweep-mame-curator-1238-2026-11-26.
 
 ## Considered / under research (no target date)
 

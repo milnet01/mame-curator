@@ -26,3 +26,19 @@ Followed the sentence allowing a multi-tier fold-in its own long-form spec:
 The reason the rule was settled, between the rule and the visibility note:
 
 > solo development; no PR-workflow opt-in signals (no `CODEOWNERS`, no branch protection, no `Merge pull request` history).
+
+## Opening paragraph ("This project follows the global workflow")
+
+Moved 2026-11-26, the startup-cost trim:
+
+> The App-Build phase workflow it replaced was retired 2026-09-28; its state file is kept as history at [`docs/history/app-build-workflow-state.md`](docs/history/app-build-workflow-state.md).
+
+## § Project-specific overrides, "Direct push to `main`"
+
+Moved 2026-11-26, the startup-cost trim:
+
+> Repo is **PUBLIC** (checked 2026-04-30 via `gh repo view`), so push freely per global rule 6.
+
+## § Karpathy clarity — where it lands here
+
+Deleted 2026-11-26, the startup-cost trim. Each bullet repeated a global rule (rule 9, `testing.md` § 1, `coding.md` § 1.7), and "`review-contract` reads [every spec] cold before user sign-off" predated global rule 14, which reviews only a new spec that is expensive to build wrong.
