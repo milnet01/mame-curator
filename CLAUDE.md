@@ -88,6 +88,8 @@ Global `workflow.md` § 6 decides when an item is done. Here that means: `check-
 
 **Two traps when committing.** The pre-commit `pytest-fast` hook runs the test-count pins in `tests/docs/test_ds05_test_count_stable.py` against the working tree, untracked files included, so another worker's uncommitted tests block every commit until they land or are stashed. And `frontend/dist` is committed: a `frontend/src` change that alters the built files (a comment does not) needs `npm run build` and the new `dist` in the same push, or the push gate's "Committed dist matches the build" fails.
 
+**`ROADMAP.md` is never edited directly** (user, 2026-11-26). Every roadmap change goes through the roadmap store (`roadmap_log`). Each store write re-renders the whole file and drops any hand edit.
+
 ## Things this project deliberately does not do
 
 - No telemetry / analytics, ever (grep-gated per long-form roadmap Phase 7).
