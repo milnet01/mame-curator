@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-26 Changed — The copy code, tidied
+
+- **The copy code is easier to follow** (mame-curator-1240)
+  One routine saves files safely, where there were two near-copies.
+  One builder makes every copy report, and one step recycles files
+  for all three recycle passes. On Windows, settings and playlist
+  files are now saved with Unix line endings, which every reader of
+  them accepts. A crash report now counts copied bytes the same way
+  a finished report does.
+
 ### 2026-11-26 Fixed — Starting the server with a damaged config file
 
 - **`mame-curator serve` reports a config.yaml that is not UTF-8 text in one error line** (mame-curator-1239)

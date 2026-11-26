@@ -4772,7 +4772,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1240] **Make the copy code easier to follow (2026-11-11 readability review).**
+- ✅ [mame-curator-1240] **Make the copy code easier to follow (2026-11-11 readability review).**
   Group `rd-copy` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4790,6 +4790,8 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-02-7 [LOW] copy/runner.py:61: The name suggests it looks on disk for missing CHD files. Fix: rename the helper to say "CHD-required winners", or add a one-line docstring.
   - RR-02-9 [LOW] copy/runner.py:636: The name sounds like the general finishing step. Fix: rename it to something like `_abort_early`.
   - RR-02-13 [LOW] copy/types.py:5-6: copy/types.py docstring cites a test (test_copy_idempotent) that does not exist. Fix: say which tuples are sorted, and drop the test name.
+  Shipped 2026-11-26 in 0f014e9. RR-02-8 and RR-02-9 were moot: the
+  runner split had already removed both functions. The rest are fixed.
   **Layman:** Tidying so someone new can follow and change the copy code safely.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
