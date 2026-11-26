@@ -28,7 +28,7 @@ def _help_dir() -> Path:
     # (which calls ``relative_to(base.resolve())``) operate on identical
     # paths. Without this, a symlinked ``MAME_CURATOR_HELP_DIR`` lets the
     # two endpoints disagree on what is "inside" the help directory and
-    # weakens the traversal guard at line 54.
+    # weakens the traversal guard (help_topic's `relative_to` check).
     override = os.environ.get("MAME_CURATOR_HELP_DIR")
     if override:
         return Path(override).resolve()

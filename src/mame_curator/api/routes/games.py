@@ -66,6 +66,8 @@ def _badges(
         out.append(Badge.OVERRIDDEN)
     if short in world.chd_required:
         out.append(Badge.CHD_MISSING)
+    # BIOS_MISSING (and the `only_bios_missing` filter) means "needs a BIOS",
+    # not "its BIOS is absent"; renaming it would change the wire format.
     if _needs_bios(short, world):
         out.append(Badge.BIOS_MISSING)
     if world.notes.get(short):
@@ -335,7 +337,7 @@ def launch_game(name: str, world: WorldState = Depends(get_world)) -> LaunchResp
     ]
     # FP19 threat model: ``argv`` is fully trusted at this point.
     # - argv[0]/argv[2] come from world.config.paths (operator-controlled).
-    # - argv[3] is `dest_roms / f"{name}.zip"` where `name` is the URL path
+    # - argv[3] is `dest_roms` or `source_roms` / f"{name}.zip", where `name` is the URL path
     #   param, GUARDED above by `if name not in world.machines: raise` —
     #   `world.machines` is the closed set parsed from the DAT, never
     #   arbitrary user input.

@@ -89,7 +89,7 @@ def _restart_required(request: Request) -> bool:
     )
 
 
-async def _swap_in_and_reply(request: Request, new_world: WorldState) -> AppConfigResponse:
+async def swap_in_and_reply(request: Request, new_world: WorldState) -> AppConfigResponse:
     """Swap in a save, restore or import; in setup mode, retry the DAT.
 
     mame-curator-1145 §4.1, INV-4, INV-15: the swap comes first, so an
@@ -141,7 +141,7 @@ def _same_folder(config: AppConfig, previous: AppConfig) -> bool:
         return False
 
 
-def _import_path_errors(config: AppConfig, previous: AppConfig) -> tuple[FieldError, ...]:
+def import_path_errors(config: AppConfig, previous: AppConfig) -> tuple[FieldError, ...]:
     """The save's checks a kept backup can fairly be held to (mame-curator-1177).
 
     Not existence: a backup may come from another machine, and setup mode or
@@ -191,7 +191,7 @@ def _validate_paths(
                 type="path_not_found",
             )
         )
-    # FP28 C1: gates the launch-RetroArch path at games.py:275 — any PATCH
+    # FP28 C1: gates the launch-RetroArch path in games.launch_game — any PATCH
     # that lands a non-executable retroarch path here would otherwise hit
     # subprocess.run with a bad arg. retroarch_core is a shared library
     # (.so / .dll / .dylib) loaded via dlopen / LoadLibrary, so only
@@ -285,11 +285,7 @@ async def patch_config(
         if new_config == world.config and not world.setup_required:
             return _to_response(world.config, restart_required=_restart_required(request))
 
-        snapshots_dir = world.data_dir / "snapshots"
-        if world.config_path.exists():
-            snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
-
-        write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
+        save_config(world, new_config)
 
         rerun = filter_relevant_changed(world.config, new_config)
         new_world = await asyncio.to_thread(
@@ -298,7 +294,7 @@ async def patch_config(
         # mame-curator-1145 §4.1: in setup mode ANY save retries the DAT,
         # deliberately not just a `source_dat` change: the likeliest recovery
         # leaves the path string unchanged (mame-curator-1095 § 4.2b).
-        return await _swap_in_and_reply(request, new_world)
+        return await swap_in_and_reply(request, new_world)
 
 
 @router.get("/api/config/snapshots", response_model=SnapshotsListing)
@@ -351,20 +347,16 @@ async def restore_config_snapshot(
             pictures=new_pictures,
             rerun_filter=True,
         )
-        return await _swap_in_and_reply(request, new_world)
+        return await swap_in_and_reply(request, new_world)
 
 
-def _config_to_yaml(config: AppConfig) -> dict[str, Any]:
-    """Dump AppConfig in a form ready for YAML write (Path → str)."""
-    out = _stringify(config.model_dump(mode="json"))
-    if not isinstance(out, dict):  # pragma: no cover - model_dump always dict
-        raise TypeError("config did not serialise to a dict")
-    return out
+def config_to_yaml(config: AppConfig) -> dict[str, Any]:
+    """Dump AppConfig ready for a YAML write; `mode="json"` turns Paths into str."""
+    return config.model_dump(mode="json")
 
 
-def _stringify(obj: Any) -> Any:
-    if isinstance(obj, dict):
-        return {k: _stringify(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_stringify(v) for v in obj]
-    return obj
+def save_config(world: WorldState, new_config: AppConfig) -> None:
+    """Snapshot the current config.yaml, if there is one, then write `new_config`."""
+    if world.config_path.exists():
+        snapshot_files(world.data_dir / "snapshots", {"config.yaml": world.config_path})
+    write_yaml_atomic(world.config_path, config_to_yaml(new_config))

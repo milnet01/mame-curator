@@ -27,9 +27,9 @@ from mame_curator.api.persist import (
 from mame_curator.api.pictures import PictureChoices, pictures_path
 from mame_curator.api.routes._deps import get_world
 from mame_curator.api.routes.config import (
-    _config_to_yaml,
-    _import_path_errors,
-    _swap_in_and_reply,
+    config_to_yaml,
+    import_path_errors,
+    swap_in_and_reply,
 )
 from mame_curator.api.schemas import (
     AppConfig,
@@ -111,17 +111,17 @@ def _check_bundle(bundle: ConfigExportBundle, world: WorldState) -> _Bundle:
     # Absent means no choices (1146 §4.7).
     pictures = _validated(PictureChoices, bundle.pictures or {}, "pictures")
 
-    # FP09 A3: R11 (POST /api/sessions) enforces `_SESSION_NAME_RE`; R19's
+    # FP09 A3: R11 (POST /api/sessions) enforces `SESSION_NAME_RE`; R19's
     # import path was bypassing it, so a malicious bundle could write a
     # session named `_deactivate` (or any reserved control name) into
     # sessions.yaml. Re-apply the regex per session-name on import.
-    from mame_curator.api.routes.curate import _SESSION_NAME_RE
+    from mame_curator.api.routes.curate import SESSION_NAME_RE
 
     for name in new_sessions.sessions:
-        if not _SESSION_NAME_RE.fullmatch(name):
+        if not SESSION_NAME_RE.fullmatch(name):
             raise SessionNameInvalidError(f"session name invalid in import: {name!r}")
 
-    path_errs = _import_path_errors(new_config, world.config)
+    path_errs = import_path_errors(new_config, world.config)
     if path_errs:
         raise ConfigError("config import: invalid paths", fields=path_errs)
     return _Bundle(new_config, new_overrides, new_sessions, dict(bundle.notes), pictures)
@@ -145,7 +145,7 @@ def _write_bundle(world: WorldState, new: _Bundle) -> None:
     }
     undo_id = snapshot_files(snapshots_dir, targets)
     try:
-        write_yaml_atomic(world.config_path, _config_to_yaml(new.config))
+        write_yaml_atomic(world.config_path, config_to_yaml(new.config))
         write_yaml_atomic(targets["overrides.yaml"], {"overrides": dict(new.overrides.entries)})
         write_yaml_atomic(targets["sessions.yaml"], _sessions_dump(new.sessions))
         write_json_atomic(targets["notes.json"], new.notes)
@@ -176,4 +176,4 @@ async def import_config(
             pictures=new.pictures,
             rerun_filter=True,
         )
-        return await _swap_in_and_reply(request, new_world)
+        return await swap_in_and_reply(request, new_world)

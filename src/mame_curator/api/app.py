@@ -155,21 +155,11 @@ def create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI:
         app.state.started_server = world.config.server
         app.state.setup_save_kept = False
         app.state.job = JobManager(history_dir=world.data_dir / "copy-history")
-        # FP20-C / FP25-A: per-app asyncio.Lock guarding every
-        # read-merge-write-set_world path on app.state.world. Without
-        # this, two concurrent mutating requests read the same base
-        # state and the later writer overwrites the earlier — silently
-        # losing a user edit. P04 spec lines 104-115 mandate the lock
-        # for the original 12 mutation routes: FP20-C wired patch_config,
-        # restore_config_snapshot, import_config, fs_grant_root,
-        # fs_revoke_root; FP25-A closed the next seven —
-        # post_override, delete_override, upsert_session,
-        # delete_session, deactivate_session, activate_session,
-        # put_notes. P14 added two more that also acquire it —
-        # post_state, delete_state (POST/DELETE /api/state) — for 14
-        # total. See ``tests/api/test_fp25_world_lock.py`` for the
-        # acceptance test that fires two ``asyncio.gather``-ed
-        # mutations across different routes and asserts both edits land.
+        # Every route that reads, merges and replaces app.state.world holds
+        # this lock, so two concurrent edits cannot both start from the same
+        # world and lose one. Which routes take it: the "Mut." column of the
+        # route table in api/spec.md. ``tests/api/test_fp25_world_lock.py``
+        # fires two mutations at once and asserts both land.
         app.state.world_lock = asyncio.Lock()
         # FP09 B4: shared httpx.AsyncClient for the media proxy. Per-request
         # AsyncClient creation triggers a fresh TLS handshake on every R39
@@ -232,8 +222,9 @@ def create_app(config_path: Path, *, bind_host: str | None = None) -> FastAPI:
     # Mount the SPA bundle on / when `frontend/dist/` is present (production
     # path). The mount is registered AFTER the API router so /api/* and
     # /media/* routes keep precedence; the catch-all only fires on a
-    # non-API request. `html=True` makes /<anything> fall back to
-    # index.html so react-router's client-side routes resolve.
+    # non-API request. `_SPAStaticFiles` falls back to index.html for a
+    # path-shaped 404 so react-router's client-side routes resolve, and
+    # keeps a real 404 for its carve-outs (see its docstring).
     #
     # Resolved here rather than at import: inside a frozen bundle the path
     # depends on `sys._MEIPASS`, which a module-level constant would miss

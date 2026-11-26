@@ -16,6 +16,7 @@ def get_world(request: Request) -> WorldState:
 
 
 def get_jobs(request: Request) -> JobManager:
+    # `app.state.job` holds the JobManager, not a job; tests pin the name.
     return request.app.state.job  # type: ignore[no-any-return]
 
 

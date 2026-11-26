@@ -6,7 +6,6 @@ import asyncio
 import stat
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 from fastapi import APIRouter, Depends, Request
 
@@ -24,10 +23,9 @@ from mame_curator.api.fs import (
     resolve_path,
     validate_fs_path,
 )
-from mame_curator.api.persist import snapshot_files, write_yaml_atomic
 from mame_curator.api.routes._deps import get_world, set_world
+from mame_curator.api.routes.config import save_config
 from mame_curator.api.schemas import (
-    AppConfig,
     FsAllowedRoot,
     FsAllowedRoots,
     FsConfig,
@@ -186,10 +184,7 @@ async def fs_grant_root(
         new_fs = FsConfig(granted_roots=new_granted)
         new_config = world.config.model_copy(update={"fs": new_fs})
 
-        snapshots_dir = world.data_dir / "snapshots"
-        if world.config_path.exists():
-            snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
-        write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
+        save_config(world, new_config)
 
         new_world = await asyncio.to_thread(replace_world, base=world, config=new_config)
         set_world(request, new_world)
@@ -225,26 +220,8 @@ async def fs_revoke_root(
         new_fs = FsConfig(granted_roots=new_granted)
         new_config = world.config.model_copy(update={"fs": new_fs})
 
-        snapshots_dir = world.data_dir / "snapshots"
-        if world.config_path.exists():
-            snapshot_files(snapshots_dir, {"config.yaml": world.config_path})
-        write_yaml_atomic(world.config_path, _config_to_yaml(new_config))
+        save_config(world, new_config)
 
         new_world = await asyncio.to_thread(replace_world, base=world, config=new_config)
         set_world(request, new_world)
         return _roots_reply(new_world)
-
-
-def _config_to_yaml(config: AppConfig) -> dict[str, Any]:
-    out = _stringify(config.model_dump(mode="json"))
-    if not isinstance(out, dict):  # pragma: no cover - model_dump always dict
-        raise TypeError("config did not serialise to a dict")
-    return out
-
-
-def _stringify(obj: Any) -> Any:
-    if isinstance(obj, dict):
-        return {k: _stringify(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_stringify(v) for v in obj]
-    return obj

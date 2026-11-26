@@ -35,7 +35,7 @@ from mame_curator.copy.types import (
 )
 from mame_curator.filter import Overrides, ReviewState, Sessions
 
-_SESSION_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
+SESSION_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 
 router = APIRouter()
 
@@ -125,6 +125,16 @@ def _listing(sessions: Sessions) -> SessionsListing:
     return SessionsListing(active=sessions.active, sessions=dict(sessions.sessions))
 
 
+async def _commit_sessions(
+    request: Request, world: WorldState, new_sessions: Sessions
+) -> SessionsListing:
+    """Write the sessions, swap in the new world, and reply with the listing."""
+    _persist_sessions(world, new_sessions)
+    new_world = await asyncio.to_thread(replace_world, base=world, sessions=new_sessions)
+    set_world(request, new_world)
+    return _listing(new_sessions)
+
+
 @router.get("/api/sessions", response_model=SessionsListing)
 def list_sessions(world: WorldState = Depends(get_world)) -> SessionsListing:
     return _listing(world.sessions)
@@ -140,17 +150,14 @@ async def upsert_session(
     Name validation happens before the lock acquire — a 422 on a bad name
     is read-only and shouldn't block a concurrent good-name writer.
     """
-    if not _SESSION_NAME_RE.fullmatch(body.name):
+    if not SESSION_NAME_RE.fullmatch(body.name):
         raise SessionNameInvalidError(f"session name invalid: {body.name!r}")
     async with request.app.state.world_lock:
         world: WorldState = request.app.state.world
         sessions_map = dict(world.sessions.sessions)
         sessions_map[body.name] = body.session
         new_sessions = Sessions(active=world.sessions.active, sessions=sessions_map)
-        _persist_sessions(world, new_sessions)
-        new_world = await asyncio.to_thread(replace_world, base=world, sessions=new_sessions)
-        set_world(request, new_world)
-        return _listing(new_sessions)
+        return await _commit_sessions(request, world, new_sessions)
 
 
 @router.delete("/api/sessions/{name}", response_model=SessionsListing)
@@ -167,10 +174,7 @@ async def delete_session(
         del sessions_map[name]
         new_active = None if world.sessions.active == name else world.sessions.active
         new_sessions = Sessions(active=new_active, sessions=sessions_map)
-        _persist_sessions(world, new_sessions)
-        new_world = await asyncio.to_thread(replace_world, base=world, sessions=new_sessions)
-        set_world(request, new_world)
-        return _listing(new_sessions)
+        return await _commit_sessions(request, world, new_sessions)
 
 
 # R13b: deactivate (distinct from /sessions/{name}/activate so a session named
@@ -185,10 +189,7 @@ async def deactivate_session(
     async with request.app.state.world_lock:
         world: WorldState = request.app.state.world
         new_sessions = Sessions(active=None, sessions=dict(world.sessions.sessions))
-        _persist_sessions(world, new_sessions)
-        new_world = await asyncio.to_thread(replace_world, base=world, sessions=new_sessions)
-        set_world(request, new_world)
-        return _listing(new_sessions)
+        return await _commit_sessions(request, world, new_sessions)
 
 
 @router.post("/api/sessions/{name}/activate", response_model=SessionsListing)
@@ -203,10 +204,7 @@ async def activate_session(
         if name not in world.sessions.sessions:
             raise SessionNotFoundError(f"session not found: {name!r}")
         new_sessions = Sessions(active=name, sessions=dict(world.sessions.sessions))
-        _persist_sessions(world, new_sessions)
-        new_world = await asyncio.to_thread(replace_world, base=world, sessions=new_sessions)
-        set_world(request, new_world)
-        return _listing(new_sessions)
+        return await _commit_sessions(request, world, new_sessions)
 
 
 # P14 — per-game review state ------------------------------------------------
@@ -219,7 +217,7 @@ def _persist_review_state(world: WorldState, review_state: ReviewState) -> None:
     LRU pool and evict every overrides / sessions / config snapshot in minutes.
     Recovery is via ``data/activity.jsonl`` replay.
     """
-    path = world.config_path.parent / "data" / "state.yaml"
+    path = world.data_dir / "state.yaml"
     write_yaml_atomic(path, {"state": dict(review_state.entries)})
 
 

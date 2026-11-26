@@ -40,13 +40,9 @@ def get_activity(
     if not log_path.exists():
         return ActivityPage(items=(), page=page, page_size=page_size, total=0)
 
-    # FP27 B5: stream the file line-by-line and keep only the newest
-    # `page * page_size` matches in a bounded deque. Pre-fix the whole
-    # file landed in RAM via `read_text().splitlines()` then pagination
-    # sliced afterwards — request RAM scaled with the file regardless
-    # of which page was asked for. Post-fix: per-request RAM is
-    # `page * page_size * event_size` for the deque, independent of
-    # total log size.
+    # FP27 B5: stream the file line by line and keep only the newest
+    # `page * page_size` matches in a bounded deque, so a request's memory
+    # is bounded by `page * page_size`, never by the size of the log.
     window = deque[dict[str, Any]](maxlen=page * page_size)
     total = 0
     with log_path.open("r", encoding="utf-8") as fh:

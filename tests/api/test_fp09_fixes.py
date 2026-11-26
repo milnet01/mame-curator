@@ -78,7 +78,7 @@ def test_a2_r27_corrupt_report_json_returns_typed_error(client: Any, tmp_path: P
 
 
 def test_a3_r19_import_rejects_reserved_session_name(client: Any) -> None:
-    """A3 — R11's `_SESSION_NAME_RE` must apply to R19 import paths too."""
+    """A3 — R11's `SESSION_NAME_RE` must apply to R19 import paths too."""
     bundle = client.post("/api/config/export").json()
     # Inject a session whose name violates the regex (leading underscore).
     bundle["sessions"]["sessions"]["_deactivate"] = {"include_genres": ["Shooter*"]}

@@ -160,18 +160,12 @@ def restore_snapshot(snapshots_dir: Path, snap_id: str, targets: Mapping[str, Pa
     A snapshot written before the covers record existed is read as covering
     only the files it holds.
 
-    FP27 B2: stage-then-promote. The previous per-iteration shape
-    (``atomic_write_bytes(dst, ...)`` then ``dst.unlink()``) read from
-    snap_dir and wrote to the live target in the same pass — a crash
-    mid-loop with N files left k restored and (M-k) unlinked, a
-    half-restored state. Now the snapshot bytes are first read into a
-    sibling staging directory; only after every stage-write succeeds
-    do the live-target promotes (``replace_keeping_links``) and absent-file
-    unlinks run. Mid-stage failures leave the live targets untouched.
-    A mid-promote failure can still produce a half-restored end state
-    (per-file ``os.replace`` is the POSIX atomic unit), but the
-    read-from-snapshot step is front-loaded so the snapshot dir can
-    vanish after staging without losing data.
+    Stage, then promote (FP27 B2). Every snapshot file is first copied into
+    a staging folder; only once all of them are staged are the live files
+    replaced (``replace_keeping_links``) and the absent ones deleted. A
+    failure while staging leaves the live files untouched. A failure while
+    promoting can still leave a half-restored set, since each file is
+    replaced on its own.
     """
     snap_dir = snapshots_dir / snap_id
     if not snap_dir.exists() or not snap_dir.is_dir():

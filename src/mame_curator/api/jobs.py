@@ -56,6 +56,10 @@ _TERMINAL_EVENTS = ("job_finished", "job_aborted")
 # N-file copy ≈ 30k events / 2 MB on a 10k-file run). Replay merges the two
 # stores by timestamp.
 _PROGRESS_CAP = 200_000
+# pause / resume / abort set the controller flag at once, then wait this long
+# before replying, so a worker mid-file can reach a boundary and the reply
+# shows the new state (P04 spec § JobManager + SSE contract).
+_CONTROL_SETTLE_S = 0.05
 
 
 _JOB_ID_RE = re.compile(r"\d{8}T\d{6}Z-[0-9a-f]{8}", re.ASCII)
@@ -106,8 +110,8 @@ class JobManager:
 
         ``loop`` underpins the FP28-A1 loop-thread invariant for ``_emit``.
         Defaults to ``asyncio.get_running_loop()``; falls back to ``None``
-        when constructed outside a running loop (sync test fixtures) — in
-        that case ``start()`` captures the loop on first invocation.
+        when constructed outside a running loop (sync test fixtures).
+        ``start()`` always rebinds it to the loop it runs on.
         """
         self._history_dir = history_dir
         self._lock = asyncio.Lock()
@@ -240,7 +244,7 @@ class JobManager:
         before = job.controller.state
         job.controller.pause()
         self._emit_control_change(job, before)
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(_CONTROL_SETTLE_S)
         return self._status(job, override_state=_control_state(job))
 
     async def resume(self) -> JobStatus:
@@ -249,14 +253,14 @@ class JobManager:
         before = job.controller.state
         job.controller.resume()
         self._emit_control_change(job, before)
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(_CONTROL_SETTLE_S)
         return self._status(job, override_state=_control_state(job))
 
     async def abort(self, *, recycle_partial: bool) -> JobStatus:
         """Cancel the in-flight job, optionally recycling already-copied files."""
         job = self._require_job()
         job.controller.cancel(recycle_partial=recycle_partial)
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(_CONTROL_SETTLE_S)
         return self._status(job, override_state="terminating")
 
     def status(self) -> JobStatus:
@@ -402,10 +406,6 @@ class JobManager:
                 },
                 ts=datetime.now(UTC),
             )
-            if report.status == CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT:
-                # Pre-emit handler raises; this branch only fires if start()
-                # routed past the synchronous check.
-                pass
         self._emit(terminal)
         self._close_subscribers()
         self._last, self._current = self._current, None

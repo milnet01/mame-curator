@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1265 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1266 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -4720,7 +4720,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1238] **Make the web-service code easier to follow (2026-11-11 readability review) (part 1 of 2).**
+- ✅ [mame-curator-1238] **Make the web-service code easier to follow (2026-11-11 readability review) (part 1 of 2).**
   Group `rd-api` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4741,6 +4741,13 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-05-13 [LOW] api/routes/games.py:337: The ROM can also come from `source_roms` (lines 319-323). Fix: say "`dest_roms` or `source_roms`".
   - RR-05-4 [MEDIUM] api/routes/games.py:68-69: The badge `BIOS_MISSING` (and the `only_bios_missing` filter) means "this game needs a BIOS". Fix: a one-line comment at the badge lines saying both badges mean "needs", not "absent". Renaming would change the wire format.
   - RR-05-12 [LOW] api/routes/help.py:31: Line 54 is `help_index`'s existence check. Fix: name `help_topic`'s `relative_to` check instead of a line number.
+  Closed 2026-11-26: all 17 findings fixed, each read at current source
+  first (line numbers had moved since 401db7a). save_config and
+  _commit_sessions replace the repeated blocks; names shared across
+  route modules lost their underscore; the comments state the current
+  rule only. No behaviour change: api + docs tests 692 passed. The
+  sweep's stale-line docstring in test_fp28_validate_paths_retroarch.py
+  predates this item; bandit's nosec warnings are mame-curator-1266.
   **Layman:** Tidying so someone new can follow and change the web-service code safely.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -5140,6 +5147,18 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   **Layman:** The test run prints React warnings that some screen updates landed after a test stopped watching; they hide real problems in the output.
   Kind: test.
   Source: gate-run-mame-curator-1234-2026-11-21.
+
+- 📋 [mame-curator-1266] **Stop bandit reading words in nosec reasons as test ids.**
+  `bandit -c pyproject.toml -r src` prints "Test in comment: no / shell /
+  INV / 13 is not a test name or id, ignoring" (2026-11-26). The cause is
+  the `# nosec B404 — ...` reason text on the `import subprocess` lines of
+  api/routes/updates.py, api/routes/games.py and updates/app.py: bandit
+  reads words after the id as more ids. It exits 0. Fix: keep the id list
+  in the nosec comment and move the reason to a comment of its own, or
+  separate it the way bandit's docs allow, then confirm the warnings stop.
+  **Layman:** The security scanner prints confusing warnings because of how three explanatory comments are worded.
+  Kind: chore.
+  Source: gate-run-mame-curator-1238-2026-11-26.
 
 ## Considered / under research (no target date)
 
