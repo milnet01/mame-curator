@@ -26,7 +26,7 @@ const STEPS: readonly {
   { answer: "source_dat", words: strings.guide.setup.list },
   { answer: "dest_roms", words: strings.guide.setup.dest },
 ];
-const LIST_STEP = 1;
+const LIST_STEP = STEPS.findIndex(({ answer }) => answer === "source_dat");
 const LAST_STEP = STEPS.length - 1;
 
 /**
@@ -110,6 +110,8 @@ export function SetupWizard() {
       },
       {
         onSuccess: async (next) => {
+          // The wizard changes no `server` setting, so here this means the save
+          // left setup mode on: the game list did not load (spec 1145 §4.3).
           if (next.restart_required) {
             setAnswers((prev) => ({ ...prev, source_dat: undefined }));
             setStepIndex(LIST_STEP);

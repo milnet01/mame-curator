@@ -4,11 +4,7 @@ import { GuideStep } from "../GuideStep";
 import { AbortCopyDialog } from "@/components/library/AbortCopyDialog";
 import type { CopyModalState } from "@/components/library/CopyModal";
 import { Progress } from "@/components/ui/progress";
-import {
-  copyOutcome,
-  copyProblem,
-  copyProblemHasActivity,
-} from "@/lib/copyOutcome";
+import { copyProblemHasActivity, copyView } from "@/lib/copyOutcome";
 import { strings } from "@/strings";
 
 interface CopyingStepProps {
@@ -32,11 +28,8 @@ export function CopyingStep({
 }: CopyingStepProps) {
   const [abortOpen, setAbortOpen] = useState(false);
 
-  const outcome = copyOutcome(state);
-  const live = outcome === "active";
-  const paused = live && state.state === "paused";
-  const controllable = live && (state.state === "running" || paused);
-  const problem = copyProblem(state);
+  const { outcome, live, paused, controllable, problem, pct, progressText } =
+    copyView(state);
   const heading = {
     complete: strings.guide.copying.finishedHeading,
     partial: strings.guide.copying.partialHeading,
@@ -48,8 +41,6 @@ export function CopyingStep({
         ? strings.guide.copying.stoppingHeading
         : strings.guide.copying.heading,
   }[outcome];
-  const pct =
-    state.filesTotal === 0 ? 0 : (state.filesDone / state.filesTotal) * 100;
 
   return (
     <GuideStep
@@ -65,18 +56,12 @@ export function CopyingStep({
       {outcome !== "lost" && (
         <>
           <Progress
-            value={outcome === "complete" ? 100 : pct}
+            value={pct}
             aria-label={strings.copy.progressAriaLabel}
             className="h-4"
           />
           <p className="break-words text-xl" data-testid="progress-line">
-            {state.state === "running" && state.filesTotal === 0
-              ? strings.copy.preparing
-              : strings.copy.progressLine(
-                  state.filesDone,
-                  state.filesTotal,
-                  state.currentFile,
-                )}
+            {progressText}
           </p>
         </>
       )}

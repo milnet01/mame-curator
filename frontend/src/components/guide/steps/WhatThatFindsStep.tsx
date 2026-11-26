@@ -28,7 +28,7 @@ export function WhatThatFindsStep({
 }: WhatThatFindsStepProps) {
   const navigate = useNavigate();
   const query = guideQueryFor(selection);
-  const count = useGames({ ...query, page: 1, pageSize: 1 });
+  const countQuery = useGames({ ...query, page: 1, pageSize: 1 });
   const [progress, setProgress] = useState<[number, number] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const nameFetch = useRef<AbortController | null>(null);
@@ -40,7 +40,7 @@ export function WhatThatFindsStep({
   // The names are fetched here, so they are the ones the user acts on.
   const copyThese = async () => {
     setError(null);
-    setProgress([0, count.data?.total ?? 0]);
+    setProgress([0, countQuery.data?.total ?? 0]);
     nameFetch.current = new AbortController();
     try {
       onNames(
@@ -57,15 +57,15 @@ export function WhatThatFindsStep({
     }
   };
 
-  const total = count.data?.total;
+  const total = countQuery.data?.total;
   const heading =
     total === undefined
-      ? count.isError
+      ? countQuery.isError
         ? strings.guide.loadFailed
         : strings.guide.finds.loadingHeading
       : strings.guide.finds.heading(
           total,
-          strings.guide.size(count.data?.total_bytes ?? 0),
+          strings.guide.size(countQuery.data?.total_bytes ?? 0),
         );
 
   return (
@@ -76,9 +76,9 @@ export function WhatThatFindsStep({
       onBack={onBack}
       exitLabel={strings.guide.exit}
     >
-      {count.isError && (
+      {countQuery.isError && (
         <p role="alert" className="text-xl text-destructive">
-          {apiErrorMessage(count.error)}
+          {apiErrorMessage(countQuery.error)}
         </p>
       )}
       {error && (

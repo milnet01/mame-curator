@@ -60,3 +60,47 @@ export function copyProblem(state: CopyModalState): string[] {
 export function copyProblemHasActivity(state: CopyModalState): boolean {
   return ["partial", "failed", "lost"].includes(copyOutcome(state));
 }
+
+/** What both copy screens read from a state; each draws it its own way. */
+export interface CopyView {
+  outcome: CopyOutcome;
+  /** Not yet settled: running, paused or stopping. */
+  live: boolean;
+  paused: boolean;
+  /** Pause, Resume and Stop are offered. */
+  controllable: boolean;
+  problem: string[];
+  pct: number;
+  /** The line under the bar. */
+  progressText: string;
+}
+
+export function copyView(state: CopyModalState): CopyView {
+  const outcome = copyOutcome(state);
+  const live = outcome === "active";
+  const paused = live && state.state === "paused";
+  return {
+    outcome,
+    live,
+    paused,
+    controllable: live && (state.state === "running" || paused),
+    problem: copyProblem(state),
+    // Skipped games leave filesDone short of filesTotal, so a finish says 100.
+    pct:
+      outcome === "complete"
+        ? 100
+        : state.filesTotal === 0
+          ? 0
+          : (state.filesDone / state.filesTotal) * 100,
+    // mame-curator-1103: no total until job_started arrives, so "0 / 0"
+    // would read as an empty job.
+    progressText:
+      state.state === "running" && state.filesTotal === 0
+        ? strings.copy.preparing
+        : strings.copy.progressLine(
+            state.filesDone,
+            state.filesTotal,
+            state.currentFile,
+          ),
+  };
+}

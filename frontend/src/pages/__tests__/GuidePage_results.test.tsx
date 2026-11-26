@@ -198,6 +198,23 @@ describe("a heading says how the step came out", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("it broke");
   });
 
+  it("a failed list of types says the server's reason", async () => {
+    useHandlers();
+    server.use(
+      http.get("/api/library/facets", () =>
+        HttpResponse.json(
+          { code: "boom", detail: "it broke", fields: [] },
+          { status: 500 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.type);
+    await heading(g.chooseType.heading);
+    expect(await screen.findByRole("alert")).toHaveTextContent("it broke");
+  });
+
   it("a failed dry run is not ready to copy", async () => {
     useHandlers();
     server.use(
@@ -483,6 +500,47 @@ describe("a chosen folder", () => {
         name: strings.settings.fsBrowserUseDirectory,
       }),
     ).toHaveClass("text-xl", "min-h-12");
+  });
+
+  it("mame-curator-1241: the picker is the simple one, like the other guides'", async () => {
+    useHandlers();
+    folderHandlers();
+    const folder = (name: string) => ({
+      name,
+      path: `/mnt/new/${name}`,
+      is_dir: true,
+      hidden: name.startsWith("."),
+      size: null,
+      mtime: "2026-05-01T00:00:00Z",
+    });
+    server.use(
+      http.get("/api/fs/allowed-roots", () =>
+        HttpResponse.json({
+          roots: [{ id: "a", path: "/data/app-folder", source: "config" }],
+        }),
+      ),
+      http.get("/api/fs/roots", () => HttpResponse.json({ roots: [] })),
+      http.get("/api/fs/list", () =>
+        HttpResponse.json({
+          path: "/mnt/new",
+          parent: null,
+          entries: [folder("games"), folder(".cache")],
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderGuide();
+    await press(user, g.which.everything);
+    await press(user, keepCompilations);
+    await press(user, keepLanguages);
+    await press(user, g.finds.copyThese);
+    await press(user, g.where.choose);
+
+    await screen.findByRole("button", { name: /^games/ });
+    expect(screen.queryByRole("button", { name: /^\.cache/ })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "/data/app-folder" }),
+    ).toBeNull();
   });
 
   it("that is saved is heard", async () => {

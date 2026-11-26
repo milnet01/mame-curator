@@ -10,6 +10,7 @@ import { ChoiceLabel, SettingsStep, type TopicProps } from "./SettingsStep";
 import { sameLanguages } from "@/lib/languages";
 import { strings } from "@/strings";
 
+// The `kinds` keys are `filters` field names, and they choose which switches show.
 type Kind = keyof typeof strings.guide.settings.leaveOut.kinds;
 const KINDS = Object.keys(strings.guide.settings.leaveOut.kinds) as Kind[];
 

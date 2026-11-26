@@ -1,5 +1,6 @@
 /**
  * mame-curator-1147 — the pieces every screen of the Settings guide shares.
+ * `ChoiceLabel` is shared wider: the setup wizard and `LanguagePicker` use it too.
  */
 import type { ComponentProps } from "react";
 import { GuideStep } from "../GuideStep";

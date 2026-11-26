@@ -9,11 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  copyOutcome,
-  copyProblem,
-  copyProblemHasActivity,
-} from "@/lib/copyOutcome";
+import { copyProblemHasActivity, copyView } from "@/lib/copyOutcome";
 import { strings } from "@/strings";
 import type { JobState } from "@/api/types";
 
@@ -61,18 +57,8 @@ export function CopyModal({
 }: CopyModalProps) {
   const [abortOpen, setAbortOpen] = useState(false);
 
-  const outcome = copyOutcome(state);
-  const live = outcome === "active";
-  const paused = live && state.state === "paused";
-  const controllable = live && (state.state === "running" || paused);
-  const problem = copyProblem(state);
-  // Skipped games leave filesDone short of filesTotal, so a finish says 100.
-  const pct =
-    outcome === "complete"
-      ? 100
-      : state.filesTotal === 0
-        ? 0
-        : (state.filesDone / state.filesTotal) * 100;
+  const { outcome, live, paused, controllable, problem, pct, progressText } =
+    copyView(state);
 
   return (
     <>
@@ -92,15 +78,7 @@ export function CopyModal({
                 aria-label={strings.copy.progressAriaLabel}
               />
               <p className="font-mono text-sm" data-testid="progress-line">
-                {/* mame-curator-1103: no total until job_started arrives, so
-                    "0 / 0" would read as an empty job. */}
-                {state.state === "running" && state.filesTotal === 0
-                  ? strings.copy.preparing
-                  : strings.copy.progressLine(
-                      state.filesDone,
-                      state.filesTotal,
-                      state.currentFile,
-                    )}
+                {progressText}
               </p>
             </>
           )}

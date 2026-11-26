@@ -89,6 +89,7 @@ export function WhereStep({
             <FsBrowser
               open
               large
+              simple
               onOpenChange={setBrowseOpen}
               onPick={saveFolder}
               initialPath={paths.dest_roms}

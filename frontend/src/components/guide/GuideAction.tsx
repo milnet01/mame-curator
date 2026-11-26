@@ -4,7 +4,10 @@ import { cn } from "@/lib/utils";
 
 interface GuideActionProps {
   children: ReactNode;
-  /** A button when given onClick, a link when given to. */
+  /**
+   * A button when given onClick, a link when given to. The link form ignores
+   * `disabled`, `busy` and `pressed`; they apply to the button form only.
+   */
   onClick?: () => void;
   to?: string;
   /** Router state the link carries, with `to`. */

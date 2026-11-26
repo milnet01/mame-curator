@@ -650,7 +650,10 @@ EXPECTED_PYTEST_DECLARATIONS = 1400
 # Bumped 2026-11-18 (mame-curator-1234 CR-09-6): the dry-run lock. 820 → 821.
 # Bumped 2026-11-18 (mame-curator-1234 CR-09-7): Add all ignores a 2nd press. 821 → 822.
 # Bumped 2026-11-21 (mame-curator-1234 CR-09-5): the Library loads more as it scrolls. 822 → 828.
-EXPECTED_VITEST_DECLARATIONS = 828
+# Bumped 2026-11-26 (mame-curator-1241): the copy screens share one reading,
+# the type step says the server's reason, and the Where picker is the simple
+# one. 828 → 833.
+EXPECTED_VITEST_DECLARATIONS = 833
 
 # Match both ``def test_…`` and ``async def test_…`` so async tests can't
 # be silently dropped by a typo'd import without firing this guard.

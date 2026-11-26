@@ -11,7 +11,7 @@ interface GuideStepProps {
   focusKey?: number;
   /** Absent where there is nothing to go back to. */
   onBack?: () => void;
-  /** Absent where the step offers no way out, as while a copy is paused. */
+  /** Absent where the step offers no way out, as while a save or start is under way. */
   exitLabel?: string;
   /** Where the way out leads; the Library unless given. */
   exitTo?: string;

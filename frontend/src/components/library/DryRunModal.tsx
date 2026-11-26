@@ -20,11 +20,11 @@ interface DryRunModalProps {
 // Keys are the server's (api/routes/copy.py dry_run), except bios_included,
 // which readCounts works out (mame-curator-1198).
 const SECTIONS: Array<{ key: string; label: string }> = [
-  { key: "new", label: "new" },
-  { key: "already_copied", label: "already there" },
-  { key: "missing_source", label: "missing from your ROM folder" },
-  { key: "not_in_playlist", label: "not in your game list" },
-  { key: "bios_included", label: "BIOS included" },
+  { key: "new", label: strings.copy.dryRunSections.new },
+  { key: "already_copied", label: strings.copy.dryRunSections.alreadyCopied },
+  { key: "missing_source", label: strings.copy.dryRunSections.missingSource },
+  { key: "not_in_playlist", label: strings.copy.dryRunSections.notInPlaylist },
+  { key: "bios_included", label: strings.copy.dryRunSections.biosIncluded },
 ];
 
 /** The report's counts, with the BIOS line worked out from the server's
@@ -73,7 +73,7 @@ export function DryRunModal({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {strings.common.cancel}
           </Button>
           <Button onClick={onConfirm}>{strings.library.actions.copy}</Button>
         </DialogFooter>

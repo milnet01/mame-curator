@@ -766,6 +766,14 @@ export const strings = {
   copy: {
     dryRunTitle: "Dry-run preview",
     dryRunHint: "No files are written. Review the diff and confirm to copy.",
+    /** Each follows a count: "4 already there". */
+    dryRunSections: {
+      new: "new",
+      alreadyCopied: "already there",
+      missingSource: "missing from your ROM folder",
+      notInPlaylist: "not in your game list",
+      biosIncluded: "BIOS included",
+    },
     /** AT-only label on the progress indicator. */
     progressAriaLabel: "Copy progress",
     modalTitle: "Copy in progress",

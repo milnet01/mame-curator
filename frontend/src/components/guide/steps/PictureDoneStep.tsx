@@ -21,7 +21,7 @@ interface PictureDoneStepProps {
 
 /**
  * mame-curator-1146 §4.6 step 3 and the screens beside it: done, already in
- * use, saving, and the version half's failure screen.
+ * use, saving, and a failure screen like the version half's.
  */
 export function PictureDoneStep({
   name,
@@ -29,12 +29,11 @@ export function PictureDoneStep({
   onBack,
   back,
 }: PictureDoneStepProps) {
-  const fix = strings.guide.fix;
-  const exit = { exitLabel: fix.toLibrary, exitState: back };
+  const exit = { exitLabel: strings.guide.fix.toLibrary, exitState: back };
   switch (outcome.kind) {
     case "saving":
       return (
-        <GuideStep heading={fix.savingHeading} {...exit}>
+        <GuideStep heading={strings.guide.fix.savingHeading} {...exit}>
           {null}
         </GuideStep>
       );
@@ -62,18 +61,22 @@ export function PictureDoneStep({
           onBack={onBack}
           {...exit}
         >
-          <p className="text-xl">{fix.nothingChanged}</p>
+          <p className="text-xl">{strings.guide.fix.nothingChanged}</p>
         </GuideStep>
       );
     case "failed":
       return (
-        <GuideStep heading={fix.failedHeading} onBack={onBack} {...exit}>
+        <GuideStep
+          heading={strings.guide.fix.failedHeading}
+          onBack={onBack}
+          {...exit}
+        >
           <p role="alert" className="text-xl text-destructive">
             {apiErrorMessage(outcome.error)}
           </p>
-          <p className="text-xl">{fix.nothingChanged}</p>
+          <p className="text-xl">{strings.guide.fix.nothingChanged}</p>
           <GuideAction primary onClick={outcome.retry}>
-            {fix.tryAgain}
+            {strings.guide.fix.tryAgain}
           </GuideAction>
         </GuideStep>
       );

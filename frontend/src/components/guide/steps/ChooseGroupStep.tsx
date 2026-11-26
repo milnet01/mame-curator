@@ -1,6 +1,7 @@
 import { GuideAction } from "../GuideAction";
 import { GuideStep } from "../GuideStep";
 import { useFacets } from "@/hooks/useFacets";
+import { apiErrorMessage } from "@/lib/apiErrorToast";
 import { strings } from "@/strings";
 
 interface ChooseStepProps {
@@ -51,7 +52,7 @@ export function ChooseTypeStep({
       {facets.isPending && <p className="text-xl">{strings.guide.loading}</p>}
       {facets.isError && (
         <p role="alert" className="text-xl text-destructive">
-          {strings.guide.loadFailed}
+          {apiErrorMessage(facets.error)}
         </p>
       )}
       {facets.isSuccess && genres.length === 0 && (
