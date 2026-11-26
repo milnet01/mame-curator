@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1268 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1269 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -5188,6 +5188,19 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   **Layman:** Two upstream "this will be removed" notices show up in the test output; switch the server off the old code path they warn about.
   Kind: chore.
   Source: gate-warning 2026-11-26 (mame-curator-1239 test run).
+
+- 📋 [mame-curator-1269] **Stop the concurrent-activity test forking from a multi-threaded process.**
+  Seen 2026-11-26 in the pre-push pytest run, twice, from
+  tests/copy/test_fp25_activity_concurrent.py::
+  test_fp25_e_concurrent_appenders_never_interleave:
+  "DeprecationWarning: This process is multi-threaded, use of fork()
+  may lead to deadlocks in the child" (multiprocessing/popen_fork.py).
+  Likely fix: start the appender processes with a "spawn" or
+  "forkserver" multiprocessing context, so the test cannot deadlock
+  when pytest has other threads running.
+  **Layman:** A test that checks two writers never garble the activity log uses an unsafe way to start its helpers; switch it to the safe one.
+  Kind: test.
+  Source: gate-warning 2026-11-26 (mame-curator-1239 push).
 
 ## Considered / under research (no target date)
 
