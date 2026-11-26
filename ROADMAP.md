@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1269 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1270 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -4822,7 +4822,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1242] **Make the screen code easier to follow (2026-11-11 readability review) (part 2 of 3).**
+- ✅ [mame-curator-1242] **Make the screen code easier to follow (2026-11-11 readability review) (part 2 of 3).**
   Group `rd-fe-pages` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4843,6 +4843,12 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-11-11 [MEDIUM] fe/components/settings/UpdatesTab.tsx:97: An apply result asks for a restart only when the install is a git install. Fix: add a one-line comment giving the reason for the git-only check.
   - RR-11-12 [LOW] fe/components/settings/YearRangeEditor.tsx:12: This reads as "both switches start at `minYear`". Fix: say "the default for `before`", matching line 14.
   - RR-09-15 [LOW] fe/pages/FixVersionPage.tsx:36: The file is named `FixVersionPage` but exports `FixVersionRoute`. Fix: VersionPage` but exports `FixVersionRoute`. It also hosts the picture question. A stranger would look for a `FixVersionPage` component, and would not look in this file for the picture flow. — Fix: name the file after its export.
+  Shipped 2026-11-26. All 17 findings fixed. RR-10-5: one LibrarySearchBox
+  for both Library views. RR-11-1: one PathField for the Paths and Media
+  tabs, which also settles RL-57 (from mame-curator-1248). RR-11-2's
+  premise check found the server checks neither reorder list for repeats:
+  filed as mame-curator-1270. The rest are comments, names and two file
+  renames (ArrowReorderList, FixVersionRoute).
   **Layman:** Tidying so someone new can follow and change the app's pages safely.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -4952,6 +4958,8 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - CR-10-1 [HIGH] fe/pages/SettingsPage.tsx:134: Settings PATCHes send whole sections built from a stale render, so quick edits revert each other. Fix: either queue config PATCHes one at a time, building each from the latest cache, or apply an optimistic `setQueryData` before each mutate, or send only the changed key.
   - RL-46 [LEAD] fe/pages/libraryPageHelpers.ts:109-110: For a tile with only `yearFrom`, the count sends only `year_min`. The list sends both `year_min` and `year_max` = 2025, because `yearsChosen` is true. The tile's count and the games then shown could differ.
   - CR-09-3 [MEDIUM] fe/pages/useLibraryController.ts:346 (`handleSaveSession`, higher in the same file since 2026-11-21): Saving a session without touching the slider stores the 1975-2025 default range, hiding games the view showed. Fix: reuse `yearsChosen` and save `null` when it is false.
+  RL-57 fixed 2026-11-26 in mame-curator-1242: PathRow became PathField,
+  which saves only a change on pick as on blur.
   **Layman:** Some Settings changes are not saved as shown, and the year range misbehaves at its edges.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -5208,6 +5216,20 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   **Layman:** A test that checks two writers never garble the activity log uses an unsafe way to start its helpers; switch it to the safe one.
   Kind: test.
   Source: gate-warning 2026-11-26 (mame-curator-1239 push).
+
+- 📋 [mame-curator-1270] **Refuse a repeated name in region_priority and media.sources.**
+  Neither `FilterConfig.region_priority` (filter/config.py) nor
+  `MediaConfig.sources` (api/schemas.py) refuses a repeated name.
+  `ArrowReorderList` keys its rows by name, so a repeat gives two rows one
+  React key: focus and reordering go wrong on the Picker or Media tab. The
+  Media tab's toggle adds a name only when absent; a hand-edited
+  config.yaml has no such guard. Fix: a validator on each that refuses a
+  repeat, or drops it with a warning; decide which against
+  versioning-overrides (a config that loaded before must still load).
+  **Layman:** A region or picture source written twice in config.yaml is not caught, and the Settings reorder list then misbehaves.
+  Kind: fix.
+  Source: mame-curator-1242 RR-11-2 premise check 2026-11-26.
+  Lanes: filter, api, frontend.
 
 ## Considered / under research (no target date)
 

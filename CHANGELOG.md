@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-26 Changed — Settings and Library screens tidied (mame-curator-1242)
+
+Part 2 of the 2026-11-11 screen-code readability fixes.
+
+- **In Settings, choosing the folder or file that is already saved no longer saves it again. The Paths and Media tabs now share one path field.**
+
+- **A RetroArch or listxml path made of only spaces now counts as not set, as on the Media tab, rather than being saved as spaces.**
+
+- **The Library's search box is one shared piece in both the full and simple views. The rest are corrected comments, clearer names and two renamed files.**
+
 ### 2026-11-26 Changed — Guide screens tidied (mame-curator-1241)
 
 Part 1 of the 2026-11-11 screen-code readability fixes.
