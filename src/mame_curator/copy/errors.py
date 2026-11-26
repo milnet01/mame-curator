@@ -66,7 +66,7 @@ class UnsafeShortNameError(CopyError):
 
 
 class ActivityLogError(CopyError):
-    """OSError from the activity-log writer (open, write, or close).
+    """OSError from the activity-log writer (mkdir, open, or write).
 
     FP25-B: ``copy/activity.py:append_activity`` previously propagated raw
     ``OSError`` (open failure, write failure, ENOSPC mid-line), bypassing

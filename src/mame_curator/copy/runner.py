@@ -20,13 +20,16 @@ from mame_curator.copy.executor import copy_one
 from mame_curator.copy.paths import is_safe_short_name, zip_path
 from mame_curator.copy.playlist import write_lpl
 from mame_curator.copy.preflight import preflight
-from mame_curator.copy.recyclebin import recycle_file
 from mame_curator.copy.run_playlist import (
     build_playlist_entries,
     existing_playlist,
     should_cancel_for_playlist_conflict,
 )
-from mame_curator.copy.run_recycle import recycle_partial_copy, recycle_unwritten_zips
+from mame_curator.copy.run_recycle import (
+    recycle_and_record,
+    recycle_partial_copy,
+    recycle_unwritten_zips,
+)
 from mame_curator.copy.run_state import (
     RunState,
     finish_early,
@@ -46,7 +49,6 @@ from mame_curator.copy.types import (
     CopyReport,
     CopyReportStatus,
     OverwriteRecord,
-    RecycleRecord,
 )
 
 logger = logging.getLogger(__name__)
@@ -103,11 +105,9 @@ def _run_copy(
     kept_playlist = existing_playlist(plan, pre)
     log_started(plan, state, plan_summary, data_dir=data_dir)
 
-    # FP08 R1 (Cluster R): quote w.name via repr() — the BIOS short-name
-    # flows from DAT data (user-controlled).
+    # repr: the BIOS name comes from DAT data.
     state.warnings.extend(f"{w.name!r}: {w.kind}" for w in bios_warnings)
 
-    # DS02 A4: CANCEL idempotency guard extracted; see helper docstring.
     if should_cancel_for_playlist_conflict(plan, pre):
         status = CopyReportStatus.CANCELLED_PLAYLIST_CONFLICT
         return finish_early(plan, state, plan_summary, status, data_dir=data_dir)
@@ -269,26 +269,8 @@ def _replace_existing(
     if decision.kind is not AppendDecisionKind.REPLACE_AND_RECYCLE:
         return
     old_zip = zip_path(plan.dest_dir, replaced_short)
-    if not old_zip.exists() or plan.dry_run:
-        return
-    try:
-        new_path = recycle_file(
-            old_zip,
-            reason="REPLACE_AND_RECYCLE",
-            session_id=state.session_id,
-            recycle_root=data_dir / "recycle",
-        )
-    except (OSError, CopyError) as exc:
-        # mame-curator-1192: OSError too, as the OVERWRITE recycle site
-        # catches — _session_lock can raise a raw PermissionError, which must
-        # not stop the copy. FP08 A1: quote old_zip.name via repr() — the
-        # basename embeds replaced_short which flows from
-        # AppendDecision.replaces (a DAT machine short name; user-data path).
-        state.warnings.append(f"recycle of {old_zip.name!r} failed: {exc}")
-        return
-    state.recycled.append(
-        RecycleRecord(original_path=old_zip, recycled_path=new_path, reason="REPLACE_AND_RECYCLE")
-    )
+    if old_zip.exists() and not plan.dry_run:
+        recycle_and_record(old_zip, "REPLACE_AND_RECYCLE", state, data_dir=data_dir)
 
 
 def _copy_file(

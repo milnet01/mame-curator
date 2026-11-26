@@ -45,23 +45,6 @@ def make_plan_summary(plan: CopyPlan, bios_count: int) -> PlanSummary:
     )
 
 
-def _chd_missing(plan: CopyPlan) -> tuple[str, ...]:
-    return tuple(sorted(short for short in plan.winners if short in plan.chd_required))
-
-
-def _by_name(outcomes: list[CopyOutcome]) -> tuple[CopyOutcome, ...]:
-    return tuple(sorted(outcomes, key=lambda o: o.short_name))
-
-
-# copy/spec.md § Sorting: every report tuple is sorted (mame-curator-1230).
-def _overwrites(state: RunState) -> tuple[OverwriteRecord, ...]:
-    return tuple(sorted(state.overwritten, key=lambda r: (r.old_short, r.new_short)))
-
-
-def _recycles(state: RunState) -> tuple[RecycleRecord, ...]:
-    return tuple(sorted(state.recycled, key=lambda r: str(r.original_path)))
-
-
 @dataclass
 class RunState:
     """What a run has done so far, kept so a crash can still be reported.
@@ -83,6 +66,40 @@ class RunState:
     recycled: list[RecycleRecord] = field(default_factory=list)
     # Counted as files finish, so a cancel that recycles them keeps the total.
     bytes_copied: int = 0
+
+
+def _by_name(outcomes: list[CopyOutcome]) -> tuple[CopyOutcome, ...]:
+    return tuple(sorted(outcomes, key=lambda o: o.short_name))
+
+
+def _build_report(
+    plan: CopyPlan,
+    state: RunState,
+    plan_summary: PlanSummary,
+    status: CopyReportStatus,
+    finished_at: datetime,
+    *,
+    extra_warning: str | None = None,
+) -> CopyReport:
+    """The report of everything ``state`` holds; copy/spec.md § Sorting orders each tuple."""
+    warnings = (*state.warnings, extra_warning) if extra_warning else tuple(state.warnings)
+    return CopyReport(
+        session_id=state.session_id,
+        started_at=state.started_at,
+        finished_at=finished_at,
+        status=status,
+        plan_summary=plan_summary,
+        succeeded=_by_name(state.succeeded),
+        skipped=_by_name(state.skipped),
+        failed=_by_name(state.failed),
+        overwritten=tuple(sorted(state.overwritten, key=lambda r: (r.old_short, r.new_short))),
+        recycled=tuple(sorted(state.recycled, key=lambda r: str(r.original_path))),
+        bios_included=tuple(sorted(state.bios_set)),
+        # Winners the parser flags as needing a CHD: copied, but unplayable without it.
+        chd_missing=tuple(sorted(w for w in plan.winners if w in plan.chd_required)),
+        bytes_copied=state.bytes_copied,
+        warnings=warnings,
+    )
 
 
 def log_started(
@@ -123,24 +140,13 @@ def record_crash(
     if on_crash is None or state.plan_summary is None:
         return
     try:
-        report = CopyReport(
-            session_id=state.session_id,
-            started_at=state.started_at,
-            finished_at=datetime.now(UTC),
-            status=CopyReportStatus.ERROR,
-            plan_summary=state.plan_summary,
-            succeeded=_by_name(state.succeeded),
-            skipped=_by_name(state.skipped),
-            failed=_by_name(state.failed),
-            overwritten=_overwrites(state),
-            recycled=_recycles(state),
-            bios_included=tuple(sorted(state.bios_set)),
-            chd_missing=_chd_missing(plan),
-            bytes_copied=sum(o.bytes for o in state.succeeded),
-            warnings=(
-                *state.warnings,
-                f"stopped because of an error: {short_error_message(exc)}",
-            ),
+        report = _build_report(
+            plan,
+            state,
+            state.plan_summary,
+            CopyReportStatus.ERROR,
+            datetime.now(UTC),
+            extra_warning=f"stopped because of an error: {short_error_message(exc)}",
         )
         on_crash(report)
     except Exception:
@@ -191,17 +197,7 @@ def finish_early(
 ) -> CopyReport:
     """End a run before any file was copied: an empty report and `copy_aborted`."""
     finished_at = datetime.now(UTC)
-    report = CopyReport(
-        session_id=state.session_id,
-        started_at=state.started_at,
-        finished_at=finished_at,
-        status=status,
-        plan_summary=plan_summary,
-        bios_included=tuple(sorted(state.bios_set)),
-        chd_missing=_chd_missing(plan),
-        recycled=_recycles(state),
-        warnings=tuple(state.warnings),
-    )
+    report = _build_report(plan, state, plan_summary, status, finished_at)
     append_activity(
         _aborted_event(state, status, finished_at), log_path=data_dir / "activity.jsonl"
     )
@@ -225,22 +221,7 @@ def finish_report(
     else:
         status = CopyReportStatus.OK
 
-    report = CopyReport(
-        session_id=state.session_id,
-        started_at=state.started_at,
-        finished_at=finished_at,
-        status=status,
-        plan_summary=plan_summary,
-        succeeded=_by_name(state.succeeded),
-        skipped=_by_name(state.skipped),
-        failed=_by_name(state.failed),
-        overwritten=_overwrites(state),
-        recycled=_recycles(state),
-        bios_included=tuple(sorted(state.bios_set)),
-        chd_missing=_chd_missing(plan),
-        bytes_copied=state.bytes_copied,
-        warnings=tuple(state.warnings),
-    )
+    report = _build_report(plan, state, plan_summary, status, finished_at)
     if status in (CopyReportStatus.OK, CopyReportStatus.PARTIAL_FAILURE):
         event = _finished_event(state, status, finished_at)
     else:

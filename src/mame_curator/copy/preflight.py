@@ -62,6 +62,7 @@ def preflight(plan: CopyPlan) -> PreflightResult:
     already: list[str] = []
     for short in plan.winners:
         if not is_safe_short_name(short):
+            # copy/spec.md § CopyPlan: preflight counts it missing; the run fails it.
             missing.append(short)
             continue
         src = plan.source_dir / f"{short}.zip"

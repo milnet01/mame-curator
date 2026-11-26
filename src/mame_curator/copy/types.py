@@ -2,8 +2,8 @@
 
 Every public input/output surface is a frozen Pydantic model with
 `extra="forbid"` per `coding-standards.md` § 3 (no implicit-Optional,
-no surprise fields). Sorting on every tuple field is canonical so
-the report is byte-identical across reruns (tested via `test_copy_idempotent`).
+no surprise fields). `CopyReport`'s tuples arrive sorted (copy/spec.md
+§ Sorting), so the same run gives a byte-identical report.
 """
 
 from __future__ import annotations

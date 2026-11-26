@@ -276,10 +276,8 @@ def recycle_file(
         while (target_dir / path.name).exists():
             counter += 1
             target_dir = base.with_name(f"{base.name}-{counter}")
-        # FP28-A3: target_dir_existed snapshot is race-free under the
-        # _session_lock above; the two rollback sites (L below) that
-        # rmdir when this is False can no longer touch another session's
-        # directory.
+        # Race-free under _session_lock: the two rollbacks below rmdir only
+        # a directory this call created, never another session's.
         target_dir_existed = target_dir.exists()
         target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -295,11 +293,8 @@ def recycle_file(
             "original_path": str(path),
         }
 
-        # FP21-D: write manifest first. If this fails the source file is
-        # untouched (never moved), so there is no rollback to perform — the
-        # filesystem is in the same state as before the call. atomic_write_text
-        # itself is tmp+rename+fsync (FP20-B) so a crash mid-write leaves no
-        # half-written manifest either.
+        # Manifest first: if it fails, the source was never moved, and only
+        # the directory this call created is removed.
         try:
             atomic_write_text(manifest, json.dumps(payload, indent=2))
         except OSError as exc:

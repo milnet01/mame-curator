@@ -38,6 +38,7 @@ def _build_payload(
     items.extend(kept)
     # Top-level keys in canonical RetroArch order.
     payload: dict[str, Any] = {
+        # RetroArch's playlist-format version, not the RetroArch app version.
         "version": "1.5",
         "default_core_path": "",
         "default_core_name": "",

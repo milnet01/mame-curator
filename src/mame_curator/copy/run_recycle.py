@@ -5,12 +5,32 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from mame_curator.copy.errors import CopyError, RecycleError
+from mame_curator.copy.errors import CopyError
 from mame_curator.copy.recyclebin import recycle_file
 from mame_curator.copy.run_state import RunState
 from mame_curator.copy.types import CopyOutcome, CopyOutcomeStatus, CopyPlan, RecycleRecord
 
 logger = logging.getLogger(__name__)
+
+
+def recycle_and_record(path: Path, reason: str, state: RunState, *, data_dir: Path) -> bool:
+    """Recycle ``path`` and record it in ``state``; return whether it moved.
+
+    A failure becomes a report warning and the run goes on: the copies it is
+    tidying up after are done. OSError too, because the session lock can
+    raise a raw PermissionError (mame-curator-1192). repr: the name comes
+    from DAT data.
+    """
+    try:
+        new_path = recycle_file(
+            path, reason=reason, session_id=state.session_id, recycle_root=data_dir / "recycle"
+        )
+    except (OSError, CopyError) as exc:
+        logger.warning("recycle of %s failed (%s): %s", path, reason, exc)
+        state.warnings.append(f"recycle of {path.name!r} failed: {exc}")
+        return False
+    state.recycled.append(RecycleRecord(original_path=path, recycled_path=new_path, reason=reason))
+    return True
 
 
 def recycle_unwritten_zips(plan: CopyPlan, state: RunState, *, data_dir: Path) -> None:
@@ -21,68 +41,21 @@ def recycle_unwritten_zips(plan: CopyPlan, state: RunState, *, data_dir: Path) -
     wrote = {o.dst.name for o in state.succeeded}
     wrote |= {o.dst.name for o in state.skipped if o.status is CopyOutcomeStatus.SKIPPED_IDEMPOTENT}
     for existing in plan.dest_dir.glob("*.zip"):
-        if existing.name in wrote:
-            continue
-        try:
-            new_path = recycle_file(
-                existing,
-                reason="OVERWRITE_DELETE_EXISTING",
-                session_id=state.session_id,
-                recycle_root=data_dir / "recycle",
-            )
-        except (OSError, CopyError) as exc:
-            # The copies are done; keep the playlist and the report.
-            state.warnings.append(f"recycle of {existing.name!r} failed: {exc}")
-            continue
-        state.recycled.append(
-            RecycleRecord(
-                original_path=existing,
-                recycled_path=new_path,
-                reason="OVERWRITE_DELETE_EXISTING",
-            )
-        )
+        if existing.name not in wrote:
+            recycle_and_record(existing, "OVERWRITE_DELETE_EXISTING", state, data_dir=data_dir)
 
 
 def recycle_partial_copy(state: RunState, *, data_dir: Path) -> None:
-    """Undo a cancelled run: recycle every file it copied, then forget them.
+    """Undo a cancelled run: recycle every file it copied, winners and BIOS alike.
 
-    FP05 A1: cancel(recycle_partial=True) recycles every successfully-copied
-    file from the current session. Spec § Pause/Resume/Cancel: "every
-    successfully-copied file from the current session is moved to recycle
-    … one `copy_aborted` activity event with `details.recycled_count = N`."
-    Both winner and bios outcomes are session-owned (recycle is keyed on
-    session_id; the user can restore a partial run end-to-end).
+    copy/spec.md § Pause / resume / cancel. A file that could not be recycled
+    is still at the destination, so it stays in ``succeeded`` (mame-curator-1230).
     """
-    # Closing-review R1: use the project-default `data/recycle/` root,
-    # matching the OVERWRITE_DELETE_EXISTING and REPLACE_AND_RECYCLE call
-    # sites. A dest-local recycle path would split recycle entries across
-    # two roots — `purge_recycle` only knows the project default.
-    stayed: list[CopyOutcome] = []
-    for outcome in tuple(state.succeeded):
-        try:
-            new_path = recycle_file(
-                outcome.dst,
-                reason="CANCELLED_RECYCLE_PARTIAL",
-                session_id=state.session_id,
-                recycle_root=data_dir / "recycle",
-            )
-        except (OSError, RecycleError) as exc:
-            logger.exception(
-                "recycle_file(short=%s) failed during cancel-with-partial",
-                outcome.short_name,
-            )
-            # Still at the destination, so still in the report, and said so
-            # (mame-curator-1230). repr: the name comes from DAT data.
-            stayed.append(outcome)
-            state.warnings.append(f"recycle of {outcome.dst.name!r} failed: {exc}")
-            continue
-        state.recycled.append(
-            RecycleRecord(
-                original_path=outcome.dst,
-                recycled_path=new_path,
-                reason="CANCELLED_RECYCLE_PARTIAL",
-            )
+    stayed: list[CopyOutcome] = [
+        outcome
+        for outcome in tuple(state.succeeded)
+        if not recycle_and_record(
+            outcome.dst, "CANCELLED_RECYCLE_PARTIAL", state, data_dir=data_dir
         )
-    # The recycled files are no longer at dst; only the ones that stayed
-    # remain in `succeeded`.
+    ]
     state.succeeded[:] = stayed

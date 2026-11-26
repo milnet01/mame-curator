@@ -291,7 +291,6 @@ class CopyControlState(StrEnum):
     RUNNING = "RUNNING"
     PAUSED = "PAUSED"
     CANCELLING = "CANCELLING"
-    DONE = "DONE"
 
 class CopyController:
     def __init__(self) -> None:

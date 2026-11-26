@@ -103,7 +103,7 @@ def test_recycle_failure_warning_quotes_short_name_with_control_byte(
     def _fail_recycle(*_a: object, **_kw: object) -> Path:
         raise RecycleError("simulated recycle failure", path=evil_zip)
 
-    monkeypatch.setattr("mame_curator.copy.runner.recycle_file", _fail_recycle)
+    monkeypatch.setattr("mame_curator.copy.run_recycle.recycle_file", _fail_recycle)
 
     plan = CopyPlan(
         winners=("kof94",),
