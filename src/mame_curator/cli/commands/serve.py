@@ -96,42 +96,24 @@ def _load_server_config(path: Path) -> ServerConfig:
     # which `_cmd_serve` treats as an optional extra and reports on
     # separately (exit-1 path 3). This function only runs after that
     # import has already succeeded.
-    import yaml
     from pydantic import ValidationError
 
     from mame_curator.api.errors import ConfigError
     from mame_curator.api.schemas import ServerConfig
-    from mame_curator.api.state import _drop_unknown_keys
+    from mame_curator.api.state import ignore_unknown_keys, read_yaml_mapping
 
-    try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except OSError as exc:
-        raise ConfigError(f"failed to read {str(path)!r}: {exc!r}") from exc
-    except yaml.YAMLError as exc:
-        # repr-quote `exc`: YAML and Pydantic error strings are multi-line,
-        # and ConfigError's `detail` is single-line by API contract (FP09 A1).
-        raise ConfigError(f"failed to parse {str(path)!r}: {exc!r}") from exc
-
-    if not isinstance(raw, dict):
-        raise ConfigError(f"{str(path)!r} must be a YAML mapping")
-
+    raw = read_yaml_mapping(path)
     # `or {}` so an explicit `server:` with no value reads as "absent",
     # matching a file with no `server:` key at all.
     block = raw.get("server") or {}
     if isinstance(block, dict):
-        # mame-curator-1131: drop keys a newer version wrote, as
-        # load_app_config does, so a rollback still starts. A non-mapping
-        # block is left for validation to refuse.
-        dropped = _drop_unknown_keys(ServerConfig, block, prefix="server.")
-        if dropped:
-            logger.warning(
-                "%r: ignoring keys this version does not recognise: %s",
-                str(path),
-                ", ".join(map(repr, dropped)),
-            )
+        # A non-mapping block is left for validation to refuse.
+        ignore_unknown_keys(ServerConfig, block, where=str(path), prefix="server.")
     try:
         return ServerConfig.model_validate(block)
     except ValidationError as exc:
+        # repr-quote `exc`: a Pydantic error message spans several lines, and
+        # ConfigError's `detail` is single-line by API contract (FP09 A1).
         raise ConfigError(f"{str(path)!r} has an invalid `server:` block: {exc!r}") from exc
 
 

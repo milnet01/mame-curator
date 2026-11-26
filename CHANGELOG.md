@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-26 Fixed — Starting the server with a damaged config file
+
+- **`mame-curator serve` reports a config.yaml that is not UTF-8 text in one error line** (mame-curator-1239)
+  It used to crash with a long error report. It now reads config.yaml
+  with the same code the web service uses, so the two cannot drift
+  apart again.
+
 ### 2026-11-26 Fixed — The Library page: every game, a full cart, and one copy at a time
 
 - **The Library shows every game that matches** (mame-curator-1234)

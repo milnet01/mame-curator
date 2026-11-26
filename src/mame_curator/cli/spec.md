@@ -127,7 +127,9 @@ surface too**; `P04-http-api.md` § "Contract" says so and defers here.
    is deliberately not used here, `cli/` opens and parses the file itself,
    which means it **raises** this error rather than merely catching one.
    The reader is `cli/commands/serve.py:_load_server_config(path: Path) ->
-   ServerConfig`; it wraps `OSError` and YAML parse errors, and re-raises
+   ServerConfig`; it wraps `OSError`, a file that is not UTF-8 and YAML
+   parse errors (through `api.state.read_yaml_mapping`, as
+   `load_app_config` does), and re-raises
    `pydantic.ValidationError`, as `api.errors.ConfigError` naming the file
    and the cause. `cli/` re-uses `api.errors.ConfigError` rather than
    defining a `CliError` of its own: the failure *is* an API-config

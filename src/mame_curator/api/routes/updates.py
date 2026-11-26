@@ -228,11 +228,13 @@ def _keep_record(world: WorldState, record: dict[str, Any], log: tuple[str, str]
 
 async def _apply_git(request: Request, world: WorldState) -> UpdateApplyResult:
     state = request.app.state
-    if world.config.updates.channel == "dev":
-        target, to_version = DEV_TARGET, None
+    # The dev channel follows a branch, so its versions are commit ids.
+    dev = world.config.updates.channel == "dev"
+    if dev:
+        target, release_version = DEV_TARGET, ""
     else:
         release = await _newer_release(request)
-        target, to_version = release.tag, release.version
+        target, release_version = release.tag, release.version
     targets = _snapshot_targets(world)
     result = await asyncio.to_thread(
         apply_git_update,
@@ -241,12 +243,11 @@ async def _apply_git(request: Request, world: WorldState) -> UpdateApplyResult:
         before_move=lambda: snapshot_files(world.data_dir / "snapshots", targets),
         run=state.update_run,
     )
-    dev = to_version is None
     from_version = result.previous_commit[:7] if dev else __version__
     if result.rolled_back:
         to_version = from_version
     else:
-        to_version = result.to_commit[:7] if dev else to_version
+        to_version = result.to_commit[:7] if dev else release_version
         _keep_record(
             world,
             {
@@ -256,12 +257,12 @@ async def _apply_git(request: Request, world: WorldState) -> UpdateApplyResult:
                 "from_version": from_version,
                 "to_version": to_version,
             },
-            (from_version, str(to_version)),
+            (from_version, to_version),
         )
     return UpdateApplyResult(
         install_kind="git",
         from_version=from_version,
-        to_version=str(to_version),
+        to_version=to_version,
         rolled_back=result.rolled_back,
         sync_failed=result.sync_failed,
         restart_required=not result.rolled_back,

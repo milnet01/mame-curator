@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict
 from mame_curator import __version__
 
 # ---------------------------------------------------------------------------
-# Setup / updates stubs
+# Setup and update responses
 # ---------------------------------------------------------------------------
 
 

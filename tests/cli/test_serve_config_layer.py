@@ -182,6 +182,21 @@ def test_unreadable_config_exits_1_naming_the_file(
     assert "config.yaml" in capsys.readouterr().err
 
 
+def test_non_utf8_config_exits_1_naming_the_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """mame-curator-1239: read as the API lifespan reads it, so no traceback."""
+    monkeypatch.delenv("PORT", raising=False)
+    config = tmp_path / "config.yaml"
+    config.write_bytes(b"server:\n  host: \xff\xfe\n")
+
+    rc, kwargs = _serve(_serve_args(config))
+
+    assert rc == 1
+    assert not kwargs
+    assert "config.yaml" in capsys.readouterr().err
+
+
 def test_non_mapping_config_exits_1(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

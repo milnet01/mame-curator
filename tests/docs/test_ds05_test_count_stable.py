@@ -440,7 +440,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # 1385 → 1394.
 # Bumped 2026-11-18 (mame-curator-1237): INI and listxml reading fixes.
 # 1394 → 1399.
-EXPECTED_PYTEST_DECLARATIONS = 1399
+# Bumped 2026-11-26 (mame-curator-1239): serve reads a non-UTF-8 config.yaml
+# cleanly. 1399 → 1400.
+EXPECTED_PYTEST_DECLARATIONS = 1400
 # Bumped 2026-05-17 (P14 chunk 7): +3 vitest declarations for the new
 # frontend/src/hooks/__tests__/useReviewState.test.tsx (optimistic
 # update + rollback + clear). 289 → 292.

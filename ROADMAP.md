@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: mame-curator=1267 -->
+<!-- ants-roadmap-id-high-water: mame-curator=1268 -->
 
 <!-- mame-roadmap-format: 1 -->
 
@@ -4752,7 +4752,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1239] **Make the web-service code easier to follow (2026-11-11 readability review) (part 2 of 2).**
+- ✅ [mame-curator-1239] **Make the web-service code easier to follow (2026-11-11 readability review) (part 2 of 2).**
   Group `rd-api` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4763,6 +4763,11 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-04-7 [LOW] api/state.py:200: `_read_ini` (lines 193-210) and `_read_listxml` (lines 213-227) are one "optional file; skip with WARNING if unreadable" behaviour. Fix: route the listxml through the same helper.
   - RR-04-11 [LOW] api/state.py:332: Pydantic's `frozen` stops a field from being reassigned; it does not stop changes to the dict itself. Fix: say the field is not reassignable and the dict is shared by convention, not enforced.
   - RR-04-12 [LOW] api/state.py:460: The example points at something that does not exist. Fix: drop the example, or name a real one.
+  Fixed 2026-11-26. All seven findings fixed. RR-05-5 took the docstring
+  fix: renaming the file would touch CLAUDE.md, tests and shipped specs
+  that cite it. RR-04-5 turned out to be a real divergence: serve
+  crashed on a non-UTF-8 config; now covered by
+  test_non_utf8_config_exits_1_naming_the_file.
   **Layman:** Tidying so someone new can follow and change the web-service code safely.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -5168,6 +5173,21 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   **Layman:** A test's description points at code by line numbers that are no longer right.
   Kind: doc-fix.
   Source: close-findings-sweep-mame-curator-1238-2026-11-26.
+
+- 📋 [mame-curator-1268] **Clear the two websockets deprecation warnings uvicorn's import prints in the test run.**
+  Seen 2026-11-26 in tests/cli/test_serve_startup_failure.py::
+  test_a_bug_in_the_lifespan_still_shows_its_traceback:
+  - websockets/legacy/__init__.py: "websockets.legacy is deprecated"
+  - uvicorn/protocols/websockets/websockets_impl.py:
+    "websockets.server.WebSocketServerProtocol is deprecated"
+  Both come from uvicorn loading its legacy websockets backend. Options:
+  set uvicorn's ws="websockets-sansio" (or "none": no route or frontend
+  code uses websockets), or wait for uvicorn to drop the legacy import.
+  `_selftest.py` checks the websockets package imports, for the desktop
+  bundles; keep that in step with whichever option is taken.
+  **Layman:** Two upstream "this will be removed" notices show up in the test output; switch the server off the old code path they warn about.
+  Kind: chore.
+  Source: gate-warning 2026-11-26 (mame-curator-1239 test run).
 
 ## Considered / under research (no target date)
 

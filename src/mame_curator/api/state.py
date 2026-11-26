@@ -44,7 +44,6 @@ from mame_curator.parser import (
 from mame_curator.parser.errors import INIError, ListxmlError
 from mame_curator.parser.listxml import (
     BIOSChainEntry,
-    ListxmlFacts,
     apply_driver_status,
     parse_listxml,
 )
@@ -108,18 +107,7 @@ def load_app_config(config_path: Path) -> AppConfig:
     """Read and validate ``config.yaml`` from disk."""
     if not config_path.exists():
         raise ConfigError(f"config file does not exist: {str(config_path)!r}")
-    try:
-        raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError) as exc:
-        # mame-curator-1226: unreadable (a folder, no permission, not UTF-8)
-        # is a config fault, so `serve` can report it in one line.
-        raise ConfigError(f"failed to read {str(config_path)!r}: {exc!r}") from exc
-    except yaml.YAMLError as exc:
-        # FP09 A1: repr-quote `exc` so a multi-line YAML error message can't
-        # break the FP06-FP08 single-line `detail` invariant.
-        raise ConfigError(f"failed to parse {str(config_path)!r}: {exc!r}") from exc
-    if not isinstance(raw, dict):
-        raise ConfigError(f"{str(config_path)!r} must be a YAML mapping")
+    raw = read_yaml_mapping(config_path)
     try:
         raw = normalise_raw_config(raw, str(config_path))
     except ValueError as exc:
@@ -148,7 +136,43 @@ def normalise_raw_config(raw: dict[str, Any], where: str) -> dict[str, Any]:
         ValueError: from ``merge_picker_into_filters``.
     """
     raw = merge_picker_into_filters(raw)
-    dropped = _drop_unknown_keys(AppConfig, raw, prefix="")
+    ignore_unknown_keys(AppConfig, raw, where=where)
+    return raw
+
+
+def read_yaml_mapping(path: Path) -> dict[str, Any]:
+    """``path`` parsed as YAML that must be a mapping.
+
+    The first step of every ``config.yaml`` reader: ``load_app_config``
+    and ``cli/commands/serve.py``'s ``_load_server_config``.
+
+    Raises:
+        ConfigError: unreadable (a folder, no permission, not UTF-8), not
+            YAML, or not a mapping. The message is one line (FP09 A1), so
+            ``serve`` can report it as one.
+    """
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ConfigError(f"failed to read {str(path)!r}: {exc!r}") from exc
+    except yaml.YAMLError as exc:
+        # repr-quote `exc`: a YAML error message spans several lines.
+        raise ConfigError(f"failed to parse {str(path)!r}: {exc!r}") from exc
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{str(path)!r} must be a YAML mapping")
+    return raw
+
+
+def ignore_unknown_keys(
+    model: type[BaseModel], data: dict[str, Any], *, where: str, prefix: str = ""
+) -> None:
+    """Drop keys ``model`` has no field for, with one WARNING naming them.
+
+    A newer version may have written them; dropping them lets a rollback
+    still load (mame-curator-1131). Mutates ``data``. ``prefix`` is the
+    dotted path of ``data`` inside the file, for the names in the warning.
+    """
+    dropped = _drop_unknown_keys(model, data, prefix=prefix)
     if dropped:
         # repr each name: a key holding a newline must not forge a log line.
         logger.warning(
@@ -156,16 +180,13 @@ def normalise_raw_config(raw: dict[str, Any], where: str) -> dict[str, Any]:
             where,
             ", ".join(map(repr, dropped)),
         )
-    return raw
 
 
 def _drop_unknown_keys(model: type[BaseModel], data: dict[str, Any], *, prefix: str) -> list[str]:
     """Remove keys ``model`` has no field for, recursing into nested models.
 
-    Also called from outside this module, by ``cli/commands/serve.py``'s
-    ``_load_server_config`` for the ``server:`` block. Mutates ``data``;
-    returns the dotted names of the keys removed. A value that is not a
-    mapping is left for validation to judge.
+    Mutates ``data``; returns the dotted names of the keys removed. A value
+    that is not a mapping is left for validation to judge.
     """
     dropped: list[str] = []
     for key in list(data):
@@ -201,7 +222,9 @@ def ini_context_fields(
     """
 
     def read[T](parse: Callable[[Path], T], path: Path | None) -> T | None:
-        return _read_ini(parse, path, skip_unreadable=skip_unreadable)
+        if not skip_unreadable:
+            return parse(path) if path else None
+        return _read_optional(parse, path, INIError, "reference INI")
 
     # parse_series result not needed by FilterContext but call to validate file.
     read(parse_series, series)
@@ -214,40 +237,22 @@ def ini_context_fields(
     }
 
 
-def _read_ini[T](
-    parse: Callable[[Path], T], path: Path | None, *, skip_unreadable: bool
+def _read_optional[T](
+    parse: Callable[[Path], T], path: Path | None, error: type[Exception], what: str
 ) -> T | None:
-    """One reference INI's data; None when unset, or unreadable and skipped.
+    """An optional reference file's data; None when unset or unreadable.
 
-    mame-curator-1200: at startup an INI that is missing or cannot be read is
-    skipped with a WARNING, as mame-curator-1168 does for the listxml. A
-    Settings save of a bad path used to stop the next start.
+    At startup a reference INI or listxml that is missing or will not parse
+    (``parse`` raises ``error``) is skipped with a WARNING instead of failing
+    the start: a Settings save of a bad path used to stop the next start
+    (mame-curator-1168, mame-curator-1200).
     """
     if not path:
         return None
     try:
         return parse(path)
-    except INIError as exc:
-        if not skip_unreadable:
-            raise
-        logger.warning("reference INI unreadable (%s) — starting without it: %s", str(path), exc)
-        return None
-
-
-def _read_listxml(path: Path | None) -> ListxmlFacts | None:
-    """The listxml's facts; None when none is set or it cannot be read.
-
-    mame-curator-1168: the file is optional, so one that is missing or will
-    not parse is skipped with a WARNING instead of failing the start. A
-    Settings save of a bad path used to stop the next start.
-    """
-    if not path:
-        return None
-    try:
-        # mame-curator-1118: one pass over the ~300 MB file, not four.
-        return parse_listxml(path)
-    except ListxmlError as exc:
-        logger.warning("listxml unreadable (%s) — starting without it: %s", str(path), exc)
+    except error as exc:
+        logger.warning("%s unreadable (%s) — starting without it: %s", what, str(path), exc)
         return None
 
 
@@ -282,7 +287,8 @@ def build_world(config_path: Path) -> WorldState:
         skip_unreadable=True,
     )
 
-    listxml = _read_listxml(paths.listxml)
+    # mame-curator-1118: one pass over the ~300 MB file, not four.
+    listxml = _read_optional(parse_listxml, paths.listxml, ListxmlError, "listxml")
     if listxml is not None:
         cloneof_map = listxml.cloneof
         bios_chain = listxml.bios_chain
@@ -352,9 +358,9 @@ def _compute_bytes_by_machine(machines: dict[str, Machine]) -> Mapping[str, int]
     """DS02 G2: precompute `name -> sum(rom.size or 0)` for every machine.
 
     One-pass walk at WorldState construction (~43k machines * ~10
-    ROMs each ≈ a few hundred ms on first parse). The dict is then
-    frozen with WorldState's `model_config = ConfigDict(frozen=True)`
-    so downstream calls cannot mutate it.
+    ROMs each ≈ a few hundred ms on first parse). WorldState's
+    `frozen=True` stops the field being reassigned, not the dict being
+    changed: callers leave it alone by convention.
     """
     return {name: sum((r.size or 0) for r in machine.roms) for name, machine in machines.items()}
 
@@ -467,8 +473,7 @@ def deep_merge(base: dict[str, Any], patch: dict[str, Any], *, _depth: int = 0) 
     """
     if _depth >= _MERGE_MAX_DEPTH:
         # Treat over-deep patches as replace-at-this-level — preserves
-        # idempotence on the rare-but-legitimate case where the user
-        # nests a deep dict on purpose (e.g. logging.handlers.console).
+        # idempotence should a patch ever nest a deep dict on purpose.
         return dict(patch)
     out = dict(base)
     for k, v in patch.items():

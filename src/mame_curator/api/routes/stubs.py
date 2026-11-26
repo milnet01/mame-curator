@@ -1,4 +1,7 @@
-"""R35 (setup-check). R36 (updates-check) moved to ``routes/updates.py``."""
+"""The setup wizard's checks: ``/api/setup/check`` and ``/api/setup/dat-check``.
+
+The module keeps its old name; nothing in it is a stub.
+"""
 
 from __future__ import annotations
 
