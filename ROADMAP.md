@@ -4609,7 +4609,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
 
-- 📋 [mame-curator-1234] **Fix the Library page findings from the 2026-11-11 code review (part 2 of 2).**
+- ✅ [mame-curator-1234] **Fix the Library page findings from the 2026-11-11 code review (part 2 of 2).**
   Group `library-page-ui` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
@@ -4641,6 +4641,10 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   the 80-line function cap, as most components here are; reaching it would
   break up the JSX the source-text tests read. Left: the § 4 sweep, the
   flip and CHANGELOG.
+  2026-11-26: sweep done; item closed. All seven findings fixed (RL-45
+  with RR-09-3). The sweep pointed five open bullets (1242, 1244, 1248,
+  1249, 1251) at the code their cited lines moved to, and dropped a
+  stale line number from docs/audit-allowlist.md allowlist-002.
   **Layman:** Faults on the Library page: filters, paging, the copy dialog and the cards.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -4803,7 +4807,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   Group `rd-fe-pages` of mame-curator-1225. Quotes and premises are in the
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
-  - RR-10-5 [MEDIUM] fe/components/library/FiltersSidebar.tsx:104-115: The debounced search box exists twice. Fix: one shared debounced search-box component that carries the id.
+  - RR-10-5 [MEDIUM] fe/components/library/FiltersSidebar.tsx:104-115 (the `searchDraft` debounce effect, higher in the same file since 2026-11-21): The debounced search box exists twice. Fix: one shared debounced search-box component that carries the id.
   - RR-10-7 [LOW] fe/components/library/GameCard.tsx:101-102: It claims that a cart drawer renders `GameCard` alongside the grid. Fix: drop the false clause and keep the one-line invariant.
   - RR-10-9 [LOW] fe/components/library/LibraryFullHeader.tsx:86: The walkthrough setting is read in `libraryPageHelpers.readWalkthroughPref` but saved here, inside one switch's handler. Fix: save beside `readWalkthroughPref`, in the owner's setter.
   - RR-11-4 [LOW] fe/components/settings/DragReorderList.tsx:30-37: The current rule is "`role=list`, because rows are moved by per-row controls". Fix: lead with the rule in one line and move the story to the journal.
@@ -4855,7 +4859,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-08-15 [LOW] fe/components/layout/AppShell.tsx:177-178: It goes on to say Ctrl on Windows and Super on Linux. Fix: say "Cmd or Ctrl, any platform".
   - RR-08-2 (+RR-09-5) [MEDIUM] fe/components/layout/ErrorBoundary.tsx:55-68: The default crash panel is copied, markup for markup, into LibraryPage's drawer fallback (LibraryPage:270-288) and copy-modal fallback (346-362). Fix: give ErrorBoundary a `title` prop and drop the two inline fallbacks.
   - RR-08-9 [LOW] fe/hooks/useAlternatives.ts:47-52: The same "reload games and every version list" step appears three times: here, useAlternatives.ts:84-88 and usePicture.ts:46-50. Fix: one shared helper.
-  - RR-08-1 [MEDIUM] fe/hooks/useCart.ts:118: The cart uses three different rules for "is this entry that game?": Fix: run `remove`, `setVariant` and `addAll` through `holds`, or name their parameter as the stored key.
+  - RR-08-1 [MEDIUM] fe/hooks/useCart.ts:118 (`remove`, lower in the same file since 2026-11-18): The cart uses three different rules for "is this entry that game?": Fix: run `remove`, `setVariant` and `addAll` through `holds`, or name their parameter as the stored key.
   - RR-08-18 [LOW] fe/hooks/useConfig.ts:124: Export and import live in `routes/backup.py` (lines 45 and 155), not config.py. Fix: name the file, not line numbers.
   - RR-08-20 [LOW] fe/hooks/useDryRun.ts:12: The dry-run route is at copy.py:101. Fix: drop the line number and state the current input.
   - RR-08-12 [LOW] fe/hooks/useGameGridFocus.ts:34: It finds an index and moves no focus. Fix: rename it to something like `findNextPending`.
@@ -4928,7 +4932,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - CR-08-6 [LOW] fe/hooks/useReviewState.ts:55-56: A failed review-state change restores the whole snapshot, wiping an overlapping change. Fix: on error, undo only this one game's entry, not the whole snapshot.
   - CR-10-1 [HIGH] fe/pages/SettingsPage.tsx:134: Settings PATCHes send whole sections built from a stale render, so quick edits revert each other. Fix: either queue config PATCHes one at a time, building each from the latest cache, or apply an optimistic `setQueryData` before each mutate, or send only the changed key.
   - RL-46 [LEAD] fe/pages/libraryPageHelpers.ts:109-110: For a tile with only `yearFrom`, the count sends only `year_min`. The list sends both `year_min` and `year_max` = 2025, because `yearsChosen` is true. The tile's count and the games then shown could differ.
-  - CR-09-3 [MEDIUM] fe/pages/useLibraryController.ts:346: Saving a session without touching the slider stores the 1975-2025 default range, hiding games the view showed. Fix: reuse `yearsChosen` and save `null` when it is false.
+  - CR-09-3 [MEDIUM] fe/pages/useLibraryController.ts:346 (`handleSaveSession`, higher in the same file since 2026-11-21): Saving a session without touching the slider stores the 1975-2025 default range, hiding games the view showed. Fix: reuse `yearsChosen` and save `null` when it is false.
   **Layman:** Some Settings changes are not saved as shown, and the year range misbehaves at its edges.
   Kind: review-fix.
   Source: review-code + review-readability 2026-11-11 (tree 401db7a).
@@ -4938,7 +4942,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   findings ledger, /mnt/Emulators/.claude/Scratchpad/MAME_Curator/
   close-findings-2026-11-11/ledger.json (not in the repo).
   - CR-09-1 (+CR-07-1, RR-10-1, RR-10-2, RL-53) [HIGH] fe/components/alternatives/WhyPickedPanel.tsx:9: WhyPickedPanel and NotesEditor are never mounted, so notes cannot be viewed or edited and "why picked" never shows. Fix: mount both panels in the drawer, with an explanation query and a notes GET/PUT hook. NotesEditor needs `key={winner.short_name}`, as its own contract requires. Otherwise, strike both from design § 8 and P06. USER DECIDED 2026-11-11: show both the notes box and the "Why was this picked?" panel in the side panel.
-  - CR-08-4 (+RR-08-11) [LOW] fe/hooks/useCart.ts:187: useCart.totalBytes is always 0, though P15 promises a cart size in the bottom bar. USER DECIDED 2026-11-16: build it; the bottom bar shows the chosen games' total size.
+  - CR-08-4 (+RR-08-11) [LOW] fe/hooks/useCart.ts:187 (`totalBytes`, lower in the same file since 2026-11-18): useCart.totalBytes is always 0, though P15 promises a cart size in the bottom bar. USER DECIDED 2026-11-16: build it; the bottom bar shows the chosen games' total size.
   - CR-07-13 [LOW] api/routes/copy.py:179,218: /api/copy/history and /report have no frontend caller; whether a UI was promised is unknown. ASK USER: Was a copy-history UI promised, or is the Activity page its replacement?
   - CR-07-2 [HIGH] api/schemas.py:162-163: Settings offers default_sort and show_alternatives_indicator, and nothing reads them. Fix: The user changes the setting, it saves, and nothing happens. Fix: wire the sort (a `sort=` query parameter, or sort on the client) and the alternatives indicator on `GameCard`, or remove both from Settings. Removal still keeps the keys readable, under versioning-overrides item 1. USER DECIDED 2026-11-11: make Default sort and the other-versions mark work.
   **Layman:** Some features are built but never shown; two you decided to show, two need your answer.
@@ -4980,7 +4984,7 @@ Carried over from 1.3.0, which shipped 2026-09-28 without them.
   - RR-08-5 [MEDIUM] fe/components/CmdKPalette.tsx:13-15: One set of section names is kept by hand in four places: Fix: build the type from `SECTION_ORDER` declared `as const`.
   - RL-37 [LEAD] fe/lib/apiErrorToast.ts:96-97: `strings.errors.byCode` is cast `as Record<string, string>` (strings_internal.ts:937), so `keyof typeof …byCode` is just `string` and `friendly` is typed `string` although it can be `undefined`. Line 99 relies on `copy_names_unknown` being present, with no check.
   - RR-09-9 [LOW] fe/pages/SettingsPage.tsx:410: This is a third hand-kept list of the "cards per row" values, beside `CARDS_PER_ROW_VALUES` (line 50) and the `CardsPerRowHint` type. Fix: cast to `CardsPerRowHint` instead.
-  - RR-09-6 [LOW] fe/pages/useLibraryController.ts:184-190: When a tile is switched off, this resets the tile's own fields from a second hand-kept list. Fix: one exported list of the fields a tile owns, used by both.
+  - RR-09-6 [LOW] fe/pages/useLibraryController.ts:184-190 (`handleTileSelect`, higher in the same file since 2026-11-21): When a tile is switched off, this resets the tile's own fields from a second hand-kept list. Fix: one exported list of the fields a tile owns, used by both.
   - RR-07-14 [LOW] fe/strings_guide_settings.ts:5: This is a separate copy of `UiConfig.cart_clear_on_copy`. Fix: use `UiConfig["cart_clear_on_copy"]` here and build the value arrays from the schema's options.
   - RR-04-4 [MEDIUM] api/schemas_copy.py:57: The nine job-event names are kept by hand in three places, which currently match: Fix: add a comment at each copy naming the other two (or generate the lists from one source).
   **Layman:** The same list of choices is written in two places and the copies have drifted.

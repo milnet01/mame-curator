@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-26 Fixed — The Library page: every game, a full cart, and one copy at a time
+
+- **The Library shows every game that matches** (mame-curator-1234)
+  It used to stop at the first 200, and the full view gave no sign of
+  the rest. More games now load as you scroll, in both views. The
+  simple view's "Showing the first … of …" line now reads "N games".
+- **Adding one game to a full cart says the cart is full**
+  It used to do nothing, with no message. Add all already warned.
+- **Copy waits for a dry run to finish**
+  Copy stayed available while a dry run was working, so two jobs could
+  start.
+- **Add all ignores a second press while it works**
+  A double press fetched the whole game list twice. The button now
+  greys out until it is done, and keeps keyboard focus.
+
 ### 2026-11-18 Fixed — The Library page: the cart, the copy window and Retry
 
 - **A card's ✓ Added button takes the game out of the cart** (mame-curator-1233)
